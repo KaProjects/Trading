@@ -13,8 +13,8 @@ public class DataFileReader {
 
 
     // time,open,high,low,close,Volume,Volume MA,Histogram,MACD,Signal,CCI
-    public List<DataCCI> readDataV1(String fileName) throws IOException {
-        String pathToFile = DataFileReader.class.getClassLoader().getResource(fileName).getFile();
+    public List<DataCCI> readDataV1(String pathToFile) throws IOException {
+
         BufferedReader csvReader = new BufferedReader(new FileReader(pathToFile));
 
         List<DataCCI> outputData = new ArrayList<DataCCI>();

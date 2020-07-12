@@ -9,9 +9,16 @@ import java.util.List;
 
 public class MonteCarloSimulator {
 
+    /**
+     * dimensions:
+     * <buySignalMin,  buySignalMax>
+     * <buySignal-buyConditionOffsetMin,  buySignal-buyConditionOffsetMax>
+     * <sellSignalMin,  sellSignalMax>
+     * <sellSignal+sellConditionOffsetMin,  sellSignal+sellConditionOffsetMax>
+     */
     public static void cci(List<DataCCI> data,
-                           int buySignalMin, int buySignalMax, int buyConditionDiff,
-                           int sellSignalMin, int sellSignalMax, int sellConditionDiff){
+                           int buySignalMin, int buySignalMax, int buyConditionOffsetMin, int buyConditionOffsetMax,
+                           int sellSignalMin, int sellSignalMax, int sellConditionOffsetMin, int sellConditionOffsetMax){
         BigDecimal startingCapital = new BigDecimal("1000");
         BigDecimal biggest = new BigDecimal("0");
         String biggestMsg = "";
@@ -19,9 +26,10 @@ public class MonteCarloSimulator {
         String lowestMsg = "";
 
         for (int buySignal=buySignalMin; buySignal >= buySignalMax; buySignal--) {
-            for (int buyCondition=buySignal; buyCondition >= buySignal-buyConditionDiff; buyCondition--) {
+            System.out.println(buySignal);
+            for (int buyCondition=buySignal-buyConditionOffsetMin; buyCondition >= buySignal-buyConditionOffsetMax; buyCondition--) {
                 for (int sellSignal=sellSignalMin; sellSignal <= sellSignalMax; sellSignal++) {
-                    for (int sellCondition=sellSignal; sellCondition <= sellSignal+sellConditionDiff; sellCondition++) {
+                    for (int sellCondition=sellSignal+sellConditionOffsetMin; sellCondition <= sellSignal+sellConditionOffsetMax; sellCondition++) {
                         ConditionerCCI conditioner = new ConditionerCCI(new BigDecimal(buyCondition),new BigDecimal(buySignal),new BigDecimal(sellCondition),new BigDecimal(sellSignal));
                         TraderCCI trader = new TraderCCI(data, conditioner);
                         BigDecimal finalCapital = trader.getCapitalAfterTrades(startingCapital);
