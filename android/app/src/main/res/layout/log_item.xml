@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout  xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="50dp"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/logTicker"
+        android:textSize="18sp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:textAlignment="center"
+        android:gravity="center_vertical"
+        android:background="@drawable/back"
+        android:width="50dp"
+        />
+
+    <TextView
+        android:id="@+id/logPrice"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:ems="3"
+        />
+
+    <TextView
+        android:id="@+id/logCondition"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:ems="4"/>
+
+    <TextView
+        android:id="@+id/logSignal"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:ems="5"/>
+
+    <TextView
+        android:id="@+id/logTime"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:ems="6"/>
+
+</LinearLayout >
