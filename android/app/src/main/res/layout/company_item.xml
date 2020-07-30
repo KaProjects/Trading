@@ -103,7 +103,6 @@
         android:layout_toEndOf="@id/signal"
         android:textAlignment="center"
         android:gravity="center_vertical"
-        android:text="B\nU\nY"
         android:textStyle="bold"
         android:width="20dp"
         android:textSize="12sp"

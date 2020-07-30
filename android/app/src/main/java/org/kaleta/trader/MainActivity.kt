@@ -52,10 +52,13 @@ class MainActivity : AppCompatActivity(), ValueEventListener {
         for (postSnapshot in dataSnapshot.children) {
             val alert: AlertCCI = postSnapshot.getValue(AlertCCI::class.java) as AlertCCI
             var company: Company? = DataSource.companies.find { company -> company.ticker == alert.ticker }
+
             if (company == null) {
-                company = Company(alert.ticker, "", "", "", "", "")
-                company.id = DataSource.refCompanies.push().key!!
-                DataSource.refCompanies.child(company.id).setValue(company)
+                continue
+                // TODO: 29.7.2020 better don't do nothing than create duplicates
+//                company = Company(alert.ticker, "", "", "", "", "")
+//                company.id = DataSource.refCompanies.push().key!!
+//                DataSource.refCompanies.child(company.id).setValue(company)
             }
 
             val noSignalBefore = company.signal == ""

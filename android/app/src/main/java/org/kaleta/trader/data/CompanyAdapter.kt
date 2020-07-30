@@ -59,7 +59,6 @@ class CompanyAdapter(a:String): RecyclerView.Adapter<CompanyAdapter.ViewHolder>(
                 signal.visibility = View.INVISIBLE
                 signalLabel.visibility = View.INVISIBLE
                 advice.visibility = View.INVISIBLE
-
             } else {
                 price.visibility = View.VISIBLE
                 condition.visibility = View.VISIBLE
@@ -85,21 +84,23 @@ class CompanyAdapter(a:String): RecyclerView.Adapter<CompanyAdapter.ViewHolder>(
             condition.text = cciFormatter(company.condition)
 
             if (company.signal == ""){
-                advice.visibility = View.INVISIBLE
                 signal.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back_lighter, null)
                 signal.setTextColor(ResourcesCompat.getColor(itemView.resources, R.color.textLighter, null))
                 signalLabel.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back_lighter, null)
                 signalLabel.setTextColor(ResourcesCompat.getColor(itemView.resources, R.color.textLighter, null))
+                advice.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back_lighter, null)
+                advice.setTextColor(ResourcesCompat.getColor(itemView.resources, R.color.textLighter, null))
             } else {
-                advice.visibility = View.VISIBLE
                 signal.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back, null)
                 signal.setTextColor(ResourcesCompat.getColor(itemView.resources, R.color.text, null))
                 signalLabel.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back, null)
                 signalLabel.setTextColor(ResourcesCompat.getColor(itemView.resources, R.color.text, null))
+                advice.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back_advice, null)
+                advice.setTextColor(ResourcesCompat.getColor(itemView.resources, R.color.text, null))
             }
             signal.text = cciFormatter(company.signal)
 
-            if (company.signal != "" && company.signal.toFloat() < 0) {
+            if (company.cci != "" && company.cci.toFloat() < 0) {
                 advice.text = "B\nU\nY"
                 advice.setTextSize(TypedValue.COMPLEX_UNIT_SP,12f);
             } else {

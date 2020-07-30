@@ -1,6 +1,8 @@
 package org.kaleta.trader.data
 
 import com.google.firebase.database.*
+import java.util.*
+import kotlin.collections.ArrayList
 
 
 object DataSource {
@@ -11,7 +13,7 @@ object DataSource {
 
     const val refCompaniesPath = "company/"
     val refCompanies = database.getReference(refCompaniesPath)
-    val companies: MutableList<Company> = ArrayList()
+    var companies: MutableList<Company> = Collections.synchronizedList(ArrayList())
 
     const val refLogsPath = "log/"
     val refLogs = database.getReference(refLogsPath)
@@ -20,25 +22,29 @@ object DataSource {
     init {
         refCompanies.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
-                for (postSnapshot in dataSnapshot.children) {
-                    val outdatedCompany = companies.find { company -> company.id == postSnapshot.key }
-                    val updatedCompany: Company = postSnapshot.getValue(Company::class.java) as Company
-
-                    if (outdatedCompany == null){
-                        updatedCompany.id = postSnapshot.key!!
-                        companies.add(updatedCompany)
-                    } else {
-                        if (outdatedCompany != updatedCompany) {
-                            outdatedCompany.signal = updatedCompany.signal
-                            outdatedCompany.condition = updatedCompany.condition
-                            outdatedCompany.cci = updatedCompany.cci
-                            outdatedCompany.id = updatedCompany.id
-                            outdatedCompany.price = updatedCompany.price
-                            outdatedCompany.ticker = updatedCompany.ticker
-                            outdatedCompany.time = updatedCompany.time
-                        }
+                if (dataSnapshot.children.count() == 0) {
+                    createCompany("BA")
+                    createCompany("AAL")
+                    createCompany("DAL")
+                    createCompany("UAL")
+                    createCompany("CCL")
+//                    createCompany("RCL")
+//                    createCompany("NCLH")
+//                    createCompany("MGM")
+//                    createCompany("KSS")
+                } else {
+                    companies.clear()
+                    for (postSnapshot in dataSnapshot.children) {
+                        val company: Company = postSnapshot.getValue(Company::class.java) as Company
+                        company.id = postSnapshot.key!!
+                        companies.add(company)
                     }
                 }
+            }
+            private fun createCompany(ticker: String){
+                val company = Company(ticker, "", "", "", "", "")
+                company.id = refCompanies.push().key!!
+                refCompanies.child(company.id).setValue(company)
             }
             override fun onCancelled(p0: DatabaseError) {
                 println(p0.message)
