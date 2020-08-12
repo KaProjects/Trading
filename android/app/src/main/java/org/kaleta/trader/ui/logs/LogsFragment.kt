@@ -10,8 +10,7 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.kaleta.trader.R
-import org.kaleta.trader.data.CompanyAdapter
-import org.kaleta.trader.data.LogAdapter
+import org.kaleta.trader.adapter.LogAdapter
 
 class LogsFragment : Fragment() {
 

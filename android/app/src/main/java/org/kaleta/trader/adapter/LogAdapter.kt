@@ -1,4 +1,4 @@
-package org.kaleta.trader.data
+package org.kaleta.trader.adapter
 
 import android.view.LayoutInflater
 import android.view.View
@@ -9,10 +9,13 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import org.kaleta.trader.R
+import org.kaleta.trader.DataSource
+import org.kaleta.trader.data.Log
 
 class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), ValueEventListener {
 
-    private val logs: MutableList<Log> = DataSource.logs
+    private val logs: MutableList<Log> =
+        DataSource.logs
 
     constructor() :this("") {
         DataSource.refLogs.addValueEventListener(this);
@@ -21,11 +24,12 @@ class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), Value
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
             LayoutInflater.from(parent.context)
-                .inflate(R.layout.log_item, parent, false))
+                .inflate(R.layout.log_item, parent, false)
+        )
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(logs[position])
+        holder.bind(logs[logs.size - position - 1])
     }
 
     override fun getItemCount(): Int {

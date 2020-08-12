@@ -6,15 +6,7 @@
 
     <TextView
         android:id="@+id/ticker"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:width="65dp"
-        android:background="@drawable/back"
-        android:textAlignment="center"
-        android:gravity="center_vertical"
-        android:textSize="19sp"
-        android:textStyle="bold"
-        />
+        style="@style/TickerTextView" />
 
     <TextView
         android:id="@+id/price"
@@ -27,7 +19,7 @@
         android:paddingTop="7dp"
         android:background="@drawable/back"
         android:textAlignment="viewEnd"
-        android:textColor="@color/money"
+        android:textColor="@color/profit"
         android:textSize="19sp"
         />
 

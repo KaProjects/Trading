@@ -1,8 +1,5 @@
-package org.kaleta.trader.data
+package org.kaleta.trader.adapter
 
-import android.content.Context
-import android.content.res.Resources
-import android.graphics.drawable.Drawable
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
@@ -10,11 +7,12 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.gms.common.util.Strings
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import org.kaleta.trader.R
+import org.kaleta.trader.data.Company
+import org.kaleta.trader.DataSource
 import java.math.BigDecimal
 
 class CompanyAdapter(a:String): RecyclerView.Adapter<CompanyAdapter.ViewHolder>(), ValueEventListener {
@@ -28,7 +26,8 @@ class CompanyAdapter(a:String): RecyclerView.Adapter<CompanyAdapter.ViewHolder>(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
             LayoutInflater.from(parent.context)
-                .inflate(R.layout.company_item, parent, false))
+                .inflate(R.layout.company_item, parent, false)
+        )
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {

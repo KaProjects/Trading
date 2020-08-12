@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Trader</string>
-    <string name="title_home">Home</string>
+    <string name="title_assets">Assets</string>
     <string name="title_opportunities">Opportunities</string>
     <string name="title_logs">Logs</string>
+    <string name="add_company">Add Company</string>
 </resources>

@@ -6,10 +6,10 @@
     app:startDestination="@+id/navigation_opportunities">
 
     <fragment
-        android:id="@+id/navigation_home"
-        android:name="org.kaleta.trader.ui.home.HomeFragment"
-        android:label="@string/title_home"
-        tools:layout="@layout/fragment_home" />
+        android:id="@+id/navigation_assets"
+        android:name="org.kaleta.trader.ui.asset.AssetFragment"
+        android:label="@string/title_assets"
+        tools:layout="@layout/fragment_asset" />
 
     <fragment
         android:id="@+id/navigation_opportunities"

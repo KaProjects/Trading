@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="50dp"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/ticker"
+        style="@style/TickerTextView" />
+
+    <ImageButton
+        android:id="@+id/addAsset"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:src="@drawable/add"
+        android:layout_toEndOf="@id/ticker"
+        android:paddingStart="5dp"
+        android:background="@color/buttonBackground"/>
+
+    <TextView
+        android:id="@+id/purchaseSum"
+        android:layout_width="70dp"
+        android:layout_height="match_parent"
+        android:layout_toEndOf="@id/ticker"
+        android:layout_alignEnd="@id/purchase"
+        android:paddingEnd="5dp"
+        android:paddingTop="13dp"
+        android:background="@drawable/back"
+        android:textAlignment="viewEnd"
+        android:textColor="@color/profit"
+        android:textSize="17sp"
+        />
+    <TextView
+        android:id="@+id/purchaseLabel"
+        android:layout_height="wrap_content"
+        android:layout_width="70dp"
+        android:layout_toEndOf="@id/ticker"
+        android:layout_alignTop="@id/ticker"
+        android:textSize="10sp"
+        android:text="Purchase"
+        android:textAlignment="center"
+        />
+    <TextView
+        android:id="@+id/purchase"
+        android:layout_height="wrap_content"
+        android:layout_width="70dp"
+        android:layout_toEndOf="@id/ticker"
+        android:layout_alignBottom="@id/ticker"
+        android:textSize="10sp"
+        android:textAlignment="center"
+        />
+
+    <TextView
+        android:id="@+id/currentSum"
+        android:layout_width="70dp"
+        android:layout_height="match_parent"
+        android:layout_toEndOf="@id/purchaseSum"
+        android:paddingEnd="5dp"
+        android:paddingTop="13dp"
+        android:background="@drawable/back"
+        android:textAlignment="viewEnd"
+        android:textColor="@color/profit"
+        android:textSize="17sp"
+        />
+    <TextView
+        android:id="@+id/currentLabel"
+        android:layout_height="wrap_content"
+        android:layout_width="70dp"
+        android:layout_toEndOf="@id/purchaseLabel"
+        android:layout_alignTop="@id/purchaseLabel"
+        android:textSize="10sp"
+        android:text="Current"
+        android:textAlignment="center"
+        />
+    <TextView
+        android:id="@+id/current"
+        android:layout_height="wrap_content"
+        android:layout_width="70dp"
+        android:layout_toEndOf="@id/purchase"
+        android:layout_alignBottom="@id/purchase"
+        android:textSize="10sp"
+        android:textAlignment="center"
+        />
+
+    <TextView
+        android:id="@+id/change"
+        android:layout_width="70dp"
+        android:layout_height="match_parent"
+        android:layout_toEndOf="@id/currentSum"
+        android:layout_alignTop="@id/ticker"
+        android:paddingEnd="6dp"
+        android:paddingTop="3dp"
+        android:background="@drawable/back"
+        android:textAlignment="viewEnd"
+        android:textColor="@color/profit"
+        android:textSize="16sp"
+        />
+
+    <TextView
+        android:id="@+id/profit"
+        android:layout_width="70dp"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/currentSum"
+        android:layout_alignBottom="@id/ticker"
+        android:paddingEnd="3dp"
+        android:paddingBottom="3dp"
+        android:textAlignment="viewEnd"
+        android:textColor="@color/profit"
+        android:textSize="16sp"
+
+        />
+
+    <ImageButton
+        android:id="@+id/removeAsset"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:src="@drawable/remove"
+        android:layout_toEndOf="@id/profit"
+        android:paddingStart="5dp"
+        android:background="@color/buttonBackground" />
+
+</RelativeLayout >
