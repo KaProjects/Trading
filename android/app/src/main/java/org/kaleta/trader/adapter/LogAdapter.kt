@@ -11,6 +11,7 @@ import com.google.firebase.database.ValueEventListener
 import org.kaleta.trader.R
 import org.kaleta.trader.DataSource
 import org.kaleta.trader.data.Log
+import java.math.BigDecimal
 
 class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), ValueEventListener {
 
@@ -38,18 +39,48 @@ class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), Value
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
-        var ticker: TextView = itemView.findViewById(R.id.logTicker)
-        var price: TextView = itemView.findViewById(R.id.logPrice)
-        var condition: TextView = itemView.findViewById(R.id.logCondition)
-        var signal: TextView = itemView.findViewById(R.id.logSignal)
-        var time: TextView = itemView.findViewById(R.id.logTime)
+        var time: TextView = itemView.findViewById(R.id.time)
+        var date: TextView = itemView.findViewById(R.id.date)
+        var action: TextView = itemView.findViewById(R.id.action)
+        var ticker: TextView = itemView.findViewById(R.id.ticker)
+        var price: TextView = itemView.findViewById(R.id.price)
+        var condition: TextView = itemView.findViewById(R.id.condition)
+        var signal: TextView = itemView.findViewById(R.id.signal)
 
         fun bind(log: Log) {
+            time.text = timeFormatter(log.time)
+            date.text = dateFormatter(log.time)
+            action.text = if (log.condition.toBigDecimal().toInt() > 0) {"Sell"} else {"Buy"}
             ticker.text = log.ticker
-            price.text = log.price
-            condition.text = log.condition
-            signal.text = log.signal
-            time.text = log.time
+            price.text = priceFormatter(log.price)
+            condition.text = cciFormatter(log.condition)
+            signal.text = cciFormatter(log.signal)
+        }
+        private fun timeFormatter(origin: String): String {
+            return if (origin == "") {
+                origin
+            } else {
+                origin.split("T")[1].split("Z")[0].substring(0,5)
+            }
+        }
+        private fun dateFormatter(origin: String): String {
+            return if (origin == "") {
+                origin
+            } else {
+                origin.split("T")[0].substring(2)
+            }
+        }
+
+        private fun priceFormatter(origin: String): String {
+            return if (origin == "") { origin } else { origin + "$" }
+        }
+
+        private fun cciFormatter(origin: String): String {
+            return if (origin == "") {
+                origin
+            } else {
+                BigDecimal(origin).setScale(2, BigDecimal.ROUND_HALF_DOWN).toString()
+            }
         }
     }
 

@@ -3,10 +3,11 @@ package org.kaleta.trader.adapter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.ImageButton
+import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -92,6 +93,15 @@ class AssetAdapter(a:String): RecyclerView.Adapter<AssetAdapter.ViewHolder>(), V
                 } else {
                     change.setTextColor(ContextCompat.getColor(itemView.context, R.color.loss))
                     profit.setTextColor(ContextCompat.getColor(itemView.context, R.color.loss))
+                }
+                if (asset.current == "") {
+                    currentSum.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back_lighter, null)
+                    currentLabel.setTextColor(ResourcesCompat.getColor(itemView.resources, R.color.textLighter, null))
+                    change.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back_lighter, null)
+                } else {
+                    currentSum.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back, null)
+                    currentLabel.setTextColor(ResourcesCompat.getColor(itemView.resources, R.color.text, null))
+                    change.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back, null)
                 }
                 remove.visibility = View.VISIBLE
                 remove.setOnClickListener(fun (_) { RemoveAssetDialog(itemView.context, asset).show() })
