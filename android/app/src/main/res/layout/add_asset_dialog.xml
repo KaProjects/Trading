@@ -5,6 +5,13 @@
     android:orientation="vertical">
 
     <EditText
+        android:id="@+id/ticker_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="ticker"
+        />
+
+    <EditText
         android:id="@+id/price_input"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -17,7 +24,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:hint="amount"
-        android:inputType="number"
+        android:inputType="numberDecimal"
         />
 
 </LinearLayout>

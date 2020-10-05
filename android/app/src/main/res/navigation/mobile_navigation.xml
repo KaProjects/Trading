@@ -15,7 +15,7 @@
         android:id="@+id/navigation_opportunities"
         android:name="org.kaleta.trader.ui.opportunity.OpportunityFragment"
         android:label="@string/title_opportunities"
-        tools:layout="@layout/fragment_opportunities" />
+        tools:layout="@layout/opportunity_fragment" />
 
     <fragment
         android:id="@+id/navigation_notifications"

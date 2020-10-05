@@ -4,7 +4,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/add_company"
-        android:title="@string/add_company" />
+        android:id="@+id/add_asset"
+        android:title="@string/add_asset" />
 
 </menu>

@@ -3,5 +3,5 @@
     <string name="title_assets">Assets</string>
     <string name="title_opportunities">Opportunities</string>
     <string name="title_logs">Logs</string>
-    <string name="add_company">Add Company</string>
+    <string name="add_asset">Add Asset</string>
 </resources>

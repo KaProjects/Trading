@@ -4,7 +4,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
-import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
@@ -15,16 +14,13 @@ import com.google.firebase.database.ValueEventListener
 import org.kaleta.trader.DataSource
 import org.kaleta.trader.R
 import org.kaleta.trader.data.Asset
-import org.kaleta.trader.ui.dialog.AddAssetDialog
 import org.kaleta.trader.ui.dialog.RemoveAssetDialog
 import java.math.BigDecimal
 
 class AssetAdapter(a:String): RecyclerView.Adapter<AssetAdapter.ViewHolder>(), ValueEventListener {
 
-    private val assets: MutableList<Asset> = DataSource.assets
-
     constructor() :this("") {
-        DataSource.refAssets.addValueEventListener(this);
+        DataSource.assetReference.addValueEventListener(this)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -35,11 +31,11 @@ class AssetAdapter(a:String): RecyclerView.Adapter<AssetAdapter.ViewHolder>(), V
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(assets[position])
+        holder.bind(DataSource.assetMap.values.toList()[position])
     }
 
     override fun getItemCount(): Int {
-        return assets.size
+        return DataSource.assetMap.size
     }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -57,17 +53,17 @@ class AssetAdapter(a:String): RecyclerView.Adapter<AssetAdapter.ViewHolder>(), V
         var remove: ImageButton = itemView.findViewById(R.id.removeAsset)
 
         fun bind(asset: Asset) {
-            ticker.text = asset.ticker
+            ticker.text = asset.company.ticker
             purchase.text = purchaseFormatter(asset.price, asset.amount)
             purchaseSum.text = purchaseSumFormatter(asset.price, asset.amount)
-            current.text = currentFormatter(asset.current, asset.amount)
-            currentSum.text = currentSumFormatter(asset.current, asset.amount)
-            change.text = changeFormatter(asset.price, asset.current, asset.amount)
-            profit.text = profitFormatter(asset.price, asset.current)
+            current.text = currentFormatter(asset.company.price, asset.amount)
+            currentSum.text = currentSumFormatter(asset.company.price, asset.amount)
+            change.text = changeFormatter(asset.price, asset.company.price, asset.amount)
+            profit.text = profitFormatter(asset.price, asset.company.price)
 
             if (asset.price == "") {
                 add.visibility = View.VISIBLE
-                add.setOnClickListener(fun(_){ AddAssetDialog(itemView.context, asset).show() })
+//                add.setOnClickListener(fun(_){ AddAssetDialog(itemView.context, asset).show() })
                 purchaseLabel.visibility = View.INVISIBLE
                 purchase.visibility = View.INVISIBLE
                 purchaseSum.visibility = View.INVISIBLE
@@ -94,7 +90,7 @@ class AssetAdapter(a:String): RecyclerView.Adapter<AssetAdapter.ViewHolder>(), V
                     change.setTextColor(ContextCompat.getColor(itemView.context, R.color.loss))
                     profit.setTextColor(ContextCompat.getColor(itemView.context, R.color.loss))
                 }
-                if (asset.current == "") {
+                if (asset.company.price == "") {
                     currentSum.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back_lighter, null)
                     currentLabel.setTextColor(ResourcesCompat.getColor(itemView.resources, R.color.textLighter, null))
                     change.background = ResourcesCompat.getDrawable(itemView.resources, R.drawable.back_lighter, null)

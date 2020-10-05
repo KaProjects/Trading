@@ -12,11 +12,8 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import org.kaleta.trader.listener.AlertListener
-import org.kaleta.trader.listener.AssetListener
-import org.kaleta.trader.listener.CompanyListener
-import org.kaleta.trader.listener.LogListener
-import org.kaleta.trader.ui.dialog.AddCompanyDialog
+import org.kaleta.trader.listener.*
+import org.kaleta.trader.ui.dialog.AddAssetDialog
 
 
 class MainActivity : AppCompatActivity() {
@@ -41,10 +38,12 @@ class MainActivity : AppCompatActivity() {
         val notificationManager = this.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(NotificationChannel(notificationChannelId, "trader", NotificationManager.IMPORTANCE_HIGH))
 
-        DataSource.refAlertsCCI45.addValueEventListener(AlertListener(this))
-        DataSource.refCompanies.addValueEventListener(CompanyListener())
-        DataSource.refLogs.addValueEventListener(LogListener())
-        DataSource.refAssets.addValueEventListener(AssetListener())
+        DataSource.alertDataReference.addChildEventListener(AlertDataChildListener(this))
+        DataSource.companyReference.addChildEventListener(CompanyChildListener(this))
+        DataSource.opportunityReference.addChildEventListener(OpportunityChildListener())
+        DataSource.assetReference.addChildEventListener(AssetChildListener())
+
+        DataSource.logReference.addValueEventListener(LogListener())
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -57,8 +56,8 @@ class MainActivity : AppCompatActivity() {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         val id: Int = item.itemId
-        if (id == R.id.add_company) {
-           AddCompanyDialog(this).show()
+        if (id == R.id.add_asset) {
+           AddAssetDialog(this).show()
             return true
         }
         return super.onOptionsItemSelected(item)

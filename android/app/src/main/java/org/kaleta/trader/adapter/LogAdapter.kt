@@ -16,10 +16,10 @@ import java.math.BigDecimal
 class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), ValueEventListener {
 
     private val logs: MutableList<Log> =
-        DataSource.logs
+        DataSource.logList
 
     constructor() :this("") {
-        DataSource.refLogs.addValueEventListener(this);
+        DataSource.logReference.addValueEventListener(this);
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -50,11 +50,11 @@ class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), Value
         fun bind(log: Log) {
             time.text = timeFormatter(log.time)
             date.text = dateFormatter(log.time)
-            action.text = if (log.condition.toBigDecimal().toInt() > 0) {"Sell"} else {"Buy"}
+//            action.text = if (log.condition.toBigDecimal().toInt() > 0) {"Sell"} else {"Buy"}
             ticker.text = log.ticker
             price.text = priceFormatter(log.price)
-            condition.text = cciFormatter(log.condition)
-            signal.text = cciFormatter(log.signal)
+//            condition.text = cciFormatter(log.condition)
+//            signal.text = cciFormatter(log.signal)
         }
         private fun timeFormatter(origin: String): String {
             return if (origin == "") {

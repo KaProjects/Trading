@@ -10,13 +10,13 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.kaleta.trader.R
-import org.kaleta.trader.adapter.CompanyAdapter
+import org.kaleta.trader.adapter.OpportunityAdapter
 
 class OpportunityFragment : Fragment() {
 
     private lateinit var opportunityViewModel: OpportunityViewModel
 
-    private val adapter = CompanyAdapter()
+    private val adapter = OpportunityAdapter()
 
     override fun onCreateView(
             inflater: LayoutInflater,
@@ -25,7 +25,7 @@ class OpportunityFragment : Fragment() {
     ): View? {
         opportunityViewModel =
             ViewModelProviders.of(this).get(OpportunityViewModel::class.java)
-        val root = inflater.inflate(R.layout.fragment_opportunities, container, false)
+        val root = inflater.inflate(R.layout.opportunity_fragment, container, false)
         val recyclerView: RecyclerView = root.findViewById(R.id.opportunities)
 
         opportunityViewModel.text.observe(viewLifecycleOwner, Observer {

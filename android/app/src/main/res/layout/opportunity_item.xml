@@ -7,7 +7,6 @@
     <TextView
         android:id="@+id/ticker"
         style="@style/TickerTextView" />
-
     <TextView
         android:id="@+id/price"
         android:layout_width="wrap_content"
@@ -22,84 +21,85 @@
         android:textColor="@color/profit"
         android:textSize="19sp"
         />
-
     <TextView
         android:id="@+id/time"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:layout_toEndOf="@id/ticker"
         android:layout_alignBottom="@id/ticker"
-        android:paddingStart="7dp"
-        android:paddingEnd="7dp"
+        android:paddingStart="9dp"
+        android:paddingEnd="9dp"
         android:textSize="10sp"
         />
 
     <TextView
-        android:id="@+id/conditionLabel"
+        android:id="@+id/cciMin"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:background="@drawable/back"
-        android:layout_toEndOf="@id/price"
-        android:paddingStart="3dp"
-        android:paddingEnd="3dp"
-        android:textSize="12sp"
-        android:text="Condition"
         android:width="65dp"
+        android:layout_toEndOf="@id/price"
         android:textAlignment="center"
+        android:gravity="center_vertical"
         />
     <TextView
-        android:id="@+id/condition"
+        android:id="@+id/cci"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:layout_alignEnd="@id/conditionLabel"
+        android:layout_alignEnd="@id/cciMin"
         android:background="@drawable/back"
         android:layout_alignBottom="@id/ticker"
-        android:layout_below="@+id/conditionLabel"
+        android:layout_below="@+id/cciMin"
         android:layout_toEndOf="@id/price"
         android:textAlignment="center"
         android:gravity="center_vertical"
         />
 
     <TextView
-        android:id="@+id/signalLabel"
+        android:id="@+id/macdMin"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:background="@drawable/back"
-        android:layout_toEndOf="@id/conditionLabel"
-        android:paddingStart="3dp"
-        android:paddingEnd="3dp"
-        android:textSize="12sp"
-        android:text="Signal"
         android:width="65dp"
+        android:layout_toEndOf="@id/cci"
         android:textAlignment="center"
+        android:gravity="center_vertical"
         />
     <TextView
-        android:id="@+id/signal"
+        android:id="@+id/macd"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:layout_alignEnd="@id/signalLabel"
+        android:layout_alignEnd="@id/macdMin"
         android:background="@drawable/back"
         android:layout_alignBottom="@id/ticker"
-        android:layout_below="@+id/signalLabel"
-        android:layout_toEndOf="@id/condition"
+        android:layout_below="@+id/macdMin"
+        android:layout_toEndOf="@id/cci"
         android:textAlignment="center"
         android:gravity="center_vertical"
-        />
-    <TextView
-        android:id="@+id/advice"
-        android:layout_height="wrap_content"
-        android:layout_width="wrap_content"
-        android:background="@drawable/back_advice"
-        android:layout_alignTop="@id/ticker"
-        android:layout_alignBottom="@id/ticker"
-        android:layout_toEndOf="@id/signal"
-        android:textAlignment="center"
-        android:gravity="center_vertical"
-        android:textStyle="bold"
-        android:width="20dp"
-        android:textSize="12sp"
         />
 
+    <TextView
+        android:id="@+id/diffMin"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:background="@drawable/back"
+        android:width="65dp"
+        android:layout_toEndOf="@id/macd"
+        android:textAlignment="center"
+        android:gravity="center_vertical"
+        />
+    <TextView
+        android:id="@+id/diff"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_alignEnd="@id/diffMin"
+        android:background="@drawable/back"
+        android:layout_alignBottom="@id/ticker"
+        android:layout_below="@+id/diffMin"
+        android:layout_toEndOf="@id/macd"
+        android:textAlignment="center"
+        android:gravity="center_vertical"
+        />
 
 
 </RelativeLayout >
