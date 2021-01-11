@@ -10,6 +10,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import org.kaleta.trader.DataSource
 import org.kaleta.trader.R
+import org.kaleta.trader.data.Company
 import org.kaleta.trader.data.Opportunity
 import java.math.BigDecimal
 
@@ -27,7 +28,8 @@ class OpportunityAdapter(a:String) : RecyclerView.Adapter<OpportunityAdapter.Vie
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(DataSource.opportunityMap.values.toList()[position])
+        val opportunity = DataSource.opportunityMap.values.toList()[position]
+        holder.bind(opportunity, DataSource.companyMap.get(opportunity.ticker)!!)
     }
 
     override fun getItemCount(): Int {
@@ -51,17 +53,17 @@ class OpportunityAdapter(a:String) : RecyclerView.Adapter<OpportunityAdapter.Vie
 //        var diffLabel: TextView = itemView.findViewById(R.id.diffLabel)
         var diffMin: TextView = itemView.findViewById(R.id.diffMin)
 
-        fun bind(opportunity: Opportunity) {
-            ticker.text = opportunity.company.ticker
-            price.text = priceFormatter(opportunity.company.price)
-            time.text = timeFormatter(opportunity.company.time)
+        fun bind(opportunity: Opportunity, company: Company) {
+            ticker.text = company.ticker
+            price.text = priceFormatter(company.price)
+            time.text = timeFormatter(company.time)
 
-            cci.text = dataFormatter(opportunity.company.cci)
-            cciMin.text = dataFormatter(opportunity.cciMin)
-            macd.text = dataFormatter(opportunity.company.macd)
-            macdMin.text = dataFormatter(opportunity.macdMin)
-            diff.text = dataFormatter(opportunity.company.diff)
-            diffMin.text = dataFormatter(opportunity.diffMin)
+            cci.text = dataFormatter(company.cci)
+            cciMin.text = dataFormatter(opportunity.min_cci)
+            macd.text = dataFormatter(company.macd)
+            macdMin.text = dataFormatter(opportunity.min_macd)
+            diff.text = dataFormatter(company.diff)
+            diffMin.text = dataFormatter(opportunity.min_diff)
         }
 
         private fun priceFormatter(origin: String): String {

@@ -38,12 +38,10 @@ class MainActivity : AppCompatActivity() {
         val notificationManager = this.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(NotificationChannel(notificationChannelId, "trader", NotificationManager.IMPORTANCE_HIGH))
 
-        DataSource.alertDataReference.addChildEventListener(AlertDataChildListener(this))
-        DataSource.companyReference.addChildEventListener(CompanyChildListener(this))
+        DataSource.companyReference.addChildEventListener(CompanyChildListener())
         DataSource.opportunityReference.addChildEventListener(OpportunityChildListener())
         DataSource.assetReference.addChildEventListener(AssetChildListener())
-
-        DataSource.logReference.addValueEventListener(LogListener())
+        DataSource.logReference.addChildEventListener(LogChildListener(this))
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

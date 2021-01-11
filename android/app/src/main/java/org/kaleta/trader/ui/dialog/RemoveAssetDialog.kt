@@ -18,7 +18,7 @@ class RemoveAssetDialog: AlertDialog.Builder {
 
         setPositiveButton("Remove", fun(_, _){
 
-            DataSource.assetReference.child(asset.company.ticker).removeValue()
+            DataSource.assetReference.child(asset.ticker).removeValue()
             // TODO: 5.10.2020 maybe log selling asset for later analyses
         })
     }

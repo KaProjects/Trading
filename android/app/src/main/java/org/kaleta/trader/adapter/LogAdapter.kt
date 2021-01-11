@@ -15,9 +15,6 @@ import java.math.BigDecimal
 
 class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), ValueEventListener {
 
-    private val logs: MutableList<Log> =
-        DataSource.logList
-
     constructor() :this("") {
         DataSource.logReference.addValueEventListener(this);
     }
@@ -30,11 +27,11 @@ class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), Value
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(logs[logs.size - position - 1])
+        holder.bind(DataSource.logMap.values.toList()[position])
     }
 
     override fun getItemCount(): Int {
-        return logs.size
+        return DataSource.logMap.size
     }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

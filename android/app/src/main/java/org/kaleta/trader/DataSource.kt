@@ -1,18 +1,17 @@
 package org.kaleta.trader
 
-import com.google.firebase.database.*
-import org.kaleta.trader.data.*
+import com.google.firebase.database.FirebaseDatabase
+import org.kaleta.trader.data.Asset
+import org.kaleta.trader.data.Company
+import org.kaleta.trader.data.Log
+import org.kaleta.trader.data.Opportunity
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 
 object DataSource {
 
     val database:FirebaseDatabase = FirebaseDatabase.getInstance()
-
-    const val alertDataPath = "alert/data/"
-    val alertDataReference = database.getReference(alertDataPath)
 
     const val companyPath = "company/"
     val companyReference = database.getReference(companyPath)
@@ -22,13 +21,13 @@ object DataSource {
     val opportunityReference = database.getReference(opportunityPath)
     var opportunityMap: MutableMap<String, Opportunity> = Collections.synchronizedMap(HashMap())
 
+    const val logPath = "log/"
+    val logReference = database.getReference(logPath)
+    var logMap: MutableMap<String, Log> = Collections.synchronizedMap(HashMap())
+
     const val assetPath = "asset/"
     val assetReference = database.getReference(assetPath)
     var assetMap: MutableMap<String, Asset> = Collections.synchronizedMap(HashMap())
-
-    const val logPath = "log/"
-    val logReference = database.getReference(logPath)
-    val logList: MutableList<Log> = ArrayList()
 
     init {
 

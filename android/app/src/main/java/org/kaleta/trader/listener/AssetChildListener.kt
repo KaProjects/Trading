@@ -8,16 +8,15 @@ class AssetChildListener : AbstractChildEventListener() {
 
     override fun onChildChanged(dataSnapshot: DataSnapshot, p1: String?) {
         val asset: Asset = dataSnapshot.getValue(Asset::class.java) as Asset
-        DataSource.assetMap.replace(asset.company.ticker, asset)
+        DataSource.assetMap.replace(dataSnapshot.key!!, asset)
     }
 
     override fun onChildAdded(dataSnapshot: DataSnapshot, p1: String?) {
         val asset: Asset = dataSnapshot.getValue(Asset::class.java) as Asset
-        DataSource.assetMap.put(asset.company.ticker, asset)
+        DataSource.assetMap.put(dataSnapshot.key!!, asset)
     }
 
     override fun onChildRemoved(dataSnapshot: DataSnapshot) {
-        val asset: Asset = dataSnapshot.getValue(Asset::class.java) as Asset
-        DataSource.assetMap.remove(asset.company.ticker)
+        DataSource.assetMap.remove(dataSnapshot.key)
     }
 }

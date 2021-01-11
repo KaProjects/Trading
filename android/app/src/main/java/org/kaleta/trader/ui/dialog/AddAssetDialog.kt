@@ -30,7 +30,7 @@ class AddAssetDialog: AlertDialog.Builder {
 
             val company = DataSource.companyMap.get(ticker)
             if (company != null) {
-                val asset = Asset(company, price, amount)
+                val asset = Asset(company.ticker, price, amount)
                 DataSource.assetReference.child(company.ticker).setValue(asset)
                 // TODO: 5.10.2020 maybe log buying asset for later analyses
             } else {
