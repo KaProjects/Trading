@@ -39,12 +39,12 @@ async def alert_consumer():
 
         for alert_id in alerts_data:
             alert = Alert(alerts_data[alert_id])
-            # company_data: dict = db.reference(company_path + "/" + alert.ticker).get()
-            # company = None if company_data is None else Company(company_data)
+            company_data: dict = db.reference(company_path + "/" + alert.ticker).get()
+            company = None if company_data is None else Company(company_data)
             opportunity_data: dict = db.reference(opportunity_path + "/" + alert.ticker).get()
             opportunity = None if opportunity_data is None else Opportunity(opportunity_data)
 
-            resolve_alert(alert, opportunity)
+            resolve_alert(alert, company, opportunity)
 
             db.reference(company_path + "/" + alert.ticker).set(alert.__repr__())
             db.reference(alert_data_path + "/" + alert_id).delete()
@@ -52,29 +52,33 @@ async def alert_consumer():
 
         await asyncio.sleep(1)
 
-def resolve_alert(alert: Alert, opportunity: Opportunity):
+def resolve_alert(alert: Alert, company: Company, opportunity: Opportunity):
     if opportunity is None:
         if alert.cci < -1.5:
             opportunity = Opportunity({"ticker": alert.ticker, "min_price": alert.price, "min_cci": alert.cci, "min_diff": alert.diff, "min_macd": alert.macd})
             db.reference(opportunity_path + "/" + alert.ticker).set(opportunity.__repr__())
             if debug: print("[{}] opportunity {} created".format(current_time(), opportunity.ticker))
-            log = Log("buy opportunity", alert, opportunity)
-            obj = db.reference(log_path).push(log.__repr__())
-            if debug: print("[{}] log {} for {} created".format(current_time(), obj.key, log.ticker))
+            create_opportunity_log("buy|create(cci<-1.5)", alert, opportunity)
     else:
         if alert.cci < -0.25:
             updated = opportunity.update(alert)
             if updated:
                 db.reference(opportunity_path + "/" + opportunity.ticker).set(opportunity.__repr__())
                 if debug: print("[{}] opportunity {} updated".format(current_time(), opportunity.ticker))
-            # TODO:  if (cci crossing up -1f) { create log
-            # TODO:  if (diff crossing up 0f) { create log
-            # TODO: macd crossing up something ....
-
+            if company.cci < -1 <= alert.cci:
+                create_opportunity_log("buy|signal(cci>-1)", alert, opportunity)
+            if company.diff < 0 <= alert.diff:
+                create_opportunity_log("buy|signal(diff>0)", alert, opportunity)
+            if company.macd < 0 <= alert.macd:
+                create_opportunity_log("buy|signal(macd>0)", alert, opportunity)
         else:
             db.reference(opportunity_path + "/" + opportunity.ticker).delete()
             if debug: print("[{}] opportunity {} deleted".format(current_time(), opportunity.ticker))
 
+def create_opportunity_log(type: str, alert: Alert, opportunity: Opportunity):
+    log = Log(type, alert, opportunity)
+    obj = db.reference(log_path).push(log.__repr__())
+    if debug: print("[{}] log {} type '{}' for {} created".format(current_time(), obj.key, type, log.ticker))
 
 def current_time():
     return datetime.now().strftime("%y-%m-%d %H:%M:%S")

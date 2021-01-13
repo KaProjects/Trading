@@ -1,9 +1,5 @@
 from datetime import datetime
 
-
-# def parse_time(origin: str):
-#     return datetime.strptime(origin, "%Y-%m-%dT%H:%M:%SZ")
-
 time_format = "%Y-%m-%dT%H:%M:%SZ"
 
 class Alert:
@@ -12,9 +8,9 @@ class Alert:
         self.time = datetime.strptime(attributes["time"],time_format)
         self.price = float(attributes["price"])
         self.cci = float(attributes["cci"])
-        self.diff = float(attributes["macd"])
-        self.macd = float(attributes["signal"])
-        self.signal = float(attributes["diff"])
+        self.diff = float(attributes["diff"])
+        self.macd = float(attributes["macd"])
+        self.signal = float(attributes["signal"])
 
     def __repr__(self):
         return {"ticker":self.ticker,"time":datetime.strftime(self.time, time_format),"price":str(self.price),
@@ -31,9 +27,9 @@ class Company:
         self.time = datetime.strptime(attributes["time"],time_format)
         self.price = float(attributes["price"])
         self.cci = float(attributes["cci"])
-        self.diff = float(attributes["macd"])
-        self.macd = float(attributes["signal"])
-        self.signal = float(attributes["diff"])
+        self.diff = float(attributes["diff"])
+        self.macd = float(attributes["macd"])
+        self.signal = float(attributes["signal"])
 
     def __repr__(self):
         return {"ticker":self.ticker,"time":datetime.strftime(self.time, time_format),"price":str(self.price),
@@ -80,9 +76,9 @@ class Log:
         self.time = alert.time
         self.price = float(alert.price)
         self.cci = float(alert.cci)
-        self.diff = float(alert.macd)
-        self.macd = float(alert.signal)
-        self.signal = float(alert.diff)
+        self.diff = float(alert.diff)
+        self.macd = float(alert.macd)
+        self.signal = float(alert.signal)
         self.min_price = float(opportunity.min_price)
         self.min_cci = float(opportunity.min_cci)
         self.min_diff = float(opportunity.min_diff)
