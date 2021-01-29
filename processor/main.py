@@ -48,7 +48,7 @@ async def alert_consumer():
 
             db.reference(company_path + "/" + alert.ticker).set(alert.__repr__())
             db.reference(alert_data_path + "/" + alert_id).delete()
-            if debug: print("[{}] company {} updated, {} alert removed".format(current_time(), alert.ticker, alert_id))
+            #if debug: print("[{}] company {} updated, {} alert removed".format(current_time(), alert.ticker, alert_id))
 
         await asyncio.sleep(1)
 
