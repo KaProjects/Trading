@@ -88,10 +88,7 @@ class OpportunityAdapter(a:String) : RecyclerView.Adapter<OpportunityAdapter.Vie
                 diff.setBackgroundResource(R.drawable.back_greener)
             } else {
                 diff.setBackgroundResource(R.drawable.back)
-
             }
-
-
         }
 
         private fun priceFormatter(origin: String): String {
