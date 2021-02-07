@@ -44,6 +44,8 @@ async def alert_consumer():
             opportunity_data: dict = db.reference(opportunity_path + "/" + alert.ticker).get()
             opportunity = None if opportunity_data is None else Opportunity(opportunity_data)
 
+            if company is None: company = Company(alerts_data[alert_id])
+
             resolve_alert(alert, company, opportunity)
 
             db.reference(company_path + "/" + alert.ticker).set(alert.__repr__())
