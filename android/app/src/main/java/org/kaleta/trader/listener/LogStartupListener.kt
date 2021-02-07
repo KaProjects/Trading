@@ -9,7 +9,8 @@ class LogStartupListener: AbstractValueEventListener() {
         if (!DataSource.logsLoaded) {
             for (data in dataSnapshot.children) {
                 val log: Log = data.getValue(Log::class.java) as Log
-                DataSource.logMap.put(dataSnapshot.key!!, log)
+                log.id = data.key!!
+                DataSource.logMap.put(data.key!!, log)
             }
             DataSource.logsLoaded = true
         }

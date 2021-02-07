@@ -8,10 +8,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
-import org.kaleta.trader.R
 import org.kaleta.trader.DataSource
+import org.kaleta.trader.R
 import org.kaleta.trader.data.Log
-import java.math.BigDecimal
 
 class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), ValueEventListener {
 
@@ -27,7 +26,8 @@ class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), Value
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(DataSource.logMap.values.toList()[position])
+        val list = DataSource.logMap.values.toList().sortedByDescending { log -> log.id }
+        holder.bind(list[position])
     }
 
     override fun getItemCount(): Int {
@@ -38,20 +38,20 @@ class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), Value
 
         var time: TextView = itemView.findViewById(R.id.time)
         var date: TextView = itemView.findViewById(R.id.date)
-        var action: TextView = itemView.findViewById(R.id.action)
         var ticker: TextView = itemView.findViewById(R.id.ticker)
         var price: TextView = itemView.findViewById(R.id.price)
-        var condition: TextView = itemView.findViewById(R.id.condition)
-        var signal: TextView = itemView.findViewById(R.id.signal)
+
+        var type: TextView = itemView.findViewById(R.id.type)
+
 
         fun bind(log: Log) {
             time.text = timeFormatter(log.time)
             date.text = dateFormatter(log.time)
-//            action.text = if (log.condition.toBigDecimal().toInt() > 0) {"Sell"} else {"Buy"}
             ticker.text = log.ticker
             price.text = priceFormatter(log.price)
-//            condition.text = cciFormatter(log.condition)
-//            signal.text = cciFormatter(log.signal)
+
+            type.text = log.type
+
         }
         private fun timeFormatter(origin: String): String {
             return if (origin == "") {
@@ -61,23 +61,19 @@ class LogAdapter(a:String): RecyclerView.Adapter<LogAdapter.ViewHolder>(), Value
             }
         }
         private fun dateFormatter(origin: String): String {
-            return if (origin == "") {
-                origin
+            if (origin == "") {
+                return origin
             } else {
-                origin.split("T")[0].substring(2)
+                val date = origin.split("T")[0].split("-")
+                val year = date[0].substring(2)
+                val month = date[1]
+                val day = date[2]
+                return "$day-$month-$year"
             }
         }
 
         private fun priceFormatter(origin: String): String {
             return if (origin == "") { origin } else { origin + "$" }
-        }
-
-        private fun cciFormatter(origin: String): String {
-            return if (origin == "") {
-                origin
-            } else {
-                BigDecimal(origin).setScale(2, BigDecimal.ROUND_HALF_DOWN).toString()
-            }
         }
     }
 

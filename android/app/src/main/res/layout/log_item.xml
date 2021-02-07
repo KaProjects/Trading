@@ -15,28 +15,16 @@
         android:paddingEnd="3dp"
         android:paddingTop="2dp"
         />
-
     <TextView
         android:id="@+id/date"
         android:layout_width="55dp"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@id/action"
+        android:layout_alignBottom="@id/ticker"
         android:textSize="11sp"
         android:textAlignment="viewEnd"
         android:paddingStart="3dp"
         android:paddingEnd="3dp"
         android:paddingBottom="2dp"
-        />
-
-    <TextView
-        android:id="@+id/action"
-        android:layout_width="45dp"
-        android:layout_height="match_parent"
-        android:textSize="18sp"
-        android:textAlignment="center"
-        android:gravity="center_vertical"
-        android:background="@drawable/back_log"
-        android:layout_toEndOf="@id/time"
         />
 
     <TextView
@@ -47,7 +35,7 @@
         android:textAlignment="center"
         android:gravity="center_vertical"
         android:background="@drawable/back_log"
-        android:layout_toEndOf="@id/action"
+        android:layout_toEndOf="@id/date"
         />
 
     <TextView
@@ -64,29 +52,14 @@
         />
 
     <TextView
-        android:id="@+id/condition"
-        android:layout_width="45dp"
+        android:id="@+id/type"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_toEndOf="@id/price"
+        android:textAlignment="viewStart"
+        android:paddingStart="5dp"
+        android:gravity="center_vertical"
         android:background="@drawable/back_log"
-        android:textSize="11sp"
-        android:textAlignment="viewEnd"
-        android:paddingStart="3dp"
-        android:paddingEnd="3dp"
-        android:paddingTop="2dp"
-        />
-
-    <TextView
-        android:id="@+id/signal"
-        android:layout_width="45dp"
-        android:layout_height="wrap_content"
         android:layout_toEndOf="@id/price"
-        android:layout_alignBottom="@id/action"
-        android:textSize="11sp"
-        android:textAlignment="viewEnd"
-        android:paddingStart="3dp"
-        android:paddingEnd="3dp"
-        android:paddingBottom="2dp"
         />
 
 </RelativeLayout >

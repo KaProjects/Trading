@@ -24,6 +24,7 @@ class LogChildListener(private val context: Context) : AbstractChildEventListene
     override fun onChildAdded(dataSnapshot: DataSnapshot, p1: String?) {
         if (DataSource.logsLoaded) {
             val log: Log = dataSnapshot.getValue(Log::class.java) as Log
+            log.id = dataSnapshot.key!!
             DataSource.logMap.put(dataSnapshot.key!!, log)
             throwNotification(log)
         }
