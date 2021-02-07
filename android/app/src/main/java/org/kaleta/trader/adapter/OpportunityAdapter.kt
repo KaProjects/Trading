@@ -1,9 +1,11 @@
 package org.kaleta.trader.adapter
 
+import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -18,6 +20,7 @@ class OpportunityAdapter(a:String) : RecyclerView.Adapter<OpportunityAdapter.Vie
 
     constructor() :this("") {
         DataSource.opportunityReference.addValueEventListener(this)
+        DataSource.companyReference.addValueEventListener(this)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -39,31 +42,56 @@ class OpportunityAdapter(a:String) : RecyclerView.Adapter<OpportunityAdapter.Vie
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
         var ticker: TextView = itemView.findViewById(R.id.ticker)
-        var price: TextView = itemView.findViewById(R.id.price)
         var time: TextView = itemView.findViewById(R.id.time)
 
-
+        var price: TextView = itemView.findViewById(R.id.price)
+        var priceMin: TextView = itemView.findViewById(R.id.priceMin)
         var cci: TextView = itemView.findViewById(R.id.cci)
-//        var cciLabel: TextView = itemView.findViewById(R.id.cciLabel)
         var cciMin: TextView = itemView.findViewById(R.id.cciMin)
         var macd: TextView = itemView.findViewById(R.id.macd)
-//        var macdLabel: TextView = itemView.findViewById(R.id.macdLabel)
         var macdMin: TextView = itemView.findViewById(R.id.macdMin)
         var diff: TextView = itemView.findViewById(R.id.diff)
-//        var diffLabel: TextView = itemView.findViewById(R.id.diffLabel)
         var diffMin: TextView = itemView.findViewById(R.id.diffMin)
 
         fun bind(opportunity: Opportunity, company: Company) {
             ticker.text = company.ticker
-            price.text = priceFormatter(company.price)
             time.text = timeFormatter(company.time)
-
+            price.text = priceFormatter(company.price)
+            priceMin.text = priceFormatter(opportunity.min_price)
             cci.text = dataFormatter(company.cci)
             cciMin.text = dataFormatter(opportunity.min_cci)
             macd.text = dataFormatter(company.macd)
             macdMin.text = dataFormatter(opportunity.min_macd)
             diff.text = dataFormatter(company.diff)
             diffMin.text = dataFormatter(opportunity.min_diff)
+
+            if (opportunity.min_cci.toFloat() < -2f) {
+                cciMin.setTypeface(cciMin.getTypeface(), Typeface.BOLD)
+                cciMin.setBackgroundResource(R.drawable.back_greener)
+            } else {
+                cciMin.setTypeface(Typeface.DEFAULT)
+                cciMin.setBackgroundResource(R.drawable.back)
+            }
+            if (company.cci.toFloat() < -1f){
+                if (company.cci.toFloat() < -1.5f){
+                    cci.setBackgroundResource(R.drawable.back_lighter)
+                    cci.setTextColor(ContextCompat.getColor(itemView.context, R.color.textLighter))
+                } else {
+                    cci.setBackgroundResource(R.drawable.back)
+                    cci.setTextColor(ContextCompat.getColor(itemView.context, R.color.text))
+                }
+            } else {
+                cci.setBackgroundResource(R.drawable.back_greener)
+                cci.setTextColor(ContextCompat.getColor(itemView.context, R.color.text))
+            }
+            if (company.diff.toFloat() >= 0f) {
+                diff.setBackgroundResource(R.drawable.back_greener)
+            } else {
+                diff.setBackgroundResource(R.drawable.back)
+
+            }
+
+
         }
 
         private fun priceFormatter(origin: String): String {
@@ -74,9 +102,13 @@ class OpportunityAdapter(a:String) : RecyclerView.Adapter<OpportunityAdapter.Vie
             return if (origin == "") {
                 origin
             } else {
-                val date = origin.split("T")[0].substring(2)
+                val date = origin.split("T")[0].split("-")
+                val year = date[0].substring(2)
+                val month = date[1]
+                val day = date[2]
+
                 val time = origin.split("T")[1].split("Z")[0].substring(0,5)
-                "$date | $time"
+                "$day-$month-$year $time"
             }
         }
 

@@ -19,7 +19,7 @@ class LogChildListener(private val context: Context) : AbstractChildEventListene
     override fun onChildAdded(dataSnapshot: DataSnapshot, p1: String?) {
         val log: Log = dataSnapshot.getValue(Log::class.java) as Log
         DataSource.logMap.put(dataSnapshot.key!!, log)
-        throwNotification(log)
+//        throwNotification(log)
     }
 
     override fun onChildChanged(dataSnapshot: DataSnapshot, p1: String?) {

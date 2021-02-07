@@ -8,29 +8,42 @@
         android:id="@+id/ticker"
         style="@style/TickerTextView" />
     <TextView
-        android:id="@+id/price"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_toEndOf="@id/ticker"
-        android:layout_alignEnd="@id/time"
-        android:paddingStart="5dp"
-        android:paddingEnd="5dp"
-        android:paddingTop="7dp"
-        android:background="@drawable/back"
-        android:textAlignment="viewEnd"
-        android:textColor="@color/profit"
-        android:textSize="19sp"
-        />
-    <TextView
         android:id="@+id/time"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:layout_toEndOf="@id/ticker"
         android:layout_alignBottom="@id/ticker"
-        android:paddingStart="9dp"
-        android:paddingEnd="9dp"
+        android:paddingStart="7dp"
+        android:paddingEnd="5dp"
         android:textSize="10sp"
         />
+
+    <TextView
+        android:id="@+id/priceMin"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:background="@drawable/back"
+        android:width="85dp"
+        android:layout_toEndOf="@id/ticker"
+        android:gravity="center_vertical"
+        android:textAlignment="viewEnd"
+        android:paddingEnd="4dp"
+        />
+    <TextView
+        android:id="@+id/price"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_alignEnd="@id/priceMin"
+        android:background="@drawable/back"
+        android:layout_alignBottom="@id/ticker"
+        android:layout_below="@+id/priceMin"
+        android:layout_toEndOf="@id/ticker"
+        android:gravity="center_vertical"
+        android:textAlignment="viewEnd"
+        android:textColor="@color/profit"
+        android:textSize="20sp"
+        android:paddingEnd="4dp"
+        />
+
 
     <TextView
         android:id="@+id/cciMin"
