@@ -2,29 +2,11 @@ from datetime import datetime
 
 time_format = "%Y-%m-%dT%H:%M:%SZ"
 
-class Alert:
-    def __init__(self, attributes: dict):
-        self.ticker = attributes["ticker"]
-        self.time = datetime.strptime(attributes["time"],time_format)
-        self.price = float(attributes["price"])
-        self.cci = float(attributes["cci"])
-        self.diff = float(attributes["diff"])
-        self.macd = float(attributes["macd"])
-        self.signal = float(attributes["signal"])
-
-    def __repr__(self):
-        return {"ticker":self.ticker,"time":datetime.strftime(self.time, time_format),"price":str(self.price),
-                "cci":str(self.cci),"macd":str(self.macd),"signal":str(self.signal),"diff":str(self.diff)}
-
-    def __str__(self):
-        return str(self.__repr__())
-
-
 
 class Company:
     def __init__(self, attributes: dict):
         self.ticker = attributes["ticker"]
-        self.time = datetime.strptime(attributes["time"],time_format)
+        self.time = datetime.strptime(attributes["time"], time_format)
         self.price = float(attributes["price"])
         self.cci = float(attributes["cci"])
         self.diff = float(attributes["diff"])
@@ -32,40 +14,69 @@ class Company:
         self.signal = float(attributes["signal"])
 
     def __repr__(self):
-        return {"ticker":self.ticker,"time":datetime.strftime(self.time, time_format),"price":str(self.price),
-                "cci":str(self.cci),"macd":str(self.macd),"signal":str(self.signal),"diff":str(self.diff)}
+        return {"ticker": self.ticker, "time": datetime.strftime(self.time, time_format), "price": str(self.price),
+                "cci": str(self.cci), "macd": str(self.macd), "signal": str(self.signal), "diff": str(self.diff)}
 
     def __str__(self):
         return str(self.__repr__())
+
 
 class Opportunity:
     def __init__(self, attributes: dict):
         self.ticker = attributes["ticker"]
-        self.min_price = float(attributes["min_price"])
-        self.min_cci = float(attributes["min_cci"])
-        self.min_diff = float(attributes["min_diff"])
-        self.min_macd = float(attributes["min_macd"])
+        self.edge_price = float(attributes["edge_price"])
+        self.edge_cci = float(attributes["edge_cci"])
+        self.edge_diff = float(attributes["edge_diff"])
+        self.edge_macd = float(attributes["edge_macd"])
         self.signal = Signal(attributes["signal"])
 
     def __repr__(self):
-        return {"ticker": self.ticker, "min_price": str(self.min_price),
-                    "min_cci": str(self.min_cci), "min_diff": str(self.min_diff), "min_macd": str(self.min_macd),
-                    "signal": self.signal.__repr__(), }
+        return {"ticker": self.ticker, "edge_price": str(self.edge_price), "edge_cci": str(self.edge_cci),
+                "edge_diff": str(self.edge_diff), "edge_macd": str(self.edge_macd), "signal": self.signal.__repr__(), }
 
     def __str__(self):
         return str(self.__repr__())
 
-    def get_updated_copy(self, alert: Alert):
+    def get_updated_copy(self, alert: Company, asset: bool):
         new = Opportunity(self.__repr__())
-        if alert.price < new.min_price:
-            new.min_price = alert.price
-        if alert.cci < new.min_cci:
-            new.min_cci = alert.cci
-        if alert.diff < new.min_diff:
-            new.min_diff = alert.diff
-        if alert.macd < new.min_macd:
-            new.min_macd = alert.macd
+        if asset:
+            if alert.price > new.edge_price:
+                new.edge_price = alert.price
+            if alert.cci > new.edge_cci:
+                new.edge_cci = alert.cci
+            if alert.diff > new.edge_diff:
+                new.edge_diff = alert.diff
+            if alert.macd > new.edge_macd:
+                new.edge_macd = alert.macd
+        else:
+            if alert.price < new.edge_price:
+                new.edge_price = alert.price
+            if alert.cci < new.edge_cci:
+                new.edge_cci = alert.cci
+            if alert.diff < new.edge_diff:
+                new.edge_diff = alert.diff
+            if alert.macd < new.edge_macd:
+                new.edge_macd = alert.macd
         return new
+
+
+class Asset:
+    def __init__(self, attributes: dict):
+        self.ticker = attributes["ticker"]
+        self.price = attributes["price"]
+        self.quantity = attributes["quantity"]
+        self.opportunity = Opportunity(attributes["opportunity"]) if "opportunity" in attributes.keys() else None
+
+    def __repr__(self):
+        if self.opportunity is None:
+            return {"ticker": self.ticker, "price": self.price, "quantity": self.quantity, }
+        else:
+            return {"ticker": self.ticker, "price": self.price, "quantity": self.quantity,
+                    "opportunity": self.opportunity.__repr__(), }
+
+    def __str__(self):
+        return str(self.__repr__())
+
 
 class Signal:
     def __init__(self, value: str):
@@ -84,7 +95,7 @@ class Signal:
 
 
 class Log:
-    def __init__(self, type: str, alert: Alert, opportunity: Opportunity):
+    def __init__(self, type: str, alert: Company, opportunity: Opportunity):
         self.type = type
         self.ticker = alert.ticker
         self.time = alert.time
@@ -93,15 +104,17 @@ class Log:
         self.diff = float(alert.diff)
         self.macd = float(alert.macd)
         self.signal = float(alert.signal)
-        self.min_price = float(opportunity.min_price)
-        self.min_cci = float(opportunity.min_cci)
-        self.min_diff = float(opportunity.min_diff)
-        self.min_macd = float(opportunity.min_macd)
+        self.edge_price = float(opportunity.edge_price)
+        self.edge_cci = float(opportunity.edge_cci)
+        self.edge_diff = float(opportunity.edge_diff)
+        self.edge_macd = float(opportunity.edge_macd)
 
     def __repr__(self):
-        return {"type": self.type, "ticker": self.ticker, "time":datetime.strftime(self.time, time_format),
-                "price":str(self.price),"cci":str(self.cci),"macd":str(self.macd),"signal":str(self.signal),"diff":str(self.diff),
-                "min_price": str(self.min_price),"min_cci": str(self.min_cci), "min_diff": str(self.min_diff), "min_macd": str(self.min_macd)}
+        return {"type": self.type, "ticker": self.ticker, "time": datetime.strftime(self.time, time_format),
+                "price": str(self.price), "cci": str(self.cci), "macd": str(self.macd), "signal": str(self.signal),
+                "diff": str(self.diff),
+                "edge_price": str(self.edge_price), "edge_cci": str(self.edge_cci), "edge_diff": str(self.edge_diff),
+                "edge_macd": str(self.edge_macd)}
 
     def __str__(self):
         return str(self.__repr__())
