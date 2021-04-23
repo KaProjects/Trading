@@ -45,29 +45,43 @@ class Opportunity:
         self.min_cci = float(attributes["min_cci"])
         self.min_diff = float(attributes["min_diff"])
         self.min_macd = float(attributes["min_macd"])
+        self.signal = Signal(attributes["signal"])
 
     def __repr__(self):
         return {"ticker": self.ticker, "min_price": str(self.min_price),
-                    "min_cci": str(self.min_cci), "min_diff": str(self.min_diff), "min_macd": str(self.min_macd)}
+                    "min_cci": str(self.min_cci), "min_diff": str(self.min_diff), "min_macd": str(self.min_macd),
+                    "signal": self.signal.__repr__(), }
 
     def __str__(self):
         return str(self.__repr__())
 
-    def update(self, alert: Alert):
-        updated = False
-        if alert.price < self.min_price:
-            self.min_price = alert.price
-            updated = True
-        if alert.cci < self.min_cci:
-            self.min_cci = alert.cci
-            updated = True
-        if alert.diff < self.min_diff:
-            self.min_diff = alert.diff
-            updated = True
-        if alert.macd < self.min_macd:
-            self.min_macd = alert.macd
-            updated = True
-        return updated
+    def get_updated_copy(self, alert: Alert):
+        new = Opportunity(self.__repr__())
+        if alert.price < new.min_price:
+            new.min_price = alert.price
+        if alert.cci < new.min_cci:
+            new.min_cci = alert.cci
+        if alert.diff < new.min_diff:
+            new.min_diff = alert.diff
+        if alert.macd < new.min_macd:
+            new.min_macd = alert.macd
+        return new
+
+class Signal:
+    def __init__(self, value: str):
+        self.cci = value[0:1] == "1"
+        self.diff = value[1:2] == "1"
+        self.macd = value[2:3] == "1"
+
+    def __repr__(self):
+        signal = "1" if self.cci else "0"
+        signal = signal + "1" if self.diff else "0"
+        signal = signal + "1" if self.macd else "0"
+        return signal
+
+    def __str__(self):
+        return self.__repr__()
+
 
 class Log:
     def __init__(self, type: str, alert: Alert, opportunity: Opportunity):
