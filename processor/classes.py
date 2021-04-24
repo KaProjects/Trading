@@ -37,6 +37,14 @@ class Opportunity:
     def __str__(self):
         return str(self.__repr__())
 
+    def __eq__(self, other):
+        if type(other) != Opportunity:
+            return False
+        else:
+            return (self.ticker == other.ticker and self.edge_price == other.edge_price and
+                    self.edge_cci == other.edge_cci and self.edge_diff == other.edge_diff and
+                    self.edge_macd == other.edge_macd and self.signal == other.signal)
+
     def get_updated_copy(self, alert: Company, asset: bool):
         new = Opportunity(self.__repr__())
         if asset:
@@ -77,6 +85,12 @@ class Asset:
     def __str__(self):
         return str(self.__repr__())
 
+    def __eq__(self, other):
+        if type(other) != Asset:
+            return False
+        else:
+            return (self.ticker == other.ticker and self.price == other.price and
+                    self.quantity == other.quantity and self.opportunity == other.opportunity)
 
 class Signal:
     def __init__(self, value: str):
@@ -86,13 +100,18 @@ class Signal:
 
     def __repr__(self):
         signal = "1" if self.cci else "0"
-        signal = signal + "1" if self.diff else "0"
-        signal = signal + "1" if self.macd else "0"
+        signal = signal + ("1" if self.diff else "0")
+        signal = signal + ("1" if self.macd else "0")
         return signal
 
     def __str__(self):
         return self.__repr__()
 
+    def __eq__(self, other):
+        if type(other) != Signal:
+            return False
+        else:
+            return self.cci == other.cci and self.diff == other.diff and self.macd == other.macd
 
 class Log:
     def __init__(self, type: str, alert: Company, opportunity: Opportunity):

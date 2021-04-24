@@ -61,7 +61,7 @@ async def alert_consumer():
                 if logs is not None:
                     for event_log in logs:
                         obj = db.reference(log_path).push(event_log.__repr__())
-                        log("log {} type '{}' for {} created".format(obj.key, type, event_log.ticker))
+                        log("log {} type '{}' for {} created".format(obj.key, event_log.type, event_log.ticker))
 
                 if opportunity is not None and updated_opportunity is None:
                     db.reference(opportunity_path + "/" + opportunity.ticker).delete()
@@ -69,11 +69,11 @@ async def alert_consumer():
                 elif opportunity is None and updated_opportunity is not None:
                     db.reference(opportunity_path + "/" + updated_opportunity.ticker).set(updated_opportunity.__repr__())
                     log("{} opportunity created".format(updated_opportunity.ticker))
-                elif opportunity is not None and updated_opportunity is not None and not opportunity.__eq__(updated_opportunity):
+                elif opportunity is not None and updated_opportunity is not None and opportunity != updated_opportunity:
                     db.reference(opportunity_path + "/" + updated_opportunity.ticker).set(updated_opportunity.__repr__())
                     log("{} opportunity updated".format(updated_opportunity.ticker))
 
-                if not asset_opportunity.__eq__(updated_asset_opportunity):
+                if asset_opportunity != updated_asset_opportunity:
                     asset.opportunity = updated_asset_opportunity
                     db.reference(asset_path + "/" + asset.ticker).set(asset.__repr__())
                     log("{} asset opportunity updated".format(asset.ticker))
