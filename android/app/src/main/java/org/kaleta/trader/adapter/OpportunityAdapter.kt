@@ -14,7 +14,12 @@ import org.kaleta.trader.DataSource
 import org.kaleta.trader.R
 import org.kaleta.trader.data.Company
 import org.kaleta.trader.data.Opportunity
+import java.lang.String.format
 import java.math.BigDecimal
+import java.text.DateFormat
+import java.text.MessageFormat.format
+import java.text.SimpleDateFormat
+import java.util.*
 
 class OpportunityAdapter(a:String) : RecyclerView.Adapter<OpportunityAdapter.ViewHolder>(), ValueEventListener {
 
@@ -45,49 +50,57 @@ class OpportunityAdapter(a:String) : RecyclerView.Adapter<OpportunityAdapter.Vie
         var time: TextView = itemView.findViewById(R.id.time)
 
         var price: TextView = itemView.findViewById(R.id.price)
-        var priceMin: TextView = itemView.findViewById(R.id.priceMin)
+        var priceEdge: TextView = itemView.findViewById(R.id.priceEdge)
         var cci: TextView = itemView.findViewById(R.id.cci)
-        var cciMin: TextView = itemView.findViewById(R.id.cciMin)
+        var cciEdge: TextView = itemView.findViewById(R.id.cciEdge)
         var macd: TextView = itemView.findViewById(R.id.macd)
-        var macdMin: TextView = itemView.findViewById(R.id.macdMin)
+        var macdEdge: TextView = itemView.findViewById(R.id.macdEdge)
         var diff: TextView = itemView.findViewById(R.id.diff)
-        var diffMin: TextView = itemView.findViewById(R.id.diffMin)
+        var diffEdge: TextView = itemView.findViewById(R.id.diffEdge)
 
         fun bind(opportunity: Opportunity, company: Company) {
             ticker.text = company.ticker
             time.text = timeFormatter(company.time)
             price.text = priceFormatter(company.price)
-            priceMin.text = priceFormatter(opportunity.min_price)
+            priceEdge.text = priceFormatter(opportunity.edge_price)
             cci.text = dataFormatter(company.cci)
-            cciMin.text = dataFormatter(opportunity.min_cci)
+            cciEdge.text = dataFormatter(opportunity.edge_cci)
             macd.text = dataFormatter(company.macd)
-            macdMin.text = dataFormatter(opportunity.min_macd)
+            macdEdge.text = dataFormatter(opportunity.edge_macd)
             diff.text = dataFormatter(company.diff)
-            diffMin.text = dataFormatter(opportunity.min_diff)
+            diffEdge.text = dataFormatter(opportunity.edge_diff)
 
-            if (opportunity.min_cci.toFloat() < -2f) {
-                cciMin.setTypeface(cciMin.getTypeface(), Typeface.BOLD)
-                cciMin.setBackgroundResource(R.drawable.back_greener)
+            if (opportunity.edge_cci.toFloat() < -2f || opportunity.edge_cci.toFloat() > 2f) {
+                cciEdge.setTypeface(cciEdge.getTypeface(), Typeface.BOLD)
+                cciEdge.setBackgroundResource(R.drawable.back_greener)
             } else {
-                cciMin.setTypeface(Typeface.DEFAULT)
-                cciMin.setBackgroundResource(R.drawable.back)
+                cciEdge.setTypeface(Typeface.DEFAULT)
+                cciEdge.setBackgroundResource(R.drawable.back)
             }
-            if (company.cci.toFloat() < -1f){
-                if (company.cci.toFloat() < -1.5f){
+
+            cci.setBackgroundResource(R.drawable.back)
+            cci.setTextColor(ContextCompat.getColor(itemView.context, R.color.text))
+            macd.setBackgroundResource(R.drawable.back)
+            macd.setTextColor(ContextCompat.getColor(itemView.context, R.color.text))
+            diff.setBackgroundResource(R.drawable.back)
+            diff.setTextColor(ContextCompat.getColor(itemView.context, R.color.text))
+            if (opportunity.signal.substring(0,1) == "0"){
+                if (company.cci.toFloat() < -1.5f || company.cci.toFloat() > 1.5f){
                     cci.setBackgroundResource(R.drawable.back_lighter)
                     cci.setTextColor(ContextCompat.getColor(itemView.context, R.color.textLighter))
-                } else {
-                    cci.setBackgroundResource(R.drawable.back)
-                    cci.setTextColor(ContextCompat.getColor(itemView.context, R.color.text))
+                    macd.setBackgroundResource(R.drawable.back_lighter)
+                    macd.setTextColor(ContextCompat.getColor(itemView.context, R.color.textLighter))
+                    diff.setBackgroundResource(R.drawable.back_lighter)
+                    diff.setTextColor(ContextCompat.getColor(itemView.context, R.color.textLighter))
                 }
             } else {
                 cci.setBackgroundResource(R.drawable.back_greener)
-                cci.setTextColor(ContextCompat.getColor(itemView.context, R.color.text))
             }
-            if (company.diff.toFloat() >= 0f) {
+            if (opportunity.signal.substring(1,2) == "1") {
+                macd.setBackgroundResource(R.drawable.back_greener)
+            }
+            if (opportunity.signal.substring(2,3) == "1") {
                 diff.setBackgroundResource(R.drawable.back_greener)
-            } else {
-                diff.setBackgroundResource(R.drawable.back)
             }
         }
 
@@ -99,13 +112,24 @@ class OpportunityAdapter(a:String) : RecyclerView.Adapter<OpportunityAdapter.Vie
             return if (origin == "") {
                 origin
             } else {
-                val date = origin.split("T")[0].split("-")
-                val year = date[0].substring(2)
-                val month = date[1]
-                val day = date[2]
+                var gmt =  Calendar.getInstance()
+                gmt.timeZone = TimeZone.getTimeZone("GMT")
 
-                val time = origin.split("T")[1].split("Z")[0].substring(0,5)
-                "$day-$month-$year $time"
+                val date = origin.split("T")[0].split("-")
+
+                gmt.set(Calendar.YEAR, date[0].toInt())
+                gmt.set(Calendar.MONTH, date[1].toInt() - 1)
+                gmt.set(Calendar.DAY_OF_MONTH, date[2].toInt())
+
+                val time = origin.split("T")[1].split("Z")[0].substring(0,5).split(":")
+
+                gmt.set(Calendar.HOUR_OF_DAY, time[0].toInt())
+                gmt.set(Calendar.MINUTE, time[1].toInt())
+
+                val local = Calendar.getInstance()
+                local.timeInMillis = gmt.timeInMillis
+
+                SimpleDateFormat("dd-MM-yy HH:mm").format(Date(local.timeInMillis))
             }
         }
 

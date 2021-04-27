@@ -89,13 +89,13 @@ class Asset:
 class Signal:
     def __init__(self, value: str):
         self.cci = value[0:1] == "1"
-        self.diff = value[1:2] == "1"
-        self.macd = value[2:3] == "1"
+        self.macd = value[1:2] == "1"
+        self.diff = value[2:3] == "1"
 
     def __repr__(self):
         signal = "1" if self.cci else "0"
-        signal = signal + ("1" if self.diff else "0")
         signal = signal + ("1" if self.macd else "0")
+        signal = signal + ("1" if self.diff else "0")
         return signal
 
     def __str__(self):

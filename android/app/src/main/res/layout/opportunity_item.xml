@@ -18,7 +18,7 @@
         />
 
     <TextView
-        android:id="@+id/priceMin"
+        android:id="@+id/priceEdge"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:background="@drawable/back"
@@ -32,10 +32,10 @@
         android:id="@+id/price"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:layout_alignEnd="@id/priceMin"
+        android:layout_alignEnd="@id/priceEdge"
         android:background="@drawable/back"
         android:layout_alignBottom="@id/ticker"
-        android:layout_below="@+id/priceMin"
+        android:layout_below="@+id/priceEdge"
         android:layout_toEndOf="@id/ticker"
         android:gravity="center_vertical"
         android:textAlignment="viewEnd"
@@ -46,7 +46,7 @@
 
 
     <TextView
-        android:id="@+id/cciMin"
+        android:id="@+id/cciEdge"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:background="@drawable/back"
@@ -59,17 +59,17 @@
         android:id="@+id/cci"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:layout_alignEnd="@id/cciMin"
+        android:layout_alignEnd="@id/cciEdge"
         android:background="@drawable/back"
         android:layout_alignBottom="@id/ticker"
-        android:layout_below="@+id/cciMin"
+        android:layout_below="@+id/cciEdge"
         android:layout_toEndOf="@id/price"
         android:textAlignment="center"
         android:gravity="center_vertical"
         />
 
     <TextView
-        android:id="@+id/macdMin"
+        android:id="@+id/macdEdge"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:background="@drawable/back"
@@ -82,17 +82,17 @@
         android:id="@+id/macd"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:layout_alignEnd="@id/macdMin"
+        android:layout_alignEnd="@id/macdEdge"
         android:background="@drawable/back"
         android:layout_alignBottom="@id/ticker"
-        android:layout_below="@+id/macdMin"
+        android:layout_below="@+id/macdEdge"
         android:layout_toEndOf="@id/cci"
         android:textAlignment="center"
         android:gravity="center_vertical"
         />
 
     <TextView
-        android:id="@+id/diffMin"
+        android:id="@+id/diffEdge"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:background="@drawable/back"
@@ -105,10 +105,10 @@
         android:id="@+id/diff"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:layout_alignEnd="@id/diffMin"
+        android:layout_alignEnd="@id/diffEdge"
         android:background="@drawable/back"
         android:layout_alignBottom="@id/ticker"
-        android:layout_below="@+id/diffMin"
+        android:layout_below="@+id/diffEdge"
         android:layout_toEndOf="@id/macd"
         android:textAlignment="center"
         android:gravity="center_vertical"

@@ -56,11 +56,11 @@ class AssetAdapter(a:String): RecyclerView.Adapter<AssetAdapter.ViewHolder>(), V
 
         fun bind(asset: Asset, company: Company) {
             ticker.text = company.ticker
-            purchase.text = purchaseFormatter(asset.price, asset.amount)
-            purchaseSum.text = purchaseSumFormatter(asset.price, asset.amount)
-            current.text = currentFormatter(company.price, asset.amount)
-            currentSum.text = currentSumFormatter(company.price, asset.amount)
-            change.text = changeFormatter(asset.price, company.price, asset.amount)
+            purchase.text = purchaseFormatter(asset.price, asset.quantity)
+            purchaseSum.text = purchaseSumFormatter(asset.price, asset.quantity)
+            current.text = currentFormatter(company.price, asset.quantity)
+            currentSum.text = currentSumFormatter(company.price, asset.quantity)
+            change.text = changeFormatter(asset.price, company.price, asset.quantity)
             profit.text = profitFormatter(asset.price, company.price)
 
             if (asset.price == "") {

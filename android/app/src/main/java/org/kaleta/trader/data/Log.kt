@@ -1,10 +1,11 @@
 package org.kaleta.trader.data
 
-data class Log(var type: String, var ticker: String, var price: String, var time: String,
-               var cci: String, var cciMin: String,
-               var macd: String, var macdMin: String,
-               var diff: String, var diffMin: String,
+data class Log(var type: String, var ticker: String, var time: String,
+               var price: String, var edge_price: String,
+               var cci: String, var edge_cci: String,
+               var macd: String, var edge_macd: String,
+               var diff: String, var edge_diff: String,
                var id: String ) {
 
-    constructor() : this("","", "", "", "", "", "", "", "", "", "")
+    constructor() : this("","", "", "", "", "", "", "", "", "", "","")
 }
