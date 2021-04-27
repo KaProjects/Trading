@@ -149,9 +149,9 @@ def resolve_alert(alert: Company, former_opportunity: Opportunity):
             logs.append(Log("buy|create(cci<-1.5)", alert, new_opportunity))
 
         if alert.cci > 1.5:
-            new_asset_opportunity = Opportunity({"ticker": alert.ticker, "edge_price": alert.price, "edge_cci": alert.cci,
+            new_opportunity = Opportunity({"ticker": alert.ticker, "edge_price": alert.price, "edge_cci": alert.cci,
                                                  "edge_diff": alert.diff, "edge_macd": alert.macd, "signal": "000", })
-            logs.append(Log("sell|create(cci>1.5)", alert, new_asset_opportunity))
+            logs.append(Log("sell|create(cci>1.5)", alert, new_opportunity))
 
     else:
         if alert.cci < -0.25:

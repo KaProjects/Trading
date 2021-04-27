@@ -45,9 +45,9 @@ class Opportunity:
                     self.edge_cci == other.edge_cci and self.edge_diff == other.edge_diff and
                     self.edge_macd == other.edge_macd and self.signal == other.signal)
 
-    def get_updated_copy(self, alert: Company, asset: bool):
+    def get_updated_copy(self, alert: Company, is_sell: bool):
         new = Opportunity(self.__repr__())
-        if asset:
+        if is_sell:
             if alert.price > new.edge_price:
                 new.edge_price = alert.price
             if alert.cci > new.edge_cci:
