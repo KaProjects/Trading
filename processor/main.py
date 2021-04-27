@@ -1,5 +1,6 @@
 import asyncio
 import json
+import traceback
 from datetime import datetime
 
 import firebase_admin
@@ -28,17 +29,35 @@ def init_firebase():
     firebase_admin.initialize_app(cred, envs)
 
 def log(message):
-    time = datetime.now().strftime("%y-%m-%d %H:%M:%S")
-    print("[{}] {}".format(time, message))
+    now = datetime.now().strftime("%y-%m-%d %H:%M:%S")
+    log = "[{}] {}".format(now, message)
+    print(log)
+    with open("log.log", "a") as log_file:
+        log_file.write(log + "\n")
+
+def get_sleep(sleep_counter):
+    if sleep_counter <= 5:
+        return 1
+    elif sleep_counter <= 10:
+        return 5
+    elif sleep_counter <= 15:
+        return 30
+    else:
+        return 60
 
 async def alert_consumer():
+    sleep_counter = 0
     while True:
         try:
             alerts_data: dict = db.reference(alert_data_path).get()
             if alerts_data is None:
-                log("no alerts found, sleeping for 60s...")
-                await asyncio.sleep(60)
+                sleep_counter += 1
+                sleep = get_sleep(sleep_counter)
+                log("no alerts found, sleeping for {}min...".format(sleep))
+                await asyncio.sleep(sleep * 60)
                 continue
+            else:
+                sleep_counter = 0
 
             log("alerts found: {}".format(len(alerts_data)))
 
@@ -73,7 +92,7 @@ async def alert_consumer():
                     db.reference(opportunity_path + "/" + updated_opportunity.ticker).set(updated_opportunity.__repr__())
                     log("{} opportunity updated".format(updated_opportunity.ticker))
 
-                if asset_opportunity != updated_asset_opportunity:
+                if asset is not None and asset_opportunity != updated_asset_opportunity:
                     asset.opportunity = updated_asset_opportunity
                     db.reference(asset_path + "/" + asset.ticker).set(asset.__repr__())
                     log("{} asset opportunity updated".format(asset.ticker))
@@ -84,10 +103,11 @@ async def alert_consumer():
                 # log("company {} updated, {} alert removed".format(alert.ticker, alert_id))
 
             await asyncio.sleep(1)
-        except Exception as e:
-            log(e)
-            log("^^^ exception occurred, sleeping for 5min...")
-            await asyncio.sleep(5*60)
+        except Exception:
+            log(traceback.format_exc())
+            sleep = get_sleep(sleep_counter)
+            log("^^^ exception occurred, sleeping for {}min...".format(sleep))
+            await asyncio.sleep(sleep * 60)
 
 def fast_forward_alert_consumer(alerts_data):
     companies: dict = db.reference(company_path).get()
