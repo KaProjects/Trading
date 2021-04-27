@@ -29,7 +29,7 @@
 
     <TextView
         android:id="@+id/ticker"
-        android:layout_width="45dp"
+        android:layout_width="50dp"
         android:layout_height="match_parent"
         android:textSize="18sp"
         android:textAlignment="center"
