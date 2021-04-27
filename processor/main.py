@@ -84,9 +84,9 @@ async def alert_consumer():
                 # log("company {} updated, {} alert removed".format(alert.ticker, alert_id))
 
             await asyncio.sleep(1)
-        except TransportError as e:
+        except Exception as e:
             log(e)
-            log("^^^ connection error, sleeping for 5min...")
+            log("^^^ exception occurred, sleeping for 5min...")
             await asyncio.sleep(5*60)
 
 def fast_forward_alert_consumer(alerts_data):
