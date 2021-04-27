@@ -1,0 +1,1 @@
+docker run -d trader:v1 -v /volume1/production/Trading/processor:/workdir
