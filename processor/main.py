@@ -71,11 +71,8 @@ async def alert_consumer():
                 alert = Company(alerts_data[alert_id])
                 opportunity_data: dict = db.reference(opportunity_path + "/" + alert.ticker).get()
                 opportunity = None if opportunity_data is None else Opportunity(opportunity_data)
-                asset_data: dict = db.reference(asset_path + "/" + alert.ticker).get()
-                asset = None if asset_data is None else Asset(asset_data)
-                asset_opportunity = None if asset is None else asset.opportunity
 
-                logs, updated_opportunity, updated_asset_opportunity = resolve_alert(alert, opportunity, asset_opportunity)
+                logs, updated_opportunity = resolve_alert(alert, opportunity)
 
                 if logs is not None:
                     for event_log in logs:
@@ -91,11 +88,6 @@ async def alert_consumer():
                 elif opportunity is not None and updated_opportunity is not None and opportunity != updated_opportunity:
                     db.reference(opportunity_path + "/" + updated_opportunity.ticker).set(updated_opportunity.__repr__())
                     log("{} opportunity updated".format(updated_opportunity.ticker))
-
-                if asset is not None and asset_opportunity != updated_asset_opportunity:
-                    asset.opportunity = updated_asset_opportunity
-                    db.reference(asset_path + "/" + asset.ticker).set(asset.__repr__())
-                    log("{} asset opportunity updated".format(asset.ticker))
 
 
                 db.reference(company_path + "/" + alert.ticker).set(alert.__repr__())
@@ -146,65 +138,66 @@ returns:
     log list 
     updated opportunity
 """
-def resolve_alert(alert: Company, former_opportunity: Opportunity, former_asset_opportunity: Opportunity):
+def resolve_alert(alert: Company, former_opportunity: Opportunity):
     logs = list()
     new_opportunity = None
-    new_asset_opportunity = None
     
-    if former_opportunity is None and alert.cci < -1.5:
-        new_opportunity = Opportunity({"ticker": alert.ticker, "edge_price": alert.price, "edge_cci": alert.cci,
-                                       "edge_diff": alert.diff, "edge_macd": alert.macd, "signal": "000", })
-        logs.append(Log("buy|create(cci<-1.5)", alert, new_opportunity))
+    if former_opportunity is None:
+        if alert.cci < -1.5:
+            new_opportunity = Opportunity({"ticker": alert.ticker, "edge_price": alert.price, "edge_cci": alert.cci,
+                                           "edge_diff": alert.diff, "edge_macd": alert.macd, "signal": "000", })
+            logs.append(Log("buy|create(cci<-1.5)", alert, new_opportunity))
 
-    if former_asset_opportunity is None and alert.cci > 1.5:
-        new_asset_opportunity = Opportunity({"ticker": alert.ticker, "edge_price": alert.price, "edge_cci": alert.cci,
-                                             "edge_diff": alert.diff, "edge_macd": alert.macd, "signal": "000", })
-        logs.append(Log("sell|create(cci>1.5)", alert, new_asset_opportunity))
+        if alert.cci > 1.5:
+            new_asset_opportunity = Opportunity({"ticker": alert.ticker, "edge_price": alert.price, "edge_cci": alert.cci,
+                                                 "edge_diff": alert.diff, "edge_macd": alert.macd, "signal": "000", })
+            logs.append(Log("sell|create(cci>1.5)", alert, new_asset_opportunity))
 
-    if former_opportunity is not None and alert.cci < -0.25:
-        new_opportunity = former_opportunity.get_updated_copy(alert, False)
+    else:
+        if alert.cci < -0.25:
+            new_opportunity = former_opportunity.get_updated_copy(alert, False)
 
-        if not new_opportunity.signal.cci and alert.cci >= -1:
-            logs.append(Log("buy|signal(cci>-1)", alert, new_opportunity))
-            new_opportunity.signal.cci = True
-        if new_opportunity.signal.cci and alert.cci < -1.2:
-            new_opportunity.signal.cci = False
+            if not new_opportunity.signal.cci and alert.cci >= -1:
+                logs.append(Log("buy|signal(cci>-1)", alert, new_opportunity))
+                new_opportunity.signal.cci = True
+            if new_opportunity.signal.cci and alert.cci < -1.2:
+                new_opportunity.signal.cci = False
 
-        if not new_opportunity.signal.diff and alert.diff >= 0:
-            logs.append(Log("buy|signal(diff>0)", alert, new_opportunity))
-            new_opportunity.signal.diff = True
-        if new_opportunity.signal.diff and alert.diff < -0.2:
-            new_opportunity.signal.diff = False
+            if not new_opportunity.signal.diff and alert.diff >= 0:
+                logs.append(Log("buy|signal(diff>0)", alert, new_opportunity))
+                new_opportunity.signal.diff = True
+            if new_opportunity.signal.diff and alert.diff < -0.2:
+                new_opportunity.signal.diff = False
 
-        if not new_opportunity.signal.macd and alert.macd >= 0:
-            logs.append(Log("buy|signal(macd>0)", alert, new_opportunity))
-            new_opportunity.signal.macd = True
-        if new_opportunity.signal.macd and alert.macd < -0.2:
-            new_opportunity.signal.macd = False
+            if not new_opportunity.signal.macd and alert.macd >= 0:
+                logs.append(Log("buy|signal(macd>0)", alert, new_opportunity))
+                new_opportunity.signal.macd = True
+            if new_opportunity.signal.macd and alert.macd < -0.2:
+                new_opportunity.signal.macd = False
 
-    if former_asset_opportunity is not None and alert.cci > 0.25:
-        new_asset_opportunity = former_asset_opportunity.get_updated_copy(alert, True)
+        if alert.cci > 0.25:
+            new_opportunity = former_opportunity.get_updated_copy(alert, True)
 
-        if not new_asset_opportunity.signal.cci and alert.cci < 1:
-            logs.append(Log("sell|signal(cci<1)", alert, new_asset_opportunity))
-            new_asset_opportunity.signal.cci = True
-        if new_asset_opportunity.signal.cci and alert.cci > 1.2:
-            new_asset_opportunity.signal.cci = False
+            if not new_opportunity.signal.cci and alert.cci < 1:
+                logs.append(Log("sell|signal(cci<1)", alert, new_opportunity))
+                new_opportunity.signal.cci = True
+            if new_opportunity.signal.cci and alert.cci > 1.2:
+                new_opportunity.signal.cci = False
 
-        if not new_asset_opportunity.signal.diff and alert.diff <= 0:
-            logs.append(Log("sell|signal(diff<0)", alert, new_asset_opportunity))
-            new_asset_opportunity.signal.diff = True
-        if new_asset_opportunity.signal.diff and alert.diff > 0.2:
-            new_asset_opportunity.signal.diff = False
+            if not new_opportunity.signal.diff and alert.diff <= 0:
+                logs.append(Log("sell|signal(diff<0)", alert, new_opportunity))
+                new_opportunity.signal.diff = True
+            if new_opportunity.signal.diff and alert.diff > 0.2:
+                new_opportunity.signal.diff = False
 
-        if not new_asset_opportunity.signal.macd and alert.macd <= 0:
-            logs.append(Log("sell|signal(macd<0)", alert, new_asset_opportunity))
-            new_asset_opportunity.signal.macd = True
-        if new_asset_opportunity.signal.macd and alert.macd > 0.2:
-            new_asset_opportunity.signal.macd = False
+            if not new_opportunity.signal.macd and alert.macd <= 0:
+                logs.append(Log("sell|signal(macd<0)", alert, new_opportunity))
+                new_opportunity.signal.macd = True
+            if new_opportunity.signal.macd and alert.macd > 0.2:
+                new_opportunity.signal.macd = False
 
 
-    return logs, new_opportunity, new_asset_opportunity
+    return logs, new_opportunity
 
 def init():
     init_firebase()

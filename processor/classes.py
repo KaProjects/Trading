@@ -73,14 +73,9 @@ class Asset:
         self.ticker = attributes["ticker"]
         self.price = attributes["price"]
         self.quantity = attributes["quantity"]
-        self.opportunity = Opportunity(attributes["opportunity"]) if "opportunity" in attributes.keys() else None
 
     def __repr__(self):
-        if self.opportunity is None:
-            return {"ticker": self.ticker, "price": self.price, "quantity": self.quantity, }
-        else:
-            return {"ticker": self.ticker, "price": self.price, "quantity": self.quantity,
-                    "opportunity": self.opportunity.__repr__(), }
+        return {"ticker": self.ticker, "price": self.price, "quantity": self.quantity, }
 
     def __str__(self):
         return str(self.__repr__())
@@ -89,8 +84,7 @@ class Asset:
         if type(other) != Asset:
             return False
         else:
-            return (self.ticker == other.ticker and self.price == other.price and
-                    self.quantity == other.quantity and self.opportunity == other.opportunity)
+            return self.ticker == other.ticker and self.price == other.price and self.quantity == other.quantity
 
 class Signal:
     def __init__(self, value: str):
