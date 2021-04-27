@@ -1,2 +1,2 @@
-docker build -t trader:v1 .
-docker run -d -v $(pwd):/workdir trader:v1
+docker build -t trader-processor:v1.1 .
+docker run -d -v $(pwd):/workdir trader-processor:v1.1
