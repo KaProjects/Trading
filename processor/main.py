@@ -199,8 +199,20 @@ def resolve_alert(alert: Company, former_opportunity: Opportunity):
 
     return logs, new_opportunity
 
+def prune_db():
+    alerts_count = len(db.reference(alert_data_path).get())
+    print("Alerts count: {}".format(alerts_count))
+    counter = 0
+    while alerts_count > 1000:
+        for key in db.reference(alert_data_path).order_by_key().limit_to_last(1000).get():
+            db.reference(alert_data_path + "/" + key).delete()
+        counter += 1
+        print ("{}. mile deleted".format(counter))
+        alerts_count -= 1000
+
 def init():
     init_firebase()
+    # prune_db()
     # analyzer.analyze()
     asyncio.run(alert_consumer())
 

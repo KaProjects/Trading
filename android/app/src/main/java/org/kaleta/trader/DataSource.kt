@@ -24,7 +24,6 @@ object DataSource {
     const val logPath = "log/"
     val logReference = database.getReference(logPath)
     var logMap: MutableMap<String, Log> = Collections.synchronizedMap(HashMap())
-    var logsLoaded = false
 
     const val assetPath = "asset/"
     val assetReference = database.getReference(assetPath)

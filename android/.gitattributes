@@ -1,0 +1,3 @@
+.gitattributes !filter !diff
+
+app/google-services.json filter=git-crypt diff=git-crypt

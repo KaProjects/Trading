@@ -16,25 +16,21 @@ import org.kaleta.trader.data.Log
 class LogChildListener(private val context: Context) : AbstractChildEventListener() {
 
     override fun onChildRemoved(dataSnapshot: DataSnapshot) {
-        if (DataSource.logsLoaded) {
-            DataSource.logMap.remove(dataSnapshot.key)
-        }
+        DataSource.logMap.remove(dataSnapshot.key)
     }
 
     override fun onChildAdded(dataSnapshot: DataSnapshot, p1: String?) {
-        if (DataSource.logsLoaded) {
-            val log: Log = dataSnapshot.getValue(Log::class.java) as Log
-            log.id = dataSnapshot.key!!
-            DataSource.logMap.put(dataSnapshot.key!!, log)
-            throwNotification(log)
-        }
+        val log: Log = dataSnapshot.getValue(Log::class.java) as Log
+        log.id = dataSnapshot.key!!
+        DataSource.logMap.put(dataSnapshot.key!!, log)
+
+//        throwNotification(log)
+        // TODO: if not thrown
     }
 
     override fun onChildChanged(dataSnapshot: DataSnapshot, p1: String?) {
-        if (DataSource.logsLoaded) {
-            val log: Log = dataSnapshot.getValue(Log::class.java) as Log
-            DataSource.logMap.replace(dataSnapshot.key!!, log)
-        }
+        val log: Log = dataSnapshot.getValue(Log::class.java) as Log
+        DataSource.logMap.replace(dataSnapshot.key!!, log)
     }
 
     private fun throwNotification(log: Log) {

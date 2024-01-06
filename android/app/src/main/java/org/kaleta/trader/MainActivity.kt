@@ -12,6 +12,9 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 import org.kaleta.trader.listener.*
 import org.kaleta.trader.ui.dialog.AddAssetDialog
 
@@ -23,7 +26,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        DataSource.logsLoaded = false
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
@@ -43,7 +45,8 @@ class MainActivity : AppCompatActivity() {
         DataSource.opportunityReference.addChildEventListener(OpportunityChildListener())
         DataSource.assetReference.addChildEventListener(AssetChildListener())
         DataSource.logReference.addChildEventListener(LogChildListener(this))
-        DataSource.logReference.addValueEventListener(LogStartupListener())
+
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
