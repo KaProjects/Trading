@@ -1,0 +1,5 @@
+.gitattributes !filter !diff
+
+cmds.md filter=git-crypt diff=git-crypt
+
+src/main/resources/application.properties filter=git-crypt diff=git-crypt
