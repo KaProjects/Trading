@@ -1,6 +1,7 @@
 import React from "react";
-import {AppBar, Box, Button, IconButton, Toolbar, Typography} from "@mui/material";
+import {AppBar, Box, FormControlLabel, IconButton, Toolbar, Typography} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
+import Checkbox from '@mui/material/Checkbox';
 
 
 const MainBar = props => {
@@ -19,7 +20,15 @@ const MainBar = props => {
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
                     <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
-
+                        {props.showActiveSelector &&
+                            <FormControlLabel control={<Checkbox checked={props.activeSelectorValue}
+                                                                 onChange={props.toggleActiveSelectorValue}
+                                                                 sx={{color: "white", '&.Mui-checked': {color: "white"}}}
+                                                                 label="Only Active"/>}
+                                              label={<Typography style={{fontFamily: "Roboto", fontSize: 13, marginRight: -4, paddingTop: 2}}>{"Only Active".toUpperCase()}</Typography>}
+                                              labelPlacement="start"
+                            />
+                        }
                     </Box>
                     <Box sx={{ flexGrow: 1 }} />
                     <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
@@ -30,5 +39,4 @@ const MainBar = props => {
         </Box>
     )
 }
-
 export default MainBar;

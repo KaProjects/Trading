@@ -12,6 +12,11 @@ public class Endpoint
         } catch (ResponseStatusException e) {
             return Response.status(e.getStatus()).entity(e.getMessage()).build();
         }
-        return Response.ok().entity(logic.get()).build();
+        Object content = logic.get();
+        if (content == null) {
+            return Response.noContent().build();
+        } else {
+            return Response.ok().entity(content).build();
+        }
     }
 }

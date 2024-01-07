@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Date;
 
 @Data
@@ -50,5 +51,25 @@ public class Trade extends AbstractEntity
     public Currency getCurrency()
     {
         return Currency.valueOf(currency);
+    }
+
+    public BigDecimal getPurchaseTotal()
+    {
+        return purchasePrice.multiply(quantity).add(purchaseFees);
+    }
+
+    public BigDecimal getSellTotal()
+    {
+        return sellPrice.multiply(quantity).add(sellFees);
+    }
+
+    public BigDecimal getProfit()
+    {
+        return getSellTotal().subtract(getPurchaseTotal());
+    }
+
+    public BigDecimal getProfitPercentage()
+    {
+        return getSellTotal().divide(getPurchaseTotal(), 4, RoundingMode.HALF_UP).subtract(new BigDecimal(1)).multiply(new BigDecimal(100));
     }
 }
