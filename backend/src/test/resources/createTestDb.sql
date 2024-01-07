@@ -34,7 +34,9 @@ INSERT INTO Trade (id, ticker, currency, quantity, purchase_date, purchase_price
 INSERT INTO Trade (id, ticker, currency, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('4', 'CEZ', 'K', '1150.1234', '2021-04-05', '500500.25', '250.12');
 
 INSERT INTO Record (id, ticker, date, title, price) VALUES ('1', 'NVDA', '2023-11-11', 'bought 5@400.5$', '400.5');
+INSERT INTO Record (id, ticker, date, title, price) VALUES ('1b', 'NVDA', '2024-01-05', 'sold 5@500$', '500');
 INSERT INTO Record (id, ticker, date, title, price) VALUES ('2', 'SHELL', '2021-05-10', 'bought 100@20.1€', '400.5');
+INSERT INTO Record (id, ticker, date, title, price) VALUES ('2b', 'SHELL', '2023-07-10', 'sold 100@30.4€', '30.4');
 INSERT INTO Record (id, ticker, date, title, price) VALUES ('3', 'RR', '2022-11-01', 'bought 10@200£', '400.5');
 INSERT INTO Record (id, ticker, date, title, price) VALUES ('4', 'CEZ', '2021-04-05', 'bought 1150.1234@500500.25K', '400.5');
 

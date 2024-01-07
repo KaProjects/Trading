@@ -22,8 +22,8 @@ class RecordResourceTest
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("size()", is(1))
-                .body("findAll { it.ticker == 'NVDA' }.size()", is(1));
+                .body("size()", is(2))
+                .body("findAll { it.ticker == 'NVDA' }.size()", is(2));
     }
 
     @Test

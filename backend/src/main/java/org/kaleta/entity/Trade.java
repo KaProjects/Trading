@@ -48,6 +48,11 @@ public class Trade extends AbstractEntity
     @Column(name = "sell_fees")
     private BigDecimal sellFees;
 
+    public String getTicker()
+    {
+        return ticker.trim();
+    }
+
     public Currency getCurrency()
     {
         return Currency.valueOf(currency);
@@ -70,6 +75,7 @@ public class Trade extends AbstractEntity
 
     public BigDecimal getProfitPercentage()
     {
+        if (purchasePrice.equals(new BigDecimal("0.00"))) return null;
         return getSellTotal().divide(getPurchaseTotal(), 4, RoundingMode.HALF_UP).subtract(new BigDecimal(1)).multiply(new BigDecimal(100));
     }
 }

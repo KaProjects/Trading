@@ -28,8 +28,8 @@ class TradeResourceTest
         assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
         assertThat(dto.getTrades().size(), is(4));
         assertThat(dto.getTrades().get(0).getPurchaseDate(), is("11.11.2023"));
-        assertThat(dto.getTrades().get(1).getPurchaseDate(), is("10.05.2021"));
-        assertThat(dto.getTrades().get(2).getPurchaseDate(), is("01.11.2022"));
+        assertThat(dto.getTrades().get(1).getPurchaseDate(), is("01.11.2022"));
+        assertThat(dto.getTrades().get(2).getPurchaseDate(), is("10.05.2021"));
         assertThat(dto.getTrades().get(3).getPurchaseDate(), is("05.04.2021"));
     }
 

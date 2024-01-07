@@ -63,7 +63,7 @@ const Trades = props => {
                     </TableHead>
                     <TableBody>
                         {data.trades.map((trade, index) => (
-                            <TableRow key={index}>
+                            <TableRow key={index} hover>
                                 <TableCell style={rowStyle(0)}>{trade.ticker}</TableCell>
                                 <TableCell style={rowStyle(1)}>{trade.currency}</TableCell>
                                 <TableCell style={rowStyle(2)}>{trade.purchaseDate}</TableCell>

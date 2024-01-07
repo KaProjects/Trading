@@ -8,7 +8,6 @@ import org.kaleta.entity.Currency;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Data
 public class TradeDto
@@ -69,7 +68,7 @@ public class TradeDto
 
         for (org.kaleta.entity.Trade trade : trades) {
             TradeDto.Trade dto = new TradeDto.Trade();
-            dto.setTicker(trade.getTicker().trim());
+            dto.setTicker(trade.getTicker());
             dto.setCurrency(trade.getCurrency());
 
             dto.setPurchaseDate(Constants.dateFormat.format(trade.getPurchaseDate()));
@@ -92,7 +91,7 @@ public class TradeDto
 
             tradeDto.getTrades().add(dto);
         }
-        tradeDto.getTrades().stream().sorted().collect(Collectors.toList());
+        tradeDto.getTrades().sort(Trade::compareTo);
         return tradeDto;
     }
 }
