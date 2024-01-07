@@ -49,4 +49,9 @@ public class Trade extends AbstractEntity
     @Column(name = "sell_fees")
     @NotNull
     private BigDecimal sellFees;
+
+    public Currency getCurrency()
+    {
+        return Currency.valueOf(currency);
+    }
 }

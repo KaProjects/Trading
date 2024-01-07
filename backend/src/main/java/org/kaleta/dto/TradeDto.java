@@ -1,6 +1,7 @@
 package org.kaleta.dto;
 
 import lombok.Data;
+import org.kaleta.entity.Currency;
 import org.kaleta.entity.Trade;
 
 import java.math.BigDecimal;
@@ -12,7 +13,7 @@ import java.util.List;
 public class TradeDto
 {
     private String ticker;
-    private String currency;
+    private Currency currency;
     private BigDecimal quantity;
     private Date purchaseDate;
     private BigDecimal purchasePrice;
