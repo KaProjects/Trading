@@ -3,10 +3,9 @@ package org.kaleta.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-
-import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.sql.Date;
 
@@ -43,11 +42,9 @@ public class Trade extends AbstractEntity
     private Date sellDate;
 
     @Column(name = "sell_price")
-    @NotNull
     private BigDecimal sellPrice;
 
     @Column(name = "sell_fees")
-    @NotNull
     private BigDecimal sellFees;
 
     public Currency getCurrency()
