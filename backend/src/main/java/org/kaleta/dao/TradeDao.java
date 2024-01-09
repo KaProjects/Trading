@@ -7,12 +7,7 @@ import java.util.List;
 public interface TradeDao
 {
     /**
-     * @return lists of all trades
+     * @return lists of trades that match provided filters (null filter = all values)
      */
-    List<Trade> list();
-
-    /**
-     * @return lists of all active trades
-     */
-    List<Trade> listActive();
+    List<Trade> list(boolean active, String company, String currency, String year);
 }

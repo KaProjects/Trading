@@ -1,5 +1,7 @@
 package org.kaleta;
 
+import java.math.BigDecimal;
+
 public class Utils
 {
     public static int compareDates(String dateA, String dateB)
@@ -12,5 +14,14 @@ public class Utils
             if (compare != 0) return compare;
         }
         return 0;
+    }
+
+    public static String format(BigDecimal value)
+    {
+        if (value == null){
+            return "";
+        } else {
+            return value.stripTrailingZeros().toPlainString();
+        }
     }
 }

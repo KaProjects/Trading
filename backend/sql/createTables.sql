@@ -6,7 +6,7 @@ CREATE TABLE Trade
     id             VARCHAR(36)   NOT NULL PRIMARY KEY,
     ticker         CHAR(5)       NOT NULL,
     currency       CHAR(1)       NOT NULL,
-    quantity       DECIMAL(6, 2) NOT NULL,
+    quantity       DECIMAL(8, 4) NOT NULL,
     purchase_date  DATE          NOT NULL,
     purchase_price DECIMAL(8, 2) NOT NULL,
     purchase_fees  DECIMAL(5, 2) NOT NULL,

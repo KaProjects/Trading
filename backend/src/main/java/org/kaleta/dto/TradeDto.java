@@ -5,15 +5,18 @@ import org.kaleta.Constants;
 import org.kaleta.Utils;
 import org.kaleta.entity.Currency;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
+import static org.kaleta.Utils.format;
 
 @Data
 public class TradeDto
 {
     private List<Column> columns = new ArrayList<>();
     private List<Trade> trades = new ArrayList<>();
+    private String[] sums = new String[14];
 
     public TradeDto()
     {
@@ -23,6 +26,7 @@ public class TradeDto
         columns.add(new Column("Sale", List.of("Date", "Quantity", "Price", "Fees", "Total")));
         columns.add(new Column("Profit", new ArrayList<>()));
         columns.add(new Column("Profit %", new ArrayList<>()));
+        Arrays.fill(sums, "");
     }
 
     @Data
@@ -41,19 +45,19 @@ public class TradeDto
         private Currency currency;
 
         private String purchaseDate;
-        private BigDecimal purchaseQuantity;
-        private BigDecimal purchasePrice;
-        private BigDecimal purchaseFees;
-        private BigDecimal purchaseTotal;
+        private String purchaseQuantity;
+        private String purchasePrice;
+        private String purchaseFees;
+        private String purchaseTotal;
 
         private String sellDate;
-        private BigDecimal sellQuantity;
-        private BigDecimal sellPrice;
-        private BigDecimal sellFees;
-        private BigDecimal sellTotal;
+        private String sellQuantity;
+        private String sellPrice;
+        private String sellFees;
+        private String sellTotal;
 
-        private BigDecimal profit;
-        private BigDecimal profitPercentage;
+        private String profit;
+        private String profitPercentage;
 
         @Override
         public int compareTo(Trade other)
@@ -72,21 +76,21 @@ public class TradeDto
             dto.setCurrency(trade.getCurrency());
 
             dto.setPurchaseDate(Constants.dateFormat.format(trade.getPurchaseDate()));
-            dto.setPurchaseQuantity(trade.getQuantity());
-            dto.setPurchasePrice(trade.getPurchasePrice());
-            dto.setPurchaseFees(trade.getPurchaseFees());
-            dto.setPurchaseTotal(trade.getPurchaseTotal());
+            dto.setPurchaseQuantity(format(trade.getQuantity()));
+            dto.setPurchasePrice(format(trade.getPurchasePrice()));
+            dto.setPurchaseFees(format(trade.getPurchaseFees()));
+            dto.setPurchaseTotal(format(trade.getPurchaseTotal()));
 
             if (trade.getSellDate() != null)
             {
                 dto.setSellDate(Constants.dateFormat.format(trade.getSellDate()));
-                dto.setSellQuantity(trade.getQuantity());
-                dto.setSellPrice(trade.getSellPrice());
-                dto.setSellFees(trade.getSellFees());
-                dto.setSellTotal(trade.getSellTotal());
+                dto.setSellQuantity(format(trade.getQuantity()));
+                dto.setSellPrice(format(trade.getSellPrice()));
+                dto.setSellFees(format(trade.getSellFees()));
+                dto.setSellTotal(format(trade.getSellTotal()));
 
-                dto.setProfit(trade.getProfit());
-                dto.setProfitPercentage(trade.getProfitPercentage());
+                dto.setProfit(format(trade.getProfit()));
+                dto.setProfitPercentage(format(trade.getProfitPercentage()));
             }
 
             tradeDto.getTrades().add(dto);

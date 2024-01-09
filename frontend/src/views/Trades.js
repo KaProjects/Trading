@@ -25,12 +25,30 @@ function rowStyle(index){
 
 const Trades = props => {
 
-    const {data, loaded, error} = useData("/trade" + (props.activeSelectorValue ? "/active" : ""))
+    const {data, loaded, error} = useData("/trade" + constructQueryParams())
+
+    function constructQueryParams(){
+        return "?active=" + props.activeSelectorValue
+            + (props.companySelectorValue ? "&company="+props.companySelectorValue : "")
+            + (props.currencySelectorValue ? "&currency="+props.currencySelectorValue : "")
+            + (props.yearSelectorValue ? "&year="+props.yearSelectorValue : "")
+    }
 
     useEffect(() => {
-        props.toggleActiveSelector()
+        if (data) {
+            const years = new Set([]);
+            const companies = new Set([]);
+            const currencies = new Set([]);
+            data.trades.forEach((trade) => {
+                years.add(trade.purchaseDate.split(".")[2])
+                if (trade.sellDate) years.add(trade.sellDate.split(".")[2])
+                companies.add(trade.ticker)
+                currencies.add(trade.currency)
+            })
+            props.toggleTradesSelectors([...companies].sort(),[...currencies].sort(),[...years].sort().reverse())
+        }
         // eslint-disable-next-line
-    }, []);
+    }, [data]);
 
     return (
         <>

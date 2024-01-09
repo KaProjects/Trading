@@ -11,21 +11,48 @@ class App extends Component {
 
         this.state = {
             showActiveSelector: false,
-            toggleActiveSelector: this.toggleActiveSelector.bind(this),
+            showCompanySelector: null,   // null = false, true otherwise
+            showCurrencySelector: null,  // null = false, true otherwise
+            showYearSelector: null,      // null = false, true otherwise
+            toggleTradesSelectors: this.toggleTradesSelectors.bind(this),
             activeSelectorValue: false,
             toggleActiveSelectorValue: this.toggleActiveSelectorValue.bind(this),
+            companySelectorValue: "",
+            setCompanySelectorValue: this.setCompanySelectorValue.bind(this),
+            currencySelectorValue: "",
+            setCurrencySelectorValue: this.setCurrencySelectorValue.bind(this),
+            yearSelectorValue: "",
+            setYearSelectorValue: this.setYearSelectorValue.bind(this),
         }
 
-        this.toggleActiveSelector = this.toggleActiveSelector.bind(this);
+        this.toggleTradesSelectors = this.toggleTradesSelectors.bind(this);
         this.toggleActiveSelectorValue = this.toggleActiveSelectorValue.bind(this);
+        this.setCompanySelectorValue = this.setCompanySelectorValue.bind(this);
+        this.setCurrencySelectorValue = this.setCurrencySelectorValue.bind(this);
+        this.setYearSelectorValue = this.setYearSelectorValue.bind(this);
     }
 
-    toggleActiveSelector() {
-        this.setState({showActiveSelector: !this.state.showActiveSelector})
+    toggleTradesSelectors(companies, currencies, years) {
+        this.setState({showActiveSelector: true})
+        this.setState({showCompanySelector: companies})
+        this.setState({showCurrencySelector: currencies})
+        this.setState({showYearSelector: years})
     }
 
     toggleActiveSelectorValue() {
         this.setState({activeSelectorValue: !this.state.activeSelectorValue})
+    }
+
+    setCompanySelectorValue(value) {
+        this.setState({companySelectorValue: value})
+    }
+
+    setCurrencySelectorValue(value) {
+        this.setState({currencySelectorValue: value})
+    }
+
+    setYearSelectorValue(value) {
+        this.setState({yearSelectorValue: value})
     }
 
     PageNotFound() {

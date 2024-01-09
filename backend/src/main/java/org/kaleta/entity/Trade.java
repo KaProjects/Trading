@@ -60,12 +60,12 @@ public class Trade extends AbstractEntity
 
     public BigDecimal getPurchaseTotal()
     {
-        return purchasePrice.multiply(quantity).add(purchaseFees);
+        return purchasePrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP).add(purchaseFees);
     }
 
     public BigDecimal getSellTotal()
     {
-        return sellPrice.multiply(quantity).add(sellFees);
+        return sellPrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP).add(sellFees);
     }
 
     public BigDecimal getProfit()
