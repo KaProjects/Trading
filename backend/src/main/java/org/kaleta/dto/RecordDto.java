@@ -1,47 +1,73 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.entity.Record;
+import org.kaleta.Constants;
+import org.kaleta.Utils;
+import org.kaleta.entity.Currency;
 
-import java.math.BigDecimal;
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.kaleta.Utils.format;
 
 @Data
 public class RecordDto
 {
     private String ticker;
-    private Date date;
-    private String title;
-    private BigDecimal price;
-    private String text;
-    private BigDecimal pe;
-    private BigDecimal dy;
-    private String targets;
-    private String strategy;
+    private Currency currency;
+    private List<Record> records = new ArrayList<>();
+    private String lastPrice;
+    private String lastStrategy;
+    private List<Own> owns = new ArrayList<>();
 
-    public static List<RecordDto> from(List<Record> records)
+    @Data
+    public static class Record implements Comparable<Record>
     {
-        List<RecordDto> list = new ArrayList<>();
-        for (Record record : records) {
-            list.add(from(record));
+        private String date;
+        private String title;
+        private String price;
+        private String content;
+        private String pe;
+        private String dy;
+        private String targets;
+        private String strategy;
+
+        @Override
+        public int compareTo(RecordDto.Record other)
+        {
+            return -Utils.compareDates(this.getDate(), other.getDate());
         }
-        return list;
     }
 
-    public static RecordDto from(Record record)
+    @Data
+    public static class Own
     {
-        RecordDto dto = new RecordDto();
-        dto.setTicker(record.getTicker().trim());
-        dto.setDate(record.getDate());
-        dto.setTitle(record.getTitle());
-        dto.setPrice(record.getPrice());
-        dto.setText(record.getText());
-        dto.setPe(record.getPe());
-        dto.setDy(record.getDy());
-        dto.setTargets(record.getTargets());
-        dto.setStrategy(record.getStrategy());
-        return dto;
+        private String quantity;
+        private String price;
+        private String profit;
+    }
+
+    public static RecordDto from(List<org.kaleta.entity.Record> records)
+    {
+        RecordDto recordDto = new RecordDto();
+        if (records.size() > 0) {
+            recordDto.setTicker(records.get(0).getTicker());
+            recordDto.setCurrency(records.get(0).getCurrency());
+        }
+        for (org.kaleta.entity.Record record : records)
+        {
+            RecordDto.Record dto = new RecordDto.Record();
+            dto.setDate(Constants.dateFormat.format(record.getDate()));
+            dto.setTitle(record.getTitle());
+            dto.setPrice(format(record.getPrice()));
+            dto.setPe(format(record.getPe()));
+            dto.setDy(format(record.getDy()));
+            dto.setTargets(record.getTargets());
+            dto.setContent(record.getContent());
+            dto.setStrategy(record.getStrategy());
+            recordDto.getRecords().add(dto);
+        }
+        recordDto.getRecords().sort(RecordDto.Record::compareTo);
+        return recordDto;
     }
 }

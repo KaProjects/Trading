@@ -14,10 +14,10 @@ public class TradeDaoImpl implements TradeDao
     @PersistenceContext
     EntityManager entityManager;
 
-    private String selectQuery = "SELECT t FROM Trade t";
+    private final String selectQuery = "SELECT t FROM Trade t";
 
     @Override
-    public List<Trade> list(boolean active, String company, String currency, String year)
+    public List<Trade> list(boolean active, String companyId, String currency, String year)
     {
         String joinWord = " WHERE ";
         String activeCondition = "";
@@ -27,14 +27,14 @@ public class TradeDaoImpl implements TradeDao
         }
 
         String companyCondition = "";
-        if (company != null){
-            companyCondition = joinWord + "TRIM(t.ticker)=:company";
+        if (companyId != null){
+            companyCondition = joinWord + "t.company.id=:companyId";
             joinWord = " AND ";
         }
 
         String currencyCondition = "";
         if (currency != null){
-            currencyCondition = joinWord + "t.currency=:currency";
+            currencyCondition = joinWord + "t.company.currency=:currency";
             joinWord = " AND ";
         }
 
@@ -49,7 +49,7 @@ public class TradeDaoImpl implements TradeDao
                 + currencyCondition
                 + yearCondition, Trade.class);
 
-        if (company != null ) query.setParameter("company", company);
+        if (companyId != null ) query.setParameter("companyId", companyId);
         if (currency != null ) query.setParameter("currency", currency);
         if (year != null ) query.setParameter("year", year);
 

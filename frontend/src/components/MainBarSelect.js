@@ -16,7 +16,7 @@ const MainBarSelect = props => {
         >
             <MenuItem value="">{label}</MenuItem>
             {values.map((value, index) => (
-                <MenuItem key={index} value={value} >{value}</MenuItem>
+                <MenuItem key={index} value={value} >{(value.ticker === undefined) ? value : value.ticker}</MenuItem>
             ))}
         </Select>
     )

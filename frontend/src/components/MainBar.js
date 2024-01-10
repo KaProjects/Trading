@@ -30,8 +30,8 @@ const MainBar = props => {
                             />
                         }
                         <Box sx={{ width: "15px" }} />
-                        {props.showCompanySelector !== null &&
-                            <MainBarSelect values={props.showCompanySelector}
+                        {props.showCompanySelector &&
+                            <MainBarSelect values={props.companies}
                                            value={props.companySelectorValue}
                                            setValue={props.setCompanySelectorValue}
                                            label={"companies"}

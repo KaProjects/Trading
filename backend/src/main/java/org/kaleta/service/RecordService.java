@@ -13,8 +13,8 @@ public class RecordService
     @Inject
     RecordDao recordDao;
 
-    public List<Record> getRecords(String ticker)
+    public List<Record> getRecords(String companyId)
     {
-        return recordDao.list(ticker);
+        return recordDao.list(companyId);
     }
 }

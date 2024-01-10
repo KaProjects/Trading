@@ -3,15 +3,10 @@ package org.kaleta.rest;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.entity.Currency;
 
+import java.util.UUID;
+
 public class ParameterValidator
 {
-    public static void validateTicker(String ticker)
-    {
-        if (ticker == null || ticker.isBlank() || ticker.length() > 5 || !ticker.equals(ticker.toUpperCase())){
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Ticker Parameter: '" + ticker + "'");
-        }
-    }
-
     public static void validateCurrency(String currency)
     {
         try {
@@ -26,6 +21,16 @@ public class ParameterValidator
     {
         if (year == null || year.isBlank() || !year.matches("\\d\\d\\d\\d")){
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Year Parameter: '" + year + "'");
+        }
+    }
+
+    public static void validateUuid(String uuid)
+    {
+        try {
+            if (uuid == null || uuid.isBlank()) throw new IllegalArgumentException("");
+            UUID.fromString(uuid);
+        } catch (IllegalArgumentException e){
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid UUID Parameter: '" + uuid + "'");
         }
     }
 }

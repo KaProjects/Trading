@@ -1,8 +1,9 @@
 package org.kaleta.entity;
 
-import io.smallrye.common.constraint.NotNull;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 
@@ -14,24 +15,18 @@ import java.sql.Date;
 @Table(name = "Record")
 public class Record extends AbstractEntity
 {
-    @Column(name = "ticker")
-    @NotNull
-    private String ticker;
+    @ManyToOne
+    @JoinColumn(name ="companyId", nullable = false)
+    private Company company;
 
-    @Column(name = "date")
-    @NotNull
+    @Column(name = "date", nullable = false)
     private Date date;
 
-    @Column(name = "title")
-    @NotNull
+    @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name = "price")
-    @NotNull
+    @Column(name = "price", nullable = false)
     private BigDecimal price;
-
-    @Column(name = "text")
-    private String text;
 
     @Column(name = "pe")
     private BigDecimal pe;
@@ -42,6 +37,19 @@ public class Record extends AbstractEntity
     @Column(name = "targets")
     private String targets;
 
+    @Column(name = "content")
+    private String content;
+
     @Column(name = "strategy")
     private String strategy;
+
+    public String getTicker()
+    {
+        return company.getTicker();
+    }
+
+    public Currency getCurrency()
+    {
+        return Currency.valueOf(company.getCurrency());
+    }
 }

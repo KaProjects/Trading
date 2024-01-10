@@ -81,7 +81,7 @@ class TradeResourceTest
     void getTradesFilterCompany()
     {
         TradeDto dto = given().when()
-                .get("/trade?company=NVDA")
+                .get("/trade?companyId=adb89a0a-86bc-4854-8a55-058ad2e6308f")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -93,6 +93,22 @@ class TradeResourceTest
         assertThat(dto.getTrades().size(), is(1));
         assertThat(dto.getTrades().get(0).getTicker(), is("NVDA"));
         assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "14.5", "2017", "", "", "", "50", "2550", "533", "26.43"}));
+    }
+
+    @Test
+    void getTradesFilterNonExistentCompany()
+    {
+        TradeDto dto = given().when()
+                .get("/trade?companyId=2df6b65f-54fb-4381-9b38-8c25409fe168")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", TradeDto.class);
+
+        assertThat(dto.getColumns().size(), is(6));
+        assertThat(dto.getColumns().get(1).getName(), is("#"));
+        assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
+        assertThat(dto.getTrades().size(), is(0));
     }
 
     @Test
@@ -123,7 +139,7 @@ class TradeResourceTest
     void getTradesFilterMultiple()
     {
         TradeDto dto = given().when()
-                .get("/trade?year=2023&company=CEZ")
+                .get("/trade?year=2023&companyId=61cc8096-87ac-4197-8b54-7c2595274bcc")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -142,7 +158,7 @@ class TradeResourceTest
     void getTradesZeroTotals()
     {
         TradeDto dtoZeroPurchase = given().when()
-                .get("/trade?company=XXX")
+                .get("/trade?companyId=e7c49260-53da-42c1-80cf-eccf6ed928a7")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -154,7 +170,7 @@ class TradeResourceTest
         assertThat(dtoZeroPurchase.getSums(), is(new String[]{"1", "1", "", "", "", "0", "0", "", "", "", "5", "105", "", ""}));
 
         TradeDto dtoZeroSell = given().when()
-                .get("/trade?company=YYY")
+                .get("/trade?companyId=0a16ba1d-99de-4306-8fc5-81ee11b60ea0")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -170,22 +186,16 @@ class TradeResourceTest
     void parameterValidator()
     {
         assertThat(given().when()
-                .get("/trade?company=" + "AAAAAA")
+                .get("/trade?companyId=" + "AAAAAA")
                 .then()
                 .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
-                .extract().body().asString(), containsString("Invalid Ticker Parameter"));
+                .extract().body().asString(), containsString("Invalid UUID Parameter"));
 
         assertThat(given().when()
-                .get("/trade?company=" + "AAxx")
+                .get("/trade?companyId=")
                 .then()
                 .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
-                .extract().body().asString(), containsString("Invalid Ticker Parameter"));
-
-        assertThat(given().when()
-                .get("/trade?company=")
-                .then()
-                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
-                .extract().body().asString(), containsString("Invalid Ticker Parameter"));
+                .extract().body().asString(), containsString("Invalid UUID Parameter"));
 
         assertThat(given().when()
                 .get("/trade?currency=" + "X")

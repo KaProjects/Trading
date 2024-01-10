@@ -1,6 +1,7 @@
 package org.kaleta;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 public class Utils
 {
@@ -23,5 +24,11 @@ public class Utils
         } else {
             return value.stripTrailingZeros().toPlainString();
         }
+    }
+
+    public static BigDecimal computeProfit(BigDecimal before, BigDecimal now)
+    {
+        if (format(before).equals("0")) return null;
+        return now.divide(before, 4, RoundingMode.HALF_UP).subtract(new BigDecimal(1)).multiply(new BigDecimal(100));
     }
 }

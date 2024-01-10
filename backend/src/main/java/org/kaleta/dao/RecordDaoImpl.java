@@ -13,14 +13,14 @@ public class RecordDaoImpl implements RecordDao
     @PersistenceContext
     EntityManager entityManager;
 
-    private String selectQuery = "SELECT r FROM Record r WHERE r.ticker=:ticker";
+    private final String selectQuery = "SELECT r FROM Record r WHERE r.company.id=:companyId";
 
 
     @Override
-    public List<Record> list(String ticker)
+    public List<Record> list(String companyId)
     {
         return entityManager.createQuery(selectQuery, Record.class)
-                .setParameter("ticker", ticker)
+                .setParameter("companyId", companyId)
                 .getResultList();
     }
 }

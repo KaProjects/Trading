@@ -25,15 +25,15 @@ public class TradeResource
     public Response getTrades(
             @QueryParam("active") boolean active,
             @QueryParam("year") String year,
-            @QueryParam("company") String company,
+            @QueryParam("companyId") String companyId,
             @QueryParam("currency") String currency
     ) {
         return Endpoint.process(() -> {
-            if (company != null) ParameterValidator.validateTicker(company);
+            if (companyId != null) ParameterValidator.validateUuid(companyId);
             if (currency != null) ParameterValidator.validateCurrency(currency);
             if (year != null) ParameterValidator.validateYear(year);
         }, () -> {
-            List<Trade> trades = tradeService.getTrades(active, company, currency, year);
+            List<Trade> trades = tradeService.getTrades(active, companyId, currency, year);
             TradeDto dto = TradeDto.from(trades);
             dto.setSums(tradeService.computeSums(trades));
             return dto;

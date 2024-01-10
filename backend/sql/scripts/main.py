@@ -1,3 +1,17 @@
+import sys
+import uuid
+
+
+class Company:
+    id: str = None
+    ticker: str = None
+    currency: str = None
+
+    def __init__(self, id: str, ticker: str, currency: str):
+        self.id = id
+        self.ticker = ticker
+        self.currency = currency
+
 
 class Trade:
     ticker: str = None
@@ -23,10 +37,10 @@ def format_decimal(decimal: str):
 
 
 def process():
-    file = open("data.tsv", "r")
+    file = open("trade.tsv", "r")
     data = file.read()
     file.close()
-    print("# file data.tsv successfully loaded")
+    print("# file trade.tsv successfully loaded")
 
     lines = data.split("\n")
     trades = list()
@@ -47,30 +61,46 @@ def process():
         trades.append(trade)
     print("# found " + str(len(trades)) + " trades")
 
-    file = open("data_import.sql", "w")
-    counter = 0
+    file = open("trade.sql", "w")
+
+    companies_map = dict()
+    for trade in trades:
+        if trade.ticker not in companies_map:
+            companies_map[trade.ticker] = Company(str(uuid.uuid4()), trade.ticker, trade.currency)
+
+    counter_companies = 0
+    for company in companies_map.values():
+        file.write("INSERT INTO Company (id, ticker, currency) VALUES ('{0}', '{1}', '{2}');"
+                   .format(company.id, company.ticker, company.currency))
+        counter_companies += 1
+
+    print("# prepared " + str(counter_companies) + " company sql inserts")
+
+    counter_trades = 0
+    counter_records = 0
     for trade in trades:
         if trade.sellDate is None:
-            file.write("INSERT INTO Trade (id, ticker, currency, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}');"
-                       .format(trades.index(trade), trade.ticker, trade.currency, trade.quantity, trade.purchaseDate, trade.purchasePrice, trade.purchaseFees))
-            counter += 1
+            file.write("INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}');"
+                       .format(str(uuid.uuid4()), companies_map[trade.ticker].id, trade.quantity, trade.purchaseDate, trade.purchasePrice, trade.purchaseFees))
+            counter_trades += 1
         else:
-            file.write("INSERT INTO Trade (id, ticker, currency, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}');"
-                       .format(trades.index(trade), trade.ticker, trade.currency, trade.quantity, trade.purchaseDate, trade.purchasePrice, trade.purchaseFees, trade.sellDate, trade.sellPrice, trade.sellFees))
-            counter += 1
+            file.write("INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}');"
+                       .format(str(uuid.uuid4()), companies_map[trade.ticker].id, trade.quantity, trade.purchaseDate, trade.purchasePrice, trade.purchaseFees, trade.sellDate, trade.sellPrice, trade.sellFees))
+            counter_trades += 1
 
-        file.write("INSERT INTO Record (id, ticker, date, title, price) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}');"
-                   .format("b" + str(trades.index(trade)), trade.ticker, trade.purchaseDate, "bought " + trade.quantity + "@" + trade.purchasePrice + trade.currency, trade.purchasePrice))
-        counter += 1
+        file.write("INSERT INTO Record (id, companyId, date, title, price) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}');"
+                   .format(str(uuid.uuid4()), companies_map[trade.ticker].id, trade.purchaseDate, "bought " + trade.quantity + "@" + trade.purchasePrice + trade.currency, trade.purchasePrice))
+        counter_records += 1
 
         if trade.sellDate is not None:
-            file.write("INSERT INTO Record (id, ticker, date, title, price) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}');"
-                       .format("s" + str(trades.index(trade)), trade.ticker, trade.sellDate, "sold " + trade.quantity + "@" + trade.sellPrice + trade.currency, trade.sellPrice))
-            counter += 1
+            file.write("INSERT INTO Record (id, companyId, date, title, price) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}');"
+                       .format(str(uuid.uuid4()), companies_map[trade.ticker].id, trade.sellDate, "sold " + trade.quantity + "@" + trade.sellPrice + trade.currency, trade.sellPrice))
+            counter_records += 1
 
-    print("# prepared " + str(counter) + " sql inserts")
+    print("# prepared " + str(counter_trades) + " trade sql inserts")
+    print("# prepared " + str(counter_records) + " record sql inserts")
+    print("# generated trade.sql successfully")
     file.close()
-    print("# generated data_import.sql successfully")
 
 
 if __name__ == '__main__':
