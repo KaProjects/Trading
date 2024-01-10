@@ -96,6 +96,12 @@ const Trades = props => {
                                 <TableCell style={rowStyle(13)}>{trade.profitPercentage}</TableCell>
                             </TableRow>
                         ))}
+                        <TableRow key={-1} >
+                            {data.sums.map((sum, index) => (
+                                <TableCell style={Object.assign(rowStyle(index), {borderTop: "1px solid grey", borderBottom: "1px solid grey"})} >{sum}</TableCell>
+
+                            ))}
+                        </TableRow>
                     </TableBody>
                 </Table>
             </TableContainer>
