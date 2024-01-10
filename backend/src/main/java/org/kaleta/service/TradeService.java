@@ -20,7 +20,7 @@ public class TradeService
     @Inject
     TradeDao tradeDao;
 
-    public List<Trade> getTrades(boolean active, String company, String currency, String year)
+    public List<Trade> getTrades(Boolean active, String company, String currency, String year)
     {
         return tradeDao.list(active, company, currency, year);
     }

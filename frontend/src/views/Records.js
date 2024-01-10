@@ -101,8 +101,7 @@ const Records = props => {
                                     {record.title}
                                 </Box>
 
-                                <TextField multiline maxRows={4} placeholder={"write content"} value={record.content} fullWidth sx={{marginTop: "5px", border: "1px solid lightgrey", boxShadow: "0px 1px 1px lightgrey"}}
-                                />
+                                <TextField multiline maxRows={4} placeholder={"write content"} value={record.content ? record.content : ""} fullWidth sx={{marginTop: "5px", border: "1px solid lightgrey", boxShadow: "0px 1px 1px lightgrey"}}/>
 
                                 <EditableValueBox value={record.strategy} label="strategy" style={{marginTop: "5px"}}/>
 

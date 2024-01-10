@@ -23,12 +23,14 @@ function rowStyle(index){
     return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily}
 }
 
+const activeStates = ["only active", "only closed"]
+
 const Trades = props => {
 
     const {data, loaded, error} = useData("/trade" + constructQueryParams())
 
     function constructQueryParams(){
-        return "?active=" + props.activeSelectorValue
+        return "?filter" + (props.activeSelectorValue ? "&active=" + (props.activeSelectorValue === activeStates[0]) : "")
             + (props.companySelectorValue ? "&companyId="+props.companySelectorValue.id : "")
             + (props.currencySelectorValue ? "&currency="+props.currencySelectorValue : "")
             + (props.yearSelectorValue ? "&year="+props.yearSelectorValue : "")
@@ -43,7 +45,7 @@ const Trades = props => {
                 if (trade.sellDate) years.add(trade.sellDate.split(".")[2])
                 currencies.add(trade.currency)
             })
-            props.toggleTradesSelectors([...currencies],[...years].sort().reverse())
+            props.toggleTradesSelectors(activeStates, [...currencies],[...years].sort().reverse())
         }
         // eslint-disable-next-line
     }, [data]);
@@ -98,8 +100,9 @@ const Trades = props => {
                         ))}
                         <TableRow key={-1} >
                             {data.sums.map((sum, index) => (
-                                <TableCell style={Object.assign(rowStyle(index), {borderTop: "1px solid grey", borderBottom: "1px solid grey"})} >{sum}</TableCell>
-
+                                <TableCell key={index} style={Object.assign(rowStyle(index), {borderTop: "1px solid grey", borderBottom: "1px solid grey"})}>
+                                    {sum}
+                                </TableCell>
                             ))}
                         </TableRow>
                     </TableBody>

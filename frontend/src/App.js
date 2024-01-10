@@ -14,14 +14,14 @@ class App extends Component {
 
         this.state = {
             companies: [],
-            showActiveSelector: false,
             showCompanySelector: false,
+            showActiveSelector: null,    // null = false, true otherwise
             showCurrencySelector: null,  // null = false, true otherwise
             showYearSelector: null,      // null = false, true otherwise
             toggleTradesSelectors: this.toggleTradesSelectors.bind(this),
             toggleRecordsSelectors: this.toggleRecordsSelectors.bind(this),
-            activeSelectorValue: false,
-            toggleActiveSelectorValue: this.toggleActiveSelectorValue.bind(this),
+            activeSelectorValue: "",
+            setActiveSelectorValue: this.setActiveSelectorValue.bind(this),
             companySelectorValue: "",
             setCompanySelectorValue: this.setCompanySelectorValue.bind(this),
             currencySelectorValue: "",
@@ -32,14 +32,14 @@ class App extends Component {
 
         this.toggleTradesSelectors = this.toggleTradesSelectors.bind(this);
         this.toggleRecordsSelectors = this.toggleRecordsSelectors.bind(this);
-        this.toggleActiveSelectorValue = this.toggleActiveSelectorValue.bind(this);
+        this.setActiveSelectorValue = this.setActiveSelectorValue.bind(this);
         this.setCompanySelectorValue = this.setCompanySelectorValue.bind(this);
         this.setCurrencySelectorValue = this.setCurrencySelectorValue.bind(this);
         this.setYearSelectorValue = this.setYearSelectorValue.bind(this);
     }
 
-    toggleTradesSelectors(currencies, years) {
-        this.setState({showActiveSelector: true})
+    toggleTradesSelectors(actives, currencies, years) {
+        this.setState({showActiveSelector: actives})
         this.setState({showCompanySelector: true})
         this.setState({showCurrencySelector: currencies})
         this.setState({showYearSelector: years})
@@ -49,8 +49,8 @@ class App extends Component {
         this.setState({showCompanySelector: true})
     }
 
-    toggleActiveSelectorValue() {
-        this.setState({activeSelectorValue: !this.state.activeSelectorValue})
+    setActiveSelectorValue(value) {
+        this.setState({activeSelectorValue: value})
     }
 
     setCompanySelectorValue(value) {
@@ -99,5 +99,4 @@ class App extends Component {
         )
     }
 }
-
 export default App;

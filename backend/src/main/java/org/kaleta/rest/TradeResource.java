@@ -23,7 +23,7 @@ public class TradeResource
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
     public Response getTrades(
-            @QueryParam("active") boolean active,
+            @QueryParam("active") Boolean active,
             @QueryParam("year") String year,
             @QueryParam("companyId") String companyId,
             @QueryParam("currency") String currency

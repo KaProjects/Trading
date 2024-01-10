@@ -17,12 +17,16 @@ public class TradeDaoImpl implements TradeDao
     private final String selectQuery = "SELECT t FROM Trade t";
 
     @Override
-    public List<Trade> list(boolean active, String companyId, String currency, String year)
+    public List<Trade> list(Boolean active, String companyId, String currency, String year)
     {
         String joinWord = " WHERE ";
         String activeCondition = "";
-        if (active){
-            activeCondition = joinWord + "t.sellDate IS NULL";
+        if (active != null){
+            if (active){
+                activeCondition = joinWord + "t.sellDate IS NULL";
+            } else {
+                activeCondition = joinWord + "t.sellDate IS NOT NULL";
+            }
             joinWord = " AND ";
         }
 
