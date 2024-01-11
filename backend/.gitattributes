@@ -3,3 +3,5 @@
 cmds.md filter=git-crypt diff=git-crypt
 
 src/main/resources/application.properties filter=git-crypt diff=git-crypt
+
+build_deploy.sh filter=git-crypt diff=git-crypt
