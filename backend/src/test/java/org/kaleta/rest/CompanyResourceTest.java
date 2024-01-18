@@ -20,9 +20,9 @@ class CompanyResourceTest
                 .get("/company")
                 .then()
                 .statusCode(200)
-                .body("size()", is(6))
+                .body("size()", is(7))
                 .extract().response().jsonPath().getList("", CompanyDto.class);
 
-        assertThat(dtos.get(0).getTicker(), is("CEZ"));
+        assertThat(dtos.get(0).getTicker(), is("ABCD"));
     }
 }

@@ -75,7 +75,7 @@ public class TradeDto
             dto.setTicker(trade.getTicker());
             dto.setCurrency(trade.getCurrency());
 
-            dto.setPurchaseDate(Constants.dateFormat.format(trade.getPurchaseDate()));
+            dto.setPurchaseDate(Constants.dateFormatDto.format(trade.getPurchaseDate()));
             dto.setPurchaseQuantity(format(trade.getQuantity()));
             dto.setPurchasePrice(format(trade.getPurchasePrice()));
             dto.setPurchaseFees(format(trade.getPurchaseFees()));
@@ -83,7 +83,7 @@ public class TradeDto
 
             if (trade.getSellDate() != null)
             {
-                dto.setSellDate(Constants.dateFormat.format(trade.getSellDate()));
+                dto.setSellDate(Constants.dateFormatDto.format(trade.getSellDate()));
                 dto.setSellQuantity(format(trade.getQuantity()));
                 dto.setSellPrice(format(trade.getSellPrice()));
                 dto.setSellFees(format(trade.getSellFees()));

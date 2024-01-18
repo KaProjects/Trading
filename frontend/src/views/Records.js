@@ -1,10 +1,11 @@
-import {Box, Card, CardContent, Grid, TextField, Typography} from "@mui/material";
+import {Box, Card, CardContent, Grid, Typography} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import Loader from "../components/Loader";
 import BorderedSection from "../components/BorderedSection";
 import EditableValueBox from "../components/EditableValueBox";
 import {properties} from "../properties";
 import axios from "axios";
+import ContentEditor from "../components/ContentEditor";
 
 function profitColor(profit){
     if (profit.startsWith("+")) return 'success.dark'
@@ -101,7 +102,9 @@ const Records = props => {
                                     {record.title}
                                 </Box>
 
-                                <TextField multiline maxRows={4} placeholder={"write content"} value={record.content ? record.content : ""} fullWidth sx={{marginTop: "5px", border: "1px solid lightgrey", boxShadow: "0px 1px 1px lightgrey"}}/>
+                                <div style={{width: "700px", margin: "15px auto 0 auto"}}>
+                                    <ContentEditor record={record}/>
+                                </div>
 
                                 <EditableValueBox value={record.strategy} label="strategy" style={{marginTop: "5px"}}/>
 

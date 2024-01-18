@@ -42,7 +42,7 @@ INSERT INTO Company (id, ticker, currency) VALUES ('adb89a0a-86bc-4854-8a55-058a
 INSERT INTO Company (id, ticker, currency) VALUES ('4efe9235-0c00-4b51-aa81-f2febbb65232', 'SHELL', '€');
 INSERT INTO Company (id, ticker, currency) VALUES ('eaca1473-33c2-4128-a0f2-b7853cdece41', 'RR', '£');
 INSERT INTO Company (id, ticker, currency) VALUES ('61cc8096-87ac-4197-8b54-7c2595274bcc', 'CEZ', 'K');
-
+INSERT INTO Company (id, ticker, currency) VALUES ('66c725b2-9987-4653-a49c-3a9906168d2a', 'ABCD', '$');
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('-2', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('-1', '0a16ba1d-99de-4306-8fc5-81ee11b60ea0', '10', '2018-04-05', '10', '50', '2018-05-05', '0', '0');
@@ -58,4 +58,6 @@ INSERT INTO Record (id, companyId, date, title, price) VALUES ('2', '4efe9235-0c
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('2b', '4efe9235-0c00-4b51-aa81-f2febbb65232', '2023-07-10', 'sold 100@30.4€', '30.4');
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('3', 'eaca1473-33c2-4128-a0f2-b7853cdece41', '2022-11-01', 'bought 10@200£', '400.5');
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('4', '61cc8096-87ac-4197-8b54-7c2595274bcc', '2021-04-05', 'bought 1150.1234@500500.25K', '400.5');
+INSERT INTO Record (id, companyId, date, title, price) VALUES ('2ccbf4fe-dbe7-4c40-a2a2-49bf79f15dad', '66c725b2-9987-4653-a49c-3a9906168d2a', '2021-04-05', 'xxx', '100');
+
 

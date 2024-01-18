@@ -5,8 +5,14 @@ import org.kaleta.entity.Currency;
 
 import java.util.UUID;
 
-public class ParameterValidator
+public class Validator
 {
+    public static void validatePayload(Object payload)
+    {
+        if (payload == null)
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Payload is NULL");
+    }
+
     public static void validateCurrency(String currency)
     {
         try {
