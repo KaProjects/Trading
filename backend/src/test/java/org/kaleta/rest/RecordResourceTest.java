@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.blankString;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
@@ -127,6 +128,188 @@ class RecordResourceTest
         assertThat(afterDto.getContent(), is(newContent));
         assertThat(afterDto.getTargets(), is(beforeDto.getTargets()));
         assertThat(afterDto.getStrategy(), is(beforeDto.getStrategy()));
+    }
+
+    @Test
+    void updateRecordNullableValue()
+    {
+        CompanyRecordsDto beforeCompanyRecordsDto = given().when()
+                .get("/record/66c725b2-9987-4653-a49c-3a9906168d2a")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", CompanyRecordsDto.class);
+
+        assertThat(beforeCompanyRecordsDto.getRecords().size(), is(1));
+
+        RecordDto beforeDto = beforeCompanyRecordsDto.getRecords().get(0);
+
+        RecordDto dto = new RecordDto();
+        dto.setId(beforeDto.getId());
+        dto.setPe("");
+
+        given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.NO_CONTENT.getStatusCode());
+
+        CompanyRecordsDto afterCompanyRecordsDto = given().when()
+                .get("/record/66c725b2-9987-4653-a49c-3a9906168d2a")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", CompanyRecordsDto.class);
+
+        assertThat(afterCompanyRecordsDto.getRecords().size(), is(1));
+
+        RecordDto afterDto = afterCompanyRecordsDto.getRecords().get(0);
+
+        assertThat(afterDto.getId(), is(beforeDto.getId()));
+        assertThat(afterDto.getDate(), is(beforeDto.getDate()));
+        assertThat(afterDto.getTitle(), is(beforeDto.getTitle()));
+        assertThat(afterDto.getPrice(), is(beforeDto.getPrice()));
+        assertThat(afterDto.getPe(), blankString());
+        assertThat(afterDto.getDy(), is(beforeDto.getDy()));
+        assertThat(afterDto.getContent(), is(beforeDto.getContent()));
+        assertThat(afterDto.getTargets(), is(beforeDto.getTargets()));
+        assertThat(afterDto.getStrategy(), is(beforeDto.getStrategy()));
+    }
+
+    @Test
+    void updateRecordInvalidValues()
+    {
+        RecordDto dto = new RecordDto();
+        dto.setId("2ccbf4fe-dbe7-4c40-a2a2-49bf79f15dad");
+
+        dto.setTitle("");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Title:"));
+
+        dto.setTitle(null);
+        dto.setDate("12.2020.05");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Date:"));
+
+        dto.setDate("1.1.2020");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Date:"));
+
+        dto.setDate(null);
+        dto.setPrice("");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice("x");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice("1.");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice("12345678901");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice("10.12345");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice(null);
+        dto.setPe("");
+
+        given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.NO_CONTENT.getStatusCode());
+
+        dto.setPe("x");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid PE:"));
+
+        dto.setPe("123456");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid PE:"));
+
+        dto.setPe("1.123");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid PE:"));
+
+        dto.setPe(null);
+        dto.setDy("");
+
+        given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.NO_CONTENT.getStatusCode());
+
+        dto.setDy("x");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid DY:"));
+
+        dto.setDy("123456");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid DY:"));
+
+        dto.setDy("1.123");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid DY:"));
     }
 
     @Test

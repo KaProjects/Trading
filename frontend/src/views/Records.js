@@ -6,11 +6,22 @@ import EditableValueBox from "../components/EditableValueBox";
 import {properties} from "../properties";
 import axios from "axios";
 import ContentEditor from "../components/ContentEditor";
+import EditableTypography from "../components/EditableTypography";
 
 function profitColor(profit){
     if (profit.startsWith("+")) return 'success.dark'
     if (profit.startsWith("-")) return 'error.dark'
     return 'text.primary'
+}
+
+function validateNumber(value, isNullable, lengthConstraint, decimalConstraint) {
+    if (typeof value != "string") return "not a string"
+    if (value === "") return isNullable ? "" : "not null"
+    if (isNaN(value) || isNaN(parseFloat(value)) || value.endsWith(".")) return "not a valid number";
+    if (value.replace(".", "").length > lengthConstraint) return "max length " + lengthConstraint;
+    const split = value.split(".")
+    if (split.length > 1 && split[1].length > decimalConstraint) return "max decimal " + decimalConstraint
+    return ""
 }
 
 const Records = props => {
@@ -40,6 +51,14 @@ const Records = props => {
         }
         // eslint-disable-next-line
     }, [props.companySelectorValue]);
+
+    function updateLatestStrategy(value, index) {
+        if (index === 0){
+            let newData = Object.assign({}, data);
+            newData.lastStrategy = value;
+            setData(newData)
+        }
+    }
 
     return (
         <>
@@ -92,24 +111,39 @@ const Records = props => {
                             <BorderedSection key={index} title={record.date} style={{color: 'text.primary'}}>
 
                                 <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
-                                    <EditableValueBox value={record.price} suffix={"$"} label="Price"/>
-                                    <EditableValueBox value={record.pe} suffix={""} label="P/E ratio" style={{marginLeft: "5px"}}/>
-                                    <EditableValueBox value={record.dy} suffix={"%"} label="dividend yield" style={{marginLeft: "5px"}}/>
-                                    <EditableValueBox value={record.targets} suffix={"$"} label="targets" style={{marginLeft: "5px"}}/>
+                                    <EditableValueBox index={index} value={record.price} suffix={data.currency} label="Price"
+                                                      updateObject={(value) => {return {id: record.id, price: value}}}
+                                                      validateInput={(value) => validateNumber(value, false, 10, 4)}
+                                    />
+                                    <EditableValueBox index={index} value={record.pe} suffix={""} label="P/E ratio" style={{marginLeft: "5px"}}
+                                                      updateObject={(value) => {return {id: record.id, pe: value}}}
+                                                      validateInput={(value) => validateNumber(value, true, 5, 2)}
+                                    />
+                                    <EditableValueBox index={index} value={record.dy} suffix={"%"} label="dividend yield" style={{marginLeft: "5px"}}
+                                                      updateObject={(value) => {return {id: record.id, dy: value}}}
+                                                      validateInput={(value) => validateNumber(value, true, 5, 2)}
+                                    />
+                                    <EditableValueBox index={index} value={record.targets} suffix={data.currency} label="targets" style={{marginLeft: "5px"}}
+                                                      updateObject={(value) => {return {id: record.id, targets: value}}}
+                                                      validateInput={(value) => ""}
+                                    />
                                 </Grid>
 
-                                <Box sx={{color: 'text.primary', fontWeight: 'medium', fontSize: 20, margin: "12px auto auto 5px"}}>
-                                    {record.title}
-                                </Box>
+                                <EditableTypography index={index} value={record.title} label={"Title"} style={{margin: "12px auto auto 5px"}}
+                                                    updateObject={(value) => {return {id: record.id, title: value}}}
+                                                    validateInput={(value) => {if (value === "") return "not null"; return ""}}
+                                />
 
                                 <div style={{width: "700px", margin: "15px auto 0 auto"}}>
                                     <ContentEditor record={record}/>
                                 </div>
 
-                                <EditableValueBox value={record.strategy} label="strategy" style={{marginTop: "5px"}}/>
+                                <EditableValueBox index={index} value={record.strategy} label="strategy" style={{marginTop: "5px"}}
+                                                  updateObject={(value) => {updateLatestStrategy(value, index);return {id: record.id, strategy: value}}}
+                                                  validateInput={(value) => ""}
+                                />
 
                             </BorderedSection>
-
                         ))}
                     </CardContent>
                 </Card>

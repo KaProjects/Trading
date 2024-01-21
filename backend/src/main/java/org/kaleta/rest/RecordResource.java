@@ -64,6 +64,7 @@ public class RecordResource
             () -> {
                 Validator.validatePayload(recordDto);
                 Validator.validateUuid(recordDto.getId());
+                Validator.validateUpdateRecordDto(recordDto);
             },
             () -> {
                 recordService.updateRecord(recordDto);
