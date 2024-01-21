@@ -52,14 +52,6 @@ const Records = props => {
         // eslint-disable-next-line
     }, [props.companySelectorValue]);
 
-    function updateLatestStrategy(value, index) {
-        if (index === 0){
-            let newData = Object.assign({}, data);
-            newData.lastStrategy = value;
-            setData(newData)
-        }
-    }
-
     return (
         <>
             {!props.companySelectorValue && <Typography style={{display: "grid", placeContent: "center", position: "absolute", left: 0, top: 50, bottom: 0, right: 0}}>select a company</Typography>}
@@ -139,7 +131,7 @@ const Records = props => {
                                 </div>
 
                                 <EditableValueBox index={index} value={record.strategy} label="strategy" style={{marginTop: "5px"}}
-                                                  updateObject={(value) => {updateLatestStrategy(value, index);return {id: record.id, strategy: value}}}
+                                                  updateObject={(value) => {return {id: record.id, strategy: value}}}
                                                   validateInput={(value) => ""}
                                 />
 

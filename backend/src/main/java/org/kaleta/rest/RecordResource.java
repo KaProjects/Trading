@@ -39,7 +39,12 @@ public class RecordResource
                 CompanyRecordsDto dto = CompanyRecordsDto.from(recordService.getRecords(companyId));
                 if (dto.getRecords().size() > 0) {
                     dto.setLastPrice(dto.getRecords().get(0).getPrice());
-                    dto.setLastStrategy(dto.getRecords().get(0).getStrategy());
+                    for(int i=0;i<dto.getRecords().size();i++){
+                        if (dto.getRecords().get(i).getStrategy() != null && !dto.getRecords().get(i).getStrategy().isBlank()){
+                            dto.setLastStrategy(dto.getRecords().get(i).getStrategy());
+                            break;
+                        }
+                    }
                 }
                 for (Trade trade : tradeService.getTrades(true, companyId, null, null))
                 {
