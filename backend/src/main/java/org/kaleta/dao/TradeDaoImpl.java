@@ -5,7 +5,10 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import org.kaleta.entity.Trade;
+import org.kaleta.model.CompanyInfo;
 
+import java.sql.Date;
+import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
@@ -58,5 +61,19 @@ public class TradeDaoImpl implements TradeDao
         if (year != null ) query.setParameter("year", year);
 
         return query.getResultList();
+    }
+
+    @Override
+    public List<CompanyInfo> latestPurchase()
+    {
+        List<Object[]> objs = entityManager.createNativeQuery("SELECT companyId, MAX(purchase_date) FROM Trade WHERE sell_date IS NULL GROUP BY companyId").getResultList();
+        List<CompanyInfo> infos = new ArrayList<>();
+        for (Object[] values : objs){
+            CompanyInfo info = new CompanyInfo();
+            info.setId((String) values[0]);
+            info.setLatestPurchaseDate((Date) values[1]);
+            infos.add(info);
+        }
+        return infos;
     }
 }

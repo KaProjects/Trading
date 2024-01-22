@@ -4,5 +4,6 @@ import java.text.SimpleDateFormat;
 
 public class Constants
 {
-    public static SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+    public static SimpleDateFormat dateFormatDto = new SimpleDateFormat("dd.MM.yyyy");
+    public static SimpleDateFormat dateFormatDb = new SimpleDateFormat("yyyy-MM-dd");
 }

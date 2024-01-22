@@ -5,6 +5,13 @@
      bump pom.xml version
      bump build_deploy.sh versions 
 
+## 1.1
+Released: 22.1.2024
+
+    added watching company and record ps ratio to sql schemas
+    endpoints for creating and updating records
+    company info endpoint
+
 ## 1.0
 Released: 11.1.2024
 

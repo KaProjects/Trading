@@ -21,4 +21,12 @@ public class CompanyDaoImpl implements CompanyDao
     {
         return entityManager.createQuery(selectQuery, Company.class).getResultList();
     }
+
+    @Override
+    public Company get(String companyId)
+    {
+        return entityManager.createQuery(selectQuery + " WHERE c.id=:companyId", Company.class)
+                .setParameter("companyId", companyId)
+                .getSingleResult();
+    }
 }

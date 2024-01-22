@@ -31,6 +31,9 @@ public class Record extends AbstractEntity
     @Column(name = "pe")
     private BigDecimal pe;
 
+    @Column(name = "ps")
+    private BigDecimal ps;
+
     @Column(name = "dy")
     private BigDecimal dy;
 

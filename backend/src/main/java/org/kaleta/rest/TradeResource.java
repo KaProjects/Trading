@@ -29,9 +29,9 @@ public class TradeResource
             @QueryParam("currency") String currency
     ) {
         return Endpoint.process(() -> {
-            if (companyId != null) ParameterValidator.validateUuid(companyId);
-            if (currency != null) ParameterValidator.validateCurrency(currency);
-            if (year != null) ParameterValidator.validateYear(year);
+            if (companyId != null) Validator.validateUuid(companyId);
+            if (currency != null) Validator.validateCurrency(currency);
+            if (year != null) Validator.validateYear(year);
         }, () -> {
             List<Trade> trades = tradeService.getTrades(active, companyId, currency, year);
             TradeDto dto = TradeDto.from(trades);

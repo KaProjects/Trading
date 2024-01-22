@@ -6,7 +6,8 @@ CREATE TABLE Company
 (
     id       VARCHAR(36) NOT NULL PRIMARY KEY,
     ticker   CHAR(5)     NOT NULL,
-    currency CHAR(1)     NOT NULL
+    currency CHAR(1)     NOT NULL,
+    watching BOOL        NOT NULL
 );
 CREATE TABLE Trade
 (
@@ -28,6 +29,7 @@ CREATE TABLE Record
     title    TINYTEXT       NOT NULL,
     price    DECIMAL(10, 4) NOT NULL,
     pe       DECIMAL(5, 2),
+    ps       DECIMAL(5, 2),
     dy       DECIMAL(5, 2),
     targets  TINYTEXT,
     content  TEXT,

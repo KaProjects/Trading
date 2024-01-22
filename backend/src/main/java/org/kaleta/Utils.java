@@ -2,11 +2,14 @@ package org.kaleta;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Date;
 
 public class Utils
 {
     public static int compareDates(String dateA, String dateB)
     {
+        if (dateA == null) dateA = Constants.dateFormatDto.format(new Date(0));
+        if (dateB == null) dateB = Constants.dateFormatDto.format(new Date(0));
         String[] splitDateA = dateA.split("\\.");
         String[] splitDateB = dateB.split("\\.");
         for (int i=2; i >= 0; i--)
