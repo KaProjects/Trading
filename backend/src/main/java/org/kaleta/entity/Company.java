@@ -19,6 +19,9 @@ public class Company extends AbstractEntity
     @NotNull
     private String currency;
 
+    @Column(name = "watching")
+    private boolean watching;
+
     public String getTicker()
     {
         return ticker.trim();

@@ -70,8 +70,8 @@ def process():
 
     counter_companies = 0
     for company in companies_map.values():
-        file.write("INSERT INTO Company (id, ticker, currency) VALUES ('{0}', '{1}', '{2}');"
-                   .format(company.id, company.ticker, company.currency))
+        file.write("INSERT INTO Company (id, ticker, currency, watching) VALUES ('{0}', '{1}', '{2}', '{3}');"
+                   .format(company.id, company.ticker, company.currency, 1))
         counter_companies += 1
 
     print("# prepared " + str(counter_companies) + " company sql inserts")

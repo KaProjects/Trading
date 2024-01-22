@@ -7,7 +7,11 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.dto.CompanyDto;
+import org.kaleta.dto.CompanyListsDto;
+import org.kaleta.model.CompanyInfo;
 import org.kaleta.service.CompanyService;
+
+import java.util.List;
 
 @Path("/company")
 public class CompanyResource
@@ -21,5 +25,20 @@ public class CompanyResource
     public Response getCompanies()
     {
         return Endpoint.process(() -> {}, () -> CompanyDto.from(companyService.getCompanies()));
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/lists")
+    public Response getCompanyLists()
+    {
+        return Endpoint.process(() -> {}, () -> {
+            List<CompanyInfo> infos = companyService.getCompaniesInfo();
+            CompanyListsDto dto = new CompanyListsDto();
+            dto.addWatchingOldestReview(infos);
+            dto.addOwnedWithoutStrategy(infos);
+            dto.addNotWatching(infos);
+            return dto;
+        });
     }
 }

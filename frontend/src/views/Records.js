@@ -9,6 +9,7 @@ import ContentEditor from "../components/ContentEditor";
 import EditableTypography from "../components/EditableTypography";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import AddRecordDialog from "../components/AddRecordDialog";
+import CompanySelector from "../components/CompanySelector";
 
 function profitColor(profit){
     if (profit.startsWith("+")) return 'success.dark'
@@ -62,7 +63,7 @@ const Records = props => {
 
     return (
         <>
-            {!props.companySelectorValue && <Typography style={{display: "grid", placeContent: "center", position: "absolute", left: 0, top: 50, bottom: 0, right: 0}}>select a company</Typography>}
+            {!props.companySelectorValue && <CompanySelector {...props}/>}
             {props.companySelectorValue && !loaded && <Loader error={error}/>}
             {props.companySelectorValue && loaded && data.ticker !== undefined &&
                 <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
