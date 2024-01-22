@@ -2,6 +2,7 @@ package org.kaleta.rest;
 
 import jakarta.ws.rs.core.Response;
 import org.kaleta.Constants;
+import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.entity.Currency;
 
@@ -52,7 +53,6 @@ public class Validator
         if (dto.getTitle() != null && dto.getTitle().isBlank())
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Title: '" + dto.getTitle() + "'");
 
-
         if (dto.getPrice() != null && !isBigDecimal(dto.getPrice(), 10, 4))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Price: '" + dto.getPrice() + "'");
 
@@ -61,6 +61,21 @@ public class Validator
 
         if (dto.getDy() != null && !dto.getDy().isBlank() &&!isBigDecimal(dto.getDy(), 5, 2))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid DY: '" + dto.getDy() + "'");
+    }
+
+
+    public static void validateCreateRecordDto(RecordCreateDto dto)
+    {
+        if (dto.getDate() == null || !isDate(dto.getDate()))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+
+        if (dto.getTitle() == null || dto.getTitle().isBlank())
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Title: '" + dto.getTitle() + "'");
+
+        if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Price: '" + dto.getPrice() + "'");
+
+        validateUuid(dto.getCompanyId());
     }
 
     private static boolean isDate(String value){

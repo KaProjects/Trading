@@ -26,7 +26,7 @@ const ContentEditor = (props) => {
         const url = properties.protocol + "://" + properties.host + ":" + properties.port + "/record";
         axios.put(url, data)
             .then((response) => {
-                // no action
+                props.handleUpdate(value)
             }).catch((error) => {
                 console.error(error)
             })

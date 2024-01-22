@@ -1,13 +1,10 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.Constants;
 import org.kaleta.entity.Currency;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.kaleta.Utils.format;
 
 @Data
 public class CompanyRecordsDto
@@ -36,17 +33,7 @@ public class CompanyRecordsDto
         }
         for (org.kaleta.entity.Record record : records)
         {
-            RecordDto recordDto = new RecordDto();
-            recordDto.setId(record.getId());
-            recordDto.setDate(Constants.dateFormatDto.format(record.getDate()));
-            recordDto.setTitle(record.getTitle());
-            recordDto.setPrice(format(record.getPrice()));
-            recordDto.setPe(format(record.getPe()));
-            recordDto.setDy(format(record.getDy()));
-            recordDto.setTargets(record.getTargets());
-            recordDto.setContent(record.getContent());
-            recordDto.setStrategy(record.getStrategy());
-            companyRecordsDto.getRecords().add(recordDto);
+            companyRecordsDto.getRecords().add(RecordDto.from(record));
         }
         companyRecordsDto.getRecords().sort(RecordDto::compareTo);
         return companyRecordsDto;

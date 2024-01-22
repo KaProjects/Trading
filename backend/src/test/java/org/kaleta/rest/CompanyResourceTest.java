@@ -20,7 +20,7 @@ class CompanyResourceTest
                 .get("/company")
                 .then()
                 .statusCode(200)
-                .body("size()", is(7))
+                .body("size()", is(8))
                 .extract().response().jsonPath().getList("", CompanyDto.class);
 
         assertThat(dtos.get(0).getTicker(), is("ABCD"));

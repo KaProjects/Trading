@@ -5,6 +5,7 @@ import io.restassured.http.ContentType;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.Test;
 import org.kaleta.dto.CompanyRecordsDto;
+import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.entity.Currency;
 
@@ -15,6 +16,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.blankString;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 @QuarkusTest
 class RecordResourceTest
@@ -313,6 +315,179 @@ class RecordResourceTest
     }
 
     @Test
+    void createRecord()
+    {
+        RecordCreateDto dto = new RecordCreateDto();
+        dto.setCompanyId("d98c9ea1-ef2a-400a-bc7f-00d90e5d8e10");
+        dto.setPrice("10.1");
+        dto.setDate("01.01.2020");
+        dto.setTitle("a title");
+
+        RecordDto createdDto = given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then()
+                .statusCode(Response.Status.CREATED.getStatusCode())
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", RecordDto.class);
+
+        assertThat(createdDto.getDate(), is(dto.getDate()));
+        assertThat(createdDto.getTitle(), is(dto.getTitle()));
+        assertThat(createdDto.getPrice(), is(dto.getPrice()));
+        assertThat(createdDto.getPe(), is(blankString()));
+        assertThat(createdDto.getDy(), is(blankString()));
+        assertThat(createdDto.getContent(), is(nullValue()));
+        assertThat(createdDto.getTargets(), is(nullValue()));
+        assertThat(createdDto.getStrategy(), is(nullValue()));
+
+        CompanyRecordsDto companyRecordsDto = given().when()
+                .get("/record/" + dto.getCompanyId())
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", CompanyRecordsDto.class);
+
+        assertThat(companyRecordsDto.getTicker(), is("XRC"));
+        assertThat(companyRecordsDto.getRecords().size(), is(1));
+        assertThat(companyRecordsDto.getRecords().get(0).getDate(), is(dto.getDate()));
+        assertThat(companyRecordsDto.getRecords().get(0).getTitle(), is(dto.getTitle()));
+        assertThat(companyRecordsDto.getRecords().get(0).getPrice(), is(dto.getPrice()));
+        assertThat(companyRecordsDto.getRecords().get(0).getPe(), is(blankString()));
+        assertThat(companyRecordsDto.getRecords().get(0).getDy(), is(blankString()));
+        assertThat(companyRecordsDto.getRecords().get(0).getTargets(), is(nullValue()));
+        assertThat(companyRecordsDto.getRecords().get(0).getContent(), is(nullValue()));
+        assertThat(companyRecordsDto.getRecords().get(0).getStrategy(), is(nullValue()));
+    }
+
+    @Test
+    void createRecordInvalidValues()
+    {
+        String validCompanyId = "d98c9ea1-ef2a-400a-bc7f-00d90e5d8e10";
+        String validPrice = "10.1";
+        String validDate = "01.01.2020";
+        String validTitle = "a title";
+
+        RecordCreateDto dto = new RecordCreateDto();
+        dto.setCompanyId(validCompanyId);
+        dto.setPrice(validPrice);
+        dto.setDate(validDate);
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Title:"));
+
+        dto.setTitle("");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Title:"));
+
+        dto.setTitle(validTitle);
+        dto.setDate(null);
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Date:"));
+
+        dto.setDate("");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Date:"));
+
+        dto.setDate("1.1.2020");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Date:"));
+
+        dto.setDate(validDate);
+        dto.setPrice(null);
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice("");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice("x");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice("1.");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice("12345678901");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice("10.12345");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid Price:"));
+
+        dto.setPrice(validPrice);
+        dto.setCompanyId(null);
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid UUID"));
+
+        dto.setCompanyId("x");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid UUID"));
+
+        String randomUuid = UUID.randomUUID().toString();
+        dto.setCompanyId(randomUuid);
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), is("company with id '" + randomUuid + "' not found"));
+    }
+
+    @Test
     void parameterValidator()
     {
         assertThat(given().when()
@@ -346,5 +521,13 @@ class RecordResourceTest
                 .then()
                 .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
                 .extract().body().asString(), is("record with id '" + dto.getId() + "' not found"));
+
+        assertThat(given()
+                .contentType(ContentType.JSON)
+                .when()
+                .post("/record")
+                .then()
+                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Payload is NULL"));
     }
 }

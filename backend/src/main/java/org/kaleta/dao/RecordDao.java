@@ -20,4 +20,9 @@ public interface RecordDao
      * saves the instance of the specified record
      */
     void store(Record record);
+
+    /**
+     * creates new record
+     */
+    void create(Record record);
 }

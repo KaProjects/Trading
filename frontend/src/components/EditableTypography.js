@@ -24,6 +24,7 @@ const EditableTypography = props => {
         axios.put(url, data)
             .then((response) => {
                 setShowValue(editValue)
+                props.handleUpdate(editValue)
             }).catch((error) => {
             console.error(error)
             setAlert(error.response.data)

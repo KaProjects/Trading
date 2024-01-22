@@ -38,4 +38,11 @@ public class RecordDaoImpl implements RecordDao
     {
         entityManager.merge(record);
     }
+
+    @Override
+    @Transactional
+    public void create(Record record)
+    {
+        entityManager.persist(record);
+    }
 }
