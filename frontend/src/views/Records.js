@@ -133,6 +133,11 @@ const Records = props => {
                                                       validateInput={(value) => validateNumber(value, true, 5, 2)}
                                                       handleUpdate={(value) => record.pe = value}
                                     />
+                                    <EditableValueBox index={index} value={record.ps} suffix={""} label="P/S ratio" style={{marginLeft: "5px"}}
+                                                      updateObject={(value) => {return {id: record.id, ps: value}}}
+                                                      validateInput={(value) => validateNumber(value, true, 5, 2)}
+                                                      handleUpdate={(value) => record.ps = value}
+                                    />
                                     <EditableValueBox index={index} value={record.dy} suffix={"%"} label="dividend yield" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, dy: value}}}
                                                       validateInput={(value) => validateNumber(value, true, 5, 2)}

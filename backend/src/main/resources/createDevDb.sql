@@ -29,6 +29,7 @@ CREATE TABLE Record
     title    TINYTEXT       NOT NULL,
     price    DECIMAL(10, 4) NOT NULL,
     pe       DECIMAL(5, 2),
+    ps       DECIMAL(5, 2),
     dy       DECIMAL(5, 2),
     targets  TINYTEXT,
     content  TEXT,

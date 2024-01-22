@@ -16,6 +16,7 @@ public class RecordDto implements Comparable<RecordDto>
     private String price;
     private String content;
     private String pe;
+    private String ps;
     private String dy;
     private String targets;
     private String strategy;
@@ -33,6 +34,7 @@ public class RecordDto implements Comparable<RecordDto>
         dto.setTitle(record.getTitle());
         dto.setPrice(format(record.getPrice()));
         dto.setPe(format(record.getPe()));
+        dto.setPs(format(record.getPs()));
         dto.setDy(format(record.getDy()));
         dto.setTargets(record.getTargets());
         dto.setContent(record.getContent());

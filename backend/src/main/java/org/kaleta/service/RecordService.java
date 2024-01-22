@@ -50,6 +50,7 @@ public class RecordService
         if (recordDto.getTitle() != null) record.setTitle(recordDto.getTitle());
         if (recordDto.getPrice() != null) record.setPrice(new BigDecimal(recordDto.getPrice()));
         if (recordDto.getPe() != null) record.setPe(recordDto.getPe().isBlank() ? null : new BigDecimal(recordDto.getPe()));
+        if (recordDto.getPs() != null) record.setPs(recordDto.getPs().isBlank() ? null : new BigDecimal(recordDto.getPs()));
         if (recordDto.getDy() != null) record.setDy(recordDto.getDy().isBlank() ? null : new BigDecimal(recordDto.getDy()));
         if (recordDto.getTargets() != null) record.setTargets(recordDto.getTargets());
         if (recordDto.getContent() != null) record.setContent(recordDto.getContent());

@@ -56,7 +56,6 @@ public class CompanyListsDto
         for (CompanyInfo info : companiesInfo)
         {
             if (!info.isWatching()) notWatching.add(from(info));
-
         }
         notWatching.sort(Comparator.comparing(Company::getTicker));
     }

@@ -46,6 +46,7 @@ class RecordResourceTest
         String newTitle = "new title";
         String newPrice = "1234.56";
         String newPe = "23.5";
+        String newPs = "2";
         String newDy = "5.6";
         String newTargets = "500-400~450";
         String newContent = "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"saasdasdaa\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"as\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"das\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"s\"}]}]}]";
@@ -57,6 +58,7 @@ class RecordResourceTest
         dto.setTitle(newTitle);
         dto.setPrice(newPrice);
         dto.setPe(newPe);
+        dto.setPs(newPs);
         dto.setDy(newDy);
         dto.setTargets(newTargets);
         dto.setContent(newContent);
@@ -80,6 +82,7 @@ class RecordResourceTest
         assertThat(companyRecordsDto.getRecords().get(0).getTitle(), is(newTitle));
         assertThat(companyRecordsDto.getRecords().get(0).getPrice(), is(newPrice));
         assertThat(companyRecordsDto.getRecords().get(0).getPe(), is(newPe));
+        assertThat(companyRecordsDto.getRecords().get(0).getPs(), is(newPs));
         assertThat(companyRecordsDto.getRecords().get(0).getDy(), is(newDy));
         assertThat(companyRecordsDto.getRecords().get(0).getTargets(), is(newTargets));
         assertThat(companyRecordsDto.getRecords().get(0).getContent(), is(newContent));
@@ -282,6 +285,38 @@ class RecordResourceTest
                 .extract().body().asString(), containsString("Invalid PE:"));
 
         dto.setPe(null);
+        dto.setPs("");
+
+        given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.NO_CONTENT.getStatusCode());
+
+        dto.setPs("x");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid PS:"));
+
+        dto.setPs("123456");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid PS:"));
+
+        dto.setPs("1.123");
+
+        assertThat(given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().put("/record")
+                .then().statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString("Invalid PS:"));
+
+        dto.setPs(null);
         dto.setDy("");
 
         given().contentType(ContentType.JSON)

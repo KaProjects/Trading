@@ -59,6 +59,9 @@ public class Validator
         if (dto.getPe() != null && !dto.getPe().isBlank() && !isBigDecimal(dto.getPe(), 5, 2))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid PE: '" + dto.getPe() + "'");
 
+        if (dto.getPs() != null && !dto.getPs().isBlank() && !isBigDecimal(dto.getPs(), 5, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid PS: '" + dto.getPe() + "'");
+
         if (dto.getDy() != null && !dto.getDy().isBlank() &&!isBigDecimal(dto.getDy(), 5, 2))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid DY: '" + dto.getDy() + "'");
     }
