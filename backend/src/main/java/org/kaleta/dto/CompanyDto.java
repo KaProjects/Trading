@@ -12,6 +12,7 @@ public class CompanyDto implements Comparable<CompanyDto>
     private String id;
     private String ticker;
     private String currency;
+    private Boolean watching;
 
     @Override
     public int compareTo(CompanyDto other)
@@ -29,6 +30,7 @@ public class CompanyDto implements Comparable<CompanyDto>
             dto.setId(company.getId());
             dto.setTicker(company.getTicker());
             dto.setCurrency(company.getCurrency());
+            dto.setWatching(company.isWatching());
             list.add(dto);
         }
         list.sort(CompanyDto::compareTo);

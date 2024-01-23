@@ -60,6 +60,7 @@ public class RecordResource
                     }
                     dto.getOwns().add(own);
                 }
+                dto.setCompanyId(companyId);
                 return dto;
             });
     }

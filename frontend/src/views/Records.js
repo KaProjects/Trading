@@ -1,4 +1,4 @@
-import {Box, Button, Card, CardContent, Grid, Typography} from "@mui/material";
+import {Box, Button, Card, CardContent, Dialog, DialogActions, DialogTitle, Grid} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import Loader from "../components/Loader";
 import BorderedSection from "../components/BorderedSection";
@@ -10,6 +10,8 @@ import EditableTypography from "../components/EditableTypography";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import AddRecordDialog from "../components/AddRecordDialog";
 import CompanySelector from "../components/CompanySelector";
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
 
 function profitColor(profit){
     if (profit.startsWith("+")) return 'success.dark'
@@ -38,6 +40,7 @@ const Records = props => {
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState(null);
     const [openAddRecordDialog, setOpenAddRecordDialog] = useState(false);
+    const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false);
 
     useEffect(() => {
         if (props.companySelectorValue) {
@@ -61,6 +64,21 @@ const Records = props => {
         setOpenAddRecordDialog(false)
     }
 
+    function handleConfirmWatch() {
+        const newWatching = !data.watching
+        const payload = {id: data.companyId, watching: newWatching}
+        const url = properties.protocol + "://" + properties.host + ":" + properties.port + "/company";
+        axios.put(url, payload)
+            .then((response) => {
+                const newData = {...data}
+                newData.watching = newWatching
+                setData(newData)
+            }).catch((error) => {
+                console.error(error)
+            })
+        setOpenConfirmWatchDialog(false)
+    }
+
     return (
         <>
             {!props.companySelectorValue && <CompanySelector {...props}/>}
@@ -73,6 +91,18 @@ const Records = props => {
                             <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
                                 {data.ticker}
                             </Box>
+
+                            <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
+                                {data.watching && <StarIcon sx={{color: 'gold',}}/>}
+                                {!data.watching && <StarBorderIcon sx={{color: 'lightgrey',}}/>}
+                            </Button>
+                            <Dialog open={openConfirmWatchDialog} onClose={() => setOpenConfirmWatchDialog(false)}>
+                                <DialogTitle>{"Are you sure to " + (data.watching ? "unwatch" : "watch") + " the company?"}</DialogTitle>
+                                <DialogActions>
+                                    <Button onClick={() => setOpenConfirmWatchDialog(false)}>Cancel</Button>
+                                    <Button onClick={() => handleConfirmWatch()} autoFocus>Confirm</Button>
+                                </DialogActions>
+                            </Dialog>
 
                             <Button sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddRecordDialog(true)}>
                                 <ControlPointIcon sx={{color: 'lightgreen',}}/>

@@ -32,8 +32,7 @@ public class RecordService
     public void updateRecord(RecordDto recordDto)
     {
         Record record;
-        try
-        {
+        try {
             record = recordDao.get(recordDto.getId());
         } catch (NoResultException e){
             throw new ServiceException("record with id '" + recordDto.getId() + "' not found");

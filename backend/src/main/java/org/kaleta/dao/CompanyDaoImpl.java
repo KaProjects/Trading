@@ -3,6 +3,7 @@ package org.kaleta.dao;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 import org.kaleta.entity.Company;
 
 import java.util.List;
@@ -28,5 +29,12 @@ public class CompanyDaoImpl implements CompanyDao
         return entityManager.createQuery(selectQuery + " WHERE c.id=:companyId", Company.class)
                 .setParameter("companyId", companyId)
                 .getSingleResult();
+    }
+
+    @Override
+    @Transactional
+    public void store(Company company)
+    {
+        entityManager.merge(company);
     }
 }

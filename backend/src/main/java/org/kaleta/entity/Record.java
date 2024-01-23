@@ -55,4 +55,9 @@ public class Record extends AbstractEntity
     {
         return Currency.valueOf(company.getCurrency());
     }
+
+    public boolean getWatching()
+    {
+        return company.isWatching();
+    }
 }

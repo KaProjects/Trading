@@ -34,6 +34,7 @@ class RecordResourceTest
 
         assertThat(dto.getTicker(), is("NVDA"));
         assertThat(dto.getCurrency(), is(Currency.$));
+        assertThat(dto.getWatching(), is(true));
         assertThat(dto.getRecords().size(), is(2));
         assertThat(dto.getRecords().get(0).getDate(), is("05.01.2024"));
         assertThat(dto.getRecords().get(1).getDate(), is("11.11.2023"));

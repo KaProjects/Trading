@@ -2,9 +2,11 @@ package org.kaleta.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.NoResultException;
 import org.kaleta.dao.CompanyDao;
 import org.kaleta.dao.RecordDao;
 import org.kaleta.dao.TradeDao;
+import org.kaleta.dto.CompanyDto;
 import org.kaleta.entity.Company;
 import org.kaleta.model.CompanyInfo;
 
@@ -61,5 +63,18 @@ public class CompanyService
             }
         }
         return companiesInfo;
+    }
+
+    public void updateCompany(CompanyDto companyDto)
+    {
+        Company company;
+        try {
+            company = companyDao.get(companyDto.getId());
+        } catch (NoResultException e){
+            throw new ServiceException("company with id '" + companyDto.getId() + "' not found");
+        }
+        if (companyDto.getWatching() != null) company.setWatching(companyDto.getWatching());
+
+        companyDao.store(company);
     }
 }

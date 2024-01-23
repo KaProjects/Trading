@@ -1,7 +1,9 @@
 package org.kaleta.rest;
 
 import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
@@ -40,5 +42,21 @@ public class CompanyResource
             dto.addNotWatching(infos);
             return dto;
         });
+    }
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/")
+    public Response updateCompany(CompanyDto companyDto)
+    {
+        return Endpoint.process(
+            () -> {
+                Validator.validatePayload(companyDto);
+                Validator.validateUuid(companyDto.getId());
+            },
+            () -> {
+                companyService.updateCompany(companyDto);
+                return Response.noContent().build();
+            });
     }
 }
