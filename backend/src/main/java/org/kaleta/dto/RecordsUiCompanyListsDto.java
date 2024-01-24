@@ -10,7 +10,7 @@ import java.util.Comparator;
 import java.util.List;
 
 @Data
-public class CompanyListsDto
+public class RecordsUiCompanyListsDto
 {
     private List<Company> watchingOldestReview = new ArrayList<>();
     private List<Company> ownedWithoutStrategy = new ArrayList<>();

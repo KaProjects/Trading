@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
+import jakarta.transaction.Transactional;
 import org.kaleta.entity.Trade;
 import org.kaleta.model.CompanyInfo;
 
@@ -75,5 +76,20 @@ public class TradeDaoImpl implements TradeDao
             infos.add(info);
         }
         return infos;
+    }
+
+    @Override
+    @Transactional
+    public void create(Trade trade)
+    {
+        entityManager.persist(trade);
+    }
+
+    @Override
+    public Trade get(String tradeId)
+    {
+        return entityManager.createQuery(selectQuery + " WHERE t.id=:tradeId", Trade.class)
+                .setParameter("tradeId", tradeId)
+                .getSingleResult();
     }
 }

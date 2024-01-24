@@ -13,7 +13,7 @@ public interface RecordDao
     List<Record> list(String companyId);
 
     /**
-     * @return record according to specified record ID
+     * @return record according to specified ID
      */
     Record get(String recordId);
 

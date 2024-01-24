@@ -4,6 +4,7 @@ import jakarta.ws.rs.core.Response;
 import org.kaleta.Constants;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
+import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.entity.Currency;
 
 import java.math.BigDecimal;
@@ -81,6 +82,23 @@ public class Validator
         validateUuid(dto.getCompanyId());
     }
 
+    public static void validateCreateTradeDto(TradeCreateDto dto)
+    {
+        if (dto.getDate() == null || !isDate(dto.getDate()))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+
+        if (dto.getQuantity() == null || !isBigDecimal(dto.getQuantity(), 8, 4))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Quantity: '" + dto.getQuantity() + "'");
+
+        if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Price: '" + dto.getPrice() + "'");
+
+        if (dto.getFees() == null || !isBigDecimal(dto.getFees(), 5, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Fees: '" + dto.getFees() + "'");
+
+        validateUuid(dto.getCompanyId());
+    }
+
     private static boolean isDate(String value){
         try {
             Constants.dateFormatDto.parse(value);
@@ -93,6 +111,7 @@ public class Validator
     private static boolean isBigDecimal(String value, int lengthConstraint, int decimalConstraint){
         try {
             new BigDecimal(value);
+            if (value.startsWith(".")) return false;
             if (value.endsWith(".")) return false;
             if (value.replace(".", "").length() > lengthConstraint) return false;
             String[] split = value.split("\\.");

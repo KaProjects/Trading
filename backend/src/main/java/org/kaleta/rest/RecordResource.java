@@ -11,7 +11,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.Utils;
-import org.kaleta.dto.CompanyRecordsDto;
+import org.kaleta.dto.RecordsUiDto;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.entity.Record;
@@ -39,7 +39,7 @@ public class RecordResource
         return Endpoint.process(
             () -> Validator.validateUuid(companyId),
             () -> {
-                CompanyRecordsDto dto = CompanyRecordsDto.from(recordService.getRecords(companyId));
+                RecordsUiDto dto = RecordsUiDto.from(recordService.getRecords(companyId));
                 if (dto.getRecords().size() > 0) {
                     dto.setLastPrice(dto.getRecords().get(0).getPrice());
                     for(int i=0;i<dto.getRecords().size();i++){
@@ -51,7 +51,7 @@ public class RecordResource
                 }
                 for (Trade trade : tradeService.getTrades(true, companyId, null, null))
                 {
-                    CompanyRecordsDto.Own own = new CompanyRecordsDto.Own();
+                    RecordsUiDto.Own own = new RecordsUiDto.Own();
                     own.setQuantity(format(trade.getQuantity()));
                     own.setPrice(format(trade.getPurchasePrice()));
                     BigDecimal profit = Utils.computeProfit(trade.getPurchasePrice(), new BigDecimal(dto.getLastPrice()));

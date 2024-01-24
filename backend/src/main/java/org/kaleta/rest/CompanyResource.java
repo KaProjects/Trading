@@ -9,7 +9,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.dto.CompanyDto;
-import org.kaleta.dto.CompanyListsDto;
+import org.kaleta.dto.RecordsUiCompanyListsDto;
 import org.kaleta.model.CompanyInfo;
 import org.kaleta.service.CompanyService;
 
@@ -36,7 +36,7 @@ public class CompanyResource
     {
         return Endpoint.process(() -> {}, () -> {
             List<CompanyInfo> infos = companyService.getCompaniesInfo();
-            CompanyListsDto dto = new CompanyListsDto();
+            RecordsUiCompanyListsDto dto = new RecordsUiCompanyListsDto();
             dto.addWatchingOldestReview(infos);
             dto.addOwnedWithoutStrategy(infos);
             dto.addNotWatching(infos);

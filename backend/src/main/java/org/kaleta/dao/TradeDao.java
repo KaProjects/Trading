@@ -16,4 +16,14 @@ public interface TradeDao
      * @return latest purchase dates for every company (that have at least open trade)
      */
     List<CompanyInfo> latestPurchase();
+
+    /**
+     * creates new trade
+     */
+    void create(Trade trade);
+
+    /**
+     * @return trade according to specified ID
+     */
+    Trade get(String id);
 }

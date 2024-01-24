@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
-public class CompanyRecordsDto
+public class RecordsUiDto
 {
     private String companyId;
     private String ticker;
@@ -26,19 +26,19 @@ public class CompanyRecordsDto
         private String profit;
     }
 
-    public static CompanyRecordsDto from(List<org.kaleta.entity.Record> records)
+    public static RecordsUiDto from(List<org.kaleta.entity.Record> records)
     {
-        CompanyRecordsDto companyRecordsDto = new CompanyRecordsDto();
+        RecordsUiDto recordsUiDto = new RecordsUiDto();
         if (records.size() > 0) {
-            companyRecordsDto.setTicker(records.get(0).getTicker());
-            companyRecordsDto.setCurrency(records.get(0).getCurrency());
-            companyRecordsDto.setWatching(records.get(0).getWatching());
+            recordsUiDto.setTicker(records.get(0).getTicker());
+            recordsUiDto.setCurrency(records.get(0).getCurrency());
+            recordsUiDto.setWatching(records.get(0).getWatching());
         }
         for (org.kaleta.entity.Record record : records)
         {
-            companyRecordsDto.getRecords().add(RecordDto.from(record));
+            recordsUiDto.getRecords().add(RecordDto.from(record));
         }
-        companyRecordsDto.getRecords().sort(RecordDto::compareTo);
-        return companyRecordsDto;
+        recordsUiDto.getRecords().sort(RecordDto::compareTo);
+        return recordsUiDto;
     }
 }
