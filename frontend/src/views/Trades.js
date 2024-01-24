@@ -50,6 +50,10 @@ const Trades = props => {
         // eslint-disable-next-line
     }, [data]);
 
+    function selectCompany(ticker) {
+        props.companies.forEach((company) => {if (company.ticker === ticker) {props.setCompanySelectorValue(company)}})
+    }
+
     return (
         <>
         {!loaded &&
@@ -82,7 +86,9 @@ const Trades = props => {
                     <TableBody>
                         {data.trades.map((trade, index) => (
                             <TableRow key={index} hover>
-                                <TableCell style={rowStyle(0)}>{trade.ticker}</TableCell>
+                                <TableCell style={rowStyle(0)} onDoubleClick={() => selectCompany(trade.ticker)}>
+                                    {trade.ticker}
+                                </TableCell>
                                 <TableCell style={rowStyle(1)}>{trade.currency}</TableCell>
                                 <TableCell style={rowStyle(2)}>{trade.purchaseDate}</TableCell>
                                 <TableCell style={rowStyle(3)}>{trade.purchaseQuantity}</TableCell>

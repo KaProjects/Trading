@@ -11,7 +11,7 @@ const CompanySelector = (props) => {
     const {data, loaded, error} = useData("/company/lists")
 
     function selectCompany(id) {
-        props.companies.map((company) => {if (company.id === id) {props.setCompanySelectorValue(company)}})
+        props.companies.forEach((company) => {if (company.id === id) {props.setCompanySelectorValue(company)}})
     }
 
     return (
