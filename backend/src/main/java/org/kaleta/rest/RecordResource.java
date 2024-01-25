@@ -68,7 +68,8 @@ public class RecordResource
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response updateRecord(RecordDto recordDto){
+    public Response updateRecord(RecordDto recordDto)
+    {
         return Endpoint.process(
             () -> {
                 Validator.validatePayload(recordDto);
@@ -85,7 +86,8 @@ public class RecordResource
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response createRecord(RecordCreateDto recordCreateDto){
+    public Response createRecord(RecordCreateDto recordCreateDto)
+    {
         return Endpoint.process(
             () -> {
                 Validator.validatePayload(recordCreateDto);

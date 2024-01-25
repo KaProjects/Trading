@@ -3,7 +3,10 @@ package org.kaleta.rest;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.ws.rs.core.Response;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeDto;
 import org.kaleta.dto.TradesUiDto;
@@ -20,9 +23,27 @@ import static org.hamcrest.Matchers.nullValue;
 
 
 @QuarkusTest
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TradeResourceTest
 {
     @Test
+    @Order(1)
+    void parameterValidator()
+    {
+        Assert.get400("/trade?companyId=" + "AAAAAA", "Invalid UUID Parameter");
+        Assert.get400("/trade?companyId=", "Invalid UUID Parameter");
+
+        Assert.get400("/trade?currency=" + "X", "Invalid Currency Parameter");
+        Assert.get400("/trade?currency=", "Invalid Currency Parameter");
+
+        Assert.get400("/trade?year=" + "20x2", "Invalid Year Parameter");
+        Assert.get400("/trade?year=" + "20222", "Invalid Year Parameter");
+        Assert.get400("/trade?year=" + "202", "Invalid Year Parameter");
+        Assert.get400("/trade?year=", "Invalid Year Parameter");
+    }
+
+    @Test
+    @Order(1)
     void getTradesFilterNone()
     {
         TradesUiDto dto = given().when()
@@ -35,15 +56,16 @@ class TradeResourceTest
         assertThat(dto.getColumns().size(), is(6));
         assertThat(dto.getColumns().get(1).getName(), is("#"));
         assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
-        assertThat(dto.getTrades().size(), is(8));
+        assertThat(dto.getTrades().size(), is(12));
         assertThat(dto.getTrades().get(0).getPurchaseDate(), is("11.11.2023"));
         assertThat(dto.getTrades().get(1).getPurchaseDate(), is("05.04.2023"));
         assertThat(dto.getTrades().get(2).getPurchaseDate(), is("01.11.2022"));
         assertThat(dto.getTrades().get(3).getPurchaseDate(), is("10.05.2021"));
-        assertThat(dto.getSums(), is(new String[]{"8", "4", "", "", "", "377.62", "2584339.35", "", "", "", "85.5", "5725.5", "1530.5", "36.48"}));
+        assertThat(dto.getSums(), is(new String[]{"9", "4", "", "", "", "417.62", "2591729.35", "", "", "", "85.5", "5725.5", "1530.5", "36.48"}));
     }
 
     @Test
+    @Order(1)
     void getTradesFilterActive()
     {
         TradesUiDto dto = given().when()
@@ -55,17 +77,18 @@ class TradeResourceTest
         assertThat(dto.getColumns().size(), is(6));
         assertThat(dto.getColumns().get(1).getName(), is("#"));
         assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
-        assertThat(dto.getTrades().size(), is(5));
+        assertThat(dto.getTrades().size(), is(8));
         assertThat(dto.getTrades().get(0).getPurchaseDate(), is("05.04.2023"));
         assertThat(dto.getTrades().get(0).getTicker(), is("CEZ"));
         assertThat(dto.getTrades().get(0).getPurchaseTotal(), is("575599.35"));
         assertThat(dto.getTrades().get(1).getPurchaseDate(), is("01.11.2022"));
         assertThat(dto.getTrades().get(1).getTicker(), is("RR"));
         assertThat(dto.getTrades().get(1).getPurchaseTotal(), is("2000025"));
-        assertThat(dto.getSums(), is(new String[]{"5", "3", "", "", "", "310.12", "2581164.35", "", "", "", "0", "0", "", ""}));
+        assertThat(dto.getSums(), is(new String[]{"5", "3", "", "", "", "335.12", "2587534.35", "", "", "", "0", "0", "", ""}));
     }
 
     @Test
+    @Order(1)
     void getTradesFilterCurrency()
     {
         TradesUiDto dto = given().when()
@@ -84,6 +107,7 @@ class TradeResourceTest
     }
 
     @Test
+    @Order(1)
     void getTradesFilterCompany()
     {
         TradesUiDto dto = given().when()
@@ -102,6 +126,7 @@ class TradeResourceTest
     }
 
     @Test
+    @Order(1)
     void getTradesFilterNonExistentCompany()
     {
         TradesUiDto dto = given().when()
@@ -118,6 +143,7 @@ class TradeResourceTest
     }
 
     @Test
+    @Order(1)
     void getTradesFilterYear()
     {
         TradesUiDto dto = given().when()
@@ -142,6 +168,7 @@ class TradeResourceTest
     }
 
     @Test
+    @Order(1)
     void getTradesFilterMultiple()
     {
         TradesUiDto dto = given().when()
@@ -161,6 +188,7 @@ class TradeResourceTest
     }
 
     @Test
+    @Order(1)
     void getTradesZeroTotals()
     {
         TradesUiDto dtoZeroPurchase = given().when()
@@ -189,6 +217,7 @@ class TradeResourceTest
     }
 
     @Test
+    @Order(2)
     void createTrade()
     {
         TradeCreateDto dto = new TradeCreateDto();
@@ -206,7 +235,7 @@ class TradeResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", TradeDto.class);
 
-        assertThat(createdDto.getTicker(), is("XCC"));
+        assertThat(createdDto.getTicker(), is("XTC"));
         assertThat(createdDto.getCurrency(), is(Currency.$));
         assertThat(createdDto.getPurchaseDate(), is(dto.getDate()));
         assertThat(createdDto.getPurchasePrice(), is(dto.getPrice()));
@@ -229,11 +258,12 @@ class TradeResourceTest
                 .extract().response().jsonPath().getObject("", TradesUiDto.class);
 
         assertThat(tradesDto.getTrades().size(), is(1));
-        assertThat(tradesDto.getTrades().get(0).getTicker(), is("XCC"));
+        assertThat(tradesDto.getTrades().get(0).getTicker(), is("XTC"));
         assertThat(tradesDto.getSums(), is(new String[]{"1", "1", "", "", "", "15", "1020", "", "", "", "0", "0", "", ""}));
     }
 
     @Test
+    @Order(2)
     void createTradeInvalidValues()
     {
         String validCompanyId = "21322ef8-9e26-4eda-bf74-b0f0eb8925b1";
@@ -337,17 +367,348 @@ class TradeResourceTest
     }
 
     @Test
-    void parameterValidator()
+    @Order(2)
+    void sellTradeQuantityMoreThanOwned()
     {
-        Assert.get400("/trade?companyId=" + "AAAAAA", "Invalid UUID Parameter");
-        Assert.get400("/trade?companyId=", "Invalid UUID Parameter");
+        TradeCreateDto dto = new TradeCreateDto();
+        dto.setCompanyId("c65ea6ac-d848-46dd-98bc-9e3d99f39b21");
+        dto.setDate("15.07.2020");
+        dto.setPrice("600");
+        dto.setQuantity("16");
+        dto.setFees("15");
 
-        Assert.get400("/trade?currency=" + "X", "Invalid Currency Parameter");
-        Assert.get400("/trade?currency=", "Invalid Currency Parameter");
+        Assert.put400("/trade", dto, "unable to sell more than owned");
+    }
 
-        Assert.get400("/trade?year=" + "20x2", "Invalid Year Parameter");
-        Assert.get400("/trade?year=" + "20222", "Invalid Year Parameter");
-        Assert.get400("/trade?year=" + "202", "Invalid Year Parameter");
-        Assert.get400("/trade?year=", "Invalid Year Parameter");
+    @Test
+    @Order(2)
+    void sellTradeInvalidValues()
+    {
+        String validCompanyId = "c65ea6ac-d848-46dd-98bc-9e3d99f39b21";
+        String validDate = "01.01.2020";
+        String validPrice = "100.5";
+        String validQuantity = "10";
+        String validFees = "15";
+
+        Assert.put400("/trade", null, "Payload is NULL");
+
+        TradeCreateDto dto = new TradeCreateDto();
+        dto.setCompanyId(validCompanyId);
+        dto.setDate(validDate);
+        dto.setPrice(validPrice);
+        dto.setQuantity(validQuantity);
+
+        dto.setFees(null);
+        Assert.put400("/trade", dto, "Invalid Fees:");
+
+        dto.setFees("");
+        Assert.put400("/trade", dto, "Invalid Fees:");
+
+        dto.setFees("x");
+        Assert.put400("/trade", dto, "Invalid Fees:");
+
+        dto.setFees("1.");
+        Assert.put400("/trade", dto, "Invalid Fees:");
+
+        dto.setFees(".1");
+        Assert.put400("/trade", dto, "Invalid Fees:");
+
+        dto.setFees("123456");
+        Assert.put400("/trade", dto, "Invalid Fees:");
+
+        dto.setFees("1.123");
+        Assert.put400("/trade", dto, "Invalid Fees:");
+
+        dto.setFees(validFees);
+        dto.setPrice(null);
+        Assert.put400("/trade", dto, "Invalid Price:");
+
+        dto.setPrice("");
+        Assert.put400("/trade", dto, "Invalid Price:");
+
+        dto.setPrice("x");
+        Assert.put400("/trade", dto, "Invalid Price:");
+
+        dto.setPrice("1.");
+        Assert.put400("/trade", dto, "Invalid Price:");
+
+        dto.setPrice(".1");
+        Assert.put400("/trade", dto, "Invalid Price:");
+
+        dto.setPrice("12345678901");
+        Assert.put400("/trade", dto, "Invalid Price:");
+
+        dto.setPrice("10.12345");
+        Assert.put400("/trade", dto, "Invalid Price:");
+
+        dto.setPrice(validPrice);
+        dto.setQuantity(null);
+        Assert.post400("/trade", dto, "Invalid Quantity:");
+
+        dto.setQuantity("");
+        Assert.put400("/trade", dto, "Invalid Quantity:");
+
+        dto.setQuantity("x");
+        Assert.put400("/trade", dto, "Invalid Quantity:");
+
+        dto.setQuantity("1.");
+        Assert.put400("/trade", dto, "Invalid Quantity:");
+
+        dto.setQuantity(".1");
+        Assert.put400("/trade", dto, "Invalid Quantity:");
+
+        dto.setQuantity("123456789");
+        Assert.put400("/trade", dto, "Invalid Quantity:");
+
+        dto.setQuantity("1.12345");
+        Assert.put400("/trade", dto, "Invalid Quantity:");
+
+        dto.setQuantity(validQuantity);
+        dto.setDate(null);
+        Assert.put400("/trade", dto, "Invalid Date:");
+
+        dto.setDate("");
+        Assert.put400("/trade", dto, "Invalid Date:");
+
+        dto.setDate("1.1.2020");
+        Assert.put400("/trade", dto, "Invalid Date:");
+
+        dto.setDate(validDate);
+        dto.setCompanyId(null);
+        Assert.put400("/trade", dto, "Invalid UUID");
+
+        dto.setCompanyId("x");
+        Assert.put400("/trade", dto, "Invalid UUID");
+
+        dto.setCompanyId(UUID.randomUUID().toString());
+        Assert.put400("/trade", dto, "company with id '" + dto.getCompanyId() + "' not found");
+    }
+
+    @Test
+    @Order(3)
+    void sellTradeQuantityFirstTrade()
+    {
+        TradeCreateDto dto = new TradeCreateDto();
+        dto.setCompanyId("c65ea6ac-d848-46dd-98bc-9e3d99f39b21");
+        dto.setDate("15.07.2020");
+        dto.setPrice("600");
+        dto.setQuantity("2");
+        dto.setFees("15");
+
+        given().contentType(ContentType.JSON)
+                .body(dto)
+                .when()
+                .put("/trade")
+                .then()
+                .statusCode(Response.Status.NO_CONTENT.getStatusCode());
+
+        TradesUiDto tradesDto = given().when()
+                .get("/trade?companyId=" + dto.getCompanyId())
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+
+        assertThat(tradesDto.getTrades().size(), is(4));
+
+        assertThat(tradesDto.getTrades().get(0).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseDate(), is("05.05.2020"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseQuantity(), is("1"));
+        assertThat(tradesDto.getTrades().get(0).getPurchasePrice(), is("550"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseFees(), is("10"));
+        assertThat(tradesDto.getTrades().get(0).getSellDate(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(0).getSellQuantity(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(0).getSellPrice(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(0).getSellFees(), is(nullValue()));
+
+        assertThat(tradesDto.getTrades().get(1).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseDate(), is("01.05.2020"));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseQuantity(), is("7.5"));
+        assertThat(tradesDto.getTrades().get(1).getPurchasePrice(), is("500"));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseFees(), is("10"));
+        assertThat(tradesDto.getTrades().get(1).getSellDate(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(1).getSellQuantity(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(1).getSellPrice(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(1).getSellFees(), is(nullValue()));
+
+        assertThat(tradesDto.getTrades().get(2).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(2).getPurchaseDate(), is("05.04.2020"));
+        assertThat(tradesDto.getTrades().get(2).getPurchaseQuantity(), is("5"));
+        assertThat(tradesDto.getTrades().get(2).getPurchasePrice(), is("450"));
+        assertThat(tradesDto.getTrades().get(2).getPurchaseFees(), is("10"));
+        assertThat(tradesDto.getTrades().get(2).getSellDate(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(2).getSellQuantity(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(2).getSellPrice(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(2).getSellFees(), is(nullValue()));
+
+        assertThat(tradesDto.getTrades().get(3).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(3).getPurchaseDate(), is("15.03.2020"));
+        assertThat(tradesDto.getTrades().get(3).getPurchaseQuantity(), is("2"));
+        assertThat(tradesDto.getTrades().get(3).getPurchasePrice(), is("400"));
+        assertThat(tradesDto.getTrades().get(3).getPurchaseFees(), is("10"));
+        assertThat(tradesDto.getTrades().get(3).getSellDate(), is(dto.getDate()));
+        assertThat(tradesDto.getTrades().get(3).getSellQuantity(), is(dto.getQuantity()));
+        assertThat(tradesDto.getTrades().get(3).getSellPrice(), is(dto.getPrice()));
+        assertThat(tradesDto.getTrades().get(3).getSellFees(), is(dto.getFees()));
+
+        assertThat(tradesDto.getSums(), is(new String[]{"1", "1", "", "", "", "40", "7390", "", "", "", "15", "1215", "405", "50"}));
+    }
+
+    @Test
+    @Order(4)
+    void sellTradeQuantityMoreThanSecondTrade()
+    {
+        TradeCreateDto dto = new TradeCreateDto();
+        dto.setCompanyId("c65ea6ac-d848-46dd-98bc-9e3d99f39b21");
+        dto.setDate("16.07.2020");
+        dto.setPrice("700");
+        dto.setQuantity("7.5");
+        dto.setFees("21");
+
+        given().contentType(ContentType.JSON)
+                .body(dto)
+                .when()
+                .put("/trade")
+                .then()
+                .statusCode(Response.Status.NO_CONTENT.getStatusCode());
+
+        TradesUiDto tradesDto = given().when()
+                .get("/trade?companyId=" + dto.getCompanyId())
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+
+        assertThat(tradesDto.getTrades().size(), is(5));
+
+        assertThat(tradesDto.getTrades().get(0).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseDate(), is("05.05.2020"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseQuantity(), is("1"));
+        assertThat(tradesDto.getTrades().get(0).getPurchasePrice(), is("550"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseFees(), is("10"));
+        assertThat(tradesDto.getTrades().get(0).getSellDate(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(0).getSellQuantity(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(0).getSellPrice(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(0).getSellFees(), is(nullValue()));
+
+        assertThat(tradesDto.getTrades().get(1).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseDate(), is("01.05.2020"));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseQuantity(), is("2.5"));
+        assertThat(tradesDto.getTrades().get(1).getPurchasePrice(), is("500"));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseFees(), is("3.33"));
+        assertThat(tradesDto.getTrades().get(1).getSellDate(), is(dto.getDate()));
+        assertThat(tradesDto.getTrades().get(1).getSellQuantity(), is("2.5"));
+        assertThat(tradesDto.getTrades().get(1).getSellPrice(), is(dto.getPrice()));
+        assertThat(tradesDto.getTrades().get(1).getSellFees(), is("7"));
+
+        assertThat(tradesDto.getTrades().get(2).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(2).getPurchaseDate(), is("01.05.2020"));
+        assertThat(tradesDto.getTrades().get(2).getPurchaseQuantity(), is("5"));
+        assertThat(tradesDto.getTrades().get(2).getPurchasePrice(), is("500"));
+        assertThat(tradesDto.getTrades().get(2).getPurchaseFees(), is("6.67"));
+        assertThat(tradesDto.getTrades().get(2).getSellDate(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(2).getSellQuantity(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(2).getSellPrice(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(2).getSellFees(), is(nullValue()));
+
+        assertThat(tradesDto.getTrades().get(3).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(3).getPurchaseDate(), is("05.04.2020"));
+        assertThat(tradesDto.getTrades().get(3).getPurchaseQuantity(), is("5"));
+        assertThat(tradesDto.getTrades().get(3).getPurchasePrice(), is("450"));
+        assertThat(tradesDto.getTrades().get(3).getPurchaseFees(), is("10"));
+        assertThat(tradesDto.getTrades().get(3).getSellDate(), is(dto.getDate()));
+        assertThat(tradesDto.getTrades().get(3).getSellQuantity(), is("5"));
+        assertThat(tradesDto.getTrades().get(3).getSellPrice(), is("700"));
+        assertThat(tradesDto.getTrades().get(3).getSellFees(), is("14"));
+
+        assertThat(tradesDto.getTrades().get(4).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(4).getPurchaseDate(), is("15.03.2020"));
+        assertThat(tradesDto.getTrades().get(4).getPurchaseQuantity(), is("2"));
+        assertThat(tradesDto.getTrades().get(4).getPurchasePrice(), is("400"));
+        assertThat(tradesDto.getTrades().get(4).getPurchaseFees(), is("10"));
+        assertThat(tradesDto.getTrades().get(4).getSellDate(), is("15.07.2020"));
+        assertThat(tradesDto.getTrades().get(4).getSellQuantity(), is("2"));
+        assertThat(tradesDto.getTrades().get(4).getSellPrice(), is("600"));
+        assertThat(tradesDto.getTrades().get(4).getSellFees(), is("15"));
+        assertThat(tradesDto.getSums(), is(new String[]{"1", "1", "", "", "", "40", "7390", "", "", "", "36", "6486", "2162.67", "50.02"}));
+    }
+
+    @Test
+    @Order(5)
+    void sellTradeQuantityAllRemaining()
+    {
+        TradeCreateDto dto = new TradeCreateDto();
+        dto.setCompanyId("c65ea6ac-d848-46dd-98bc-9e3d99f39b21");
+        dto.setDate("17.07.2020");
+        dto.setPrice("750");
+        dto.setQuantity("6");
+        dto.setFees("18");
+
+        given().contentType(ContentType.JSON)
+                .body(dto)
+                .when()
+                .put("/trade")
+                .then()
+                .statusCode(Response.Status.NO_CONTENT.getStatusCode());
+
+        TradesUiDto tradesDto = given().when()
+                .get("/trade?companyId=" + dto.getCompanyId())
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+
+        assertThat(tradesDto.getTrades().size(), is(5));
+
+        assertThat(tradesDto.getTrades().get(0).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseDate(), is("05.05.2020"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseQuantity(), is("1"));
+        assertThat(tradesDto.getTrades().get(0).getPurchasePrice(), is("550"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseFees(), is("10"));
+        assertThat(tradesDto.getTrades().get(0).getSellDate(), is(dto.getDate()));
+        assertThat(tradesDto.getTrades().get(0).getSellQuantity(), is("1"));
+        assertThat(tradesDto.getTrades().get(0).getSellPrice(), is(dto.getPrice()));
+        assertThat(tradesDto.getTrades().get(0).getSellFees(), is("3"));
+
+        assertThat(tradesDto.getTrades().get(1).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseDate(), is("01.05.2020"));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseQuantity(), is("2.5"));
+        assertThat(tradesDto.getTrades().get(1).getPurchasePrice(), is("500"));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseFees(), is("3.33"));
+        assertThat(tradesDto.getTrades().get(1).getSellDate(), is("16.07.2020"));
+        assertThat(tradesDto.getTrades().get(1).getSellQuantity(), is("2.5"));
+        assertThat(tradesDto.getTrades().get(1).getSellPrice(), is("700"));
+        assertThat(tradesDto.getTrades().get(1).getSellFees(), is("7"));
+
+        assertThat(tradesDto.getTrades().get(2).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(2).getPurchaseDate(), is("01.05.2020"));
+        assertThat(tradesDto.getTrades().get(2).getPurchaseQuantity(), is("5"));
+        assertThat(tradesDto.getTrades().get(2).getPurchasePrice(), is("500"));
+        assertThat(tradesDto.getTrades().get(2).getPurchaseFees(), is("6.67"));
+        assertThat(tradesDto.getTrades().get(2).getSellDate(), is(dto.getDate()));
+        assertThat(tradesDto.getTrades().get(2).getSellQuantity(), is("5"));
+        assertThat(tradesDto.getTrades().get(2).getSellPrice(), is(dto.getPrice()));
+        assertThat(tradesDto.getTrades().get(2).getSellFees(), is("15"));
+
+        assertThat(tradesDto.getTrades().get(3).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(3).getPurchaseDate(), is("05.04.2020"));
+        assertThat(tradesDto.getTrades().get(3).getPurchaseQuantity(), is("5"));
+        assertThat(tradesDto.getTrades().get(3).getPurchasePrice(), is("450"));
+        assertThat(tradesDto.getTrades().get(3).getPurchaseFees(), is("10"));
+        assertThat(tradesDto.getTrades().get(3).getSellDate(), is("16.07.2020"));
+        assertThat(tradesDto.getTrades().get(3).getSellQuantity(), is("5"));
+        assertThat(tradesDto.getTrades().get(3).getSellPrice(), is("700"));
+        assertThat(tradesDto.getTrades().get(3).getSellFees(), is("14"));
+
+        assertThat(tradesDto.getTrades().get(4).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(4).getPurchaseDate(), is("15.03.2020"));
+        assertThat(tradesDto.getTrades().get(4).getPurchaseQuantity(), is("2"));
+        assertThat(tradesDto.getTrades().get(4).getPurchasePrice(), is("400"));
+        assertThat(tradesDto.getTrades().get(4).getPurchaseFees(), is("10"));
+        assertThat(tradesDto.getTrades().get(4).getSellDate(), is("15.07.2020"));
+        assertThat(tradesDto.getTrades().get(4).getSellQuantity(), is("2"));
+        assertThat(tradesDto.getTrades().get(4).getSellPrice(), is("600"));
+        assertThat(tradesDto.getTrades().get(4).getSellFees(), is("15"));
+        assertThat(tradesDto.getSums(), is(new String[]{"1", "1", "", "", "", "40", "7390", "", "", "", "54", "11004", "3614", "48.9"}));
     }
 }

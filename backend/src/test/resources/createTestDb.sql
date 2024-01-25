@@ -49,7 +49,9 @@ INSERT INTO Company (id, ticker, currency, watching) VALUES ('d98c9ea1-ef2a-400a
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('5cda9759-c31f-4c5c-ac0b-b5e1de01fdf0', 'XRSA', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('7781fba0-7071-45d7-b952-3c5f07ce564c', 'XRSB', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('5afe260b-c433-426c-9710-e9ff99faa5aa', 'XCW', '$', false);
-INSERT INTO Company (id, ticker, currency, watching) VALUES ('21322ef8-9e26-4eda-bf74-b0f0eb8925b1', 'XCC', '$', true);
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('21322ef8-9e26-4eda-bf74-b0f0eb8925b1', 'XTC', '$', true);
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('c65ea6ac-d848-46dd-98bc-9e3d99f39b21', 'XTS', '$', true);
+
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('-2', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('-1', '0a16ba1d-99de-4306-8fc5-81ee11b60ea0', '10', '2018-04-05', '10', '50', '2018-05-05', '0', '0');
@@ -60,6 +62,11 @@ INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purch
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('ae79deca-e26d-4d43-ae83-94ee6b7b7382', '5cda9759-c31f-4c5c-ac0b-b5e1de01fdf0', '10', '2021-01-05', '90', '10');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('d94c5b43-f4e0-48a7-9dc6-9da7ea0cafe4', '7781fba0-7071-45d7-b952-3c5f07ce564c', '20', '2020-12-30', '180', '10');
+
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('69d3e956-b155-40c2-8e2e-8679a2d0f657', 'c65ea6ac-d848-46dd-98bc-9e3d99f39b21', '2', '2020-03-15', '400', '10');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('91d9253e-aee5-4d86-9c3e-18102bff698d', 'c65ea6ac-d848-46dd-98bc-9e3d99f39b21', '5', '2020-04-05', '450', '10');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('19993bde-6d06-4006-918f-77baa8062e42', 'c65ea6ac-d848-46dd-98bc-9e3d99f39b21', '7.5', '2020-05-01', '500', '10');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('ff467fa5-77c6-4b1a-96b1-4038c476e038', 'c65ea6ac-d848-46dd-98bc-9e3d99f39b21', '1', '2020-05-05', '550', '10');
 
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('1', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '2023-11-11', 'bought 5@400.5$', '400.5');
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('1b', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '2024-01-05', 'sold 5@500$', '500');

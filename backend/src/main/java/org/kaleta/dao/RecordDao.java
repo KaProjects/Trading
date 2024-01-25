@@ -30,7 +30,7 @@ public interface RecordDao
     /**
      * saves the instance of the specified record
      */
-    void store(Record record);
+    void save(Record record);
 
     /**
      * creates new record

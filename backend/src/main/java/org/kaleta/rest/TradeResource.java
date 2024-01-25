@@ -4,6 +4,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
@@ -30,8 +31,8 @@ public class TradeResource
             @QueryParam("active") Boolean active,
             @QueryParam("year") String year,
             @QueryParam("companyId") String companyId,
-            @QueryParam("currency") String currency
-    ) {
+            @QueryParam("currency") String currency)
+    {
         return Endpoint.process(() -> {
             if (companyId != null) Validator.validateUuid(companyId);
             if (currency != null) Validator.validateCurrency(currency);
@@ -48,15 +49,33 @@ public class TradeResource
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response createRecord(TradeCreateDto tradeCreateDto){
+    public Response createTrade(TradeCreateDto tradeCreateDto)
+    {
         return Endpoint.process(
-                () -> {
-                    Validator.validatePayload(tradeCreateDto);
-                    Validator.validateCreateTradeDto(tradeCreateDto);
-                },
-                () -> {
-                    Trade trade = tradeService.createTrade(tradeCreateDto);
-                    return Response.status(Response.Status.CREATED).entity(TradeDto.from(trade)).build();
-                });
+            () -> {
+                Validator.validatePayload(tradeCreateDto);
+                Validator.validateCreateTradeDto(tradeCreateDto);
+            },
+            () -> {
+                Trade trade = tradeService.createTrade(tradeCreateDto);
+                return Response.status(Response.Status.CREATED).entity(TradeDto.from(trade)).build();
+            });
+    }
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/")
+    public Response sellTrade(TradeCreateDto tradeCreateDto)
+    {
+        return Endpoint.process(
+            () -> {
+                Validator.validatePayload(tradeCreateDto);
+                Validator.validateCreateTradeDto(tradeCreateDto);
+            },
+            () -> {
+                tradeService.sellTrade(tradeCreateDto);
+                return Response.status(Response.Status.NO_CONTENT).build();
+            });
     }
 }

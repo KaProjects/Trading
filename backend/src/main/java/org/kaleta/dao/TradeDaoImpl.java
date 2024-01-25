@@ -92,4 +92,13 @@ public class TradeDaoImpl implements TradeDao
                 .setParameter("tradeId", tradeId)
                 .getSingleResult();
     }
+
+    @Override
+    @Transactional
+    public void saveAll(List<Trade> trades)
+    {
+        for (Trade trade : trades){
+            entityManager.merge(trade);
+        }
+    }
 }

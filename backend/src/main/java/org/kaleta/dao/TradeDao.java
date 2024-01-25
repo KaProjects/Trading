@@ -26,4 +26,9 @@ public interface TradeDao
      * @return trade according to specified ID
      */
     Trade get(String id);
+
+    /**
+     * saves all the instance of the specified trades
+     */
+    void saveAll(List<Trade> trades);
 }

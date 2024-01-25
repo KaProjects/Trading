@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.Constants;
+import org.kaleta.Utils;
 import org.kaleta.dao.CompanyDao;
 import org.kaleta.dao.TradeDao;
 import org.kaleta.dto.TradeCreateDto;
@@ -89,5 +90,81 @@ public class TradeService
         tradeDao.create(newTrade);
 
         return tradeDao.get(newTrade.getId());
+    }
+
+    public void sellTrade(TradeCreateDto tradeCreateDto)
+    {
+        Company company;
+        try {
+            company = companyDao.get(tradeCreateDto.getCompanyId());
+        } catch (NoResultException e){
+            throw new ServiceException("company with id '" + tradeCreateDto.getCompanyId() + "' not found");
+        }
+
+        List<Trade> companyTrades = tradeDao.list(true, tradeCreateDto.getCompanyId(), null, null);
+        companyTrades.sort((tradeA, tradeB) -> Utils.compareDates(Constants.dateFormatDto.format(tradeA.getPurchaseDate()), Constants.dateFormatDto.format(tradeB.getPurchaseDate())));
+
+        BigDecimal ownedQuantity = new BigDecimal("0.0");
+        for (Trade trade : companyTrades) {
+            ownedQuantity = ownedQuantity.add(trade.getQuantity());
+        }
+
+        Date date;
+        try {
+            java.util.Date parsedDate = Constants.dateFormatDto.parse(tradeCreateDto.getDate());
+            date = Date.valueOf(Constants.dateFormatDb.format(parsedDate));
+        } catch (ParseException e) {
+            throw new ServiceException(e);
+        }
+
+        BigDecimal requestedQuantity = new BigDecimal(tradeCreateDto.getQuantity());
+        if (requestedQuantity.compareTo(ownedQuantity) > 0)
+            throw new ServiceException("unable to sell more than owned");
+
+        BigDecimal residualSellFees = new BigDecimal(tradeCreateDto.getFees());
+
+        Trade residualTrade = new Trade();
+
+        for (Trade trade : companyTrades)
+        {
+            if (requestedQuantity.compareTo(new BigDecimal(0)) == 0) continue;
+            if (trade.getQuantity().compareTo(requestedQuantity) <= 0)
+            {
+                trade.setSellDate(date);
+                trade.setSellPrice(new BigDecimal(tradeCreateDto.getPrice()));
+
+                BigDecimal requestedSellFees = residualSellFees.multiply(trade.getQuantity()).divide(requestedQuantity, RoundingMode.HALF_UP).setScale(2, RoundingMode.HALF_UP);
+
+                trade.setSellFees(requestedSellFees); // only proportion of sell fees
+
+                residualSellFees = residualSellFees.subtract(requestedSellFees);
+
+                requestedQuantity = requestedQuantity.subtract(trade.getQuantity());
+            }
+            else
+            {
+                BigDecimal residualQuantity = trade.getQuantity().subtract(requestedQuantity);
+                BigDecimal requestedFees = trade.getPurchaseFees().multiply(requestedQuantity).divide(trade.getQuantity(), RoundingMode.HALF_UP).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal residualFees = trade.getPurchaseFees().subtract(requestedFees);
+
+                trade.setQuantity(requestedQuantity);
+                trade.setPurchaseFees(requestedFees); // only proportion of purchase fees
+                trade.setSellDate(date);
+                trade.setSellPrice(new BigDecimal(tradeCreateDto.getPrice()));
+                trade.setSellFees(residualSellFees); // only residual sell fees
+
+                residualTrade.setCompany(company);
+                residualTrade.setQuantity(residualQuantity);
+                residualTrade.setPurchaseDate(trade.getPurchaseDate());
+                residualTrade.setPurchasePrice(trade.getPurchasePrice());
+                residualTrade.setPurchaseFees(residualFees); // only residual purchase fees
+
+                requestedQuantity = new BigDecimal(0);
+            }
+        }
+
+        if (residualTrade.getQuantity() != null) companyTrades.add(residualTrade);
+
+        tradeDao.saveAll(companyTrades);
     }
 }

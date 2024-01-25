@@ -55,7 +55,7 @@ public class RecordService
         if (recordDto.getContent() != null) record.setContent(recordDto.getContent());
         if (recordDto.getStrategy() != null) record.setStrategy(recordDto.getStrategy());
 
-        recordDao.store(record);
+        recordDao.save(record);
     }
 
     public Record createRecord(RecordCreateDto recordCreateDto)
