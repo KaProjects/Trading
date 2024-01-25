@@ -2,6 +2,7 @@ import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextFi
 import React, {useState} from "react";
 import {properties} from "../properties";
 import axios from "axios";
+import {validateNumber} from "../utils";
 
 
 const AddRecordDialog = props => {
@@ -56,8 +57,8 @@ const AddRecordDialog = props => {
                            value={price}
                            label="Price"
                            onChange={(e) => setPrice(e.target.value)}
-                           error={props.validatePrice(price) !== ""}
-                           helperText={props.validatePrice(price)}
+                           error={validateNumber(price, false, 10, 4) !== ""}
+                           helperText={validateNumber(price, false, 10, 4)}
                 />
             </DialogContent>
             {alert &&

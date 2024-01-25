@@ -1,7 +1,8 @@
 import React from "react";
-import {AppBar, Box, IconButton, Toolbar, Typography} from "@mui/material";
+import {AppBar, Box, Button, IconButton, Toolbar, Typography} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import MainBarSelect from "./MainBarSelect";
+import ControlPointIcon from "@mui/icons-material/ControlPoint";
 
 
 const MainBar = props => {
@@ -11,7 +12,7 @@ const MainBar = props => {
             <AppBar position="static">
                 <Toolbar variant="dense">
                     <IconButton size="large" edge="start" color="inherit" aria-label="open drawer" sx={{ mr: 2 }}
-                                onClick={event => {sessionStorage.removeItem('year');window.location.href='/'}}>
+                                onClick={() => window.location.href='/'}>
                         <MenuIcon />
                     </IconButton>
                     <Typography variant="h6" noWrap component="div" sx={{ display: { xs: 'none', sm: 'block' } }}>
@@ -19,6 +20,11 @@ const MainBar = props => {
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
                     <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+                        {props.showAddTradeButton &&
+                            <Button onClick={() => props.setOpenAddTrade(true)}>
+                                <ControlPointIcon sx={{color: 'lightgreen',}}/>
+                            </Button>
+                        }
                         {props.showActiveSelector !== null &&
                             <MainBarSelect values={props.showActiveSelector}
                                            value={props.activeSelectorValue}

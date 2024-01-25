@@ -12,21 +12,12 @@ import AddRecordDialog from "../components/AddRecordDialog";
 import CompanySelector from "../components/CompanySelector";
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
+import {validateNumber} from "../utils";
 
 function profitColor(profit){
     if (profit.startsWith("+")) return 'success.dark'
     if (profit.startsWith("-")) return 'error.dark'
     return 'text.primary'
-}
-
-function validateNumber(value, isNullable, lengthConstraint, decimalConstraint) {
-    if (typeof value != "string") return "not a string"
-    if (value === "") return isNullable ? "" : "not null"
-    if (isNaN(value) || isNaN(parseFloat(value)) || value.endsWith(".")) return "not a valid number";
-    if (value.replace(".", "").length > lengthConstraint) return "max length " + lengthConstraint;
-    const split = value.split(".")
-    if (split.length > 1 && split[1].length > decimalConstraint) return "max decimal " + decimalConstraint
-    return ""
 }
 
 const Records = props => {
@@ -110,7 +101,6 @@ const Records = props => {
                             <AddRecordDialog open={openAddRecordDialog}
                                              handleClose={(record) => handleAddRecordDialogClose(record)}
                                              companyId={props.companySelectorValue.id}
-                                             validatePrice={(value) => validateNumber(value, false, 10, 4)}
                             />
                         </Box>
 
