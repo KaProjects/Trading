@@ -21,6 +21,7 @@ function profitColor(profit){
 }
 
 const Records = props => {
+    const [refresh, setRefresh] = useState("");
 
     useEffect(() => {
         props.toggleRecordsSelectors()
@@ -35,32 +36,30 @@ const Records = props => {
 
     useEffect(() => {
         if (props.companySelectorValue) {
-            axios.get(domain + "/record/" + props.companySelectorValue.id)
+            axios.get(domain + "/record/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
                 .then((response) => {
                     setData(response.data)
                     setError(null)
                     setLoaded(true)
                 }).catch((error) => {
-                console.error(error)
-                setError(error)
-                setLoaded(false)
-            })
+                    console.error(error)
+                    setError(error)
+                    setLoaded(false)
+                })
         }
         // eslint-disable-next-line
-    }, [props.companySelectorValue]);
+    }, [props.companySelectorValue, refresh]);
 
-    function handleAddRecordDialogClose(record) {
-        if (record) data.records.unshift(record)
+    function handleAddRecordDialogClose() {
+        setRefresh(new Date().getTime().toString())
         setOpenAddRecordDialog(false)
     }
 
     function handleConfirmWatch() {
         const newWatching = !data.watching
         axios.put(domain + "/company", {id: data.companyId, watching: newWatching})
-            .then((response) => {
-                const newData = {...data}
-                newData.watching = newWatching
-                setData(newData)
+            .then(() => {
+                setRefresh(new Date().getTime().toString())
             }).catch((error) => {
                 console.error(error)
             })
@@ -69,7 +68,7 @@ const Records = props => {
 
     return (
         <>
-            {!props.companySelectorValue && <CompanySelector {...props}/>}
+            <CompanySelector refresh={refresh} {...props}/>
             {props.companySelectorValue && !loaded && <Loader error={error}/>}
             {props.companySelectorValue && loaded && data.ticker !== undefined &&
                 <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
