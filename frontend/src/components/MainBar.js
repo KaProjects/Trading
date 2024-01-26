@@ -3,6 +3,7 @@ import {AppBar, Box, Button, IconButton, Toolbar, Typography} from "@mui/materia
 import MenuIcon from '@mui/icons-material/Menu';
 import MainBarSelect from "./MainBarSelect";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 
 
 const MainBar = props => {
@@ -20,9 +21,14 @@ const MainBar = props => {
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
                     <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+                        {props.showSellTradeButton &&
+                            <Button onClick={() => props.setOpenSellTrade(true)} sx={{}}>
+                                <RemoveCircleOutlineIcon sx={{color: '#ff9f9f',}}/>
+                            </Button>
+                        }
                         {props.showAddTradeButton &&
-                            <Button onClick={() => props.setOpenAddTrade(true)}>
-                                <ControlPointIcon sx={{color: 'lightgreen',}}/>
+                            <Button onClick={() => props.setOpenAddTrade(true)} sx={{marginRight: "25px"}}>
+                                <ControlPointIcon sx={{color: 'lightgreen'}}/>
                             </Button>
                         }
                         {props.showActiveSelector !== null &&

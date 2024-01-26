@@ -4,10 +4,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.Constants;
-import org.kaleta.Utils;
 import org.kaleta.dao.CompanyDao;
 import org.kaleta.dao.TradeDao;
 import org.kaleta.dto.TradeCreateDto;
+import org.kaleta.dto.TradeSellDto;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Currency;
 import org.kaleta.entity.Trade;
@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -92,79 +93,62 @@ public class TradeService
         return tradeDao.get(newTrade.getId());
     }
 
-    public void sellTrade(TradeCreateDto tradeCreateDto)
+    public void sellTrade(TradeSellDto tradeSellDto)
     {
-        Company company;
-        try {
-            company = companyDao.get(tradeCreateDto.getCompanyId());
-        } catch (NoResultException e){
-            throw new ServiceException("company with id '" + tradeCreateDto.getCompanyId() + "' not found");
-        }
-
-        List<Trade> companyTrades = tradeDao.list(true, tradeCreateDto.getCompanyId(), null, null);
-        companyTrades.sort((tradeA, tradeB) -> Utils.compareDates(Constants.dateFormatDto.format(tradeA.getPurchaseDate()), Constants.dateFormatDto.format(tradeB.getPurchaseDate())));
-
-        BigDecimal ownedQuantity = new BigDecimal("0.0");
-        for (Trade trade : companyTrades) {
-            ownedQuantity = ownedQuantity.add(trade.getQuantity());
+        List<Trade> trades = new ArrayList<>();
+        BigDecimal totalSellQuantity = new BigDecimal(0);
+        for (TradeSellDto.Trade tradeDto : tradeSellDto.getTrades())
+        {
+            try {
+                Trade trade = tradeDao.get(tradeDto.getTradeId());
+                BigDecimal sellQuantity = new BigDecimal(tradeDto.getQuantity());
+                if (trade.getQuantity().compareTo(sellQuantity) < 0){
+                    throw new ServiceException("unable to sell more than owned for tradeId='" + tradeDto.getTradeId() + "'");
+                } else {
+                    totalSellQuantity = totalSellQuantity.add(sellQuantity);
+                }
+                trades.add(trade);
+            } catch (NoResultException e){
+                throw new ServiceException("trade with id '" + tradeDto.getTradeId() + "' not found");
+            }
         }
 
         Date date;
         try {
-            java.util.Date parsedDate = Constants.dateFormatDto.parse(tradeCreateDto.getDate());
+            java.util.Date parsedDate = Constants.dateFormatDto.parse(tradeSellDto.getDate());
             date = Date.valueOf(Constants.dateFormatDb.format(parsedDate));
         } catch (ParseException e) {
             throw new ServiceException(e);
         }
 
-        BigDecimal requestedQuantity = new BigDecimal(tradeCreateDto.getQuantity());
-        if (requestedQuantity.compareTo(ownedQuantity) > 0)
-            throw new ServiceException("unable to sell more than owned");
-
-        BigDecimal residualSellFees = new BigDecimal(tradeCreateDto.getFees());
-
-        Trade residualTrade = new Trade();
-
-        for (Trade trade : companyTrades)
+        for (TradeSellDto.Trade tradeDto : tradeSellDto.getTrades())
         {
-            if (requestedQuantity.compareTo(new BigDecimal(0)) == 0) continue;
-            if (trade.getQuantity().compareTo(requestedQuantity) <= 0)
+            Trade trade = trades.stream().filter(t -> t.getId().equals(tradeDto.getTradeId())).findFirst().get();
+
+            BigDecimal sellQuantity = new BigDecimal(tradeDto.getQuantity());
+
+            if (trade.getQuantity().compareTo(sellQuantity) > 0)
             {
-                trade.setSellDate(date);
-                trade.setSellPrice(new BigDecimal(tradeCreateDto.getPrice()));
+                BigDecimal residualQuantity = trade.getQuantity().subtract(sellQuantity);
+                BigDecimal residualFees = trade.getPurchaseFees().multiply(residualQuantity).divide(trade.getQuantity(), 2, RoundingMode.HALF_UP);
 
-                BigDecimal requestedSellFees = residualSellFees.multiply(trade.getQuantity()).divide(requestedQuantity, RoundingMode.HALF_UP).setScale(2, RoundingMode.HALF_UP);
-
-                trade.setSellFees(requestedSellFees); // only proportion of sell fees
-
-                residualSellFees = residualSellFees.subtract(requestedSellFees);
-
-                requestedQuantity = requestedQuantity.subtract(trade.getQuantity());
-            }
-            else
-            {
-                BigDecimal residualQuantity = trade.getQuantity().subtract(requestedQuantity);
-                BigDecimal requestedFees = trade.getPurchaseFees().multiply(requestedQuantity).divide(trade.getQuantity(), RoundingMode.HALF_UP).setScale(2, RoundingMode.HALF_UP);
-                BigDecimal residualFees = trade.getPurchaseFees().subtract(requestedFees);
-
-                trade.setQuantity(requestedQuantity);
-                trade.setPurchaseFees(requestedFees); // only proportion of purchase fees
-                trade.setSellDate(date);
-                trade.setSellPrice(new BigDecimal(tradeCreateDto.getPrice()));
-                trade.setSellFees(residualSellFees); // only residual sell fees
-
-                residualTrade.setCompany(company);
+                Trade residualTrade = new Trade();
+                residualTrade.setCompany(trade.getCompany());
                 residualTrade.setQuantity(residualQuantity);
                 residualTrade.setPurchaseDate(trade.getPurchaseDate());
                 residualTrade.setPurchasePrice(trade.getPurchasePrice());
-                residualTrade.setPurchaseFees(residualFees); // only residual purchase fees
+                residualTrade.setPurchaseFees(residualFees);
 
-                requestedQuantity = new BigDecimal(0);
+                trades.add(residualTrade);
+
+                trade.setQuantity(sellQuantity);
+                trade.setPurchaseFees(trade.getPurchaseFees().subtract(residualFees));
             }
+            trade.setSellDate(date);
+            trade.setSellPrice(new BigDecimal(tradeSellDto.getPrice()));
+            trade.setSellFees(new BigDecimal(tradeSellDto.getFees()).multiply(sellQuantity).divide(totalSellQuantity, 2, RoundingMode.HALF_UP));
         }
 
-        if (residualTrade.getQuantity() != null) companyTrades.add(residualTrade);
-
-        tradeDao.saveAll(companyTrades);
+        tradeDao.saveAll(trades);
     }
 }

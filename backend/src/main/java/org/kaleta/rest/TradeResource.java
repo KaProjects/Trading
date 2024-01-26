@@ -12,6 +12,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeDto;
+import org.kaleta.dto.TradeSellDto;
 import org.kaleta.dto.TradesUiDto;
 import org.kaleta.entity.Trade;
 import org.kaleta.service.TradeService;
@@ -66,15 +67,15 @@ public class TradeResource
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response sellTrade(TradeCreateDto tradeCreateDto)
+    public Response sellTrade(TradeSellDto tradeSellDto)
     {
         return Endpoint.process(
             () -> {
-                Validator.validatePayload(tradeCreateDto);
-                Validator.validateCreateTradeDto(tradeCreateDto);
+                Validator.validatePayload(tradeSellDto);
+                Validator.validateSellTradeDto(tradeSellDto);
             },
             () -> {
-                tradeService.sellTrade(tradeCreateDto);
+                tradeService.sellTrade(tradeSellDto);
                 return Response.status(Response.Status.NO_CONTENT).build();
             });
     }

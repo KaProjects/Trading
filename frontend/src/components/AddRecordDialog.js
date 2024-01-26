@@ -1,6 +1,6 @@
 import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
 import React, {useState} from "react";
-import {properties} from "../properties";
+import {domain} from "../properties";
 import axios from "axios";
 import {validateNumber} from "../utils";
 
@@ -16,8 +16,7 @@ const AddRecordDialog = props => {
         const dateSplit = date.split('-');
         const dtoDate = dateSplit[2] + "." + dateSplit[1] + "." + dateSplit[0]
         const data = {companyId: companyId, title: title, date: dtoDate, price: price}
-        const url = properties.protocol + "://" + properties.host + ":" + properties.port + "/record"
-        axios.post(url, data)
+        axios.post(domain + "/record", data)
             .then((response) => {
                 handleClose(response.data)
             }).catch((error) => {

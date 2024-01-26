@@ -1,8 +1,9 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {useData} from "../fetch";
 import Loader from "../components/Loader";
 import AddTradeDialog from "../components/AddTradeDialog";
+import SellTradeDialog from "../components/SellTradeDialog";
 
 
 function headerStyle(main, index){
@@ -27,7 +28,7 @@ function rowStyle(index){
 const activeStates = ["only active", "only closed"]
 
 const Trades = props => {
-
+    const [refresh, setRefresh] = useState("");
     const {data, loaded, error} = useData("/trade" + constructQueryParams())
 
     function constructQueryParams(){
@@ -35,6 +36,7 @@ const Trades = props => {
             + (props.companySelectorValue ? "&companyId="+props.companySelectorValue.id : "")
             + (props.currencySelectorValue ? "&currency="+props.currencySelectorValue : "")
             + (props.yearSelectorValue ? "&year="+props.yearSelectorValue : "")
+            + (refresh ? "&refresh" + refresh : "")
     }
 
     useEffect(() => {
@@ -55,9 +57,14 @@ const Trades = props => {
         props.companies.forEach((company) => {if (company.ticker === ticker) {props.setCompanySelectorValue(company)}})
     }
 
-    function handleAddTradeDialogClose(trade) {
-        if (trade) data.trades.unshift(trade)
+    function handleAddTradeDialogClose() {
+        setRefresh(new Date().getTime().toString())
         props.setOpenAddTrade(false)
+    }
+
+    function handleSellTradeDialogClose() {
+        setRefresh(new Date().getTime().toString())
+        props.setOpenSellTrade(false)
     }
 
     return (
@@ -69,6 +76,10 @@ const Trades = props => {
             <>
             <AddTradeDialog open={props.openAddTrade}
                             handleClose={(trade) => handleAddTradeDialogClose(trade)}
+                            {...props}
+            />
+            <SellTradeDialog open={props.openSellTrade}
+                            handleClose={() => handleSellTradeDialogClose()}
                             {...props}
             />
             <TableContainer component={Paper} sx={{ width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)"}}>

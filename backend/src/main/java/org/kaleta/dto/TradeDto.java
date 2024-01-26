@@ -11,6 +11,7 @@ import static org.kaleta.Utils.format;
 @Data
 public class TradeDto implements Comparable<TradeDto>
 {
+    private String id;
     private String ticker;
     private Currency currency;
 
@@ -38,6 +39,7 @@ public class TradeDto implements Comparable<TradeDto>
     public static TradeDto from(Trade trade)
     {
         TradeDto dto = new TradeDto();
+        dto.setId(trade.getId());
         dto.setTicker(trade.getTicker());
         dto.setCurrency(trade.getCurrency());
 

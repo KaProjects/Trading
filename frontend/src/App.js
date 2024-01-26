@@ -5,7 +5,7 @@ import MainBar from "./components/MainBar";
 import Home from "./views/Home";
 import Trades from "./views/Trades";
 import Records from "./views/Records";
-import {properties} from "./properties";
+import {domain} from "./properties";
 import axios from "axios";
 
 class App extends Component {
@@ -19,6 +19,7 @@ class App extends Component {
             showCurrencySelector: null,  // null = false, true otherwise
             showYearSelector: null,      // null = false, true otherwise
             showAddTradeButton: false,
+            showSellTradeButton: false,
             toggleTradesSelectors: this.toggleTradesSelectors.bind(this),
             toggleRecordsSelectors: this.toggleRecordsSelectors.bind(this),
             activeSelectorValue: "",
@@ -31,6 +32,8 @@ class App extends Component {
             setYearSelectorValue: this.setYearSelectorValue.bind(this),
             openAddTrade: false,
             setOpenAddTrade: this.setOpenAddTrade.bind(this),
+            openSellTrade: false,
+            setOpenSellTrade: this.setOpenSellTrade.bind(this),
         }
 
         this.toggleTradesSelectors = this.toggleTradesSelectors.bind(this);
@@ -40,6 +43,7 @@ class App extends Component {
         this.setCurrencySelectorValue = this.setCurrencySelectorValue.bind(this);
         this.setYearSelectorValue = this.setYearSelectorValue.bind(this);
         this.setOpenAddTrade = this.setOpenAddTrade.bind(this);
+        this.setOpenSellTrade = this.setOpenSellTrade.bind(this);
     }
 
     toggleTradesSelectors(actives, currencies, years) {
@@ -48,6 +52,7 @@ class App extends Component {
         this.setState({showCurrencySelector: currencies})
         this.setState({showYearSelector: years})
         this.setState({showAddTradeButton: true})
+        this.setState({showSellTradeButton: true})
     }
 
     toggleRecordsSelectors() {
@@ -74,9 +79,12 @@ class App extends Component {
         this.setState({openAddTrade: value})
     }
 
+    setOpenSellTrade(value) {
+        this.setState({openSellTrade: value})
+    }
+
     componentDidMount() {
-        const url = properties.protocol + "://" + properties.host + ":" + properties.port + "/company";
-        axios.get(url)
+        axios.get(domain + "/company")
             .then((response) => {
                 this.setState({companies: response.data})
             }).catch((error) => {

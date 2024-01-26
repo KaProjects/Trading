@@ -9,13 +9,14 @@ import {
     Select,
     TextField
 } from "@mui/material";
-import React, {useState} from "react";
-import {properties} from "../properties";
+import React, {useEffect, useState} from "react";
+import {domain} from "../properties";
 import axios from "axios";
 import {validateNumber} from "../utils";
 
 
 const AddTradeDialog = props => {
+    const {handleClose, open} = props
 
     const [alert, setAlert] = useState(null);
     const [date, setDate] = useState("");
@@ -24,29 +25,29 @@ const AddTradeDialog = props => {
     const [fees, setFees] = useState("");
     const [company, setCompany] = useState("");
 
-    function handleClose(trade){
-        setDate("")
-        setPrice("")
-        setQuantity("")
-        setFees("")
-        setCompany("")
-        props.handleClose(trade)
-    }
+    useEffect(() => {
+        if (open) {
+            setAlert(null)
+            setDate("")
+            setPrice("")
+            setQuantity("")
+            setFees("")
+            setCompany(props.companySelectorValue)
+        }
+        // eslint-disable-next-line
+    }, [open]);
 
     function createTrade() {
         const dateSplit = date.split('-');
         const dtoDate = dateSplit[2] + "." + dateSplit[1] + "." + dateSplit[0]
         const tradeData = {companyId: company.id, date: dtoDate, price: price, quantity: quantity, fees: fees}
-        const tradeUrl = properties.protocol + "://" + properties.host + ":" + properties.port + "/trade"
-        axios.post(tradeUrl, tradeData)
-            .then((response) => {
-                const trade = response.data
+        axios.post(domain + "/trade", tradeData)
+            .then(() => {
                 const title = "bought " + quantity + "@" + price + company.currency
                 const recordData = {companyId: company.id, title: title, date: dtoDate, price: price}
-                const recordUrl = properties.protocol + "://" + properties.host + ":" + properties.port + "/record"
-                axios.post(recordUrl, recordData)
+                axios.post(domain + "/record", recordData)
                     .then((response) => {
-                        handleClose(trade)
+                        handleClose()
                     }).catch((error) => {
                         console.error(error)
                         setAlert(error.response.data)
@@ -59,7 +60,7 @@ const AddTradeDialog = props => {
 
     return (
         <Dialog
-            open={props.open}
+            open={open}
             onClose={() => handleClose()}
             PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createTrade()},}}
         >

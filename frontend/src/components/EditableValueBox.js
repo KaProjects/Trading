@@ -2,7 +2,7 @@ import {Button, FormControl, FormHelperText, Input, InputAdornment, InputLabel, 
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import React, {useState} from "react";
 import Tooltip from "@mui/material/Tooltip";
-import {properties} from "../properties";
+import {domain} from "../properties";
 import axios from "axios";
 import SnackbarErrorAlert from "./SnackbarErrorAlert";
 
@@ -20,9 +20,7 @@ const EditableValueBox = props => {
 
     function handleUnFocus() {
         setEditing(false)
-        const data = props.updateObject(editValue)
-        const url = properties.protocol + "://" + properties.host + ":" + properties.port + "/record";
-        axios.put(url, data)
+        axios.put(domain + "/record", props.updateObject(editValue))
             .then((response) => {
                 setShowValue(editValue)
                 props.handleUpdate(editValue)

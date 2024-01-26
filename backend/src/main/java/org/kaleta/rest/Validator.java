@@ -5,6 +5,7 @@ import org.kaleta.Constants;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.dto.TradeCreateDto;
+import org.kaleta.dto.TradeSellDto;
 import org.kaleta.entity.Currency;
 
 import java.math.BigDecimal;
@@ -97,6 +98,29 @@ public class Validator
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Fees: '" + dto.getFees() + "'");
 
         validateUuid(dto.getCompanyId());
+    }
+
+    public static void validateSellTradeDto(TradeSellDto dto)
+    {
+        if (dto.getDate() == null || !isDate(dto.getDate()))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+
+        if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Price: '" + dto.getPrice() + "'");
+
+        if (dto.getFees() == null || !isBigDecimal(dto.getFees(), 5, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Fees: '" + dto.getFees() + "'");
+
+        if (dto.getTrades().size() == 0)
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "No trades to sell provided");
+
+        for (TradeSellDto.Trade trade : dto.getTrades())
+        {
+            if (trade.getQuantity() == null || !isBigDecimal(trade.getQuantity(), 8, 4))
+                throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Quantity: '" + trade.getQuantity() + "'");
+
+            validateUuid(trade.getTradeId());
+        }
     }
 
     private static boolean isDate(String value){

@@ -3,7 +3,7 @@ import React, {useEffect, useState} from "react";
 import Loader from "../components/Loader";
 import BorderedSection from "../components/BorderedSection";
 import EditableValueBox from "../components/EditableValueBox";
-import {properties} from "../properties";
+import {domain} from "../properties";
 import axios from "axios";
 import ContentEditor from "../components/ContentEditor";
 import EditableTypography from "../components/EditableTypography";
@@ -35,8 +35,7 @@ const Records = props => {
 
     useEffect(() => {
         if (props.companySelectorValue) {
-            const url = properties.protocol + "://" + properties.host + ":" + properties.port + "/record/" + props.companySelectorValue.id;
-            axios.get(url)
+            axios.get(domain + "/record/" + props.companySelectorValue.id)
                 .then((response) => {
                     setData(response.data)
                     setError(null)
@@ -57,9 +56,7 @@ const Records = props => {
 
     function handleConfirmWatch() {
         const newWatching = !data.watching
-        const payload = {id: data.companyId, watching: newWatching}
-        const url = properties.protocol + "://" + properties.host + ":" + properties.port + "/company";
-        axios.put(url, payload)
+        axios.put(domain + "/company", {id: data.companyId, watching: newWatching})
             .then((response) => {
                 const newData = {...data}
                 newData.watching = newWatching

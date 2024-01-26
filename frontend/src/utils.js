@@ -1,7 +1,7 @@
 
 export function validateNumber(value, isNullable, lengthConstraint, decimalConstraint) {
     if (typeof value != "string") return "not a string"
-    if (value === "") return isNullable ? "" : "not null"
+    if (value === "") return isNullable ? "" : "non empty"
     if (isNaN(value) || isNaN(parseFloat(value)) || value.endsWith(".") || value.startsWith(".")) return "not a valid number";
     if (value.replace(".", "").length > lengthConstraint) return "max length " + lengthConstraint;
     const split = value.split(".")

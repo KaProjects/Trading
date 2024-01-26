@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import axios from "axios";
-import {properties} from "./properties";
+import {domain} from "./properties";
 
 export const useData = (path) => {
 
@@ -10,8 +10,7 @@ export const useData = (path) => {
 
     useEffect(() => {
         const dataFetch = async () => {
-            const url = properties.protocol + "://" + properties.host + ":" + properties.port + path;
-            await axios.get(url)
+            await axios.get(domain + path)
                 .then((response) => {
                     setData(response.data)
                     setError(null)

@@ -3,7 +3,7 @@ import {Editable, Slate, useSlate, withReact} from 'slate-react'
 import {createEditor, Editor, Element as SlateElement, Transforms} from 'slate'
 import {withHistory} from 'slate-history'
 import {css, cx} from '@emotion/css'
-import {properties} from "../properties";
+import {domain} from "../properties";
 import axios from "axios";
 
 const LIST_TYPES = ['numbered-list', 'bulleted-list']
@@ -22,9 +22,7 @@ const ContentEditor = (props) => {
 
     function handleUnFocus() {
         setEditing(false)
-        const data = {id: record.id, content: JSON.stringify(value)}
-        const url = properties.protocol + "://" + properties.host + ":" + properties.port + "/record";
-        axios.put(url, data)
+        axios.put(domain + "/record", {id: record.id, content: JSON.stringify(value)})
             .then((response) => {
                 props.handleUpdate(value)
             }).catch((error) => {

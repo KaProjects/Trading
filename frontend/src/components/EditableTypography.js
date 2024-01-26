@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import {properties} from "../properties";
+import {domain} from "../properties";
 import axios from "axios";
 import {FormControl, FormHelperText, Input, InputLabel, Typography} from "@mui/material";
 import SnackbarErrorAlert from "./SnackbarErrorAlert";
@@ -19,9 +19,7 @@ const EditableTypography = props => {
 
     function handleUnFocus() {
         setEditing(false)
-        const data = props.updateObject(editValue)
-        const url = properties.protocol + "://" + properties.host + ":" + properties.port + "/record";
-        axios.put(url, data)
+        axios.put(domain + "/record", props.updateObject(editValue))
             .then((response) => {
                 setShowValue(editValue)
                 props.handleUpdate(editValue)
