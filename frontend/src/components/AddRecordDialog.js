@@ -40,19 +40,19 @@ const AddRecordDialog = props => {
         >
             <DialogTitle>Add Record</DialogTitle>
             <DialogContent>
-                <TextField required margin="dense" fullWidth variant="standard"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-date"
                            type="date"
                            value={date}
                            onChange={(e) => setDate(e.target.value)}
                            error={date === ""}
                 />
-                <TextField required margin="dense" fullWidth variant="standard"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-title"
                            value={title}
                            label="Title"
                            onChange={(e) => setTitle(e.target.value)}
                            error={title === ""}
                 />
-                <TextField required margin="dense" fullWidth variant="standard"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-price"
                            value={price}
                            label="Price"
                            onChange={(e) => setPrice(e.target.value)}

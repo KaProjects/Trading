@@ -66,7 +66,7 @@ const AddTradeDialog = props => {
         >
             <DialogTitle>Add Trade</DialogTitle>
             <DialogContent>
-                <TextField required margin="dense" fullWidth variant="standard"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-trade-date"
                            type="date"
                            value={date}
                            onChange={(e) => setDate(e.target.value)}
@@ -83,21 +83,21 @@ const AddTradeDialog = props => {
                         <MenuItem key={index} value={company} >{(company.ticker === undefined) ? company : company.ticker}</MenuItem>
                     ))}
                 </Select>
-                <TextField required margin="dense" fullWidth variant="standard"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-trade-quantity"
                            value={quantity}
                            label="Quantity"
                            onChange={(e) => setQuantity(e.target.value)}
                            error={validateNumber(quantity, false, 8, 4) !== ""}
                            helperText={validateNumber(quantity, false, 8, 4)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-trade-price"
                            value={price}
                            label="Price"
                            onChange={(e) => setPrice(e.target.value)}
                            error={validateNumber(price, false, 10, 4) !== ""}
                            helperText={validateNumber(price, false, 10, 4) }
                 />
-                <TextField required margin="dense" fullWidth variant="standard"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-trade-fees"
                            value={fees}
                            label="Fees"
                            onChange={(e) => setFees(e.target.value)}
