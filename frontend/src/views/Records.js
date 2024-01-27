@@ -13,6 +13,7 @@ import CompanySelector from "../components/CompanySelector";
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import {validateNumber} from "../utils";
+import LatestValueBox from "../components/LatestValueBox";
 
 function profitColor(profit){
     if (profit.startsWith("+")) return 'success.dark'
@@ -50,8 +51,12 @@ const Records = props => {
         // eslint-disable-next-line
     }, [props.companySelectorValue, refresh]);
 
-    function handleAddRecordDialogClose() {
+    function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
+    }
+
+    function handleAddRecordDialogClose() {
+        triggerRefresh()
         setOpenAddRecordDialog(false)
     }
 
@@ -59,7 +64,7 @@ const Records = props => {
         const newWatching = !data.watching
         axios.put(domain + "/company", {id: data.companyId, watching: newWatching})
             .then(() => {
-                setRefresh(new Date().getTime().toString())
+                triggerRefresh()
             }).catch((error) => {
                 console.error(error)
             })
@@ -100,84 +105,73 @@ const Records = props => {
                             />
                         </Box>
 
+                        {data.owns.length > 0 &&
+                            <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
+                                {data.owns.map((own, index) => (
+                                    <Box key={index} sx={{marginLeft: "10px"}}>
+                                        <Box sx={{color: profitColor(own.profit), fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
+                                            {own.profit && own.profit}
+                                        </Box>
+                                        <Box sx={{color: 'text.secondary', fontSize: 16, fontFamily: "Roboto",}}>
+                                            {own.quantity}@{own.price}{data.currency}
+                                        </Box>
+                                    </Box>
+                                ))}
+                            </Grid>
+                        }
+
                         <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
-                            <Box>
-                                <Box sx={{color: 'text.primary', fontSize: 16, textAlign: "center", fontFamily: "Roboto",}}>
-                                    {data.lastPrice && data.lastPrice + data.currency}
-                                    {!data.lastPrice && "-"}
-                                </Box>
-                                <Box sx={{color: 'lightgrey', fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
-                                    latest price
-                                </Box>
-                            </Box>
-                            <Box sx={{flexGrow: 1}}/>
-                            {data.owns.map((own, index) => (
-                                <Box key={index} sx={{marginLeft: "10px"}}>
-                                    <Box sx={{color: profitColor(own.profit), fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
-                                        {own.profit && own.profit}
-                                    </Box>
-                                    <Box sx={{color: 'text.secondary', fontSize: 16, fontFamily: "Roboto",}}>
-                                        {own.quantity}@{own.price}{data.currency}
-                                    </Box>
-                                </Box>
-                            ))}
-
-                            <Box sx={{flexGrow: 1}}/>
-
-                            <Box>
-                                <Box sx={{color: 'text.primary', fontSize: 16, textAlign: "center", fontFamily: "Roboto",}}>
-                                    {data.lastStrategy && data.lastStrategy}
-                                    {!data.lastStrategy && "-"}
-                                </Box>
-                                <Box sx={{color: 'lightgrey', fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
-                                    latest strategy
-                                </Box>
-                            </Box>
+                            <LatestValueBox label="latest price" data={data.latestPrice} suffix={data.currency}/>
+                            <LatestValueBox label="latest P/E" data={data.latestPe} suffix="" sx={{marginLeft: "10px"}}/>
+                            <LatestValueBox label="latest P/S" data={data.latestPs} suffix="" sx={{marginLeft: "10px"}}/>
+                            <LatestValueBox label="latest DY" data={data.latestDy} suffix="%" sx={{marginLeft: "10px"}}/>
+                            <LatestValueBox label="latest targets" data={data.latestTargets} suffix="" sx={{marginLeft: "10px"}}/>
+                            <LatestValueBox label="latest strategy" data={data.latestStrategy} suffix="" sx={{marginLeft: "10px"}}/>
                         </Grid>
 
                         {data.records.map((record, index) => (
-                            <BorderedSection key={index + record.id} title={record.date} style={{color: 'text.primary'}}>
+                            <BorderedSection key={record.id} title={record.date} style={{color: 'text.primary'}}>
 
                                 <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
-                                    <EditableValueBox index={index} value={record.price} suffix={data.currency} label="Price"
+                                    <EditableValueBox value={record.price} suffix={data.currency} label="Price"
                                                       updateObject={(value) => {return {id: record.id, price: value}}}
                                                       validateInput={(value) => validateNumber(value, false, 10, 4)}
                                                       handleUpdate={(value) => record.price = value}
                                     />
-                                    <EditableValueBox index={index} value={record.pe} suffix={""} label="P/E ratio" style={{marginLeft: "5px"}}
+                                    <EditableValueBox value={record.pe} suffix={""} label="P/E ratio" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, pe: value}}}
                                                       validateInput={(value) => validateNumber(value, true, 5, 2)}
                                                       handleUpdate={(value) => record.pe = value}
                                     />
-                                    <EditableValueBox index={index} value={record.ps} suffix={""} label="P/S ratio" style={{marginLeft: "5px"}}
+                                    <EditableValueBox value={record.ps} suffix={""} label="P/S ratio" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, ps: value}}}
                                                       validateInput={(value) => validateNumber(value, true, 5, 2)}
                                                       handleUpdate={(value) => record.ps = value}
                                     />
-                                    <EditableValueBox index={index} value={record.dy} suffix={"%"} label="dividend yield" style={{marginLeft: "5px"}}
+                                    <EditableValueBox value={record.dy} suffix={"%"} label="dividend yield" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, dy: value}}}
                                                       validateInput={(value) => validateNumber(value, true, 5, 2)}
                                                       handleUpdate={(value) => record.dy = value}
                                     />
-                                    <EditableValueBox index={index} value={record.targets} suffix={data.currency} label="targets" style={{marginLeft: "5px"}}
+                                    <EditableValueBox value={record.targets} suffix={data.currency} label="targets" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, targets: value}}}
                                                       validateInput={(value) => ""}
                                                       handleUpdate={(value) => record.targets = value}
                                     />
                                 </Grid>
 
-                                <EditableTypography index={index} value={record.title} label={"Title"} style={{margin: "12px auto auto 5px"}}
+                                <EditableTypography value={record.title} label={"Title"} style={{margin: "12px auto auto 5px"}}
                                                     updateObject={(value) => {return {id: record.id, title: value}}}
                                                     validateInput={(value) => {if (value === "") return "not null"; return ""}}
                                                     handleUpdate={(value) => record.title = value}
                                 />
 
                                 <div style={{width: "700px", margin: "15px auto 0 auto"}}>
-                                    <ContentEditor index={index} record={record}
+                                    <ContentEditor record={record}
                                                    handleUpdate={(value) => record.content = JSON.stringify(value)}/>
                                 </div>
 
-                                <EditableValueBox index={index} value={record.strategy} label="strategy" style={{marginTop: "5px"}}
+                                <EditableValueBox value={record.strategy} label="strategy" style={{marginTop: "5px"}}
                                                   updateObject={(value) => {return {id: record.id, strategy: value}}}
                                                   validateInput={(value) => ""}
                                                   handleUpdate={(value) => record.strategy = value}

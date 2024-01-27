@@ -11,15 +11,18 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.Utils;
-import org.kaleta.dto.RecordsUiDto;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
+import org.kaleta.dto.RecordsUiDto;
+import org.kaleta.entity.Company;
 import org.kaleta.entity.Record;
 import org.kaleta.entity.Trade;
+import org.kaleta.service.CompanyService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.kaleta.Utils.format;
 
@@ -30,6 +33,8 @@ public class RecordResource
     RecordService recordService;
     @Inject
     TradeService tradeService;
+    @Inject
+    CompanyService companyService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -39,28 +44,24 @@ public class RecordResource
         return Endpoint.process(
             () -> Validator.validateUuid(companyId),
             () -> {
-                RecordsUiDto dto = RecordsUiDto.from(recordService.getRecords(companyId));
-                if (dto.getRecords().size() > 0) {
-                    dto.setLastPrice(dto.getRecords().get(0).getPrice());
-                    for(int i=0;i<dto.getRecords().size();i++){
-                        if (dto.getRecords().get(i).getStrategy() != null && !dto.getRecords().get(i).getStrategy().isBlank()){
-                            dto.setLastStrategy(dto.getRecords().get(i).getStrategy());
-                            break;
-                        }
-                    }
-                }
+                Company company = companyService.getCompany(companyId);
+
+                List<Record> records = recordService.getRecords(company.getId());
+
+                RecordsUiDto dto = new RecordsUiDto(records);
+                dto.setCompany(company);
+
                 for (Trade trade : tradeService.getTrades(true, companyId, null, null))
                 {
                     RecordsUiDto.Own own = new RecordsUiDto.Own();
                     own.setQuantity(format(trade.getQuantity()));
                     own.setPrice(format(trade.getPurchasePrice()));
-                    BigDecimal profit = Utils.computeProfit(trade.getPurchasePrice(), new BigDecimal(dto.getLastPrice()));
+                    BigDecimal profit = Utils.computeProfit(trade.getPurchasePrice(), new BigDecimal(dto.getLatestPrice().getValue()));
                     if (profit != null){
                         own.setProfit((profit.compareTo(new BigDecimal("0")) > 0 ? "+" : "") + format(profit) + "%");
                     }
                     dto.getOwns().add(own);
                 }
-                dto.setCompanyId(companyId);
                 return dto;
             });
     }

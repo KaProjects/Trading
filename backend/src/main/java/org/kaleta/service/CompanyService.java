@@ -77,4 +77,13 @@ public class CompanyService
 
         companyDao.store(company);
     }
+
+    public Company getCompany(String companyId)
+    {
+        try {
+            return companyDao.get(companyId);
+        } catch (NoResultException e){
+            throw new ServiceException("company with id '" + companyId + "' not found");
+        }
+    }
 }

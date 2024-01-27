@@ -12,7 +12,10 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
+import static org.kaleta.framework.Matchers.hasTicker;
 
 @QuarkusTest
 class CompanyResourceTest
@@ -24,7 +27,7 @@ class CompanyResourceTest
                 .get("/company")
                 .then()
                 .statusCode(200)
-                .body("size()", is(13))
+                .body("size()", is(14))
                 .extract().response().jsonPath().getList("", CompanyDto.class);
 
         assertThat(dtos.get(0).getTicker(), is("ABCD"));
@@ -40,14 +43,17 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiCompanyListsDto.class);
 
-        assertThat(dto.getWatchingOldestReview().size(), is(10));
-        assertThat(dto.getWatchingOldestReview().get(0).getTicker(), is("XRC"));
+        assertThat(dto.getWatchingOldestReview().size(), is(11));
+        assertThat(dto.getWatchingOldestReview().get(10).getTicker(), is("NVDA"));
 
         assertThat(dto.getOwnedWithoutStrategy().size(), is(4));
-        assertThat(dto.getOwnedWithoutStrategy().get(0).getTicker(), is("XTS"));
+        assertThat(dto.getOwnedWithoutStrategy(), hasItem(hasTicker("XRSB")));
+        assertThat(dto.getOwnedWithoutStrategy(), not(hasItem(hasTicker("XRSA"))));
 
         assertThat(dto.getNotWatching().size(), is(3));
-        assertThat(dto.getNotWatching().get(0).getTicker(), is("XCW"));
+        assertThat(dto.getNotWatching(), hasItem(hasTicker("XCW")));
+        assertThat(dto.getNotWatching(), hasItem(hasTicker("XXX")));
+        assertThat(dto.getNotWatching(), hasItem(hasTicker("YYY")));
     }
 
     @Test

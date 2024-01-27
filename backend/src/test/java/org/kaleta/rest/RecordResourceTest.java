@@ -389,4 +389,24 @@ class RecordResourceTest
     {
         Assert.get400("/record/" + "AAAAAA", "Invalid UUID Parameter");
     }
+
+    @Test
+    void testLatestValues()
+    {
+        RecordsUiDto dto = given().when()
+                .get("/record/ededb691-b3c0-4c66-b03d-4e7b46bb2489")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", RecordsUiDto.class);
+
+        assertThat(dto.getTicker(), is("XRL"));
+        assertThat(dto.getRecords().size(), is(6));
+        assertThat(dto.getLatestPrice(), is(new RecordsUiDto.Latest("100", "01.11.2022")));
+        assertThat(dto.getLatestPe(), is(new RecordsUiDto.Latest("5", "01.10.2022")));
+        assertThat(dto.getLatestPs(), is(new RecordsUiDto.Latest("4", "01.09.2022")));
+        assertThat(dto.getLatestDy(), is(new RecordsUiDto.Latest("1.5", "01.08.2022")));
+        assertThat(dto.getLatestTargets(), is(new RecordsUiDto.Latest("10-5~7", "01.07.2022")));
+        assertThat(dto.getLatestStrategy(), is(new RecordsUiDto.Latest("strat", "01.06.2022")));
+    }
 }
