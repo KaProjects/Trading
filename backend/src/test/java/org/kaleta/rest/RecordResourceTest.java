@@ -213,7 +213,7 @@ class RecordResourceTest
         dto.setPrice(".1");
         Assert.put400("/record", dto, "Invalid Price:");
 
-        dto.setPrice("12345678901");
+        dto.setPrice("1234567");
         Assert.put400("/record", dto, "Invalid Price:");
 
         dto.setPrice("10.12345");
@@ -226,7 +226,7 @@ class RecordResourceTest
         dto.setPe("x");
         Assert.put400("/record", dto, "Invalid PE:");
 
-        dto.setPe("123456");
+        dto.setPe("1234");
         Assert.put400("/record", dto, "Invalid PE:");
 
         dto.setPe("1.123");
@@ -245,7 +245,7 @@ class RecordResourceTest
         dto.setPs("x");
         Assert.put400("/record", dto, "Invalid PS:");
 
-        dto.setPs("123456");
+        dto.setPs("1234");
         Assert.put400("/record", dto, "Invalid PS:");
 
         dto.setPs("1.123");
@@ -264,7 +264,7 @@ class RecordResourceTest
         dto.setDy("x");
         Assert.put400("/record", dto, "Invalid DY:");
 
-        dto.setDy("123456");
+        dto.setDy("1234");
         Assert.put400("/record", dto, "Invalid DY:");
 
         dto.setDy("1.123");
@@ -370,7 +370,7 @@ class RecordResourceTest
         dto.setPrice("1.");
         Assert.post400("/record", dto, "Invalid Price:");
 
-        dto.setPrice("12345678901");
+        dto.setPrice("1234567");
         Assert.post400("/record", dto, "Invalid Price:");
 
         dto.setPrice("10.12345");

@@ -282,7 +282,7 @@ class TradeResourceTest
         dto.setFees(".1");
         Assert.post400("/trade", dto, "Invalid Fees:");
 
-        dto.setFees("123456");
+        dto.setFees("1234");
         Assert.post400("/trade", dto, "Invalid Fees:");
 
         dto.setFees("1.123");
@@ -304,7 +304,7 @@ class TradeResourceTest
         dto.setPrice(".1");
         Assert.post400("/trade", dto, "Invalid Price:");
 
-        dto.setPrice("12345678901");
+        dto.setPrice("1234567");
         Assert.post400("/trade", dto, "Invalid Price:");
 
         dto.setPrice("10.12345");
@@ -326,7 +326,7 @@ class TradeResourceTest
         dto.setQuantity(".1");
         Assert.post400("/trade", dto, "Invalid Quantity:");
 
-        dto.setQuantity("123456789");
+        dto.setQuantity("12345");
         Assert.post400("/trade", dto, "Invalid Quantity:");
 
         dto.setQuantity("1.12345");
@@ -390,7 +390,7 @@ class TradeResourceTest
         dto.setFees(".1");
         Assert.put400("/trade", dto, "Invalid Fees:");
 
-        dto.setFees("123456");
+        dto.setFees("1234");
         Assert.put400("/trade", dto, "Invalid Fees:");
 
         dto.setFees("1.123");
@@ -412,7 +412,7 @@ class TradeResourceTest
         dto.setPrice(".1");
         Assert.put400("/trade", dto, "Invalid Price:");
 
-        dto.setPrice("12345678901");
+        dto.setPrice("1234567");
         Assert.put400("/trade", dto, "Invalid Price:");
 
         dto.setPrice("10.12345");
@@ -434,7 +434,7 @@ class TradeResourceTest
         dto.getTrades().get(0).setQuantity(".1");
         Assert.put400("/trade", dto, "Invalid Quantity:");
 
-        dto.getTrades().get(0).setQuantity("123456789");
+        dto.getTrades().get(0).setQuantity("12345");
         Assert.put400("/trade", dto, "Invalid Quantity:");
 
         dto.getTrades().get(0).setQuantity("1.12345");

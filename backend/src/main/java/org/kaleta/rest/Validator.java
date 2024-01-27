@@ -127,8 +127,8 @@ public class Validator
             new BigDecimal(value);
             if (value.startsWith(".")) return false;
             if (value.endsWith(".")) return false;
-            if (value.replace(".", "").length() > lengthConstraint) return false;
             String[] split = value.split("\\.");
+            if (split[0].length() > lengthConstraint - decimalConstraint) return false;
             if (split.length > 1 && split[1].length() > decimalConstraint) return false;
             return true;
         } catch (NumberFormatException e) {
