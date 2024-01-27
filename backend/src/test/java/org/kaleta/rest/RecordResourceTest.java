@@ -42,7 +42,7 @@ class RecordResourceTest
     @Test
     void updateRecord()
     {
-        String newDate = "01.01.2024";
+        String newDate = "2024-01-01";
         String newTitle = "new title";
         String newPrice = "1234.56";
         String newPe = "23.5";
@@ -75,7 +75,7 @@ class RecordResourceTest
 
         assertThat(recordsUiDto.getTicker(), is("ABCD"));
         assertThat(recordsUiDto.getRecords().size(), is(1));
-        assertThat(recordsUiDto.getRecords().get(0).getDate(), is(newDate));
+        assertThat(recordsUiDto.getRecords().get(0).getDate(), is("01.01.2024"));
         assertThat(recordsUiDto.getRecords().get(0).getTitle(), is(newTitle));
         assertThat(recordsUiDto.getRecords().get(0).getPrice(), is(newPrice));
         assertThat(recordsUiDto.getRecords().get(0).getPe(), is(newPe));
@@ -283,7 +283,7 @@ class RecordResourceTest
         RecordCreateDto dto = new RecordCreateDto();
         dto.setCompanyId("d98c9ea1-ef2a-400a-bc7f-00d90e5d8e10");
         dto.setPrice("10.1");
-        dto.setDate("01.01.2020");
+        dto.setDate("2020-01-01");
         dto.setTitle("a title");
 
         RecordDto createdDto = given().contentType(ContentType.JSON)
@@ -294,7 +294,7 @@ class RecordResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordDto.class);
 
-        assertThat(createdDto.getDate(), is(dto.getDate()));
+        assertThat(createdDto.getDate(), is("01.01.2020"));
         assertThat(createdDto.getTitle(), is(dto.getTitle()));
         assertThat(createdDto.getPrice(), is(dto.getPrice()));
         assertThat(createdDto.getPe(), is(blankString()));
@@ -313,7 +313,7 @@ class RecordResourceTest
 
         assertThat(recordsUiDto.getTicker(), is("XRC"));
         assertThat(recordsUiDto.getRecords().size(), is(1));
-        assertThat(recordsUiDto.getRecords().get(0).getDate(), is(dto.getDate()));
+        assertThat(recordsUiDto.getRecords().get(0).getDate(), is("01.01.2020"));
         assertThat(recordsUiDto.getRecords().get(0).getTitle(), is(dto.getTitle()));
         assertThat(recordsUiDto.getRecords().get(0).getPrice(), is(dto.getPrice()));
         assertThat(recordsUiDto.getRecords().get(0).getPe(), is(blankString()));
@@ -329,7 +329,7 @@ class RecordResourceTest
     {
         String validCompanyId = "d98c9ea1-ef2a-400a-bc7f-00d90e5d8e10";
         String validPrice = "10.1";
-        String validDate = "01.01.2020";
+        String validDate = "2020-01-01";
         String validTitle = "a title";
 
         Assert.post400("/record", null, "Payload is NULL");
@@ -351,7 +351,10 @@ class RecordResourceTest
         dto.setDate("");
         Assert.post400("/record", dto, "Invalid Date:");
 
-        dto.setDate("1.1.2020");
+        dto.setDate("01.01.2020");
+        Assert.post400("/record", dto, "Invalid Date:");
+
+        dto.setDate("2020-1-1");
         Assert.post400("/record", dto, "Invalid Date:");
 
         dto.setDate(validDate);

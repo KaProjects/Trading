@@ -12,7 +12,7 @@ import AddRecordDialog from "../components/AddRecordDialog";
 import CompanySelector from "../components/CompanySelector";
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import {validateNumber} from "../utils";
+import {handleError, validateNumber} from "../utils";
 import LatestValueBox from "../components/LatestValueBox";
 
 function profitColor(profit){
@@ -43,8 +43,7 @@ const Records = props => {
                     setError(null)
                     setLoaded(true)
                 }).catch((error) => {
-                    console.error(error)
-                    setError(error)
+                    setError(handleError(error))
                     setLoaded(false)
                 })
         }
@@ -65,9 +64,7 @@ const Records = props => {
         axios.put(domain + "/company", {id: data.companyId, watching: newWatching})
             .then(() => {
                 triggerRefresh()
-            }).catch((error) => {
-                console.error(error)
-            })
+            }).catch((error) => {handleError(error)})
         setOpenConfirmWatchDialog(false)
     }
 
@@ -100,7 +97,7 @@ const Records = props => {
                                 <ControlPointIcon sx={{color: 'lightgreen',}}/>
                             </Button>
                             <AddRecordDialog open={openAddRecordDialog}
-                                             handleClose={(record) => handleAddRecordDialogClose(record)}
+                                             handleClose={() => handleAddRecordDialogClose()}
                                              companyId={props.companySelectorValue.id}
                             />
                         </Box>
@@ -136,45 +133,44 @@ const Records = props => {
                                     <EditableValueBox value={record.price} suffix={data.currency} label="Price"
                                                       updateObject={(value) => {return {id: record.id, price: value}}}
                                                       validateInput={(value) => validateNumber(value, false, 10, 4)}
-                                                      handleUpdate={(value) => record.price = value}
+                                                      handleUpdate={triggerRefresh}
                                     />
                                     <EditableValueBox value={record.pe} suffix={""} label="P/E ratio" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, pe: value}}}
                                                       validateInput={(value) => validateNumber(value, true, 5, 2)}
-                                                      handleUpdate={(value) => record.pe = value}
+                                                      handleUpdate={triggerRefresh}
                                     />
                                     <EditableValueBox value={record.ps} suffix={""} label="P/S ratio" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, ps: value}}}
                                                       validateInput={(value) => validateNumber(value, true, 5, 2)}
-                                                      handleUpdate={(value) => record.ps = value}
+                                                      handleUpdate={triggerRefresh}
                                     />
                                     <EditableValueBox value={record.dy} suffix={"%"} label="dividend yield" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, dy: value}}}
                                                       validateInput={(value) => validateNumber(value, true, 5, 2)}
-                                                      handleUpdate={(value) => record.dy = value}
+                                                      handleUpdate={triggerRefresh}
                                     />
                                     <EditableValueBox value={record.targets} suffix={data.currency} label="targets" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, targets: value}}}
                                                       validateInput={(value) => ""}
-                                                      handleUpdate={(value) => record.targets = value}
+                                                      handleUpdate={triggerRefresh}
                                     />
                                 </Grid>
 
                                 <EditableTypography value={record.title} label={"Title"} style={{margin: "12px auto auto 5px"}}
                                                     updateObject={(value) => {return {id: record.id, title: value}}}
                                                     validateInput={(value) => {if (value === "") return "not null"; return ""}}
-                                                    handleUpdate={(value) => record.title = value}
+                                                    handleUpdate={triggerRefresh}
                                 />
 
                                 <div style={{width: "700px", margin: "15px auto 0 auto"}}>
-                                    <ContentEditor record={record}
-                                                   handleUpdate={(value) => record.content = JSON.stringify(value)}/>
+                                    <ContentEditor record={record} handleUpdate={triggerRefresh}/>
                                 </div>
 
                                 <EditableValueBox value={record.strategy} label="strategy" style={{marginTop: "5px"}}
                                                   updateObject={(value) => {return {id: record.id, strategy: value}}}
                                                   validateInput={(value) => ""}
-                                                  handleUpdate={(value) => record.strategy = value}
+                                                  handleUpdate={triggerRefresh}
                                 />
 
                             </BorderedSection>

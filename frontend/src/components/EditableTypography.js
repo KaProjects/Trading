@@ -3,6 +3,7 @@ import {domain} from "../properties";
 import axios from "axios";
 import {FormControl, FormHelperText, Input, InputLabel, Typography} from "@mui/material";
 import SnackbarErrorAlert from "./SnackbarErrorAlert";
+import {handleError} from "../utils";
 
 
 const EditableTypography = props => {
@@ -24,10 +25,9 @@ const EditableTypography = props => {
                 setShowValue(editValue)
                 props.handleUpdate(editValue)
             }).catch((error) => {
-            console.error(error)
-            setAlert(error.response.data)
-            setEditValue(showValue)
-        })
+                setAlert(handleError(error))
+                setEditValue(showValue)
+            })
     }
 
     return (

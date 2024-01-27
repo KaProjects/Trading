@@ -12,7 +12,7 @@ import {
 import React, {useEffect, useState} from "react";
 import {domain} from "../properties";
 import axios from "axios";
-import {validateNumber} from "../utils";
+import {handleError, validateNumber} from "../utils";
 
 
 const AddTradeDialog = props => {
@@ -38,30 +38,22 @@ const AddTradeDialog = props => {
     }, [open]);
 
     function createTrade() {
-        const dateSplit = date.split('-');
-        const dtoDate = dateSplit[2] + "." + dateSplit[1] + "." + dateSplit[0]
-        const tradeData = {companyId: company.id, date: dtoDate, price: price, quantity: quantity, fees: fees}
+        const tradeData = {companyId: company.id, date: date, price: price, quantity: quantity, fees: fees}
         axios.post(domain + "/trade", tradeData)
-            .then(() => {
+            .then((response) => {
                 const title = "bought " + quantity + "@" + price + company.currency
-                const recordData = {companyId: company.id, title: title, date: dtoDate, price: price}
+                const recordData = {companyId: company.id, title: title, date: date, price: price}
                 axios.post(domain + "/record", recordData)
                     .then((response) => {
                         handleClose()
-                    }).catch((error) => {
-                        console.error(error)
-                        setAlert(error.response.data)
-                })
-            }).catch((error) => {
-                console.error(error)
-                setAlert(error.response.data)
-        })
+                    }).catch((error) => {setAlert(handleError(error))})
+            }).catch((error) => {setAlert(handleError(error))})
     }
 
     return (
         <Dialog
             open={open}
-            onClose={() => handleClose()}
+            onClose={handleClose}
             PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createTrade()},}}
         >
             <DialogTitle>Add Trade</DialogTitle>
@@ -111,7 +103,7 @@ const AddTradeDialog = props => {
                 </Alert>
             }
             <DialogActions>
-                <Button onClick={() => handleClose()}>Cancel</Button>
+                <Button onClick={handleClose}>Cancel</Button>
                 <Button type="submit">Create</Button>
             </DialogActions>
         </Dialog>

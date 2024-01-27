@@ -1,41 +1,38 @@
 import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {domain} from "../properties";
 import axios from "axios";
-import {validateNumber} from "../utils";
+import {handleError, validateNumber} from "../utils";
 
 
 const AddRecordDialog = props => {
-    const {companyId} = props
+    const {companyId, open, handleClose} = props
     const [alert, setAlert] = useState(null);
     const [title, setTitle] = useState("");
     const [date, setDate] = useState("");
     const [price, setPrice] = useState("");
 
+    useEffect(() => {
+        if (open) {
+            setTitle("")
+            setDate("")
+            setPrice("")
+        }
+        // eslint-disable-next-line
+    }, [open]);
+
     function createRecord() {
-        const dateSplit = date.split('-');
-        const dtoDate = dateSplit[2] + "." + dateSplit[1] + "." + dateSplit[0]
-        const data = {companyId: companyId, title: title, date: dtoDate, price: price}
+        const data = {companyId: companyId, title: title, date: date, price: price}
         axios.post(domain + "/record", data)
             .then((response) => {
-                handleClose(response.data)
-            }).catch((error) => {
-                console.error(error)
-                setAlert(error.response.data)
-        })
-    }
-
-    function handleClose(record){
-        setTitle("")
-        setDate("")
-        setPrice("")
-        props.handleClose(record)
+                handleClose()
+            }).catch((error) => {setAlert(handleError(error))})
     }
 
     return (
         <Dialog
-            open={props.open}
-            onClose={() => handleClose()}
+            open={open}
+            onClose={handleClose}
             PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createRecord()},}}
         >
             <DialogTitle>Add Record</DialogTitle>
@@ -66,7 +63,7 @@ const AddRecordDialog = props => {
                 </Alert>
             }
             <DialogActions>
-                <Button onClick={() => handleClose()}>Cancel</Button>
+                <Button onClick={handleClose}>Cancel</Button>
                 <Button type="submit">Create</Button>
             </DialogActions>
         </Dialog>

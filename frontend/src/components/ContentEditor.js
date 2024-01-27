@@ -5,6 +5,7 @@ import {withHistory} from 'slate-history'
 import {css, cx} from '@emotion/css'
 import {domain} from "../properties";
 import axios from "axios";
+import {handleError} from "../utils";
 
 const LIST_TYPES = ['numbered-list', 'bulleted-list']
 const TEXT_ALIGN_TYPES = ['left', 'center', 'right', 'justify']
@@ -25,9 +26,7 @@ const ContentEditor = (props) => {
         axios.put(domain + "/record", {id: record.id, content: JSON.stringify(value)})
             .then((response) => {
                 props.handleUpdate(value)
-            }).catch((error) => {
-                console.error(error)
-            })
+            }).catch((error) => {handleError(error)})
     }
     return (
         <Slate editor={editor} initialValue={record.content ? JSON.parse(record.content) : DEFAULT_VALUE}

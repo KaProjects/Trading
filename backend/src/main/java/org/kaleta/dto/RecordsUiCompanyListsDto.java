@@ -33,7 +33,7 @@ public class RecordsUiCompanyListsDto
         {
             if (info.isWatching()) watchingOldestReview.add(from(info));
         }
-        watchingOldestReview.sort((companyA, companyB) -> Utils.compareDates(companyA.getLatestReviewDate(), companyB.getLatestReviewDate()));
+        watchingOldestReview.sort((companyA, companyB) -> Utils.compareDtoDates(companyA.getLatestReviewDate(), companyB.getLatestReviewDate()));
     }
 
     public void addOwnedWithoutStrategy(List<CompanyInfo> companiesInfo)
@@ -42,13 +42,13 @@ public class RecordsUiCompanyListsDto
         {
             if (info.isWatching() && info.getLatestPurchaseDate() != null){
                 Company dto = from(info);
-                if (Utils.compareDates(dto.getLatestPurchaseDate(), dto.getLatestStrategyDate()) > 0)
+                if (Utils.compareDtoDates(dto.getLatestPurchaseDate(), dto.getLatestStrategyDate()) > 0)
                 {
                     ownedWithoutStrategy.add(dto);
                 }
             }
         }
-        ownedWithoutStrategy.sort((companyA, companyB) -> Utils.compareDates(companyA.getLatestPurchaseDate(), companyB.getLatestPurchaseDate()));
+        ownedWithoutStrategy.sort((companyA, companyB) -> Utils.compareDtoDates(companyA.getLatestPurchaseDate(), companyB.getLatestPurchaseDate()));
     }
 
     public void addNotWatching(List<CompanyInfo> companiesInfo)
@@ -67,11 +67,11 @@ public class RecordsUiCompanyListsDto
         dto.setWatching(companyInfo.isWatching());
         dto.setTicker(companyInfo.getTicker());
         if (companyInfo.getLatestReviewDate() != null)
-            dto.setLatestReviewDate(Constants.dateFormatDto.format(companyInfo.getLatestReviewDate()));
+            dto.setLatestReviewDate(Utils.format(companyInfo.getLatestReviewDate()));
         if (companyInfo.getLatestStrategyDate() != null)
-            dto.setLatestStrategyDate(Constants.dateFormatDto.format(companyInfo.getLatestStrategyDate()));
+            dto.setLatestStrategyDate(Utils.format(companyInfo.getLatestStrategyDate()));
         if (companyInfo.getLatestPurchaseDate() != null)
-            dto.setLatestPurchaseDate(Constants.dateFormatDto.format(companyInfo.getLatestPurchaseDate()));
+            dto.setLatestPurchaseDate(Utils.format(companyInfo.getLatestPurchaseDate()));
         return dto;
     }
 }

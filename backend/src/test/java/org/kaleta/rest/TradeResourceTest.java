@@ -210,7 +210,7 @@ class TradeResourceTest
     {
         TradeCreateDto dto = new TradeCreateDto();
         dto.setCompanyId("21322ef8-9e26-4eda-bf74-b0f0eb8925b1");
-        dto.setDate("01.01.2020");
+        dto.setDate("2020-01-01");
         dto.setPrice("100.5");
         dto.setQuantity("10");
         dto.setFees("15");
@@ -225,7 +225,7 @@ class TradeResourceTest
 
         assertThat(createdDto.getTicker(), is("XTC"));
         assertThat(createdDto.getCurrency(), is(Currency.$));
-        assertThat(createdDto.getPurchaseDate(), is(dto.getDate()));
+        assertThat(createdDto.getPurchaseDate(), is("01.01.2020"));
         assertThat(createdDto.getPurchasePrice(), is(dto.getPrice()));
         assertThat(createdDto.getPurchaseQuantity(), is(dto.getQuantity()));
         assertThat(createdDto.getPurchaseFees(), is(dto.getFees()));
@@ -254,7 +254,7 @@ class TradeResourceTest
     void createTradeInvalidValues()
     {
         String validCompanyId = "21322ef8-9e26-4eda-bf74-b0f0eb8925b1";
-        String validDate = "01.01.2020";
+        String validDate = "2020-01-01";
         String validPrice = "100.5";
         String validQuantity = "10";
         String validFees = "15";
@@ -339,7 +339,10 @@ class TradeResourceTest
         dto.setDate("");
         Assert.post400("/trade", dto, "Invalid Date:");
 
-        dto.setDate("1.1.2020");
+        dto.setDate("01.01.2020");
+        Assert.post400("/trade", dto, "Invalid Date:");
+
+        dto.setDate("2020-1-1");
         Assert.post400("/trade", dto, "Invalid Date:");
 
         dto.setDate(validDate);
@@ -356,7 +359,7 @@ class TradeResourceTest
     @Test
     void sellTradeInvalidValues()
     {
-        String validDate = "01.01.2020";
+        String validDate = "2020-01-01";
         String validPrice = "100.5";
         String validFees = "15";
         String validTradeId = "91d9253e-aee5-4d86-9c3e-18102bff698d";
@@ -447,7 +450,10 @@ class TradeResourceTest
         dto.setDate("");
         Assert.put400("/trade", dto, "Invalid Date:");
 
-        dto.setDate("1.1.2020");
+        dto.setDate("01.01.2020");
+        Assert.put400("/trade", dto, "Invalid Date:");
+
+        dto.setDate("2020-1-1");
         Assert.put400("/trade", dto, "Invalid Date:");
 
         dto.setDate(validDate);
@@ -465,7 +471,7 @@ class TradeResourceTest
     void sellTrade()
     {
         TradeSellDto dto = new TradeSellDto();
-        dto.setDate("15.07.2020");
+        dto.setDate("2020-07-15");
         dto.setPrice("600");
         dto.setFees("15");
         dto.getTrades().add(new TradeSellDto.Trade("91d9253e-aee5-4d86-9c3e-18102bff698d", "5"));
@@ -492,7 +498,7 @@ class TradeResourceTest
         assertThat(tradesDto.getTrades().get(0).getPurchaseQuantity(), is("2.5"));
         assertThat(tradesDto.getTrades().get(0).getPurchasePrice(), is("500"));
         assertThat(tradesDto.getTrades().get(0).getPurchaseFees(), is("3.33"));
-        assertThat(tradesDto.getTrades().get(0).getSellDate(), is(dto.getDate()));
+        assertThat(tradesDto.getTrades().get(0).getSellDate(), is("15.07.2020"));
         assertThat(tradesDto.getTrades().get(0).getSellQuantity(), is("2.5"));
         assertThat(tradesDto.getTrades().get(0).getSellPrice(), is(dto.getPrice()));
         assertThat(tradesDto.getTrades().get(0).getSellFees(), is("5"));
@@ -512,7 +518,7 @@ class TradeResourceTest
         assertThat(tradesDto.getTrades().get(2).getPurchaseQuantity(), is("5"));
         assertThat(tradesDto.getTrades().get(2).getPurchasePrice(), is("450"));
         assertThat(tradesDto.getTrades().get(2).getPurchaseFees(), is("10"));
-        assertThat(tradesDto.getTrades().get(2).getSellDate(), is(dto.getDate()));
+        assertThat(tradesDto.getTrades().get(2).getSellDate(), is("15.07.2020"));
         assertThat(tradesDto.getTrades().get(2).getSellQuantity(), is("5"));
         assertThat(tradesDto.getTrades().get(2).getSellPrice(), is(dto.getPrice()));
         assertThat(tradesDto.getTrades().get(2).getSellFees(), is("10"));

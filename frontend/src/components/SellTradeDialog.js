@@ -9,7 +9,7 @@ import {
     Select, Table, TableBody, TableCell, TableHead, TableRow,
     TextField
 } from "@mui/material";
-import {validateNumber} from "../utils";
+import {handleError, validateNumber} from "../utils";
 import React, {useEffect, useState} from "react";
 import {domain} from "../properties";
 import axios from "axios";
@@ -39,9 +39,6 @@ const SellTradeDialog = props => {
 
 
     function sellTrade() {
-        const dateSplit = date.split('-');
-        const dtoDate = dateSplit[2] + "." + dateSplit[1] + "." + dateSplit[0]
-
         let totalQuantity = 0
         const tradesToSell = []
         trades.forEach(trade => {
@@ -54,23 +51,15 @@ const SellTradeDialog = props => {
             }
         })
 
-        const tradeData = {date: dtoDate, price: price, fees: fees, trades: tradesToSell}
-
-        axios.put(domain + "/trade", tradeData)
-            .then(() => {
+        axios.put(domain + "/trade", {date: date, price: price, fees: fees, trades: tradesToSell})
+            .then((response) => {
                 const title = "sold " + totalQuantity + "@" + price + company.currency
-                const recordData = {companyId: company.id, title: title, date: dtoDate, price: price}
+                const recordData = {companyId: company.id, title: title, date: date, price: price}
                 axios.post(domain + "/record", recordData)
                     .then((response) => {
                         handleClose()
-                    }).catch((error) => {
-                        console.error(error)
-                        setAlert(error.response.data)
-                    })
-            }).catch((error) => {
-                console.error(error)
-                setAlert(error.response.data)
-            })
+                    }).catch((error) => {setAlert(handleError(error))})
+            }).catch((error) => {setAlert(handleError(error))})
     }
 
     function selectCompany(company) {
@@ -78,10 +67,7 @@ const SellTradeDialog = props => {
             axios.get(domain + "/trade?active=true&companyId=" + company.id)
                 .then((response) => {
                     setTrades(response.data.trades)
-                }).catch((error) => {
-                    console.error(error)
-                    setAlert(error.response.data)
-                })
+                }).catch((error) => {setAlert(handleError(error))})
         }
         setCompany(company)
     }

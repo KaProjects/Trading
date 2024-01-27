@@ -1,6 +1,7 @@
 package org.kaleta.dto;
 
 import lombok.Data;
+import org.kaleta.Utils;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Currency;
 
@@ -26,6 +27,8 @@ public class RecordsUiDto
     public RecordsUiDto() {}
     public RecordsUiDto(List<org.kaleta.entity.Record> records)
     {
+        records.sort((recordA, recordB) -> -Utils.compareDbDates(recordA.getDate(), recordB.getDate()));
+
         if (records.size() > 0) {
             this.setCompany(records.get(0).getCompany());
         }
@@ -33,7 +36,6 @@ public class RecordsUiDto
         {
             this.getRecords().add(RecordDto.from(record));
         }
-        this.getRecords().sort(RecordDto::compareTo);
         computeLatest();
     }
 

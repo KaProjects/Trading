@@ -7,6 +7,7 @@ import Trades from "./views/Trades";
 import Records from "./views/Records";
 import {domain} from "./properties";
 import axios from "axios";
+import {handleError} from "./utils";
 
 class App extends Component {
     constructor(props) {
@@ -87,9 +88,7 @@ class App extends Component {
         axios.get(domain + "/company")
             .then((response) => {
                 this.setState({companies: response.data})
-            }).catch((error) => {
-                console.error(error)
-            })
+            }).catch((error) => {handleError(error)})
     }
 
     PageNotFound() {

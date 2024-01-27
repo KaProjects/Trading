@@ -5,6 +5,7 @@ import Tooltip from "@mui/material/Tooltip";
 import {domain} from "../properties";
 import axios from "axios";
 import SnackbarErrorAlert from "./SnackbarErrorAlert";
+import {handleError} from "../utils";
 
 const EditableValueBox = props => {
 
@@ -25,10 +26,9 @@ const EditableValueBox = props => {
                 setShowValue(editValue)
                 props.handleUpdate(editValue)
             }).catch((error) => {
-                console.error(error)
-                setAlert(error.response.data)
+                setAlert(handleError(error))
                 setEditValue(showValue)
-        })
+            })
     }
 
     return (

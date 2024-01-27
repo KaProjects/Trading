@@ -8,7 +8,7 @@ import org.kaleta.entity.Record;
 import static org.kaleta.Utils.format;
 
 @Data
-public class RecordDto implements Comparable<RecordDto>
+public class RecordDto
 {
     private String id;
     private String date;
@@ -21,16 +21,10 @@ public class RecordDto implements Comparable<RecordDto>
     private String targets;
     private String strategy;
 
-    @Override
-    public int compareTo(RecordDto other)
-    {
-        return -Utils.compareDates(this.getDate(), other.getDate());
-    }
-
     public static RecordDto from(Record record){
         RecordDto dto = new RecordDto();
         dto.setId(record.getId());
-        dto.setDate(Constants.dateFormatDto.format(record.getDate()));
+        dto.setDate(Utils.format(record.getDate()));
         dto.setTitle(record.getTitle());
         dto.setPrice(format(record.getPrice()));
         dto.setPe(format(record.getPe()));

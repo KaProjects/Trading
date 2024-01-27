@@ -8,3 +8,12 @@ export function validateNumber(value, isNullable, lengthConstraint, decimalConst
     if (split.length > 1 && split[1].length > decimalConstraint) return "max decimal " + decimalConstraint
     return ""
 }
+
+export function handleError(error) {
+    console.error(error)
+    if (typeof error.response.data === 'string') {
+        return error.response.data
+    } else {
+        return error.message
+    }
+}

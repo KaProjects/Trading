@@ -3,7 +3,7 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.Constants;
+import org.kaleta.Utils;
 import org.kaleta.dao.CompanyDao;
 import org.kaleta.dao.TradeDao;
 import org.kaleta.dto.TradeCreateDto;
@@ -15,7 +15,6 @@ import org.kaleta.entity.Trade;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -78,11 +77,10 @@ public class TradeService
         } catch (NoResultException e){
             throw new ServiceException("company with id '" + tradeCreateDto.getCompanyId() + "' not found");
         }
-        try {
-            java.util.Date parsedDate = Constants.dateFormatDto.parse(tradeCreateDto.getDate());
-            newTrade.setPurchaseDate(Date.valueOf(Constants.dateFormatDb.format(parsedDate)));
-        } catch (ParseException e) {
-            throw new ServiceException(e);
+        if (Utils.isValidDbDate(tradeCreateDto.getDate())){
+            newTrade.setPurchaseDate(Date.valueOf(tradeCreateDto.getDate()));
+        } else {
+            throw new ServiceException("invalid date format '" + tradeCreateDto.getDate() + "' not YYYY-MM-DD");
         }
         newTrade.setQuantity(new BigDecimal(tradeCreateDto.getQuantity()));
         newTrade.setPurchasePrice(new BigDecimal(tradeCreateDto.getPrice()));
@@ -114,11 +112,10 @@ public class TradeService
         }
 
         Date date;
-        try {
-            java.util.Date parsedDate = Constants.dateFormatDto.parse(tradeSellDto.getDate());
-            date = Date.valueOf(Constants.dateFormatDb.format(parsedDate));
-        } catch (ParseException e) {
-            throw new ServiceException(e);
+        if (Utils.isValidDbDate(tradeSellDto.getDate())){
+            date = Date.valueOf(tradeSellDto.getDate());
+        } else {
+            throw new ServiceException("invalid date format '" + tradeSellDto.getDate() + "' not YYYY-MM-DD");
         }
 
         for (TradeSellDto.Trade tradeDto : tradeSellDto.getTrades())

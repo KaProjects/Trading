@@ -1,6 +1,7 @@
 import {useEffect, useState} from "react";
 import axios from "axios";
 import {domain} from "./properties";
+import {handleError} from "./utils";
 
 export const useData = (path) => {
 
@@ -16,8 +17,7 @@ export const useData = (path) => {
                     setError(null)
                     setLoaded(true)
                 }).catch((error) => {
-                    console.error(error)
-                    setError(error)
+                    setError(handleError(error))
                     setLoaded(false)
                 })
         };

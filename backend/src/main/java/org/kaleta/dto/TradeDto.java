@@ -33,7 +33,7 @@ public class TradeDto implements Comparable<TradeDto>
     @Override
     public int compareTo(TradeDto other)
     {
-        return -Utils.compareDates(this.getPurchaseDate(), other.getPurchaseDate());
+        return -Utils.compareDtoDates(this.getPurchaseDate(), other.getPurchaseDate());
     }
 
     public static TradeDto from(Trade trade)
@@ -43,7 +43,7 @@ public class TradeDto implements Comparable<TradeDto>
         dto.setTicker(trade.getTicker());
         dto.setCurrency(trade.getCurrency());
 
-        dto.setPurchaseDate(Constants.dateFormatDto.format(trade.getPurchaseDate()));
+        dto.setPurchaseDate(Utils.format(trade.getPurchaseDate()));
         dto.setPurchaseQuantity(format(trade.getQuantity()));
         dto.setPurchasePrice(format(trade.getPurchasePrice()));
         dto.setPurchaseFees(format(trade.getPurchaseFees()));
@@ -51,7 +51,7 @@ public class TradeDto implements Comparable<TradeDto>
 
         if (trade.getSellDate() != null)
         {
-            dto.setSellDate(Constants.dateFormatDto.format(trade.getSellDate()));
+            dto.setSellDate(Utils.format(trade.getSellDate()));
             dto.setSellQuantity(format(trade.getQuantity()));
             dto.setSellPrice(format(trade.getSellPrice()));
             dto.setSellFees(format(trade.getSellFees()));
