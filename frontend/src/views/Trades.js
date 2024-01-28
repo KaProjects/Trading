@@ -49,8 +49,11 @@ const Trades = props => {
         const borderLeft = "1px solid lightgrey"
         const borderRight = ([0, 1, 6, 11, 12, 13].includes(index)) ? "1px solid lightgrey" : "0px"
         const fontFamily = "Roboto"
-        let color = (props.activeSelectorValue === activeStates[0] && index > 6) ? "#adadad" : "primary"
-        if (isProfit !== undefined) color = isProfit ? "#99bb99" : "#d99595"
+        let color = "primary"
+        if (props.activeSelectorValue === activeStates[0]){
+            color = (index > 6) ? "#adadad" : color
+            if (isProfit !== undefined) color = isProfit ? "#99bb99" : "#d99595"
+        }
         return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily, color: color}
     }
 
@@ -108,7 +111,7 @@ const Trades = props => {
                     </TableHead>
                     <TableBody>
                         {data.trades.map((trade, index) => (
-                            <TableRow key={index} hover>
+                            <TableRow key={trade.id} hover>
                                 <TableCell style={rowStyle(0)} onDoubleClick={() => selectCompany(trade.ticker)}>
                                     {trade.ticker}
                                 </TableCell>
