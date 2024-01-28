@@ -17,7 +17,9 @@ import org.kaleta.dto.RecordsUiDto;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Record;
 import org.kaleta.entity.Trade;
+import org.kaleta.model.FirebaseCompany;
 import org.kaleta.service.CompanyService;
+import org.kaleta.service.FirebaseService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
 
@@ -35,6 +37,8 @@ public class RecordResource
     TradeService tradeService;
     @Inject
     CompanyService companyService;
+    @Inject
+    FirebaseService firebaseService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -45,11 +49,16 @@ public class RecordResource
             () -> Validator.validateUuid(companyId),
             () -> {
                 Company company = companyService.getCompany(companyId);
-
                 List<Record> records = recordService.getRecords(company.getId());
 
                 RecordsUiDto dto = new RecordsUiDto(records);
                 dto.setCompany(company);
+
+                if (firebaseService.hasCompany(company.getTicker())){
+                    FirebaseCompany firebaseCompany = firebaseService.getCompany(company.getTicker());
+                    String date = firebaseCompany.getTime().split("T")[0];
+                    dto.setLatestPrice(new RecordsUiDto.Latest(firebaseCompany.getPrice(), date));
+                }
 
                 for (Trade trade : tradeService.getTrades(true, companyId, null, null))
                 {

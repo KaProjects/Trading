@@ -75,12 +75,12 @@ public class TradeService
             Company company = companyDao.get(tradeCreateDto.getCompanyId());
             newTrade.setCompany(company);
         } catch (NoResultException e){
-            throw new ServiceException("company with id '" + tradeCreateDto.getCompanyId() + "' not found");
+            throw new ServiceFailureException("company with id '" + tradeCreateDto.getCompanyId() + "' not found");
         }
         if (Utils.isValidDbDate(tradeCreateDto.getDate())){
             newTrade.setPurchaseDate(Date.valueOf(tradeCreateDto.getDate()));
         } else {
-            throw new ServiceException("invalid date format '" + tradeCreateDto.getDate() + "' not YYYY-MM-DD");
+            throw new ServiceFailureException("invalid date format '" + tradeCreateDto.getDate() + "' not YYYY-MM-DD");
         }
         newTrade.setQuantity(new BigDecimal(tradeCreateDto.getQuantity()));
         newTrade.setPurchasePrice(new BigDecimal(tradeCreateDto.getPrice()));
@@ -101,13 +101,13 @@ public class TradeService
                 Trade trade = tradeDao.get(tradeDto.getTradeId());
                 BigDecimal sellQuantity = new BigDecimal(tradeDto.getQuantity());
                 if (trade.getQuantity().compareTo(sellQuantity) < 0){
-                    throw new ServiceException("unable to sell more than owned for tradeId='" + tradeDto.getTradeId() + "'");
+                    throw new ServiceFailureException("unable to sell more than owned for tradeId='" + tradeDto.getTradeId() + "'");
                 } else {
                     totalSellQuantity = totalSellQuantity.add(sellQuantity);
                 }
                 trades.add(trade);
             } catch (NoResultException e){
-                throw new ServiceException("trade with id '" + tradeDto.getTradeId() + "' not found");
+                throw new ServiceFailureException("trade with id '" + tradeDto.getTradeId() + "' not found");
             }
         }
 
@@ -115,7 +115,7 @@ public class TradeService
         if (Utils.isValidDbDate(tradeSellDto.getDate())){
             date = Date.valueOf(tradeSellDto.getDate());
         } else {
-            throw new ServiceException("invalid date format '" + tradeSellDto.getDate() + "' not YYYY-MM-DD");
+            throw new ServiceFailureException("invalid date format '" + tradeSellDto.getDate() + "' not YYYY-MM-DD");
         }
 
         for (TradeSellDto.Trade tradeDto : tradeSellDto.getTrades())

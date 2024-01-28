@@ -34,13 +34,13 @@ public class RecordService
         try {
             record = recordDao.get(recordDto.getId());
         } catch (NoResultException e){
-            throw new ServiceException("record with id '" + recordDto.getId() + "' not found");
+            throw new ServiceFailureException("record with id '" + recordDto.getId() + "' not found");
         }
         if (recordDto.getDate() != null) {
             if (Utils.isValidDbDate(recordDto.getDate())){
                 record.setDate(Date.valueOf(recordDto.getDate()));
             } else {
-                throw new ServiceException("invalid date format '" + recordDto.getDate() + "' not YYYY-MM-DD");
+                throw new ServiceFailureException("invalid date format '" + recordDto.getDate() + "' not YYYY-MM-DD");
             }
         }
         if (recordDto.getTitle() != null) record.setTitle(recordDto.getTitle());
@@ -62,12 +62,12 @@ public class RecordService
             Company company = companyDao.get(recordCreateDto.getCompanyId());
             newRecord.setCompany(company);
         } catch (NoResultException e){
-            throw new ServiceException("company with id '" + recordCreateDto.getCompanyId() + "' not found");
+            throw new ServiceFailureException("company with id '" + recordCreateDto.getCompanyId() + "' not found");
         }
         if (Utils.isValidDbDate(recordCreateDto.getDate())){
             newRecord.setDate(Date.valueOf(recordCreateDto.getDate()));
         } else {
-            throw new ServiceException("invalid date format '" + recordCreateDto.getDate() + "' not YYYY-MM-DD");
+            throw new ServiceFailureException("invalid date format '" + recordCreateDto.getDate() + "' not YYYY-MM-DD");
         }
         newRecord.setPrice(new BigDecimal(recordCreateDto.getPrice()));
         newRecord.setTitle(recordCreateDto.getTitle());

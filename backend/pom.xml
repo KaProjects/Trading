@@ -77,6 +77,11 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-jdbc-mysql</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.google.firebase</groupId>
+      <artifactId>firebase-admin</artifactId>
+      <version>6.7.0</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
