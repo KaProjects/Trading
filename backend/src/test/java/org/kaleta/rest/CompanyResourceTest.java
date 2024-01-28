@@ -2,19 +2,20 @@ package org.kaleta.rest;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
-import jakarta.ws.rs.core.Response;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.kaleta.dto.CompanyDto;
-import org.kaleta.dto.CompanyListsDto;
+import org.kaleta.dto.RecordsUiCompanyListsDto;
+import org.kaleta.framework.Assert;
 
 import java.util.List;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
+import static org.kaleta.framework.Matchers.hasTicker;
 
 @QuarkusTest
 class CompanyResourceTest
@@ -26,7 +27,7 @@ class CompanyResourceTest
                 .get("/company")
                 .then()
                 .statusCode(200)
-                .body("size()", is(11))
+                .body("size()", is(14))
                 .extract().response().jsonPath().getList("", CompanyDto.class);
 
         assertThat(dtos.get(0).getTicker(), is("ABCD"));
@@ -35,22 +36,24 @@ class CompanyResourceTest
     @Test
     void getCompanyLists()
     {
-        CompanyListsDto dto = given().when()
+        RecordsUiCompanyListsDto dto = given().when()
                 .get("/company/lists")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyListsDto.class);
+                .extract().response().jsonPath().getObject("", RecordsUiCompanyListsDto.class);
 
-        assertThat(dto.getWatchingOldestReview().size(), is(8));
-        assertThat(dto.getWatchingOldestReview().get(0).getTicker(), is("XRC"));
-        assertThat(dto.getWatchingOldestReview().get(1).getTicker(), is("XRSB"));
+        assertThat(dto.getWatchingOldestReview().size(), is(11));
+        assertThat(dto.getWatchingOldestReview().get(10).getTicker(), is("NVDA"));
 
-        assertThat(dto.getOwnedWithoutStrategy().size(), is(3));
-        assertThat(dto.getOwnedWithoutStrategy().get(0).getTicker(), is("XRSB"));
+        assertThat(dto.getOwnedWithoutStrategy().size(), is(4));
+        assertThat(dto.getOwnedWithoutStrategy(), hasItem(hasTicker("XRSB")));
+        assertThat(dto.getOwnedWithoutStrategy(), not(hasItem(hasTicker("XRSA"))));
 
         assertThat(dto.getNotWatching().size(), is(3));
-        assertThat(dto.getNotWatching().get(0).getTicker(), is("XCW"));
+        assertThat(dto.getNotWatching(), hasItem(hasTicker("XCW")));
+        assertThat(dto.getNotWatching(), hasItem(hasTicker("XXX")));
+        assertThat(dto.getNotWatching(), hasItem(hasTicker("YYY")));
     }
 
     @Test
@@ -60,10 +63,7 @@ class CompanyResourceTest
         dto.setId("5afe260b-c433-426c-9710-e9ff99faa5aa");
         dto.setWatching(true);
 
-        given().contentType(ContentType.JSON)
-                .body(dto)
-                .when().put("/company")
-                .then().statusCode(Response.Status.NO_CONTENT.getStatusCode());
+        Assert.put204("/company", dto);
 
         List<CompanyDto> companies = given().when()
                 .get("/company")
@@ -87,30 +87,13 @@ class CompanyResourceTest
     @Test
     void parameterValidator()
     {
-        assertThat(given().when()
-                .put("/company")
-                .then()
-                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
-                .extract().body().asString(), containsString("Payload is NULL"));
+        Assert.put400("/company", null, "Payload is NULL");
 
         CompanyDto dto =  new CompanyDto();
-        assertThat(given()
-                .contentType(ContentType.JSON)
-                .body(dto)
-                .when()
-                .put("/company")
-                .then()
-                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
-                .extract().body().asString(), Matchers.is("Invalid UUID Parameter: 'null'"));
+        Assert.put400("/company", dto, "Invalid UUID Parameter: 'null'");
 
         dto.setId(UUID.randomUUID().toString());
-        assertThat(given()
-                .contentType(ContentType.JSON)
-                .body(dto)
-                .when()
-                .put("/company")
-                .then()
-                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
-                .extract().body().asString(), Matchers.is("company with id '" + dto.getId() + "' not found"));
+        Assert.put400("/company", dto, "company with id '" + dto.getId() + "' not found");
+
     }
 }

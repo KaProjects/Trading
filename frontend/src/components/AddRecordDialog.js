@@ -1,63 +1,60 @@
 import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
-import React, {useState} from "react";
-import {properties} from "../properties";
+import React, {useEffect, useState} from "react";
+import {domain} from "../properties";
 import axios from "axios";
+import {handleError, validateNumber} from "../utils";
 
 
 const AddRecordDialog = props => {
-    const {companyId} = props
+    const {companyId, open, handleClose} = props
     const [alert, setAlert] = useState(null);
     const [title, setTitle] = useState("");
     const [date, setDate] = useState("");
     const [price, setPrice] = useState("");
 
-    function createRecord() {
-        const dateSplit = date.split('-');
-        const dtoDate = dateSplit[2] + "." + dateSplit[1] + "." + dateSplit[0]
-        const data = {companyId: companyId, title: title, date: dtoDate, price: price}
-        const url = properties.protocol + "://" + properties.host + ":" + properties.port + "/record"
-        axios.post(url, data)
-            .then((response) => {
-                handleClose(response.data)
-            }).catch((error) => {
-                console.error(error)
-                setAlert(error.response.data)
-        })
-    }
+    useEffect(() => {
+        if (open) {
+            setTitle("")
+            setDate("")
+            setPrice("")
+        }
+        // eslint-disable-next-line
+    }, [open]);
 
-    function handleClose(record){
-        setTitle("")
-        setDate("")
-        setPrice("")
-        props.handleClose(record)
+    function createRecord() {
+        const data = {companyId: companyId, title: title, date: date, price: price}
+        axios.post(domain + "/record", data)
+            .then((response) => {
+                handleClose()
+            }).catch((error) => {setAlert(handleError(error))})
     }
 
     return (
         <Dialog
-            open={props.open}
-            onClose={() => handleClose()}
+            open={open}
+            onClose={handleClose}
             PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createRecord()},}}
         >
             <DialogTitle>Add Record</DialogTitle>
             <DialogContent>
-                <TextField required margin="dense" fullWidth variant="standard"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-date"
                            type="date"
                            value={date}
                            onChange={(e) => setDate(e.target.value)}
                            error={date === ""}
                 />
-                <TextField required margin="dense" fullWidth variant="standard"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-title"
                            value={title}
                            label="Title"
                            onChange={(e) => setTitle(e.target.value)}
                            error={title === ""}
                 />
-                <TextField required margin="dense" fullWidth variant="standard"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-price"
                            value={price}
                            label="Price"
                            onChange={(e) => setPrice(e.target.value)}
-                           error={props.validatePrice(price) !== ""}
-                           helperText={props.validatePrice(price)}
+                           error={validateNumber(price, false, 10, 4) !== ""}
+                           helperText={validateNumber(price, false, 10, 4)}
                 />
             </DialogContent>
             {alert &&
@@ -66,7 +63,7 @@ const AddRecordDialog = props => {
                 </Alert>
             }
             <DialogActions>
-                <Button onClick={() => handleClose()}>Cancel</Button>
+                <Button onClick={handleClose}>Cancel</Button>
                 <Button type="submit">Create</Button>
             </DialogActions>
         </Dialog>

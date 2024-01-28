@@ -49,6 +49,10 @@ INSERT INTO Company (id, ticker, currency, watching) VALUES ('d98c9ea1-ef2a-400a
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('5cda9759-c31f-4c5c-ac0b-b5e1de01fdf0', 'XRSA', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('7781fba0-7071-45d7-b952-3c5f07ce564c', 'XRSB', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('5afe260b-c433-426c-9710-e9ff99faa5aa', 'XCW', '$', false);
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('21322ef8-9e26-4eda-bf74-b0f0eb8925b1', 'XTC', '$', true);
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('c65ea6ac-d848-46dd-98bc-9e3d99f39b21', 'XTS', '$', true);
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('ededb691-b3c0-4c66-b03d-4e7b46bb2489', 'XRL', '$', true);
+
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('-2', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('-1', '0a16ba1d-99de-4306-8fc5-81ee11b60ea0', '10', '2018-04-05', '10', '50', '2018-05-05', '0', '0');
@@ -60,6 +64,11 @@ INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purch
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('ae79deca-e26d-4d43-ae83-94ee6b7b7382', '5cda9759-c31f-4c5c-ac0b-b5e1de01fdf0', '10', '2021-01-05', '90', '10');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('d94c5b43-f4e0-48a7-9dc6-9da7ea0cafe4', '7781fba0-7071-45d7-b952-3c5f07ce564c', '20', '2020-12-30', '180', '10');
 
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('ff467fa5-77c6-4b1a-96b1-4038c476e038', 'c65ea6ac-d848-46dd-98bc-9e3d99f39b21', '1', '2020-03-15', '400', '10');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('91d9253e-aee5-4d86-9c3e-18102bff698d', 'c65ea6ac-d848-46dd-98bc-9e3d99f39b21', '5', '2020-04-05', '450', '10');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('19993bde-6d06-4006-918f-77baa8062e42', 'c65ea6ac-d848-46dd-98bc-9e3d99f39b21', '7.5', '2020-05-01', '500', '10');
+
+
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('1', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '2023-11-11', 'bought 5@400.5$', '400.5');
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('1b', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '2024-01-05', 'sold 5@500$', '500');
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('2', '4efe9235-0c00-4b51-aa81-f2febbb65232', '2021-05-10', 'bought 100@20.1€', '400.5');
@@ -70,5 +79,12 @@ INSERT INTO Record (id, companyId, date, title, price, pe) VALUES ('2ccbf4fe-dbe
 
 INSERT INTO Record (id, companyId, date, title, price, strategy) VALUES ('3ec4752e-a716-4aed-ad05-350af8d42a26', '5cda9759-c31f-4c5c-ac0b-b5e1de01fdf0', '2021-04-05', '2021 strategy of A', '100', 'strat of A');
 INSERT INTO Record (id, companyId, date, title, price, strategy) VALUES ('042a4b91-298d-49ff-8941-884501af459d', '7781fba0-7071-45d7-b952-3c5f07ce564c', '2020-12-20', '2020 strategy of B', '200', 'strat of B');
+
+INSERT INTO Record (id, companyId, date, title, price) VALUES ('ff16e565-ec34-46f1-989b-3eb64e8c7cac', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-11-01', 'latest price', '100');
+INSERT INTO Record (id, companyId, date, title, price, pe) VALUES ('b062b0d1-8682-4f13-81e9-2cc59dc63e66', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-10-01', 'latest pe', '90', '5');
+INSERT INTO Record (id, companyId, date, title, price, pe, ps) VALUES ('69d3e956-b155-40c2-8e2e-8679a2d0f657', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-09-01', 'latest ps', '80', '5.5', '4');
+INSERT INTO Record (id, companyId, date, title, price, ps, dy) VALUES ('675574fe-d212-4a96-9526-f3a8b91215bb', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-08-01', 'latest dy', '110', '3', '1.5');
+INSERT INTO Record (id, companyId, date, title, price, dy, targets) VALUES ('d0ccae7d-af8c-4625-8ca3-e9628765df4f', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-07-01', 'latest targets', '90', '1', '10-5~7');
+INSERT INTO Record (id, companyId, date, title, price, targets, strategy) VALUES ('0ac349c6-431d-4379-a2aa-2a8d4ba9c3ca', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-06-01', 'latest strategy', '70', '8-4~6', 'strat');
 
 

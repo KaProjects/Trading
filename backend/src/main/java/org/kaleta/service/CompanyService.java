@@ -71,10 +71,19 @@ public class CompanyService
         try {
             company = companyDao.get(companyDto.getId());
         } catch (NoResultException e){
-            throw new ServiceException("company with id '" + companyDto.getId() + "' not found");
+            throw new ServiceFailureException("company with id '" + companyDto.getId() + "' not found");
         }
         if (companyDto.getWatching() != null) company.setWatching(companyDto.getWatching());
 
         companyDao.store(company);
+    }
+
+    public Company getCompany(String companyId)
+    {
+        try {
+            return companyDao.get(companyId);
+        } catch (NoResultException e){
+            throw new ServiceFailureException("company with id '" + companyId + "' not found");
+        }
     }
 }

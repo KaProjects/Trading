@@ -1,7 +1,7 @@
 package org.kaleta.rest;
 
 import jakarta.ws.rs.core.Response;
-import org.kaleta.service.ServiceException;
+import org.kaleta.service.ServiceFailureException;
 
 import java.util.function.Supplier;
 
@@ -20,7 +20,7 @@ public class Endpoint
             } else {
                 return Response.ok().entity(content).build();
             }
-        } catch (ServiceException e){
+        } catch (ServiceFailureException e){
             return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
         }
     }

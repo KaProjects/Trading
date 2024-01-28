@@ -1,13 +1,14 @@
 package org.kaleta.rest;
 
 import jakarta.ws.rs.core.Response;
-import org.kaleta.Constants;
+import org.kaleta.Utils;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
+import org.kaleta.dto.TradeCreateDto;
+import org.kaleta.dto.TradeSellDto;
 import org.kaleta.entity.Currency;
 
 import java.math.BigDecimal;
-import java.text.ParseException;
 import java.util.UUID;
 
 public class Validator
@@ -47,7 +48,7 @@ public class Validator
 
     public static void validateUpdateRecordDto(RecordDto dto)
     {
-        if (dto.getDate() != null && !isDate(dto.getDate()))
+        if (dto.getDate() != null && !Utils.isValidDbDate(dto.getDate()))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
 
         if (dto.getTitle() != null && dto.getTitle().isBlank())
@@ -69,7 +70,7 @@ public class Validator
 
     public static void validateCreateRecordDto(RecordCreateDto dto)
     {
-        if (dto.getDate() == null || !isDate(dto.getDate()))
+        if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
 
         if (dto.getTitle() == null || dto.getTitle().isBlank())
@@ -81,21 +82,53 @@ public class Validator
         validateUuid(dto.getCompanyId());
     }
 
-    private static boolean isDate(String value){
-        try {
-            Constants.dateFormatDto.parse(value);
-            return value.matches("\\d\\d\\.\\d\\d\\.\\d\\d\\d\\d");
-        } catch (ParseException e) {
-            return false;
+    public static void validateCreateTradeDto(TradeCreateDto dto)
+    {
+        if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+
+        if (dto.getQuantity() == null || !isBigDecimal(dto.getQuantity(), 8, 4))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Quantity: '" + dto.getQuantity() + "'");
+
+        if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Price: '" + dto.getPrice() + "'");
+
+        if (dto.getFees() == null || !isBigDecimal(dto.getFees(), 5, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Fees: '" + dto.getFees() + "'");
+
+        validateUuid(dto.getCompanyId());
+    }
+
+    public static void validateSellTradeDto(TradeSellDto dto)
+    {
+        if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+
+        if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Price: '" + dto.getPrice() + "'");
+
+        if (dto.getFees() == null || !isBigDecimal(dto.getFees(), 5, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Fees: '" + dto.getFees() + "'");
+
+        if (dto.getTrades().size() == 0)
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "No trades to sell provided");
+
+        for (TradeSellDto.Trade trade : dto.getTrades())
+        {
+            if (trade.getQuantity() == null || !isBigDecimal(trade.getQuantity(), 8, 4))
+                throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Quantity: '" + trade.getQuantity() + "'");
+
+            validateUuid(trade.getTradeId());
         }
     }
 
     private static boolean isBigDecimal(String value, int lengthConstraint, int decimalConstraint){
         try {
             new BigDecimal(value);
+            if (value.startsWith(".")) return false;
             if (value.endsWith(".")) return false;
-            if (value.replace(".", "").length() > lengthConstraint) return false;
             String[] split = value.split("\\.");
+            if (split[0].length() > lengthConstraint - decimalConstraint) return false;
             if (split.length > 1 && split[1].length() > decimalConstraint) return false;
             return true;
         } catch (NumberFormatException e) {

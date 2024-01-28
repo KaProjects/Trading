@@ -65,7 +65,7 @@ public class RecordDaoImpl implements RecordDao
 
     @Override
     @Transactional
-    public void store(Record record)
+    public void save(Record record)
     {
         entityManager.merge(record);
     }

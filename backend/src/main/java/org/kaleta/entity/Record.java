@@ -45,19 +45,4 @@ public class Record extends AbstractEntity
 
     @Column(name = "strategy")
     private String strategy;
-
-    public String getTicker()
-    {
-        return company.getTicker();
-    }
-
-    public Currency getCurrency()
-    {
-        return Currency.valueOf(company.getCurrency());
-    }
-
-    public boolean getWatching()
-    {
-        return company.isWatching();
-    }
 }
