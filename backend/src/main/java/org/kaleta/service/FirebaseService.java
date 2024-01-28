@@ -5,11 +5,14 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.internal.NonNull;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.kaleta.entity.Trade;
+import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
 
 import java.io.IOException;
@@ -21,6 +24,8 @@ import java.util.stream.Collectors;
 @Singleton
 public class FirebaseService
 {
+    private static FirebaseDatabase database;
+
     static {
         String databaseUrl = ConfigProvider.getConfig().getValue("firebase.db.url", String.class);
 
@@ -42,7 +47,7 @@ public class FirebaseService
         } else {
             app = FirebaseApp.getInstance();
         }
-        FirebaseDatabase database = FirebaseDatabase.getInstance(app);
+        database = FirebaseDatabase.getInstance(app);
 
         database.getReference("company").addValueEventListener(new ValueEventListener() {
             @Override
@@ -61,6 +66,7 @@ public class FirebaseService
             public void onCancelled(@NonNull DatabaseError databaseError) {}
         });
     }
+
     private static List<FirebaseCompany> companies = new ArrayList<>();
 
     public boolean hasCompany(String ticker)
@@ -74,5 +80,15 @@ public class FirebaseService
                 .filter(company -> company.getTicker().equals(ticker))
                 .findFirst()
                 .orElseThrow(() -> new ServiceFailureException("company with ticker '" + ticker + "' not found"));
+    }
+
+    public void pushAssets(List<Trade> activeTrades)
+    {
+        DatabaseReference db = database.getReference("asset");
+        db.removeValueAsync();
+        for (Trade trade : activeTrades)
+        {
+            db.push().setValue(FirebaseAsset.from(trade), (databaseError, databaseReference) -> {});
+        }
     }
 }

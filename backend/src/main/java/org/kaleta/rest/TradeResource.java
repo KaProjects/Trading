@@ -10,6 +10,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeDto;
 import org.kaleta.dto.TradeSellDto;
@@ -76,6 +77,11 @@ public class TradeResource
             },
             () -> {
                 Trade trade = tradeService.createTrade(tradeCreateDto);
+
+                if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION")){
+                    firebaseService.pushAssets(tradeService.getTrades(true, null, null, null));
+                }
+
                 return Response.status(Response.Status.CREATED).entity(TradeDto.from(trade)).build();
             });
     }
@@ -93,6 +99,11 @@ public class TradeResource
             },
             () -> {
                 tradeService.sellTrade(tradeSellDto);
+
+                if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION")){
+                    firebaseService.pushAssets(tradeService.getTrades(true, null, null, null));
+                }
+
                 return Response.status(Response.Status.NO_CONTENT).build();
             });
     }
