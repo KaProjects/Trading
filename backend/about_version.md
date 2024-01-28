@@ -5,6 +5,14 @@
      bump pom.xml version
      bump build_deploy.sh versions 
 
+## 1.2
+Released: 28.1.2024
+
+    create/sell trade endpoints
+    latest values for records
+    firebase service to get realtime data + push active trades
+    fixes
+
 ## 1.1
 Released: 22.1.2024
 
