@@ -69,7 +69,7 @@ async def alert_consumer():
 
             for alert_id in alerts_data:
                 alert = Company(alerts_data[alert_id])
-                opportunity_data: dict = db.reference(opportunity_path + "/" + alert.ticker).get()
+                opportunity_data: dict = db.reference(opportunity_path + "/" + alert.id()).get()
                 opportunity = None if opportunity_data is None else Opportunity(opportunity_data)
 
                 logs, updated_opportunity = resolve_alert(alert, opportunity)
@@ -90,9 +90,9 @@ async def alert_consumer():
                     log("{} opportunity updated".format(updated_opportunity.ticker))
 
 
-                db.reference(company_path + "/" + alert.ticker).set(alert.__repr__())
+                db.reference(company_path + "/" + alert.id()).set(alert.__repr__())
                 db.reference(alert_data_path + "/" + alert_id).delete()
-                # log("company {} updated, {} alert removed".format(alert.ticker, alert_id))
+                # log("company {} updated, {} alert removed".format(alert.id(), alert_id))
 
             await asyncio.sleep(1)
         except Exception:
@@ -110,8 +110,8 @@ def fast_forward_alert_consumer(alerts_data):
     for alert_id in alerts_data:
         alert = Company(alerts_data[alert_id])
         opportunity = None
-        if alert.ticker in opportunities:
-            opportunity_data: dict = opportunities[alert.ticker]
+        if alert.id() in opportunities:
+            opportunity_data: dict = opportunities[alert.id()]
             opportunity = Opportunity(opportunity_data)
 
         new_logs, updated_opportunity = resolve_alert(alert, opportunity)
@@ -120,10 +120,10 @@ def fast_forward_alert_consumer(alerts_data):
                 logs.append(new_log)
 
         if opportunity is not None and updated_opportunity is None:
-            del opportunities[alert.ticker]
+            del opportunities[alert.id()]
         if updated_opportunity is not None:
-            opportunities[alert.ticker] = updated_opportunity.__repr__()
-        companies[alert.ticker] = alerts_data[alert_id]
+            opportunities[alert.id()] = updated_opportunity.__repr__()
+        companies[alert.id()] = alerts_data[alert_id]
 
     db.reference(company_path).set(companies)
     db.reference(opportunity_path).set(opportunities)
@@ -144,12 +144,12 @@ def resolve_alert(alert: Company, former_opportunity: Opportunity):
     
     if former_opportunity is None:
         if alert.cci < -1.5:
-            new_opportunity = Opportunity({"ticker": alert.ticker, "edge_price": alert.price, "edge_cci": alert.cci,
+            new_opportunity = Opportunity({"ticker": alert.id(), "edge_price": alert.price, "edge_cci": alert.cci,
                                            "edge_diff": alert.diff, "edge_macd": alert.macd, "signal": "000", })
             logs.append(Log("buy|create(cci<-1.5)", alert, new_opportunity))
 
         if alert.cci > 1.5:
-            new_opportunity = Opportunity({"ticker": alert.ticker, "edge_price": alert.price, "edge_cci": alert.cci,
+            new_opportunity = Opportunity({"ticker": alert.id(), "edge_price": alert.price, "edge_cci": alert.cci,
                                                  "edge_diff": alert.diff, "edge_macd": alert.macd, "signal": "000", })
             logs.append(Log("sell|create(cci>1.5)", alert, new_opportunity))
 

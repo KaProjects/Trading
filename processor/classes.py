@@ -20,6 +20,9 @@ class Company:
     def __str__(self):
         return str(self.__repr__())
 
+    def id(self):
+        return str(self.ticker).replace("$", "")
+
 
 class Opportunity:
     def __init__(self, attributes: dict):
