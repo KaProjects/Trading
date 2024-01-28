@@ -15,8 +15,12 @@ import org.kaleta.dto.TradeDto;
 import org.kaleta.dto.TradeSellDto;
 import org.kaleta.dto.TradesUiDto;
 import org.kaleta.entity.Trade;
+import org.kaleta.model.FirebaseCompany;
+import org.kaleta.service.FirebaseService;
 import org.kaleta.service.TradeService;
 
+import java.math.BigDecimal;
+import java.sql.Date;
 import java.util.List;
 
 @Path("/trade")
@@ -24,6 +28,8 @@ public class TradeResource
 {
     @Inject
     TradeService tradeService;
+    @Inject
+    FirebaseService firebaseService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -40,6 +46,17 @@ public class TradeResource
             if (year != null) Validator.validateYear(year);
         }, () -> {
             List<Trade> trades = tradeService.getTrades(active, companyId, currency, year);
+
+            if (active != null && active) {
+                for (Trade trade : trades) {
+                    if (firebaseService.hasCompany(trade.getTicker())) {
+                        FirebaseCompany firebaseCompany = firebaseService.getCompany(trade.getTicker());
+                        trade.setSellDate(Date.valueOf(firebaseCompany.getTime().split("T")[0]));
+                        trade.setSellPrice(new BigDecimal(firebaseCompany.getPrice()));
+                        trade.setSellFees(trade.getPurchaseFees());
+                    }
+                }
+            }
             TradesUiDto dto = TradesUiDto.from(trades);
             dto.setSums(tradeService.computeSums(trades));
             return dto;

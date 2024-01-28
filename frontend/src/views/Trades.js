@@ -15,16 +15,6 @@ function headerStyle(main, index){
     }
 }
 
-function rowStyle(index){
-    const fontWeight = ([0, 1, 12, 13].includes(index)) ? "bold" : "normal"
-    const textAlign = ([0, 1, 2, 7].includes(index)) ? "center" : "right"
-    const borderLeft = "1px solid lightgrey"
-    const borderRight = ([0, 1, 6, 11, 12, 13].includes(index)) ? "1px solid lightgrey" : "0px"
-    const fontFamily = "Roboto"
-
-    return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily}
-}
-
 const activeStates = ["only active", "only closed"]
 
 const Trades = props => {
@@ -52,6 +42,17 @@ const Trades = props => {
         }
         // eslint-disable-next-line
     }, [data]);
+
+    function rowStyle(index, isProfit){
+        const fontWeight = ([0, 1, 12, 13].includes(index)) ? "bold" : "normal"
+        const textAlign = ([0, 1, 2, 7].includes(index)) ? "center" : "right"
+        const borderLeft = "1px solid lightgrey"
+        const borderRight = ([0, 1, 6, 11, 12, 13].includes(index)) ? "1px solid lightgrey" : "0px"
+        const fontFamily = "Roboto"
+        let color = (props.activeSelectorValue === activeStates[0] && index > 6) ? "#adadad" : "primary"
+        if (isProfit !== undefined) color = isProfit ? "#99bb99" : "#d99595"
+        return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily, color: color}
+    }
 
     function selectCompany(ticker) {
         props.companies.forEach((company) => {if (company.ticker === ticker) {props.setCompanySelectorValue(company)}})
@@ -122,8 +123,8 @@ const Trades = props => {
                                 <TableCell style={rowStyle(9)}>{trade.sellPrice}</TableCell>
                                 <TableCell style={rowStyle(10)}>{trade.sellFees}</TableCell>
                                 <TableCell style={rowStyle(11)}>{trade.sellTotal}</TableCell>
-                                <TableCell style={rowStyle(12)}>{trade.profit}</TableCell>
-                                <TableCell style={rowStyle(13)}>{trade.profitPercentage}</TableCell>
+                                <TableCell style={rowStyle(12, Number(trade.profit) > 0)}>{trade.profit}</TableCell>
+                                <TableCell style={rowStyle(13, Number(trade.profitPercentage) > 0)}>{trade.profitPercentage}</TableCell>
                             </TableRow>
                         ))}
                         <TableRow key={-1} >

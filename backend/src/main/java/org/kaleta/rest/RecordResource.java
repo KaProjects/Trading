@@ -24,6 +24,7 @@ import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.util.List;
 
 import static org.kaleta.Utils.format;
@@ -56,8 +57,10 @@ public class RecordResource
 
                 if (firebaseService.hasCompany(company.getTicker())){
                     FirebaseCompany firebaseCompany = firebaseService.getCompany(company.getTicker());
-                    String date = firebaseCompany.getTime().split("T")[0];
-                    dto.setLatestPrice(new RecordsUiDto.Latest(firebaseCompany.getPrice(), date));
+                    String date = Utils.format(Date.valueOf(firebaseCompany.getTime().split("T")[0]));
+                    if (Utils.compareDtoDates(date, dto.getLatestPrice().getDate()) >= 0){
+                        dto.setLatestPrice(new RecordsUiDto.Latest(firebaseCompany.getPrice(), date));
+                    }
                 }
 
                 for (Trade trade : tradeService.getTrades(true, companyId, null, null))

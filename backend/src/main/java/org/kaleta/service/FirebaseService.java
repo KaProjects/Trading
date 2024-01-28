@@ -36,7 +36,12 @@ public class FirebaseService
             throw new ServiceFailureException(e);
         }
 
-        FirebaseApp app = FirebaseApp.initializeApp(options);
+        FirebaseApp app;
+        if (FirebaseApp.getApps().size() == 0){
+            app = FirebaseApp.initializeApp(options);
+        } else {
+            app = FirebaseApp.getInstance();
+        }
         FirebaseDatabase database = FirebaseDatabase.getInstance(app);
 
         database.getReference("company").addValueEventListener(new ValueEventListener() {
