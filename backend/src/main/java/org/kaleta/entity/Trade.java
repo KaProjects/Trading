@@ -58,7 +58,7 @@ public class Trade extends AbstractEntity
 
     public BigDecimal getSellTotal()
     {
-        return sellPrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP).add(sellFees);
+        return sellPrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP).subtract(sellFees);
     }
 
     public BigDecimal getProfit()

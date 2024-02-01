@@ -57,7 +57,7 @@ class TradeResourceTest
         assertThat(dto.getTrades().get(1).getPurchaseDate(), is("05.04.2023"));
         assertThat(dto.getTrades().get(2).getPurchaseDate(), is("01.11.2022"));
         assertThat(dto.getTrades().get(3).getPurchaseDate(), is("10.05.2021"));
-        assertThat(dto.getSums(), is(new String[]{"9", "4", "", "", "", "407.62", "2590769.35", "", "", "", "100.5", "10240.5", "2532.17", "32.85"}));
+        assertThat(dto.getSums(), is(new String[]{"9", "4", "", "", "", "407.62", "2590769.35", "", "", "", "100.5", "10039.5", "2331.17", "30.24"}));
     }
 
     @Test
@@ -97,7 +97,7 @@ class TradeResourceTest
         assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
         assertThat(dto.getTrades().size(), is(1));
         assertThat(dto.getTrades().get(0).getTicker(), is("SHELL"));
-        assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "18", "2028", "", "", "", "30.5", "3070.5", "1042.5", "51.41"}));
+        assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "18", "2028", "", "", "", "30.5", "3009.5", "981.5", "48.4"}));
     }
 
     @Test
@@ -115,7 +115,7 @@ class TradeResourceTest
         assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
         assertThat(dto.getTrades().size(), is(1));
         assertThat(dto.getTrades().get(0).getTicker(), is("NVDA"));
-        assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "14.5", "2017", "", "", "", "50", "2550", "533", "26.43"}));
+        assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "14.5", "2017", "", "", "", "50", "2450", "433", "21.47"}));
     }
 
     @Test
@@ -154,7 +154,7 @@ class TradeResourceTest
         assertThat(dto.getTrades().get(1).getPurchaseDate(), endsWith("2023"));
         assertThat(dto.getTrades().get(2).getTicker(), is("SHELL"));
         assertThat(dto.getTrades().get(2).getSellDate(), endsWith("2023"));
-        assertThat(dto.getSums(), is(new String[]{"3", "3", "", "", "", "282.62", "579644.35", "", "", "", "80.5", "5620.5", "1575.5", "38.95"}));
+        assertThat(dto.getSums(), is(new String[]{"3", "3", "", "", "", "282.62", "579644.35", "", "", "", "80.5", "5459.5", "1414.5", "34.97"}));
 
     }
 
@@ -190,7 +190,7 @@ class TradeResourceTest
         assertThat(dtoZeroPurchase.getTrades().size(), is(1));
         assertThat(dtoZeroPurchase.getTrades().get(0).getTicker(), is("XXX"));
         assertThat(dtoZeroPurchase.getTrades().get(0).getPurchaseTotal(), is("0"));
-        assertThat(dtoZeroPurchase.getSums(), is(new String[]{"1", "1", "", "", "", "0", "0", "", "", "", "5", "105", "", ""}));
+        assertThat(dtoZeroPurchase.getSums(), is(new String[]{"1", "1", "", "", "", "0", "0", "", "", "", "5", "95", "", ""}));
 
         TradesUiDto dtoZeroSell = given().when()
                 .get("/trade?companyId=0a16ba1d-99de-4306-8fc5-81ee11b60ea0")
@@ -533,6 +533,6 @@ class TradeResourceTest
         assertThat(tradesDto.getTrades().get(3).getSellPrice(), is(nullValue()));
         assertThat(tradesDto.getTrades().get(3).getSellFees(), is(nullValue()));
 
-        assertThat(tradesDto.getSums(), is(new String[]{"1", "1", "", "", "", "30", "6430", "", "", "", "15", "4515", "1001.67", "28.51"}));
+        assertThat(tradesDto.getSums(), is(new String[]{"1", "1", "", "", "", "30", "6430", "", "", "", "15", "4485", "971.67", "27.66"}));
     }
 }
