@@ -123,6 +123,7 @@ const Records = props => {
                             <LatestValueBox label="latest P/S" data={data.latestPs} suffix="" sx={{marginLeft: "10px"}}/>
                             <LatestValueBox label="latest DY" data={data.latestDy} suffix="%" sx={{marginLeft: "10px"}}/>
                             <LatestValueBox label="latest targets" data={data.latestTargets} suffix="" sx={{marginLeft: "10px"}}/>
+                            <Box sx={{ flexGrow: 1 }} />
                             <LatestValueBox label="latest strategy" data={data.latestStrategy} suffix="" sx={{marginLeft: "10px"}}/>
                         </Grid>
 
