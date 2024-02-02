@@ -18,12 +18,12 @@ import {handleError, validateNumber} from "../utils";
 const AddTradeDialog = props => {
     const {handleClose, open} = props
 
-    const [alert, setAlert] = useState(null);
-    const [date, setDate] = useState("");
-    const [price, setPrice] = useState("");
-    const [quantity, setQuantity] = useState("");
-    const [fees, setFees] = useState("");
-    const [company, setCompany] = useState("");
+    const [alert, setAlert] = useState(null)
+    const [date, setDate] = useState("")
+    const [price, setPrice] = useState("")
+    const [quantity, setQuantity] = useState("")
+    const [fees, setFees] = useState("")
+    const [company, setCompany] = useState("")
 
     useEffect(() => {
         if (open) {
@@ -35,7 +35,7 @@ const AddTradeDialog = props => {
             setCompany(props.companySelectorValue)
         }
         // eslint-disable-next-line
-    }, [open]);
+    }, [open])
 
     function createTrade() {
         const tradeData = {companyId: company.id, date: date, price: price, quantity: quantity, fees: fees}

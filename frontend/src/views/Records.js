@@ -22,18 +22,18 @@ function profitColor(profit){
 }
 
 const Records = props => {
-    const [refresh, setRefresh] = useState("");
+    const [refresh, setRefresh] = useState("")
 
     useEffect(() => {
         props.toggleRecordsSelectors()
         // eslint-disable-next-line
     }, []);
 
-    const [data, setData] = useState(null);
-    const [loaded, setLoaded] = useState(false);
-    const [error, setError] = useState(null);
-    const [openAddRecordDialog, setOpenAddRecordDialog] = useState(false);
-    const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false);
+    const [data, setData] = useState(null)
+    const [loaded, setLoaded] = useState(false)
+    const [error, setError] = useState(null)
+    const [openAddRecordDialog, setOpenAddRecordDialog] = useState(false)
+    const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
 
     useEffect(() => {
         if (props.companySelectorValue) {
@@ -48,7 +48,7 @@ const Records = props => {
                 })
         }
         // eslint-disable-next-line
-    }, [props.companySelectorValue, refresh]);
+    }, [props.companySelectorValue, refresh])
 
     function triggerRefresh() {
         setRefresh(new Date().getTime().toString())

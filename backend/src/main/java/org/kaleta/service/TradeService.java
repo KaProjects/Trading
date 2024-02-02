@@ -3,12 +3,9 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.Utils;
-import org.kaleta.dao.CompanyDao;
 import org.kaleta.dao.TradeDao;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeSellDto;
-import org.kaleta.entity.Company;
 import org.kaleta.entity.Currency;
 import org.kaleta.entity.Trade;
 
@@ -28,7 +25,9 @@ public class TradeService
     @Inject
     TradeDao tradeDao;
     @Inject
-    CompanyDao companyDao;
+    CompanyService companyService;
+    @Inject
+    CommonService commonService;
 
     public List<Trade> getTrades(Boolean active, String company, String currency, String year)
     {
@@ -71,17 +70,9 @@ public class TradeService
     public Trade createTrade(TradeCreateDto dto)
     {
         Trade newTrade = new Trade();
-        try {
-            Company company = companyDao.get(dto.getCompanyId());
-            newTrade.setCompany(company);
-        } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + dto.getCompanyId() + "' not found");
-        }
-        if (Utils.isValidDbDate(dto.getDate())){
-            newTrade.setPurchaseDate(Date.valueOf(dto.getDate()));
-        } else {
-            throw new ServiceFailureException("invalid date format '" + dto.getDate() + "' not YYYY-MM-DD");
-        }
+
+        newTrade.setCompany(companyService.getCompany(dto.getCompanyId()));
+        newTrade.setPurchaseDate(commonService.getDbDate(dto.getDate()));
         newTrade.setQuantity(new BigDecimal(dto.getQuantity()));
         newTrade.setPurchasePrice(new BigDecimal(dto.getPrice()));
         newTrade.setPurchaseFees(new BigDecimal(dto.getFees()));
@@ -111,12 +102,7 @@ public class TradeService
             }
         }
 
-        Date date;
-        if (Utils.isValidDbDate(dto.getDate())){
-            date = Date.valueOf(dto.getDate());
-        } else {
-            throw new ServiceFailureException("invalid date format '" + dto.getDate() + "' not YYYY-MM-DD");
-        }
+        Date date = commonService.getDbDate(dto.getDate());
 
         for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {

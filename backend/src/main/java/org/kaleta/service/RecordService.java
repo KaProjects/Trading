@@ -3,16 +3,12 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.Utils;
-import org.kaleta.dao.CompanyDao;
 import org.kaleta.dao.RecordDao;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
-import org.kaleta.entity.Company;
 import org.kaleta.entity.Record;
 
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.util.List;
 
 @ApplicationScoped
@@ -21,7 +17,9 @@ public class RecordService
     @Inject
     RecordDao recordDao;
     @Inject
-    CompanyDao companyDao;
+    CompanyService companyService;
+    @Inject
+    CommonService commonService;
 
     public List<Record> getRecords(String companyId)
     {
@@ -36,13 +34,8 @@ public class RecordService
         } catch (NoResultException e){
             throw new ServiceFailureException("record with id '" + dto.getId() + "' not found");
         }
-        if (dto.getDate() != null) {
-            if (Utils.isValidDbDate(dto.getDate())){
-                record.setDate(Date.valueOf(dto.getDate()));
-            } else {
-                throw new ServiceFailureException("invalid date format '" + dto.getDate() + "' not YYYY-MM-DD");
-            }
-        }
+
+        if (dto.getDate() != null) record.setDate(commonService.getDbDate(dto.getDate()));
         if (dto.getTitle() != null) record.setTitle(dto.getTitle());
         if (dto.getPrice() != null) record.setPrice(new BigDecimal(dto.getPrice()));
         if (dto.getPe() != null) record.setPe(dto.getPe().isBlank() ? null : new BigDecimal(dto.getPe()));
@@ -58,17 +51,9 @@ public class RecordService
     public Record createRecord(RecordCreateDto dto)
     {
         Record newRecord = new Record();
-        try {
-            Company company = companyDao.get(dto.getCompanyId());
-            newRecord.setCompany(company);
-        } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + dto.getCompanyId() + "' not found");
-        }
-        if (Utils.isValidDbDate(dto.getDate())){
-            newRecord.setDate(Date.valueOf(dto.getDate()));
-        } else {
-            throw new ServiceFailureException("invalid date format '" + dto.getDate() + "' not YYYY-MM-DD");
-        }
+
+        newRecord.setCompany(companyService.getCompany(dto.getCompanyId()));
+        newRecord.setDate(commonService.getDbDate(dto.getDate()));
         newRecord.setPrice(new BigDecimal(dto.getPrice()));
         newRecord.setTitle(dto.getTitle());
 

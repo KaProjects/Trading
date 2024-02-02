@@ -18,12 +18,12 @@ import axios from "axios";
 const SellTradeDialog = props => {
     const {handleClose, open} = props
 
-    const [alert, setAlert] = useState(null);
-    const [date, setDate] = useState("");
-    const [price, setPrice] = useState("");
-    const [fees, setFees] = useState("");
-    const [company, setCompany] = useState("");
-    const [trades, setTrades] = useState([]);
+    const [alert, setAlert] = useState(null)
+    const [date, setDate] = useState("")
+    const [price, setPrice] = useState("")
+    const [fees, setFees] = useState("")
+    const [company, setCompany] = useState("")
+    const [trades, setTrades] = useState([])
 
     useEffect(() => {
         if (open) {
@@ -35,7 +35,7 @@ const SellTradeDialog = props => {
             setTrades([])
         }
         // eslint-disable-next-line
-    }, [open]);
+    }, [open])
 
 
     function sellTrade() {

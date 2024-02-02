@@ -67,12 +67,8 @@ public class CompanyService
 
     public void updateCompany(CompanyDto companyDto)
     {
-        Company company;
-        try {
-            company = companyDao.get(companyDto.getId());
-        } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + companyDto.getId() + "' not found");
-        }
+        Company company = getCompany(companyDto.getId());
+
         if (companyDto.getWatching() != null) company.setWatching(companyDto.getWatching());
 
         companyDao.store(company);

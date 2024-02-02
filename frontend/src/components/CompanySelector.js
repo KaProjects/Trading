@@ -11,7 +11,7 @@ const showStates = ["all", "none", "watching", "no-strategy", "deprecated"]
 const CompanySelector = (props) => {
     const {refresh} = props
     const {data, loaded, error} = useData("/company/lists" + (refresh ? "?refresh" + refresh : ""))
-    const [state, setState] = useState(showStates[0]);
+    const [state, setState] = useState(showStates[0])
 
     useEffect(() => {
         if (!props.companySelectorValue) {
@@ -20,7 +20,7 @@ const CompanySelector = (props) => {
             if (state === showStates[0]) setState(showStates[1])
         }
         // eslint-disable-next-line
-    }, [props.companySelectorValue]);
+    }, [props.companySelectorValue])
 
     function handleCompanyClick(companyId, state) {
         props.companies.forEach((company) => {if (company.id === companyId) {props.setCompanySelectorValue(company)}})

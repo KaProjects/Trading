@@ -2,17 +2,12 @@ package org.kaleta.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.NoResultException;
-import org.kaleta.Utils;
-import org.kaleta.dao.CompanyDao;
 import org.kaleta.dao.DividendDao;
 import org.kaleta.dto.DividendCreateDto;
-import org.kaleta.entity.Company;
 import org.kaleta.entity.Currency;
 import org.kaleta.entity.Dividend;
 
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +20,9 @@ public class DividendService
     @Inject
     DividendDao dividendDao;
     @Inject
-    CompanyDao companyDao;
+    CompanyService companyService;
+    @Inject
+    CommonService commonService;
 
     public List<Dividend> getDividends(String company, String currency, String year)
     {
@@ -54,17 +51,9 @@ public class DividendService
     public Dividend createDividend(DividendCreateDto dto)
     {
         Dividend newDividend = new Dividend();
-        try {
-            Company company = companyDao.get(dto.getCompanyId());
-            newDividend.setCompany(company);
-        } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + dto.getCompanyId() + "' not found");
-        }
-        if (Utils.isValidDbDate(dto.getDate())){
-            newDividend.setDate(Date.valueOf(dto.getDate()));
-        } else {
-            throw new ServiceFailureException("invalid date format '" + dto.getDate() + "' not YYYY-MM-DD");
-        }
+
+        newDividend.setCompany(companyService.getCompany(dto.getCompanyId()));
+        newDividend.setDate(commonService.getDbDate(dto.getDate()));
         newDividend.setDividend(new BigDecimal(dto.getDividend()));
         newDividend.setTax(new BigDecimal(dto.getTax()));
 

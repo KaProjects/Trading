@@ -7,10 +7,10 @@ import {handleError, validateNumber} from "../utils";
 
 const AddRecordDialog = props => {
     const {companyId, open, handleClose} = props
-    const [alert, setAlert] = useState(null);
-    const [title, setTitle] = useState("");
-    const [date, setDate] = useState("");
-    const [price, setPrice] = useState("");
+    const [alert, setAlert] = useState(null)
+    const [title, setTitle] = useState("")
+    const [date, setDate] = useState("")
+    const [price, setPrice] = useState("")
 
     useEffect(() => {
         if (open) {
@@ -19,7 +19,7 @@ const AddRecordDialog = props => {
             setPrice("")
         }
         // eslint-disable-next-line
-    }, [open]);
+    }, [open])
 
     function createRecord() {
         const data = {companyId: companyId, title: title, date: date, price: price}

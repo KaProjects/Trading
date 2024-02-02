@@ -18,8 +18,8 @@ const ContentEditor = (props) => {
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const editor = useMemo(() => withHistory(withReact(createEditor())), [])
 
-    const [editing, setEditing] = useState(false);
-    const [value, setValue] = useState(DEFAULT_VALUE);
+    const [editing, setEditing] = useState(false)
+    const [value, setValue] = useState(DEFAULT_VALUE)
 
     function handleUnFocus() {
         setEditing(false)

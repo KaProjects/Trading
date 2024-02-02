@@ -12,11 +12,11 @@ const EditableTypography = props => {
 
     const style = {color: 'text.primary', fontWeight: 'medium', fontSize: 20, }
 
-    const [editing, setEditing] = useState(false);
-    const [showValue, setShowValue] = useState(value ? value : "");
-    const [editValue, setEditValue] = useState(value ? value : "");
+    const [editing, setEditing] = useState(false)
+    const [showValue, setShowValue] = useState(value ? value : "")
+    const [editValue, setEditValue] = useState(value ? value : "")
 
-    const [alert, setAlert] = useState(null);
+    const [alert, setAlert] = useState(null)
 
     function handleUnFocus() {
         setEditing(false)
