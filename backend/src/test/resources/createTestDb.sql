@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS Dividend;
 DROP TABLE IF EXISTS Trade;
 DROP TABLE IF EXISTS Record;
 DROP TABLE IF EXISTS Company;
@@ -8,6 +9,15 @@ CREATE TABLE Company
     ticker   CHAR(5)     NOT NULL,
     currency CHAR(1)     NOT NULL,
     watching BOOL        NOT NULL
+);
+CREATE TABLE Dividend
+(
+    id             VARCHAR(36)    NOT NULL PRIMARY KEY,
+    date           DATE           NOT NULL,
+    dividend          DECIMAL(7, 2)  NOT NULL,
+    tax            DECIMAL(6, 2)  NOT NULL,
+    companyId VARCHAR(36) NOT NULL,
+    CONSTRAINT `fk_dividendCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Trade
 (
@@ -87,4 +97,9 @@ INSERT INTO Record (id, companyId, date, title, price, ps, dy) VALUES ('675574fe
 INSERT INTO Record (id, companyId, date, title, price, dy, targets) VALUES ('d0ccae7d-af8c-4625-8ca3-e9628765df4f', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-07-01', 'latest targets', '90', '1', '10-5~7');
 INSERT INTO Record (id, companyId, date, title, price, targets, strategy) VALUES ('0ac349c6-431d-4379-a2aa-2a8d4ba9c3ca', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-06-01', 'latest strategy', '70', '8-4~6', 'strat');
 
+
+INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('bff10473-3d42-45ae-965b-2f0d11e2d40d', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '2021-06-01', '70', '7');
+INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('24a17552-c52a-4497-8b0e-8628d6847efc', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '2022-12-01', '80', '8');
+INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('8f683c27-f334-41b1-9406-189d62ae2171', '61cc8096-87ac-4197-8b54-7c2595274bcc', '2021-12-01', '1000', '100');
+INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('719c545d-26d6-4437-8e1a-e1eea53b3967', '66c725b2-9987-4653-a49c-3a9906168d2a', '2020-12-01', '1000', '100');
 

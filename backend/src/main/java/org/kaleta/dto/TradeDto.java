@@ -1,7 +1,6 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.Constants;
 import org.kaleta.Utils;
 import org.kaleta.entity.Currency;
 import org.kaleta.entity.Trade;

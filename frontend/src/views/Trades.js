@@ -18,7 +18,7 @@ function headerStyle(main, index){
 const activeStates = ["only active", "only closed"]
 
 const Trades = props => {
-    const [refresh, setRefresh] = useState("");
+    const [refresh, setRefresh] = useState("")
     const {data, loaded, error} = useData("/trade" + constructQueryParams())
 
     function constructQueryParams(){
@@ -41,7 +41,7 @@ const Trades = props => {
             props.toggleTradesSelectors(activeStates, [...currencies],[...years].sort().reverse())
         }
         // eslint-disable-next-line
-    }, [data]);
+    }, [data])
 
     function rowStyle(index, isProfit){
         const fontWeight = ([0, 1, 12, 13].includes(index)) ? "bold" : "normal"
@@ -79,7 +79,7 @@ const Trades = props => {
         {loaded &&
             <>
             <AddTradeDialog open={props.openAddTrade}
-                            handleClose={(trade) => handleAddTradeDialogClose(trade)}
+                            handleClose={() => handleAddTradeDialogClose()}
                             {...props}
             />
             <SellTradeDialog open={props.openSellTrade}

@@ -28,49 +28,49 @@ public class RecordService
         return recordDao.list(companyId);
     }
 
-    public void updateRecord(RecordDto recordDto)
+    public void updateRecord(RecordDto dto)
     {
         Record record;
         try {
-            record = recordDao.get(recordDto.getId());
+            record = recordDao.get(dto.getId());
         } catch (NoResultException e){
-            throw new ServiceFailureException("record with id '" + recordDto.getId() + "' not found");
+            throw new ServiceFailureException("record with id '" + dto.getId() + "' not found");
         }
-        if (recordDto.getDate() != null) {
-            if (Utils.isValidDbDate(recordDto.getDate())){
-                record.setDate(Date.valueOf(recordDto.getDate()));
+        if (dto.getDate() != null) {
+            if (Utils.isValidDbDate(dto.getDate())){
+                record.setDate(Date.valueOf(dto.getDate()));
             } else {
-                throw new ServiceFailureException("invalid date format '" + recordDto.getDate() + "' not YYYY-MM-DD");
+                throw new ServiceFailureException("invalid date format '" + dto.getDate() + "' not YYYY-MM-DD");
             }
         }
-        if (recordDto.getTitle() != null) record.setTitle(recordDto.getTitle());
-        if (recordDto.getPrice() != null) record.setPrice(new BigDecimal(recordDto.getPrice()));
-        if (recordDto.getPe() != null) record.setPe(recordDto.getPe().isBlank() ? null : new BigDecimal(recordDto.getPe()));
-        if (recordDto.getPs() != null) record.setPs(recordDto.getPs().isBlank() ? null : new BigDecimal(recordDto.getPs()));
-        if (recordDto.getDy() != null) record.setDy(recordDto.getDy().isBlank() ? null : new BigDecimal(recordDto.getDy()));
-        if (recordDto.getTargets() != null) record.setTargets(recordDto.getTargets());
-        if (recordDto.getContent() != null) record.setContent(recordDto.getContent());
-        if (recordDto.getStrategy() != null) record.setStrategy(recordDto.getStrategy());
+        if (dto.getTitle() != null) record.setTitle(dto.getTitle());
+        if (dto.getPrice() != null) record.setPrice(new BigDecimal(dto.getPrice()));
+        if (dto.getPe() != null) record.setPe(dto.getPe().isBlank() ? null : new BigDecimal(dto.getPe()));
+        if (dto.getPs() != null) record.setPs(dto.getPs().isBlank() ? null : new BigDecimal(dto.getPs()));
+        if (dto.getDy() != null) record.setDy(dto.getDy().isBlank() ? null : new BigDecimal(dto.getDy()));
+        if (dto.getTargets() != null) record.setTargets(dto.getTargets());
+        if (dto.getContent() != null) record.setContent(dto.getContent());
+        if (dto.getStrategy() != null) record.setStrategy(dto.getStrategy());
 
         recordDao.save(record);
     }
 
-    public Record createRecord(RecordCreateDto recordCreateDto)
+    public Record createRecord(RecordCreateDto dto)
     {
         Record newRecord = new Record();
         try {
-            Company company = companyDao.get(recordCreateDto.getCompanyId());
+            Company company = companyDao.get(dto.getCompanyId());
             newRecord.setCompany(company);
         } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + recordCreateDto.getCompanyId() + "' not found");
+            throw new ServiceFailureException("company with id '" + dto.getCompanyId() + "' not found");
         }
-        if (Utils.isValidDbDate(recordCreateDto.getDate())){
-            newRecord.setDate(Date.valueOf(recordCreateDto.getDate()));
+        if (Utils.isValidDbDate(dto.getDate())){
+            newRecord.setDate(Date.valueOf(dto.getDate()));
         } else {
-            throw new ServiceFailureException("invalid date format '" + recordCreateDto.getDate() + "' not YYYY-MM-DD");
+            throw new ServiceFailureException("invalid date format '" + dto.getDate() + "' not YYYY-MM-DD");
         }
-        newRecord.setPrice(new BigDecimal(recordCreateDto.getPrice()));
-        newRecord.setTitle(recordCreateDto.getTitle());
+        newRecord.setPrice(new BigDecimal(dto.getPrice()));
+        newRecord.setTitle(dto.getTitle());
 
         recordDao.create(newRecord);
 

@@ -86,10 +86,10 @@ public class TradeDaoImpl implements TradeDao
     }
 
     @Override
-    public Trade get(String tradeId)
+    public Trade get(String id)
     {
         return entityManager.createQuery(selectQuery + " WHERE t.id=:tradeId", Trade.class)
-                .setParameter("tradeId", tradeId)
+                .setParameter("tradeId", id)
                 .getSingleResult();
     }
 

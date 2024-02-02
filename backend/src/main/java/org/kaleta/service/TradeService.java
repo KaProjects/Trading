@@ -68,34 +68,34 @@ public class TradeService
                 format(sellFeesSum), format(sellTotalSum), profit, profitPercentage};
     }
 
-    public Trade createTrade(TradeCreateDto tradeCreateDto)
+    public Trade createTrade(TradeCreateDto dto)
     {
         Trade newTrade = new Trade();
         try {
-            Company company = companyDao.get(tradeCreateDto.getCompanyId());
+            Company company = companyDao.get(dto.getCompanyId());
             newTrade.setCompany(company);
         } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + tradeCreateDto.getCompanyId() + "' not found");
+            throw new ServiceFailureException("company with id '" + dto.getCompanyId() + "' not found");
         }
-        if (Utils.isValidDbDate(tradeCreateDto.getDate())){
-            newTrade.setPurchaseDate(Date.valueOf(tradeCreateDto.getDate()));
+        if (Utils.isValidDbDate(dto.getDate())){
+            newTrade.setPurchaseDate(Date.valueOf(dto.getDate()));
         } else {
-            throw new ServiceFailureException("invalid date format '" + tradeCreateDto.getDate() + "' not YYYY-MM-DD");
+            throw new ServiceFailureException("invalid date format '" + dto.getDate() + "' not YYYY-MM-DD");
         }
-        newTrade.setQuantity(new BigDecimal(tradeCreateDto.getQuantity()));
-        newTrade.setPurchasePrice(new BigDecimal(tradeCreateDto.getPrice()));
-        newTrade.setPurchaseFees(new BigDecimal(tradeCreateDto.getFees()));
+        newTrade.setQuantity(new BigDecimal(dto.getQuantity()));
+        newTrade.setPurchasePrice(new BigDecimal(dto.getPrice()));
+        newTrade.setPurchaseFees(new BigDecimal(dto.getFees()));
 
         tradeDao.create(newTrade);
 
         return tradeDao.get(newTrade.getId());
     }
 
-    public void sellTrade(TradeSellDto tradeSellDto)
+    public void sellTrade(TradeSellDto dto)
     {
         List<Trade> trades = new ArrayList<>();
         BigDecimal totalSellQuantity = new BigDecimal(0);
-        for (TradeSellDto.Trade tradeDto : tradeSellDto.getTrades())
+        for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {
             try {
                 Trade trade = tradeDao.get(tradeDto.getTradeId());
@@ -112,13 +112,13 @@ public class TradeService
         }
 
         Date date;
-        if (Utils.isValidDbDate(tradeSellDto.getDate())){
-            date = Date.valueOf(tradeSellDto.getDate());
+        if (Utils.isValidDbDate(dto.getDate())){
+            date = Date.valueOf(dto.getDate());
         } else {
-            throw new ServiceFailureException("invalid date format '" + tradeSellDto.getDate() + "' not YYYY-MM-DD");
+            throw new ServiceFailureException("invalid date format '" + dto.getDate() + "' not YYYY-MM-DD");
         }
 
-        for (TradeSellDto.Trade tradeDto : tradeSellDto.getTrades())
+        for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {
             Trade trade = trades.stream().filter(t -> t.getId().equals(tradeDto.getTradeId())).findFirst().get();
 
@@ -142,8 +142,8 @@ public class TradeService
                 trade.setPurchaseFees(trade.getPurchaseFees().subtract(residualFees));
             }
             trade.setSellDate(date);
-            trade.setSellPrice(new BigDecimal(tradeSellDto.getPrice()));
-            trade.setSellFees(new BigDecimal(tradeSellDto.getFees()).multiply(sellQuantity).divide(totalSellQuantity, 2, RoundingMode.HALF_UP));
+            trade.setSellPrice(new BigDecimal(dto.getPrice()));
+            trade.setSellFees(new BigDecimal(dto.getFees()).multiply(sellQuantity).divide(totalSellQuantity, 2, RoundingMode.HALF_UP));
         }
 
         tradeDao.saveAll(trades);

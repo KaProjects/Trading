@@ -8,10 +8,11 @@ import Records from "./views/Records";
 import {domain} from "./properties";
 import axios from "axios";
 import {handleError} from "./utils";
+import Dividends from "./views/Dividends";
 
 class App extends Component {
     constructor(props) {
-        super(props);
+        super(props)
 
         this.state = {
             companies: [],
@@ -21,8 +22,10 @@ class App extends Component {
             showYearSelector: null,      // null = false, true otherwise
             showAddTradeButton: false,
             showSellTradeButton: false,
+            showAddDividendButton: false,
             toggleTradesSelectors: this.toggleTradesSelectors.bind(this),
             toggleRecordsSelectors: this.toggleRecordsSelectors.bind(this),
+            toggleDividendsSelectors: this.toggleDividendsSelectors.bind(this),
             activeSelectorValue: "",
             setActiveSelectorValue: this.setActiveSelectorValue.bind(this),
             companySelectorValue: "",
@@ -35,16 +38,20 @@ class App extends Component {
             setOpenAddTrade: this.setOpenAddTrade.bind(this),
             openSellTrade: false,
             setOpenSellTrade: this.setOpenSellTrade.bind(this),
+            openAddDividend: false,
+            setOpenAddDividend: this.setOpenAddDividend.bind(this),
         }
 
-        this.toggleTradesSelectors = this.toggleTradesSelectors.bind(this);
-        this.toggleRecordsSelectors = this.toggleRecordsSelectors.bind(this);
-        this.setActiveSelectorValue = this.setActiveSelectorValue.bind(this);
-        this.setCompanySelectorValue = this.setCompanySelectorValue.bind(this);
-        this.setCurrencySelectorValue = this.setCurrencySelectorValue.bind(this);
-        this.setYearSelectorValue = this.setYearSelectorValue.bind(this);
-        this.setOpenAddTrade = this.setOpenAddTrade.bind(this);
-        this.setOpenSellTrade = this.setOpenSellTrade.bind(this);
+        this.toggleTradesSelectors = this.toggleTradesSelectors.bind(this)
+        this.toggleRecordsSelectors = this.toggleRecordsSelectors.bind(this)
+        this.toggleDividendsSelectors = this.toggleDividendsSelectors.bind(this)
+        this.setActiveSelectorValue = this.setActiveSelectorValue.bind(this)
+        this.setCompanySelectorValue = this.setCompanySelectorValue.bind(this)
+        this.setCurrencySelectorValue = this.setCurrencySelectorValue.bind(this)
+        this.setYearSelectorValue = this.setYearSelectorValue.bind(this)
+        this.setOpenAddTrade = this.setOpenAddTrade.bind(this)
+        this.setOpenSellTrade = this.setOpenSellTrade.bind(this)
+        this.setOpenAddDividend = this.setOpenAddDividend.bind(this)
     }
 
     toggleTradesSelectors(actives, currencies, years) {
@@ -58,6 +65,13 @@ class App extends Component {
 
     toggleRecordsSelectors() {
         this.setState({showCompanySelector: true})
+    }
+
+    toggleDividendsSelectors(currencies, years) {
+        this.setState({showCompanySelector: true})
+        this.setState({showCurrencySelector: currencies})
+        this.setState({showYearSelector: years})
+        this.setState({showAddDividendButton: true})
     }
 
     setActiveSelectorValue(value) {
@@ -84,6 +98,10 @@ class App extends Component {
         this.setState({openSellTrade: value})
     }
 
+    setOpenAddDividend(value) {
+        this.setState({openAddDividend: value})
+    }
+
     componentDidMount() {
         axios.get(domain + "/company")
             .then((response) => {
@@ -96,7 +114,7 @@ class App extends Component {
             <div style={{position: "absolute", top: "25%", left: "50%", transform: "translate(-50%, -50%)"}}>
                 <h2>404 Page not found</h2>
             </div>
-        );
+        )
     }
 
     render() {
@@ -108,6 +126,7 @@ class App extends Component {
                         <Route exact path="/" element={<Home {...this.state}/>}/>
                         <Route exact path="/trades" element={<Trades {...this.state}/>}/>
                         <Route exact path="/records" element={<Records {...this.state}/>}/>
+                        <Route exact path="/dividends" element={<Dividends {...this.state}/>}/>
                         <Route path="*" element={this.PageNotFound()}/>
                     </Routes>
                 </BrowserRouter>

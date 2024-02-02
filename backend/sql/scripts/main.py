@@ -1,4 +1,3 @@
-import sys
 import uuid
 
 
@@ -23,6 +22,14 @@ class Trade:
     sellDate: str = None
     sellPrice: str = None
     sellFees: str = None
+
+
+class Dividend:
+    ticker: str = None
+    currency: str = None
+    date: str = None
+    value: str = None
+    tax: str = None
 
 
 def format_date(date: str):
@@ -61,7 +68,25 @@ def process():
         trades.append(trade)
     print("# found " + str(len(trades)) + " trades")
 
-    file = open("trade.sql", "w")
+    file_dividend = open("dividend.tsv", "r")
+    data_dividend = file_dividend.read()
+    file_dividend.close()
+    print("# file dividend.tsv successfully loaded")
+
+    lines_dividend = data_dividend.split("\n")
+    dividends = list()
+    for line in lines_dividend:
+        values = line.split("\t")
+        dividend = Dividend()
+        dividend.ticker = values[1]
+        dividend.currency = values[2]
+        dividend.date = format_date(values[3])
+        dividend.value = format_decimal(values[4])
+        dividend.tax = format_decimal(values[5])
+        dividends.append(dividend)
+    print("# found " + str(len(dividends)) + " dividends")
+
+    file = open("data.sql", "w")
 
     companies_map = dict()
     for trade in trades:
@@ -99,7 +124,16 @@ def process():
 
     print("# prepared " + str(counter_trades) + " trade sql inserts")
     print("# prepared " + str(counter_records) + " record sql inserts")
-    print("# generated trade.sql successfully")
+
+    counter_dividends = 0
+    for dividend in dividends:
+        file.write("INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}');"
+                   .format(str(uuid.uuid4()), companies_map[dividend.ticker].id, dividend.date, dividend.value, dividend.tax))
+        counter_dividends += 1
+
+    print("# prepared " + str(counter_dividends) + " dividend sql inserts")
+
+    print("# generated data.sql successfully")
     file.close()
 
 

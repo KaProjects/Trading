@@ -11,12 +11,10 @@ import lombok.Data;
 @Table(name = "Company")
 public class Company extends AbstractEntity
 {
-    @Column(name = "ticker")
-    @NotNull
+    @Column(name = "ticker", nullable = false)
     private String ticker;
 
-    @Column(name = "currency")
-    @NotNull
+    @Column(name = "currency", nullable = false)
     private String currency;
 
     @Column(name = "watching")

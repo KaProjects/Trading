@@ -31,6 +31,11 @@ const MainBar = props => {
                                 <ControlPointIcon sx={{color: 'lightgreen'}}/>
                             </Button>
                         }
+                        {props.showAddDividendButton &&
+                            <Button onClick={() => props.setOpenAddDividend(true)} sx={{marginRight: "25px"}}>
+                                <ControlPointIcon sx={{color: 'lightgreen'}}/>
+                            </Button>
+                        }
                         {props.showActiveSelector !== null &&
                             <MainBarSelect values={props.showActiveSelector}
                                            value={props.activeSelectorValue}

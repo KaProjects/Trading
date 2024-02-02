@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS Dividend;
 DROP TABLE IF EXISTS Trade;
 DROP TABLE IF EXISTS Record;
 DROP TABLE IF EXISTS Company;
@@ -8,6 +9,15 @@ CREATE TABLE Company
     ticker   CHAR(5)     NOT NULL,
     currency CHAR(1)     NOT NULL,
     watching BOOL        NOT NULL
+);
+CREATE TABLE Dividend
+(
+    id             VARCHAR(36)    NOT NULL PRIMARY KEY,
+    date           DATE           NOT NULL,
+    dividend          DECIMAL(7, 2)  NOT NULL,
+    tax            DECIMAL(6, 2)  NOT NULL,
+    companyId VARCHAR(36) NOT NULL,
+    CONSTRAINT `fk_dividendCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Trade
 (

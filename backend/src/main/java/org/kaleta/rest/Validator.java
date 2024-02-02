@@ -2,6 +2,7 @@ package org.kaleta.rest;
 
 import jakarta.ws.rs.core.Response;
 import org.kaleta.Utils;
+import org.kaleta.dto.DividendCreateDto;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.dto.TradeCreateDto;
@@ -120,6 +121,20 @@ public class Validator
 
             validateUuid(trade.getTradeId());
         }
+    }
+
+    public static void validateCreateDividendDto(DividendCreateDto dto)
+    {
+        if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+
+        if (dto.getDividend() == null || !isBigDecimal(dto.getDividend(), 7, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Dividend: '" + dto.getDividend() + "'");
+
+        if (dto.getTax() == null || !isBigDecimal(dto.getTax(), 6, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Tax: '" + dto.getTax() + "'");
+
+        validateUuid(dto.getCompanyId());
     }
 
     private static boolean isBigDecimal(String value, int lengthConstraint, int decimalConstraint){
