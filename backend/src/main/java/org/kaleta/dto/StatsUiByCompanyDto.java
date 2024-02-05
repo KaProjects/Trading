@@ -21,7 +21,6 @@ public class StatsUiByCompanyDto
     {
         private String ticker;
         private Currency currency;
-
         private String purchaseSum;
         private String sellSum;
         private String dividendSum;

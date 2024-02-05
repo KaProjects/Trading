@@ -1,5 +1,5 @@
 import React from "react";
-import {AppBar, Box, Button, IconButton, Toolbar, Typography} from "@mui/material";
+import {AppBar, Box, Button, IconButton, Tab, Tabs, Toolbar, Typography} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import MainBarSelect from "./MainBarSelect";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
@@ -21,6 +21,17 @@ const MainBar = props => {
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
                     <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+                        {props.showStatsTabs &&
+                            <Tabs value={props.statsTabsIndex}
+                                  onChange={(event, value) => props.setStatsTabsIndex(value)}
+                                  TabIndicatorProps={{style: {backgroundColor: "white"}}}
+                                  textColor="inherit"
+                            >
+                                <Tab label="Companies"/>
+                                <Tab label="Monthly"/>
+                                <Tab label="Yearly" disabled />
+                            </Tabs>
+                        }
                         {props.showSellTradeButton &&
                             <Button onClick={() => props.setOpenSellTrade(true)} sx={{}}>
                                 <RemoveCircleOutlineIcon sx={{color: '#ff9f9f',}}/>
