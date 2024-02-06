@@ -10,7 +10,7 @@ const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
 const Stats = props => {
 
     useEffect(() => {
-        props.toggleStatsSelectors([])
+        props.toggleStatsSelectors(null, false)
         // eslint-disable-next-line
     }, [])
 
@@ -19,19 +19,15 @@ const Stats = props => {
         const {data, loaded, error} = useData("/stats/" + type + constructQueryParams())
 
         function constructQueryParams(){
-            return props.currencySelectorValue ? "?currency=" + props.currencySelectorValue : ""
+            return props.yearSelectorValue ? "?year=" + props.yearSelectorValue : ""
         }
 
-        // useEffect(() => {
-        //     if (data && (!props.showCurrencySelector || props.showCurrencySelector.length === 0)){
-        //         const currencies = new Set([]);
-        //         data.rows.forEach((company) => {
-        //             currencies.add(company.currency)
-        //         })
-        //         props.toggleStatsSelectors()
-        //     }
-        //     // eslint-disable-next-line
-        // }, [data])
+        useEffect(() => {
+            if (data && !props.showYearSelector){
+                props.toggleStatsSelectors(data.years, false)
+            }
+            // eslint-disable-next-line
+        }, [data])
 
         function rowStyle(index){
             const fontWeight = ([6, 7].includes(index)) ? "bold" : "normal"
@@ -90,19 +86,15 @@ const Stats = props => {
         const {data, loaded, error} = useData("/stats/" + type + constructQueryParams())
 
         function constructQueryParams(){
-            return props.currencySelectorValue ? "?currency=" + props.currencySelectorValue : ""
+            return props.companySelectorValue ? "?companyId=" + props.companySelectorValue.id : ""
         }
 
-        // useEffect(() => {
-        //     if (data && (!props.showCurrencySelector || props.showCurrencySelector.length === 0)){
-        //         const currencies = new Set([]);
-        //         data.rows.forEach((company) => {
-        //             currencies.add(company.currency)
-        //         })
-        //         props.toggleStatsSelectors([...currencies])
-        //     }
-        //     // eslint-disable-next-line
-        // }, [data])
+        useEffect(() => {
+            if (data && !props.showCompanySelector){
+                props.toggleStatsSelectors(null, true)
+            }
+            // eslint-disable-next-line
+        }, [data])
 
         function rowStyle(index, rIndex){
             const fontWeight = ([].includes(index)) ? "bold" : "normal"
@@ -110,7 +102,8 @@ const Stats = props => {
             const border = "1px solid lightgrey"
             const fontFamily = "Roboto"
             const color = "primary"
-            const bottomBorder = (rIndex + (12 - new Date().getMonth())) % 12 === 0 ? "1px solid black" : null
+            const isCurrentYear = rIndex !== undefined && Number(data.rows[0].month.split(".")[1]) === new Date().getFullYear();
+            const bottomBorder = (rIndex + (isCurrentYear ? (12 - new Date().getMonth()) : 1)) % 12 === 0 ? "1px solid black" : null
             return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: border, borderRight: border, borderBottom: bottomBorder,fontFamily: fontFamily, color: color}
         }
 

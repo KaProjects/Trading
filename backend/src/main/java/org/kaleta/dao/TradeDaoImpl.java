@@ -21,7 +21,7 @@ public class TradeDaoImpl implements TradeDao
     private final String selectQuery = "SELECT t FROM Trade t";
 
     @Override
-    public List<Trade> list(Boolean active, String companyId, String currency, String year)
+    public List<Trade> list(Boolean active, String companyId, String currency, String purchaseYear, String sellYear)
     {
         String joinWord = " WHERE ";
         String activeCondition = "";
@@ -47,8 +47,16 @@ public class TradeDaoImpl implements TradeDao
         }
 
         String yearCondition = "";
-        if (year != null){
-            yearCondition = joinWord + "(CONVERT(YEAR(t.purchaseDate),CHAR(4))=:year OR (t.sellDate IS NOT NULL AND CONVERT(YEAR(t.sellDate),CHAR(4))=:year))";
+        if (purchaseYear != null){
+            if (sellYear != null){
+                yearCondition = joinWord + "(CONVERT(YEAR(t.purchaseDate),CHAR(4))=:purchaseYear OR (t.sellDate IS NOT NULL AND CONVERT(YEAR(t.sellDate),CHAR(4))=:sellYear))";
+            } else {
+                yearCondition = joinWord + "CONVERT(YEAR(t.purchaseDate),CHAR(4))=:purchaseYear";
+            }
+        } else {
+            if (sellYear != null){
+                yearCondition = joinWord + "(t.sellDate IS NOT NULL AND CONVERT(YEAR(t.sellDate),CHAR(4))=:sellYear)";
+            }
         }
 
         TypedQuery<Trade> query = entityManager.createQuery(selectQuery
@@ -59,7 +67,8 @@ public class TradeDaoImpl implements TradeDao
 
         if (companyId != null ) query.setParameter("companyId", companyId);
         if (currency != null ) query.setParameter("currency", currency);
-        if (year != null ) query.setParameter("year", year);
+        if (purchaseYear != null ) query.setParameter("purchaseYear", purchaseYear);
+        if (sellYear != null ) query.setParameter("sellYear", sellYear);
 
         return query.getResultList();
     }

@@ -63,7 +63,7 @@ public class RecordResource
                     }
                 }
 
-                for (Trade trade : tradeService.getTrades(true, companyId, null, null))
+                for (Trade trade : tradeService.getTrades(true, companyId, null, null, null))
                 {
                     RecordsUiDto.Own own = new RecordsUiDto.Own();
                     own.setQuantity(format(trade.getQuantity()));

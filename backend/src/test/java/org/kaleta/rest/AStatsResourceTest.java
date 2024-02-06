@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.kaleta.dto.StatsUiByCompanyDto;
 import org.kaleta.dto.StatsUiByMonthDto;
 import org.kaleta.entity.Currency;
+import org.kaleta.framework.Assert;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -15,6 +16,18 @@ import static org.hamcrest.Matchers.is;
 @QuarkusTest
 class AStatsResourceTest
 {
+    @Test
+    void parameterValidator()
+    {
+        Assert.get400("/stats/company?year=" + "20x2", "Invalid Year Parameter");
+        Assert.get400("/stats/company?year=" + "20222", "Invalid Year Parameter");
+        Assert.get400("/stats/company?year=" + "202", "Invalid Year Parameter");
+        Assert.get400("/stats/company?year=", "Invalid Year Parameter");
+
+        Assert.get400("/stats/monthly?companyId=" + "AAAAAA", "Invalid UUID Parameter");
+        Assert.get400("/stats/monthly?companyId=", "Invalid UUID Parameter");
+    }
+
     @Test
     void getCompanies()
     {
@@ -48,6 +61,29 @@ class AStatsResourceTest
     }
 
     @Test
+    void getCompaniesFilterYear()
+    {
+        StatsUiByCompanyDto dto = given().when()
+                .get("/stats/company?year=2023")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", StatsUiByCompanyDto.class);
+
+        assertThat(dto.getColumns().size(), is(8));
+        assertThat(dto.getColumns().get(1), is("#"));
+        assertThat(dto.getRows().size(), is(1));
+        assertThat(dto.getRows().get(0).getTicker(), is("SHELL"));
+        assertThat(dto.getRows().get(0).getCurrency(), is(Currency.€));
+        assertThat(dto.getRows().get(0).getPurchaseSum(), is("2028"));
+        assertThat(dto.getRows().get(0).getSellSum(), is("3009.5"));
+        assertThat(dto.getRows().get(0).getDividendSum(), is("0"));
+        assertThat(dto.getRows().get(0).getProfit(), is("981.5"));
+        assertThat(dto.getRows().get(0).getProfitPercentage(), is("48.4"));
+        assertThat(dto.getSums(), is(new String[]{"1", "1", "2028", "3009.5", "0", "981.5", "1079.65", "48.4"}));
+    }
+
+    @Test
     void getMonthly()
     {
         StatsUiByMonthDto dto = given().when()
@@ -77,5 +113,25 @@ class AStatsResourceTest
         assertThat(dto.getRows().get(24 -(12-offset)).getTradesProfitPercentage(), is(""));
         assertThat(dto.getRows().get(24 -(12-offset)).getDividendSum(), is("72"));
         assertThat(dto.getSums(), is(new String[]{String.valueOf(5 * 12 + offset), "4", "1510.29", "35.5", "1073.7"}));
+    }
+
+    @Test
+    void getMonthlyFilterCompany()
+    {
+        StatsUiByMonthDto dto = given().when()
+                .get("/stats/monthly?companyId=4efe9235-0c00-4b51-aa81-f2febbb65232")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", StatsUiByMonthDto.class);
+
+        assertThat(dto.getColumns().size(), is(3));
+        assertThat(dto.getColumns().get(1).getSubColumns().size(), is(3));
+        assertThat(dto.getRows().size(), is(12));
+        assertThat(dto.getRows().get(0).getMonth(), is("12.2023"));
+        assertThat(dto.getRows().get(0).getTradesCount(), is("1"));
+        assertThat(dto.getRows().get(0).getTradesProfit(), is("1079.65"));
+        assertThat(dto.getRows().get(0).getTradesProfitPercentage(), is("48.4"));
+        assertThat(dto.getRows().get(0).getDividendSum(), is("0"));
     }
 }

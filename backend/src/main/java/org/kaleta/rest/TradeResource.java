@@ -46,7 +46,7 @@ public class TradeResource
             if (currency != null) Validator.validateCurrency(currency);
             if (year != null) Validator.validateYear(year);
         }, () -> {
-            List<Trade> trades = tradeService.getTrades(active, companyId, currency, year);
+            List<Trade> trades = tradeService.getTrades(active, companyId, currency, year, year);
 
             if (active != null && active) {
                 for (Trade trade : trades) {
@@ -79,7 +79,7 @@ public class TradeResource
                 Trade trade = tradeService.createTrade(tradeCreateDto);
 
                 if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION")){
-                    firebaseService.pushAssets(tradeService.getTrades(true, null, null, null));
+                    firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null));
                 }
 
                 return Response.status(Response.Status.CREATED).entity(TradeDto.from(trade)).build();
@@ -101,7 +101,7 @@ public class TradeResource
                 tradeService.sellTrade(tradeSellDto);
 
                 if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION")){
-                    firebaseService.pushAssets(tradeService.getTrades(true, null, null, null));
+                    firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null));
                 }
 
                 return Response.status(Response.Status.NO_CONTENT).build();

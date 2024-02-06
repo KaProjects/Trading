@@ -29,9 +29,9 @@ public class TradeService
     @Inject
     CommonService commonService;
 
-    public List<Trade> getTrades(Boolean active, String company, String currency, String year)
+    public List<Trade> getTrades(Boolean active, String company, String currency, String purchaseYear, String sellYear)
     {
-        return tradeDao.list(active, company, currency, year);
+        return tradeDao.list(active, company, currency, purchaseYear, sellYear);
     }
 
     public String[] computeSums(List<Trade> trades)

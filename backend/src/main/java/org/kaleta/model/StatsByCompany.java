@@ -5,6 +5,8 @@ import org.kaleta.entity.Currency;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 public class StatsByCompany
@@ -15,6 +17,8 @@ public class StatsByCompany
     private BigDecimal purchaseSum = new BigDecimal(0);
     private BigDecimal sellSum = new BigDecimal(0);
     private BigDecimal dividendSum = new BigDecimal(0);
+
+    private Set<String> years = new HashSet<>();
 
     public StatsByCompany() {}
     public StatsByCompany(String ticker, Currency currency) {this.ticker = ticker;this.currency = currency;}
@@ -53,5 +57,10 @@ public class StatsByCompany
     public void addDividend(BigDecimal dividend)
     {
         dividendSum = dividendSum.add(dividend);
+    }
+
+    public void addYear(String year)
+    {
+        years.add(year);
     }
 }

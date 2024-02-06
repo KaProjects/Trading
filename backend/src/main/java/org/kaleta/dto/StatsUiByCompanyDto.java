@@ -6,7 +6,9 @@ import org.kaleta.entity.Currency;
 import org.kaleta.model.StatsByCompany;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 public class StatsUiByCompanyDto
@@ -15,6 +17,7 @@ public class StatsUiByCompanyDto
     private List<StatRow> rows = new ArrayList<>();
 
     private String[] sums = new String[8];
+    private Set<String> years = new HashSet<>();
 
     @Data
     public static class StatRow
@@ -56,6 +59,7 @@ public class StatsUiByCompanyDto
             row.setProfitUsd(Utils.format(companyStats.getProfitUsd()));
             row.setProfitPercentage(Utils.format(companyStats.getProfitPercentage()));
             dto.getRows().add(row);
+            dto.getYears().addAll(companyStats.getYears());
         }
         return dto;
     }

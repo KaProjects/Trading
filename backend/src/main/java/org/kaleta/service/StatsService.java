@@ -30,10 +30,10 @@ public class StatsService
     @Inject
     DividendService dividendService;
 
-    public List<StatsByCompany> getByCompany()
+    public List<StatsByCompany> getByCompany(String year)
     {
         Map<String, StatsByCompany> companyMap = new HashMap<>();
-        List<Trade> trades = tradeService.getTrades(false, null, null, null);
+        List<Trade> trades = tradeService.getTrades(false, null, null, null, year);
         for (Trade trade : trades)
         {
             if (!companyMap.containsKey(trade.getTicker())) {
@@ -41,14 +41,16 @@ public class StatsService
             }
             companyMap.get(trade.getTicker()).addPurchase(trade.getPurchaseTotal());
             companyMap.get(trade.getTicker()).addSell(trade.getSellTotal());
+            companyMap.get(trade.getTicker()).addYear(format(trade.getSellDate()).split("\\.")[2]);
         }
-        List<Dividend> dividends = dividendService.getDividends(null , null, null);
+        List<Dividend> dividends = dividendService.getDividends(null , null, year);
         for (Dividend dividend : dividends)
         {
             if (!companyMap.containsKey(dividend.getTicker())) {
                 companyMap.put(dividend.getTicker(), new StatsByCompany(dividend.getTicker(), dividend.getCurrency()));
             }
             companyMap.get(dividend.getTicker()).addDividend(dividend.getTotal());
+            companyMap.get(dividend.getTicker()).addYear(format(dividend.getDate()).split("\\.")[2]);
         }
         List<StatsByCompany> companyStats = new ArrayList<>(companyMap.values());
         companyStats.sort(StatsByCompany::compareProfitTo);
@@ -75,10 +77,10 @@ public class StatsService
                 format(sumStats.getProfit()), format(profitUsdSum), format(sumStats.getProfitPercentage())};
     }
 
-    public List<StatsByMonth> getByMonth()
+    public List<StatsByMonth> getByMonth(String companyId)
     {
         Map<String, StatsByMonth> monthlyMap = new HashMap<>();
-        List<Trade> trades = tradeService.getTrades(false, null, null, null);
+        List<Trade> trades = tradeService.getTrades(false, companyId, null, null, null);
         for (Trade trade : trades)
         {
             String month = Utils.format(trade.getSellDate()).substring(3);
@@ -89,7 +91,7 @@ public class StatsService
             monthlyMap.get(month).addSell(trade.getSellTotal().multiply(trade.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
             monthlyMap.get(month).increaseTrade();
         }
-        List<Dividend> dividends = dividendService.getDividends(null , null, null);
+        List<Dividend> dividends = dividendService.getDividends(companyId , null, null);
         for (Dividend dividend : dividends)
         {
             String month = Utils.format(dividend.getDate()).substring(3);

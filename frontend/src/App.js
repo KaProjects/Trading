@@ -81,8 +81,10 @@ class App extends Component {
         this.setState({showAddDividendButton: true})
     }
 
-    toggleStatsSelectors(){
+    toggleStatsSelectors(years, companySelector){
         this.setState({showStatsTabs: [0,1,2]})
+        this.setState({showYearSelector: years})
+        this.setState({showCompanySelector: companySelector})
     }
 
     setActiveSelectorValue(value) {this.setState({activeSelectorValue: value})}
