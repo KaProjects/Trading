@@ -81,7 +81,7 @@ const Stats = props => {
         )
     }
 
-    function MonthlyStats(props) {
+    function PeriodStats(props) {
         const {type} = props;
         const {data, loaded, error} = useData("/stats/" + type + constructQueryParams())
 
@@ -102,9 +102,15 @@ const Stats = props => {
             const border = "1px solid lightgrey"
             const fontFamily = "Roboto"
             const color = "primary"
-            const isCurrentYear = rIndex !== undefined && Number(data.rows[0].month.split(".")[1]) === new Date().getFullYear();
-            const bottomBorder = (rIndex + (isCurrentYear ? (12 - new Date().getMonth()) : 1)) % 12 === 0 ? "1px solid black" : null
-            return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: border, borderRight: border, borderBottom: bottomBorder,fontFamily: fontFamily, color: color}
+            let style = {fontWeight: fontWeight, textAlign: textAlign, borderLeft: border, borderRight: border ,fontFamily: fontFamily, color: color}
+
+            if (type === types[1]){
+                const isCurrentYear = (rIndex !== undefined && Number(data.rows[0].period.split(".")[1]) === new Date().getFullYear());
+                if ((rIndex + (isCurrentYear ? (12 - new Date().getMonth()) : 1)) % 12 === 0){
+                    style = Object.assign(style, {borderBottom: "1px solid black"})
+                }
+            }
+            return style;
         }
 
         return (
@@ -137,7 +143,7 @@ const Stats = props => {
                             <TableBody>
                                 {data.rows.map((row, index) => (
                                     <TableRow key={index} hover>
-                                        <TableCell style={rowStyle(0, index)}>{row.month}</TableCell>
+                                        <TableCell style={rowStyle(0, index)}>{row.period}</TableCell>
                                         <TableCell style={rowStyle(1, index)}>{row.tradesCount}</TableCell>
                                         <TableCell style={rowStyle(2, index)}>{row.tradesProfit}</TableCell>
                                         <TableCell style={rowStyle(3, index)}>{row.tradesProfitPercentage}</TableCell>
@@ -161,12 +167,15 @@ const Stats = props => {
 
     return (
         <>
-        {props.statsTabsIndex === 0 && (
-            <CompanyStats type={types[0]} {...props} />
-        )}
-        {props.statsTabsIndex === 1 && (
-            <MonthlyStats type={types[1]} {...props} />
-        )}
+            {props.statsTabsIndex === 0 && (
+                <CompanyStats type={types[0]} {...props} />
+            )}
+            {props.statsTabsIndex === 1 && (
+                <PeriodStats type={types[1]} {...props} />
+            )}
+            {props.statsTabsIndex === 2 && (
+                <PeriodStats type={types[2]} {...props} />
+            )}
         </>
     )
 }

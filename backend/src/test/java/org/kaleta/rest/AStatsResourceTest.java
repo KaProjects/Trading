@@ -5,7 +5,7 @@ import io.restassured.http.ContentType;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 import org.kaleta.dto.StatsUiByCompanyDto;
-import org.kaleta.dto.StatsUiByMonthDto;
+import org.kaleta.dto.StatsUiByPeriodDto;
 import org.kaleta.entity.Currency;
 import org.kaleta.framework.Assert;
 
@@ -26,6 +26,9 @@ class AStatsResourceTest
 
         Assert.get400("/stats/monthly?companyId=" + "AAAAAA", "Invalid UUID Parameter");
         Assert.get400("/stats/monthly?companyId=", "Invalid UUID Parameter");
+
+        Assert.get400("/stats/yearly?companyId=" + "AAAAAA", "Invalid UUID Parameter");
+        Assert.get400("/stats/yearly?companyId=", "Invalid UUID Parameter");
     }
 
     @Test
@@ -86,28 +89,29 @@ class AStatsResourceTest
     @Test
     void getMonthly()
     {
-        StatsUiByMonthDto dto = given().when()
+        StatsUiByPeriodDto dto = given().when()
                 .get("/stats/monthly")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", StatsUiByMonthDto.class);
+                .extract().response().jsonPath().getObject("", StatsUiByPeriodDto.class);
 
         assertThat(dto.getColumns().size(), is(3));
+        assertThat(dto.getColumns().get(0).getName(), is("Month"));
         assertThat(dto.getColumns().get(1).getSubColumns().size(), is(3));
         int offset = DateTime.now().getYear() == 2024 ? DateTime.now().getMonthOfYear() : 12;
         assertThat(dto.getRows().size(), is(5 * 12 + offset));
-        assertThat(dto.getRows().get(11 -(12-offset)).getMonth(), is("01.2024"));
+        assertThat(dto.getRows().get(11 -(12-offset)).getPeriod(), is("01.2024"));
         assertThat(dto.getRows().get(11 -(12-offset)).getTradesCount(), is("1"));
         assertThat(dto.getRows().get(11 -(12-offset)).getTradesProfit(), is("433"));
         assertThat(dto.getRows().get(11 -(12-offset)).getTradesProfitPercentage(), is("21.47"));
         assertThat(dto.getRows().get(11 -(12-offset)).getDividendSum(), is("0"));
-        assertThat(dto.getRows().get(12 -(12-offset)).getMonth(), is("12.2023"));
+        assertThat(dto.getRows().get(12 -(12-offset)).getPeriod(), is("12.2023"));
         assertThat(dto.getRows().get(12 -(12-offset)).getTradesCount(), is("1"));
         assertThat(dto.getRows().get(12 -(12-offset)).getTradesProfit(), is("1079.65"));
         assertThat(dto.getRows().get(12 -(12-offset)).getTradesProfitPercentage(), is("48.4"));
         assertThat(dto.getRows().get(12 -(12-offset)).getDividendSum(), is("0"));
-        assertThat(dto.getRows().get(24 -(12-offset)).getMonth(), is("12.2022"));
+        assertThat(dto.getRows().get(24 -(12-offset)).getPeriod(), is("12.2022"));
         assertThat(dto.getRows().get(24 -(12-offset)).getTradesCount(), is("0"));
         assertThat(dto.getRows().get(24 -(12-offset)).getTradesProfit(), is("0"));
         assertThat(dto.getRows().get(24 -(12-offset)).getTradesProfitPercentage(), is(""));
@@ -118,20 +122,66 @@ class AStatsResourceTest
     @Test
     void getMonthlyFilterCompany()
     {
-        StatsUiByMonthDto dto = given().when()
+        StatsUiByPeriodDto dto = given().when()
                 .get("/stats/monthly?companyId=4efe9235-0c00-4b51-aa81-f2febbb65232")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", StatsUiByMonthDto.class);
+                .extract().response().jsonPath().getObject("", StatsUiByPeriodDto.class);
 
         assertThat(dto.getColumns().size(), is(3));
+        assertThat(dto.getColumns().get(0).getName(), is("Month"));
         assertThat(dto.getColumns().get(1).getSubColumns().size(), is(3));
         assertThat(dto.getRows().size(), is(12));
-        assertThat(dto.getRows().get(0).getMonth(), is("12.2023"));
+        assertThat(dto.getRows().get(0).getPeriod(), is("12.2023"));
         assertThat(dto.getRows().get(0).getTradesCount(), is("1"));
         assertThat(dto.getRows().get(0).getTradesProfit(), is("1079.65"));
         assertThat(dto.getRows().get(0).getTradesProfitPercentage(), is("48.4"));
         assertThat(dto.getRows().get(0).getDividendSum(), is("0"));
+        assertThat(dto.getSums(), is(new String[]{"12", "1", "1079.65", "48.4", "0"}));
+    }
+
+    @Test
+    void getYearly()
+    {
+        StatsUiByPeriodDto dto = given().when()
+                .get("/stats/yearly")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", StatsUiByPeriodDto.class);
+
+        assertThat(dto.getColumns().size(), is(3));
+        assertThat(dto.getColumns().get(0).getName(), is("Year"));
+        assertThat(dto.getColumns().get(1).getSubColumns().size(), is(3));
+        assertThat(dto.getRows().size(), is(6));
+        assertThat(dto.getRows().get(0).getPeriod(), is("2024"));
+        assertThat(dto.getRows().get(0).getTradesCount(), is("1"));
+        assertThat(dto.getRows().get(0).getTradesProfit(), is("433"));
+        assertThat(dto.getRows().get(0).getTradesProfitPercentage(), is("21.47"));
+        assertThat(dto.getRows().get(0).getDividendSum(), is("0"));
+        assertThat(dto.getSums(), is(new String[]{"6", "4", "1510.29", "35.5", "1073.7"}));
+    }
+
+    @Test
+    void getYearlyFilterCompany()
+    {
+        StatsUiByPeriodDto dto = given().when()
+                .get("/stats/yearly?companyId=4efe9235-0c00-4b51-aa81-f2febbb65232")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", StatsUiByPeriodDto.class);
+
+        assertThat(dto.getColumns().size(), is(3));
+        assertThat(dto.getColumns().get(0).getName(), is("Year"));
+        assertThat(dto.getColumns().get(1).getSubColumns().size(), is(3));
+        assertThat(dto.getRows().size(), is(1));
+        assertThat(dto.getRows().get(0).getPeriod(), is("2023"));
+        assertThat(dto.getRows().get(0).getTradesCount(), is("1"));
+        assertThat(dto.getRows().get(0).getTradesProfit(), is("1079.65"));
+        assertThat(dto.getRows().get(0).getTradesProfitPercentage(), is("48.4"));
+        assertThat(dto.getRows().get(0).getDividendSum(), is("0"));
+        assertThat(dto.getSums(), is(new String[]{"1", "1", "1079.65", "48.4", "0"}));
     }
 }

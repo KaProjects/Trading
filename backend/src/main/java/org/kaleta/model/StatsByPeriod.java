@@ -7,20 +7,24 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 @Data
-public class StatsByMonth
+public class StatsByPeriod
 {
-    private String month;
+    private String period;
     private int tradesCount = 0;
     private BigDecimal purchaseSum = new BigDecimal(0);
     private BigDecimal sellSum = new BigDecimal(0);
     private BigDecimal dividendSum = new BigDecimal(0);
 
-    public StatsByMonth() {}
-    public StatsByMonth(String month) {this.month = month;}
+    public StatsByPeriod() {}
+    public StatsByPeriod(String period) {this.period = period;}
 
-    public int compareMonthTo(StatsByMonth other)
-    {
-        return -Utils.compareDtoDates("01." + this.getMonth(), "01." + other.getMonth());
+    public int compareMonthTo(StatsByPeriod other) {
+        return -Utils.compareDtoDates("01." + this.getPeriod(), "01." + other.getPeriod());
+    }
+
+    public int compareYearTo(StatsByPeriod other) {
+        return -Utils.compareDtoDates("01.01." + this.getPeriod(), "01.01." + other.getPeriod());
+
     }
 
     public BigDecimal getTradesProfit()

@@ -29,7 +29,7 @@ const MainBar = props => {
                             >
                                 <Tab label="Companies"/>
                                 <Tab label="Monthly"/>
-                                <Tab label="Yearly" disabled />
+                                <Tab label="Yearly"/>
                             </Tabs>
                         }
                         {props.showSellTradeButton &&

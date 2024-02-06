@@ -8,7 +8,7 @@ import org.kaleta.entity.Currency;
 import org.kaleta.entity.Dividend;
 import org.kaleta.entity.Trade;
 import org.kaleta.model.StatsByCompany;
-import org.kaleta.model.StatsByMonth;
+import org.kaleta.model.StatsByPeriod;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -77,55 +77,57 @@ public class StatsService
                 format(sumStats.getProfit()), format(profitUsdSum), format(sumStats.getProfitPercentage())};
     }
 
-    public List<StatsByMonth> getByMonth(String companyId)
+    public List<StatsByPeriod> getByPeriod(String companyId, boolean isMonthly)
     {
-        Map<String, StatsByMonth> monthlyMap = new HashMap<>();
+        Map<String, StatsByPeriod> map = new HashMap<>();
         List<Trade> trades = tradeService.getTrades(false, companyId, null, null, null);
         for (Trade trade : trades)
         {
-            String month = Utils.format(trade.getSellDate()).substring(3);
-            if (!monthlyMap.containsKey(month)) {
-                monthlyMap.put(month, new StatsByMonth(month));
+            String period = Utils.format(trade.getSellDate()).substring(isMonthly ? 3 : 6);
+            if (!map.containsKey(period)) {
+                map.put(period, new StatsByPeriod(period));
             }
-            monthlyMap.get(month).addPurchase(trade.getPurchaseTotal().multiply(trade.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
-            monthlyMap.get(month).addSell(trade.getSellTotal().multiply(trade.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
-            monthlyMap.get(month).increaseTrade();
+            map.get(period).addPurchase(trade.getPurchaseTotal().multiply(trade.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
+            map.get(period).addSell(trade.getSellTotal().multiply(trade.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
+            map.get(period).increaseTrade();
         }
         List<Dividend> dividends = dividendService.getDividends(companyId , null, null);
         for (Dividend dividend : dividends)
         {
-            String month = Utils.format(dividend.getDate()).substring(3);
-            if (!monthlyMap.containsKey(month)) {
-                monthlyMap.put(month, new StatsByMonth(month));
+            String period = Utils.format(dividend.getDate()).substring(isMonthly ? 3 : 6);
+            if (!map.containsKey(period)) {
+                map.put(period, new StatsByPeriod(period));
             }
-            monthlyMap.get(month).addDividend(dividend.getTotal().multiply(dividend.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
+            map.get(period).addDividend(dividend.getTotal().multiply(dividend.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
         }
-        Set<String> years = monthlyMap.values().stream().map(stat -> stat.getMonth().substring(3)).collect(Collectors.toSet());
-        for (String year : years) {
-            for (int i=1; i<=12; i++) {
-                String month = String.format("%02d", i) + "." + year;
-                if (!monthlyMap.containsKey(month) && (Integer.parseInt(year) < DateTime.now().getYear() || i <= DateTime.now().getMonthOfYear())){
-                    monthlyMap.put(month, new StatsByMonth(month));
+        if (isMonthly){
+            Set<String> years = map.values().stream().map(stat -> stat.getPeriod().substring(3)).collect(Collectors.toSet());
+            for (String year : years) {
+                for (int i=1; i<=12; i++) {
+                    String month = String.format("%02d", i) + "." + year;
+                    if (!map.containsKey(month) && (Integer.parseInt(year) < DateTime.now().getYear() || i <= DateTime.now().getMonthOfYear())){
+                        map.put(month, new StatsByPeriod(month));
+                    }
                 }
             }
         }
-        List<StatsByMonth> monthlyStats = new ArrayList<>(monthlyMap.values());
-        monthlyStats.sort(StatsByMonth::compareMonthTo);
+        List<StatsByPeriod> monthlyStats = new ArrayList<>(map.values());
+        monthlyStats.sort(isMonthly ? StatsByPeriod::compareMonthTo : StatsByPeriod::compareYearTo);
         return monthlyStats;
     }
 
-    public String[] computeMonthlySums(List<StatsByMonth> monthlyStats)
+    public String[] computePeriodSums(List<StatsByPeriod> periodStats)
     {
-        StatsByMonth sumStats = new StatsByMonth();
+        StatsByPeriod sumStats = new StatsByPeriod();
         int tradesSum = 0;
-        for (StatsByMonth stats : monthlyStats)
+        for (StatsByPeriod stats : periodStats)
         {
             tradesSum += stats.getTradesCount();
             sumStats.addPurchase(stats.getPurchaseSum());
             sumStats.addSell(stats.getSellSum());
             sumStats.addDividend(stats.getDividendSum());
         }
-        return new String[]{String.valueOf(monthlyStats.size()),
+        return new String[]{String.valueOf(periodStats.size()),
                 String.valueOf(tradesSum), format(sumStats.getTradesProfit()), format(sumStats.getTradesProfitPercentage()),
                 format(sumStats.getDividendSum())};
     }

@@ -2,13 +2,13 @@ package org.kaleta.dto;
 
 import lombok.Data;
 import org.kaleta.Utils;
-import org.kaleta.model.StatsByMonth;
+import org.kaleta.model.StatsByPeriod;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
-public class StatsUiByMonthDto
+public class StatsUiByPeriodDto
 {
     private List<Column> columns = new ArrayList<>();
     private List<StatRow> rows = new ArrayList<>();
@@ -18,7 +18,7 @@ public class StatsUiByMonthDto
     @Data
     public static class StatRow
     {
-        private String month;
+        private String period;
         private String tradesCount;
         private String tradesProfit;
         private String tradesProfitPercentage;
@@ -34,20 +34,21 @@ public class StatsUiByMonthDto
         public Column(String name, List<String> subColumns) {this.name = name;this.subColumns = subColumns;}
     }
 
-    public StatsUiByMonthDto()
+    public StatsUiByPeriodDto(){}
+    public StatsUiByPeriodDto(boolean isMonthly)
     {
-        columns.add(new Column("Month", new ArrayList<>()));
+        columns.add(new Column(isMonthly ? "Month" : "Year", new ArrayList<>()));
         columns.add(new Column("Trades", List.of("Count", "Profit $", "Profit %")));
         columns.add(new Column("Dividends $", new ArrayList<>()));
     }
 
-    public static StatsUiByMonthDto from(List<StatsByMonth> monthlyStatsList)
+    public static StatsUiByPeriodDto from(List<StatsByPeriod> monthlyStatsList, boolean isMonthly)
     {
-        StatsUiByMonthDto dto = new StatsUiByMonthDto();
-        for (StatsByMonth monthlyStats : monthlyStatsList)
+        StatsUiByPeriodDto dto = new StatsUiByPeriodDto(isMonthly);
+        for (StatsByPeriod monthlyStats : monthlyStatsList)
         {
-            StatsUiByMonthDto.StatRow row = new StatsUiByMonthDto.StatRow();
-            row.setMonth(monthlyStats.getMonth());
+            StatsUiByPeriodDto.StatRow row = new StatsUiByPeriodDto.StatRow();
+            row.setPeriod(monthlyStats.getPeriod());
             row.setTradesCount(String.valueOf(monthlyStats.getTradesCount()));
             row.setTradesProfit(Utils.format(monthlyStats.getTradesProfit()));
             row.setTradesProfitPercentage(Utils.format(monthlyStats.getTradesProfitPercentage()));

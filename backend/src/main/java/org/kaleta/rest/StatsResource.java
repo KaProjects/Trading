@@ -8,9 +8,9 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.dto.StatsUiByCompanyDto;
-import org.kaleta.dto.StatsUiByMonthDto;
+import org.kaleta.dto.StatsUiByPeriodDto;
 import org.kaleta.model.StatsByCompany;
-import org.kaleta.model.StatsByMonth;
+import org.kaleta.model.StatsByPeriod;
 import org.kaleta.service.StatsService;
 
 import java.util.List;
@@ -44,9 +44,24 @@ public class StatsResource
         return Endpoint.process(() -> {
             if (companyId != null) Validator.validateUuid(companyId);
         }, () -> {
-            List<StatsByMonth> monthlyStats = statsService.getByMonth(companyId);
-            StatsUiByMonthDto dto = StatsUiByMonthDto.from(monthlyStats);
-            dto.setSums(statsService.computeMonthlySums(monthlyStats));
+            List<StatsByPeriod> monthlyStats = statsService.getByPeriod(companyId, true);
+            StatsUiByPeriodDto dto = StatsUiByPeriodDto.from(monthlyStats, true);
+            dto.setSums(statsService.computePeriodSums(monthlyStats));
+            return dto;
+        });
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/yearly")
+    public Response getYearly(@QueryParam("companyId") String companyId)
+    {
+        return Endpoint.process(() -> {
+            if (companyId != null) Validator.validateUuid(companyId);
+        }, () -> {
+            List<StatsByPeriod> yearlyStats = statsService.getByPeriod(companyId, false);
+            StatsUiByPeriodDto dto = StatsUiByPeriodDto.from(yearlyStats, false);
+            dto.setSums(statsService.computePeriodSums(yearlyStats));
             return dto;
         });
     }
