@@ -10,6 +10,8 @@ import org.kaleta.entity.Trade;
 import org.kaleta.model.StatsByCompany;
 import org.kaleta.model.StatsByMonth;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,10 +30,10 @@ public class StatsService
     @Inject
     DividendService dividendService;
 
-    public List<StatsByCompany> getByCompany(String currency)
+    public List<StatsByCompany> getByCompany()
     {
         Map<String, StatsByCompany> companyMap = new HashMap<>();
-        List<Trade> trades = tradeService.getTrades(false, null, currency, null);
+        List<Trade> trades = tradeService.getTrades(false, null, null, null);
         for (Trade trade : trades)
         {
             if (!companyMap.containsKey(trade.getTicker())) {
@@ -40,7 +42,7 @@ public class StatsService
             companyMap.get(trade.getTicker()).addPurchase(trade.getPurchaseTotal());
             companyMap.get(trade.getTicker()).addSell(trade.getSellTotal());
         }
-        List<Dividend> dividends = dividendService.getDividends(null , currency, null);
+        List<Dividend> dividends = dividendService.getDividends(null , null, null);
         for (Dividend dividend : dividends)
         {
             if (!companyMap.containsKey(dividend.getTicker())) {
@@ -58,6 +60,7 @@ public class StatsService
         Set<String> companies = new HashSet<>();
         Set<Currency> currencies = new HashSet<>();
         StatsByCompany sumStats = new StatsByCompany();
+        BigDecimal profitUsdSum = new BigDecimal(0);
         for (StatsByCompany stats : companyStats)
         {
             companies.add(stats.getTicker());
@@ -65,34 +68,35 @@ public class StatsService
             sumStats.addPurchase(stats.getPurchaseSum());
             sumStats.addSell(stats.getSellSum());
             sumStats.addDividend(stats.getDividendSum());
+            profitUsdSum = profitUsdSum.add(stats.getProfitUsd());
         }
         return new String[]{String.valueOf(companies.size()), String.valueOf(currencies.size()),
                 format(sumStats.getPurchaseSum()), format(sumStats.getSellSum()), format(sumStats.getDividendSum()),
-                format(sumStats.getProfit()), format(sumStats.getProfitPercentage())};
+                format(sumStats.getProfit()), format(profitUsdSum), format(sumStats.getProfitPercentage())};
     }
 
-    public List<StatsByMonth> getByMonth(String currency)
+    public List<StatsByMonth> getByMonth()
     {
         Map<String, StatsByMonth> monthlyMap = new HashMap<>();
-        List<Trade> trades = tradeService.getTrades(false, null, currency, null);
+        List<Trade> trades = tradeService.getTrades(false, null, null, null);
         for (Trade trade : trades)
         {
             String month = Utils.format(trade.getSellDate()).substring(3);
             if (!monthlyMap.containsKey(month)) {
                 monthlyMap.put(month, new StatsByMonth(month));
             }
-            monthlyMap.get(month).addPurchase(trade.getPurchaseTotal());
-            monthlyMap.get(month).addSell(trade.getSellTotal());
+            monthlyMap.get(month).addPurchase(trade.getPurchaseTotal().multiply(trade.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
+            monthlyMap.get(month).addSell(trade.getSellTotal().multiply(trade.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
             monthlyMap.get(month).increaseTrade();
         }
-        List<Dividend> dividends = dividendService.getDividends(null , currency, null);
+        List<Dividend> dividends = dividendService.getDividends(null , null, null);
         for (Dividend dividend : dividends)
         {
             String month = Utils.format(dividend.getDate()).substring(3);
             if (!monthlyMap.containsKey(month)) {
                 monthlyMap.put(month, new StatsByMonth(month));
             }
-            monthlyMap.get(month).addDividend(dividend.getTotal());
+            monthlyMap.get(month).addDividend(dividend.getTotal().multiply(dividend.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
         }
         Set<String> years = monthlyMap.values().stream().map(stat -> stat.getMonth().substring(3)).collect(Collectors.toSet());
         for (String year : years) {

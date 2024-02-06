@@ -81,10 +81,8 @@ class App extends Component {
         this.setState({showAddDividendButton: true})
     }
 
-    toggleStatsSelectors(currencies){
+    toggleStatsSelectors(){
         this.setState({showStatsTabs: [0,1,2]})
-        this.setState({showCurrencySelector: currencies})
-        if (currencies.length > 0) this.setCurrencySelectorValue(currencies[0])
     }
 
     setActiveSelectorValue(value) {this.setState({activeSelectorValue: value})}

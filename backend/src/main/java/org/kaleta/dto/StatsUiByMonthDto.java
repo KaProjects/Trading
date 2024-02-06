@@ -37,8 +37,8 @@ public class StatsUiByMonthDto
     public StatsUiByMonthDto()
     {
         columns.add(new Column("Month", new ArrayList<>()));
-        columns.add(new Column("Trades", List.of("Count", "Profit", "Profit %")));
-        columns.add(new Column("Dividends", new ArrayList<>()));
+        columns.add(new Column("Trades", List.of("Count", "Profit $", "Profit %")));
+        columns.add(new Column("Dividends $", new ArrayList<>()));
     }
 
     public static StatsUiByMonthDto from(List<StatsByMonth> monthlyStatsList)

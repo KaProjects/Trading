@@ -22,19 +22,19 @@ const Stats = props => {
             return props.currencySelectorValue ? "?currency=" + props.currencySelectorValue : ""
         }
 
-        useEffect(() => {
-            if (data && (!props.showCurrencySelector || props.showCurrencySelector.length === 0)){
-                const currencies = new Set([]);
-                data.rows.forEach((company) => {
-                    currencies.add(company.currency)
-                })
-                props.toggleStatsSelectors([...currencies])
-            }
-            // eslint-disable-next-line
-        }, [data])
+        // useEffect(() => {
+        //     if (data && (!props.showCurrencySelector || props.showCurrencySelector.length === 0)){
+        //         const currencies = new Set([]);
+        //         data.rows.forEach((company) => {
+        //             currencies.add(company.currency)
+        //         })
+        //         props.toggleStatsSelectors()
+        //     }
+        //     // eslint-disable-next-line
+        // }, [data])
 
         function rowStyle(index){
-            const fontWeight = ([5, 6].includes(index)) ? "bold" : "normal"
+            const fontWeight = ([6, 7].includes(index)) ? "bold" : "normal"
             const textAlign = ([0, 1].includes(index)) ? "center" : "right"
             const border = "1px solid lightgrey"
             const fontFamily = "Roboto"
@@ -66,7 +66,8 @@ const Stats = props => {
                                 <TableCell style={rowStyle(3)}>{row.sellSum}</TableCell>
                                 <TableCell style={rowStyle(4)}>{row.dividendSum}</TableCell>
                                 <TableCell style={rowStyle(5)}>{row.profit}</TableCell>
-                                <TableCell style={rowStyle(6)}>{row.profitPercentage}</TableCell>
+                                <TableCell style={rowStyle(6)}>{row.profitUsd}</TableCell>
+                                <TableCell style={rowStyle(7)}>{row.profitPercentage}</TableCell>
                             </TableRow>
                         ))}
                         <TableRow key={-1} >
@@ -92,19 +93,19 @@ const Stats = props => {
             return props.currencySelectorValue ? "?currency=" + props.currencySelectorValue : ""
         }
 
-        useEffect(() => {
-            if (data && (!props.showCurrencySelector || props.showCurrencySelector.length === 0)){
-                const currencies = new Set([]);
-                data.rows.forEach((company) => {
-                    currencies.add(company.currency)
-                })
-                props.toggleStatsSelectors([...currencies])
-            }
-            // eslint-disable-next-line
-        }, [data])
+        // useEffect(() => {
+        //     if (data && (!props.showCurrencySelector || props.showCurrencySelector.length === 0)){
+        //         const currencies = new Set([]);
+        //         data.rows.forEach((company) => {
+        //             currencies.add(company.currency)
+        //         })
+        //         props.toggleStatsSelectors([...currencies])
+        //     }
+        //     // eslint-disable-next-line
+        // }, [data])
 
         function rowStyle(index, rIndex){
-            const fontWeight = ([2, 3].includes(index)) ? "bold" : "normal"
+            const fontWeight = ([].includes(index)) ? "bold" : "normal"
             const textAlign = ([0, 1].includes(index)) ? "center" : "right"
             const border = "1px solid lightgrey"
             const fontFamily = "Roboto"

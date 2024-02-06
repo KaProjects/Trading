@@ -21,12 +21,17 @@ public class StatsByCompany
 
     public int compareProfitTo(StatsByCompany other)
     {
-        return -this.getProfit().compareTo(other.getProfit());
+        return -this.getProfitUsd().compareTo(other.getProfitUsd());
     }
 
     public BigDecimal getProfit()
     {
         return sellSum.subtract(purchaseSum).add(dividendSum);
+    }
+
+    public BigDecimal getProfitUsd()
+    {
+        return getProfit().multiply(currency.toUsd()).setScale(2, RoundingMode.HALF_UP);
     }
 
     public BigDecimal getProfitPercentage()

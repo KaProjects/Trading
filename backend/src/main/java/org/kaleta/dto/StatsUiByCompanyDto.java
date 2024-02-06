@@ -14,7 +14,7 @@ public class StatsUiByCompanyDto
     private List<String> columns = new ArrayList<>();
     private List<StatRow> rows = new ArrayList<>();
 
-    private String[] sums = new String[7];
+    private String[] sums = new String[8];
 
     @Data
     public static class StatRow
@@ -25,6 +25,7 @@ public class StatsUiByCompanyDto
         private String sellSum;
         private String dividendSum;
         private String profit;
+        private String profitUsd;
         private String profitPercentage;
     }
 
@@ -36,6 +37,7 @@ public class StatsUiByCompanyDto
         columns.add("Sells");
         columns.add("Dividends");
         columns.add("Profit");
+        columns.add("Profit $");
         columns.add("Profit %");
     }
 
@@ -51,6 +53,7 @@ public class StatsUiByCompanyDto
             row.setSellSum(Utils.format(companyStats.getSellSum()));
             row.setDividendSum(Utils.format(companyStats.getDividendSum()));
             row.setProfit(Utils.format(companyStats.getProfit()));
+            row.setProfitUsd(Utils.format(companyStats.getProfitUsd()));
             row.setProfitPercentage(Utils.format(companyStats.getProfitPercentage()));
             dto.getRows().add(row);
         }

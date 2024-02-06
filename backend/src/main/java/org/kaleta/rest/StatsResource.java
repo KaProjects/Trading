@@ -4,7 +4,6 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.dto.StatsUiByCompanyDto;
@@ -24,12 +23,10 @@ public class StatsResource
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/company")
-    public Response getCompanies(@QueryParam("currency") String currency)
+    public Response getCompanies()
     {
-        return Endpoint.process(() -> {
-            if (currency != null) Validator.validateCurrency(currency);
-        }, () -> {
-            List<StatsByCompany> companyStats = statsService.getByCompany(currency);
+        return Endpoint.process(() -> {}, () -> {
+            List<StatsByCompany> companyStats = statsService.getByCompany();
             StatsUiByCompanyDto dto = StatsUiByCompanyDto.from(companyStats);
             dto.setSums(statsService.computeCompanySums(companyStats));
             return dto;
@@ -39,12 +36,10 @@ public class StatsResource
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/monthly")
-    public Response getMonthly(@QueryParam("currency") String currency)
+    public Response getMonthly()
     {
-        return Endpoint.process(() -> {
-            if (currency != null) Validator.validateCurrency(currency);
-        }, () -> {
-            List<StatsByMonth> monthlyStats = statsService.getByMonth(currency);
+        return Endpoint.process(() -> {}, () -> {
+            List<StatsByMonth> monthlyStats = statsService.getByMonth();
             StatsUiByMonthDto dto = StatsUiByMonthDto.from(monthlyStats);
             dto.setSums(statsService.computeMonthlySums(monthlyStats));
             return dto;
