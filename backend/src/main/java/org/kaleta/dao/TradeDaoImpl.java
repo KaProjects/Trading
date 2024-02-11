@@ -49,13 +49,13 @@ public class TradeDaoImpl implements TradeDao
         String yearCondition = "";
         if (purchaseYear != null){
             if (sellYear != null){
-                yearCondition = joinWord + "(CONVERT(YEAR(t.purchaseDate),CHAR(4))=:purchaseYear OR (t.sellDate IS NOT NULL AND CONVERT(YEAR(t.sellDate),CHAR(4))=:sellYear))";
+                yearCondition = joinWord + "(YEAR(t.purchaseDate)=:purchaseYear OR (t.sellDate IS NOT NULL AND YEAR(t.sellDate)=:sellYear))";
             } else {
-                yearCondition = joinWord + "CONVERT(YEAR(t.purchaseDate),CHAR(4))=:purchaseYear";
+                yearCondition = joinWord + "YEAR(t.purchaseDate)=:purchaseYear";
             }
         } else {
             if (sellYear != null){
-                yearCondition = joinWord + "(t.sellDate IS NOT NULL AND CONVERT(YEAR(t.sellDate),CHAR(4))=:sellYear)";
+                yearCondition = joinWord + "(t.sellDate IS NOT NULL AND YEAR(t.sellDate)=:sellYear)";
             }
         }
 

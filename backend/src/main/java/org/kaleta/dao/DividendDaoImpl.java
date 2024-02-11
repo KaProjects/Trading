@@ -35,7 +35,7 @@ public class DividendDaoImpl implements DividendDao
 
         String yearCondition = "";
         if (year != null){
-            yearCondition = joinWord + "CONVERT(YEAR(d.date),CHAR(4))=:year";
+            yearCondition = joinWord + "YEAR(d.date)=:year";
         }
 
         TypedQuery<Dividend> query = entityManager.createQuery(selectQuery
