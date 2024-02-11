@@ -28,6 +28,23 @@ public class StatsByCompany
         return -this.getProfitUsd().compareTo(other.getProfitUsd());
     }
 
+    public int comparePercentageTo(StatsByCompany other)
+    {
+        if (this.getProfitPercentage() == null){
+            if (other.getProfitPercentage() == null) {
+                return 0;
+            } else {
+                return 1;
+            }
+        } else {
+            if (other.getProfitPercentage() == null) {
+                return -1;
+            } else {
+                return -this.getProfitPercentage().compareTo(other.getProfitPercentage());
+            }
+        }
+    }
+
     public BigDecimal getProfit()
     {
         return sellSum.subtract(purchaseSum).add(dividendSum);

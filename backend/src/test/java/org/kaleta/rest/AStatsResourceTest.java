@@ -64,6 +64,38 @@ class AStatsResourceTest
     }
 
     @Test
+    void getCompaniesSortProfitPercentage()
+    {
+        StatsUiByCompanyDto dto = given().when()
+                .get("/stats/company?sort=percentage")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", StatsUiByCompanyDto.class);
+        System.out.println(dto);
+        assertThat(dto.getColumns().size(), is(8));
+        assertThat(dto.getColumns().get(1), is("#"));
+        assertThat(dto.getRows().size(), is(6));
+        assertThat(dto.getRows().get(0).getTicker(), is("SHELL"));
+        assertThat(dto.getRows().get(0).getCurrency(), is(Currency.€));
+        assertThat(dto.getRows().get(0).getPurchaseSum(), is("2028"));
+        assertThat(dto.getRows().get(0).getSellSum(), is("3009.5"));
+        assertThat(dto.getRows().get(0).getDividendSum(), is("0"));
+        assertThat(dto.getRows().get(0).getProfit(), is("981.5"));
+        assertThat(dto.getRows().get(0).getProfitUsd(), is("1079.65"));
+        assertThat(dto.getRows().get(0).getProfitPercentage(), is("48.4"));
+        assertThat(dto.getRows().get(1).getTicker(), is("NVDA"));
+        assertThat(dto.getRows().get(1).getCurrency(), is(Currency.$));
+        assertThat(dto.getRows().get(1).getPurchaseSum(), is("2017"));
+        assertThat(dto.getRows().get(1).getSellSum(), is("2450"));
+        assertThat(dto.getRows().get(1).getDividendSum(), is("135"));
+        assertThat(dto.getRows().get(1).getProfit(), is("568"));
+        assertThat(dto.getRows().get(1).getProfitUsd(), is("568"));
+        assertThat(dto.getRows().get(1).getProfitPercentage(), is("28.16"));
+        assertThat(dto.getSums(), is(new String[]{"6", "3", "4195", "5554.5", "1935", "3294.5", "2583.99", "78.53"}));
+    }
+
+    @Test
     void getCompaniesFilterYear()
     {
         StatsUiByCompanyDto dto = given().when()

@@ -52,9 +52,7 @@ public class StatsService
             companyMap.get(dividend.getTicker()).addDividend(dividend.getTotal());
             companyMap.get(dividend.getTicker()).addYear(format(dividend.getDate()).split("\\.")[2]);
         }
-        List<StatsByCompany> companyStats = new ArrayList<>(companyMap.values());
-        companyStats.sort(StatsByCompany::compareProfitTo);
-        return companyStats;
+        return new ArrayList<>(companyMap.values());
     }
 
     public String[] computeCompanySums(List<StatsByCompany> companyStats)

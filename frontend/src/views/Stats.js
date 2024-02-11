@@ -1,10 +1,10 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {useData} from "../fetch";
 import Loader from "../components/Loader";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from '@mui/material';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 const types = ["company", "monthly", "yearly"]
-
 const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
 
 const Stats = props => {
@@ -16,10 +16,13 @@ const Stats = props => {
 
     function CompanyStats(props) {
         const {type} = props;
+        const [sort, setSort] = useState(6)
         const {data, loaded, error} = useData("/stats/" + type + constructQueryParams())
 
         function constructQueryParams(){
-            return props.yearSelectorValue ? "?year=" + props.yearSelectorValue : ""
+            return "?query "
+                + (props.yearSelectorValue ? "&year=" + props.yearSelectorValue : "")
+                + (sort === 7 ? "&sort=percentage" : "")
         }
 
         useEffect(() => {
@@ -47,8 +50,9 @@ const Stats = props => {
                     <TableHead>
                         <TableRow>
                             {data.columns.map((column, index) => (
-                                <TableCell key={index} style={headerStyle}>
+                                <TableCell key={index} style={headerStyle} onClick={() => {if ([6,7].includes(index)) setSort(index)}}>
                                     {column}
+                                    {sort === index && <ArrowDropDownIcon sx={{ height: "18px", marginRight: "-15px", marginBottom: "-5px"}}/>}
                                 </TableCell>
                             ))}
                         </TableRow>

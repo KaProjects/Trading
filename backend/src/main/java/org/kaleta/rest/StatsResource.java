@@ -24,12 +24,17 @@ public class StatsResource
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/company")
-    public Response getCompanies(@QueryParam("year") String year)
+    public Response getCompanies(@QueryParam("year") String year, @QueryParam("sort") String sort)
     {
         return Endpoint.process(() -> {
             if (year != null) Validator.validateYear(year);
         }, () -> {
             List<StatsByCompany> companyStats = statsService.getByCompany(year);
+            if (sort != null && sort.equals("percentage")) {
+                companyStats.sort(StatsByCompany::comparePercentageTo);
+            } else {
+                companyStats.sort(StatsByCompany::compareProfitTo);
+            }
             StatsUiByCompanyDto dto = StatsUiByCompanyDto.from(companyStats);
             dto.setSums(statsService.computeCompanySums(companyStats));
             return dto;
