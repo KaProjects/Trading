@@ -1,8 +1,7 @@
 import {Button} from "@mui/material";
 import React from "react";
 
-const MainBar = props => {
-
+const Home = props => {
 
     return (
         <>
@@ -13,4 +12,4 @@ const MainBar = props => {
         </>
     )
 }
-export default MainBar;
+export default Home;

@@ -11,7 +11,7 @@ export function validateNumber(value, isNullable, lengthConstraint, decimalConst
 
 export function handleError(error) {
     console.error(error)
-    if (error.response.data && typeof error.response.data === 'string') {
+    if (error.response && error.response.data && typeof error.response.data === 'string') {
         return error.response.data
     } else {
         return error.message

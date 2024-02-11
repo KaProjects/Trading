@@ -10,19 +10,18 @@ export const useData = (path) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const dataFetch = async () => {
-            await axios.get(domain + path)
-                .then((response) => {
-                    setData(response.data)
-                    setError(null)
-                    setLoaded(true)
-                }).catch((error) => {
-                    setError(handleError(error))
-                    setLoaded(false)
-                })
-        };
-
-        dataFetch();
+        setError(null)
+        setLoaded(false)
+        axios.get(domain + path)
+            .then((response) => {
+                setData(response.data)
+                setError(null)
+                setLoaded(true)
+            }).catch((error) => {
+                setError(handleError(error))
+                setLoaded(false)
+            })
+        // eslint-disable-next-line
     }, [path]);
 
     return { data, loaded, error };
