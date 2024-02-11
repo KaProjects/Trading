@@ -8,7 +8,8 @@ CREATE TABLE Company
     id       VARCHAR(36) NOT NULL PRIMARY KEY,
     ticker   CHAR(5)     NOT NULL,
     currency CHAR(1)     NOT NULL,
-    watching BOOL        NOT NULL
+    watching BOOL        NOT NULL,
+    shares_float VARCHAR(7)
 );
 CREATE TABLE Dividend
 (
@@ -50,7 +51,7 @@ CREATE TABLE Record
 
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('e7c49260-53da-42c1-80cf-eccf6ed928a7', 'XXX', 'K', false);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('0a16ba1d-99de-4306-8fc5-81ee11b60ea0', 'YYY', 'K', false);
-INSERT INTO Company (id, ticker, currency, watching) VALUES ('adb89a0a-86bc-4854-8a55-058ad2e6308f', 'NVDA', '$', true);
+INSERT INTO Company (id, ticker, currency, watching, shares_float) VALUES ('adb89a0a-86bc-4854-8a55-058ad2e6308f', 'NVDA', '$', true, '900.78M');
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('4efe9235-0c00-4b51-aa81-f2febbb65232', 'SHELL', '€', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('eaca1473-33c2-4128-a0f2-b7853cdece41', 'RR', '£', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('61cc8096-87ac-4197-8b54-7c2595274bcc', 'CEZ', 'K', true);

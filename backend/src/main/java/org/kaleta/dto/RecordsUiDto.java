@@ -15,6 +15,7 @@ public class RecordsUiDto
     private String ticker;
     private Currency currency;
     private Boolean watching;
+    private String marketCap;
     private List<RecordDto> records = new ArrayList<>();
     private Latest latestPrice;
     private Latest latestPe;

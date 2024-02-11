@@ -21,6 +21,9 @@ public class Company extends AbstractEntity
     @Column(name = "watching")
     private boolean watching;
 
+    @Column(name = "shares_float")
+    private String sharesFloat;
+
     public String getTicker()
     {
         return ticker.trim();

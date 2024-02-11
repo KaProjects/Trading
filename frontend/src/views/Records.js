@@ -80,6 +80,7 @@ const Records = props => {
                             <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
                                 {data.ticker}
                             </Box>
+                            {data.marketCap && <Box sx={{color: 'text.secondary', fontSize: 12}}>Market Cap: {data.marketCap}</Box>}
 
                             <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
                                 {data.watching && <StarIcon sx={{color: 'gold',}}/>}

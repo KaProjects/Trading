@@ -63,6 +63,10 @@ public class RecordResource
                     }
                 }
 
+                if (dto.getLatestPrice() != null && company.getSharesFloat() != null){
+                    dto.setMarketCap(companyService.computeMarketCap(dto.getLatestPrice().getValue(), company.getSharesFloat()));
+                }
+
                 for (Trade trade : tradeService.getTrades(true, companyId, null, null, null))
                 {
                     RecordsUiDto.Own own = new RecordsUiDto.Own();

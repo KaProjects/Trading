@@ -8,7 +8,8 @@ CREATE TABLE Company
     id       VARCHAR(36) NOT NULL PRIMARY KEY,
     ticker   CHAR(5)     NOT NULL,
     currency CHAR(1)     NOT NULL,
-    watching BOOL        NOT NULL
+    watching BOOL        NOT NULL,
+    shares_float VARCHAR(7)
 );
 CREATE TABLE Dividend
 (
