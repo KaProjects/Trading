@@ -6,12 +6,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
 
 @Data
+@EqualsAndHashCode(callSuper=true)
 @Entity
 @Table(name = "Trade")
 public class Trade extends AbstractEntity

@@ -6,11 +6,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.sql.Date;
 
 @Data
+@EqualsAndHashCode(callSuper=true)
 @Entity
 @Table(name = "Dividend")
 public class Dividend extends AbstractEntity
