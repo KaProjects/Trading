@@ -5,6 +5,7 @@ import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow}
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 const types = ["company", "monthly", "yearly"]
+
 const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
 
 const Stats = props => {

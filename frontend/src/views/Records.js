@@ -8,7 +8,7 @@ import axios from "axios";
 import ContentEditor from "../components/ContentEditor";
 import EditableTypography from "../components/EditableTypography";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
-import AddRecordDialog from "../components/AddRecordDialog";
+import AddRecordDialog from "../dialog/AddRecordDialog";
 import CompanySelector from "../components/CompanySelector";
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';

@@ -16,11 +16,11 @@ const MainBar = props => {
                                 onClick={() => window.location.href='/'}>
                         <MenuIcon />
                     </IconButton>
-                    <Typography variant="h6" noWrap component="div" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                    <Typography variant="h6" sx={{ display: { xs: 'none', sm: 'block' } }}>
                         Trading
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
-                    <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+                    <Box sx={{ display: { xs: 'block', md: 'flex' } }}>
                         {props.showStatsTabs &&
                             <Tabs value={props.statsTabsIndex}
                                   onChange={(event, value) => props.setStatsTabsIndex(value)}
@@ -80,9 +80,6 @@ const MainBar = props => {
                         }
                     </Box>
                     <Box sx={{ flexGrow: 1 }} />
-                    <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
-
-                    </Box>
                 </Toolbar>
             </AppBar>
         </Box>

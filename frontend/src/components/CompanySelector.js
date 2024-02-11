@@ -35,7 +35,7 @@ const CompanySelector = (props) => {
             {loaded &&
                 <Grid container direction="row" alignItems="stretch"
                       justifyContent={state === showStates[0] ? "center" : "flex-start"}
-                      sx={state === showStates[0] ? {} : {maxWidth: "250px", position: "absolute"}}
+                      sx={state === showStates[0] ? {} : {maxWidth: "250px", position: "absolute", display: { xs: 'none', sm: 'none', md: "none", lg: "block" }}}
                 >
                     {(state === showStates[0] || state === showStates[2]) &&
                         <List dense sx={listStyle}

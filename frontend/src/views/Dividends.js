@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import {useData} from "../fetch";
 import Loader from "../components/Loader";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-import AddDividendDialog from "../components/AddDividendDialog";
+import AddDividendDialog from "../dialog/AddDividendDialog";
 
 
 const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
