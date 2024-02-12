@@ -17,7 +17,7 @@ import org.kaleta.dto.RecordsUiDto;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Record;
 import org.kaleta.entity.Trade;
-import org.kaleta.model.CompanyRecordsModel;
+import org.kaleta.model.RecordsModel;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.service.CompanyService;
 import org.kaleta.service.FinancialService;
@@ -27,7 +27,6 @@ import org.kaleta.service.TradeService;
 
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.util.List;
 
 import static org.kaleta.Utils.format;
 
@@ -54,7 +53,7 @@ public class RecordResource
             () -> Validator.validateUuid(companyId),
             () -> {
                 Company company = companyService.getCompany(companyId);
-                CompanyRecordsModel recordsModel = recordService.getCompanyRecords(company.getId());
+                RecordsModel recordsModel = recordService.getRecordsModel(company.getId());
 
                 RecordsUiDto dto = new RecordsUiDto(company, recordsModel);
 
@@ -70,7 +69,7 @@ public class RecordResource
                     dto.setMarketCap(companyService.computeMarketCap(dto.getLatestPrice().getValue(), company.getSharesFloat()));
                 }
 
-                dto.setFinancialsFrom(financialService.getFinancials(companyId));
+                dto.setFinancialsFrom(financialService.getFinancialsModel(companyId));
 
                 for (Trade trade : tradeService.getTrades(true, companyId, null, null, null))
                 {

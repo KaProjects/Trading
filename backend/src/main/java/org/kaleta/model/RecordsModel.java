@@ -7,10 +7,10 @@ import org.kaleta.entity.Record;
 import java.sql.Date;
 import java.util.List;
 
-public class CompanyRecordsModel
+public class RecordsModel
 {
     private final List<Record> records;
-    public CompanyRecordsModel(List<Record> records) {this.records = records;}
+    public RecordsModel(List<Record> records) {this.records = records;}
 
     @Data
     public static class Latest{
@@ -81,7 +81,7 @@ public class CompanyRecordsModel
 
     public List<Record> getSortedRecords()
     {
-        this.records.sort((recordA, recordB) -> -Utils.compareDbDates(recordA.getDate(), recordB.getDate()));
+        records.sort((recordA, recordB) -> -Utils.compareDbDates(recordA.getDate(), recordB.getDate()));
         return records;
     }
 }

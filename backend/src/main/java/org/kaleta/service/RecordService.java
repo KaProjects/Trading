@@ -7,7 +7,7 @@ import org.kaleta.dao.RecordDao;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.entity.Record;
-import org.kaleta.model.CompanyRecordsModel;
+import org.kaleta.model.RecordsModel;
 
 import java.math.BigDecimal;
 
@@ -57,8 +57,8 @@ public class RecordService
         return recordDao.get(newRecord.getId());
     }
 
-    public CompanyRecordsModel getCompanyRecords(String companyId)
+    public RecordsModel getRecordsModel(String companyId)
     {
-        return new CompanyRecordsModel(recordDao.list(companyId));
+        return new RecordsModel(recordDao.list(companyId));
     }
 }
