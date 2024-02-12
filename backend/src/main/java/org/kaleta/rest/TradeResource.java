@@ -77,11 +77,7 @@ public class TradeResource
             },
             () -> {
                 Trade trade = tradeService.createTrade(tradeCreateDto);
-
-                if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION")){
-                    firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null));
-                }
-
+                firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null));
                 return Response.status(Response.Status.CREATED).entity(TradeDto.from(trade)).build();
             });
     }
@@ -99,11 +95,7 @@ public class TradeResource
             },
             () -> {
                 tradeService.sellTrade(tradeSellDto);
-
-                if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION")){
-                    firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null));
-                }
-
+                firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null));
                 return Response.status(Response.Status.NO_CONTENT).build();
             });
     }
