@@ -19,6 +19,7 @@ import org.kaleta.entity.Record;
 import org.kaleta.entity.Trade;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.service.CompanyService;
+import org.kaleta.service.FinancialService;
 import org.kaleta.service.FirebaseService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
@@ -40,6 +41,8 @@ public class RecordResource
     CompanyService companyService;
     @Inject
     FirebaseService firebaseService;
+    @Inject
+    FinancialService financialService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -66,6 +69,8 @@ public class RecordResource
                 if (dto.getLatestPrice() != null && company.getSharesFloat() != null){
                     dto.setMarketCap(companyService.computeMarketCap(dto.getLatestPrice().getValue(), company.getSharesFloat()));
                 }
+
+                dto.setFinancialsFrom(financialService.getFinancials(companyId));
 
                 for (Trade trade : tradeService.getTrades(true, companyId, null, null, null))
                 {

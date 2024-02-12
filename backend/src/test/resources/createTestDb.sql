@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS Dividend;
 DROP TABLE IF EXISTS Trade;
 DROP TABLE IF EXISTS Record;
+DROP TABLE IF EXISTS Financial;
 DROP TABLE IF EXISTS Company;
 
 CREATE TABLE Company
@@ -10,6 +11,16 @@ CREATE TABLE Company
     currency CHAR(1)     NOT NULL,
     watching BOOL        NOT NULL,
     shares_float VARCHAR(7)
+);
+CREATE TABLE Financial
+(
+    id          VARCHAR(36) NOT NULL PRIMARY KEY,
+    quarter     CHAR(4)     NOT NULL,
+    revenue     DECIMAL(8, 2)     NOT NULL,
+    net_income  DECIMAL(8, 2)     NOT NULL,
+    eps         DECIMAL(4, 2)     NOT NULL,
+    companyId   VARCHAR(36) NOT NULL,
+    CONSTRAINT `fk_financialCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Dividend
 (
@@ -104,3 +115,7 @@ INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('24a17552-c52a
 INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('8f683c27-f334-41b1-9406-189d62ae2171', '61cc8096-87ac-4197-8b54-7c2595274bcc', '2021-12-01', '1000', '100');
 INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('719c545d-26d6-4437-8e1a-e1eea53b3967', '66c725b2-9987-4653-a49c-3a9906168d2a', '2020-12-01', '1000', '100');
 
+
+INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES ('01596f61-19f6-409e-87b9-2bbc6b9b59a6', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '23Q3', '18120', '9243', '3.71');
+INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES ('58c89a63-2baf-481e-ad6a-4b03e5163bf9', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '23Q2', '13507', '6188', '2.48');
+INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES ('1c53f589-a00d-4b83-af33-b31fed0d9915', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '23Q1', '7192', '2043', '0.82');

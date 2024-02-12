@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS Dividend;
 DROP TABLE IF EXISTS Trade;
 DROP TABLE IF EXISTS Record;
+DROP TABLE IF EXISTS Financial;
 DROP TABLE IF EXISTS Company;
 
 CREATE TABLE Company
@@ -10,6 +11,16 @@ CREATE TABLE Company
     currency CHAR(1)     NOT NULL,
     watching BOOL        NOT NULL,
     shares_float VARCHAR(7)
+);
+CREATE TABLE Financial
+(
+    id          VARCHAR(36) NOT NULL PRIMARY KEY,
+    quarter     CHAR(4)     NOT NULL,
+    revenue     DECIMAL(8, 2)     NOT NULL,
+    net_income  DECIMAL(8, 2)     NOT NULL,
+    eps         DECIMAL(4, 2)     NOT NULL,
+    companyId   VARCHAR(36) NOT NULL,
+    CONSTRAINT `fk_financialCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Dividend
 (

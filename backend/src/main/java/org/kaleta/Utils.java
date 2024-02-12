@@ -83,4 +83,20 @@ public class Utils
         if (format(before).equals("0")) return null;
         return now.divide(before, 4, RoundingMode.HALF_UP).subtract(new BigDecimal(1)).multiply(new BigDecimal(100));
     }
+
+    /**
+     * Examples:
+     * 100 -> 100M
+     * 1100 -> 1.10B
+     *
+     * @return formatted value of millions
+     */
+    public static String formatMillions(BigDecimal value)
+    {
+        if (value.compareTo(new BigDecimal(1000)) > 0) {
+            return format(value.divide(new BigDecimal(1000), 2, RoundingMode.HALF_UP)) + "B";
+        } else {
+            return format(value) + "M";
+        }
+    }
 }

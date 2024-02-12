@@ -14,6 +14,7 @@ import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import {handleError, validateNumber} from "../utils";
 import LatestValueBox from "../components/LatestValueBox";
+import Financials from "../components/Financials";
 
 function profitColor(profit){
     if (profit.startsWith("+")) return 'success.dark'
@@ -82,6 +83,12 @@ const Records = props => {
                             </Box>
                             {data.marketCap && <Box sx={{color: 'text.secondary', fontSize: 12}}>Market Cap: {data.marketCap}</Box>}
 
+                            <Financials financials={data.financials}
+                                        financialsHeaders={data.financialsHeaders}
+                                        ttmFinancial={data.ttmFinancial}
+                                        ttmFinancialLabels={data.ttmFinancialLabels}
+                                        {...props} sx={{marginBottom: "20px", marginTop: "20px"}}/>
+
                             <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
                                 {data.watching && <StarIcon sx={{color: 'gold',}}/>}
                                 {!data.watching && <StarBorderIcon sx={{color: 'lightgrey',}}/>}
@@ -132,17 +139,17 @@ const Records = props => {
                             <BorderedSection key={record.id} title={record.date} style={{color: 'text.primary'}}>
 
                                 <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
-                                    <EditableValueBox value={record.price} suffix={data.currency} label="Price"
+                                    <EditableValueBox value={record.price} suffix={data.currency} label="price"
                                                       updateObject={(value) => {return {id: record.id, price: value}}}
                                                       validateInput={(value) => validateNumber(value, false, 10, 4)}
                                                       handleUpdate={triggerRefresh}
                                     />
-                                    <EditableValueBox value={record.pe} suffix={""} label="P/E ratio" style={{marginLeft: "5px"}}
+                                    <EditableValueBox value={record.pe} suffix={""} label="p/e ratio" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, pe: value}}}
                                                       validateInput={(value) => validateNumber(value, true, 5, 2)}
                                                       handleUpdate={triggerRefresh}
                                     />
-                                    <EditableValueBox value={record.ps} suffix={""} label="P/S ratio" style={{marginLeft: "5px"}}
+                                    <EditableValueBox value={record.ps} suffix={""} label="p/s ratio" style={{marginLeft: "5px"}}
                                                       updateObject={(value) => {return {id: record.id, ps: value}}}
                                                       validateInput={(value) => validateNumber(value, true, 5, 2)}
                                                       handleUpdate={triggerRefresh}
