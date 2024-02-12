@@ -17,6 +17,7 @@ import org.kaleta.dto.RecordsUiDto;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Record;
 import org.kaleta.entity.Trade;
+import org.kaleta.model.CompanyRecordsModel;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.service.CompanyService;
 import org.kaleta.service.FinancialService;
@@ -53,16 +54,15 @@ public class RecordResource
             () -> Validator.validateUuid(companyId),
             () -> {
                 Company company = companyService.getCompany(companyId);
-                List<Record> records = recordService.getRecords(company.getId());
+                CompanyRecordsModel recordsModel = recordService.getCompanyRecords(company.getId());
 
-                RecordsUiDto dto = new RecordsUiDto(records);
-                dto.setCompany(company);
+                RecordsUiDto dto = new RecordsUiDto(company, recordsModel);
 
                 if (firebaseService.hasCompany(company.getTicker())){
                     FirebaseCompany firebaseCompany = firebaseService.getCompany(company.getTicker());
-                    String date = Utils.format(Date.valueOf(firebaseCompany.getTime().split("T")[0]));
-                    if (Utils.compareDtoDates(date, dto.getLatestPrice().getDate()) >= 0){
-                        dto.setLatestPrice(new RecordsUiDto.Latest(firebaseCompany.getPrice(), date));
+                    Date firebaseLatestDate = Date.valueOf(firebaseCompany.getTime().split("T")[0]);
+                    if (Utils.compareDbDates(firebaseLatestDate, recordsModel.getLatestPrice().getDate()) >= 0){
+                        dto.setLatestPrice(new RecordsUiDto.Latest(firebaseCompany.getPrice(), format(firebaseLatestDate)));
                     }
                 }
 

@@ -7,9 +7,9 @@ import org.kaleta.dao.RecordDao;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.entity.Record;
+import org.kaleta.model.CompanyRecordsModel;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @ApplicationScoped
 public class RecordService
@@ -20,11 +20,6 @@ public class RecordService
     CompanyService companyService;
     @Inject
     CommonService commonService;
-
-    public List<Record> getRecords(String companyId)
-    {
-        return recordDao.list(companyId);
-    }
 
     public void updateRecord(RecordDto dto)
     {
@@ -60,5 +55,10 @@ public class RecordService
         recordDao.create(newRecord);
 
         return recordDao.get(newRecord.getId());
+    }
+
+    public CompanyRecordsModel getCompanyRecords(String companyId)
+    {
+        return new CompanyRecordsModel(recordDao.list(companyId));
     }
 }

@@ -1,9 +1,9 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.Utils;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Currency;
+import org.kaleta.model.CompanyRecordsModel;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -36,18 +36,23 @@ public class RecordsUiDto
     private String[] ttmFinancialLabels;
 
     public RecordsUiDto() {}
-    public RecordsUiDto(List<org.kaleta.entity.Record> records)
+    public RecordsUiDto(Company company, CompanyRecordsModel recordsModel)
     {
-        records.sort((recordA, recordB) -> -Utils.compareDbDates(recordA.getDate(), recordB.getDate()));
+        companyId = company.getId();
+        ticker = company.getTicker();
+        currency = Currency.valueOf(company.getCurrency());
+        watching = company.isWatching();
 
-        if (records.size() > 0) {
-            this.setCompany(records.get(0).getCompany());
+        for (org.kaleta.entity.Record record : recordsModel.getSortedRecords()) {
+            this.records.add(RecordDto.from(record));
         }
-        for (org.kaleta.entity.Record record : records)
-        {
-            this.getRecords().add(RecordDto.from(record));
-        }
-        computeLatest();
+        setLatestPrice(Latest.from(recordsModel.getLatestPrice()));
+        setLatestPe(Latest.from(recordsModel.getLatestPe()));
+        setLatestPs(Latest.from(recordsModel.getLatestPs()));
+        setLatestDy(Latest.from(recordsModel.getLatestDy()));
+        setLatestTargets(Latest.from(recordsModel.getLatestTargets()));
+        setLatestStrategy(Latest.from(recordsModel.getLatestStrategy()));
+
         financialsHeaders = new String[]{"Quarter", "Revenue", "Net Income", "Net Margin", "EPS"};
         ttmFinancialLabels = new String[]{"revenue", "net income", "net margin", "eps", "ttm p/e", "forward p/e"};
     }
@@ -67,6 +72,14 @@ public class RecordsUiDto
         private String date;
 
         public Latest(String value, String date) {this.value = value; this.date = date;}
+
+        public static Latest from(CompanyRecordsModel.Latest latest){
+            if (latest == null) return null;
+            String value = (latest.getValue() instanceof BigDecimal)
+                    ? format((BigDecimal) latest.getValue())
+                    : (String) latest.getValue();
+            return new Latest(value, format(latest.getDate()));
+        }
     }
 
     @Data
@@ -90,13 +103,6 @@ public class RecordsUiDto
                 return -(Integer.parseInt(this.getQuarter().substring(3, 4)) - Integer.parseInt(other.getQuarter().substring(3, 4)));
             }
         }
-    }
-
-    public void setCompany(Company company){
-        companyId = company.getId();
-        ticker = company.getTicker();
-        currency = Currency.valueOf(company.getCurrency());
-        watching = company.isWatching();
     }
 
     public void setFinancialsFrom(List<org.kaleta.entity.Financial> financials)
@@ -141,35 +147,6 @@ public class RecordsUiDto
                 BigDecimal latestPrice = new BigDecimal(getLatestPrice().getValue());
                 ttmFinancial.setTtmPe(eps.compareTo(new BigDecimal(0)) > 0 ? format(latestPrice.divide(eps,2, RoundingMode.HALF_UP)) : "-");
                 ttmFinancial.setForwardPe(financials.get(0).getEps().compareTo(new BigDecimal(0)) > 0 ? format(latestPrice.divide(financials.get(0).getEps().multiply(new BigDecimal(4)), 2, RoundingMode.HALF_UP)) : "-");
-            }
-        }
-    }
-
-    private void computeLatest(){
-        if (this.getRecords().size() > 0)
-        {
-            for(int i=0; i < this.getRecords().size(); i++)
-            {
-                RecordDto iRecord = this.getRecords().get(i);
-
-                if (getLatestPrice() == null && iRecord.getPrice() != null && !iRecord.getPrice().isBlank()){
-                    setLatestPrice(new Latest(iRecord.getPrice(), iRecord.getDate()));
-                }
-                if (getLatestPe() == null && iRecord.getPe() != null && !iRecord.getPe().isBlank()){
-                    setLatestPe(new Latest(iRecord.getPe(), iRecord.getDate()));
-                }
-                if (getLatestPs() == null && iRecord.getPs() != null && !iRecord.getPs().isBlank()){
-                    setLatestPs(new Latest(iRecord.getPs(), iRecord.getDate()));
-                }
-                if (getLatestDy() == null && iRecord.getDy() != null && !iRecord.getDy().isBlank()){
-                    setLatestDy(new Latest(iRecord.getDy(), iRecord.getDate()));
-                }
-                if (getLatestTargets() == null && iRecord.getTargets() != null && !iRecord.getTargets().isBlank()){
-                    setLatestTargets(new Latest(iRecord.getTargets(), iRecord.getDate()));
-                }
-                if (getLatestStrategy() == null && iRecord.getStrategy() != null && !iRecord.getStrategy().isBlank()){
-                    setLatestStrategy(new Latest(iRecord.getStrategy(), iRecord.getDate()));
-                }
             }
         }
     }
