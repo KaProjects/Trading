@@ -85,4 +85,4 @@ const MainBar = props => {
         </Box>
     )
 }
-export default MainBar;
+export default MainBar

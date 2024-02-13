@@ -61,4 +61,4 @@ const EditableTypography = props => {
         </div>
     )
 }
-export default EditableTypography;
+export default EditableTypography

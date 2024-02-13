@@ -70,4 +70,4 @@ const EditableValueBox = props => {
         </div>
     )
 }
-export default EditableValueBox;
+export default EditableValueBox

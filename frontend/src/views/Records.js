@@ -29,30 +29,41 @@ const Records = props => {
     useEffect(() => {
         props.toggleRecordsSelectors()
         // eslint-disable-next-line
-    }, []);
+    }, [])
 
     const [data, setData] = useState(null)
     const [loaded, setLoaded] = useState(false)
     const [error, setError] = useState(null)
     const [openAddRecordDialog, setOpenAddRecordDialog] = useState(false)
     const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
-    const [expandFinancials, setExpandFinancials] = useState(false);
+    const [expandFinancials, setExpandFinancials] = useState(false)
 
-    useEffect(() => {
+    function fetchData(companyChanged) {
         if (props.companySelectorValue) {
             axios.get(domain + "/record/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
                 .then((response) => {
                     setData(response.data)
                     setError(null)
                     setLoaded(true)
-                    setExpandFinancials(false)
+                    if (companyChanged) setExpandFinancials(false)
                 }).catch((error) => {
-                    setError(handleError(error))
-                    setLoaded(false)
-                })
+                setError(handleError(error))
+                setLoaded(false)
+            })
         }
+    }
+
+    useEffect(() => {
+        fetchData(true)
         // eslint-disable-next-line
-    }, [props.companySelectorValue, refresh])
+    }, [props.companySelectorValue])
+
+    useEffect(() => {
+        fetchData(false)
+        // eslint-disable-next-line
+    }, [refresh])
+
+
 
     function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
@@ -88,9 +99,6 @@ const Records = props => {
 
                             <Financials sx={{marginBottom: "20px", marginTop: "20px"}}
                                         financials={data.financials}
-                                        financialsHeaders={data.financialsHeaders}
-                                        ttmFinancial={data.ttmFinancial}
-                                        ttmFinancialLabels={data.ttmFinancialLabels}
                                         triggerRefresh={triggerRefresh}
                                         expand={expandFinancials}
                                         setExpand={setExpandFinancials}
@@ -198,4 +206,4 @@ const Records = props => {
         </>
     )
 }
-export default Records;
+export default Records

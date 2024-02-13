@@ -93,4 +93,4 @@ const AddFinancialDialog = props => {
         </Dialog>
     )
 }
-export default AddFinancialDialog;
+export default AddFinancialDialog

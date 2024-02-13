@@ -40,19 +40,19 @@ const AddRecordDialog = props => {
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-record-date"
                            type="date"
                            value={date}
-                           onChange={(e) => setDate(e.target.value)}
+                           onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                            error={date === ""}
                 />
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-record-title"
                            value={title}
                            label="Title"
-                           onChange={(e) => setTitle(e.target.value)}
+                           onChange={(e) => {setTitle(e.target.value);setAlert(null);}}
                            error={title === ""}
                 />
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-record-price"
                            value={price}
                            label="Price"
-                           onChange={(e) => setPrice(e.target.value)}
+                           onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
                            error={validateNumber(price, false, 10, 4) !== ""}
                            helperText={validateNumber(price, false, 10, 4)}
                 />
@@ -69,4 +69,4 @@ const AddRecordDialog = props => {
         </Dialog>
     )
 }
-export default AddRecordDialog;
+export default AddRecordDialog

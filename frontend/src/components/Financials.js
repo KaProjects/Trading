@@ -19,8 +19,7 @@ import AddFinancialDialog from "../dialog/AddFinancialDialog";
 
 
 const Financials = props => {
-    const {financialsHeaders, financials, ttmFinancialLabels, ttmFinancial} = props
-    const {expand, setExpand} = props
+    const {financials, expand, setExpand} = props
     const [showExpand, setShowExpand] = useState(false)
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(false)
 
@@ -45,18 +44,18 @@ const Financials = props => {
         />
 
         <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
-            {ttmFinancial && financial(ttmFinancial.revenue + props.companySelectorValue.currency, ttmFinancialLabels[0])}
-            {ttmFinancial && financial(ttmFinancial.netIncome + props.companySelectorValue.currency, ttmFinancialLabels[1])}
-            {ttmFinancial && financial(ttmFinancial.netMargin + "%", ttmFinancialLabels[2])}
-            {ttmFinancial && financial(ttmFinancial.eps + props.companySelectorValue.currency, ttmFinancialLabels[3])}
-            {ttmFinancial && financial(ttmFinancial.ttmPe, ttmFinancialLabels[4])}
-            {ttmFinancial && financial(ttmFinancial.forwardPe, ttmFinancialLabels[5])}
-            {(showExpand || expand) && ttmFinancial &&
+            {financials.ttm && financial(financials.ttm.revenue + props.companySelectorValue.currency, financials.ttmLabels[0])}
+            {financials.ttm && financial(financials.ttm.netIncome + props.companySelectorValue.currency, financials.ttmLabels[1])}
+            {financials.ttm && financial(financials.ttm.netMargin + "%", financials.ttmLabels[2])}
+            {financials.ttm && financial(financials.ttm.eps + props.companySelectorValue.currency, financials.ttmLabels[3])}
+            {financials.ttm && financial(financials.ttm.ttmPe, financials.ttmLabels[4])}
+            {financials.ttm && financial(financials.ttm.forwardPe, financials.ttmLabels[5])}
+            {(showExpand || expand) && financials.ttm &&
                 <Button sx={{height: "25px"}} onClick={() => setExpand(!expand)}>
                     <>{!expand && <ArrowDropDownIcon/>}{expand && <ArrowDropUpIcon/>}</>
                 </Button>
             }
-            {(!ttmFinancial || expand) &&
+            {(!financials.ttm || expand) &&
                 <Tooltip title="Add Quarter Financials">
                     <Button sx={{height: "25px"}} onClick={() => setOpenAddFinancialDialog(true)}>
                         <ControlPointIcon sx={{color: 'lightgreen'}}/>
@@ -65,18 +64,18 @@ const Financials = props => {
             }
         </Grid>
 
-        {expand && ttmFinancial &&
+        {expand && financials.ttm &&
             <TableContainer sx={{ width: "max-content", maxHeight: "200px"}}>
             <Table size="small" aria-label="a dense table" stickyHeader>
                 <TableHead>
                     <TableRow>
-                        {financialsHeaders.map((column, index) => (
+                        {financials.headers.map((column, index) => (
                             <TableCell key={index}>{column}</TableCell>
                         ))}
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {financials.map((financial, index) => (
+                    {financials.values.map((financial, index) => (
                         <TableRow key={index}>
                             <TableCell key={0} sx={{textAlign: "center"}}>{financial.quarter}</TableCell>
                             <TableCell key={1} sx={{textAlign: "right"}}>{financial.revenue}</TableCell>

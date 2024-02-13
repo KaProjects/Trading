@@ -16,7 +16,7 @@ const Stats = props => {
     }, [])
 
     function CompanyStats(props) {
-        const {type} = props;
+        const {type} = props
         const [sort, setSort] = useState(6)
         const {data, loaded, error} = useData("/stats/" + type + constructQueryParams())
 
@@ -87,7 +87,7 @@ const Stats = props => {
     }
 
     function PeriodStats(props) {
-        const {type} = props;
+        const {type} = props
         const {data, loaded, error} = useData("/stats/" + type + constructQueryParams())
 
         function constructQueryParams(){
@@ -110,12 +110,12 @@ const Stats = props => {
             let style = {fontWeight: fontWeight, textAlign: textAlign, borderLeft: border, borderRight: border ,fontFamily: fontFamily, color: color}
 
             if (type === types[1]){
-                const isCurrentYear = (rIndex !== undefined && Number(data.rows[0].period.split(".")[1]) === new Date().getFullYear());
+                const isCurrentYear = (rIndex !== undefined && Number(data.rows[0].period.split(".")[1]) === new Date().getFullYear())
                 if ((rIndex + (isCurrentYear ? (12 - new Date().getMonth()) : 1)) % 12 === 0){
                     style = Object.assign(style, {borderBottom: "1px solid black"})
                 }
             }
-            return style;
+            return style
         }
 
         return (
@@ -184,4 +184,4 @@ const Stats = props => {
         </>
     )
 }
-export default Stats;
+export default Stats

@@ -6,7 +6,12 @@ import {
     DialogContent,
     DialogTitle,
     MenuItem,
-    Select, Table, TableBody, TableCell, TableHead, TableRow,
+    Select,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
     TextField
 } from "@mui/material";
 import {handleError, validateNumber} from "../utils";
@@ -92,27 +97,27 @@ const SellTradeDialog = props => {
                 <TextField required margin="dense" fullWidth variant="standard"id="trader-sell-trade-date"
                            type="date"
                            value={date}
-                           onChange={(e) => setDate(e.target.value)}
+                           onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                            error={date === ""}
                 />
                 <TextField required margin="dense" fullWidth variant="standard"id="trader-sell-trade-price"
                            value={price}
                            label="Price"
-                           onChange={(e) => setPrice(e.target.value)}
+                           onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
                            error={validateNumber(price, false, 10, 4) !== ""}
                            helperText={validateNumber(price, false, 10, 4) }
                 />
                 <TextField required margin="dense" fullWidth variant="standard"id="trader-sell-trade-fees"
                            value={fees}
                            label="Fees"
-                           onChange={(e) => setFees(e.target.value)}
+                           onChange={(e) => {setFees(e.target.value);setAlert(null);}}
                            error={validateNumber(fees, false, 5, 2) !== ""}
                            helperText={validateNumber(fees, false, 5, 2) }
                 />
                 <Select required margin="dense" fullWidth variant="standard" displayEmpty
                         value={company}
                         error={company === ""}
-                        onChange={event => selectCompany(event.target.value)}
+                        onChange={event => {selectCompany(event.target.value);setAlert(null);}}
                         sx={{marginTop: "15px"}}
                 >
                     <MenuItem value=""></MenuItem>
@@ -142,7 +147,7 @@ const SellTradeDialog = props => {
                                 <TableCell>
                                     <TextField margin="dense" fullWidth variant="standard" id="trader-sell-trade-quantity"
                                                value={trade.sellQuantity ? trade.sellQuantity : ""}
-                                               onChange={(e) => {const newTrades = [...trades];newTrades[index].sellQuantity = e.target.value; setTrades([...newTrades]);}}
+                                               onChange={(e) => {const newTrades = [...trades];newTrades[index].sellQuantity = e.target.value; setTrades([...newTrades]); setAlert(null);}}
                                                error={validateQuantity(trade) !== ""}
                                                helperText={validateQuantity(trade)}
                                     />
@@ -164,4 +169,4 @@ const SellTradeDialog = props => {
         </Dialog>
     )
 }
-export default SellTradeDialog;
+export default SellTradeDialog

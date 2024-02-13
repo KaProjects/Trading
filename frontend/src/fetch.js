@@ -5,9 +5,9 @@ import {handleError} from "./utils";
 
 export const useData = (path) => {
 
-    const [data, setData] = useState(null);
-    const [loaded, setLoaded] = useState(false);
-    const [error, setError] = useState(null);
+    const [data, setData] = useState(null)
+    const [loaded, setLoaded] = useState(false)
+    const [error, setError] = useState(null)
 
     useEffect(() => {
         setError(null)
@@ -22,7 +22,7 @@ export const useData = (path) => {
                 setLoaded(false)
             })
         // eslint-disable-next-line
-    }, [path]);
+    }, [path])
 
-    return { data, loaded, error };
-};
+    return { data, loaded, error }
+}

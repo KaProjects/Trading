@@ -11,4 +11,4 @@ const Loader = props => {
         </div>
     )
 }
-export default Loader;
+export default Loader

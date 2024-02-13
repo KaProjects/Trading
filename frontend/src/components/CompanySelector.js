@@ -93,4 +93,4 @@ const CompanySelector = (props) => {
         </>
     )
 }
-export default CompanySelector;
+export default CompanySelector

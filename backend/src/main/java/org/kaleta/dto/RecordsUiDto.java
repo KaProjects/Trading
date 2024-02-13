@@ -30,10 +30,7 @@ public class RecordsUiDto
     private Latest latestTargets;
     private Latest latestStrategy;
     private List<Own> owns = new ArrayList<>();
-    private List<Financial> financials = new ArrayList<>();
-    private String[] financialsHeaders;
-    private Financial ttmFinancial;
-    private String[] ttmFinancialLabels;
+    private Financials financials;
 
     public RecordsUiDto() {}
     public RecordsUiDto(Company company, RecordsModel recordsModel)
@@ -53,8 +50,9 @@ public class RecordsUiDto
         setLatestTargets(Latest.from(recordsModel.getLatestTargets()));
         setLatestStrategy(Latest.from(recordsModel.getLatestStrategy()));
 
-        financialsHeaders = new String[]{"Quarter", "Revenue", "Net Income", "Net Margin", "EPS"};
-        ttmFinancialLabels = new String[]{"revenue", "net income", "net margin", "eps", "ttm p/e", "forward p/e"};
+        financials = new Financials();
+        financials.setHeaders(new String[]{"Quarter", "Revenue", "Net Income", "Net Margin", "EPS"});
+        financials.setTtmLabels(new String[]{"revenue", "net income", "net margin", "eps", "ttm p/e", "forward p/e"});
     }
 
     @Data
@@ -83,6 +81,15 @@ public class RecordsUiDto
     }
 
     @Data
+    public static class Financials
+    {
+        private List<Financial> values = new ArrayList<>();
+        private String[] headers;
+        private Financial ttm;
+        private String[] ttmLabels;
+    }
+
+    @Data
     public static class Financial
     {
         private String quarter;
@@ -105,7 +112,7 @@ public class RecordsUiDto
             dto.setNetIncome(formatMillions(financial.getNetIncome()));
             dto.setNetMargin(format(financial.getNetMargin()));
             dto.setEps(format(financial.getEps()));
-            getFinancials().add(dto);
+            financials.values.add(dto);
         }
 
         BigDecimal latestPrice = getLatestPrice() == null ? new BigDecimal(0) : new BigDecimal(getLatestPrice().getValue());
@@ -113,15 +120,15 @@ public class RecordsUiDto
 
         if (ttmFinancials != null)
         {
-            ttmFinancial = new Financial();
-            ttmFinancial.setRevenue(formatMillions(ttmFinancials.getRevenue()));
-            ttmFinancial.setNetIncome(formatMillions(ttmFinancials.getNetIncome()));
-            ttmFinancial.setNetMargin(format(ttmFinancials.getNetMargin()));
-            ttmFinancial.setEps(format(ttmFinancials.getEps()));
+            financials.ttm = new Financial();
+            financials.ttm.setRevenue(formatMillions(ttmFinancials.getRevenue()));
+            financials.ttm.setNetIncome(formatMillions(ttmFinancials.getNetIncome()));
+            financials.ttm.setNetMargin(format(ttmFinancials.getNetMargin()));
+            financials.ttm.setEps(format(ttmFinancials.getEps()));
             BigDecimal ttmPe = ttmFinancials.getPe();
-            ttmFinancial.setTtmPe(ttmPe.compareTo(new BigDecimal(0)) > 0 ? format(ttmPe) : "-");
+            financials.ttm.setTtmPe(ttmPe.compareTo(new BigDecimal(0)) > 0 ? format(ttmPe) : "-");
             BigDecimal forwardPe = financialsModel.getForwardPe(latestPrice);
-            ttmFinancial.setForwardPe(forwardPe.compareTo(new BigDecimal(0)) > 0 ? format(forwardPe) : "-");
+            financials.ttm.setForwardPe(forwardPe.compareTo(new BigDecimal(0)) > 0 ? format(forwardPe) : "-");
         }
     }
 }

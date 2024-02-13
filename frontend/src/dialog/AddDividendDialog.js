@@ -54,13 +54,13 @@ const AddDividendDialog = props => {
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-dividend-date"
                            type="date"
                            value={date}
-                           onChange={(e) => setDate(e.target.value)}
+                           onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                            error={date === ""}
                 />
                 <Select required margin="dense" fullWidth variant="standard" displayEmpty
                         value={company}
                         error={company === ""}
-                        onChange={event => setCompany(event.target.value)}
+                        onChange={event => {setCompany(event.target.value);setAlert(null);}}
                         sx={{marginTop: "20px"}}
                 >
                     <MenuItem value=""></MenuItem>
@@ -71,14 +71,14 @@ const AddDividendDialog = props => {
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-dividend-dividend"
                            value={dividend}
                            label="Dividend"
-                           onChange={(e) => setDividend(e.target.value)}
+                           onChange={(e) => {setDividend(e.target.value);setAlert(null);}}
                            error={validateNumber(dividend, false, 7, 2) !== ""}
                            helperText={validateNumber(dividend, false, 7, 2)}
                 />
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-dividend-tax"
                            value={tax}
                            label="Tax"
-                           onChange={(e) => setTax(e.target.value)}
+                           onChange={(e) => {setTax(e.target.value);setAlert(null);}}
                            error={validateNumber(tax, false, 6, 2) !== ""}
                            helperText={validateNumber(tax, false, 6, 2) }
                 />
@@ -95,4 +95,4 @@ const AddDividendDialog = props => {
         </Dialog>
     )
 }
-export default AddDividendDialog;
+export default AddDividendDialog

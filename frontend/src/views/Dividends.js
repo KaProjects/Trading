@@ -99,4 +99,4 @@ const Dividends = props => {
         </>
     )
 }
-export default Dividends;
+export default Dividends

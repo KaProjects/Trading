@@ -43,19 +43,19 @@ class FinancialResourceTest
 
         assertThat(recordsUiDto.getTicker(), is("XFC"));
         assertThat(recordsUiDto.getRecords().size(), is(1));
-        assertThat(recordsUiDto.getFinancials().size(), is(2));
-        assertThat(recordsUiDto.getFinancials().get(0).getQuarter(), is(dto.getQuarter()));
-        assertThat(recordsUiDto.getFinancials().get(0).getRevenue(), is("2B"));
-        assertThat(recordsUiDto.getFinancials().get(0).getNetIncome(), is("200M"));
-        assertThat(recordsUiDto.getFinancials().get(0).getNetMargin(), is("10"));
-        assertThat(recordsUiDto.getFinancials().get(0).getEps(), is("2"));
+        assertThat(recordsUiDto.getFinancials().getValues().size(), is(2));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getQuarter(), is(dto.getQuarter()));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getRevenue(), is("2B"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getNetIncome(), is("200M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getNetMargin(), is("10"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getEps(), is("2"));
         assertThat(recordsUiDto.getLatestPrice().getValue(), is("60"));
-        assertThat(recordsUiDto.getTtmFinancial().getRevenue(), is("6B"));
-        assertThat(recordsUiDto.getTtmFinancial().getNetIncome(), is("600M"));
-        assertThat(recordsUiDto.getTtmFinancial().getNetMargin(), is("10"));
-        assertThat(recordsUiDto.getTtmFinancial().getEps(), is("6"));
-        assertThat(recordsUiDto.getTtmFinancial().getTtmPe(), is("10"));
-        assertThat(recordsUiDto.getTtmFinancial().getForwardPe(), is("7.5"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getRevenue(), is("6B"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getNetIncome(), is("600M"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getNetMargin(), is("10"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getEps(), is("6"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getTtmPe(), is("10"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getForwardPe(), is("7.5"));
     }
 
     @Test

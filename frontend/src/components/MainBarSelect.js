@@ -21,4 +21,4 @@ const MainBarSelect = props => {
         </Select>
     )
 }
-export default MainBarSelect;
+export default MainBarSelect

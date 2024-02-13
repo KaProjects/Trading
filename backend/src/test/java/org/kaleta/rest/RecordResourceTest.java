@@ -426,20 +426,20 @@ class RecordResourceTest
                 .extract().response().jsonPath().getObject("", RecordsUiDto.class);
 
         assertThat(dto.getTicker(), is("NVDA"));
-        assertThat(dto.getFinancialsHeaders().length, is(5));
-        assertThat(dto.getFinancials().size(), is(3));
-        assertThat(dto.getFinancials().get(1).getQuarter(), is("23Q2"));
-        assertThat(dto.getFinancials().get(1).getRevenue(), is("13.51B"));
-        assertThat(dto.getFinancials().get(1).getNetIncome(), is("6.19B"));
-        assertThat(dto.getFinancials().get(1).getNetMargin(), is("45.81"));
-        assertThat(dto.getFinancials().get(1).getEps(), is("2.48"));
+        assertThat(dto.getFinancials().getHeaders().length, is(5));
+        assertThat(dto.getFinancials().getValues().size(), is(3));
+        assertThat(dto.getFinancials().getValues().get(1).getQuarter(), is("23Q2"));
+        assertThat(dto.getFinancials().getValues().get(1).getRevenue(), is("13.51B"));
+        assertThat(dto.getFinancials().getValues().get(1).getNetIncome(), is("6.19B"));
+        assertThat(dto.getFinancials().getValues().get(1).getNetMargin(), is("45.81"));
+        assertThat(dto.getFinancials().getValues().get(1).getEps(), is("2.48"));
         assertThat(dto.getLatestPrice(), is(new RecordsUiDto.Latest("500", "05.01.2024")));
-        assertThat(dto.getTtmFinancialLabels().length, is(6));
-        assertThat(dto.getTtmFinancial().getRevenue(), is("51.76B"));
-        assertThat(dto.getTtmFinancial().getNetIncome(), is("23.3B"));
-        assertThat(dto.getTtmFinancial().getNetMargin(), is("45.01"));
-        assertThat(dto.getTtmFinancial().getEps(), is("9.35"));
-        assertThat(dto.getTtmFinancial().getTtmPe(), is("53.48"));
-        assertThat(dto.getTtmFinancial().getForwardPe(), is("33.69"));
+        assertThat(dto.getFinancials().getTtmLabels().length, is(6));
+        assertThat(dto.getFinancials().getTtm().getRevenue(), is("51.76B"));
+        assertThat(dto.getFinancials().getTtm().getNetIncome(), is("23.3B"));
+        assertThat(dto.getFinancials().getTtm().getNetMargin(), is("45.01"));
+        assertThat(dto.getFinancials().getTtm().getEps(), is("9.35"));
+        assertThat(dto.getFinancials().getTtm().getTtmPe(), is("53.48"));
+        assertThat(dto.getFinancials().getTtm().getForwardPe(), is("33.69"));
     }
 }

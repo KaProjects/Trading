@@ -61,13 +61,13 @@ const AddTradeDialog = props => {
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-trade-date"
                            type="date"
                            value={date}
-                           onChange={(e) => setDate(e.target.value)}
+                           onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                            error={date === ""}
                 />
                 <Select required margin="dense" fullWidth variant="standard" displayEmpty
                         value={company}
                         error={company === ""}
-                        onChange={event => setCompany(event.target.value)}
+                        onChange={event => {setCompany(event.target.value);setAlert(null);}}
                         sx={{marginTop: "20px"}}
                 >
                     <MenuItem value=""></MenuItem>
@@ -78,21 +78,21 @@ const AddTradeDialog = props => {
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-trade-quantity"
                            value={quantity}
                            label="Quantity"
-                           onChange={(e) => setQuantity(e.target.value)}
+                           onChange={(e) => {setQuantity(e.target.value);setAlert(null);}}
                            error={validateNumber(quantity, false, 8, 4) !== ""}
                            helperText={validateNumber(quantity, false, 8, 4)}
                 />
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-trade-price"
                            value={price}
                            label="Price"
-                           onChange={(e) => setPrice(e.target.value)}
+                           onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
                            error={validateNumber(price, false, 10, 4) !== ""}
                            helperText={validateNumber(price, false, 10, 4) }
                 />
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-trade-fees"
                            value={fees}
                            label="Fees"
-                           onChange={(e) => setFees(e.target.value)}
+                           onChange={(e) => {setFees(e.target.value);setAlert(null);}}
                            error={validateNumber(fees, false, 5, 2) !== ""}
                            helperText={validateNumber(fees, false, 5, 2) }
                 />
@@ -109,4 +109,4 @@ const AddTradeDialog = props => {
         </Dialog>
     )
 }
-export default AddTradeDialog;
+export default AddTradeDialog

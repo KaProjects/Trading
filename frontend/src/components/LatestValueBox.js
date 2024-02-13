@@ -24,4 +24,4 @@ const LatestValueBox = props => {
 
     )
 }
-export default LatestValueBox;
+export default LatestValueBox
