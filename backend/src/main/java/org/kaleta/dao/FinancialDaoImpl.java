@@ -3,6 +3,7 @@ package org.kaleta.dao;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 import org.kaleta.entity.Financial;
 
 import java.util.List;
@@ -22,5 +23,12 @@ public class FinancialDaoImpl implements FinancialDao
         return entityManager.createQuery(selectQuery + " WHERE f.company.id=:companyId", Financial.class)
                 .setParameter("companyId", companyId)
                 .getResultList();
+    }
+
+    @Override
+    @Transactional
+    public void create(Financial financial)
+    {
+        entityManager.persist(financial);
     }
 }

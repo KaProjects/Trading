@@ -15,12 +15,14 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import Tooltip from "@mui/material/Tooltip";
+import AddFinancialDialog from "../dialog/AddFinancialDialog";
 
 
 const Financials = props => {
     const {financialsHeaders, financials, ttmFinancialLabels, ttmFinancial} = props
-    const [expand, setExpand] = useState(false);
-    const [showExpand, setShowExpand] = useState(false);
+    const {expand, setExpand} = props
+    const [showExpand, setShowExpand] = useState(false)
+    const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(false)
 
     function financial(value, label){
         return <Box sx={{marginLeft: "10px"}}>
@@ -36,14 +38,13 @@ const Financials = props => {
     return(
         <Paper elevation={0}  sx={props.sx} onMouseEnter={() => setShowExpand(true)} onMouseLeave={() => setShowExpand(false)}>
 
+        <AddFinancialDialog open={openAddFinancialDialog}
+                            handleClose={() => setOpenAddFinancialDialog(false)}
+                            companyId={props.companySelectorValue.id}
+                            {...props}
+        />
+
         <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
-            {(!ttmFinancial || expand) &&
-                <Tooltip title="Add Quarter Financials">
-                    <Button sx={{height: "25px"}} onClick={() => props.setOpenAddDividend(true)}>
-                        <ControlPointIcon sx={{color: 'lightgreen'}}/>
-                    </Button>
-                </Tooltip>
-            }
             {ttmFinancial && financial(ttmFinancial.revenue + props.companySelectorValue.currency, ttmFinancialLabels[0])}
             {ttmFinancial && financial(ttmFinancial.netIncome + props.companySelectorValue.currency, ttmFinancialLabels[1])}
             {ttmFinancial && financial(ttmFinancial.netMargin + "%", ttmFinancialLabels[2])}
@@ -51,9 +52,16 @@ const Financials = props => {
             {ttmFinancial && financial(ttmFinancial.ttmPe, ttmFinancialLabels[4])}
             {ttmFinancial && financial(ttmFinancial.forwardPe, ttmFinancialLabels[5])}
             {(showExpand || expand) && ttmFinancial &&
-                <Button sx={{height: "25px", width: "150px"}} onClick={() => setExpand(!expand)}>
+                <Button sx={{height: "25px"}} onClick={() => setExpand(!expand)}>
                     <>{!expand && <ArrowDropDownIcon/>}{expand && <ArrowDropUpIcon/>}</>
                 </Button>
+            }
+            {(!ttmFinancial || expand) &&
+                <Tooltip title="Add Quarter Financials">
+                    <Button sx={{height: "25px"}} onClick={() => setOpenAddFinancialDialog(true)}>
+                        <ControlPointIcon sx={{color: 'lightgreen'}}/>
+                    </Button>
+                </Tooltip>
             }
         </Grid>
 

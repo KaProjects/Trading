@@ -27,7 +27,7 @@ class CompanyResourceTest
                 .get("/company")
                 .then()
                 .statusCode(200)
-                .body("size()", is(14))
+                .body("size()", is(15))
                 .extract().response().jsonPath().getList("", CompanyDto.class);
 
         assertThat(dtos.get(0).getTicker(), is("ABCD"));
@@ -43,8 +43,8 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiCompanyListsDto.class);
 
-        assertThat(dto.getWatchingOldestReview().size(), is(11));
-        assertThat(dto.getWatchingOldestReview().get(10).getTicker(), is("NVDA"));
+        assertThat(dto.getWatchingOldestReview().size(), is(12));
+        assertThat(dto.getWatchingOldestReview().get(11).getTicker(), is("NVDA"));
 
         assertThat(dto.getOwnedWithoutStrategy().size(), is(4));
         assertThat(dto.getOwnedWithoutStrategy(), hasItem(hasTicker("XRSB")));

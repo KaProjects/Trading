@@ -16,6 +16,7 @@ import {handleError, validateNumber} from "../utils";
 import LatestValueBox from "../components/LatestValueBox";
 import Financials from "../components/Financials";
 
+
 function profitColor(profit){
     if (profit.startsWith("+")) return 'success.dark'
     if (profit.startsWith("-")) return 'error.dark'
@@ -35,6 +36,7 @@ const Records = props => {
     const [error, setError] = useState(null)
     const [openAddRecordDialog, setOpenAddRecordDialog] = useState(false)
     const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
+    const [expandFinancials, setExpandFinancials] = useState(false);
 
     useEffect(() => {
         if (props.companySelectorValue) {
@@ -43,6 +45,7 @@ const Records = props => {
                     setData(response.data)
                     setError(null)
                     setLoaded(true)
+                    setExpandFinancials(false)
                 }).catch((error) => {
                     setError(handleError(error))
                     setLoaded(false)
@@ -83,11 +86,16 @@ const Records = props => {
                             </Box>
                             {data.marketCap && <Box sx={{color: 'text.secondary', fontSize: 12}}>Market Cap: {data.marketCap}</Box>}
 
-                            <Financials financials={data.financials}
+                            <Financials sx={{marginBottom: "20px", marginTop: "20px"}}
+                                        financials={data.financials}
                                         financialsHeaders={data.financialsHeaders}
                                         ttmFinancial={data.ttmFinancial}
                                         ttmFinancialLabels={data.ttmFinancialLabels}
-                                        {...props} sx={{marginBottom: "20px", marginTop: "20px"}}/>
+                                        triggerRefresh={triggerRefresh}
+                                        expand={expandFinancials}
+                                        setExpand={setExpandFinancials}
+                                        {...props}
+                            />
 
                             <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
                                 {data.watching && <StarIcon sx={{color: 'gold',}}/>}

@@ -3,6 +3,7 @@ package org.kaleta.rest;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.Utils;
 import org.kaleta.dto.DividendCreateDto;
+import org.kaleta.dto.FinancialCreateDto;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.dto.TradeCreateDto;
@@ -134,6 +135,23 @@ public class Validator
         if (dto.getTax() == null || !isBigDecimal(dto.getTax(), 6, 2))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Tax: '" + dto.getTax() + "'");
 
+        validateUuid(dto.getCompanyId());
+    }
+
+    public static void validateCreateFinancialDto(FinancialCreateDto dto)
+    {
+        if (dto.getQuarter() == null || dto.getQuarter().isBlank()
+                || dto.getQuarter().length() != 4 || !dto.getQuarter().matches("\\d\\dQ\\d"))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Quarter: '" + dto.getQuarter() + "'");
+
+        if (dto.getRevenue() == null || !isBigDecimal(dto.getRevenue(), 8, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Revenue: '" + dto.getRevenue() + "'");
+
+        if (dto.getNetIncome() == null || !isBigDecimal(dto.getNetIncome(), 8, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Net Income: '" + dto.getNetIncome() + "'");
+
+        if (dto.getEps() == null || !isBigDecimal(dto.getEps(), 4, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid EPS: '" + dto.getEps() + "'");
         validateUuid(dto.getCompanyId());
     }
 
