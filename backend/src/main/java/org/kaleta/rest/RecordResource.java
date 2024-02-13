@@ -65,8 +65,8 @@ public class RecordResource
                     }
                 }
 
-                if (dto.getLatestPrice() != null && company.getSharesFloat() != null){
-                    dto.setMarketCap(companyService.computeMarketCap(dto.getLatestPrice().getValue(), company.getSharesFloat()));
+                if (dto.getLatest().getPrice() != null && company.getSharesFloat() != null){
+                    dto.setMarketCap(companyService.computeMarketCap(dto.getLatest().getPrice().getValue(), company.getSharesFloat()));
                 }
 
                 dto.setFinancialsFrom(financialService.getFinancialsModel(companyId));
@@ -76,7 +76,7 @@ public class RecordResource
                     RecordsUiDto.Own own = new RecordsUiDto.Own();
                     own.setQuantity(format(trade.getQuantity()));
                     own.setPrice(format(trade.getPurchasePrice()));
-                    BigDecimal profit = Utils.computeProfit(trade.getPurchasePrice(), new BigDecimal(dto.getLatestPrice().getValue()));
+                    BigDecimal profit = Utils.computeProfit(trade.getPurchasePrice(), new BigDecimal(dto.getLatest().getPrice().getValue()));
                     if (profit != null){
                         own.setProfit((profit.compareTo(new BigDecimal("0")) > 0 ? "+" : "") + format(profit) + "%");
                     }

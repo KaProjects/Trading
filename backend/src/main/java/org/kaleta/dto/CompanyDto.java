@@ -2,6 +2,7 @@ package org.kaleta.dto;
 
 import lombok.Data;
 import org.kaleta.entity.Company;
+import org.kaleta.entity.Currency;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,8 +12,9 @@ public class CompanyDto implements Comparable<CompanyDto>
 {
     private String id;
     private String ticker;
-    private String currency;
+    private Currency currency;
     private Boolean watching;
+    private String sector;
 
     @Override
     public int compareTo(CompanyDto other)
@@ -31,6 +33,7 @@ public class CompanyDto implements Comparable<CompanyDto>
             dto.setTicker(company.getTicker());
             dto.setCurrency(company.getCurrency());
             dto.setWatching(company.isWatching());
+            dto.setSector(company.getSector());
             list.add(dto);
         }
         list.sort(CompanyDto::compareTo);

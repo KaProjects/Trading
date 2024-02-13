@@ -10,7 +10,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeDto;
 import org.kaleta.dto.TradeSellDto;

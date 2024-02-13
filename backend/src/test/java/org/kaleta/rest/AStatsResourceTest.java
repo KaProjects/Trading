@@ -72,7 +72,7 @@ class AStatsResourceTest
                 .statusCode(200)
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", StatsUiByCompanyDto.class);
-        System.out.println(dto);
+
         assertThat(dto.getColumns().size(), is(8));
         assertThat(dto.getColumns().get(1), is("#"));
         assertThat(dto.getRows().size(), is(6));

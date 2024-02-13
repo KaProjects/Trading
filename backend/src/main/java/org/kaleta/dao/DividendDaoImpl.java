@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
+import org.kaleta.entity.Currency;
 import org.kaleta.entity.Dividend;
 
 import java.util.List;
@@ -44,7 +45,7 @@ public class DividendDaoImpl implements DividendDao
                 + yearCondition, Dividend.class);
 
         if (companyId != null ) query.setParameter("companyId", companyId);
-        if (currency != null ) query.setParameter("currency", currency);
+        if (currency != null ) query.setParameter("currency", Currency.valueOf(currency));
         if (year != null ) query.setParameter("year", year);
 
         return query.getResultList();

@@ -5,6 +5,8 @@ import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.RecordsUiCompanyListsDto;
+import org.kaleta.entity.Currency;
+import org.kaleta.entity.Sector;
 import org.kaleta.framework.Assert;
 
 import java.util.List;
@@ -76,7 +78,8 @@ class CompanyResourceTest
         for (CompanyDto dtoAfter : companies) {
             if (dtoAfter.getId().equals(dto.getId())) {
                 assertThat(dtoAfter.getTicker(), is("XCW"));
-                assertThat(dtoAfter.getCurrency(), is("$"));
+                assertThat(dtoAfter.getCurrency(), is(Currency.$));
+                assertThat(dtoAfter.getSector(), is(Sector.ELECTRIC_VEHICLES.getName()));
                 assertThat(dtoAfter.getWatching(), is(true));
                 companyFound = true;
             }

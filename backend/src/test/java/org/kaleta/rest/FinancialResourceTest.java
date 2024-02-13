@@ -41,7 +41,7 @@ class FinancialResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiDto.class);
 
-        assertThat(recordsUiDto.getTicker(), is("XFC"));
+        assertThat(recordsUiDto.getCompany().getTicker(), is("XFC"));
         assertThat(recordsUiDto.getRecords().size(), is(1));
         assertThat(recordsUiDto.getFinancials().getValues().size(), is(2));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getQuarter(), is(dto.getQuarter()));
@@ -49,7 +49,7 @@ class FinancialResourceTest
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getNetIncome(), is("200M"));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getNetMargin(), is("10"));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getEps(), is("2"));
-        assertThat(recordsUiDto.getLatestPrice().getValue(), is("60"));
+        assertThat(recordsUiDto.getLatest().getPrice().getValue(), is("60"));
         assertThat(recordsUiDto.getFinancials().getTtm().getRevenue(), is("6B"));
         assertThat(recordsUiDto.getFinancials().getTtm().getNetIncome(), is("600M"));
         assertThat(recordsUiDto.getFinancials().getTtm().getNetMargin(), is("10"));

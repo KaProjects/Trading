@@ -1,7 +1,6 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.entity.Company;
 import org.kaleta.entity.Currency;
 import org.kaleta.model.FinancialsModel;
 import org.kaleta.model.RecordsModel;
@@ -17,42 +16,36 @@ import static org.kaleta.Utils.formatMillions;
 @Data
 public class RecordsUiDto
 {
-    private String companyId;
-    private String ticker;
-    private Currency currency;
-    private Boolean watching;
-    private String marketCap;
+    private Company company;
     private List<RecordDto> records = new ArrayList<>();
-    private Latest latestPrice;
-    private Latest latestPe;
-    private Latest latestPs;
-    private Latest latestDy;
-    private Latest latestTargets;
-    private Latest latestStrategy;
+    private Latests latest;
     private List<Own> owns = new ArrayList<>();
     private Financials financials;
 
     public RecordsUiDto() {}
-    public RecordsUiDto(Company company, RecordsModel recordsModel)
+    public RecordsUiDto(org.kaleta.entity.Company company, RecordsModel recordsModel)
     {
-        companyId = company.getId();
-        ticker = company.getTicker();
-        currency = Currency.valueOf(company.getCurrency());
-        watching = company.isWatching();
+        this.company = new Company();
+        this.company.id = company.getId();
+        this.company.ticker = company.getTicker();
+        this.company.currency = company.getCurrency();
+        this.company.watching = company.isWatching();
+        this.company.sector = company.getSector();
 
         for (org.kaleta.entity.Record record : recordsModel.getSortedRecords()) {
             this.records.add(RecordDto.from(record));
         }
-        setLatestPrice(Latest.from(recordsModel.getLatestPrice()));
-        setLatestPe(Latest.from(recordsModel.getLatestPe()));
-        setLatestPs(Latest.from(recordsModel.getLatestPs()));
-        setLatestDy(Latest.from(recordsModel.getLatestDy()));
-        setLatestTargets(Latest.from(recordsModel.getLatestTargets()));
-        setLatestStrategy(Latest.from(recordsModel.getLatestStrategy()));
+        latest = new Latests();
+        latest.price = Latest.from(recordsModel.getLatestPrice());
+        latest.pe = Latest.from(recordsModel.getLatestPe());
+        latest.ps = Latest.from(recordsModel.getLatestPs());
+        latest.dy = Latest.from(recordsModel.getLatestDy());
+        latest.targets = Latest.from(recordsModel.getLatestTargets());
+        latest.strategy = Latest.from(recordsModel.getLatestStrategy());
 
         financials = new Financials();
-        financials.setHeaders(new String[]{"Quarter", "Revenue", "Net Income", "Net Margin", "EPS"});
-        financials.setTtmLabels(new String[]{"revenue", "net income", "net margin", "eps", "ttm p/e", "forward p/e"});
+        financials.headers = new String[]{"Quarter", "Revenue", "Net Income", "Net Margin", "EPS"};
+        financials.ttmLabels = new String[]{"revenue", "net income", "net margin", "eps", "ttm p/e", "forward p/e"};
     }
 
     @Data
@@ -61,6 +54,17 @@ public class RecordsUiDto
         private String quantity;
         private String price;
         private String profit;
+    }
+
+    @Data
+    public static class Latests
+    {
+        private Latest price;
+        private Latest pe;
+        private Latest ps;
+        private Latest dy;
+        private Latest targets;
+        private Latest strategy;
     }
 
     @Data
@@ -102,6 +106,27 @@ public class RecordsUiDto
         private String forwardPe;
     }
 
+    @Data
+    public static class Company
+    {
+        private String id;
+        private String ticker;
+        private Currency currency;
+        private Boolean watching;
+        private String sector;
+        private String marketCap;
+    }
+
+    public void setLatestPrice(Latest latestPrice)
+    {
+        latest.price = latestPrice;
+    }
+
+    public void setMarketCap(String marketCap)
+    {
+        this.company.marketCap = marketCap;
+    }
+
     public void setFinancialsFrom(FinancialsModel financialsModel)
     {
         for (org.kaleta.entity.Financial financial : financialsModel.getSortedFinancials())
@@ -115,7 +140,7 @@ public class RecordsUiDto
             financials.values.add(dto);
         }
 
-        BigDecimal latestPrice = getLatestPrice() == null ? new BigDecimal(0) : new BigDecimal(getLatestPrice().getValue());
+        BigDecimal latestPrice = latest.price == null ? new BigDecimal(0) : new BigDecimal(latest.price.value);
         FinancialsModel.Ttm ttmFinancials = financialsModel.getTtmFinancials(latestPrice);
 
         if (ttmFinancials != null)

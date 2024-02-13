@@ -50,7 +50,7 @@ public class Trade extends AbstractEntity
 
     public Currency getCurrency()
     {
-        return Currency.valueOf(company.getCurrency());
+        return company.getCurrency();
     }
 
     public BigDecimal getPurchaseTotal()

@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
+import org.kaleta.entity.Currency;
 import org.kaleta.entity.Trade;
 import org.kaleta.model.CompanyInfo;
 
@@ -66,7 +67,7 @@ public class TradeDaoImpl implements TradeDao
                 + yearCondition, Trade.class);
 
         if (companyId != null ) query.setParameter("companyId", companyId);
-        if (currency != null ) query.setParameter("currency", currency);
+        if (currency != null ) query.setParameter("currency", Currency.valueOf(currency));
         if (purchaseYear != null ) query.setParameter("purchaseYear", purchaseYear);
         if (sellYear != null ) query.setParameter("sellYear", sellYear);
 
