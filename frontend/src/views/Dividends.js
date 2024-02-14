@@ -24,6 +24,7 @@ const Dividends = props => {
         return "?filter" + (props.companySelectorValue ? "&companyId="+props.companySelectorValue.id : "")
             + (props.currencySelectorValue ? "&currency="+props.currencySelectorValue : "")
             + (props.yearSelectorValue ? "&year="+props.yearSelectorValue : "")
+            + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
             + (refresh ? "&refresh" + refresh : "")
     }
 
@@ -31,11 +32,13 @@ const Dividends = props => {
         if (data) {
             const years = new Set([])
             const currencies = new Set([])
+            const sectors = new Set([])
             data.dividends.forEach((dividend) => {
                 years.add(dividend.date.split(".")[2])
                 currencies.add(dividend.currency)
+                if (dividend.sector) sectors.add(dividend.sector)
             })
-            props.toggleDividendsSelectors([...currencies], [...years].sort().reverse())
+            props.toggleDividendsSelectors([...currencies], [...years].sort().reverse(), [...sectors].sort())
         }
         // eslint-disable-next-line
     }, [data])

@@ -31,9 +31,9 @@ public class TradeService
     @Inject
     CommonService commonService;
 
-    public List<Trade> getTrades(Boolean active, String company, String currency, String purchaseYear, String sellYear)
+    public List<Trade> getTrades(Boolean active, String company, String currency, String purchaseYear, String sellYear, String sector)
     {
-        return tradeDao.list(active, company, currency, purchaseYear, sellYear);
+        return tradeDao.list(active, company, currency, purchaseYear, sellYear, sector);
     }
 
     public String[] computeSums(List<Trade> trades)
@@ -143,7 +143,7 @@ public class TradeService
     public Map<String, int[]> getCompanyAggregates()
     {
         Map<String, int[]> map = new HashMap<>();
-        for (Trade trade : tradeDao.list(null, null, null, null, null))
+        for (Trade trade : tradeDao.list(null, null, null, null, null, null))
         {
             String companyId = trade.getCompany().getId();
             int[] aggregates = map.containsKey(companyId) ? map.get(companyId) : new int[]{0,0,0};

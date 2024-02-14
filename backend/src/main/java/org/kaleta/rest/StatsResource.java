@@ -24,12 +24,16 @@ public class StatsResource
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/company")
-    public Response getCompanies(@QueryParam("year") String year, @QueryParam("sort") String sort)
+    public Response getCompanies(
+            @QueryParam("year") String year,
+            @QueryParam("sort") String sort,
+            @QueryParam("sector") String sector)
     {
         return Endpoint.process(() -> {
             if (year != null) Validator.validateYear(year);
+            if (sector != null) Validator.validateSector(sector);
         }, () -> {
-            List<StatsByCompany> companyStats = statsService.getByCompany(year);
+            List<StatsByCompany> companyStats = statsService.getByCompany(year, sector);
             if (sort != null && sort.equals("percentage")) {
                 companyStats.sort(StatsByCompany::comparePercentageTo);
             } else {
@@ -44,12 +48,13 @@ public class StatsResource
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/monthly")
-    public Response getMonthly(@QueryParam("companyId") String companyId)
+    public Response getMonthly(@QueryParam("companyId") String companyId, @QueryParam("sector") String sector)
     {
         return Endpoint.process(() -> {
             if (companyId != null) Validator.validateUuid(companyId);
+            if (sector != null) Validator.validateSector(sector);
         }, () -> {
-            List<StatsByPeriod> monthlyStats = statsService.getByPeriod(companyId, true);
+            List<StatsByPeriod> monthlyStats = statsService.getByPeriod(companyId, true, sector);
             StatsUiByPeriodDto dto = StatsUiByPeriodDto.from(monthlyStats, true);
             dto.setSums(statsService.computePeriodSums(monthlyStats));
             return dto;
@@ -59,12 +64,13 @@ public class StatsResource
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/yearly")
-    public Response getYearly(@QueryParam("companyId") String companyId)
+    public Response getYearly(@QueryParam("companyId") String companyId, @QueryParam("sector") String sector)
     {
         return Endpoint.process(() -> {
             if (companyId != null) Validator.validateUuid(companyId);
+            if (sector != null) Validator.validateSector(sector);
         }, () -> {
-            List<StatsByPeriod> yearlyStats = statsService.getByPeriod(companyId, false);
+            List<StatsByPeriod> yearlyStats = statsService.getByPeriod(companyId, false, sector);
             StatsUiByPeriodDto dto = StatsUiByPeriodDto.from(yearlyStats, false);
             dto.setSums(statsService.computePeriodSums(yearlyStats));
             return dto;

@@ -3,8 +3,11 @@ package org.kaleta.dao;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
 import org.kaleta.entity.Company;
+import org.kaleta.entity.Currency;
+import org.kaleta.entity.Sector;
 
 import java.util.List;
 
@@ -21,6 +24,32 @@ public class CompanyDaoImpl implements CompanyDao
     public List<Company> list()
     {
         return entityManager.createQuery(selectQuery, Company.class).getResultList();
+    }
+
+    @Override
+    public List<Company> list(String currency, String sector)
+    {
+        String joinWord = " WHERE ";
+
+        String currencyCondition = "";
+        if (currency != null){
+            currencyCondition = joinWord + "c.currency=:currency";
+            joinWord = " AND ";
+        }
+
+        String sectorCondition = "";
+        if (sector != null){
+            sectorCondition = joinWord + "c.sector=:sector";
+        }
+
+        TypedQuery<Company> query = entityManager.createQuery(selectQuery
+                + currencyCondition
+                + sectorCondition, Company.class);
+
+        if (currency != null ) query.setParameter("currency", Currency.valueOf(currency));
+        if (sector != null ) query.setParameter("sector", Sector.getBy(sector));
+
+        return query.getResultList();
     }
 
     @Override

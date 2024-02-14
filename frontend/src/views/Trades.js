@@ -21,9 +21,10 @@ const Trades = props => {
 
     function constructQueryParams(){
         return "?filter" + (props.activeSelectorValue ? "&active=" + (props.activeSelectorValue === props.activeStates[0]) : "")
-            + (props.companySelectorValue ? "&companyId="+props.companySelectorValue.id : "")
-            + (props.currencySelectorValue ? "&currency="+props.currencySelectorValue : "")
-            + (props.yearSelectorValue ? "&year="+props.yearSelectorValue : "")
+            + (props.companySelectorValue ? "&companyId=" + props.companySelectorValue.id : "")
+            + (props.currencySelectorValue ? "&currency=" + props.currencySelectorValue : "")
+            + (props.yearSelectorValue ? "&year=" + props.yearSelectorValue : "")
+            + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
             + (refresh ? "&refresh" + refresh : "")
     }
 
@@ -31,12 +32,14 @@ const Trades = props => {
         if (data) {
             const years = new Set([])
             const currencies = new Set([])
+            const sectors = new Set([])
             data.trades.forEach((trade) => {
                 years.add(trade.purchaseDate.split(".")[2])
                 if (trade.sellDate) years.add(trade.sellDate.split(".")[2])
                 currencies.add(trade.currency)
+                if (trade.sector) sectors.add(trade.sector)
             })
-            props.toggleTradesSelectors([...currencies],[...years].sort().reverse())
+            props.toggleTradesSelectors([...currencies],[...years].sort().reverse(), [...sectors].sort())
         }
         // eslint-disable-next-line
     }, [data])

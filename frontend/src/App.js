@@ -24,6 +24,7 @@ class App extends Component {
             showActiveSelector: false,
             showCurrencySelector: null,  // null = false, true otherwise
             showYearSelector: null,      // null = false, true otherwise
+            showSectorSelector: null,    // null = false, true otherwise
             showAddTradeButton: false,
             showSellTradeButton: false,
             showAddDividendButton: false,
@@ -32,6 +33,7 @@ class App extends Component {
             toggleRecordsSelectors: this.toggleRecordsSelectors.bind(this),
             toggleDividendsSelectors: this.toggleDividendsSelectors.bind(this),
             toggleStatsSelectors: this.toggleStatsSelectors.bind(this),
+            toggleCompaniesSelectors: this.toggleCompaniesSelectors.bind(this),
             activeSelectorValue: "",
             setActiveSelectorValue: this.setActiveSelectorValue.bind(this),
             companySelectorValue: "",
@@ -40,6 +42,8 @@ class App extends Component {
             setCurrencySelectorValue: this.setCurrencySelectorValue.bind(this),
             yearSelectorValue: "",
             setYearSelectorValue: this.setYearSelectorValue.bind(this),
+            sectorSelectorValue: "",
+            setSectorSelectorValue: this.setSectorSelectorValue.bind(this),
             openAddTrade: false,
             setOpenAddTrade: this.setOpenAddTrade.bind(this),
             openSellTrade: false,
@@ -54,23 +58,27 @@ class App extends Component {
         this.toggleRecordsSelectors = this.toggleRecordsSelectors.bind(this)
         this.toggleDividendsSelectors = this.toggleDividendsSelectors.bind(this)
         this.toggleStatsSelectors = this.toggleStatsSelectors.bind(this)
+        this.toggleCompaniesSelectors = this.toggleCompaniesSelectors.bind(this)
         this.setActiveSelectorValue = this.setActiveSelectorValue.bind(this)
         this.setCompanySelectorValue = this.setCompanySelectorValue.bind(this)
         this.setCurrencySelectorValue = this.setCurrencySelectorValue.bind(this)
         this.setYearSelectorValue = this.setYearSelectorValue.bind(this)
+        this.setSectorSelectorValue = this.setSectorSelectorValue.bind(this)
         this.setOpenAddTrade = this.setOpenAddTrade.bind(this)
         this.setOpenSellTrade = this.setOpenSellTrade.bind(this)
         this.setOpenAddDividend = this.setOpenAddDividend.bind(this)
         this.setStatsTabsIndex = this.setStatsTabsIndex.bind(this)
     }
 
-    toggleTradesSelectors(currencies, years) {
+    toggleTradesSelectors(currencies, years, sectors) {
         this.setState({showActiveSelector: true})
         this.setState({showCompanySelector: true})
         this.setState({showCurrencySelector: currencies})
         if (!currencies.includes(this.state.currencySelectorValue)) this.setState({currencySelectorValue: ""})
         this.setState({showYearSelector: years})
         if (!years.includes(this.state.yearSelectorValue)) this.setState({yearSelectorValue: ""})
+        this.setState({showSectorSelector: sectors})
+        if (!sectors.includes(this.state.sectorSelectorValue)) this.setState({sectorSelectorValue: ""})
         this.setState({showAddTradeButton: true})
         this.setState({showSellTradeButton: true})
         this.loadStorageStates()
@@ -81,28 +89,40 @@ class App extends Component {
         this.loadStorageStates()
     }
 
-    toggleDividendsSelectors(currencies, years) {
+    toggleDividendsSelectors(currencies, years, sectors) {
         this.setState({showCompanySelector: true})
         this.setState({showCurrencySelector: currencies})
         if (!currencies.includes(this.state.currencySelectorValue)) this.setState({currencySelectorValue: ""})
         this.setState({showYearSelector: years})
         if (!years.includes(this.state.yearSelectorValue)) this.setState({yearSelectorValue: ""})
+        this.setState({showSectorSelector: sectors})
+        if (!sectors.includes(this.state.sectorSelectorValue)) this.setState({sectorSelectorValue: ""})
         this.setState({showAddDividendButton: true})
         this.loadStorageStates()
     }
 
-    toggleStatsSelectors(years, companySelector){
+    toggleStatsSelectors(years, companySelector, sectors){
         this.setState({showStatsTabs: [0,1,2]})
-        this.setState({showYearSelector: years})
-        if (!years.includes(this.state.yearSelectorValue)) this.setState({yearSelectorValue: ""})
         this.setState({showCompanySelector: companySelector})
-        this.loadStorageStates()
+        if (!companySelector) this.setState({companySelectorValue: ""})
+        this.setState({showYearSelector: years})
+        if (!years || !years.includes(this.state.yearSelectorValue)) this.setState({yearSelectorValue: ""})
+        this.setState({showSectorSelector: sectors})
+        if (!sectors || !sectors.includes(this.state.sectorSelectorValue)) this.setState({sectorSelectorValue: ""})
+    }
+
+    toggleCompaniesSelectors(currencies, sectors) {
+        this.setState({showCurrencySelector: currencies})
+        if (!currencies.includes(this.state.currencySelectorValue)) this.setState({currencySelectorValue: ""})
+        this.setState({showSectorSelector: sectors})
+        if (!sectors.includes(this.state.sectorSelectorValue)) this.setState({sectorSelectorValue: ""})
     }
 
     setActiveSelectorValue(value) {this.setState({activeSelectorValue: value})}
     setCompanySelectorValue(value) {this.setState({companySelectorValue: value})}
     setCurrencySelectorValue(value) {this.setState({currencySelectorValue: value})}
     setYearSelectorValue(value) {this.setState({yearSelectorValue: value})}
+    setSectorSelectorValue(value) {this.setState({sectorSelectorValue: value})}
     setOpenAddTrade(value) {this.setState({openAddTrade: value})}
     setOpenSellTrade(value) {this.setState({openSellTrade: value})}
     setOpenAddDividend(value) {this.setState({openAddDividend: value})}

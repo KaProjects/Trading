@@ -13,6 +13,7 @@ public class DividendDto implements Comparable<DividendDto>
     private String id;
     private String ticker;
     private Currency currency;
+    private String sector;
 
     private String date;
     private String dividend;
@@ -32,6 +33,7 @@ public class DividendDto implements Comparable<DividendDto>
         dto.setId(dividend.getId());
         dto.setTicker(dividend.getTicker());
         dto.setCurrency(dividend.getCurrency());
+        dto.setSector(dividend.getCompany().getSector());
         dto.setDate(Utils.format(dividend.getDate()));
         dto.setDividend(format(dividend.getDividend()));
         dto.setTax(format(dividend.getTax()));

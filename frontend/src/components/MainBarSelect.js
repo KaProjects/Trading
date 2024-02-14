@@ -7,7 +7,7 @@ const MainBarSelect = props => {
         <Select
             value={value}
             variant="standard"
-            sx={{textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
+            sx={{marginLeft: "15px", textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
                 ':not(.Mui-disabled):hover::before': { borderBottomColor: '#1976d2' },
                 ':before': { borderBottomColor: '#1976d2' },
                 ':after': { borderBottomColor: '#1976d2' }}}

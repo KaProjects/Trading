@@ -10,7 +10,7 @@ public interface TradeDao
     /**
      * @return lists of trades that match provided filters (null filter = all values)
      */
-    List<Trade> list(Boolean active, String companyId, String currency, String purchaseYear, String sellYear);
+    List<Trade> list(Boolean active, String companyId, String currency, String purchaseYear, String sellYear, String sector);
 
     /**
      * @return latest purchase dates for every company (that have at least open trade)

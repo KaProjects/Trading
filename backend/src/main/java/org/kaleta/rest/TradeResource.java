@@ -38,14 +38,16 @@ public class TradeResource
             @QueryParam("active") Boolean active,
             @QueryParam("year") String year,
             @QueryParam("companyId") String companyId,
-            @QueryParam("currency") String currency)
+            @QueryParam("currency") String currency,
+            @QueryParam("sector") String sector)
     {
         return Endpoint.process(() -> {
             if (companyId != null) Validator.validateUuid(companyId);
             if (currency != null) Validator.validateCurrency(currency);
             if (year != null) Validator.validateYear(year);
+            if (sector != null) Validator.validateSector(sector);
         }, () -> {
-            List<Trade> trades = tradeService.getTrades(active, companyId, currency, year, year);
+            List<Trade> trades = tradeService.getTrades(active, companyId, currency, year, year, sector);
 
             if (active != null && active) {
                 for (Trade trade : trades) {
@@ -76,7 +78,7 @@ public class TradeResource
             },
             () -> {
                 Trade trade = tradeService.createTrade(tradeCreateDto);
-                firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null));
+                firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null, null));
                 return Response.status(Response.Status.CREATED).entity(TradeDto.from(trade)).build();
             });
     }
@@ -94,7 +96,7 @@ public class TradeResource
             },
             () -> {
                 tradeService.sellTrade(tradeSellDto);
-                firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null));
+                firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null, null));
                 return Response.status(Response.Status.NO_CONTENT).build();
             });
     }

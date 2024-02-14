@@ -6,6 +6,7 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
 import org.kaleta.entity.Currency;
+import org.kaleta.entity.Sector;
 import org.kaleta.entity.Trade;
 import org.kaleta.model.CompanyInfo;
 
@@ -22,7 +23,7 @@ public class TradeDaoImpl implements TradeDao
     private final String selectQuery = "SELECT t FROM Trade t";
 
     @Override
-    public List<Trade> list(Boolean active, String companyId, String currency, String purchaseYear, String sellYear)
+    public List<Trade> list(Boolean active, String companyId, String currency, String purchaseYear, String sellYear, String sector)
     {
         String joinWord = " WHERE ";
         String activeCondition = "";
@@ -47,6 +48,12 @@ public class TradeDaoImpl implements TradeDao
             joinWord = " AND ";
         }
 
+        String sectorCondition = "";
+        if (sector != null){
+            sectorCondition = joinWord + "t.company.sector=:sector";
+            joinWord = " AND ";
+        }
+
         String yearCondition = "";
         if (purchaseYear != null){
             if (sellYear != null){
@@ -64,10 +71,12 @@ public class TradeDaoImpl implements TradeDao
                 + activeCondition
                 + companyCondition
                 + currencyCondition
+                + sectorCondition
                 + yearCondition, Trade.class);
 
         if (companyId != null ) query.setParameter("companyId", companyId);
         if (currency != null ) query.setParameter("currency", Currency.valueOf(currency));
+        if (sector != null ) query.setParameter("sector", Sector.getBy(sector));
         if (purchaseYear != null ) query.setParameter("purchaseYear", purchaseYear);
         if (sellYear != null ) query.setParameter("sellYear", sellYear);
 

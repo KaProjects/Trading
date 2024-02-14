@@ -11,7 +11,7 @@ const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
 const Stats = props => {
 
     useEffect(() => {
-        props.toggleStatsSelectors(null, false)
+        props.toggleStatsSelectors(null, false, null)
         // eslint-disable-next-line
     }, [])
 
@@ -23,12 +23,13 @@ const Stats = props => {
         function constructQueryParams(){
             return "?query "
                 + (props.yearSelectorValue ? "&year=" + props.yearSelectorValue : "")
+                + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
                 + (sort === 7 ? "&sort=percentage" : "")
         }
 
         useEffect(() => {
             if (data && !props.showYearSelector){
-                props.toggleStatsSelectors(data.years, false)
+                props.toggleStatsSelectors([...data.years], false, [...data.sectors].sort())
             }
             // eslint-disable-next-line
         }, [data])
@@ -91,12 +92,13 @@ const Stats = props => {
         const {data, loaded, error} = useData("/stats/" + type + constructQueryParams())
 
         function constructQueryParams(){
-            return props.companySelectorValue ? "?companyId=" + props.companySelectorValue.id : ""
+            return "?filter" + (props.companySelectorValue ? "&companyId=" + props.companySelectorValue.id : "")
+                + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
         }
 
         useEffect(() => {
             if (data && !props.showCompanySelector){
-                props.toggleStatsSelectors(null, true)
+                props.toggleStatsSelectors(null, true, props.showSectorSelector)
             }
             // eslint-disable-next-line
         }, [data])

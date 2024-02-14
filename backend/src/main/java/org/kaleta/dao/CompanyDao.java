@@ -12,6 +12,11 @@ public interface CompanyDao
     List<Company> list();
 
     /**
+     * @return list of companies that match provided filters (null filter = all values)
+     */
+    List<Company> list(String currency, String sector);
+
+    /**
      * @return company by ID
      */
     Company get(String companyId);

@@ -9,6 +9,7 @@ import org.kaleta.dto.TradeDto;
 import org.kaleta.dto.TradeSellDto;
 import org.kaleta.dto.TradesUiDto;
 import org.kaleta.entity.Currency;
+import org.kaleta.entity.Sector;
 import org.kaleta.framework.Assert;
 
 import java.util.List;
@@ -37,6 +38,9 @@ class TradeResourceTest
         Assert.get400("/trade?year=" + "20222", "Invalid Year Parameter");
         Assert.get400("/trade?year=" + "202", "Invalid Year Parameter");
         Assert.get400("/trade?year=", "Invalid Year Parameter");
+
+        Assert.get400("/trade?sector=" + "X", "Invalid Sector Parameter");
+        Assert.get400("/trade?sector=", "Invalid Sector Parameter");
     }
 
     @Test
@@ -98,6 +102,24 @@ class TradeResourceTest
         assertThat(dto.getTrades().size(), is(1));
         assertThat(dto.getTrades().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "18", "2028", "", "", "", "30.5", "3009.5", "981.5", "48.4"}));
+    }
+
+    @Test
+    void getTradesFilterSector()
+    {
+        TradesUiDto dto = given().when()
+                .get("/trade?sector=" + Sector.SEMICONDUCTORS.getName())
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+
+        assertThat(dto.getColumns().size(), is(6));
+        assertThat(dto.getColumns().get(1).getName(), is("#"));
+        assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
+        assertThat(dto.getTrades().size(), is(1));
+        assertThat(dto.getTrades().get(0).getTicker(), is("NVDA"));
+        assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "14.5", "2017", "", "", "", "50", "2450", "433", "21.47"}));
     }
 
     @Test

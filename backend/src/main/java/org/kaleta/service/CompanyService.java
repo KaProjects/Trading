@@ -33,6 +33,11 @@ public class CompanyService
         return companyDao.list();
     }
 
+    public List<Company> getCompanies(String currency, String sector)
+    {
+        return companyDao.list(currency, sector);
+    }
+
     public List<CompanyInfo> getCompaniesInfo()
     {
         List<CompanyInfo> companiesInfo = new ArrayList<>();

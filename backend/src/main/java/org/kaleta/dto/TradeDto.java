@@ -13,6 +13,7 @@ public class TradeDto implements Comparable<TradeDto>
     private String id;
     private String ticker;
     private Currency currency;
+    private String sector;
 
     private String purchaseDate;
     private String purchaseQuantity;
@@ -41,6 +42,7 @@ public class TradeDto implements Comparable<TradeDto>
         dto.setId(trade.getId());
         dto.setTicker(trade.getTicker());
         dto.setCurrency(trade.getCurrency());
+        dto.setSector(trade.getCompany().getSector());
 
         dto.setPurchaseDate(Utils.format(trade.getPurchaseDate()));
         dto.setPurchaseQuantity(format(trade.getQuantity()));

@@ -29,14 +29,16 @@ public class DividendResource
     public Response getDividends(
             @QueryParam("year") String year,
             @QueryParam("companyId") String companyId,
-            @QueryParam("currency") String currency)
+            @QueryParam("currency") String currency,
+            @QueryParam("sector") String sector)
     {
         return Endpoint.process(() -> {
             if (companyId != null) Validator.validateUuid(companyId);
             if (currency != null) Validator.validateCurrency(currency);
             if (year != null) Validator.validateYear(year);
+            if (sector != null) Validator.validateSector(sector);
         }, () -> {
-            List<Dividend> dividends = dividendService.getDividends(companyId, currency, year);
+            List<Dividend> dividends = dividendService.getDividends(companyId, currency, year, sector);
             DividendsUiDto dto = DividendsUiDto.from(dividends);
             dto.setSums(dividendService.computeSums(dividends));
             return dto;

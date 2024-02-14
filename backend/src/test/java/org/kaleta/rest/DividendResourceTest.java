@@ -8,6 +8,7 @@ import org.kaleta.dto.DividendCreateDto;
 import org.kaleta.dto.DividendDto;
 import org.kaleta.dto.DividendsUiDto;
 import org.kaleta.entity.Currency;
+import org.kaleta.entity.Sector;
 import org.kaleta.framework.Assert;
 
 import java.util.UUID;
@@ -32,6 +33,9 @@ class DividendResourceTest
         Assert.get400("/dividend?year=" + "20222", "Invalid Year Parameter");
         Assert.get400("/dividend?year=" + "202", "Invalid Year Parameter");
         Assert.get400("/dividend?year=", "Invalid Year Parameter");
+
+        Assert.get400("/dividend?sector=" + "X", "Invalid Sector Parameter");
+        Assert.get400("/dividend?sector=", "Invalid Sector Parameter");
     }
 
     @Test
@@ -69,6 +73,22 @@ class DividendResourceTest
         assertThat(dto.getDividends().size(), is(1));
         assertThat(dto.getDividends().get(0).getTicker(), is("CEZ"));
         assertThat(dto.getSums(), is(new String[]{"1", "1", "", "1000", "100", "900"}));
+    }
+
+    @Test
+    void getDividendsFilterSector()
+    {
+        DividendsUiDto dto = given().when()
+                .get("/dividend?sector=" + Sector.SEMICONDUCTORS.getName())
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", DividendsUiDto.class);
+
+        assertThat(dto.getColumns().size(), is(6));
+        assertThat(dto.getDividends().size(), is(2));
+        assertThat(dto.getDividends().get(0).getTicker(), is("NVDA"));
+        assertThat(dto.getSums(), is(new String[]{"1", "1", "", "150", "15", "135"}));
     }
 
     @Test

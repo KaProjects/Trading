@@ -26,9 +26,9 @@ public class DividendService
     @Inject
     CommonService commonService;
 
-    public List<Dividend> getDividends(String company, String currency, String year)
+    public List<Dividend> getDividends(String company, String currency, String year, String sector)
     {
-        return dividendDao.list(company, currency, year);
+        return dividendDao.list(company, currency, year, sector);
     }
 
     public String[] computeSums(List<Dividend> dividends)
@@ -70,7 +70,7 @@ public class DividendService
     public Map<String, int[]> getCompanyAggregates()
     {
         Map<String, int[]> map = new HashMap<>();
-        for (Dividend dividend : dividendDao.list(null, null, null))
+        for (Dividend dividend : dividendDao.list(null, null, null, null))
         {
             String companyId = dividend.getCompany().getId();
             int[] aggregates = map.containsKey(companyId) ? map.get(companyId) : new int[]{0};

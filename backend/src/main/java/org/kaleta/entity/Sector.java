@@ -2,6 +2,8 @@ package org.kaleta.entity;
 
 import lombok.Getter;
 
+import java.util.Arrays;
+
 public enum Sector
 {
     SEMICONDUCTORS("Semiconductors"),
@@ -23,5 +25,9 @@ public enum Sector
     Sector(String name)
     {
         this.name = name;
+    }
+
+    public static Sector getBy(String sectorName){
+        return Arrays.stream(values()).filter(value -> value.getName().equals(sectorName)).findFirst().orElse(null);
     }
 }

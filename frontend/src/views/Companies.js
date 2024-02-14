@@ -1,5 +1,5 @@
 import {useData} from "../fetch";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import Loader from "../components/Loader";
 import {IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
@@ -32,9 +32,22 @@ const Companies = props => {
     function constructQueryParams(){
         return "?sort=" + sort
             + (props.currencySelectorValue ? "&currency=" + props.currencySelectorValue : "")
-            // + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
+            + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
             + (refresh ? "&refresh" + refresh : "")
     }
+
+    useEffect(() => {
+        if (data) {
+            const currencies = new Set([])
+            const sectors = new Set([])
+            data.companies.forEach((company) => {
+                currencies.add(company.currency)
+                if (company.sector) sectors.add(company.sector)
+            })
+            props.toggleCompaniesSelectors([...currencies], [...sectors].sort())
+        }
+        // eslint-disable-next-line
+    }, [data])
 
     function triggerRefresh() {
         setRefresh(new Date().getTime().toString())

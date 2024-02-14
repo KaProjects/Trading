@@ -71,7 +71,7 @@ public class RecordResource
 
                 dto.setFinancialsFrom(financialService.getFinancialsModel(companyId));
 
-                for (Trade trade : tradeService.getTrades(true, companyId, null, null, null))
+                for (Trade trade : tradeService.getTrades(true, companyId, null, null, null, null))
                 {
                     RecordsUiDto.Own own = new RecordsUiDto.Own();
                     own.setQuantity(format(trade.getQuantity()));

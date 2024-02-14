@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.kaleta.dto.StatsUiByCompanyDto;
 import org.kaleta.dto.StatsUiByPeriodDto;
 import org.kaleta.entity.Currency;
+import org.kaleta.entity.Sector;
 import org.kaleta.framework.Assert;
 
 import static io.restassured.RestAssured.given;
@@ -23,12 +24,18 @@ class AStatsResourceTest
         Assert.get400("/stats/company?year=" + "20222", "Invalid Year Parameter");
         Assert.get400("/stats/company?year=" + "202", "Invalid Year Parameter");
         Assert.get400("/stats/company?year=", "Invalid Year Parameter");
+        Assert.get400("/stats/company?sector=" + "X", "Invalid Sector Parameter");
+        Assert.get400("/stats/company?sector=", "Invalid Sector Parameter");
 
         Assert.get400("/stats/monthly?companyId=" + "AAAAAA", "Invalid UUID Parameter");
         Assert.get400("/stats/monthly?companyId=", "Invalid UUID Parameter");
+        Assert.get400("/stats/monthly?sector=" + "X", "Invalid Sector Parameter");
+        Assert.get400("/stats/monthly?sector=", "Invalid Sector Parameter");
 
         Assert.get400("/stats/yearly?companyId=" + "AAAAAA", "Invalid UUID Parameter");
         Assert.get400("/stats/yearly?companyId=", "Invalid UUID Parameter");
+        Assert.get400("/stats/yearly?sector=" + "X", "Invalid Sector Parameter");
+        Assert.get400("/stats/yearly?sector=", "Invalid Sector Parameter");
     }
 
     @Test
@@ -43,6 +50,8 @@ class AStatsResourceTest
 
         assertThat(dto.getColumns().size(), is(8));
         assertThat(dto.getColumns().get(1), is("#"));
+        assertThat(dto.getYears().size(), is(6));
+        assertThat(dto.getSectors().size(), is(2));
         assertThat(dto.getRows().size(), is(6));
         assertThat(dto.getRows().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getRows().get(0).getCurrency(), is(Currency.€));
@@ -119,6 +128,29 @@ class AStatsResourceTest
     }
 
     @Test
+    void getCompaniesFilterSector()
+    {
+        StatsUiByCompanyDto dto = given().when()
+                .get("/stats/company?sector=" + Sector.SEMICONDUCTORS.getName())
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", StatsUiByCompanyDto.class);
+
+        assertThat(dto.getColumns().size(), is(8));
+        assertThat(dto.getColumns().get(1), is("#"));
+        assertThat(dto.getRows().size(), is(1));
+        assertThat(dto.getRows().get(0).getTicker(), is("NVDA"));
+        assertThat(dto.getRows().get(0).getCurrency(), is(Currency.$));
+        assertThat(dto.getRows().get(0).getPurchaseSum(), is("2017"));
+        assertThat(dto.getRows().get(0).getSellSum(), is("2450"));
+        assertThat(dto.getRows().get(0).getDividendSum(), is("135"));
+        assertThat(dto.getRows().get(0).getProfit(), is("568"));
+        assertThat(dto.getRows().get(0).getProfitPercentage(), is("28.16"));
+        assertThat(dto.getSums(), is(new String[]{"1", "1", "2017", "2450", "135", "568", "568", "28.16"}));
+    }
+
+    @Test
     void getMonthly()
     {
         StatsUiByPeriodDto dto = given().when()
@@ -174,6 +206,28 @@ class AStatsResourceTest
     }
 
     @Test
+    void getMonthlyFilterSector()
+    {
+        StatsUiByPeriodDto dto = given().when()
+                .get("/stats/monthly?sector=" + Sector.ENERGY_MINERALS.getName())
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", StatsUiByPeriodDto.class);
+
+        assertThat(dto.getColumns().size(), is(3));
+        assertThat(dto.getColumns().get(0).getName(), is("Month"));
+        assertThat(dto.getColumns().get(1).getSubColumns().size(), is(3));
+        assertThat(dto.getRows().size(), is(12));
+        assertThat(dto.getRows().get(0).getPeriod(), is("12.2023"));
+        assertThat(dto.getRows().get(0).getTradesCount(), is("1"));
+        assertThat(dto.getRows().get(0).getTradesProfit(), is("1079.65"));
+        assertThat(dto.getRows().get(0).getTradesProfitPercentage(), is("48.4"));
+        assertThat(dto.getRows().get(0).getDividendSum(), is("0"));
+        assertThat(dto.getSums(), is(new String[]{"12", "1", "1079.65", "48.4", "0"}));
+    }
+
+    @Test
     void getYearly()
     {
         StatsUiByPeriodDto dto = given().when()
@@ -200,6 +254,28 @@ class AStatsResourceTest
     {
         StatsUiByPeriodDto dto = given().when()
                 .get("/stats/yearly?companyId=4efe9235-0c00-4b51-aa81-f2febbb65232")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", StatsUiByPeriodDto.class);
+
+        assertThat(dto.getColumns().size(), is(3));
+        assertThat(dto.getColumns().get(0).getName(), is("Year"));
+        assertThat(dto.getColumns().get(1).getSubColumns().size(), is(3));
+        assertThat(dto.getRows().size(), is(1));
+        assertThat(dto.getRows().get(0).getPeriod(), is("2023"));
+        assertThat(dto.getRows().get(0).getTradesCount(), is("1"));
+        assertThat(dto.getRows().get(0).getTradesProfit(), is("1079.65"));
+        assertThat(dto.getRows().get(0).getTradesProfitPercentage(), is("48.4"));
+        assertThat(dto.getRows().get(0).getDividendSum(), is("0"));
+        assertThat(dto.getSums(), is(new String[]{"1", "1", "1079.65", "48.4", "0"}));
+    }
+
+    @Test
+    void getYearlyFilterSector()
+    {
+        StatsUiByPeriodDto dto = given().when()
+                .get("/stats/yearly?sector=" + Sector.ENERGY_MINERALS.getName())
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)

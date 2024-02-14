@@ -105,6 +105,12 @@ class CompanyResourceTest
 
         Assert.get400("/company/aggregate?sort=" ,"Invalid Company Aggregate Sort Parameter:");
         Assert.get400("/company/aggregate?sort=X" ,"Invalid Company Aggregate Sort Parameter:");
+
+        Assert.get400("/company/aggregate?currency=" + "X", "Invalid Currency Parameter");
+        Assert.get400("/company/aggregate?currency=", "Invalid Currency Parameter");
+
+        Assert.get400("/company/aggregate?sector=" + "X", "Invalid Sector Parameter");
+        Assert.get400("/company/aggregate?sector=", "Invalid Sector Parameter");
     }
 
     @Test
@@ -128,6 +134,52 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().get(2).getDividends(), is(2));
         assertThat(dto.getCompanies().get(2).getRecords(), is(2));
         assertThat(dto.getCompanies().get(2).getFinancials(), is(3));
+    }
+
+    @Test
+    void getCompaniesWithAggregatesFilterCurrency()
+    {
+        CompanyUiDto dto = given().when()
+                .get("/company/aggregate?currency=" + Currency.€)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+
+        assertThat(dto.getColumns().size(), is(9));
+        assertThat(dto.getCompanies().size(), is(1));
+        assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
+        assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
+        assertThat(dto.getCompanies().get(0).getWatching(), is(true));
+        assertThat(dto.getCompanies().get(0).getSector(), is(Sector.ENERGY_MINERALS.getName()));
+        assertThat(dto.getCompanies().get(0).getTotalTrades(), is(1));
+        assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
+        assertThat(dto.getCompanies().get(0).getDividends(), is(0));
+        assertThat(dto.getCompanies().get(0).getRecords(), is(2));
+        assertThat(dto.getCompanies().get(0).getFinancials(), is(0));
+    }
+
+    @Test
+    void getCompaniesWithAggregatesFilterSector()
+    {
+        CompanyUiDto dto = given().when()
+                .get("/company/aggregate?sector=" + Sector.ENERGY_MINERALS.getName())
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+
+        assertThat(dto.getColumns().size(), is(9));
+        assertThat(dto.getCompanies().size(), is(1));
+        assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
+        assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
+        assertThat(dto.getCompanies().get(0).getWatching(), is(true));
+        assertThat(dto.getCompanies().get(0).getSector(), is(Sector.ENERGY_MINERALS.getName()));
+        assertThat(dto.getCompanies().get(0).getTotalTrades(), is(1));
+        assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
+        assertThat(dto.getCompanies().get(0).getDividends(), is(0));
+        assertThat(dto.getCompanies().get(0).getRecords(), is(2));
+        assertThat(dto.getCompanies().get(0).getFinancials(), is(0));
     }
 
     @Test

@@ -54,7 +54,6 @@ const MainBar = props => {
                                            label={"all"}
                             />
                         }
-                        <Box sx={{ width: "15px" }} />
                         {props.showCompanySelector &&
                             <MainBarSelect values={props.companies}
                                            value={props.companySelectorValue}
@@ -62,7 +61,6 @@ const MainBar = props => {
                                            label={"companies"}
                             />
                         }
-                        <Box sx={{ width: "15px" }} />
                         {props.showCurrencySelector !== null &&
                             <MainBarSelect values={props.showCurrencySelector}
                                            value={props.currencySelectorValue}
@@ -70,12 +68,18 @@ const MainBar = props => {
                                            label={"currencies"}
                             />
                         }
-                        <Box sx={{ width: "15px" }} />
                         {props.showYearSelector !== null &&
                             <MainBarSelect values={props.showYearSelector}
                                            value={props.yearSelectorValue}
                                            setValue={props.setYearSelectorValue}
                                            label={"years"}
+                            />
+                        }
+                        {props.showSectorSelector !== null &&
+                            <MainBarSelect values={props.showSectorSelector}
+                                           value={props.sectorSelectorValue}
+                                           setValue={props.setSectorSelectorValue}
+                                           label={"sectors"}
                             />
                         }
                     </Box>

@@ -50,17 +50,22 @@ public class CompanyResource
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/aggregate")
-    public Response getCompaniesWithAggregates(@QueryParam("sort") String sort)
+    public Response getCompaniesWithAggregates(
+            @QueryParam("sort") String sort,
+            @QueryParam("currency") String currency,
+            @QueryParam("sector") String sector)
     {
         return Endpoint.process(() -> {
-            Validator.validateCompanyAggregateSort(sort);
+            if (sort != null) Validator.validateCompanyAggregateSort(sort);
+            if (currency != null) Validator.validateCurrency(currency);
+            if (sector != null) Validator.validateSector(sector);
         }, () -> {
             CompanyUiDto dto = new CompanyUiDto();
             Map<String, int[]> tradeAggregates = tradeService.getCompanyAggregates();
             Map<String, int[]> dividendAggregates = dividendService.getCompanyAggregates();
             Map<String, int[]> recordAggregates = recordService.getCompanyAggregates();
             Map<String, int[]> financialAggregates = financialService.getCompanyAggregates();
-            for (Company company :  companyService.getCompanies())
+            for (Company company :  companyService.getCompanies(currency, sector))
             {
                 CompanyUiDto.Company companyDto = CompanyUiDto.Company.from(company);
 
