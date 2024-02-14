@@ -39,6 +39,7 @@ const AddDividendDialog = props => {
         const dividendData = {companyId: company.id, date: date, dividend: dividend, tax: tax}
         axios.post(domain + "/dividend", dividendData)
             .then((response) => {
+                props.triggerRefresh()
                 handleClose()
             }).catch((error) => {setAlert(handleError(error))})
     }

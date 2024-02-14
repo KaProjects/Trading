@@ -46,6 +46,10 @@ const Records = props => {
                     setError(null)
                     setLoaded(true)
                     if (companyChanged) setExpandFinancials(false)
+                    if (sessionStorage.getItem('showFinancials')){
+                        setExpandFinancials(true)
+                        sessionStorage.removeItem('showFinancials')
+                    }
                 }).catch((error) => {
                 setError(handleError(error))
                 setLoaded(false)
@@ -70,7 +74,6 @@ const Records = props => {
     }
 
     function handleAddRecordDialogClose() {
-        triggerRefresh()
         setOpenAddRecordDialog(false)
     }
 
@@ -123,6 +126,7 @@ const Records = props => {
                             </Button>
                             <AddRecordDialog open={openAddRecordDialog}
                                              handleClose={() => handleAddRecordDialogClose()}
+                                             triggerRefresh={triggerRefresh}
                                              companyId={props.companySelectorValue.id}
                             />
                         </Box>

@@ -9,6 +9,7 @@ import org.kaleta.dto.RecordDto;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeSellDto;
 import org.kaleta.entity.Currency;
+import org.kaleta.entity.Sort;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -166,6 +167,17 @@ public class Validator
             return true;
         } catch (NumberFormatException e) {
             return false;
+        }
+    }
+
+    public static void validateCompanyAggregateSort(String sort)
+    {
+        try {
+            if (sort == null) return;
+            if (sort.isBlank()) throw new IllegalArgumentException("");
+            Sort.CompanyAggregate.valueOf(sort);
+        } catch (IllegalArgumentException e){
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Company Aggregate Sort Parameter: '" + sort + "'");
         }
     }
 }

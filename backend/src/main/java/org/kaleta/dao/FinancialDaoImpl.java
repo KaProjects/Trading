@@ -16,6 +16,11 @@ public class FinancialDaoImpl implements FinancialDao
 
     private final String selectQuery = "SELECT f FROM Financial f";
 
+    @Override
+    public List<Financial> list()
+    {
+        return entityManager.createQuery(selectQuery, Financial.class).getResultList();
+    }
 
     @Override
     public List<Financial> list(String companyId)

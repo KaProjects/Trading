@@ -10,6 +10,8 @@ import axios from "axios";
 import {handleError} from "./utils";
 import Dividends from "./views/Dividends";
 import Stats from "./views/Stats";
+import Companies from "./views/Companies";
+import {wait} from "@testing-library/user-event/dist/utils";
 
 class App extends Component {
     constructor(props) {
@@ -17,8 +19,9 @@ class App extends Component {
 
         this.state = {
             companies: [],
+            activeStates: ["only active", "only closed"],
             showCompanySelector: false,
-            showActiveSelector: null,    // null = false, true otherwise
+            showActiveSelector: false,
             showCurrencySelector: null,  // null = false, true otherwise
             showYearSelector: null,      // null = false, true otherwise
             showAddTradeButton: false,
@@ -61,17 +64,19 @@ class App extends Component {
         this.setStatsTabsIndex = this.setStatsTabsIndex.bind(this)
     }
 
-    toggleTradesSelectors(actives, currencies, years) {
-        this.setState({showActiveSelector: actives})
+    toggleTradesSelectors(currencies, years) {
+        this.setState({showActiveSelector: true})
         this.setState({showCompanySelector: true})
         this.setState({showCurrencySelector: currencies})
         this.setState({showYearSelector: years})
         this.setState({showAddTradeButton: true})
         this.setState({showSellTradeButton: true})
+        this.loadStorageStates()
     }
 
     toggleRecordsSelectors() {
         this.setState({showCompanySelector: true})
+        this.loadStorageStates()
     }
 
     toggleDividendsSelectors(currencies, years) {
@@ -79,12 +84,14 @@ class App extends Component {
         this.setState({showCurrencySelector: currencies})
         this.setState({showYearSelector: years})
         this.setState({showAddDividendButton: true})
+        this.loadStorageStates()
     }
 
     toggleStatsSelectors(years, companySelector){
         this.setState({showStatsTabs: [0,1,2]})
         this.setState({showYearSelector: years})
         this.setState({showCompanySelector: companySelector})
+        this.loadStorageStates()
     }
 
     setActiveSelectorValue(value) {this.setState({activeSelectorValue: value})}
@@ -95,6 +102,19 @@ class App extends Component {
     setOpenSellTrade(value) {this.setState({openSellTrade: value})}
     setOpenAddDividend(value) {this.setState({openAddDividend: value})}
     setStatsTabsIndex(index) {this.setState({statsTabsIndex: index})}
+
+    loadStorageStates() {
+        if (sessionStorage.getItem('companyId')){
+            wait(100).then(() => {
+                this.state.companies.forEach(company => {if (company.id === sessionStorage.getItem('companyId')) this.setState({companySelectorValue: company})})
+                sessionStorage.removeItem('companyId')
+            })
+        }
+        if (sessionStorage.getItem('tradeState')){
+            this.setActiveSelectorValue(sessionStorage.getItem('tradeState'))
+            sessionStorage.removeItem('tradeState')
+        }
+    }
 
     componentDidMount() {
         axios.get(domain + "/company")
@@ -122,6 +142,7 @@ class App extends Component {
                         <Route exact path="/records" element={<Records {...this.state}/>}/>
                         <Route exact path="/dividends" element={<Dividends {...this.state}/>}/>
                         <Route exact path="/stats" element={<Stats {...this.state}/>}/>
+                        <Route exact path="/companies" element={<Companies {...this.state}/>}/>
                         <Route path="*" element={this.PageNotFound()}/>
                     </Routes>
                 </BrowserRouter>

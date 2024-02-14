@@ -47,8 +47,8 @@ const MainBar = props => {
                                 <ControlPointIcon sx={{color: 'lightgreen'}}/>
                             </Button>
                         }
-                        {props.showActiveSelector !== null &&
-                            <MainBarSelect values={props.showActiveSelector}
+                        {props.showActiveSelector &&
+                            <MainBarSelect values={props.activeStates}
                                            value={props.activeSelectorValue}
                                            setValue={props.setActiveSelectorValue}
                                            label={"all"}

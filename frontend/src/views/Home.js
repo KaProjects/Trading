@@ -9,6 +9,7 @@ const Home = props => {
             <Button onClick={() => window.location.href='/records'}>Records</Button>
             <Button onClick={() => window.location.href='/dividends'}>Dividends</Button>
             <Button onClick={() => window.location.href='/stats'}>Stats</Button>
+            <Button onClick={() => window.location.href='/companies'}>Companies</Button>
         </>
     )
 }

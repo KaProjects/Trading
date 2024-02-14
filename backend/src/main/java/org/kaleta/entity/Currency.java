@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 public enum Currency
 {
-    $, £, €, K;
+    $, €, £, K;
 
     public BigDecimal toUsd()
     {

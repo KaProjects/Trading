@@ -45,6 +45,7 @@ const AddTradeDialog = props => {
                 const recordData = {companyId: company.id, title: title, date: date, price: price}
                 axios.post(domain + "/record", recordData)
                     .then((response) => {
+                        props.triggerRefresh()
                         handleClose()
                     }).catch((error) => {setAlert(handleError(error))})
             }).catch((error) => {setAlert(handleError(error))})

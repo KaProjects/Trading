@@ -13,8 +13,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.kaleta.Utils.format;
@@ -133,5 +135,26 @@ public class TradeService
         }
 
         tradeDao.saveAll(trades);
+    }
+
+    /**
+     * @return aggregates map <companyId, [all trades count, active trades count, closed trades count]>
+     */
+    public Map<String, int[]> getCompanyAggregates()
+    {
+        Map<String, int[]> map = new HashMap<>();
+        for (Trade trade : tradeDao.list(null, null, null, null, null))
+        {
+            String companyId = trade.getCompany().getId();
+            int[] aggregates = map.containsKey(companyId) ? map.get(companyId) : new int[]{0,0,0};
+            aggregates[0] = aggregates[0] + 1;
+            if (trade.getSellDate() == null){
+                aggregates[1] = aggregates[1] + 1;
+            } else {
+                aggregates[2] = aggregates[2] + 1;
+            }
+            map.put(companyId, aggregates);
+        }
+        return map;
     }
 }

@@ -8,6 +8,8 @@ import org.kaleta.entity.Financial;
 import org.kaleta.model.FinancialsModel;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 
 @ApplicationScoped
 public class FinancialService
@@ -33,5 +35,21 @@ public class FinancialService
         newFinancial.setEps(new BigDecimal(dto.getEps()));
 
         financialDao.create(newFinancial);
+    }
+
+    /**
+     * @return aggregates map <companyId, [financials count]>
+     */
+    public Map<String, int[]> getCompanyAggregates()
+    {
+        Map<String, int[]> map = new HashMap<>();
+        for (Financial financial : financialDao.list())
+        {
+            String companyId = financial.getCompany().getId();
+            int[] aggregates = map.containsKey(companyId) ? map.get(companyId) : new int[]{0};
+            aggregates[0] = aggregates[0] + 1;
+            map.put(companyId, aggregates);
+        }
+        return map;
     }
 }

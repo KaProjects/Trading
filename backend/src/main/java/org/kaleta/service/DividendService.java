@@ -8,8 +8,10 @@ import org.kaleta.entity.Currency;
 import org.kaleta.entity.Dividend;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.kaleta.Utils.format;
@@ -60,5 +62,21 @@ public class DividendService
         dividendDao.create(newDividend);
 
         return dividendDao.get(newDividend.getId());
+    }
+
+    /**
+     * @return aggregates map <companyId, [dividends count]>
+     */
+    public Map<String, int[]> getCompanyAggregates()
+    {
+        Map<String, int[]> map = new HashMap<>();
+        for (Dividend dividend : dividendDao.list(null, null, null))
+        {
+            String companyId = dividend.getCompany().getId();
+            int[] aggregates = map.containsKey(companyId) ? map.get(companyId) : new int[]{0};
+            aggregates[0] = aggregates[0] + 1;
+            map.put(companyId, aggregates);
+        }
+        return map;
     }
 }

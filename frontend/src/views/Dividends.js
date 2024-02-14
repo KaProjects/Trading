@@ -44,8 +44,11 @@ const Dividends = props => {
         props.companies.forEach((company) => {if (company.ticker === ticker) {props.setCompanySelectorValue(company)}})
     }
 
-    function handleAddDividendDialogClose() {
+    function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
+    }
+
+    function handleAddDividendDialogClose() {
         props.setOpenAddDividend(false)
     }
 
@@ -57,8 +60,9 @@ const Dividends = props => {
             {loaded &&
                 <>
                 <AddDividendDialog open={props.openAddDividend}
-                                handleClose={() => handleAddDividendDialogClose()}
-                                {...props}
+                                   handleClose={() => handleAddDividendDialogClose()}
+                                   triggerRefresh={triggerRefresh}
+                                   {...props}
                 />
                 <TableContainer component={Paper} sx={{ width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)"}}>
                     <Table size="small" aria-label="a dense table" stickyHeader>

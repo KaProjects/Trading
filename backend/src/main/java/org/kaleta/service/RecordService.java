@@ -10,6 +10,8 @@ import org.kaleta.entity.Record;
 import org.kaleta.model.RecordsModel;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 
 @ApplicationScoped
 public class RecordService
@@ -60,5 +62,21 @@ public class RecordService
     public RecordsModel getRecordsModel(String companyId)
     {
         return new RecordsModel(recordDao.list(companyId));
+    }
+
+    /**
+     * @return aggregates map <companyId, [records count]>
+     */
+    public Map<String, int[]> getCompanyAggregates()
+    {
+        Map<String, int[]> map = new HashMap<>();
+        for (Record record : recordDao.list())
+        {
+            String companyId = record.getCompany().getId();
+            int[] aggregates = map.containsKey(companyId) ? map.get(companyId) : new int[]{0};
+            aggregates[0] = aggregates[0] + 1;
+            map.put(companyId, aggregates);
+        }
+        return map;
     }
 }

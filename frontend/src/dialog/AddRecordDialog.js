@@ -25,6 +25,7 @@ const AddRecordDialog = props => {
         const data = {companyId: companyId, title: title, date: date, price: price}
         axios.post(domain + "/record", data)
             .then((response) => {
+                props.triggerRefresh()
                 handleClose()
             }).catch((error) => {setAlert(handleError(error))})
     }
