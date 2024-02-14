@@ -47,6 +47,7 @@ public class CompanyService
             info.setId(company.getId());
             info.setTicker(company.getTicker());
             info.setWatching(company.isWatching());
+            info.setSector(company.getSector());
             companiesInfo.add(info);
         }
         for (CompanyInfo record : recordDao.latestRecords()) {

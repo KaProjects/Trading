@@ -61,6 +61,17 @@ class CompanyResourceTest
         assertThat(dto.getNotWatching(), hasItem(hasTicker("XCW")));
         assertThat(dto.getNotWatching(), hasItem(hasTicker("XXX")));
         assertThat(dto.getNotWatching(), hasItem(hasTicker("YYY")));
+
+        assertThat(dto.getSectors().keySet().size(), is(3));
+        assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()), is(not(nullValue())));
+        assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()).size(), is(1));
+        assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()).get(0).getTicker(), is("NVDA"));
+        assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()), is(not(nullValue())));
+        assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).size(), is(1));
+        assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).get(0).getTicker(), is("XCW"));
+        assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()), is(not(nullValue())));
+        assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()).size(), is(1));
+        assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()).get(0).getTicker(), is("SHELL"));
     }
 
     @Test

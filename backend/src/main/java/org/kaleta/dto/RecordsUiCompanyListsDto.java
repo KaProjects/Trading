@@ -1,13 +1,14 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.Constants;
 import org.kaleta.Utils;
 import org.kaleta.model.CompanyInfo;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class RecordsUiCompanyListsDto
@@ -15,6 +16,7 @@ public class RecordsUiCompanyListsDto
     private List<Company> watchingOldestReview = new ArrayList<>();
     private List<Company> ownedWithoutStrategy = new ArrayList<>();
     private List<Company> notWatching = new ArrayList<>();
+    private Map<String, List<Company>> sectors = new HashMap<>();
 
     @Data
     public static class Company
@@ -22,6 +24,7 @@ public class RecordsUiCompanyListsDto
         private String id;
         private String ticker;
         private boolean watching;
+        private String sector;
         private String latestReviewDate;
         private String latestPurchaseDate; //only owned
         private String latestStrategyDate;
@@ -60,12 +63,23 @@ public class RecordsUiCompanyListsDto
         notWatching.sort(Comparator.comparing(Company::getTicker));
     }
 
+    public void addSectors(List<CompanyInfo> companiesInfo)
+    {
+        for (CompanyInfo companyInfo : companiesInfo) {
+            if (companyInfo.getSector() != null) {
+                if (!sectors.containsKey(companyInfo.getSector())) sectors.put(companyInfo.getSector(), new ArrayList<>());
+                sectors.get(companyInfo.getSector()).add(from(companyInfo));
+            }
+        }
+    }
+
     private Company from(CompanyInfo companyInfo)
     {
         Company dto = new Company();
         dto.setId(companyInfo.getId());
         dto.setWatching(companyInfo.isWatching());
         dto.setTicker(companyInfo.getTicker());
+        dto.setSector(companyInfo.getSector());
         if (companyInfo.getLatestReviewDate() != null)
             dto.setLatestReviewDate(Utils.format(companyInfo.getLatestReviewDate()));
         if (companyInfo.getLatestStrategyDate() != null)

@@ -111,6 +111,7 @@ public class CompanyResource
             dto.addWatchingOldestReview(infos);
             dto.addOwnedWithoutStrategy(infos);
             dto.addNotWatching(infos);
+            dto.addSectors(infos);
             return dto;
         });
     }
