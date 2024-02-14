@@ -68,7 +68,9 @@ class App extends Component {
         this.setState({showActiveSelector: true})
         this.setState({showCompanySelector: true})
         this.setState({showCurrencySelector: currencies})
+        if (!currencies.includes(this.state.currencySelectorValue)) this.setState({currencySelectorValue: ""})
         this.setState({showYearSelector: years})
+        if (!years.includes(this.state.yearSelectorValue)) this.setState({yearSelectorValue: ""})
         this.setState({showAddTradeButton: true})
         this.setState({showSellTradeButton: true})
         this.loadStorageStates()
@@ -82,7 +84,9 @@ class App extends Component {
     toggleDividendsSelectors(currencies, years) {
         this.setState({showCompanySelector: true})
         this.setState({showCurrencySelector: currencies})
+        if (!currencies.includes(this.state.currencySelectorValue)) this.setState({currencySelectorValue: ""})
         this.setState({showYearSelector: years})
+        if (!years.includes(this.state.yearSelectorValue)) this.setState({yearSelectorValue: ""})
         this.setState({showAddDividendButton: true})
         this.loadStorageStates()
     }
@@ -90,6 +94,7 @@ class App extends Component {
     toggleStatsSelectors(years, companySelector){
         this.setState({showStatsTabs: [0,1,2]})
         this.setState({showYearSelector: years})
+        if (!years.includes(this.state.yearSelectorValue)) this.setState({yearSelectorValue: ""})
         this.setState({showCompanySelector: companySelector})
         this.loadStorageStates()
     }
