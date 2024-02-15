@@ -71,7 +71,7 @@ INSERT INTO Company (id, ticker, currency, watching) VALUES ('66c725b2-9987-4653
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('d98c9ea1-ef2a-400a-bc7f-00d90e5d8e10', 'XRC', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('5cda9759-c31f-4c5c-ac0b-b5e1de01fdf0', 'XRSA', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('7781fba0-7071-45d7-b952-3c5f07ce564c', 'XRSB', '$', true);
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES ('5afe260b-c433-426c-9710-e9ff99faa5aa', 'XCW', '$', false, 'ELECTRIC_VEHICLES');
+INSERT INTO Company (id, ticker, currency, watching, shares_float, sector) VALUES ('5afe260b-c433-426c-9710-e9ff99faa5aa', 'XCW', '$', false, '2B', 'ELECTRIC_VEHICLES');
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('21322ef8-9e26-4eda-bf74-b0f0eb8925b1', 'XTC', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('c65ea6ac-d848-46dd-98bc-9e3d99f39b21', 'XTS', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('ededb691-b3c0-4c66-b03d-4e7b46bb2489', 'XRL', '$', true);

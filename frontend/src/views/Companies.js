@@ -10,7 +10,7 @@ import {recordEvent} from "../utils";
 
 function headerStyle(index){
     const border = "1px solid lightgrey"
-    const borderRight = (index === 8) ? border : "0px"
+    const borderRight = (index === 9) ? border : "0px"
     return {textAlign: "center", borderLeft: border, borderRight: borderRight, borderBottom: border, borderTop: border}
 }
 
@@ -18,13 +18,13 @@ function rowStyle(index){
     const fontWeight = ([].includes(index)) ? "bold" : "normal"
     const textAlign = ([0, 1, 2, 3].includes(index)) ? "left" : "right"
     const borderLeft = "1px solid lightgrey"
-    const borderRight = ([8].includes(index)) ? "1px solid lightgrey" : "0px"
+    const borderRight = ([9].includes(index)) ? "1px solid lightgrey" : "0px"
     const fontFamily = "Roboto"
     let color = "primary"
     return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily, color: color}
 }
 
-const sorts = ["COMPANY", "CURRENCY", "WATCHING", "SECTOR", "ALL_TRADES", "ACTIVE_TRADES", "DIVIDENDS", "RECORDS", "FINANCIALS"]
+const sorts = ["COMPANY", "CURRENCY", "WATCHING", "SECTOR", "SHARES", "ALL_TRADES", "ACTIVE_TRADES", "DIVIDENDS", "RECORDS", "FINANCIALS"]
 
 const Companies = props => {
     const [sort, setSort] = useState(sorts[0])
@@ -115,11 +115,12 @@ const Companies = props => {
                                         <TableCell style={rowStyle(1)}>{company.currency}</TableCell>
                                         <TableCell style={rowStyle(2)}>{company.watching ? '*' : ''}</TableCell>
                                         <TableCell style={rowStyle(3)}>{company.sector}</TableCell>
-                                        <TableCellWithAction index={4} action={() => redirect(company.id, '/trades')}>{company.totalTrades}</TableCellWithAction>
-                                        <TableCellWithAction index={5} action={() => redirect(company.id, '/trades', props.activeStates[0])}>{company.activeTrades}</TableCellWithAction>
-                                        <TableCellWithAction index={6} action={() => redirect(company.id, '/dividends')}>{company.dividends}</TableCellWithAction>
-                                        <TableCellWithAction index={7} action={() => redirect(company.id, '/records')}>{company.records}</TableCellWithAction>
-                                        <TableCellWithAction index={8} action={() => redirect(company.id, '/records', null, true)}>{company.financials}</TableCellWithAction>
+                                        <TableCell style={rowStyle(4)}>{company.sharesFloat}</TableCell>
+                                        <TableCellWithAction index={5} action={() => redirect(company.id, '/trades')}>{company.totalTrades}</TableCellWithAction>
+                                        <TableCellWithAction index={6} action={() => redirect(company.id, '/trades', props.activeStates[0])}>{company.activeTrades}</TableCellWithAction>
+                                        <TableCellWithAction index={7} action={() => redirect(company.id, '/dividends')}>{company.dividends}</TableCellWithAction>
+                                        <TableCellWithAction index={8} action={() => redirect(company.id, '/records')}>{company.records}</TableCellWithAction>
+                                        <TableCellWithAction index={9} action={() => redirect(company.id, '/records', null, true)}>{company.financials}</TableCellWithAction>
                                     </TableRow>
                                 ))}
                             </TableBody>

@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {domain} from "../properties";
-import {handleError} from "../utils";
+import {handleError, validateNumber} from "../utils";
 import {
     Alert,
     Button,
@@ -25,6 +25,16 @@ function validateTicker(value) {
     return ""
 }
 
+function validateShares(value) {
+    if (typeof value != "string") return "not a string"
+    if (!value) return "" //nullable
+    if (value.length > 7) return "max length 7"
+    const power = value.substring(value.length - 1)
+    if (power !== "B" && power !== "M") return "invalid format (eg 100.1M or 12B)"
+    const number = value.substring(0, value.length - 1)
+    return validateNumber(number, false, 5, 2)
+}
+
 const EditCompanyDialog = props => {
     const company = props.openEditCompany
     const handleClose = () => props.setOpenEditCompany(null)
@@ -34,6 +44,7 @@ const EditCompanyDialog = props => {
     const [currency, setCurrency] = useState("")
     const [watching, setWatching] = useState(true)
     const [sector, setSector] = useState("")
+    const [shares, setShares] = useState("")
 
     const [values, setValues] = useState({currencies: [], sectors: []})
 
@@ -47,6 +58,7 @@ const EditCompanyDialog = props => {
                     setCurrency(company.id ? company.currency : "")
                     setWatching(company.id ? company.watching : true)
                     setSector((company.id && company.sector) ? company.sector : "")
+                    setShares((company.id && company.sharesFloat) ? company.sharesFloat : "")
                 }).catch((error) => {setAlert(handleError(error))})
         }
         // eslint-disable-next-line
@@ -55,6 +67,7 @@ const EditCompanyDialog = props => {
     function createEditCompany() {
         const companyData = {ticker: ticker, currency: currency, watching: watching}
         if (sector) companyData.sector = sector
+        if (shares) companyData.sharesFloat = shares
         if (company.id){
             companyData.id = company.id
             axios.put(domain + "/company", companyData)
@@ -109,6 +122,13 @@ const EditCompanyDialog = props => {
                         <MenuItem key={index} value={sector} >{sector}</MenuItem>
                     ))}
                 </Select>
+                <TextField required margin="dense" fullWidth variant="standard" id="company-shares"
+                           value={shares}
+                           label="Shares Float"
+                           onChange={(e) => {setShares(e.target.value);setAlert(null);}}
+                           error={validateShares(shares) !== ""}
+                           helperText={validateShares(shares)}
+                />
                 <FormControlLabel
                     sx={{marginTop: "10px", marginLeft: "5px"}}
                     control={<Switch color="primary"

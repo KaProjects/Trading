@@ -6,6 +6,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.kaleta.Utils;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.CompanyUiDto;
 import org.kaleta.dto.RecordsUiCompanyListsDto;
@@ -90,6 +91,7 @@ class CompanyResourceTest
         dto.setCurrency(Currency.K);
         dto.setSector(Sector.SEMICONDUCTORS.getName());
         dto.setWatching(true);
+        dto.setSharesFloat("100.11B");
 
         Assert.put204("/company", dto);
 
@@ -107,6 +109,7 @@ class CompanyResourceTest
                 assertThat(dtoAfter.getCurrency(), is(dto.getCurrency()));
                 assertThat(dtoAfter.getSector(), is(dto.getSector()));
                 assertThat(dtoAfter.getWatching(), is(dto.getWatching()));
+                assertThat(dtoAfter.getSharesFloat(), is(dto.getSharesFloat()));
                 companyFound = true;
             }
         }
@@ -122,6 +125,7 @@ class CompanyResourceTest
         dto.setCurrency(Currency.K);
         dto.setSector(Sector.SEMICONDUCTORS.getName());
         dto.setWatching(false);
+        dto.setSharesFloat("100.11B");
 
         Assert.post201("/company", dto);
 
@@ -139,6 +143,7 @@ class CompanyResourceTest
                 assertThat(dtoAfter.getCurrency(), is(dto.getCurrency()));
                 assertThat(dtoAfter.getSector(), is(dto.getSector()));
                 assertThat(dtoAfter.getWatching(), is(dto.getWatching()));
+                assertThat(dtoAfter.getSharesFloat(), is(dto.getSharesFloat()));
                 companyFound = true;
             }
         }
@@ -157,7 +162,20 @@ class CompanyResourceTest
         dto.setCurrency(Currency.€);
         Assert.put400("/company", dto, "Missing Watching Parameter");
 
-        dto.setWatching(Boolean.TRUE);
+        dto.setWatching(Boolean.FALSE);
+        dto.setSharesFloat("");
+        Assert.put400("/company", dto, "Invalid Shares Float Parameter");
+
+        dto.setSharesFloat("100X");
+        Assert.put400("/company", dto, "Invalid Shares Float Parameter");
+
+        dto.setSharesFloat("1001B");
+        Assert.put400("/company", dto, "Invalid Shares Float Parameter");
+
+        dto.setSharesFloat("100.111B");
+        Assert.put400("/company", dto, "Invalid Shares Float Parameter");
+
+        dto.setSharesFloat("100.11B");
         dto.setSector("");
         Assert.put400("/company", dto, "Invalid Sector Parameter");
 
@@ -209,6 +227,19 @@ class CompanyResourceTest
         dto.setWatching(null);
         Assert.post400("/company", dto, "Missing Watching Parameter");
 
+        dto.setWatching(Boolean.FALSE);
+        dto.setSharesFloat("");
+        Assert.post400("/company", dto, "Invalid Shares Float Parameter");
+
+        dto.setSharesFloat("100X");
+        Assert.post400("/company", dto, "Invalid Shares Float Parameter");
+
+        dto.setSharesFloat("1001B");
+        Assert.post400("/company", dto, "Invalid Shares Float Parameter");
+
+        dto.setSharesFloat("100.111B");
+        Assert.post400("/company", dto, "Invalid Shares Float Parameter");
+
 
         Assert.get400("/company/aggregate?sort=" ,"Invalid Company Aggregate Sort Parameter:");
         Assert.get400("/company/aggregate?sort=X" ,"Invalid Company Aggregate Sort Parameter:");
@@ -231,12 +262,13 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
-        assertThat(dto.getColumns().size(), is(9));
+        assertThat(dto.getColumns().size(), is(10));
         assertThat(dto.getCompanies().size(), is(15));
         assertThat(dto.getCompanies().get(2).getTicker(), is("NVDA"));
         assertThat(dto.getCompanies().get(2).getCurrency(), is(Currency.$));
         assertThat(dto.getCompanies().get(2).getWatching(), is(true));
         assertThat(dto.getCompanies().get(2).getSector(), is(Sector.SEMICONDUCTORS.getName()));
+        assertThat(dto.getCompanies().get(2).getSharesFloat(), is("900.78M"));
         assertThat(dto.getCompanies().get(2).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(2).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(2).getDividends(), is(2));
@@ -255,7 +287,7 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
-        assertThat(dto.getColumns().size(), is(9));
+        assertThat(dto.getColumns().size(), is(10));
         assertThat(dto.getCompanies().size(), is(1));
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
@@ -279,7 +311,7 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
-        assertThat(dto.getColumns().size(), is(9));
+        assertThat(dto.getColumns().size(), is(10));
         assertThat(dto.getCompanies().size(), is(1));
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
@@ -303,7 +335,7 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
-        int expectedColumns = 9;
+        int expectedColumns = 10;
         int expectedCompanies = 15;
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
@@ -360,6 +392,20 @@ class CompanyResourceTest
             if (sectorI != null && sectorI1 != null){
                 assertThat(sectorI.compareTo(sectorI1), lessThanOrEqualTo(0));
             }
+        }
+
+        dto = given().when()
+                .get("/company/aggregate?sort=" + Sort.CompanyAggregate.SHARES)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+
+        assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getCompanies().size(), is(expectedCompanies));
+        System.out.println(dto);
+        for (int i=1; i<dto.getCompanies().size(); i++){
+            assertThat(Utils.compareSharesFloat(dto.getCompanies().get(i-1).getSharesFloat(), dto.getCompanies().get(i).getSharesFloat()), lessThanOrEqualTo(0));
         }
 
         dto = given().when()

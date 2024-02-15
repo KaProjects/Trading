@@ -82,6 +82,7 @@ public class CompanyService
         company.setCurrency(companyDto.getCurrency());
         company.setSector(Sector.get(companyDto.getSector()));
         company.setWatching(companyDto.getWatching());
+        company.setSharesFloat(companyDto.getSharesFloat());
 
         companyDao.save(company);
     }
@@ -124,6 +125,7 @@ public class CompanyService
         newCompany.setCurrency(companyDto.getCurrency());
         newCompany.setSector(Sector.get(companyDto.getSector()));
         newCompany.setWatching(companyDto.getWatching());
+        newCompany.setSharesFloat(companyDto.getSharesFloat());
         companyDao.create(newCompany);
     }
 }

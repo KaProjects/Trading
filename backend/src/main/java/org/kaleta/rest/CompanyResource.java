@@ -10,6 +10,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.kaleta.Utils;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.CompanyUiDto;
 import org.kaleta.dto.CompanyValuesDto;
@@ -100,6 +101,7 @@ public class CompanyResource
                 case CURRENCY: dto.getCompanies().sort(Comparator.comparing(company -> company.getCurrency())); break;
                 case WATCHING: dto.getCompanies().sort(Comparator.comparing(company -> !company.getWatching())); break;
                 case SECTOR: dto.getCompanies().sort(Comparator.comparing(company -> company.getSector(), Comparator.nullsLast(Comparator.naturalOrder()))); break;
+                case SHARES: dto.getCompanies().sort((companyA, companyB) -> Utils.compareSharesFloat(companyA.getSharesFloat(), companyB.getSharesFloat())); break;
                 case ALL_TRADES: dto.getCompanies().sort(Comparator.comparing(company -> -company.getTotalTrades())); break;
                 case ACTIVE_TRADES: dto.getCompanies().sort(Comparator.comparing(company -> -company.getActiveTrades())); break;
                 case DIVIDENDS: dto.getCompanies().sort(Comparator.comparing(company -> -company.getDividends())); break;

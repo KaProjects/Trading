@@ -38,6 +38,19 @@ public class Utils
         return 0;
     }
 
+    public static int compareSharesFloat(String sharesA, String sharesB)
+    {
+        if (sharesA == null) sharesA = "0M";
+        if (sharesB == null) sharesB = "0M";
+        String sharesApower = sharesA.substring(sharesA.length() - 1);
+        String sharesBpower = sharesB.substring(sharesB.length() - 1);
+        if (sharesApower.equals("B") && sharesBpower.equals("M")) return -1;
+        if (sharesApower.equals("M") && sharesBpower.equals("B")) return 1;
+        BigDecimal sharesAvalue = new BigDecimal(sharesA.substring(0, sharesA.length() - 1));
+        BigDecimal sharesBvalue = new BigDecimal(sharesB.substring(0, sharesB.length() - 1));
+        return -sharesAvalue.compareTo(sharesBvalue);
+    }
+
     /**
      * @return true if string date in format YYYY-MM-DD, false otherwise
      */
