@@ -5,6 +5,14 @@
      bump pom.xml version
      bump build_deploy.sh versions 
 
+## 1.3
+Released: 15.2.2024
+
+    endpoints for dividends, stats, companies views
+    added shares float and sector to companies
+    financials data for companies
+    fixes & refactoring
+
 ## 1.2
 Released: 28.1.2024
 
