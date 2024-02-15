@@ -1,4 +1,5 @@
 import {MenuItem, Select} from "@mui/material";
+import {recordEvent} from "../utils";
 
 
 const MainBarSelect = props => {
@@ -7,11 +8,11 @@ const MainBarSelect = props => {
         <Select
             value={value}
             variant="standard"
-            sx={{textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
+            sx={{marginLeft: "15px", textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
                 ':not(.Mui-disabled):hover::before': { borderBottomColor: '#1976d2' },
                 ':before': { borderBottomColor: '#1976d2' },
                 ':after': { borderBottomColor: '#1976d2' }}}
-            onChange={event => setValue(event.target.value)}
+            onChange={event => {setValue(event.target.value);recordEvent(window.location.pathname + "#selector:" + label);}}
             displayEmpty
         >
             <MenuItem value="">{label}</MenuItem>
@@ -21,4 +22,4 @@ const MainBarSelect = props => {
         </Select>
     )
 }
-export default MainBarSelect;
+export default MainBarSelect

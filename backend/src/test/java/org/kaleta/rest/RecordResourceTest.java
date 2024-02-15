@@ -8,6 +8,7 @@ import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.dto.RecordsUiDto;
 import org.kaleta.entity.Currency;
+import org.kaleta.entity.Sector;
 import org.kaleta.framework.Assert;
 
 import java.util.UUID;
@@ -31,9 +32,12 @@ class RecordResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiDto.class);
 
-        assertThat(dto.getTicker(), is("NVDA"));
-        assertThat(dto.getCurrency(), is(Currency.$));
-        assertThat(dto.getWatching(), is(true));
+        assertThat(dto.getCompany().getTicker(), is("NVDA"));
+        assertThat(dto.getCompany().getCurrency(), is(Currency.$));
+        assertThat(dto.getCompany().getWatching(), is(true));
+        assertThat(dto.getCompany().getSector(), is(Sector.SEMICONDUCTORS.getName()));
+        assertThat(dto.getLatest().getPrice().getValue(), is("500"));
+        assertThat(dto.getCompany().getMarketCap(), is("450.39B"));
         assertThat(dto.getRecords().size(), is(2));
         assertThat(dto.getRecords().get(0).getDate(), is("05.01.2024"));
         assertThat(dto.getRecords().get(1).getDate(), is("11.11.2023"));
@@ -73,7 +77,7 @@ class RecordResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiDto.class);
 
-        assertThat(recordsUiDto.getTicker(), is("ABCD"));
+        assertThat(recordsUiDto.getCompany().getTicker(), is("ABCD"));
         assertThat(recordsUiDto.getRecords().size(), is(1));
         assertThat(recordsUiDto.getRecords().get(0).getDate(), is("01.01.2024"));
         assertThat(recordsUiDto.getRecords().get(0).getTitle(), is(newTitle));
@@ -311,7 +315,7 @@ class RecordResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiDto.class);
 
-        assertThat(recordsUiDto.getTicker(), is("XRC"));
+        assertThat(recordsUiDto.getCompany().getTicker(), is("XRC"));
         assertThat(recordsUiDto.getRecords().size(), is(1));
         assertThat(recordsUiDto.getRecords().get(0).getDate(), is("01.01.2020"));
         assertThat(recordsUiDto.getRecords().get(0).getTitle(), is(dto.getTitle()));
@@ -403,13 +407,41 @@ class RecordResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiDto.class);
 
-        assertThat(dto.getTicker(), is("XRL"));
+        assertThat(dto.getCompany().getTicker(), is("XRL"));
         assertThat(dto.getRecords().size(), is(6));
-        assertThat(dto.getLatestPrice(), is(new RecordsUiDto.Latest("100", "01.11.2022")));
-        assertThat(dto.getLatestPe(), is(new RecordsUiDto.Latest("5", "01.10.2022")));
-        assertThat(dto.getLatestPs(), is(new RecordsUiDto.Latest("4", "01.09.2022")));
-        assertThat(dto.getLatestDy(), is(new RecordsUiDto.Latest("1.5", "01.08.2022")));
-        assertThat(dto.getLatestTargets(), is(new RecordsUiDto.Latest("10-5~7", "01.07.2022")));
-        assertThat(dto.getLatestStrategy(), is(new RecordsUiDto.Latest("strat", "01.06.2022")));
+        assertThat(dto.getLatest().getPrice(), is(new RecordsUiDto.Latest("100", "01.11.2022")));
+        assertThat(dto.getLatest().getPe(), is(new RecordsUiDto.Latest("5", "01.10.2022")));
+        assertThat(dto.getLatest().getPs(), is(new RecordsUiDto.Latest("4", "01.09.2022")));
+        assertThat(dto.getLatest().getDy(), is(new RecordsUiDto.Latest("1.5", "01.08.2022")));
+        assertThat(dto.getLatest().getTargets(), is(new RecordsUiDto.Latest("10-5~7", "01.07.2022")));
+        assertThat(dto.getLatest().getStrategy(), is(new RecordsUiDto.Latest("strat", "01.06.2022")));
+    }
+
+    @Test
+    void testFinancials()
+    {
+        RecordsUiDto dto = given().when()
+                .get("/record/adb89a0a-86bc-4854-8a55-058ad2e6308f")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", RecordsUiDto.class);
+
+        assertThat(dto.getCompany().getTicker(), is("NVDA"));
+        assertThat(dto.getFinancials().getHeaders().length, is(5));
+        assertThat(dto.getFinancials().getValues().size(), is(3));
+        assertThat(dto.getFinancials().getValues().get(1).getQuarter(), is("23Q2"));
+        assertThat(dto.getFinancials().getValues().get(1).getRevenue(), is("13.51B"));
+        assertThat(dto.getFinancials().getValues().get(1).getNetIncome(), is("6.19B"));
+        assertThat(dto.getFinancials().getValues().get(1).getNetMargin(), is("45.81"));
+        assertThat(dto.getFinancials().getValues().get(1).getEps(), is("2.48"));
+        assertThat(dto.getLatest().getPrice(), is(new RecordsUiDto.Latest("500", "05.01.2024")));
+        assertThat(dto.getFinancials().getTtmLabels().length, is(6));
+        assertThat(dto.getFinancials().getTtm().getRevenue(), is("51.76B"));
+        assertThat(dto.getFinancials().getTtm().getNetIncome(), is("23.3B"));
+        assertThat(dto.getFinancials().getTtm().getNetMargin(), is("45.01"));
+        assertThat(dto.getFinancials().getTtm().getEps(), is("9.35"));
+        assertThat(dto.getFinancials().getTtm().getTtmPe(), is("53.48"));
+        assertThat(dto.getFinancials().getTtm().getForwardPe(), is("33.69"));
     }
 }

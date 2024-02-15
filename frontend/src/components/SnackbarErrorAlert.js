@@ -22,5 +22,5 @@ const SnackbarErrorAlert = props => {
         </Snackbar>
     )
 }
-export default SnackbarErrorAlert;
+export default SnackbarErrorAlert
 

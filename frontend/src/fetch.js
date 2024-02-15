@@ -5,25 +5,24 @@ import {handleError} from "./utils";
 
 export const useData = (path) => {
 
-    const [data, setData] = useState(null);
-    const [loaded, setLoaded] = useState(false);
-    const [error, setError] = useState(null);
+    const [data, setData] = useState(null)
+    const [loaded, setLoaded] = useState(false)
+    const [error, setError] = useState(null)
 
     useEffect(() => {
-        const dataFetch = async () => {
-            await axios.get(domain + path)
-                .then((response) => {
-                    setData(response.data)
-                    setError(null)
-                    setLoaded(true)
-                }).catch((error) => {
-                    setError(handleError(error))
-                    setLoaded(false)
-                })
-        };
+        setError(null)
+        setLoaded(false)
+        axios.get(domain + path)
+            .then((response) => {
+                setData(response.data)
+                setError(null)
+                setLoaded(true)
+            }).catch((error) => {
+                setError(handleError(error))
+                setLoaded(false)
+            })
+        // eslint-disable-next-line
+    }, [path])
 
-        dataFetch();
-    }, [path]);
-
-    return { data, loaded, error };
-};
+    return { data, loaded, error }
+}

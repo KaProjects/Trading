@@ -2,8 +2,8 @@ import React, {useEffect, useState} from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {useData} from "../fetch";
 import Loader from "../components/Loader";
-import AddTradeDialog from "../components/AddTradeDialog";
-import SellTradeDialog from "../components/SellTradeDialog";
+import AddTradeDialog from "../dialog/AddTradeDialog";
+import SellTradeDialog from "../dialog/SellTradeDialog";
 
 
 function headerStyle(main, index){
@@ -15,33 +15,34 @@ function headerStyle(main, index){
     }
 }
 
-const activeStates = ["only active", "only closed"]
-
 const Trades = props => {
-    const [refresh, setRefresh] = useState("");
+    const [refresh, setRefresh] = useState("")
     const {data, loaded, error} = useData("/trade" + constructQueryParams())
 
     function constructQueryParams(){
-        return "?filter" + (props.activeSelectorValue ? "&active=" + (props.activeSelectorValue === activeStates[0]) : "")
-            + (props.companySelectorValue ? "&companyId="+props.companySelectorValue.id : "")
-            + (props.currencySelectorValue ? "&currency="+props.currencySelectorValue : "")
-            + (props.yearSelectorValue ? "&year="+props.yearSelectorValue : "")
+        return "?filter" + (props.activeSelectorValue ? "&active=" + (props.activeSelectorValue === props.activeStates[0]) : "")
+            + (props.companySelectorValue ? "&companyId=" + props.companySelectorValue.id : "")
+            + (props.currencySelectorValue ? "&currency=" + props.currencySelectorValue : "")
+            + (props.yearSelectorValue ? "&year=" + props.yearSelectorValue : "")
+            + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
             + (refresh ? "&refresh" + refresh : "")
     }
 
     useEffect(() => {
         if (data) {
-            const years = new Set([]);
-            const currencies = new Set([]);
+            const years = new Set([])
+            const currencies = new Set([])
+            const sectors = new Set([])
             data.trades.forEach((trade) => {
                 years.add(trade.purchaseDate.split(".")[2])
                 if (trade.sellDate) years.add(trade.sellDate.split(".")[2])
                 currencies.add(trade.currency)
+                if (trade.sector) sectors.add(trade.sector)
             })
-            props.toggleTradesSelectors(activeStates, [...currencies],[...years].sort().reverse())
+            props.toggleTradesSelectors([...currencies],[...years].sort().reverse(), [...sectors].sort())
         }
         // eslint-disable-next-line
-    }, [data]);
+    }, [data])
 
     function rowStyle(index, isProfit){
         const fontWeight = ([0, 1, 12, 13].includes(index)) ? "bold" : "normal"
@@ -50,7 +51,7 @@ const Trades = props => {
         const borderRight = ([0, 1, 6, 11, 12, 13].includes(index)) ? "1px solid lightgrey" : "0px"
         const fontFamily = "Roboto"
         let color = "primary"
-        if (props.activeSelectorValue === activeStates[0]){
+        if (props.activeSelectorValue === props.activeStates[0]){
             color = (index > 6) ? "#adadad" : color
             if (isProfit !== undefined) color = isProfit ? "#99bb99" : "#d99595"
         }
@@ -61,14 +62,8 @@ const Trades = props => {
         props.companies.forEach((company) => {if (company.ticker === ticker) {props.setCompanySelectorValue(company)}})
     }
 
-    function handleAddTradeDialogClose() {
+    function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
-        props.setOpenAddTrade(false)
-    }
-
-    function handleSellTradeDialogClose() {
-        setRefresh(new Date().getTime().toString())
-        props.setOpenSellTrade(false)
     }
 
     return (
@@ -78,14 +73,8 @@ const Trades = props => {
         }
         {loaded &&
             <>
-            <AddTradeDialog open={props.openAddTrade}
-                            handleClose={(trade) => handleAddTradeDialogClose(trade)}
-                            {...props}
-            />
-            <SellTradeDialog open={props.openSellTrade}
-                            handleClose={() => handleSellTradeDialogClose()}
-                            {...props}
-            />
+            <AddTradeDialog triggerRefresh={triggerRefresh} {...props}/>
+            <SellTradeDialog triggerRefresh={triggerRefresh} {...props}/>
             <TableContainer component={Paper} sx={{ width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)"}}>
                 <Table size="small" aria-label="a dense table" stickyHeader>
                     <TableHead>
@@ -145,4 +134,4 @@ const Trades = props => {
         </>
     )
 }
-export default Trades;
+export default Trades

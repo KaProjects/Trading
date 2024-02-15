@@ -3,12 +3,9 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.Utils;
-import org.kaleta.dao.CompanyDao;
 import org.kaleta.dao.TradeDao;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeSellDto;
-import org.kaleta.entity.Company;
 import org.kaleta.entity.Currency;
 import org.kaleta.entity.Trade;
 
@@ -16,8 +13,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.kaleta.Utils.format;
@@ -28,11 +27,13 @@ public class TradeService
     @Inject
     TradeDao tradeDao;
     @Inject
-    CompanyDao companyDao;
+    CompanyService companyService;
+    @Inject
+    CommonService commonService;
 
-    public List<Trade> getTrades(Boolean active, String company, String currency, String year)
+    public List<Trade> getTrades(Boolean active, String company, String currency, String purchaseYear, String sellYear, String sector)
     {
-        return tradeDao.list(active, company, currency, year);
+        return tradeDao.list(active, company, currency, purchaseYear, sellYear, sector);
     }
 
     public String[] computeSums(List<Trade> trades)
@@ -68,34 +69,26 @@ public class TradeService
                 format(sellFeesSum), format(sellTotalSum), profit, profitPercentage};
     }
 
-    public Trade createTrade(TradeCreateDto tradeCreateDto)
+    public Trade createTrade(TradeCreateDto dto)
     {
         Trade newTrade = new Trade();
-        try {
-            Company company = companyDao.get(tradeCreateDto.getCompanyId());
-            newTrade.setCompany(company);
-        } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + tradeCreateDto.getCompanyId() + "' not found");
-        }
-        if (Utils.isValidDbDate(tradeCreateDto.getDate())){
-            newTrade.setPurchaseDate(Date.valueOf(tradeCreateDto.getDate()));
-        } else {
-            throw new ServiceFailureException("invalid date format '" + tradeCreateDto.getDate() + "' not YYYY-MM-DD");
-        }
-        newTrade.setQuantity(new BigDecimal(tradeCreateDto.getQuantity()));
-        newTrade.setPurchasePrice(new BigDecimal(tradeCreateDto.getPrice()));
-        newTrade.setPurchaseFees(new BigDecimal(tradeCreateDto.getFees()));
+
+        newTrade.setCompany(companyService.getCompany(dto.getCompanyId()));
+        newTrade.setPurchaseDate(commonService.getDbDate(dto.getDate()));
+        newTrade.setQuantity(new BigDecimal(dto.getQuantity()));
+        newTrade.setPurchasePrice(new BigDecimal(dto.getPrice()));
+        newTrade.setPurchaseFees(new BigDecimal(dto.getFees()));
 
         tradeDao.create(newTrade);
 
         return tradeDao.get(newTrade.getId());
     }
 
-    public void sellTrade(TradeSellDto tradeSellDto)
+    public void sellTrade(TradeSellDto dto)
     {
         List<Trade> trades = new ArrayList<>();
         BigDecimal totalSellQuantity = new BigDecimal(0);
-        for (TradeSellDto.Trade tradeDto : tradeSellDto.getTrades())
+        for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {
             try {
                 Trade trade = tradeDao.get(tradeDto.getTradeId());
@@ -111,14 +104,9 @@ public class TradeService
             }
         }
 
-        Date date;
-        if (Utils.isValidDbDate(tradeSellDto.getDate())){
-            date = Date.valueOf(tradeSellDto.getDate());
-        } else {
-            throw new ServiceFailureException("invalid date format '" + tradeSellDto.getDate() + "' not YYYY-MM-DD");
-        }
+        Date date = commonService.getDbDate(dto.getDate());
 
-        for (TradeSellDto.Trade tradeDto : tradeSellDto.getTrades())
+        for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {
             Trade trade = trades.stream().filter(t -> t.getId().equals(tradeDto.getTradeId())).findFirst().get();
 
@@ -142,10 +130,31 @@ public class TradeService
                 trade.setPurchaseFees(trade.getPurchaseFees().subtract(residualFees));
             }
             trade.setSellDate(date);
-            trade.setSellPrice(new BigDecimal(tradeSellDto.getPrice()));
-            trade.setSellFees(new BigDecimal(tradeSellDto.getFees()).multiply(sellQuantity).divide(totalSellQuantity, 2, RoundingMode.HALF_UP));
+            trade.setSellPrice(new BigDecimal(dto.getPrice()));
+            trade.setSellFees(new BigDecimal(dto.getFees()).multiply(sellQuantity).divide(totalSellQuantity, 2, RoundingMode.HALF_UP));
         }
 
         tradeDao.saveAll(trades);
+    }
+
+    /**
+     * @return aggregates map <companyId, [all trades count, active trades count, closed trades count]>
+     */
+    public Map<String, int[]> getCompanyAggregates()
+    {
+        Map<String, int[]> map = new HashMap<>();
+        for (Trade trade : tradeDao.list(null, null, null, null, null, null))
+        {
+            String companyId = trade.getCompany().getId();
+            int[] aggregates = map.containsKey(companyId) ? map.get(companyId) : new int[]{0,0,0};
+            aggregates[0] = aggregates[0] + 1;
+            if (trade.getSellDate() == null){
+                aggregates[1] = aggregates[1] + 1;
+            } else {
+                aggregates[2] = aggregates[2] + 1;
+            }
+            map.put(companyId, aggregates);
+        }
+        return map;
     }
 }

@@ -3,13 +3,17 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
+import org.kaleta.Utils;
 import org.kaleta.dao.CompanyDao;
 import org.kaleta.dao.RecordDao;
 import org.kaleta.dao.TradeDao;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.entity.Company;
+import org.kaleta.entity.Sector;
 import org.kaleta.model.CompanyInfo;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +34,11 @@ public class CompanyService
         return companyDao.list();
     }
 
+    public List<Company> getCompanies(String currency, String sector)
+    {
+        return companyDao.list(currency, sector);
+    }
+
     public List<CompanyInfo> getCompaniesInfo()
     {
         List<CompanyInfo> companiesInfo = new ArrayList<>();
@@ -39,6 +48,7 @@ public class CompanyService
             info.setId(company.getId());
             info.setTicker(company.getTicker());
             info.setWatching(company.isWatching());
+            info.setSector(company.getSector());
             companiesInfo.add(info);
         }
         for (CompanyInfo record : recordDao.latestRecords()) {
@@ -67,15 +77,13 @@ public class CompanyService
 
     public void updateCompany(CompanyDto companyDto)
     {
-        Company company;
-        try {
-            company = companyDao.get(companyDto.getId());
-        } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + companyDto.getId() + "' not found");
-        }
-        if (companyDto.getWatching() != null) company.setWatching(companyDto.getWatching());
+        Company company = getCompany(companyDto.getId());
 
-        companyDao.store(company);
+        company.setCurrency(companyDto.getCurrency());
+        company.setSector(Sector.get(companyDto.getSector()));
+        company.setWatching(companyDto.getWatching());
+
+        companyDao.save(company);
     }
 
     public Company getCompany(String companyId)
@@ -85,5 +93,37 @@ public class CompanyService
         } catch (NoResultException e){
             throw new ServiceFailureException("company with id '" + companyId + "' not found");
         }
+    }
+
+    public String computeMarketCap(String price, String sharesFloat)
+    {
+        String suffix = sharesFloat.substring(sharesFloat.length() - 1);
+        BigDecimal shares = new BigDecimal(sharesFloat.substring(0, sharesFloat.length() - 1));
+        BigDecimal marketCap = shares.multiply(new BigDecimal(price));
+        if (marketCap.compareTo(new BigDecimal(1000)) > 0){
+            marketCap = marketCap.divide(new BigDecimal(1000), 2, RoundingMode.HALF_UP);
+            switch (suffix){
+                case "B": return Utils.format(marketCap) + "T";
+                case "M": return Utils.format(marketCap) + "B";
+                default: throw new IllegalStateException("invalid shares float suffix: '" + suffix + "'");
+            }
+        } else {
+            return Utils.format(marketCap) + suffix;
+        }
+    }
+
+    public void createCompany(CompanyDto companyDto)
+    {
+        try {
+            companyDao.getByTicker(companyDto.getTicker());
+            throw new ServiceFailureException("Company with ticker '" + companyDto.getTicker() + "' already exists!");
+        } catch (jakarta.persistence.NoResultException ignored){}
+
+        Company newCompany = new Company();
+        newCompany.setTicker(companyDto.getTicker());
+        newCompany.setCurrency(companyDto.getCurrency());
+        newCompany.setSector(Sector.get(companyDto.getSector()));
+        newCompany.setWatching(companyDto.getWatching());
+        companyDao.create(newCompany);
     }
 }

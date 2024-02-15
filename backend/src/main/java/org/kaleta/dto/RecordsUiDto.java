@@ -1,42 +1,51 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.Utils;
-import org.kaleta.entity.Company;
 import org.kaleta.entity.Currency;
+import org.kaleta.model.FinancialsModel;
+import org.kaleta.model.RecordsModel;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.kaleta.Utils.format;
+import static org.kaleta.Utils.formatMillions;
+
 
 @Data
 public class RecordsUiDto
 {
-    private String companyId;
-    private String ticker;
-    private Currency currency;
-    private Boolean watching;
+    private Company company;
     private List<RecordDto> records = new ArrayList<>();
-    private Latest latestPrice;
-    private Latest latestPe;
-    private Latest latestPs;
-    private Latest latestDy;
-    private Latest latestTargets;
-    private Latest latestStrategy;
+    private Latests latest;
     private List<Own> owns = new ArrayList<>();
+    private Financials financials;
 
     public RecordsUiDto() {}
-    public RecordsUiDto(List<org.kaleta.entity.Record> records)
+    public RecordsUiDto(org.kaleta.entity.Company company, RecordsModel recordsModel)
     {
-        records.sort((recordA, recordB) -> -Utils.compareDbDates(recordA.getDate(), recordB.getDate()));
+        this.company = new Company();
+        this.company.id = company.getId();
+        this.company.ticker = company.getTicker();
+        this.company.currency = company.getCurrency();
+        this.company.watching = company.isWatching();
+        this.company.sector = company.getSector();
 
-        if (records.size() > 0) {
-            this.setCompany(records.get(0).getCompany());
+        for (org.kaleta.entity.Record record : recordsModel.getSortedRecords()) {
+            this.records.add(RecordDto.from(record));
         }
-        for (org.kaleta.entity.Record record : records)
-        {
-            this.getRecords().add(RecordDto.from(record));
-        }
-        computeLatest();
+        latest = new Latests();
+        latest.price = Latest.from(recordsModel.getLatestPrice());
+        latest.pe = Latest.from(recordsModel.getLatestPe());
+        latest.ps = Latest.from(recordsModel.getLatestPs());
+        latest.dy = Latest.from(recordsModel.getLatestDy());
+        latest.targets = Latest.from(recordsModel.getLatestTargets());
+        latest.strategy = Latest.from(recordsModel.getLatestStrategy());
+
+        financials = new Financials();
+        financials.headers = new String[]{"Quarter", "Revenue", "Net Income", "Net Margin", "EPS"};
+        financials.ttmLabels = new String[]{"revenue", "net income", "net margin", "eps", "ttm p/e", "forward p/e"};
     }
 
     @Data
@@ -48,47 +57,103 @@ public class RecordsUiDto
     }
 
     @Data
+    public static class Latests
+    {
+        private Latest price;
+        private Latest pe;
+        private Latest ps;
+        private Latest dy;
+        private Latest targets;
+        private Latest strategy;
+    }
+
+    @Data
     public static class Latest
     {
         private String value;
         private String date;
 
         public Latest(String value, String date) {this.value = value; this.date = date;}
+
+        public static Latest from(RecordsModel.Latest latest){
+            if (latest == null) return null;
+            String value = (latest.getValue() instanceof BigDecimal)
+                    ? format((BigDecimal) latest.getValue())
+                    : (String) latest.getValue();
+            return new Latest(value, format(latest.getDate()));
+        }
     }
 
-    public void setCompany(Company company){
-        companyId = company.getId();
-        ticker = company.getTicker();
-        currency = Currency.valueOf(company.getCurrency());
-        watching = company.isWatching();
+    @Data
+    public static class Financials
+    {
+        private List<Financial> values = new ArrayList<>();
+        private String[] headers;
+        private Financial ttm;
+        private String[] ttmLabels;
     }
 
-    private void computeLatest(){
-        if (this.getRecords().size() > 0)
+    @Data
+    public static class Financial
+    {
+        private String quarter;
+        private String revenue;
+        private String netIncome;
+        private String netMargin;
+        private String eps;
+
+        private String ttmPe;
+        private String forwardPe;
+    }
+
+    @Data
+    public static class Company
+    {
+        private String id;
+        private String ticker;
+        private Currency currency;
+        private Boolean watching;
+        private String sector;
+        private String marketCap;
+    }
+
+    public void setLatestPrice(Latest latestPrice)
+    {
+        latest.price = latestPrice;
+    }
+
+    public void setMarketCap(String marketCap)
+    {
+        this.company.marketCap = marketCap;
+    }
+
+    public void setFinancialsFrom(FinancialsModel financialsModel)
+    {
+        for (org.kaleta.entity.Financial financial : financialsModel.getSortedFinancials())
         {
-            for(int i=0; i < this.getRecords().size(); i++)
-            {
-                RecordDto iRecord = this.getRecords().get(i);
+            Financial dto = new Financial();
+            dto.setQuarter(financial.getQuarter());
+            dto.setRevenue(formatMillions(financial.getRevenue()));
+            dto.setNetIncome(formatMillions(financial.getNetIncome()));
+            dto.setNetMargin(format(financial.getNetMargin()));
+            dto.setEps(format(financial.getEps()));
+            financials.values.add(dto);
+        }
 
-                if (getLatestPrice() == null && iRecord.getPrice() != null && !iRecord.getPrice().isBlank()){
-                    setLatestPrice(new Latest(iRecord.getPrice(), iRecord.getDate()));
-                }
-                if (getLatestPe() == null && iRecord.getPe() != null && !iRecord.getPe().isBlank()){
-                    setLatestPe(new Latest(iRecord.getPe(), iRecord.getDate()));
-                }
-                if (getLatestPs() == null && iRecord.getPs() != null && !iRecord.getPs().isBlank()){
-                    setLatestPs(new Latest(iRecord.getPs(), iRecord.getDate()));
-                }
-                if (getLatestDy() == null && iRecord.getDy() != null && !iRecord.getDy().isBlank()){
-                    setLatestDy(new Latest(iRecord.getDy(), iRecord.getDate()));
-                }
-                if (getLatestTargets() == null && iRecord.getTargets() != null && !iRecord.getTargets().isBlank()){
-                    setLatestTargets(new Latest(iRecord.getTargets(), iRecord.getDate()));
-                }
-                if (getLatestStrategy() == null && iRecord.getStrategy() != null && !iRecord.getStrategy().isBlank()){
-                    setLatestStrategy(new Latest(iRecord.getStrategy(), iRecord.getDate()));
-                }
-            }
+        BigDecimal latestPrice = latest.price == null ? new BigDecimal(0) : new BigDecimal(latest.price.value);
+        FinancialsModel.Ttm ttmFinancials = financialsModel.getTtmFinancials(latestPrice);
+
+        if (ttmFinancials != null)
+        {
+            financials.ttm = new Financial();
+            financials.ttm.setRevenue(formatMillions(ttmFinancials.getRevenue()));
+            financials.ttm.setNetIncome(formatMillions(ttmFinancials.getNetIncome()));
+            financials.ttm.setNetMargin(format(ttmFinancials.getNetMargin()));
+            financials.ttm.setEps(format(ttmFinancials.getEps()));
+            BigDecimal ttmPe = ttmFinancials.getPe();
+            financials.ttm.setTtmPe(ttmPe.compareTo(new BigDecimal(0)) > 0 ? format(ttmPe) : "-");
+            BigDecimal forwardPe = financialsModel.getForwardPe(latestPrice);
+            financials.ttm.setForwardPe(forwardPe.compareTo(new BigDecimal(0)) > 0 ? format(forwardPe) : "-");
         }
     }
 }

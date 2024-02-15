@@ -3,9 +3,9 @@ import {Editable, Slate, useSlate, withReact} from 'slate-react'
 import {createEditor, Editor, Element as SlateElement, Transforms} from 'slate'
 import {withHistory} from 'slate-history'
 import {css, cx} from '@emotion/css'
-import {domain} from "../properties";
-import axios from "axios";
-import {handleError} from "../utils";
+import {domain} from "../properties"
+import axios from "axios"
+import {handleError} from "../utils"
 
 const LIST_TYPES = ['numbered-list', 'bulleted-list']
 const TEXT_ALIGN_TYPES = ['left', 'center', 'right', 'justify']
@@ -18,8 +18,8 @@ const ContentEditor = (props) => {
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const editor = useMemo(() => withHistory(withReact(createEditor())), [])
 
-    const [editing, setEditing] = useState(false);
-    const [value, setValue] = useState(DEFAULT_VALUE);
+    const [editing, setEditing] = useState(false)
+    const [value, setValue] = useState(DEFAULT_VALUE)
 
     function handleUnFocus() {
         setEditing(false)

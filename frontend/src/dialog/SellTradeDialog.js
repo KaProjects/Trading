@@ -6,7 +6,12 @@ import {
     DialogContent,
     DialogTitle,
     MenuItem,
-    Select, Table, TableBody, TableCell, TableHead, TableRow,
+    Select,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
     TextField
 } from "@mui/material";
 import {handleError, validateNumber} from "../utils";
@@ -16,14 +21,15 @@ import axios from "axios";
 
 
 const SellTradeDialog = props => {
-    const {handleClose, open} = props
+    const open = props.openSellTrade
+    const handleClose = () => props.setOpenSellTrade(false)
 
-    const [alert, setAlert] = useState(null);
-    const [date, setDate] = useState("");
-    const [price, setPrice] = useState("");
-    const [fees, setFees] = useState("");
-    const [company, setCompany] = useState("");
-    const [trades, setTrades] = useState([]);
+    const [alert, setAlert] = useState(null)
+    const [date, setDate] = useState("")
+    const [price, setPrice] = useState("")
+    const [fees, setFees] = useState("")
+    const [company, setCompany] = useState("")
+    const [trades, setTrades] = useState([])
 
     useEffect(() => {
         if (open) {
@@ -35,7 +41,7 @@ const SellTradeDialog = props => {
             setTrades([])
         }
         // eslint-disable-next-line
-    }, [open]);
+    }, [open])
 
 
     function sellTrade() {
@@ -57,6 +63,7 @@ const SellTradeDialog = props => {
                 const recordData = {companyId: company.id, title: title, date: date, price: price}
                 axios.post(domain + "/record", recordData)
                     .then((response) => {
+                        props.triggerRefresh()
                         handleClose()
                     }).catch((error) => {setAlert(handleError(error))})
             }).catch((error) => {setAlert(handleError(error))})
@@ -92,27 +99,27 @@ const SellTradeDialog = props => {
                 <TextField required margin="dense" fullWidth variant="standard"id="trader-sell-trade-date"
                            type="date"
                            value={date}
-                           onChange={(e) => setDate(e.target.value)}
+                           onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                            error={date === ""}
                 />
                 <TextField required margin="dense" fullWidth variant="standard"id="trader-sell-trade-price"
                            value={price}
                            label="Price"
-                           onChange={(e) => setPrice(e.target.value)}
+                           onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
                            error={validateNumber(price, false, 10, 4) !== ""}
                            helperText={validateNumber(price, false, 10, 4) }
                 />
                 <TextField required margin="dense" fullWidth variant="standard"id="trader-sell-trade-fees"
                            value={fees}
                            label="Fees"
-                           onChange={(e) => setFees(e.target.value)}
+                           onChange={(e) => {setFees(e.target.value);setAlert(null);}}
                            error={validateNumber(fees, false, 5, 2) !== ""}
                            helperText={validateNumber(fees, false, 5, 2) }
                 />
                 <Select required margin="dense" fullWidth variant="standard" displayEmpty
                         value={company}
                         error={company === ""}
-                        onChange={event => selectCompany(event.target.value)}
+                        onChange={event => {selectCompany(event.target.value);setAlert(null);}}
                         sx={{marginTop: "15px"}}
                 >
                     <MenuItem value=""></MenuItem>
@@ -142,7 +149,7 @@ const SellTradeDialog = props => {
                                 <TableCell>
                                     <TextField margin="dense" fullWidth variant="standard" id="trader-sell-trade-quantity"
                                                value={trade.sellQuantity ? trade.sellQuantity : ""}
-                                               onChange={(e) => {const newTrades = [...trades];newTrades[index].sellQuantity = e.target.value; setTrades([...newTrades]);}}
+                                               onChange={(e) => {const newTrades = [...trades];newTrades[index].sellQuantity = e.target.value; setTrades([...newTrades]); setAlert(null);}}
                                                error={validateQuantity(trade) !== ""}
                                                helperText={validateQuantity(trade)}
                                     />
@@ -164,4 +171,4 @@ const SellTradeDialog = props => {
         </Dialog>
     )
 }
-export default SellTradeDialog;
+export default SellTradeDialog

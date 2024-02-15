@@ -6,12 +6,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
 
 @Data
+@EqualsAndHashCode(callSuper=true)
 @Entity
 @Table(name = "Trade")
 public class Trade extends AbstractEntity
@@ -48,7 +50,7 @@ public class Trade extends AbstractEntity
 
     public Currency getCurrency()
     {
-        return Currency.valueOf(company.getCurrency());
+        return company.getCurrency();
     }
 
     public BigDecimal getPurchaseTotal()
@@ -58,7 +60,7 @@ public class Trade extends AbstractEntity
 
     public BigDecimal getSellTotal()
     {
-        return sellPrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP).add(sellFees);
+        return sellPrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP).subtract(sellFees);
     }
 
     public BigDecimal getProfit()

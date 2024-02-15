@@ -20,6 +20,12 @@ public class RecordDaoImpl implements RecordDao
     private final String selectQuery = "SELECT r FROM Record r";
 
     @Override
+    public List<Record> list()
+    {
+        return entityManager.createQuery(selectQuery, Record.class).getResultList();
+    }
+
+    @Override
     public List<Record> list(String companyId)
     {
         return entityManager.createQuery(selectQuery + " WHERE r.company.id=:companyId", Record.class)

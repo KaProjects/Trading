@@ -17,15 +17,16 @@ import org.kaleta.dto.RecordsUiDto;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Record;
 import org.kaleta.entity.Trade;
+import org.kaleta.model.RecordsModel;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.service.CompanyService;
+import org.kaleta.service.FinancialService;
 import org.kaleta.service.FirebaseService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
 
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.util.List;
 
 import static org.kaleta.Utils.format;
 
@@ -40,6 +41,8 @@ public class RecordResource
     CompanyService companyService;
     @Inject
     FirebaseService firebaseService;
+    @Inject
+    FinancialService financialService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -50,25 +53,30 @@ public class RecordResource
             () -> Validator.validateUuid(companyId),
             () -> {
                 Company company = companyService.getCompany(companyId);
-                List<Record> records = recordService.getRecords(company.getId());
+                RecordsModel recordsModel = recordService.getRecordsModel(company.getId());
 
-                RecordsUiDto dto = new RecordsUiDto(records);
-                dto.setCompany(company);
+                RecordsUiDto dto = new RecordsUiDto(company, recordsModel);
 
                 if (firebaseService.hasCompany(company.getTicker())){
                     FirebaseCompany firebaseCompany = firebaseService.getCompany(company.getTicker());
-                    String date = Utils.format(Date.valueOf(firebaseCompany.getTime().split("T")[0]));
-                    if (Utils.compareDtoDates(date, dto.getLatestPrice().getDate()) >= 0){
-                        dto.setLatestPrice(new RecordsUiDto.Latest(firebaseCompany.getPrice(), date));
+                    Date firebaseLatestDate = Date.valueOf(firebaseCompany.getTime().split("T")[0]);
+                    if (Utils.compareDbDates(firebaseLatestDate, recordsModel.getLatestPrice().getDate()) >= 0){
+                        dto.setLatestPrice(new RecordsUiDto.Latest(firebaseCompany.getPrice(), format(firebaseLatestDate)));
                     }
                 }
 
-                for (Trade trade : tradeService.getTrades(true, companyId, null, null))
+                if (dto.getLatest().getPrice() != null && company.getSharesFloat() != null){
+                    dto.setMarketCap(companyService.computeMarketCap(dto.getLatest().getPrice().getValue(), company.getSharesFloat()));
+                }
+
+                dto.setFinancialsFrom(financialService.getFinancialsModel(companyId));
+
+                for (Trade trade : tradeService.getTrades(true, companyId, null, null, null, null))
                 {
                     RecordsUiDto.Own own = new RecordsUiDto.Own();
                     own.setQuantity(format(trade.getQuantity()));
                     own.setPrice(format(trade.getPurchasePrice()));
-                    BigDecimal profit = Utils.computeProfit(trade.getPurchasePrice(), new BigDecimal(dto.getLatestPrice().getValue()));
+                    BigDecimal profit = Utils.computeProfit(trade.getPurchasePrice(), new BigDecimal(dto.getLatest().getPrice().getValue()));
                     if (profit != null){
                         own.setProfit((profit.compareTo(new BigDecimal("0")) > 0 ? "+" : "") + format(profit) + "%");
                     }

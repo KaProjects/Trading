@@ -13,11 +13,11 @@ const EditableValueBox = props => {
 
     const style = {color: 'text.primary', borderRadius: 2, boxShadow: "1px 1px 1px lightgrey", border: "1px solid lightgrey", height: "25px", textTransform: 'none'}
 
-    const [editing, setEditing] = useState(false);
-    const [showValue, setShowValue] = useState(value ? value : "");
-    const [editValue, setEditValue] = useState(value ? value : "");
+    const [editing, setEditing] = useState(false)
+    const [showValue, setShowValue] = useState(value ? value : "")
+    const [editValue, setEditValue] = useState(value ? value : "")
 
-    const [alert, setAlert] = useState(null);
+    const [alert, setAlert] = useState(null)
 
     function handleUnFocus() {
         setEditing(false)
@@ -70,4 +70,4 @@ const EditableValueBox = props => {
         </div>
     )
 }
-export default EditableValueBox;
+export default EditableValueBox

@@ -17,6 +17,6 @@ function BorderedSection({ icon, title, children }) {
             </div>
             <div className={"childrenContainer"}>{children}</div>
         </div>
-    );
+    )
 }
-export default BorderedSection;
+export default BorderedSection

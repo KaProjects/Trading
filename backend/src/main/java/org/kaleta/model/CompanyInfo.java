@@ -10,6 +10,7 @@ public class CompanyInfo
     private String id;
     private String ticker;
     private boolean watching;
+    private String sector;
     private Date latestReviewDate;
     private Date latestPurchaseDate; //only owned
     private Date latestStrategyDate;

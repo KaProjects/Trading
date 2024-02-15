@@ -1,13 +1,36 @@
+DROP TABLE IF EXISTS Dividend;
 DROP TABLE IF EXISTS Trade;
 DROP TABLE IF EXISTS Record;
+DROP TABLE IF EXISTS Financial;
 DROP TABLE IF EXISTS Company;
 
 CREATE TABLE Company
 (
-    id       VARCHAR(36) NOT NULL PRIMARY KEY,
-    ticker   CHAR(5)     NOT NULL,
-    currency CHAR(1)     NOT NULL,
-    watching BOOL        NOT NULL
+    id           VARCHAR(36) NOT NULL PRIMARY KEY,
+    ticker       CHAR(5)     NOT NULL,
+    currency     CHAR(1)     NOT NULL,
+    watching     BOOL        NOT NULL,
+    shares_float VARCHAR(7),
+    sector       VARCHAR(30)
+);
+CREATE TABLE Financial
+(
+    id         VARCHAR(36)   NOT NULL PRIMARY KEY,
+    quarter    CHAR(4)       NOT NULL,
+    revenue    DECIMAL(8, 2) NOT NULL,
+    net_income DECIMAL(8, 2) NOT NULL,
+    eps        DECIMAL(4, 2) NOT NULL,
+    companyId  VARCHAR(36)   NOT NULL,
+    CONSTRAINT `fk_financialCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
+);
+CREATE TABLE Dividend
+(
+    id        VARCHAR(36)   NOT NULL PRIMARY KEY,
+    date      DATE          NOT NULL,
+    dividend  DECIMAL(7, 2) NOT NULL,
+    tax       DECIMAL(6, 2) NOT NULL,
+    companyId VARCHAR(36)   NOT NULL,
+    CONSTRAINT `fk_dividendCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Trade
 (
@@ -19,39 +42,40 @@ CREATE TABLE Trade
     sell_date      DATE,
     sell_price     DECIMAL(10, 4),
     sell_fees      DECIMAL(5, 2),
-    companyId VARCHAR(36) NOT NULL,
+    companyId      VARCHAR(36)    NOT NULL,
     CONSTRAINT `fk_tradeCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Record
 (
-    id       VARCHAR(36)    NOT NULL PRIMARY KEY,
-    date     DATE           NOT NULL,
-    title    TINYTEXT       NOT NULL,
-    price    DECIMAL(10, 4) NOT NULL,
-    pe       DECIMAL(5, 2),
-    ps       DECIMAL(5, 2),
-    dy       DECIMAL(5, 2),
-    targets  TINYTEXT,
-    content  TEXT,
-    strategy TINYTEXT,
-    companyId VARCHAR(36) NOT NULL,
+    id        VARCHAR(36)    NOT NULL PRIMARY KEY,
+    date      DATE           NOT NULL,
+    title     TINYTEXT       NOT NULL,
+    price     DECIMAL(10, 4) NOT NULL,
+    pe        DECIMAL(5, 2),
+    ps        DECIMAL(5, 2),
+    dy        DECIMAL(5, 2),
+    targets   TINYTEXT,
+    content   TEXT,
+    strategy  TINYTEXT,
+    companyId VARCHAR(36)    NOT NULL,
     CONSTRAINT `fk_recordCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('e7c49260-53da-42c1-80cf-eccf6ed928a7', 'XXX', 'K', false);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('0a16ba1d-99de-4306-8fc5-81ee11b60ea0', 'YYY', 'K', false);
-INSERT INTO Company (id, ticker, currency, watching) VALUES ('adb89a0a-86bc-4854-8a55-058ad2e6308f', 'NVDA', '$', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES ('4efe9235-0c00-4b51-aa81-f2febbb65232', 'SHELL', '€', true);
+INSERT INTO Company (id, ticker, currency, watching, shares_float, sector) VALUES ('adb89a0a-86bc-4854-8a55-058ad2e6308f', 'NVDA', '$', true, '900.78M', 'SEMICONDUCTORS');
+INSERT INTO Company (id, ticker, currency, watching, sector) VALUES ('4efe9235-0c00-4b51-aa81-f2febbb65232', 'SHELL', '€', true, 'ENERGY_MINERALS');
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('eaca1473-33c2-4128-a0f2-b7853cdece41', 'RR', '£', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('61cc8096-87ac-4197-8b54-7c2595274bcc', 'CEZ', 'K', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('66c725b2-9987-4653-a49c-3a9906168d2a', 'ABCD', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('d98c9ea1-ef2a-400a-bc7f-00d90e5d8e10', 'XRC', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('5cda9759-c31f-4c5c-ac0b-b5e1de01fdf0', 'XRSA', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('7781fba0-7071-45d7-b952-3c5f07ce564c', 'XRSB', '$', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES ('5afe260b-c433-426c-9710-e9ff99faa5aa', 'XCW', '$', false);
+INSERT INTO Company (id, ticker, currency, watching, sector) VALUES ('5afe260b-c433-426c-9710-e9ff99faa5aa', 'XCW', '$', false, 'ELECTRIC_VEHICLES');
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('21322ef8-9e26-4eda-bf74-b0f0eb8925b1', 'XTC', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('c65ea6ac-d848-46dd-98bc-9e3d99f39b21', 'XTS', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('ededb691-b3c0-4c66-b03d-4e7b46bb2489', 'XRL', '$', true);
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('6877c444-00ee-4af5-99ef-415980484d8c', 'XFC', '$', true);
 
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('-2', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
@@ -87,4 +111,17 @@ INSERT INTO Record (id, companyId, date, title, price, ps, dy) VALUES ('675574fe
 INSERT INTO Record (id, companyId, date, title, price, dy, targets) VALUES ('d0ccae7d-af8c-4625-8ca3-e9628765df4f', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-07-01', 'latest targets', '90', '1', '10-5~7');
 INSERT INTO Record (id, companyId, date, title, price, targets, strategy) VALUES ('0ac349c6-431d-4379-a2aa-2a8d4ba9c3ca', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-06-01', 'latest strategy', '70', '8-4~6', 'strat');
 
+INSERT INTO Record (id, companyId, date, title, price) VALUES ('1389a449-2137-4da7-a7e4-8f9267741f0e', '6877c444-00ee-4af5-99ef-415980484d8c', '2023-07-01', 'latest price', '60');
 
+
+INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('bff10473-3d42-45ae-965b-2f0d11e2d40d', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '2021-06-01', '70', '7');
+INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('24a17552-c52a-4497-8b0e-8628d6847efc', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '2022-12-01', '80', '8');
+INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('8f683c27-f334-41b1-9406-189d62ae2171', '61cc8096-87ac-4197-8b54-7c2595274bcc', '2021-12-01', '1000', '100');
+INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('719c545d-26d6-4437-8e1a-e1eea53b3967', '66c725b2-9987-4653-a49c-3a9906168d2a', '2020-12-01', '1000', '100');
+
+
+INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES ('01596f61-19f6-409e-87b9-2bbc6b9b59a6', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '23Q3', '18120', '9243', '3.71');
+INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES ('58c89a63-2baf-481e-ad6a-4b03e5163bf9', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '23Q2', '13507', '6188', '2.48');
+INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES ('1c53f589-a00d-4b83-af33-b31fed0d9915', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '23Q1', '7192', '2043', '0.82');
+
+INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES ('a1f81be4-5a7a-426d-b9ca-90d9e08e7cb8', '6877c444-00ee-4af5-99ef-415980484d8c', '23Q1', '1000', '100', '1');
