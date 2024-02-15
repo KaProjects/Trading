@@ -17,7 +17,13 @@ public enum Sector
     ENERGY_MINERALS("Energy Minerals"),
     FINANCE("Finance"),
     MARINE_SHIPPING("Marine Shipping"),
-    NON_DURABLES("Consumer Non-Durables");
+    NON_DURABLES("Consumer Non-Durables"),
+    AIRLINES("Airlines"),
+    TRAVEL_SERVICES("Travel Services"),
+    RESTAURANTS("Restaurants"),
+    REAL_ESTATE("Real Estate"),
+    AEROSPACE_DEFENSE("Aerospace & Defense"),
+    HEALTH_TECH("Health Technology");
 
     @Getter
     private final String name;
