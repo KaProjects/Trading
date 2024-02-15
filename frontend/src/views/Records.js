@@ -73,7 +73,9 @@ const Records = props => {
 
     function handleConfirmWatch() {
         const newWatching = !data.company.watching
-        axios.put(domain + "/company", {id: data.company.id, watching: newWatching})
+        const companyData = {...data.company}
+        companyData.watching = newWatching
+        axios.put(domain + "/company", companyData)
             .then(() => {
                 triggerRefresh()
             }).catch((error) => {handleError(error)})
