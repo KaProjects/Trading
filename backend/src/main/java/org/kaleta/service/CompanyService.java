@@ -9,6 +9,7 @@ import org.kaleta.dao.RecordDao;
 import org.kaleta.dao.TradeDao;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.entity.Company;
+import org.kaleta.entity.Sector;
 import org.kaleta.model.CompanyInfo;
 
 import java.math.BigDecimal;
@@ -78,9 +79,11 @@ public class CompanyService
     {
         Company company = getCompany(companyDto.getId());
 
-        if (companyDto.getWatching() != null) company.setWatching(companyDto.getWatching());
+        company.setCurrency(companyDto.getCurrency());
+        company.setSector(Sector.get(companyDto.getSector()));
+        company.setWatching(companyDto.getWatching());
 
-        companyDao.store(company);
+        companyDao.save(company);
     }
 
     public Company getCompany(String companyId)
@@ -107,5 +110,20 @@ public class CompanyService
         } else {
             return Utils.format(marketCap) + suffix;
         }
+    }
+
+    public void createCompany(CompanyDto companyDto)
+    {
+        try {
+            companyDao.getByTicker(companyDto.getTicker());
+            throw new ServiceFailureException("Company with ticker '" + companyDto.getTicker() + "' already exists!");
+        } catch (jakarta.persistence.NoResultException ignored){}
+
+        Company newCompany = new Company();
+        newCompany.setTicker(companyDto.getTicker());
+        newCompany.setCurrency(companyDto.getCurrency());
+        newCompany.setSector(Sector.get(companyDto.getSector()));
+        newCompany.setWatching(companyDto.getWatching());
+        companyDao.create(newCompany);
     }
 }

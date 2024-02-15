@@ -21,7 +21,8 @@ import axios from "axios";
 
 
 const SellTradeDialog = props => {
-    const {handleClose, open} = props
+    const open = props.openSellTrade
+    const handleClose = () => props.setOpenSellTrade(false)
 
     const [alert, setAlert] = useState(null)
     const [date, setDate] = useState("")

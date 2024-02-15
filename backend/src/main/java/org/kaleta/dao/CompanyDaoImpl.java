@@ -47,7 +47,7 @@ public class CompanyDaoImpl implements CompanyDao
                 + sectorCondition, Company.class);
 
         if (currency != null ) query.setParameter("currency", Currency.valueOf(currency));
-        if (sector != null ) query.setParameter("sector", Sector.getBy(sector));
+        if (sector != null ) query.setParameter("sector", Sector.get(sector));
 
         return query.getResultList();
     }
@@ -61,9 +61,24 @@ public class CompanyDaoImpl implements CompanyDao
     }
 
     @Override
+    public Company getByTicker(String ticker)
+    {
+        return entityManager.createQuery(selectQuery + " WHERE c.ticker=:ticker", Company.class)
+                .setParameter("ticker", ticker)
+                .getSingleResult();
+    }
+
+    @Override
     @Transactional
-    public void store(Company company)
+    public void save(Company company)
     {
         entityManager.merge(company);
+    }
+
+    @Override
+    @Transactional
+    public void create(Company company)
+    {
+        entityManager.persist(company);
     }
 }

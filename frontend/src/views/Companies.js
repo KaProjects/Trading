@@ -4,6 +4,7 @@ import Loader from "../components/Loader";
 import {IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import EditCompanyDialog from "../dialog/EditCompanyDialog";
 
 
 function headerStyle(index){
@@ -53,25 +54,25 @@ const Companies = props => {
         setRefresh(new Date().getTime().toString())
     }
 
-    function handleAddCompanyDialogClose() {
-        // props.setOpenAddCompany(false)
-    }
-
-    function TableCellRedirect(props) {
-        const [showRedirect, setShowRedirect] = useState(false)
+    function TableCellWithAction(props) {
+        const {index, action} = props
+        const [showAction, setShowAction] = useState(false)
         return(
-            <TableCell style={props.style}
-                       onMouseEnter={() => setShowRedirect(true)}
-                       onMouseLeave={() => setShowRedirect(false)}
+            <TableCell style={rowStyle(index)}
+                       onMouseEnter={() => setShowAction(true)}
+                       onMouseLeave={() => setShowAction(false)}
             >
-                {showRedirect &&
-                    <IconButton style={{height: "2px", width: "25px"}}
-                        onClick={props.redirect}
-                    >
+                {index > 3 && showAction &&
+                    <IconButton style={{height: "20px", width: "20px", marginRight: "1px"}} onClick={action}>
                         <OpenInNewIcon sx={{width: 18}}/>
                     </IconButton>
                 }
                 {props.children}
+                {index === 0 && showAction &&
+                    <IconButton style={{height: "20px", width: "20px", marginRight: "1px"}} onClick={action}>
+                        <OpenInNewIcon sx={{width: 18}}/>
+                    </IconButton>
+                }
             </TableCell>
         )
     }
@@ -90,11 +91,7 @@ const Companies = props => {
             }
             {loaded &&
                 <>
-                    {/*<AddTradeDialog open={props.openAddTrade}*/}
-                    {/*                handleClose={() => handleAddTradeDialogClose()}*/}
-                    {/*                triggerRefresh={triggerRefresh}*/}
-                    {/*                {...props}*/}
-                    {/*/>*/}
+                    <EditCompanyDialog triggerRefresh={triggerRefresh} {...props}/>
                     <TableContainer component={Paper} sx={{ width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)"}}>
                         <Table size="small" aria-label="a dense table" stickyHeader>
                             <TableHead>
@@ -112,15 +109,15 @@ const Companies = props => {
                             <TableBody>
                                 {data.companies.map((company, index) => (
                                     <TableRow key={company.id} hover>
-                                        <TableCell style={rowStyle(0)}>{company.ticker}</TableCell>
+                                        <TableCellWithAction index={0} action={() => props.setOpenEditCompany(company)}>{company.ticker}</TableCellWithAction>
                                         <TableCell style={rowStyle(1)}>{company.currency}</TableCell>
                                         <TableCell style={rowStyle(2)}>{company.watching ? '*' : ''}</TableCell>
                                         <TableCell style={rowStyle(3)}>{company.sector}</TableCell>
-                                        <TableCellRedirect style={rowStyle(4)} redirect={() => redirect(company.id, '/trades')}>{company.totalTrades}</TableCellRedirect>
-                                        <TableCellRedirect style={rowStyle(5)} redirect={() => redirect(company.id, '/trades', props.activeStates[0])}>{company.activeTrades}</TableCellRedirect>
-                                        <TableCellRedirect style={rowStyle(6)} redirect={() => redirect(company.id, '/dividends')}>{company.dividends}</TableCellRedirect>
-                                        <TableCellRedirect style={rowStyle(7)} redirect={() => redirect(company.id, '/records')}>{company.records}</TableCellRedirect>
-                                        <TableCellRedirect style={rowStyle(8)} redirect={() => redirect(company.id, '/records', null, true)}>{company.financials}</TableCellRedirect>
+                                        <TableCellWithAction index={4} action={() => redirect(company.id, '/trades')}>{company.totalTrades}</TableCellWithAction>
+                                        <TableCellWithAction index={5} action={() => redirect(company.id, '/trades', props.activeStates[0])}>{company.activeTrades}</TableCellWithAction>
+                                        <TableCellWithAction index={6} action={() => redirect(company.id, '/dividends')}>{company.dividends}</TableCellWithAction>
+                                        <TableCellWithAction index={7} action={() => redirect(company.id, '/records')}>{company.records}</TableCellWithAction>
+                                        <TableCellWithAction index={8} action={() => redirect(company.id, '/records', null, true)}>{company.financials}</TableCellWithAction>
                                     </TableRow>
                                 ))}
                             </TableBody>

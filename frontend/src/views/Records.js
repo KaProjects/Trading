@@ -67,14 +67,8 @@ const Records = props => {
         // eslint-disable-next-line
     }, [refresh])
 
-
-
     function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
-    }
-
-    function handleAddRecordDialogClose() {
-        setOpenAddRecordDialog(false)
     }
 
     function handleConfirmWatch() {
@@ -125,7 +119,7 @@ const Records = props => {
                                 <ControlPointIcon sx={{color: 'lightgreen',}}/>
                             </Button>
                             <AddRecordDialog open={openAddRecordDialog}
-                                             handleClose={() => handleAddRecordDialogClose()}
+                                             handleClose={() => setOpenAddRecordDialog(false)}
                                              triggerRefresh={triggerRefresh}
                                              companyId={props.companySelectorValue.id}
                             />

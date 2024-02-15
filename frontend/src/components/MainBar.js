@@ -47,6 +47,11 @@ const MainBar = props => {
                                 <ControlPointIcon sx={{color: 'lightgreen'}}/>
                             </Button>
                         }
+                        {props.showAddCompanyButton &&
+                            <Button onClick={() => props.setOpenEditCompany({})} sx={{marginRight: "25px"}}>
+                                <ControlPointIcon sx={{color: 'lightgreen'}}/>
+                            </Button>
+                        }
                         {props.showActiveSelector &&
                             <MainBarSelect values={props.activeStates}
                                            value={props.activeSelectorValue}

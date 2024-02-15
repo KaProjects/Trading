@@ -51,10 +51,6 @@ const Dividends = props => {
         setRefresh(new Date().getTime().toString())
     }
 
-    function handleAddDividendDialogClose() {
-        props.setOpenAddDividend(false)
-    }
-
     return (
         <>
             {!loaded &&
@@ -62,11 +58,7 @@ const Dividends = props => {
             }
             {loaded &&
                 <>
-                <AddDividendDialog open={props.openAddDividend}
-                                   handleClose={() => handleAddDividendDialogClose()}
-                                   triggerRefresh={triggerRefresh}
-                                   {...props}
-                />
+                <AddDividendDialog triggerRefresh={triggerRefresh} {...props}/>
                 <TableContainer component={Paper} sx={{ width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)"}}>
                     <Table size="small" aria-label="a dense table" stickyHeader>
                         <TableHead>

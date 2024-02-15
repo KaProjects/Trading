@@ -2,6 +2,7 @@ package org.kaleta.rest;
 
 import jakarta.ws.rs.core.Response;
 import org.kaleta.Utils;
+import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.DividendCreateDto;
 import org.kaleta.dto.FinancialCreateDto;
 import org.kaleta.dto.RecordCreateDto;
@@ -62,8 +63,14 @@ public class Validator
 
     public static void validateSector(String sector)
     {
-        if (sector == null || sector.isBlank() || Sector.getBy(sector) == null)
+        if (sector == null || sector.isBlank() || Sector.get(sector) == null)
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Sector Parameter: '" + sector + "'");
+    }
+
+    public static void validateTicker(String ticker)
+    {
+        if (ticker == null || ticker.isBlank() || ticker.length() > 5 || !ticker.toUpperCase().equals(ticker))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Ticker Parameter: '" + ticker + "'");
     }
 
     public static void validateUpdateRecordDto(RecordDto dto)
@@ -171,6 +178,22 @@ public class Validator
         if (dto.getEps() == null || !isBigDecimal(dto.getEps(), 4, 2))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid EPS: '" + dto.getEps() + "'");
         validateUuid(dto.getCompanyId());
+    }
+
+    public static void validateCreateEditCompanyDto(CompanyDto dto, boolean isCreate)
+    {
+        if (dto.getCurrency() == null)
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Missing Currency Parameter");
+
+        if (dto.getWatching() == null)
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Missing Watching Parameter");
+
+        if (dto.getSector() != null) Validator.validateSector(dto.getSector());
+
+        if (isCreate)
+            validateTicker(dto.getTicker());
+        else
+            validateUuid(dto.getId());
     }
 
     private static boolean isBigDecimal(String value, int lengthConstraint, int decimalConstraint){

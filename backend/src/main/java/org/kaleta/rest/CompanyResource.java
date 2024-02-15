@@ -3,6 +3,7 @@ package org.kaleta.rest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -11,6 +12,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.CompanyUiDto;
+import org.kaleta.dto.CompanyValuesDto;
 import org.kaleta.dto.RecordsUiCompanyListsDto;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Sort;
@@ -45,6 +47,14 @@ public class CompanyResource
     public Response getCompanies()
     {
         return Endpoint.process(() -> {}, () -> CompanyDto.from(companyService.getCompanies()));
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/values")
+    public Response getCompanyValues()
+    {
+        return Endpoint.process(() -> {}, CompanyValuesDto::new);
     }
 
     @GET
@@ -124,11 +134,27 @@ public class CompanyResource
         return Endpoint.process(
             () -> {
                 Validator.validatePayload(companyDto);
-                Validator.validateUuid(companyDto.getId());
+                Validator.validateCreateEditCompanyDto(companyDto, false);
             },
             () -> {
                 companyService.updateCompany(companyDto);
                 return Response.noContent().build();
+            });
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/")
+    public Response createCompany(CompanyDto companyDto)
+    {
+        return Endpoint.process(
+            () -> {
+                Validator.validatePayload(companyDto);
+                Validator.validateCreateEditCompanyDto(companyDto, true);
+            },
+            () -> {
+                companyService.createCompany(companyDto);
+                return Response.status(Response.Status.CREATED).build();
             });
     }
 }

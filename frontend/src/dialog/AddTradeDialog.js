@@ -16,7 +16,8 @@ import {handleError, validateNumber} from "../utils";
 
 
 const AddTradeDialog = props => {
-    const {handleClose, open} = props
+    const open = props.openAddTrade
+    const handleClose = () => props.setOpenAddTrade(false)
 
     const [alert, setAlert] = useState(null)
     const [date, setDate] = useState("")

@@ -22,7 +22,17 @@ public interface CompanyDao
     Company get(String companyId);
 
     /**
+     * @return company by Ticker
+     */
+    Company getByTicker(String ticker);
+
+    /**
      * saves the instance of the specified company
      */
-    void store(Company company);
+    void save(Company company);
+
+    /**
+     * creates new company
+     */
+    void create(Company company);
 }

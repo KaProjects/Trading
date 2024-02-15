@@ -3,6 +3,7 @@ package org.kaleta.framework;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import jakarta.ws.rs.core.Response;
+import org.kaleta.dto.CompanyDto;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -49,5 +50,13 @@ public class Assert
                 .body(dto)
                 .when().put(uri)
                 .then().statusCode(Response.Status.NO_CONTENT.getStatusCode());
+    }
+
+    public static void post201(String uri, Object dto)
+    {
+        given().contentType(ContentType.JSON)
+                .body(dto)
+                .when().post(uri)
+                .then().statusCode(Response.Status.CREATED.getStatusCode());
     }
 }

@@ -66,14 +66,6 @@ const Trades = props => {
         setRefresh(new Date().getTime().toString())
     }
 
-    function handleAddTradeDialogClose() {
-        props.setOpenAddTrade(false)
-    }
-
-    function handleSellTradeDialogClose() {
-        props.setOpenSellTrade(false)
-    }
-
     return (
         <>
         {!loaded &&
@@ -81,16 +73,8 @@ const Trades = props => {
         }
         {loaded &&
             <>
-            <AddTradeDialog open={props.openAddTrade}
-                            handleClose={() => handleAddTradeDialogClose()}
-                            triggerRefresh={triggerRefresh}
-                            {...props}
-            />
-            <SellTradeDialog open={props.openSellTrade}
-                             handleClose={() => handleSellTradeDialogClose()}
-                             triggerRefresh={triggerRefresh}
-                             {...props}
-            />
+            <AddTradeDialog triggerRefresh={triggerRefresh} {...props}/>
+            <SellTradeDialog triggerRefresh={triggerRefresh} {...props}/>
             <TableContainer component={Paper} sx={{ width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)"}}>
                 <Table size="small" aria-label="a dense table" stickyHeader>
                     <TableHead>

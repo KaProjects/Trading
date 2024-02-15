@@ -28,6 +28,7 @@ class App extends Component {
             showAddTradeButton: false,
             showSellTradeButton: false,
             showAddDividendButton: false,
+            showAddCompanyButton: false,
             showStatsTabs: null,         // null = false, true otherwise
             toggleTradesSelectors: this.toggleTradesSelectors.bind(this),
             toggleRecordsSelectors: this.toggleRecordsSelectors.bind(this),
@@ -50,6 +51,8 @@ class App extends Component {
             setOpenSellTrade: this.setOpenSellTrade.bind(this),
             openAddDividend: false,
             setOpenAddDividend: this.setOpenAddDividend.bind(this),
+            openEditCompany: null,
+            setOpenEditCompany: this.setOpenEditCompany.bind(this),
             statsTabsIndex: 0,
             setStatsTabsIndex: this.setStatsTabsIndex.bind(this),
         }
@@ -67,6 +70,7 @@ class App extends Component {
         this.setOpenAddTrade = this.setOpenAddTrade.bind(this)
         this.setOpenSellTrade = this.setOpenSellTrade.bind(this)
         this.setOpenAddDividend = this.setOpenAddDividend.bind(this)
+        this.setOpenEditCompany = this.setOpenEditCompany.bind(this)
         this.setStatsTabsIndex = this.setStatsTabsIndex.bind(this)
     }
 
@@ -116,6 +120,7 @@ class App extends Component {
         if (!currencies.includes(this.state.currencySelectorValue)) this.setState({currencySelectorValue: ""})
         this.setState({showSectorSelector: sectors})
         if (!sectors.includes(this.state.sectorSelectorValue)) this.setState({sectorSelectorValue: ""})
+        this.setState({showAddCompanyButton: true})
     }
 
     setActiveSelectorValue(value) {this.setState({activeSelectorValue: value})}
@@ -126,6 +131,7 @@ class App extends Component {
     setOpenAddTrade(value) {this.setState({openAddTrade: value})}
     setOpenSellTrade(value) {this.setState({openSellTrade: value})}
     setOpenAddDividend(value) {this.setState({openAddDividend: value})}
+    setOpenEditCompany(value) {this.setState({openEditCompany: value})}
     setStatsTabsIndex(index) {this.setState({statsTabsIndex: index})}
 
     loadStorageStates() {
