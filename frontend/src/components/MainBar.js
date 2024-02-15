@@ -66,8 +66,8 @@ const MainBar = props => {
                                            label={"companies"}
                             />
                         }
-                        {props.showCurrencySelector !== null &&
-                            <MainBarSelect values={props.showCurrencySelector}
+                        {props.showCurrencySelector &&
+                            <MainBarSelect values={props.currencies}
                                            value={props.currencySelectorValue}
                                            setValue={props.setCurrencySelectorValue}
                                            label={"currencies"}
@@ -80,8 +80,8 @@ const MainBar = props => {
                                            label={"years"}
                             />
                         }
-                        {props.showSectorSelector !== null &&
-                            <MainBarSelect values={props.showSectorSelector}
+                        {props.showSectorSelector &&
+                            <MainBarSelect values={props.sectors}
                                            value={props.sectorSelectorValue}
                                            setValue={props.setSectorSelectorValue}
                                            label={"sectors"}

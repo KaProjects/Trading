@@ -46,20 +46,14 @@ const EditCompanyDialog = props => {
     const [sector, setSector] = useState("")
     const [shares, setShares] = useState("")
 
-    const [values, setValues] = useState({currencies: [], sectors: []})
-
     useEffect(() => {
         if (company) {
-            axios.get(domain + "/company/values")
-                .then((response) => {
-                    setValues(response.data)
-                    setAlert(null)
-                    setTicker(company.id ? company.ticker : "")
-                    setCurrency(company.id ? company.currency : "")
-                    setWatching(company.id ? company.watching : true)
-                    setSector((company.id && company.sector) ? company.sector : "")
-                    setShares((company.id && company.sharesFloat) ? company.sharesFloat : "")
-                }).catch((error) => {setAlert(handleError(error))})
+            setAlert(null)
+            setTicker(company.id ? company.ticker : "")
+            setCurrency(company.id ? company.currency : "")
+            setWatching(company.id ? company.watching : true)
+            setSector((company.id && company.sector) ? company.sector : "")
+            setShares((company.id && company.sharesFloat) ? company.sharesFloat : "")
         }
         // eslint-disable-next-line
     }, [company])
@@ -108,7 +102,7 @@ const EditCompanyDialog = props => {
                         sx={{marginTop: "20px"}}
                 >
                     <MenuItem value=""></MenuItem>
-                    {values.currencies.map((currency, index) => (
+                    {props.currencies.map((currency, index) => (
                         <MenuItem key={index} value={currency} >{currency}</MenuItem>
                     ))}
                 </Select>
@@ -118,11 +112,11 @@ const EditCompanyDialog = props => {
                         sx={{marginTop: "20px"}}
                 >
                     <MenuItem value=""></MenuItem>
-                    {values.sectors.map((sector, index) => (
+                    {props.sectors.map((sector, index) => (
                         <MenuItem key={index} value={sector} >{sector}</MenuItem>
                     ))}
                 </Select>
-                <TextField required margin="dense" fullWidth variant="standard" id="company-shares"
+                <TextField margin="dense" fullWidth variant="standard" id="company-shares"
                            value={shares}
                            label="Shares Float"
                            onChange={(e) => {setShares(e.target.value);setAlert(null);}}

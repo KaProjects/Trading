@@ -31,15 +31,11 @@ const Trades = props => {
     useEffect(() => {
         if (data) {
             const years = new Set([])
-            const currencies = new Set([])
-            const sectors = new Set([])
             data.trades.forEach((trade) => {
                 years.add(trade.purchaseDate.split(".")[2])
                 if (trade.sellDate) years.add(trade.sellDate.split(".")[2])
-                currencies.add(trade.currency)
-                if (trade.sector) sectors.add(trade.sector)
             })
-            props.toggleTradesSelectors([...currencies],[...years].sort().reverse(), [...sectors].sort())
+            props.toggleTradesSelectors([...years].sort().reverse())
         }
         // eslint-disable-next-line
     }, [data])

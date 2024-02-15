@@ -31,14 +31,10 @@ const Dividends = props => {
     useEffect(() => {
         if (data) {
             const years = new Set([])
-            const currencies = new Set([])
-            const sectors = new Set([])
             data.dividends.forEach((dividend) => {
                 years.add(dividend.date.split(".")[2])
-                currencies.add(dividend.currency)
-                if (dividend.sector) sectors.add(dividend.sector)
             })
-            props.toggleDividendsSelectors([...currencies], [...years].sort().reverse(), [...sectors].sort())
+            props.toggleDividendsSelectors([...years].sort().reverse())
         }
         // eslint-disable-next-line
     }, [data])

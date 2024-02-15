@@ -40,13 +40,7 @@ const Companies = props => {
 
     useEffect(() => {
         if (data) {
-            const currencies = new Set([])
-            const sectors = new Set([])
-            data.companies.forEach((company) => {
-                currencies.add(company.currency)
-                if (company.sector) sectors.add(company.sector)
-            })
-            props.toggleCompaniesSelectors([...currencies], [...sectors].sort())
+            props.toggleCompaniesSelectors()
         }
         // eslint-disable-next-line
     }, [data])

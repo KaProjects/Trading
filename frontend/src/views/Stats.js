@@ -11,7 +11,7 @@ const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
 const Stats = props => {
 
     useEffect(() => {
-        props.toggleStatsSelectors(null, false, null)
+        props.toggleStatsSelectors(null, false, false)
         // eslint-disable-next-line
     }, [])
 
@@ -29,7 +29,7 @@ const Stats = props => {
 
         useEffect(() => {
             if (data && !props.showYearSelector){
-                props.toggleStatsSelectors([...data.years], false, [...data.sectors].sort())
+                props.toggleStatsSelectors([...data.years], false, true)
             }
             // eslint-disable-next-line
         }, [data])
@@ -98,7 +98,7 @@ const Stats = props => {
 
         useEffect(() => {
             if (data && !props.showCompanySelector){
-                props.toggleStatsSelectors(null, true, props.showSectorSelector)
+                props.toggleStatsSelectors(null, true, true)
             }
             // eslint-disable-next-line
         }, [data])
