@@ -2,6 +2,7 @@ import React, {useEffect, useState} from "react";
 import {useData} from "../fetch";
 import Loader from "./Loader";
 import {Grid, List, ListItem, ListItemButton, ListItemText, ListSubheader, MenuItem, Select} from "@mui/material";
+import {recordEvent} from "../utils";
 
 const listStyle = {minWidth: "250px", maxHeight: "calc(100vh - 70px)", marginTop: "2px", overflowY: "scroll", bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2}
 const listHeaderStyle = {textAlign: "center", boxShadow: 1, borderRadius: 2, fontSize: "16px", color: "grey"}
@@ -33,6 +34,7 @@ const CompanySelector = (props) => {
     function handleCompanyClick(companyId, state) {
         props.companies.forEach((company) => {if (company.id === companyId) {props.setCompanySelectorValue(company)}})
         setState(state)
+        recordEvent(window.location.pathname + "#selector:companies:" + state)
     }
 
     return (

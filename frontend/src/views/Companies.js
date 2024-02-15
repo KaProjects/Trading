@@ -5,6 +5,7 @@ import {IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHea
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import EditCompanyDialog from "../dialog/EditCompanyDialog";
+import {recordEvent} from "../utils";
 
 
 function headerStyle(index){
@@ -81,6 +82,7 @@ const Companies = props => {
         sessionStorage.setItem('companyId', companyId);
         if (tradeState) sessionStorage.setItem('tradeState', tradeState);
         if (showFinancials) sessionStorage.setItem('showFinancials', showFinancials);
+        recordEvent(window.location.pathname + "#redirect:" + href);
         window.location.href=href
     }
 

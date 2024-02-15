@@ -12,6 +12,7 @@ import Dividends from "./views/Dividends";
 import Stats from "./views/Stats";
 import Companies from "./views/Companies";
 import {wait} from "@testing-library/user-event/dist/utils";
+import Analytics from "./views/Analytics";
 
 class App extends Component {
     constructor(props) {
@@ -174,6 +175,7 @@ class App extends Component {
                         <Route exact path="/dividends" element={<Dividends {...this.state}/>}/>
                         <Route exact path="/stats" element={<Stats {...this.state}/>}/>
                         <Route exact path="/companies" element={<Companies {...this.state}/>}/>
+                        <Route exact path="/analytics" element={<Analytics {...this.state}/>}/>
                         <Route path="*" element={this.PageNotFound()}/>
                     </Routes>
                 </BrowserRouter>
