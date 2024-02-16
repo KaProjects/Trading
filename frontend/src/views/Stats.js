@@ -23,7 +23,7 @@ const Stats = props => {
         function constructQueryParams(){
             return "?query "
                 + (props.yearSelectorValue ? "&year=" + props.yearSelectorValue : "")
-                + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
+                + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue.key : "")
                 + (sort === 7 ? "&sort=percentage" : "")
         }
 
@@ -93,7 +93,7 @@ const Stats = props => {
 
         function constructQueryParams(){
             return "?filter" + (props.companySelectorValue ? "&companyId=" + props.companySelectorValue.id : "")
-                + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
+                + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue.key : "")
         }
 
         useEffect(() => {

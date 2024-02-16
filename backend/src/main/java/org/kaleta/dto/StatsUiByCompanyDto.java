@@ -18,7 +18,6 @@ public class StatsUiByCompanyDto
 
     private String[] sums = new String[8];
     private Set<String> years = new HashSet<>();
-    private Set<String> sectors = new HashSet<>();
 
     @Data
     public static class StatRow
@@ -61,7 +60,6 @@ public class StatsUiByCompanyDto
             row.setProfitPercentage(Utils.format(companyStats.getProfitPercentage()));
             dto.getRows().add(row);
             dto.getYears().addAll(companyStats.getYears());
-            if (companyStats.getSector() != null) dto.getSectors().add(companyStats.getSector());
         }
         return dto;
     }

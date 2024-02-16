@@ -47,7 +47,7 @@ public class CompanyDaoImpl implements CompanyDao
                 + sectorCondition, Company.class);
 
         if (currency != null ) query.setParameter("currency", Currency.valueOf(currency));
-        if (sector != null ) query.setParameter("sector", Sector.get(sector));
+        if (sector != null ) query.setParameter("sector", Sector.valueOf(sector));
 
         return query.getResultList();
     }

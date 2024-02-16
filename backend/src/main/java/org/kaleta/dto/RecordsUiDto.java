@@ -30,7 +30,7 @@ public class RecordsUiDto
         this.company.ticker = company.getTicker();
         this.company.currency = company.getCurrency();
         this.company.watching = company.isWatching();
-        this.company.sector = company.getSector();
+        if (company.getSector() != null) this.company.sector = company.getSector().getName();
 
         for (org.kaleta.entity.Record record : recordsModel.getSortedRecords()) {
             this.records.add(RecordDto.from(record));

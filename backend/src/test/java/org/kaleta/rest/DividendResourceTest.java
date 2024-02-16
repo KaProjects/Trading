@@ -79,7 +79,7 @@ class DividendResourceTest
     void getDividendsFilterSector()
     {
         DividendsUiDto dto = given().when()
-                .get("/dividend?sector=" + Sector.SEMICONDUCTORS.getName())
+                .get("/dividend?sector=" + Sector.SEMICONDUCTORS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)

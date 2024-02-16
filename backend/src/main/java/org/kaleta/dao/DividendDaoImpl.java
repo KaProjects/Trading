@@ -54,7 +54,7 @@ public class DividendDaoImpl implements DividendDao
 
         if (companyId != null ) query.setParameter("companyId", companyId);
         if (currency != null ) query.setParameter("currency", Currency.valueOf(currency));
-        if (sector != null ) query.setParameter("sector", Sector.get(sector));
+        if (sector != null ) query.setParameter("sector", Sector.valueOf(sector));
         if (year != null ) query.setParameter("year", year);
 
         return query.getResultList();

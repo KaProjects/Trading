@@ -15,6 +15,7 @@ import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.CompanyUiDto;
 import org.kaleta.dto.CompanyValuesDto;
 import org.kaleta.dto.RecordsUiCompanyListsDto;
+import org.kaleta.dto.SectorDto;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Sort;
 import org.kaleta.model.CompanyInfo;
@@ -100,7 +101,7 @@ public class CompanyResource
                 case COMPANY: dto.getCompanies().sort(Comparator.comparing(company -> company.getTicker())); break;
                 case CURRENCY: dto.getCompanies().sort(Comparator.comparing(company -> company.getCurrency())); break;
                 case WATCHING: dto.getCompanies().sort(Comparator.comparing(company -> !company.getWatching())); break;
-                case SECTOR: dto.getCompanies().sort(Comparator.comparing(company -> company.getSector(), Comparator.nullsLast(Comparator.naturalOrder()))); break;
+                case SECTOR: dto.getCompanies().sort((companyA, companyB) -> SectorDto.compare(companyA.getSector(), companyB.getSector())); break;
                 case SHARES: dto.getCompanies().sort((companyA, companyB) -> Utils.compareSharesFloat(companyA.getSharesFloat(), companyB.getSharesFloat())); break;
                 case ALL_TRADES: dto.getCompanies().sort(Comparator.comparing(company -> -company.getTotalTrades())); break;
                 case ACTIVE_TRADES: dto.getCompanies().sort(Comparator.comparing(company -> -company.getActiveTrades())); break;

@@ -80,7 +80,7 @@ public class CompanyService
         Company company = getCompany(companyDto.getId());
 
         company.setCurrency(companyDto.getCurrency());
-        company.setSector(Sector.get(companyDto.getSector()));
+        company.setSector((companyDto.getSector() == null) ? null : Sector.valueOf(companyDto.getSector().getKey()));
         company.setWatching(companyDto.getWatching());
         company.setSharesFloat(companyDto.getSharesFloat());
 
@@ -123,7 +123,7 @@ public class CompanyService
         Company newCompany = new Company();
         newCompany.setTicker(companyDto.getTicker());
         newCompany.setCurrency(companyDto.getCurrency());
-        newCompany.setSector(Sector.get(companyDto.getSector()));
+        newCompany.setSector((companyDto.getSector() == null) ? null : Sector.valueOf(companyDto.getSector().getKey()));
         newCompany.setWatching(companyDto.getWatching());
         newCompany.setSharesFloat(companyDto.getSharesFloat());
         companyDao.create(newCompany);

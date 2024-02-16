@@ -34,7 +34,7 @@ const Companies = props => {
     function constructQueryParams(){
         return "?sort=" + sort
             + (props.currencySelectorValue ? "&currency=" + props.currencySelectorValue : "")
-            + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
+            + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue.key : "")
             + (refresh ? "&refresh" + refresh : "")
     }
 
@@ -108,7 +108,7 @@ const Companies = props => {
                                         <TableCellWithAction index={0} action={() => props.setOpenEditCompany(company)}>{company.ticker}</TableCellWithAction>
                                         <TableCell style={rowStyle(1)}>{company.currency}</TableCell>
                                         <TableCell style={rowStyle(2)}>{company.watching ? '*' : ''}</TableCell>
-                                        <TableCell style={rowStyle(3)}>{company.sector}</TableCell>
+                                        <TableCell style={rowStyle(3)}>{company.sector ? company.sector.name : ''}</TableCell>
                                         <TableCell style={rowStyle(4)}>{company.sharesFloat}</TableCell>
                                         <TableCellWithAction index={5} action={() => redirect(company.id, '/trades')}>{company.totalTrades}</TableCellWithAction>
                                         <TableCellWithAction index={6} action={() => redirect(company.id, '/trades', props.activeStates[0])}>{company.activeTrades}</TableCellWithAction>

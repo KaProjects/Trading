@@ -3,7 +3,7 @@ import {recordEvent} from "../utils";
 
 
 const MainBarSelect = props => {
-    const {values, value, setValue, label} = props
+    const {values, value, setValue, label, valueKey} = props
     return (
         <Select
             value={value}
@@ -17,7 +17,7 @@ const MainBarSelect = props => {
         >
             <MenuItem value="">{label}</MenuItem>
             {values.map((value, index) => (
-                <MenuItem key={index} value={value} >{(value.ticker === undefined) ? value : value.ticker}</MenuItem>
+                <MenuItem key={index} value={value} >{(valueKey) ? value[valueKey] : value}</MenuItem>
             ))}
         </Select>
     )

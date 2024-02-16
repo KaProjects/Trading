@@ -14,7 +14,7 @@ public class CompanyDto implements Comparable<CompanyDto>
     private String ticker;
     private Currency currency;
     private Boolean watching;
-    private String sector;
+    private SectorDto sector;
     private String sharesFloat;
 
     @Override
@@ -34,7 +34,7 @@ public class CompanyDto implements Comparable<CompanyDto>
             dto.setTicker(company.getTicker());
             dto.setCurrency(company.getCurrency());
             dto.setWatching(company.isWatching());
-            dto.setSector(company.getSector());
+            dto.setSector(SectorDto.from(company.getSector()));
             dto.setSharesFloat(company.getSharesFloat());
             list.add(dto);
         }

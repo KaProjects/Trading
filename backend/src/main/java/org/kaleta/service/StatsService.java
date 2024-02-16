@@ -37,7 +37,7 @@ public class StatsService
         for (Trade trade : trades)
         {
             if (!companyMap.containsKey(trade.getTicker())) {
-                companyMap.put(trade.getTicker(), new StatsByCompany(trade.getTicker(), trade.getCurrency(), trade.getCompany().getSector()));
+                companyMap.put(trade.getTicker(), new StatsByCompany(trade.getTicker(), trade.getCurrency()));
             }
             companyMap.get(trade.getTicker()).addPurchase(trade.getPurchaseTotal());
             companyMap.get(trade.getTicker()).addSell(trade.getSellTotal());
@@ -47,7 +47,7 @@ public class StatsService
         for (Dividend dividend : dividends)
         {
             if (!companyMap.containsKey(dividend.getTicker())) {
-                companyMap.put(dividend.getTicker(), new StatsByCompany(dividend.getTicker(), dividend.getCurrency(), dividend.getCompany().getSector()));
+                companyMap.put(dividend.getTicker(), new StatsByCompany(dividend.getTicker(), dividend.getCurrency()));
             }
             companyMap.get(dividend.getTicker()).addDividend(dividend.getTotal());
             companyMap.get(dividend.getTicker()).addYear(format(dividend.getDate()).split("\\.")[2]);

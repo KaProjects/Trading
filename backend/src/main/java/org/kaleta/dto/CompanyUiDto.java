@@ -45,7 +45,7 @@ public class CompanyUiDto
             dto.setTicker(company.getTicker());
             dto.setCurrency(company.getCurrency());
             dto.setWatching(company.isWatching());
-            dto.setSector(company.getSector());
+            dto.setSector(SectorDto.from(company.getSector()));
             dto.setSharesFloat(company.getSharesFloat());
             return dto;
         }

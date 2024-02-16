@@ -52,7 +52,13 @@ const EditCompanyDialog = props => {
             setTicker(company.id ? company.ticker : "")
             setCurrency(company.id ? company.currency : "")
             setWatching(company.id ? company.watching : true)
-            setSector((company.id && company.sector) ? company.sector : "")
+            if ((company.id && company.sector)){
+                props.sectors.forEach(sector => {
+                    if (sector.key === company.sector.key) setSector(sector)
+                })
+            } else {
+                setSector("")
+            }
             setShares((company.id && company.sharesFloat) ? company.sharesFloat : "")
         }
         // eslint-disable-next-line
@@ -113,7 +119,7 @@ const EditCompanyDialog = props => {
                 >
                     <MenuItem value=""></MenuItem>
                     {props.sectors.map((sector, index) => (
-                        <MenuItem key={index} value={sector} >{sector}</MenuItem>
+                        <MenuItem key={index} value={sector} >{sector.name}</MenuItem>
                     ))}
                 </Select>
                 <TextField margin="dense" fullWidth variant="standard" id="company-shares"

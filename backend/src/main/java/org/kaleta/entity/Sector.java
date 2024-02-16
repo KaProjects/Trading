@@ -32,8 +32,4 @@ public enum Sector
     {
         this.name = name;
     }
-
-    public static Sector get(String sectorName){
-        return Arrays.stream(values()).filter(value -> value.getName().equals(sectorName)).findFirst().orElse(null);
-    }
 }

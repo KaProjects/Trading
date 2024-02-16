@@ -13,7 +13,6 @@ public class StatsByCompany
 {
     private String ticker;
     private Currency currency;
-    private String sector;
 
     private BigDecimal purchaseSum = new BigDecimal(0);
     private BigDecimal sellSum = new BigDecimal(0);
@@ -22,10 +21,9 @@ public class StatsByCompany
     private Set<String> years = new HashSet<>();
 
     public StatsByCompany() {}
-    public StatsByCompany(String ticker, Currency currency, String sector) {
+    public StatsByCompany(String ticker, Currency currency) {
         this.ticker = ticker;
         this.currency = currency;
-        this.sector = sector;
     }
 
     public int compareProfitTo(StatsByCompany other)

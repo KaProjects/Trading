@@ -51,7 +51,6 @@ class AStatsResourceTest
         assertThat(dto.getColumns().size(), is(8));
         assertThat(dto.getColumns().get(1), is("#"));
         assertThat(dto.getYears().size(), is(6));
-        assertThat(dto.getSectors().size(), is(2));
         assertThat(dto.getRows().size(), is(6));
         assertThat(dto.getRows().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getRows().get(0).getCurrency(), is(Currency.€));
@@ -131,7 +130,7 @@ class AStatsResourceTest
     void getCompaniesFilterSector()
     {
         StatsUiByCompanyDto dto = given().when()
-                .get("/stats/company?sector=" + Sector.SEMICONDUCTORS.getName())
+                .get("/stats/company?sector=" + Sector.SEMICONDUCTORS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -209,7 +208,7 @@ class AStatsResourceTest
     void getMonthlyFilterSector()
     {
         StatsUiByPeriodDto dto = given().when()
-                .get("/stats/monthly?sector=" + Sector.ENERGY_MINERALS.getName())
+                .get("/stats/monthly?sector=" + Sector.ENERGY_MINERALS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -275,7 +274,7 @@ class AStatsResourceTest
     void getYearlyFilterSector()
     {
         StatsUiByPeriodDto dto = given().when()
-                .get("/stats/yearly?sector=" + Sector.ENERGY_MINERALS.getName())
+                .get("/stats/yearly?sector=" + Sector.ENERGY_MINERALS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)

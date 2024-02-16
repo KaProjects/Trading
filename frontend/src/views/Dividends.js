@@ -24,7 +24,7 @@ const Dividends = props => {
         return "?filter" + (props.companySelectorValue ? "&companyId="+props.companySelectorValue.id : "")
             + (props.currencySelectorValue ? "&currency="+props.currencySelectorValue : "")
             + (props.yearSelectorValue ? "&year="+props.yearSelectorValue : "")
-            + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue : "")
+            + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue.key : "")
             + (refresh ? "&refresh" + refresh : "")
     }
 

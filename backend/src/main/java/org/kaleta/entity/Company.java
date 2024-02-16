@@ -32,6 +32,4 @@ public class Company extends AbstractEntity
     private Sector sector;
 
     public String getTicker() { return ticker.trim(); }
-
-    public String getSector(){ return (sector == null) ? null : sector.getName(); }
 }

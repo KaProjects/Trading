@@ -24,7 +24,6 @@ public class RecordsUiCompanyListsDto
         private String id;
         private String ticker;
         private boolean watching;
-        private String sector;
         private String latestReviewDate;
         private String latestPurchaseDate; //only owned
         private String latestStrategyDate;
@@ -67,8 +66,8 @@ public class RecordsUiCompanyListsDto
     {
         for (CompanyInfo companyInfo : companiesInfo) {
             if (companyInfo.getSector() != null) {
-                if (!sectors.containsKey(companyInfo.getSector())) sectors.put(companyInfo.getSector(), new ArrayList<>());
-                sectors.get(companyInfo.getSector()).add(from(companyInfo));
+                if (!sectors.containsKey(companyInfo.getSector().getName())) sectors.put(companyInfo.getSector().getName(), new ArrayList<>());
+                sectors.get(companyInfo.getSector().getName()).add(from(companyInfo));
             }
         }
     }
@@ -79,7 +78,6 @@ public class RecordsUiCompanyListsDto
         dto.setId(companyInfo.getId());
         dto.setWatching(companyInfo.isWatching());
         dto.setTicker(companyInfo.getTicker());
-        dto.setSector(companyInfo.getSector());
         if (companyInfo.getLatestReviewDate() != null)
             dto.setLatestReviewDate(Utils.format(companyInfo.getLatestReviewDate()));
         if (companyInfo.getLatestStrategyDate() != null)

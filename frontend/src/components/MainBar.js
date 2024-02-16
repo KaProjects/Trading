@@ -63,6 +63,7 @@ const MainBar = props => {
                             <MainBarSelect values={props.companies}
                                            value={props.companySelectorValue}
                                            setValue={props.setCompanySelectorValue}
+                                           valueKey={"ticker"}
                                            label={"companies"}
                             />
                         }
@@ -84,6 +85,7 @@ const MainBar = props => {
                             <MainBarSelect values={props.sectors}
                                            value={props.sectorSelectorValue}
                                            setValue={props.setSectorSelectorValue}
+                                           valueKey={"name"}
                                            label={"sectors"}
                             />
                         }

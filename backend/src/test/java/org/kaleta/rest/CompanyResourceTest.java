@@ -10,6 +10,7 @@ import org.kaleta.Utils;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.CompanyUiDto;
 import org.kaleta.dto.RecordsUiCompanyListsDto;
+import org.kaleta.dto.SectorDto;
 import org.kaleta.entity.Currency;
 import org.kaleta.entity.Sector;
 import org.kaleta.entity.Sort;
@@ -89,7 +90,7 @@ class CompanyResourceTest
         dto.setId("5afe260b-c433-426c-9710-e9ff99faa5aa");
         dto.setTicker("XCWWW");
         dto.setCurrency(Currency.K);
-        dto.setSector(Sector.SEMICONDUCTORS.getName());
+        dto.setSector(SectorDto.from(Sector.SEMICONDUCTORS));
         dto.setWatching(true);
         dto.setSharesFloat("100.11B");
 
@@ -123,7 +124,7 @@ class CompanyResourceTest
         CompanyDto dto = new CompanyDto();
         dto.setTicker("XCC");
         dto.setCurrency(Currency.K);
-        dto.setSector(Sector.SEMICONDUCTORS.getName());
+        dto.setSector(SectorDto.from(Sector.SEMICONDUCTORS));
         dto.setWatching(false);
         dto.setSharesFloat("100.11B");
 
@@ -176,13 +177,13 @@ class CompanyResourceTest
         Assert.put400("/company", dto, "Invalid Shares Float Parameter");
 
         dto.setSharesFloat("100.11B");
-        dto.setSector("");
+        dto.setSector(new SectorDto("", ""));
         Assert.put400("/company", dto, "Invalid Sector Parameter");
 
-        dto.setSector("X");
+        dto.setSector(new SectorDto("X", ""));
         Assert.put400("/company", dto, "Invalid Sector Parameter");
 
-        dto.setSector(Sector.CONSUMER_ELECTRONICS.getName());
+        dto.setSector(SectorDto.from(Sector.CONSUMER_ELECTRONICS));
         dto.setId("");
         Assert.put400("/company", dto, "Invalid UUID Parameter:");
 
@@ -213,10 +214,10 @@ class CompanyResourceTest
         Assert.post400("/company", dto, "Company with ticker '" + dto.getTicker() + "' already exists!");
 
         dto.setTicker("A");
-        dto.setSector("");
+        dto.setSector(new SectorDto("", ""));
         Assert.post400("/company", dto, "Invalid Sector Parameter");
 
-        dto.setSector("X");
+        dto.setSector(new SectorDto("X", ""));
         Assert.post400("/company", dto, "Invalid Sector Parameter");
 
         dto.setSector(null);
@@ -267,7 +268,7 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().get(2).getTicker(), is("NVDA"));
         assertThat(dto.getCompanies().get(2).getCurrency(), is(Currency.$));
         assertThat(dto.getCompanies().get(2).getWatching(), is(true));
-        assertThat(dto.getCompanies().get(2).getSector(), is(Sector.SEMICONDUCTORS.getName()));
+        assertThat(dto.getCompanies().get(2).getSector(), is(SectorDto.from(Sector.SEMICONDUCTORS)));
         assertThat(dto.getCompanies().get(2).getSharesFloat(), is("900.78M"));
         assertThat(dto.getCompanies().get(2).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(2).getActiveTrades(), is(0));
@@ -292,7 +293,7 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
         assertThat(dto.getCompanies().get(0).getWatching(), is(true));
-        assertThat(dto.getCompanies().get(0).getSector(), is(Sector.ENERGY_MINERALS.getName()));
+        assertThat(dto.getCompanies().get(0).getSector(), is(SectorDto.from(Sector.ENERGY_MINERALS)));
         assertThat(dto.getCompanies().get(0).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(0).getDividends(), is(0));
@@ -305,7 +306,7 @@ class CompanyResourceTest
     void getCompaniesWithAggregatesFilterSector()
     {
         CompanyUiDto dto = given().when()
-                .get("/company/aggregate?sector=" + Sector.ENERGY_MINERALS.getName())
+                .get("/company/aggregate?sector=" + Sector.ENERGY_MINERALS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -316,7 +317,7 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
         assertThat(dto.getCompanies().get(0).getWatching(), is(true));
-        assertThat(dto.getCompanies().get(0).getSector(), is(Sector.ENERGY_MINERALS.getName()));
+        assertThat(dto.getCompanies().get(0).getSector(), is(SectorDto.from(Sector.ENERGY_MINERALS)));
         assertThat(dto.getCompanies().get(0).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(0).getDividends(), is(0));
@@ -343,7 +344,7 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().get(2).getTicker(), is("NVDA"));
         assertThat(dto.getCompanies().get(2).getCurrency(), is(Currency.$));
         assertThat(dto.getCompanies().get(2).getWatching(), is(true));
-        assertThat(dto.getCompanies().get(2).getSector(), is(Sector.SEMICONDUCTORS.getName()));
+        assertThat(dto.getCompanies().get(2).getSector(), is(SectorDto.from(Sector.SEMICONDUCTORS)));
         assertThat(dto.getCompanies().get(2).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(2).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(2).getDividends(), is(2));
@@ -387,11 +388,7 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         assertThat(dto.getCompanies().get(0).getSector(), is(not(nullValue())));
         for (int i=0; i<dto.getCompanies().size() - 1; i++){
-            String sectorI = dto.getCompanies().get(i).getSector();
-            String sectorI1 = dto.getCompanies().get(i + 1).getSector();
-            if (sectorI != null && sectorI1 != null){
-                assertThat(sectorI.compareTo(sectorI1), lessThanOrEqualTo(0));
-            }
+            assertThat(SectorDto.compare(dto.getCompanies().get(i).getSector(), dto.getCompanies().get(i + 1).getSector()), lessThanOrEqualTo(0));
         }
 
         dto = given().when()
@@ -403,7 +400,7 @@ class CompanyResourceTest
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
-        System.out.println(dto);
+
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(Utils.compareSharesFloat(dto.getCompanies().get(i-1).getSharesFloat(), dto.getCompanies().get(i).getSharesFloat()), lessThanOrEqualTo(0));
         }

@@ -63,8 +63,12 @@ public class Validator
 
     public static void validateSector(String sector)
     {
-        if (sector == null || sector.isBlank() || Sector.get(sector) == null)
+        try {
+            if (sector == null || sector.isBlank()) throw new IllegalArgumentException("");
+            Sector.valueOf(sector);
+        } catch (IllegalArgumentException e){
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Sector Parameter: '" + sector + "'");
+        }
     }
 
     public static void validateTicker(String ticker)
@@ -188,7 +192,7 @@ public class Validator
         if (dto.getWatching() == null)
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Missing Watching Parameter");
 
-        if (dto.getSector() != null) Validator.validateSector(dto.getSector());
+        if (dto.getSector() != null) Validator.validateSector(dto.getSector().getKey());
 
         if (dto.getSharesFloat() != null) {
             String shares = dto.getSharesFloat();

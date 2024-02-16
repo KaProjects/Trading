@@ -108,7 +108,7 @@ class TradeResourceTest
     void getTradesFilterSector()
     {
         TradesUiDto dto = given().when()
-                .get("/trade?sector=" + Sector.SEMICONDUCTORS.getName())
+                .get("/trade?sector=" + Sector.SEMICONDUCTORS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
