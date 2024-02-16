@@ -24,17 +24,16 @@ function rowStyle(index){
     return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily, color: color}
 }
 
-const sorts = ["COMPANY", "CURRENCY", "WATCHING", "SECTOR", "SHARES", "ALL_TRADES", "ACTIVE_TRADES", "DIVIDENDS", "RECORDS", "FINANCIALS"]
-
 const Companies = props => {
-    const [sort, setSort] = useState(sorts[0])
+    const [sort, setSort] = useState(null)
     const [refresh, setRefresh] = useState("")
     const {data, loaded, error} = useData("/company/aggregate" + constructQueryParams())
 
     function constructQueryParams(){
-        return "?sort=" + sort
+        return "?query"
             + (props.currencySelectorValue ? "&currency=" + props.currencySelectorValue : "")
             + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue.key : "")
+            + (sort ? "&sort=" + sort : "")
             + (refresh ? "&refresh" + refresh : "")
     }
 
@@ -94,10 +93,10 @@ const Companies = props => {
                                 <TableRow>
                                     {data.columns.map((column, index) => (
                                         <TableCell key={index} style={headerStyle(index)}
-                                                   onClick={() => setSort(sorts[index])}
+                                                   onClick={() => setSort(data.sorts[index])}
                                         >
                                             {column}
-                                            {sorts.indexOf(sort) === index && <ArrowDropDownIcon sx={{ height: "18px", marginRight: "-15px", marginBottom: "-5px"}}/>}
+                                            {data && data.sorts.indexOf(sort) === index && <ArrowDropDownIcon sx={{ height: "18px", marginRight: "-15px", marginBottom: "-5px"}}/>}
                                         </TableCell>
                                     ))}
                                 </TableRow>

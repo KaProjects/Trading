@@ -3,6 +3,7 @@ package org.kaleta.dto;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.kaleta.entity.Sort;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +13,7 @@ public class CompanyUiDto
 {
     private List<String> columns = new ArrayList<>();
     private List<Company> companies = new ArrayList<>();
+    private List<Sort.CompanyAggregate> sorts = new ArrayList<>();
 
     public CompanyUiDto()
     {
@@ -25,6 +27,8 @@ public class CompanyUiDto
         columns.add("Dividends");
         columns.add("Records");
         columns.add("Financials");
+
+        sorts.addAll(List.of(Sort.CompanyAggregate.values()));
     }
 
     @Data

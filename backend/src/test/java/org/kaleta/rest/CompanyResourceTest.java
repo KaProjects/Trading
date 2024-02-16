@@ -264,6 +264,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(10));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(15));
         assertThat(dto.getCompanies().get(2).getTicker(), is("NVDA"));
         assertThat(dto.getCompanies().get(2).getCurrency(), is(Currency.$));
@@ -289,6 +290,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(10));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(1));
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
@@ -313,6 +315,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(10));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(1));
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
@@ -340,6 +343,7 @@ class CompanyResourceTest
         int expectedCompanies = 15;
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         assertThat(dto.getCompanies().get(2).getTicker(), is("NVDA"));
         assertThat(dto.getCompanies().get(2).getCurrency(), is(Currency.$));
@@ -359,6 +363,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getCurrency().compareTo(dto.getCompanies().get(i).getCurrency()), lessThanOrEqualTo(0));
@@ -372,6 +377,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getWatching().compareTo(dto.getCompanies().get(i).getWatching()), greaterThanOrEqualTo(0));
@@ -385,6 +391,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         assertThat(dto.getCompanies().get(0).getSector(), is(not(nullValue())));
         for (int i=0; i<dto.getCompanies().size() - 1; i++){
@@ -399,6 +406,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
 
         for (int i=1; i<dto.getCompanies().size(); i++){
@@ -413,6 +421,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getTotalTrades(), greaterThanOrEqualTo(dto.getCompanies().get(i).getTotalTrades()));
@@ -426,6 +435,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getActiveTrades(), greaterThanOrEqualTo(dto.getCompanies().get(i).getActiveTrades()));
@@ -439,6 +449,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getDividends(), greaterThanOrEqualTo(dto.getCompanies().get(i).getDividends()));
@@ -452,6 +463,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getRecords(), greaterThanOrEqualTo(dto.getCompanies().get(i).getRecords()));
@@ -465,6 +477,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
+        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getFinancials(), greaterThanOrEqualTo(dto.getCompanies().get(i).getFinancials()));
