@@ -17,5 +17,6 @@ public class CompanyValuesDto
     {
         currencies.addAll(List.of(Currency.values()));
         List.of(Sector.values()).forEach(sector -> sectors.add(SectorDto.from(sector)));
+        sectors.sort(SectorDto::compare);
     }
 }
