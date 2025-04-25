@@ -8,10 +8,9 @@ import {backend} from "../properties";
 function validateQuarter(value) {
     if (typeof value != "string") return "not a string"
     if (!value) return "non empty"
-    if (value.length !== 4) return "invalid format, not YYQQ (e.g. 24Q1)"
-    if (isNaN(value.substring(0,2))) return "invalid format, not YYQQ (e.g. 24Q1)"
-    if (value.substring(2,3) !== "Q") return "invalid format, not YYQQ (e.g. 24Q1)"
-    if (isNaN(value.substring(3,4))) return "invalid format, not YYQQ (e.g. 24Q1)"
+    if (value.length !== 4) return "invalid format, not YYQQ (e.g. 24Q1, 25H2, 26YY, ...)"
+    if (isNaN(value.substring(0,2))) return "invalid format, not YYQQ (e.g. 24Q1, 25H2, 26YY, ...)"
+    if (!["Q1","Q2","Q3","Q4","H1","H2","YY"].includes(value.substring(2,4))) return "invalid format, not YYQQ (e.g. 24Q1, 25H2, 26YY, ...)"
     return ""
 }
 

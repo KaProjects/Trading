@@ -76,6 +76,7 @@ INSERT INTO Company (id, ticker, currency, watching) VALUES ('21322ef8-9e26-4eda
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('c65ea6ac-d848-46dd-98bc-9e3d99f39b21', 'XTS', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('ededb691-b3c0-4c66-b03d-4e7b46bb2489', 'XRL', '$', true);
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('6877c444-00ee-4af5-99ef-415980484d8c', 'XFC', '$', true);
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('6877c555-00ee-4af5-99ef-415980484d8c', 'XFQ', '$', true);
 
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('-2', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
@@ -112,6 +113,7 @@ INSERT INTO Record (id, companyId, date, title, price, dy, targets) VALUES ('d0c
 INSERT INTO Record (id, companyId, date, title, price, targets, strategy) VALUES ('0ac349c6-431d-4379-a2aa-2a8d4ba9c3ca', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-06-01', 'latest strategy', '70', '8-4~6', 'strat');
 
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('1389a449-2137-4da7-a7e4-8f9267741f0e', '6877c444-00ee-4af5-99ef-415980484d8c', '2023-07-01', 'latest price', '60');
+INSERT INTO Record (id, companyId, date, title, price) VALUES ('1389a449-2137-5555-a7e4-8f9267741f0e', '6877c555-00ee-4af5-99ef-415980484d8c', '2023-07-01', 'latest price', '60');
 
 
 INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('bff10473-3d42-45ae-965b-2f0d11e2d40d', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '2021-06-01', '70', '7');
@@ -125,3 +127,4 @@ INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES 
 INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES ('1c53f589-a00d-4b83-af33-b31fed0d9915', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '23Q1', '7192', '2043', '0.82');
 
 INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES ('a1f81be4-5a7a-426d-b9ca-90d9e08e7cb8', '6877c444-00ee-4af5-99ef-415980484d8c', '23Q1', '1000', '100', '1');
+INSERT INTO Financial (id, companyId, quarter, revenue, net_income, eps) VALUES ('a1f81be4-5a55-426d-b9ca-90d9e08e7cb8', '6877c555-00ee-4af5-99ef-415980484d8c', '23Q1', '1000', '100', '1');

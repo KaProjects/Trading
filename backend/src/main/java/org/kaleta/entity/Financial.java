@@ -49,6 +49,7 @@ public class Financial extends AbstractEntity
         if (compareYears != 0) {
             return compareYears;
         } else {
+            if (!this.getQuarter().substring(2, 3).equals(other.getQuarter().substring(2, 3))) return 0;
             return -(Integer.parseInt(this.getQuarter().substring(3, 4)) - Integer.parseInt(other.getQuarter().substring(3, 4)));
         }
     }
