@@ -4,6 +4,7 @@ import Loader from "../components/Loader";
 import {IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import EditNoteIcon from '@mui/icons-material/EditNote';
 import EditCompanyDialog from "../dialog/EditCompanyDialog";
 import {recordEvent} from "../utils";
 
@@ -57,14 +58,14 @@ const Companies = props => {
                        onMouseLeave={() => setShowAction(false)}
             >
                 {index > 3 && showAction &&
-                    <IconButton style={{height: "20px", width: "20px", marginRight: "1px"}} onClick={action}>
-                        <OpenInNewIcon sx={{width: 18}}/>
+                    <IconButton style={{height: "18px", width: "18px", marginRight: "1px"}} onClick={action}>
+                        <OpenInNewIcon sx={{width: 16}}/>
                     </IconButton>
                 }
                 {props.children}
                 {index === 0 && showAction &&
-                    <IconButton style={{height: "20px", width: "20px", marginRight: "1px"}} onClick={action}>
-                        <OpenInNewIcon sx={{width: 18}}/>
+                    <IconButton style={{height: "18px", width: "18px", marginRight: "-10px"}} onClick={action}>
+                        <EditNoteIcon sx={{width: 16}}/>
                     </IconButton>
                 }
             </TableCell>
