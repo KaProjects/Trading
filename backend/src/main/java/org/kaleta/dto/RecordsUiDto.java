@@ -109,7 +109,7 @@ public class RecordsUiDto
 
     public void setMarketCap(String marketCap)
     {
-        this.marketCap = marketCap;
+        this.marketCap = marketCap + company.getCurrency();
     }
 
     public void setFinancialsFrom(FinancialsModel financialsModel)
