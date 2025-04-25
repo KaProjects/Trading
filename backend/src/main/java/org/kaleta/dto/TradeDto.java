@@ -32,7 +32,14 @@ public class TradeDto implements Comparable<TradeDto>
     @Override
     public int compareTo(TradeDto other)
     {
-        return -Utils.compareDtoDates(this.getPurchaseDate(), other.getPurchaseDate());
+        int purchaseDateCompare = -Utils.compareDtoDates(this.getPurchaseDate(), other.getPurchaseDate());
+        if (purchaseDateCompare != 0) {
+            return purchaseDateCompare;
+        } else {
+            String thisSellDate = (this.getSellDate() == null) ? "01.01.9990" : this.getSellDate();
+            String otherSellDate = (other.getSellDate() == null) ? "01.01.9990" : other.getSellDate();
+            return  -Utils.compareDtoDates(thisSellDate, otherSellDate);
+        }
     }
 
     public static TradeDto from(Trade trade)
