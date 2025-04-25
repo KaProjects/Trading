@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import axios from "axios";
-import {domain} from "../properties";
+import {backend} from "../properties";
 import {handleError, validateNumber} from "../utils";
 import {
     Alert,
@@ -70,13 +70,13 @@ const EditCompanyDialog = props => {
         if (shares) companyData.shares = shares
         if (company.id){
             companyData.id = company.id
-            axios.put(domain + "/company", companyData)
+            axios.put(backend + "/company", companyData)
                 .then((response) => {
                     props.triggerRefresh()
                     handleClose()
                 }).catch((error) => {setAlert(handleError(error))})
         } else {
-            axios.post(domain + "/company", companyData)
+            axios.post(backend + "/company", companyData)
                 .then((response) => {
                     props.triggerRefresh()
                     handleClose()

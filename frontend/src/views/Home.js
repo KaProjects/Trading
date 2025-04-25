@@ -1,7 +1,7 @@
 import {ButtonBase, Card, CardContent, Paper, Stack, Typography} from "@mui/material";
 import React from "react";
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
-import {domain} from "../properties";
+import {backend} from "../properties";
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import CandlestickChartIcon from '@mui/icons-material/CandlestickChart';
@@ -67,7 +67,7 @@ const Home = props => {
                                icon={<QueryStatsIcon/>}
                                description={"A collection, description, analysis, and inference of conclusions from quantitative data."}
                 />
-                <ClickableCard action={() => window.open(domain + '/api/docs', '_blank')}
+                <ClickableCard action={() => window.open(backend + '/api/docs', '_blank')}
                                title={"API"}
                                icon={<SettingsSuggestIcon/>}
                                description={"A back-end API that helps to interact with back-end services."}

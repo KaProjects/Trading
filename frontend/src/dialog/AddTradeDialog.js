@@ -10,7 +10,7 @@ import {
     TextField
 } from "@mui/material";
 import React, {useEffect, useState} from "react";
-import {domain} from "../properties";
+import {backend} from "../properties";
 import axios from "axios";
 import {handleError, validateNumber} from "../utils";
 
@@ -40,11 +40,11 @@ const AddTradeDialog = props => {
 
     function createTrade() {
         const tradeData = {companyId: company.id, date: date, price: price, quantity: quantity, fees: fees}
-        axios.post(domain + "/trade", tradeData)
+        axios.post(backend + "/trade", tradeData)
             .then((response) => {
                 const title = "bought " + quantity + "@" + price + company.currency
                 const recordData = {companyId: company.id, title: title, date: date, price: price}
-                axios.post(domain + "/record", recordData)
+                axios.post(backend + "/record", recordData)
                     .then((response) => {
                         props.triggerRefresh()
                         handleClose()

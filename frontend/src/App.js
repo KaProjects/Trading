@@ -5,7 +5,7 @@ import MainBar from "./components/MainBar";
 import Home from "./views/Home";
 import Trades from "./views/Trades";
 import Records from "./views/Records";
-import {domain} from "./properties";
+import {backend} from "./properties";
 import axios from "axios";
 import {handleError} from "./utils";
 import Dividends from "./views/Dividends";
@@ -145,11 +145,11 @@ class App extends Component {
     }
 
     componentDidMount() {
-        axios.get(domain + "/company")
+        axios.get(backend + "/company")
             .then((response) => {
                 this.setState({companies: response.data})
             }).catch((error) => {handleError(error)})
-        axios.get(domain + "/company/values")
+        axios.get(backend + "/company/values")
             .then((response) => {
                 this.setState({currencies: response.data.currencies})
                 this.setState({sectors: response.data.sectors})

@@ -2,7 +2,7 @@ import {Button, FormControl, FormHelperText, Input, InputAdornment, InputLabel, 
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import React, {useState} from "react";
 import Tooltip from "@mui/material/Tooltip";
-import {domain} from "../properties";
+import {backend} from "../properties";
 import axios from "axios";
 import SnackbarErrorAlert from "./SnackbarErrorAlert";
 import {handleError} from "../utils";
@@ -21,7 +21,7 @@ const EditableValueBox = props => {
 
     function handleUnFocus() {
         setEditing(false)
-        axios.put(domain + "/record", props.updateObject(editValue))
+        axios.put(backend + "/record", props.updateObject(editValue))
             .then((response) => {
                 setShowValue(editValue)
                 props.handleUpdate(editValue)

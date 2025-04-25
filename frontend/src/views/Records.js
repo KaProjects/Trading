@@ -3,7 +3,7 @@ import React, {useEffect, useState} from "react";
 import Loader from "../components/Loader";
 import BorderedSection from "../components/BorderedSection";
 import EditableValueBox from "../components/EditableValueBox";
-import {domain} from "../properties";
+import {backend} from "../properties";
 import axios from "axios";
 import ContentEditor from "../components/ContentEditor";
 import EditableTypography from "../components/EditableTypography";
@@ -40,7 +40,7 @@ const Records = props => {
 
     function fetchData(companyChanged) {
         if (props.companySelectorValue) {
-            axios.get(domain + "/record/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
+            axios.get(backend + "/record/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
                 .then((response) => {
                     setData(response.data)
                     setError(null)
@@ -75,7 +75,7 @@ const Records = props => {
         const newWatching = !data.company.watching
         const companyData = {...data.company}
         companyData.watching = newWatching
-        axios.put(domain + "/company", companyData)
+        axios.put(backend + "/company", companyData)
             .then(() => {
                 triggerRefresh()
             }).catch((error) => {handleError(error)})

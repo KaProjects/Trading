@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import axios from "axios";
-import {domain} from "./properties";
+import {backend} from "./properties";
 import {handleError} from "./utils";
 
 export const useData = (path) => {
@@ -12,7 +12,7 @@ export const useData = (path) => {
     useEffect(() => {
         setError(null)
         setLoaded(false)
-        axios.get(domain + path)
+        axios.get(backend + path)
             .then((response) => {
                 setData(response.data)
                 setError(null)

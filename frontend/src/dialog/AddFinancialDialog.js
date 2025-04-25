@@ -2,7 +2,7 @@ import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextFi
 import {handleError, validateNumber} from "../utils";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
-import {domain} from "../properties";
+import {backend} from "../properties";
 
 
 function validateQuarter(value) {
@@ -37,7 +37,7 @@ const AddFinancialDialog = props => {
 
     function createFinancial() {
         const financialData = {companyId: props.companySelectorValue.id, revenue: revenue, netIncome: netIncome, eps: eps, quarter: quarter}
-        axios.post(domain + "/financial", financialData)
+        axios.post(backend + "/financial", financialData)
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()

@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import {domain} from "../properties";
+import {backend} from "../properties";
 import axios from "axios";
 import {FormControl, FormHelperText, Input, InputLabel, Typography} from "@mui/material";
 import SnackbarErrorAlert from "./SnackbarErrorAlert";
@@ -20,7 +20,7 @@ const EditableTypography = props => {
 
     function handleUnFocus() {
         setEditing(false)
-        axios.put(domain + "/record", props.updateObject(editValue))
+        axios.put(backend + "/record", props.updateObject(editValue))
             .then((response) => {
                 setShowValue(editValue)
                 props.handleUpdate(editValue)

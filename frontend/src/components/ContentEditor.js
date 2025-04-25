@@ -3,7 +3,7 @@ import {Editable, Slate, useSlate, withReact} from 'slate-react'
 import {createEditor, Editor, Element as SlateElement, Transforms} from 'slate'
 import {withHistory} from 'slate-history'
 import {css, cx} from '@emotion/css'
-import {domain} from "../properties"
+import {backend} from "../properties"
 import axios from "axios"
 import {handleError} from "../utils"
 
@@ -23,7 +23,7 @@ const ContentEditor = (props) => {
 
     function handleUnFocus() {
         setEditing(false)
-        axios.put(domain + "/record", {id: record.id, content: JSON.stringify(value)})
+        axios.put(backend + "/record", {id: record.id, content: JSON.stringify(value)})
             .then((response) => {
                 props.handleUpdate(value)
             }).catch((error) => {handleError(error)})

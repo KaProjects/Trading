@@ -1,6 +1,6 @@
 import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
 import React, {useEffect, useState} from "react";
-import {domain} from "../properties";
+import {backend} from "../properties";
 import axios from "axios";
 import {handleError, validateNumber} from "../utils";
 
@@ -23,7 +23,7 @@ const AddRecordDialog = props => {
 
     function createRecord() {
         const data = {companyId: companyId, title: title, date: date, price: price}
-        axios.post(domain + "/record", data)
+        axios.post(backend + "/record", data)
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()

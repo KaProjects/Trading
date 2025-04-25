@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import {handleError, validateNumber} from "../utils";
 import React, {useEffect, useState} from "react";
-import {domain} from "../properties";
+import {backend} from "../properties";
 import axios from "axios";
 
 
@@ -57,11 +57,11 @@ const SellTradeDialog = props => {
             }
         })
 
-        axios.put(domain + "/trade", {date: date, price: price, fees: fees, trades: tradesToSell})
+        axios.put(backend + "/trade", {date: date, price: price, fees: fees, trades: tradesToSell})
             .then((response) => {
                 const title = "sold " + totalQuantity + "@" + price + company.currency
                 const recordData = {companyId: company.id, title: title, date: date, price: price}
-                axios.post(domain + "/record", recordData)
+                axios.post(backend + "/record", recordData)
                     .then((response) => {
                         props.triggerRefresh()
                         handleClose()
@@ -71,7 +71,7 @@ const SellTradeDialog = props => {
 
     function selectCompany(company) {
         if (company){
-            axios.get(domain + "/trade?active=true&companyId=" + company.id)
+            axios.get(backend + "/trade?active=true&companyId=" + company.id)
                 .then((response) => {
                     setTrades(response.data.trades)
                 }).catch((error) => {setAlert(handleError(error))})

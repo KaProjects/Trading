@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import axios from "axios";
-import {domain} from "../properties";
+import {backend} from "../properties";
 import {handleError, validateNumber} from "../utils";
 import {
     Alert,
@@ -38,7 +38,7 @@ const AddDividendDialog = props => {
 
     function createDividend() {
         const dividendData = {companyId: company.id, date: date, dividend: dividend, tax: tax}
-        axios.post(domain + "/dividend", dividendData)
+        axios.post(backend + "/dividend", dividendData)
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
