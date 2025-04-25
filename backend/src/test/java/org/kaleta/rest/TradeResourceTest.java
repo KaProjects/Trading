@@ -512,28 +512,28 @@ class TradeResourceTest
                 .statusCode(200)
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", TradesUiDto.class);
-
+        System.out.println(tradesDto);
         assertThat(tradesDto.getTrades().size(), is(4));
-
-        assertThat(tradesDto.getTrades().get(0).getTicker(), is("XTS"));
-        assertThat(tradesDto.getTrades().get(0).getPurchaseDate(), is("01.05.2020"));
-        assertThat(tradesDto.getTrades().get(0).getPurchaseQuantity(), is("2.5"));
-        assertThat(tradesDto.getTrades().get(0).getPurchasePrice(), is("500"));
-        assertThat(tradesDto.getTrades().get(0).getPurchaseFees(), is("3.33"));
-        assertThat(tradesDto.getTrades().get(0).getSellDate(), is("15.07.2020"));
-        assertThat(tradesDto.getTrades().get(0).getSellQuantity(), is("2.5"));
-        assertThat(tradesDto.getTrades().get(0).getSellPrice(), is(dto.getPrice()));
-        assertThat(tradesDto.getTrades().get(0).getSellFees(), is("5"));
 
         assertThat(tradesDto.getTrades().get(1).getTicker(), is("XTS"));
         assertThat(tradesDto.getTrades().get(1).getPurchaseDate(), is("01.05.2020"));
-        assertThat(tradesDto.getTrades().get(1).getPurchaseQuantity(), is("5"));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseQuantity(), is("2.5"));
         assertThat(tradesDto.getTrades().get(1).getPurchasePrice(), is("500"));
-        assertThat(tradesDto.getTrades().get(1).getPurchaseFees(), is("6.67"));
-        assertThat(tradesDto.getTrades().get(1).getSellDate(), is(nullValue()));
-        assertThat(tradesDto.getTrades().get(1).getSellQuantity(), is(nullValue()));
-        assertThat(tradesDto.getTrades().get(1).getSellPrice(), is(nullValue()));
-        assertThat(tradesDto.getTrades().get(1).getSellFees(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(1).getPurchaseFees(), is("3.33"));
+        assertThat(tradesDto.getTrades().get(1).getSellDate(), is("15.07.2020"));
+        assertThat(tradesDto.getTrades().get(1).getSellQuantity(), is("2.5"));
+        assertThat(tradesDto.getTrades().get(1).getSellPrice(), is(dto.getPrice()));
+        assertThat(tradesDto.getTrades().get(1).getSellFees(), is("5"));
+
+        assertThat(tradesDto.getTrades().get(0).getTicker(), is("XTS"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseDate(), is("01.05.2020"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseQuantity(), is("5"));
+        assertThat(tradesDto.getTrades().get(0).getPurchasePrice(), is("500"));
+        assertThat(tradesDto.getTrades().get(0).getPurchaseFees(), is("6.67"));
+        assertThat(tradesDto.getTrades().get(0).getSellDate(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(0).getSellQuantity(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(0).getSellPrice(), is(nullValue()));
+        assertThat(tradesDto.getTrades().get(0).getSellFees(), is(nullValue()));
 
         assertThat(tradesDto.getTrades().get(2).getTicker(), is("XTS"));
         assertThat(tradesDto.getTrades().get(2).getPurchaseDate(), is("05.04.2020"));

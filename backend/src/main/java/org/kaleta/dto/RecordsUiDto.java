@@ -16,7 +16,8 @@ import static org.kaleta.Utils.formatMillions;
 @Data
 public class RecordsUiDto
 {
-    private Company company;
+    private CompanyDto company;
+    private String marketCap;
     private List<RecordDto> records = new ArrayList<>();
     private Latests latest;
     private List<Own> owns = new ArrayList<>();
@@ -25,12 +26,7 @@ public class RecordsUiDto
     public RecordsUiDto() {}
     public RecordsUiDto(org.kaleta.entity.Company company, RecordsModel recordsModel)
     {
-        this.company = new Company();
-        this.company.id = company.getId();
-        this.company.ticker = company.getTicker();
-        this.company.currency = company.getCurrency();
-        this.company.watching = company.isWatching();
-        if (company.getSector() != null) this.company.sector = company.getSector().getName();
+        this.company = CompanyDto.from(company);
 
         for (org.kaleta.entity.Record record : recordsModel.getSortedRecords()) {
             this.records.add(RecordDto.from(record));
@@ -106,17 +102,6 @@ public class RecordsUiDto
         private String forwardPe;
     }
 
-    @Data
-    public static class Company
-    {
-        private String id;
-        private String ticker;
-        private Currency currency;
-        private Boolean watching;
-        private String sector;
-        private String marketCap;
-    }
-
     public void setLatestPrice(Latest latestPrice)
     {
         latest.price = latestPrice;
@@ -124,7 +109,7 @@ public class RecordsUiDto
 
     public void setMarketCap(String marketCap)
     {
-        this.company.marketCap = marketCap;
+        this.marketCap = marketCap;
     }
 
     public void setFinancialsFrom(FinancialsModel financialsModel)

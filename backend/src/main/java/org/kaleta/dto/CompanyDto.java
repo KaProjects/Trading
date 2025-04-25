@@ -41,4 +41,16 @@ public class CompanyDto implements Comparable<CompanyDto>
         list.sort(CompanyDto::compareTo);
         return list;
     }
+
+    public static CompanyDto from(Company company)
+    {
+        CompanyDto dto = new CompanyDto();
+        dto.setId(company.getId());
+        dto.setTicker(company.getTicker());
+        dto.setCurrency(company.getCurrency());
+        dto.setWatching(company.isWatching());
+        dto.setSector(SectorDto.from(company.getSector()));
+        dto.setSharesFloat(company.getSharesFloat());
+        return dto;
+    }
 }

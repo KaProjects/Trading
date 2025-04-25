@@ -94,8 +94,8 @@ const Records = props => {
                             <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
                                 {data.company.ticker}
                             </Box>
-                            {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector}</Box>}
-                            {data.company.marketCap && <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {data.company.marketCap}</Box>}
+                            {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
+                            {data.marketCap && <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {data.marketCap}</Box>}
 
                             <Financials sx={{marginBottom: "20px", marginTop: "20px"}}
                                         financials={data.financials}

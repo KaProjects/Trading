@@ -35,9 +35,9 @@ class RecordResourceTest
         assertThat(dto.getCompany().getTicker(), is("NVDA"));
         assertThat(dto.getCompany().getCurrency(), is(Currency.$));
         assertThat(dto.getCompany().getWatching(), is(true));
-        assertThat(dto.getCompany().getSector(), is(Sector.SEMICONDUCTORS.getName()));
+        assertThat(dto.getCompany().getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
         assertThat(dto.getLatest().getPrice().getValue(), is("500"));
-        assertThat(dto.getCompany().getMarketCap(), is("450.39B"));
+        assertThat(dto.getMarketCap(), is("450.39B"));
         assertThat(dto.getRecords().size(), is(2));
         assertThat(dto.getRecords().get(0).getDate(), is("05.01.2024"));
         assertThat(dto.getRecords().get(1).getDate(), is("11.11.2023"));
