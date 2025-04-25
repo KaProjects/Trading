@@ -109,7 +109,7 @@ const Companies = props => {
                                         <TableCell style={rowStyle(1)}>{company.currency}</TableCell>
                                         <TableCell style={rowStyle(2)}>{company.watching ? '*' : ''}</TableCell>
                                         <TableCell style={rowStyle(3)}>{company.sector ? company.sector.name : ''}</TableCell>
-                                        <TableCell style={rowStyle(4)}>{company.sharesFloat}</TableCell>
+                                        <TableCell style={rowStyle(4)}>{company.shares}</TableCell>
                                         <TableCellWithAction index={5} action={() => redirect(company.id, '/trades')}>{company.totalTrades}</TableCellWithAction>
                                         <TableCellWithAction index={6} action={() => redirect(company.id, '/trades', props.activeStates[0])}>{company.activeTrades}</TableCellWithAction>
                                         <TableCellWithAction index={7} action={() => redirect(company.id, '/dividends')}>{company.dividends}</TableCellWithAction>

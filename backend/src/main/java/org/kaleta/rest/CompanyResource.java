@@ -102,7 +102,7 @@ public class CompanyResource
                 case CURRENCY: dto.getCompanies().sort(Comparator.comparing(company -> company.getCurrency())); break;
                 case WATCHING: dto.getCompanies().sort(Comparator.comparing(company -> !company.getWatching())); break;
                 case SECTOR: dto.getCompanies().sort((companyA, companyB) -> SectorDto.compare(companyA.getSector(), companyB.getSector())); break;
-                case SHARES: dto.getCompanies().sort((companyA, companyB) -> Utils.compareSharesFloat(companyA.getSharesFloat(), companyB.getSharesFloat())); break;
+                case SHARES: dto.getCompanies().sort((companyA, companyB) -> Utils.compareShares(companyA.getShares(), companyB.getShares())); break;
                 case ALL_TRADES: dto.getCompanies().sort(Comparator.comparing(company -> -company.getTotalTrades())); break;
                 case ACTIVE_TRADES: dto.getCompanies().sort(Comparator.comparing(company -> -company.getActiveTrades())); break;
                 case DIVIDENDS: dto.getCompanies().sort(Comparator.comparing(company -> -company.getDividends())); break;

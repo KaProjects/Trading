@@ -59,7 +59,7 @@ const EditCompanyDialog = props => {
             } else {
                 setSector("")
             }
-            setShares((company.id && company.sharesFloat) ? company.sharesFloat : "")
+            setShares((company.id && company.shares) ? company.shares : "")
         }
         // eslint-disable-next-line
     }, [company])
@@ -67,7 +67,7 @@ const EditCompanyDialog = props => {
     function createEditCompany() {
         const companyData = {ticker: ticker, currency: currency, watching: watching}
         if (sector) companyData.sector = sector
-        if (shares) companyData.sharesFloat = shares
+        if (shares) companyData.shares = shares
         if (company.id){
             companyData.id = company.id
             axios.put(domain + "/company", companyData)
@@ -124,7 +124,7 @@ const EditCompanyDialog = props => {
                 </Select>
                 <TextField margin="dense" fullWidth variant="standard" id="company-shares"
                            value={shares}
-                           label="Shares Float"
+                           label="Shares"
                            onChange={(e) => {setShares(e.target.value);setAlert(null);}}
                            error={validateShares(shares) !== ""}
                            helperText={validateShares(shares)}

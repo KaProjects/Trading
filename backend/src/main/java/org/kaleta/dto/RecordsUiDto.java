@@ -107,11 +107,6 @@ public class RecordsUiDto
         latest.price = latestPrice;
     }
 
-    public void setMarketCap(String marketCap)
-    {
-        this.marketCap = marketCap + company.getCurrency();
-    }
-
     public void setFinancialsFrom(FinancialsModel financialsModel)
     {
         for (org.kaleta.entity.Financial financial : financialsModel.getSortedFinancials())

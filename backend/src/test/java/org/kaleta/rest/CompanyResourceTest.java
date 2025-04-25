@@ -92,7 +92,7 @@ class CompanyResourceTest
         dto.setCurrency(Currency.K);
         dto.setSector(SectorDto.from(Sector.SEMICONDUCTORS));
         dto.setWatching(true);
-        dto.setSharesFloat("100.11B");
+        dto.setShares("100.11B");
 
         Assert.put204("/company", dto);
 
@@ -110,7 +110,7 @@ class CompanyResourceTest
                 assertThat(dtoAfter.getCurrency(), is(dto.getCurrency()));
                 assertThat(dtoAfter.getSector(), is(dto.getSector()));
                 assertThat(dtoAfter.getWatching(), is(dto.getWatching()));
-                assertThat(dtoAfter.getSharesFloat(), is(dto.getSharesFloat()));
+                assertThat(dtoAfter.getShares(), is(dto.getShares()));
                 companyFound = true;
             }
         }
@@ -126,7 +126,7 @@ class CompanyResourceTest
         dto.setCurrency(Currency.K);
         dto.setSector(SectorDto.from(Sector.SEMICONDUCTORS));
         dto.setWatching(false);
-        dto.setSharesFloat("100.11B");
+        dto.setShares("100.11B");
 
         Assert.post201("/company", dto);
 
@@ -144,7 +144,7 @@ class CompanyResourceTest
                 assertThat(dtoAfter.getCurrency(), is(dto.getCurrency()));
                 assertThat(dtoAfter.getSector(), is(dto.getSector()));
                 assertThat(dtoAfter.getWatching(), is(dto.getWatching()));
-                assertThat(dtoAfter.getSharesFloat(), is(dto.getSharesFloat()));
+                assertThat(dtoAfter.getShares(), is(dto.getShares()));
                 companyFound = true;
             }
         }
@@ -164,19 +164,19 @@ class CompanyResourceTest
         Assert.put400("/company", dto, "Missing Watching Parameter");
 
         dto.setWatching(Boolean.FALSE);
-        dto.setSharesFloat("");
-        Assert.put400("/company", dto, "Invalid Shares Float Parameter");
+        dto.setShares("");
+        Assert.put400("/company", dto, "Invalid Shares Parameter");
 
-        dto.setSharesFloat("100X");
-        Assert.put400("/company", dto, "Invalid Shares Float Parameter");
+        dto.setShares("100X");
+        Assert.put400("/company", dto, "Invalid Shares Parameter");
 
-        dto.setSharesFloat("1001B");
-        Assert.put400("/company", dto, "Invalid Shares Float Parameter");
+        dto.setShares("1001B");
+        Assert.put400("/company", dto, "Invalid Shares Parameter");
 
-        dto.setSharesFloat("100.111B");
-        Assert.put400("/company", dto, "Invalid Shares Float Parameter");
+        dto.setShares("100.111B");
+        Assert.put400("/company", dto, "Invalid Shares Parameter");
 
-        dto.setSharesFloat("100.11B");
+        dto.setShares("100.11B");
         dto.setSector(new SectorDto("", ""));
         Assert.put400("/company", dto, "Invalid Sector Parameter");
 
@@ -229,17 +229,17 @@ class CompanyResourceTest
         Assert.post400("/company", dto, "Missing Watching Parameter");
 
         dto.setWatching(Boolean.FALSE);
-        dto.setSharesFloat("");
-        Assert.post400("/company", dto, "Invalid Shares Float Parameter");
+        dto.setShares("");
+        Assert.post400("/company", dto, "Invalid Shares Parameter");
 
-        dto.setSharesFloat("100X");
-        Assert.post400("/company", dto, "Invalid Shares Float Parameter");
+        dto.setShares("100X");
+        Assert.post400("/company", dto, "Invalid Shares Parameter");
 
-        dto.setSharesFloat("1001B");
-        Assert.post400("/company", dto, "Invalid Shares Float Parameter");
+        dto.setShares("1001B");
+        Assert.post400("/company", dto, "Invalid Shares Parameter");
 
-        dto.setSharesFloat("100.111B");
-        Assert.post400("/company", dto, "Invalid Shares Float Parameter");
+        dto.setShares("100.111B");
+        Assert.post400("/company", dto, "Invalid Shares Parameter");
 
 
         Assert.get400("/company/aggregate?sort=" ,"Invalid Company Aggregate Sort Parameter:");
@@ -270,7 +270,7 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().get(2).getCurrency(), is(Currency.$));
         assertThat(dto.getCompanies().get(2).getWatching(), is(true));
         assertThat(dto.getCompanies().get(2).getSector(), is(SectorDto.from(Sector.SEMICONDUCTORS)));
-        assertThat(dto.getCompanies().get(2).getSharesFloat(), is("900.78M"));
+        assertThat(dto.getCompanies().get(2).getShares(), is("900.78M"));
         assertThat(dto.getCompanies().get(2).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(2).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(2).getDividends(), is(2));
@@ -410,7 +410,7 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
 
         for (int i=1; i<dto.getCompanies().size(); i++){
-            assertThat(Utils.compareSharesFloat(dto.getCompanies().get(i-1).getSharesFloat(), dto.getCompanies().get(i).getSharesFloat()), lessThanOrEqualTo(0));
+            assertThat(Utils.compareShares(dto.getCompanies().get(i-1).getShares(), dto.getCompanies().get(i).getShares()), lessThanOrEqualTo(0));
         }
 
         dto = given().when()

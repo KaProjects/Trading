@@ -65,8 +65,8 @@ public class RecordResource
                     }
                 }
 
-                if (dto.getLatest().getPrice() != null && company.getSharesFloat() != null){
-                    dto.setMarketCap(companyService.computeMarketCap(dto.getLatest().getPrice().getValue(), company.getSharesFloat()));
+                if (dto.getLatest().getPrice() != null && company.getShares() != null){
+                    dto.setMarketCap(companyService.computeMarketCap(dto.getLatest().getPrice().getValue(), company.getShares()));
                 }
 
                 dto.setFinancialsFrom(financialService.getFinancialsModel(companyId));

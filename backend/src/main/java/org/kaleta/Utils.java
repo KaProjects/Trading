@@ -38,7 +38,7 @@ public class Utils
         return 0;
     }
 
-    public static int compareSharesFloat(String sharesA, String sharesB)
+    public static int compareShares(String sharesA, String sharesB)
     {
         if (sharesA == null) sharesA = "0M";
         if (sharesB == null) sharesB = "0M";

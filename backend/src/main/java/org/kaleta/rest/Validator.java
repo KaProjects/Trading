@@ -194,12 +194,12 @@ public class Validator
 
         if (dto.getSector() != null) Validator.validateSector(dto.getSector().getKey());
 
-        if (dto.getSharesFloat() != null) {
-            String shares = dto.getSharesFloat();
+        if (dto.getShares() != null) {
+            String shares = dto.getShares();
             if (shares.isBlank() || shares.length() > 7
                     || (!shares.toUpperCase().endsWith("M") && !shares.toUpperCase().endsWith("B"))
                     || !isBigDecimal(shares.substring(0, shares.length() - 1), 5, 2))
-                throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Shares Float Parameter: '" + shares + "'");
+                throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Shares Parameter: '" + shares + "'");
         }
 
         if (isCreate)
