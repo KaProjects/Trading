@@ -26,10 +26,10 @@ export function recordEvent(name) {
 export function validateQuarter(value) {
     if (typeof value != "string") return "not a string"
     if (!value) return "non empty"
-    const invalidFormatMsg = "invalid format, not YYQQ (e.g. 24Q1, 25H2, 26YY, ...)"
+    const invalidFormatMsg = "invalid format, not YYQQ (e.g. 24Q1, 25H2, 26FY, ...)"
     if (value.length !== 4) return invalidFormatMsg
     if (isNaN(value.substring(0,2))) return invalidFormatMsg
-    if (!["Q1","Q2","Q3","Q4","H1","H2","YY"].includes(value.substring(2,4))) return invalidFormatMsg
+    if (!["Q1","Q2","Q3","Q4","H1","H2","FY"].includes(value.substring(2,4))) return invalidFormatMsg
     return ""
 }
 

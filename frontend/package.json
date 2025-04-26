@@ -9,6 +9,7 @@
     "@mui/icons-material": "^5.10.15",
     "@mui/material": "^5.10.14",
     "@mui/x-tree-view": "^6.17.0",
+    "@polygon.io/client-js": "^7.4.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",

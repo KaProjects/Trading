@@ -170,7 +170,7 @@ public class Validator
     public static void validateCreateFinancialDto(FinancialCreateDto dto)
     {
         if (dto.getQuarter() == null || dto.getQuarter().isBlank()
-                || dto.getQuarter().length() != 4 || !dto.getQuarter().matches("\\d\\d(Q1|Q2|Q3|Q4|H1|H2|YY)"))
+                || dto.getQuarter().length() != 4 || !dto.getQuarter().matches("\\d\\d(Q1|Q2|Q3|Q4|H1|H2|FY)"))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Quarter: '" + dto.getQuarter() + "'");
 
         if (dto.getRevenue() == null || !isBigDecimal(dto.getRevenue(), 8, 2))

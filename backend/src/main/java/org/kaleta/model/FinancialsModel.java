@@ -27,7 +27,7 @@ public class FinancialsModel
             List<Financial> financialsPerQuarter = new ArrayList<>();
             for (Financial financial : financials){
                 switch (financial.getQuarter().substring(2,3)){
-                    case "Y":
+                    case "F":
                         Financial finFromYear = new Financial();
                         finFromYear.setRevenue(financial.getRevenue().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                         finFromYear.setCostGoodsSold(financial.getCostGoodsSold().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));

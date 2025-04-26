@@ -1,14 +1,16 @@
-import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
+import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography} from "@mui/material";
 import {handleError, validateNumber, validateQuarter} from "../utils";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
-
+import {getFinancial} from "../service/PolygonIoService";
+import FindReplaceIcon from '@mui/icons-material/FindReplace';
 
 const AddFinancialDialog = props => {
     const {handleClose, open} = props
 
     const [alert, setAlert] = useState(null)
+    const [importInfo, setImportInfo] = useState("")
     const [quarter, setQuarter] = useState("")
     const [revenue, setRevenue] = useState("")
     const [cogs, setCogs] = useState("")
@@ -18,6 +20,7 @@ const AddFinancialDialog = props => {
     useEffect(() => {
         if (open) {
             setAlert(null)
+            setImportInfo("")
             setQuarter("")
             setRevenue("")
             setCogs("")
@@ -37,6 +40,31 @@ const AddFinancialDialog = props => {
             }).catch((error) => {setAlert(handleError(error))})
     }
 
+    async function retrieveFinancial() {
+        const year = "20" + quarter.substring(0,2)
+        const period = quarter.substring(2,4)
+
+        const financial = await getFinancial(props.companySelectorValue.ticker, year, period);
+
+        if (financial) {
+            setImportInfo(financial.start_date + " => " + financial.end_date)
+            const revenues = financial.financials.income_statement.revenues.value.toString()
+            setRevenue(revenues.substring(0, revenues.length - 6))
+            const cogs = financial.financials.income_statement.cost_of_revenue.value.toString()
+            setCogs(cogs.substring(0, cogs.length - 6))
+            const opExp = financial.financials.income_statement.operating_expenses.value.toString()
+            setOpExp(opExp.substring(0, opExp.length - 6))
+            const ni = financial.financials.income_statement.net_income_loss.value.toString()
+            setNetIncome(ni.substring(0, ni.length - 6))
+        } else {
+            setImportInfo("not found")
+            setRevenue("")
+            setCogs("")
+            setOpExp("")
+            setNetIncome("")
+        }
+    }
+
     return (
         <Dialog
             open={open}
@@ -48,10 +76,14 @@ const AddFinancialDialog = props => {
                 <TextField required margin="dense" fullWidth variant="standard" id="company-financial-quarter"
                            value={quarter}
                            label="Quarter"
-                           onChange={(e) => {setQuarter(e.target.value);setAlert(null);}}
+                           onChange={(e) => {setQuarter(e.target.value);setAlert(null);setImportInfo("");}}
                            error={validateQuarter(quarter) !== ""}
                            helperText={validateQuarter(quarter)}
                 />
+                {validateQuarter(quarter) === "" && <>
+                    {importInfo ? <Typography>{importInfo}</Typography>
+                        : <Button onClick={retrieveFinancial} startIcon={<FindReplaceIcon/>}>Retrieve</Button>}
+                </>}
                 <TextField required margin="dense" fullWidth variant="standard" id="company-financial-revenue"
                            value={revenue}
                            label="Revenue (in Millions)"

@@ -19,7 +19,7 @@ test("validateQuarter", () => {
     expect(validateQuarter("21Q4")).toBe("");
     expect(validateQuarter("22H1")).toBe("");
     expect(validateQuarter("23H2")).toBe("");
-    expect(validateQuarter("24YY")).toBe("");
+    expect(validateQuarter("24FY")).toBe("");
 })
 
 test("recordEvent", () => {

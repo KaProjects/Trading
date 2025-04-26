@@ -104,7 +104,7 @@ class FinancialResourceTest
 
         FinancialCreateDto dtoY = new FinancialCreateDto();
         dtoY.setCompanyId(companyId);
-        dtoY.setQuarter("25YY");
+        dtoY.setQuarter("25FY");
         dtoY.setRevenue("5000");
         dtoY.setCostGoodsSold("2000");
         dtoY.setOperatingExpenses("1000");

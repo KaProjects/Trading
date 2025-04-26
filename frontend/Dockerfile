@@ -2,6 +2,7 @@ FROM node:23.11.0-alpine3.21 as build-stage
 WORKDIR /app
 COPY . /app
 ARG REACT_APP_BACKEND_URL='http://127.0.0.1:8080'
+ARG REACT_APP_POLYGON_API_KEY=''
 RUN npm install
 RUN npm run build
 

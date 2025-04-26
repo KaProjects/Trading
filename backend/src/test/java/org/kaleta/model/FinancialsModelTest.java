@@ -67,8 +67,8 @@ public class FinancialsModelTest
     {
         List<Financial> financials = new ArrayList<>(
                 List.of(generate("13Q1", "100", "50", "20", "10"),
-                        generate("12YY", "500", "200", "100", "100"),
-                        generate("11YY", "600", "300", "100", "100"))
+                        generate("12FY", "500", "200", "100", "100"),
+                        generate("11FY", "600", "300", "100", "100"))
         );
         FinancialsModel model = new FinancialsModel(financials);
 
@@ -111,8 +111,8 @@ public class FinancialsModelTest
     {
         List<Financial> financials = new ArrayList<>(
                 List.of(generate("13H1", "100", "50", "20", "10"),
-                        generate("12YY", "500", "200", "100", "100"),
-                        generate("11YY", "600", "300", "100", "100"))
+                        generate("12FY", "500", "200", "100", "100"),
+                        generate("11FY", "600", "300", "100", "100"))
         );
         FinancialsModel model = new FinancialsModel(financials);
 
