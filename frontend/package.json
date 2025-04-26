@@ -25,10 +25,10 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "node_modules/.bin/react-scripts start",
-    "build": "node_modules/.bin/react-scripts build",
-    "test": "node_modules/.bin/react-scripts test",
-    "eject": "node_modules/.bin/react-scripts eject"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --watchAll --coverage",
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -47,5 +47,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^axios$": "axios/dist/node/axios.cjs"
+    }
   }
 }

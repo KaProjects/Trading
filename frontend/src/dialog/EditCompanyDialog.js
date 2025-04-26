@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
-import {handleError, validateNumber} from "../utils";
+import {handleError, validateShares, validateTicker} from "../utils";
 import {
     Alert,
     Button,
@@ -16,24 +16,6 @@ import {
     TextField
 } from "@mui/material";
 
-
-function validateTicker(value) {
-    if (typeof value != "string") return "not a string"
-    if (!value) return "non empty"
-    if (value.length > 5) return "max length 5"
-    if (value.toUpperCase() !== value) return "only uppercase"
-    return ""
-}
-
-function validateShares(value) {
-    if (typeof value != "string") return "not a string"
-    if (!value) return "" //nullable
-    if (value.length > 7) return "max length 7"
-    const power = value.substring(value.length - 1)
-    if (power !== "B" && power !== "M") return "invalid format (eg 100.1M or 12B)"
-    const number = value.substring(0, value.length - 1)
-    return validateNumber(number, false, 5, 2)
-}
 
 const EditCompanyDialog = props => {
     const company = props.openEditCompany

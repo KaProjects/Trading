@@ -1,18 +1,9 @@
 import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
-import {handleError, validateNumber} from "../utils";
+import {handleError, validateNumber, validateQuarter} from "../utils";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
 
-
-function validateQuarter(value) {
-    if (typeof value != "string") return "not a string"
-    if (!value) return "non empty"
-    if (value.length !== 4) return "invalid format, not YYQQ (e.g. 24Q1, 25H2, 26YY, ...)"
-    if (isNaN(value.substring(0,2))) return "invalid format, not YYQQ (e.g. 24Q1, 25H2, 26YY, ...)"
-    if (!["Q1","Q2","Q3","Q4","H1","H2","YY"].includes(value.substring(2,4))) return "invalid format, not YYQQ (e.g. 24Q1, 25H2, 26YY, ...)"
-    return ""
-}
 
 const AddFinancialDialog = props => {
     const {handleClose, open} = props
