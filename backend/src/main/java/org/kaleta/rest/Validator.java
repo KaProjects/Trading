@@ -176,11 +176,15 @@ public class Validator
         if (dto.getRevenue() == null || !isBigDecimal(dto.getRevenue(), 8, 2))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Revenue: '" + dto.getRevenue() + "'");
 
+        if (dto.getCostGoodsSold() == null || !isBigDecimal(dto.getCostGoodsSold(), 8, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Cost of Goods Sold: '" + dto.getCostGoodsSold() + "'");
+
+        if (dto.getOperatingExpenses() == null || !isBigDecimal(dto.getOperatingExpenses(), 8, 2))
+            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Operating Expenses: '" + dto.getOperatingExpenses() + "'");
+
         if (dto.getNetIncome() == null || !isBigDecimal(dto.getNetIncome(), 8, 2))
             throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Net Income: '" + dto.getNetIncome() + "'");
 
-        if (dto.getEps() == null || !isBigDecimal(dto.getEps(), 4, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid EPS: '" + dto.getEps() + "'");
         validateUuid(dto.getCompanyId());
     }
 

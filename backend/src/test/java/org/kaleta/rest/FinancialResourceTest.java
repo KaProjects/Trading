@@ -25,8 +25,10 @@ class FinancialResourceTest
         dto.setCompanyId("6877c444-00ee-4af5-99ef-415980484d8c");
         dto.setQuarter("23Q2");
         dto.setRevenue("2000");
+        dto.setCostGoodsSold("1000");
+        dto.setOperatingExpenses("500");
         dto.setNetIncome("200");
-        dto.setEps("2");
+
 
         given().contentType(ContentType.JSON)
                 .body(dto)
@@ -46,16 +48,25 @@ class FinancialResourceTest
         assertThat(recordsUiDto.getFinancials().getValues().size(), is(2));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getQuarter(), is(dto.getQuarter()));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getRevenue(), is("2B"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getCostGoodsSold(), is("1000M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getGrossProfit(), is("1000M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getGrossMargin(), is("50"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getOperatingExpenses(), is("500M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getOperatingIncome(), is("500M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getOperatingMargin(), is("25"));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getNetIncome(), is("200M"));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getNetMargin(), is("10"));
-        assertThat(recordsUiDto.getFinancials().getValues().get(0).getEps(), is("2"));
+
         assertThat(recordsUiDto.getLatest().getPrice().getValue(), is("60"));
         assertThat(recordsUiDto.getFinancials().getTtm().getRevenue(), is("6B"));
-        assertThat(recordsUiDto.getFinancials().getTtm().getNetIncome(), is("600M"));
-        assertThat(recordsUiDto.getFinancials().getTtm().getNetMargin(), is("10"));
-        assertThat(recordsUiDto.getFinancials().getTtm().getEps(), is("6"));
-        assertThat(recordsUiDto.getFinancials().getTtm().getTtmPe(), is("10"));
-        assertThat(recordsUiDto.getFinancials().getTtm().getForwardPe(), is("7.5"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getCostGoodsSold(), is("6B"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getGrossProfit(), is("3.8B"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getGrossMargin(), is("63"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getOperatingExpenses(), is("1.1B"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getOperatingIncome(), is("2.7B"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getOperatingMargin(), is("45"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getNetIncome(), is("2B"));
+        assertThat(recordsUiDto.getFinancials().getTtm().getNetMargin(), is("33"));
     }
 
     @Test
@@ -67,8 +78,9 @@ class FinancialResourceTest
         dtoQ2.setCompanyId(companyId);
         dtoQ2.setQuarter("23Q2");
         dtoQ2.setRevenue("2000");
+        dtoQ2.setCostGoodsSold("1000");
+        dtoQ2.setOperatingExpenses("500");
         dtoQ2.setNetIncome("200");
-        dtoQ2.setEps("2");
 
         given().contentType(ContentType.JSON)
                 .body(dtoQ2)
@@ -80,8 +92,9 @@ class FinancialResourceTest
         dtoH2.setCompanyId(companyId);
         dtoH2.setQuarter("24H2");
         dtoH2.setRevenue("3000");
+        dtoH2.setCostGoodsSold("1000");
+        dtoH2.setOperatingExpenses("500");
         dtoH2.setNetIncome("300");
-        dtoH2.setEps("3");
 
         given().contentType(ContentType.JSON)
                 .body(dtoH2)
@@ -93,8 +106,9 @@ class FinancialResourceTest
         dtoY.setCompanyId(companyId);
         dtoY.setQuarter("25YY");
         dtoY.setRevenue("5000");
+        dtoY.setCostGoodsSold("2000");
+        dtoY.setOperatingExpenses("1000");
         dtoY.setNetIncome("500");
-        dtoY.setEps("5");
 
         given().contentType(ContentType.JSON)
                 .body(dtoY)
@@ -114,21 +128,36 @@ class FinancialResourceTest
         assertThat(recordsUiDto.getFinancials().getValues().size(), is(4));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getQuarter(), is(dtoY.getQuarter()));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getRevenue(), is("5B"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getCostGoodsSold(), is("2B"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getGrossProfit(), is("3B"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getGrossMargin(), is("60"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getOperatingExpenses(), is("1000M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getOperatingIncome(), is("2B"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(0).getOperatingMargin(), is("40"));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getNetIncome(), is("500M"));
         assertThat(recordsUiDto.getFinancials().getValues().get(0).getNetMargin(), is("10"));
-        assertThat(recordsUiDto.getFinancials().getValues().get(0).getEps(), is("5"));
 
         assertThat(recordsUiDto.getFinancials().getValues().get(1).getQuarter(), is(dtoH2.getQuarter()));
         assertThat(recordsUiDto.getFinancials().getValues().get(1).getRevenue(), is("3B"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(1).getCostGoodsSold(), is("1000M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(1).getGrossProfit(), is("2B"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(1).getGrossMargin(), is("67"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(1).getOperatingExpenses(), is("500M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(1).getOperatingIncome(), is("1.5B"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(1).getOperatingMargin(), is("50"));
         assertThat(recordsUiDto.getFinancials().getValues().get(1).getNetIncome(), is("300M"));
         assertThat(recordsUiDto.getFinancials().getValues().get(1).getNetMargin(), is("10"));
-        assertThat(recordsUiDto.getFinancials().getValues().get(1).getEps(), is("3"));
 
         assertThat(recordsUiDto.getFinancials().getValues().get(2).getQuarter(), is(dtoQ2.getQuarter()));
         assertThat(recordsUiDto.getFinancials().getValues().get(2).getRevenue(), is("2B"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(2).getCostGoodsSold(), is("1000M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(2).getGrossProfit(), is("1000M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(2).getGrossMargin(), is("50"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(2).getOperatingExpenses(), is("500M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(2).getOperatingIncome(), is("500M"));
+        assertThat(recordsUiDto.getFinancials().getValues().get(2).getOperatingMargin(), is("25"));
         assertThat(recordsUiDto.getFinancials().getValues().get(2).getNetIncome(), is("200M"));
         assertThat(recordsUiDto.getFinancials().getValues().get(2).getNetMargin(), is("10"));
-        assertThat(recordsUiDto.getFinancials().getValues().get(2).getEps(), is("2"));
 
         assertThat(recordsUiDto.getFinancials().getValues().get(3).getQuarter(), is("23Q1"));
     }
@@ -139,8 +168,9 @@ class FinancialResourceTest
         String validCompanyId = "6877c444-00ee-4af5-99ef-415980484d8c";
         String validQuarter = "23Q2";
         String validRevenue = "2000";
+        String validCogs = "1000";
+        String validOpExp = "500";
         String validNetIncome = "200";
-        String validEps = "2";
 
         Assert.post400("/financial", null, "Payload is NULL");
 
@@ -148,29 +178,54 @@ class FinancialResourceTest
         dto.setCompanyId(validCompanyId);
         dto.setQuarter(validQuarter);
         dto.setRevenue(validRevenue);
+        dto.setCostGoodsSold(validCogs);
+        dto.setOperatingExpenses(validOpExp);
         dto.setNetIncome(validNetIncome);
 
-        Assert.post400("/financial", dto, "Invalid EPS:");
+        dto.setCostGoodsSold(null);
+        Assert.post400("/financial", dto, "Invalid Cost of Goods Sold:");
 
-        dto.setEps("");
-        Assert.post400("/financial", dto, "Invalid EPS:");
+        dto.setCostGoodsSold("");
+        Assert.post400("/financial", dto, "Invalid Cost of Goods Sold:");
 
-        dto.setEps("x");
-        Assert.post400("/financial", dto, "Invalid EPS:");
+        dto.setCostGoodsSold("x");
+        Assert.post400("/financial", dto, "Invalid Cost of Goods Sold:");
 
-        dto.setEps("1.");
-        Assert.post400("/financial", dto, "Invalid EPS:");
+        dto.setCostGoodsSold("1.");
+        Assert.post400("/financial", dto, "Invalid Cost of Goods Sold:");
 
-        dto.setEps(".1");
-        Assert.post400("/financial", dto, "Invalid EPS:");
+        dto.setCostGoodsSold(".1");
+        Assert.post400("/financial", dto, "Invalid Cost of Goods Sold:");
 
-        dto.setEps("123");
-        Assert.post400("/financial", dto, "Invalid EPS:");
+        dto.setCostGoodsSold("1234567");
+        Assert.post400("/financial", dto, "Invalid Cost of Goods Sold:");
 
-        dto.setEps("1.123");
-        Assert.post400("/financial", dto, "Invalid EPS:");
+        dto.setCostGoodsSold("1.123");
+        Assert.post400("/financial", dto, "Invalid Cost of Goods Sold:");
 
-        dto.setEps(validEps);
+        dto.setCostGoodsSold(validCogs);
+        dto.setOperatingExpenses(null);
+        Assert.post400("/financial", dto, "Invalid Operating Expenses:");
+
+        dto.setOperatingExpenses("");
+        Assert.post400("/financial", dto, "Invalid Operating Expenses:");
+
+        dto.setOperatingExpenses("x");
+        Assert.post400("/financial", dto, "Invalid Operating Expenses:");
+
+        dto.setOperatingExpenses("1.");
+        Assert.post400("/financial", dto, "Invalid Operating Expenses:");
+
+        dto.setOperatingExpenses(".1");
+        Assert.post400("/financial", dto, "Invalid Operating Expenses:");
+
+        dto.setOperatingExpenses("1234567");
+        Assert.post400("/financial", dto, "Invalid Operating Expenses:");
+
+        dto.setOperatingExpenses("1.123");
+        Assert.post400("/financial", dto, "Invalid Operating Expenses:");
+
+        dto.setOperatingExpenses(validOpExp);
         dto.setNetIncome(null);
         Assert.post400("/financial", dto, "Invalid Net Income:");
 

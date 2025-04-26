@@ -8,6 +8,7 @@ public class FinancialCreateDto
     private String companyId;
     private String quarter;
     private String revenue;
+    private String costGoodsSold;
+    private String operatingExpenses;
     private String netIncome;
-    private String eps;
 }

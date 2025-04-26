@@ -1,7 +1,6 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.entity.Currency;
 import org.kaleta.model.FinancialsModel;
 import org.kaleta.model.RecordsModel;
 
@@ -11,6 +10,7 @@ import java.util.List;
 
 import static org.kaleta.Utils.format;
 import static org.kaleta.Utils.formatMillions;
+import static org.kaleta.Utils.formatNoDecimal;
 
 
 @Data
@@ -40,8 +40,6 @@ public class RecordsUiDto
         latest.strategy = Latest.from(recordsModel.getLatestStrategy());
 
         financials = new Financials();
-        financials.headers = new String[]{"Quarter", "Revenue", "Net Income", "Net Margin", "EPS"};
-        financials.ttmLabels = new String[]{"revenue", "net income", "net margin", "eps", "ttm p/e", "forward p/e"};
     }
 
     @Data
@@ -84,9 +82,7 @@ public class RecordsUiDto
     public static class Financials
     {
         private List<Financial> values = new ArrayList<>();
-        private String[] headers;
         private Financial ttm;
-        private String[] ttmLabels;
     }
 
     @Data
@@ -94,12 +90,14 @@ public class RecordsUiDto
     {
         private String quarter;
         private String revenue;
+        private String costGoodsSold;
+        private String grossProfit;
+        private String grossMargin;
+        private String operatingExpenses;
+        private String operatingIncome;
+        private String operatingMargin;
         private String netIncome;
         private String netMargin;
-        private String eps;
-
-        private String ttmPe;
-        private String forwardPe;
     }
 
     public void setLatestPrice(Latest latestPrice)
@@ -114,26 +112,31 @@ public class RecordsUiDto
             Financial dto = new Financial();
             dto.setQuarter(financial.getQuarter());
             dto.setRevenue(formatMillions(financial.getRevenue()));
+            dto.setCostGoodsSold(formatMillions(financial.getCostGoodsSold()));
+            dto.setGrossProfit(formatMillions(financial.getGrossProfit()));
+            dto.setGrossMargin(formatNoDecimal(financial.getGrossMargin()));
+            dto.setOperatingExpenses(formatMillions(financial.getOperatingExpenses()));
+            dto.setOperatingIncome(formatMillions(financial.getOperatingIncome()));
+            dto.setOperatingMargin(formatNoDecimal(financial.getOperatingMargin()));
             dto.setNetIncome(formatMillions(financial.getNetIncome()));
-            dto.setNetMargin(format(financial.getNetMargin()));
-            dto.setEps(format(financial.getEps()));
+            dto.setNetMargin(formatNoDecimal(financial.getNetMargin()));
             financials.values.add(dto);
         }
 
-        BigDecimal latestPrice = latest.price == null ? new BigDecimal(0) : new BigDecimal(latest.price.value);
-        FinancialsModel.Ttm ttmFinancials = financialsModel.getTtmFinancials(latestPrice);
+        org.kaleta.entity.Financial ttmFinancials = financialsModel.getTtmFinancials();
 
         if (ttmFinancials != null)
         {
             financials.ttm = new Financial();
             financials.ttm.setRevenue(formatMillions(ttmFinancials.getRevenue()));
+            financials.ttm.setCostGoodsSold(formatMillions(ttmFinancials.getRevenue()));
+            financials.ttm.setGrossProfit(formatMillions(ttmFinancials.getGrossProfit()));
+            financials.ttm.setGrossMargin(formatNoDecimal(ttmFinancials.getGrossMargin()));
+            financials.ttm.setOperatingExpenses(formatMillions(ttmFinancials.getOperatingExpenses()));
+            financials.ttm.setOperatingIncome(formatMillions(ttmFinancials.getOperatingIncome()));
+            financials.ttm.setOperatingMargin(formatNoDecimal(ttmFinancials.getOperatingMargin()));
             financials.ttm.setNetIncome(formatMillions(ttmFinancials.getNetIncome()));
-            financials.ttm.setNetMargin(format(ttmFinancials.getNetMargin()));
-            financials.ttm.setEps(format(ttmFinancials.getEps()));
-            BigDecimal ttmPe = ttmFinancials.getPe();
-            financials.ttm.setTtmPe(ttmPe.compareTo(new BigDecimal(0)) > 0 ? format(ttmPe) : "-");
-            BigDecimal forwardPe = financialsModel.getForwardPe(latestPrice);
-            financials.ttm.setForwardPe(forwardPe.compareTo(new BigDecimal(0)) > 0 ? format(forwardPe) : "-");
+            financials.ttm.setNetMargin(formatNoDecimal(ttmFinancials.getNetMargin()));
         }
     }
 }

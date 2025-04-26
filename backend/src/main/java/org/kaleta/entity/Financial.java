@@ -27,20 +27,43 @@ public class Financial extends AbstractEntity
     @Column(name = "revenue", nullable = false)
     private BigDecimal revenue;
 
+    @Column(name = "cogs", nullable = false)
+    private BigDecimal costGoodsSold;
+
+    @Column(name = "op_exp", nullable = false)
+    private BigDecimal operatingExpenses;
+
     @Column(name = "net_income", nullable = false)
     private BigDecimal netIncome;
-
-    @Column(name = "eps", nullable = false)
-    private BigDecimal eps;
 
     public String getTicker()
     {
         return company.getTicker();
     }
 
+    public BigDecimal getGrossProfit()
+    {
+        return getRevenue().subtract(getCostGoodsSold());
+    }
+
+    public BigDecimal getGrossMargin()
+    {
+        return getGrossProfit().multiply(new BigDecimal(100)).divide(getRevenue(), 2, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal getOperatingIncome()
+    {
+        return getGrossProfit().subtract(getOperatingExpenses());
+    }
+
+    public BigDecimal getOperatingMargin()
+    {
+        return getOperatingIncome().multiply(new BigDecimal(100)).divide(getRevenue(), 2, RoundingMode.HALF_UP);
+    }
+
     public BigDecimal getNetMargin()
     {
-        return getNetIncome().divide(getRevenue(), 4, RoundingMode.HALF_UP).multiply(new BigDecimal(100));
+        return getNetIncome().multiply(new BigDecimal(100)).divide(getRevenue(), 2, RoundingMode.HALF_UP);
     }
 
     public int compareTo(Financial other)

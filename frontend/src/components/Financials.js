@@ -23,14 +23,21 @@ const Financials = props => {
     const [showExpand, setShowExpand] = useState(false)
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(false)
 
-    function financial(value, label){
+    const headers = ["Quarter", "Revenue", "Gross Profit", "Operating Income", "Net Income"]
+    const labels = ["revenue", "gross profit", "operating income", "net income"]
+
+    function boxWithMarginAndLabel(value, label, margin){
         return <Box sx={{marginLeft: "10px"}}>
-            <Box sx={{color: 'text.primary', fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
-                {value}
-            </Box>
-            <Box sx={{color: 'lightgrey', fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
-                {label}
-            </Box>
+            <Box sx={{fontSize: 9, textAlign: "center", marginBottom: "0px"}}>({margin}%)</Box>
+            <Box sx={{fontWeight: 'bold', fontSize: 13, textAlign: "center"}}>{value}</Box>
+            <Box sx={{color: 'lightgrey', fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>{label}</Box>
+        </Box>
+    }
+
+    function cellWithMargin(value, margin) {
+        return <Box sx={{display: 'flex', flexWrap: 'nowrap', justifyContent: 'flex-end', alignItems: 'flex-end'}}>
+            <Box sx={{fontSize: 14, textAlign: "right", marginRight: "3px"}}>{value}</Box>
+            <Box sx={{fontSize: 12, textAlign: "right", marginBottom: "0px"}}>({margin}%)</Box>
         </Box>
     }
 
@@ -44,12 +51,10 @@ const Financials = props => {
         />
 
         <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
-            {financials.ttm && financial(financials.ttm.revenue + props.companySelectorValue.currency, financials.ttmLabels[0])}
-            {financials.ttm && financial(financials.ttm.netIncome + props.companySelectorValue.currency, financials.ttmLabels[1])}
-            {financials.ttm && financial(financials.ttm.netMargin + "%", financials.ttmLabels[2])}
-            {financials.ttm && financial(financials.ttm.eps + props.companySelectorValue.currency, financials.ttmLabels[3])}
-            {financials.ttm && financial(financials.ttm.ttmPe, financials.ttmLabels[4])}
-            {financials.ttm && financial(financials.ttm.forwardPe, financials.ttmLabels[5])}
+            {financials.ttm && boxWithMarginAndLabel(financials.ttm.revenue, labels[0], 100)}
+            {financials.ttm && boxWithMarginAndLabel(financials.ttm.grossProfit, labels[1], financials.ttm.grossMargin)}
+            {financials.ttm && boxWithMarginAndLabel(financials.ttm.operatingIncome, labels[2], financials.ttm.operatingMargin)}
+            {financials.ttm && boxWithMarginAndLabel(financials.ttm.netIncome, labels[3], financials.ttm.netMargin)}
             {(showExpand || expand) && financials.ttm &&
                 <Button sx={{height: "25px"}} onClick={() => setExpand(!expand)}>
                     <>{!expand && <ArrowDropDownIcon/>}{expand && <ArrowDropUpIcon/>}</>
@@ -69,7 +74,7 @@ const Financials = props => {
             <Table size="small" aria-label="a dense table" stickyHeader>
                 <TableHead>
                     <TableRow>
-                        {financials.headers.map((column, index) => (
+                        {headers.map((column, index) => (
                             <TableCell key={index}>{column}</TableCell>
                         ))}
                     </TableRow>
@@ -79,9 +84,9 @@ const Financials = props => {
                         <TableRow key={index}>
                             <TableCell key={0} sx={{textAlign: "center"}}>{financial.quarter}</TableCell>
                             <TableCell key={1} sx={{textAlign: "right"}}>{financial.revenue}</TableCell>
-                            <TableCell key={2} sx={{textAlign: "right"}}>{financial.netIncome}</TableCell>
-                            <TableCell key={3} sx={{textAlign: "right"}}>{financial.netMargin}</TableCell>
-                            <TableCell key={4} sx={{textAlign: "right"}}>{financial.eps}</TableCell>
+                            <TableCell key={2} sx={{textAlign: "right"}}>{cellWithMargin(financial.grossProfit, financial.grossMargin)}</TableCell>
+                            <TableCell key={3} sx={{textAlign: "right"}}>{cellWithMargin(financial.operatingIncome, financial.operatingMargin)}</TableCell>
+                            <TableCell key={4} sx={{textAlign: "right"}}>{cellWithMargin(financial.netIncome, financial.netMargin)}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>

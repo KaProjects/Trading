@@ -6,20 +6,21 @@ DROP TABLE IF EXISTS Company;
 
 CREATE TABLE Company
 (
-    id           VARCHAR(36) NOT NULL PRIMARY KEY,
-    ticker       CHAR(5)     NOT NULL,
-    currency     CHAR(1)     NOT NULL,
-    watching     BOOL        NOT NULL,
-    shares       VARCHAR(7),
-    sector       VARCHAR(30)
+    id       VARCHAR(36) NOT NULL PRIMARY KEY,
+    ticker   CHAR(5)     NOT NULL,
+    currency CHAR(1)     NOT NULL,
+    watching BOOL        NOT NULL,
+    shares   VARCHAR(7),
+    sector   VARCHAR(30)
 );
 CREATE TABLE Financial
 (
     id         VARCHAR(36)   NOT NULL PRIMARY KEY,
     quarter    CHAR(4)       NOT NULL,
     revenue    DECIMAL(8, 2) NOT NULL,
+    cogs       DECIMAL(8, 2) NOT NULL,
+    op_exp     DECIMAL(8, 2) NOT NULL,
     net_income DECIMAL(8, 2) NOT NULL,
-    eps        DECIMAL(4, 2) NOT NULL,
     companyId  VARCHAR(36)   NOT NULL,
     CONSTRAINT `fk_financialCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );

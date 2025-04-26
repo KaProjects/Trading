@@ -428,20 +428,27 @@ class RecordResourceTest
                 .extract().response().jsonPath().getObject("", RecordsUiDto.class);
 
         assertThat(dto.getCompany().getTicker(), is("NVDA"));
-        assertThat(dto.getFinancials().getHeaders().length, is(5));
         assertThat(dto.getFinancials().getValues().size(), is(3));
         assertThat(dto.getFinancials().getValues().get(1).getQuarter(), is("23Q2"));
         assertThat(dto.getFinancials().getValues().get(1).getRevenue(), is("13.51B"));
-        assertThat(dto.getFinancials().getValues().get(1).getNetIncome(), is("6.19B"));
-        assertThat(dto.getFinancials().getValues().get(1).getNetMargin(), is("45.81"));
-        assertThat(dto.getFinancials().getValues().get(1).getEps(), is("2.48"));
+        assertThat(dto.getFinancials().getValues().get(1).getCostGoodsSold(), is("6.01B"));
+        assertThat(dto.getFinancials().getValues().get(1).getGrossProfit(), is("7.5B"));
+        assertThat(dto.getFinancials().getValues().get(1).getGrossMargin(), is("56"));
+        assertThat(dto.getFinancials().getValues().get(1).getOperatingExpenses(), is("1.3B"));
+        assertThat(dto.getFinancials().getValues().get(1).getOperatingIncome(), is("6.2B"));
+        assertThat(dto.getFinancials().getValues().get(1).getOperatingMargin(), is("46"));
+        assertThat(dto.getFinancials().getValues().get(1).getNetIncome(), is("4.59B"));
+        assertThat(dto.getFinancials().getValues().get(1).getNetMargin(), is("34"));
+
         assertThat(dto.getLatest().getPrice(), is(new RecordsUiDto.Latest("500", "05.01.2024")));
-        assertThat(dto.getFinancials().getTtmLabels().length, is(6));
         assertThat(dto.getFinancials().getTtm().getRevenue(), is("51.76B"));
-        assertThat(dto.getFinancials().getTtm().getNetIncome(), is("23.3B"));
-        assertThat(dto.getFinancials().getTtm().getNetMargin(), is("45.01"));
-        assertThat(dto.getFinancials().getTtm().getEps(), is("9.35"));
-        assertThat(dto.getFinancials().getTtm().getTtmPe(), is("53.48"));
-        assertThat(dto.getFinancials().getTtm().getForwardPe(), is("33.69"));
+        assertThat(dto.getFinancials().getTtm().getCostGoodsSold(), is("51.76B"));
+        assertThat(dto.getFinancials().getTtm().getGrossProfit(), is("30.16B"));
+        assertThat(dto.getFinancials().getTtm().getGrossMargin(), is("58"));
+        assertThat(dto.getFinancials().getTtm().getOperatingExpenses(), is("6.67B"));
+        assertThat(dto.getFinancials().getTtm().getOperatingIncome(), is("23.49B"));
+        assertThat(dto.getFinancials().getTtm().getOperatingMargin(), is("45"));
+        assertThat(dto.getFinancials().getTtm().getNetIncome(), is("18.59B"));
+        assertThat(dto.getFinancials().getTtm().getNetMargin(), is("36"));
     }
 }

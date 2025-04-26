@@ -31,8 +31,9 @@ public class FinancialService
         newFinancial.setCompany(companyService.getCompany(dto.getCompanyId()));
         newFinancial.setQuarter(dto.getQuarter());
         newFinancial.setRevenue(new BigDecimal(dto.getRevenue()));
+        newFinancial.setCostGoodsSold(new BigDecimal(dto.getCostGoodsSold()));
+        newFinancial.setOperatingExpenses(new BigDecimal(dto.getOperatingExpenses()));
         newFinancial.setNetIncome(new BigDecimal(dto.getNetIncome()));
-        newFinancial.setEps(new BigDecimal(dto.getEps()));
 
         financialDao.create(newFinancial);
     }

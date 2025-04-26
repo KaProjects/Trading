@@ -11,7 +11,7 @@ public class DividendsUiDto
 {
     private List<String> columns = new ArrayList<>();
     private List<DividendDto> dividends = new ArrayList<>();
-    private String[] sums = new String[14];
+    private String[] sums = new String[7];
 
     public DividendsUiDto()
     {

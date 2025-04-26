@@ -112,4 +112,13 @@ public class Utils
             return format(value) + "M";
         }
     }
+
+    public static String formatNoDecimal(BigDecimal value)
+    {
+        if (value == null){
+            return "";
+        } else {
+            return value.setScale(0, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
+        }
+    }
 }

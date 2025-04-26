@@ -23,7 +23,8 @@ public enum Sector
     RESTAURANTS("Restaurants"),
     REAL_ESTATE("Real Estate"),
     AEROSPACE_DEFENSE("Aerospace & Defense"),
-    HEALTH_TECH("Health Technology");
+    HEALTH_TECH("Health Technology"),
+    ELECTRICAL_PRODUCTS("Electrical Products");
 
     @Getter
     private final String name;
