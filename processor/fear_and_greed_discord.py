@@ -29,7 +29,7 @@ def request(path: str, parameters: object, api_key):
         else:
             return json.loads(response.text)
     except (ConnectionError, Timeout, TooManyRedirects) as e:
-        print(e)
+        log(e)
 
 
 def post(payload: object, api_key: str):
