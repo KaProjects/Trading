@@ -54,7 +54,6 @@ async def run(envs):
     while True:
         try:
             data = request("/v3/fear-and-greed/latest", {}, cmc_api_key)
-            log(data)
             if data and "data" in data:
                 classification = data["data"]["value_classification"]
                 new_value = int(data["data"]["value"])
