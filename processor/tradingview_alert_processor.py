@@ -160,7 +160,13 @@ async def run():
                 continue
 
             for alert_id in alerts_data:
-                alert = Company(alerts_data[alert_id])
+                try:
+                    alert = Company(alerts_data[alert_id])
+                except ValueError as e:
+                    log("Alert: {} Error: {}".format(alert_id, e))
+                    db.reference(alert_data_path + "/" + alert_id).delete()
+                    continue
+
                 opportunity_data: dict = db.reference(opportunity_path + "/" + alert.id()).get()
                 opportunity = None if opportunity_data is None else Opportunity(opportunity_data)
 
