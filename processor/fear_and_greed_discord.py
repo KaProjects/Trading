@@ -50,23 +50,25 @@ def post(payload: object, api_key: str):
 async def run(envs):
     discord_api_key = envs["discord_api_key"]
     cmc_api_key = envs["cmc_api_key"]
-    latest_value = -1
+    last_value = -1
     while True:
         try:
             data = request("/v3/fear-and-greed/latest", {}, cmc_api_key)
             if data and "data" in data:
                 classification = data["data"]["value_classification"]
                 new_value = int(data["data"]["value"])
-                if latest_value//10 != new_value//10:
+                if last_value//10 != new_value//10:
                     btc_data = request("/v2/cryptocurrency/quotes/latest", {'symbol': 'BTC'}, cmc_api_key)
                     if btc_data and "data" in btc_data:
                         btc_price = btc_data["data"]["BTC"][0]["quote"]["USD"]["price"]
-                        message = "BTC=${:.0f} & {}: {} -> {}".format(btc_price, classification, latest_value, new_value)
+                        message = "BTC=${:.0f} & {}: {} -> {}".format(btc_price, classification, last_value, new_value)
                         log(message)
-                        post({"content": message}, discord_api_key)
+                        if last_value != -1: post({"content": message}, discord_api_key)
                     else:
-                        log(data)
-                latest_value = new_value
+                        log("Invalid BTC data: {}".format(btc_data))
+                else:
+                    log("New FnG value: {}".format(new_value))
+                last_value = new_value
             else:
                 log(data)
         except Exception:
