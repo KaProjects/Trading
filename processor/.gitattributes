@@ -2,3 +2,4 @@
 
 cert.json filter=git-crypt diff=git-crypt
 envs.json filter=git-crypt diff=git-crypt
+.firebaserc filter=git-crypt diff=git-crypt
