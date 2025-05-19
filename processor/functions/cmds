@@ -1,8 +1,0 @@
-# update discord commands
-npm run register
-
-# fb functions emulator
-firebase emulators:start
-
-# fb deploy to production
-npm run deploy

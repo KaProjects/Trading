@@ -1,3 +1,4 @@
+import {InteractionResponseType} from "discord-interactions";
 
 export async function DiscordRequest(endpoint, options) {
   const url = 'https://discord.com/api/v10/' + endpoint;
@@ -25,4 +26,20 @@ export async function InstallGlobalCommands(appId, commands) {
   } catch (err) {
     console.error(err);
   }
+}
+
+export async function DeleteMessage(application_id, token) {
+  const endpoint = `webhooks/${application_id}/${token}/messages/@original`;
+  try {
+    await DiscordRequest(endpoint, { method: 'DELETE'});
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+export function simpleMessageResponseBody(message) {
+  return JSON.stringify({
+    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: { content: message },
+  })
 }
