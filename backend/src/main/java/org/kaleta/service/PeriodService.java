@@ -36,6 +36,7 @@ public class PeriodService
         if (dto.getName() != null) period.setName(dto.getName());
         if (dto.getEndingMonth() != null) period.setEndingMonth(dto.getEndingMonth());
         if (dto.getReportDate() != null) period.setReportDate(convertService.parse(dto.getReportDate()));
+        if (dto.getShares() != null) period.setShares(dto.getShares());
         if (dto.getPriceLatest() != null) period.setPriceLatest(new BigDecimal(dto.getPriceLatest()));
         if (dto.getPriceHigh() != null) period.setPriceHigh(new BigDecimal(dto.getPriceHigh()));
         if (dto.getPriceLow() != null) period.setPriceLow(new BigDecimal(dto.getPriceLow()));
@@ -82,6 +83,7 @@ public class PeriodService
         dto.setName(period.getName());
         dto.setEndingMonth(period.getEndingMonth());
         dto.setReportDate(convertService.format(period.getReportDate()));
+        dto.setShares(period.getShares());
         dto.setPriceLatest(convertService.format(period.getPriceLatest()));
         dto.setPriceHigh(convertService.format(period.getPriceHigh()));
         dto.setPriceLow(convertService.format(period.getPriceLow()));

@@ -54,6 +54,7 @@ class PeriodResourceTest
         String newName = "20H2";
         String newEndingMonth = "2011";
         String newReportDate = "2020-12-15";
+        String newShares = "12345";
         String newPriceLatest = "23.5";
         String newPriceLow = "20.5";
         String newPriceHigh = "26.5";
@@ -68,6 +69,7 @@ class PeriodResourceTest
         dto.setName(newName);
         dto.setEndingMonth(newEndingMonth);
         dto.setReportDate(newReportDate);
+        dto.setShares(newShares);
         dto.setPriceLatest(newPriceLatest);
         dto.setPriceLow(newPriceLow);
         dto.setPriceHigh(newPriceHigh);
@@ -91,6 +93,7 @@ class PeriodResourceTest
         assertThat(periodsDto.getPeriods().get(0).getName(), is(newName));
         assertThat(periodsDto.getPeriods().get(0).getEndingMonth(), is(newEndingMonth));
         assertThat(periodsDto.getPeriods().get(0).getReportDate(), is("15.12.2020"));
+        assertThat(periodsDto.getPeriods().get(0).getShares(), is(newShares));
         assertThat(periodsDto.getPeriods().get(0).getPriceLatest(), is(newPriceLatest));
         assertThat(periodsDto.getPeriods().get(0).getPriceHigh(), is(newPriceHigh));
         assertThat(periodsDto.getPeriods().get(0).getPriceLow(), is(newPriceLow));
@@ -186,6 +189,22 @@ class PeriodResourceTest
         Assert.put400(path, dto, "Invalid Ending Month:");
 
         dto.setEndingMonth(null);
+        dto.setShares("x");
+        Assert.put400(path, dto, "Invalid Shares:");
+
+        dto.setShares(".1");
+        Assert.put400(path, dto, "Invalid Shares:");
+
+        dto.setShares("1.");
+        Assert.put400(path, dto, "Invalid Shares:");
+
+        dto.setShares("1234567");
+        Assert.put400(path, dto, "Invalid Shares:");
+
+        dto.setShares("10.123");
+        Assert.put400(path, dto, "Invalid Shares:");
+
+        dto.setShares(null);
         dto.setPriceLatest("x");
         Assert.put400(path, dto, "Invalid Latest Price:");
 

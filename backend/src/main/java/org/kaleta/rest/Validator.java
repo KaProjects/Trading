@@ -142,6 +142,9 @@ public class Validator
         if (dto.getName() != null && !dto.getName().matches(".{4}"))
             throw new ValidationFailedException("Invalid Name: '" + dto.getName() + "'");
 
+        if (dto.getShares() != null && !isBigDecimal(dto.getShares(), 8, 2))
+            throw new ValidationFailedException("Invalid Shares: '" + dto.getRevenue() + "'");
+
         if (dto.getPriceLatest() != null && !isBigDecimal(dto.getPriceLatest(), 10, 4))
             throw new ValidationFailedException("Invalid Latest Price: '" + dto.getPriceLatest() + "'");
 
