@@ -23,6 +23,7 @@ public class SectorDto
         return o1.getName().compareTo(o2.getName());
     }
 
+    @Deprecated
     public static SectorDto from(Sector sector)
     {
         if (sector == null) return null;

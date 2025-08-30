@@ -7,6 +7,7 @@ import org.kaleta.entity.Record;
 
 import static org.kaleta.Utils.format;
 
+@Deprecated
 @Data
 public class RecordDto
 {

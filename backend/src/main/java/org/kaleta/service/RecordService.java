@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
+@Deprecated
 @ApplicationScoped
 public class RecordService
 {
@@ -21,7 +22,7 @@ public class RecordService
     @Inject
     CompanyService companyService;
     @Inject
-    CommonService commonService;
+    ConvertService convertService;
 
     public void updateRecord(RecordDto dto)
     {
@@ -32,7 +33,7 @@ public class RecordService
             throw new ServiceFailureException("record with id '" + dto.getId() + "' not found");
         }
 
-        if (dto.getDate() != null) record.setDate(commonService.getDbDate(dto.getDate()));
+        if (dto.getDate() != null) record.setDate(convertService.parse(dto.getDate()));
         if (dto.getTitle() != null) record.setTitle(dto.getTitle());
         if (dto.getPrice() != null) record.setPrice(new BigDecimal(dto.getPrice()));
         if (dto.getPe() != null) record.setPe(dto.getPe().isBlank() ? null : new BigDecimal(dto.getPe()));
@@ -50,7 +51,7 @@ public class RecordService
         Record newRecord = new Record();
 
         newRecord.setCompany(companyService.getCompany(dto.getCompanyId()));
-        newRecord.setDate(commonService.getDbDate(dto.getDate()));
+        newRecord.setDate(convertService.parse(dto.getDate()));
         newRecord.setPrice(new BigDecimal(dto.getPrice()));
         newRecord.setTitle(dto.getTitle());
 

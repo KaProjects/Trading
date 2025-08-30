@@ -11,9 +11,9 @@ public class Endpoint
     public static Response process(Runnable validators, Supplier<Object> logic) {
         try {
             validators.run();
-        } catch (ResponseStatusException e) {
-            Log.error(e);
-            return Response.status(e.getStatus()).entity(e.getMessage()).build();
+        } catch (ValidationFailedException e) {
+            Log.info(e);
+            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
         }
         try {
             Object content = logic.get();

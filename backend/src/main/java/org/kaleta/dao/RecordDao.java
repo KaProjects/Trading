@@ -5,6 +5,7 @@ import org.kaleta.model.CompanyInfo;
 
 import java.util.List;
 
+@Deprecated
 public interface RecordDao
 {
     /**

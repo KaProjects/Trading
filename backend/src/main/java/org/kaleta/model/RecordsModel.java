@@ -7,6 +7,7 @@ import org.kaleta.entity.Record;
 import java.sql.Date;
 import java.util.List;
 
+@Deprecated
 public class RecordsModel
 {
     private final List<Record> records;

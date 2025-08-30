@@ -24,7 +24,7 @@ public class DividendService
     @Inject
     CompanyService companyService;
     @Inject
-    CommonService commonService;
+    ConvertService convertService;
 
     public List<Dividend> getDividends(String company, String currency, String year, String sector)
     {
@@ -55,7 +55,7 @@ public class DividendService
         Dividend newDividend = new Dividend();
 
         newDividend.setCompany(companyService.getCompany(dto.getCompanyId()));
-        newDividend.setDate(commonService.getDbDate(dto.getDate()));
+        newDividend.setDate(convertService.parse(dto.getDate()));
         newDividend.setDividend(new BigDecimal(dto.getDividend()));
         newDividend.setTax(new BigDecimal(dto.getTax()));
 

@@ -11,6 +11,7 @@ import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 import java.sql.Date;
 
+@Deprecated
 @Data
 @EqualsAndHashCode(callSuper=true)
 @Entity

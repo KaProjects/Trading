@@ -29,7 +29,7 @@ public class TradeService
     @Inject
     CompanyService companyService;
     @Inject
-    CommonService commonService;
+    ConvertService convertService;
 
     public List<Trade> getTrades(Boolean active, String company, String currency, String purchaseYear, String sellYear, String sector)
     {
@@ -74,7 +74,7 @@ public class TradeService
         Trade newTrade = new Trade();
 
         newTrade.setCompany(companyService.getCompany(dto.getCompanyId()));
-        newTrade.setPurchaseDate(commonService.getDbDate(dto.getDate()));
+        newTrade.setPurchaseDate(convertService.parse(dto.getDate()));
         newTrade.setQuantity(new BigDecimal(dto.getQuantity()));
         newTrade.setPurchasePrice(new BigDecimal(dto.getPrice()));
         newTrade.setPurchaseFees(new BigDecimal(dto.getFees()));
@@ -104,7 +104,7 @@ public class TradeService
             }
         }
 
-        Date date = commonService.getDbDate(dto.getDate());
+        Date date = convertService.parse(dto.getDate());
 
         for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {

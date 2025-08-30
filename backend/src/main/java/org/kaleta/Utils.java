@@ -62,6 +62,7 @@ public class Utils
     /**
      * @return java.sql.Date from string format YYYY-MM-DD
      */
+    @Deprecated
     public static Date format(String dtoDate)
     {
         if (dtoDate == null) return null;
@@ -72,6 +73,7 @@ public class Utils
     /**
      * @return string date in format DD.MM.YYYY
      */
+    @Deprecated
     public static String format(Date dbDate)
     {
         if (dbDate == null) return null;
@@ -79,6 +81,7 @@ public class Utils
         return split[2] + "." + split[1] + "." + split[0];
     }
 
+    @Deprecated
     public static String format(BigDecimal value)
     {
         if (value == null){
@@ -104,6 +107,7 @@ public class Utils
      *
      * @return formatted value of millions
      */
+    @Deprecated
     public static String formatMillions(BigDecimal value)
     {
         if (value.compareTo(new BigDecimal(1000)) > 0) {
@@ -113,6 +117,7 @@ public class Utils
         }
     }
 
+    @Deprecated
     public static String formatNoDecimal(BigDecimal value)
     {
         if (value == null){
@@ -120,5 +125,14 @@ public class Utils
         } else {
             return value.setScale(0, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
         }
+    }
+
+    public static int compareEndingMonths(String aEndingMonth, String bEndingMonth)
+    {
+        int compare = Integer.parseInt(aEndingMonth.substring(0,2)) - Integer.parseInt(bEndingMonth.substring(0,2));
+        if (compare == 0)
+            compare = Integer.parseInt(aEndingMonth.substring(2,4)) - Integer.parseInt(bEndingMonth.substring(2,4));
+
+        return compare;
     }
 }

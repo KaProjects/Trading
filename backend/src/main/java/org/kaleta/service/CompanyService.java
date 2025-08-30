@@ -22,12 +22,12 @@ public class CompanyService
 {
     @Inject
     CompanyDao companyDao;
-
     @Inject
     RecordDao recordDao;
-
     @Inject
     TradeDao tradeDao;
+    @Inject
+    ConvertService convertService;
 
     public List<Company> getCompanies()
     {
@@ -127,5 +127,17 @@ public class CompanyService
         newCompany.setWatching(companyDto.getWatching());
         newCompany.setShares(companyDto.getShares());
         companyDao.create(newCompany);
+    }
+
+    public CompanyDto from(Company company)
+    {
+        CompanyDto dto = new CompanyDto();
+        dto.setId(company.getId());
+        dto.setTicker(company.getTicker());
+        dto.setCurrency(company.getCurrency());
+        dto.setWatching(company.isWatching());
+        dto.setSector(convertService.from(company.getSector()));
+        dto.setShares(company.getShares());
+        return dto;
     }
 }

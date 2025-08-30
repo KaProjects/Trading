@@ -2,6 +2,7 @@ package org.kaleta.dto;
 
 import lombok.Data;
 
+@Deprecated
 @Data
 public class RecordCreateDto
 {

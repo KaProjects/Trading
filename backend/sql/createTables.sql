@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS Period;
 DROP TABLE IF EXISTS Dividend;
 DROP TABLE IF EXISTS Trade;
 DROP TABLE IF EXISTS Record;
@@ -60,4 +61,23 @@ CREATE TABLE Record
     strategy  TINYTEXT,
     companyId VARCHAR(36)    NOT NULL,
     CONSTRAINT `fk_recordCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
+);
+CREATE TABLE Period
+(
+    id           VARCHAR(36)   NOT NULL PRIMARY KEY,
+    name         CHAR(4)       NOT NULL,
+    ending_month CHAR(4)       NOT NULL,
+    report_date  DATE,
+    price_latest DECIMAL(10, 4),
+    price_low    DECIMAL(10, 4),
+    price_high   DECIMAL(10, 4),
+    research     TEXT,
+    revenue      DECIMAL(8, 2),
+    cogs         DECIMAL(8, 2),
+    op_exp       DECIMAL(8, 2),
+    net_income   DECIMAL(8, 2),
+
+
+    companyId  VARCHAR(36)   NOT NULL,
+    CONSTRAINT `fk_periodCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );

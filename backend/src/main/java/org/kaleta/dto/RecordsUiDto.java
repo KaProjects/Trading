@@ -12,7 +12,7 @@ import static org.kaleta.Utils.format;
 import static org.kaleta.Utils.formatMillions;
 import static org.kaleta.Utils.formatNoDecimal;
 
-
+@Deprecated
 @Data
 public class RecordsUiDto
 {

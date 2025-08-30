@@ -24,6 +24,7 @@ public class CompanyDto implements Comparable<CompanyDto>
         return this.getTicker().compareTo(other.getTicker());
     }
 
+    @Deprecated
     public static List<CompanyDto> from(List<Company> companies)
     {
         List<CompanyDto> list = new ArrayList<>();
@@ -42,6 +43,7 @@ public class CompanyDto implements Comparable<CompanyDto>
         return list;
     }
 
+    @Deprecated
     public static CompanyDto from(Company company)
     {
         CompanyDto dto = new CompanyDto();

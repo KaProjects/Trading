@@ -5,6 +5,8 @@ import org.kaleta.Utils;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.DividendCreateDto;
 import org.kaleta.dto.FinancialCreateDto;
+import org.kaleta.dto.PeriodCreateDto;
+import org.kaleta.dto.PeriodDto;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.dto.TradeCreateDto;
@@ -21,7 +23,7 @@ public class Validator
     public static void validatePayload(Object payload)
     {
         if (payload == null)
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Payload is NULL");
+            throw new ValidationFailedException("Payload is NULL");
     }
 
     public static void validateCurrency(String currency)
@@ -30,14 +32,14 @@ public class Validator
             if (currency == null || currency.isBlank()) throw new IllegalArgumentException("");
             Currency.valueOf(currency);
         } catch (IllegalArgumentException e){
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Currency Parameter: '" + currency + "'");
+            throw new ValidationFailedException("Invalid Currency Parameter: '" + currency + "'");
         }
     }
 
     public static void validateYear(String year)
     {
         if (year == null || year.isBlank() || !year.matches("\\d\\d\\d\\d")){
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Year Parameter: '" + year + "'");
+            throw new ValidationFailedException("Invalid Year Parameter: '" + year + "'");
         }
     }
 
@@ -47,7 +49,7 @@ public class Validator
             if (uuid == null || uuid.isBlank()) throw new IllegalArgumentException("");
             UUID.fromString(uuid);
         } catch (IllegalArgumentException e){
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid UUID Parameter: '" + uuid + "'");
+            throw new ValidationFailedException("Invalid UUID Parameter: '" + uuid + "'");
         }
     }
 
@@ -57,7 +59,7 @@ public class Validator
             if (sort == null || sort.isBlank()) throw new IllegalArgumentException("");
             Sort.CompanyAggregate.valueOf(sort);
         } catch (IllegalArgumentException e){
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Company Aggregate Sort Parameter: '" + sort + "'");
+            throw new ValidationFailedException("Invalid Company Aggregate Sort Parameter: '" + sort + "'");
         }
     }
 
@@ -67,65 +69,114 @@ public class Validator
             if (sector == null || sector.isBlank()) throw new IllegalArgumentException("");
             Sector.valueOf(sector);
         } catch (IllegalArgumentException e){
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Sector Parameter: '" + sector + "'");
+            throw new ValidationFailedException("Invalid Sector Parameter: '" + sector + "'");
         }
     }
 
     public static void validateTicker(String ticker)
     {
         if (ticker == null || ticker.isBlank() || ticker.length() > 5 || !ticker.toUpperCase().equals(ticker))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Ticker Parameter: '" + ticker + "'");
+            throw new ValidationFailedException("Invalid Ticker Parameter: '" + ticker + "'");
     }
 
     public static void validateUpdateRecordDto(RecordDto dto)
     {
         if (dto.getDate() != null && !Utils.isValidDbDate(dto.getDate()))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+            throw new ValidationFailedException("Invalid Date: '" + dto.getDate() + "'");
 
         if (dto.getTitle() != null && dto.getTitle().isBlank())
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Title: '" + dto.getTitle() + "'");
+            throw new ValidationFailedException("Invalid Title: '" + dto.getTitle() + "'");
 
         if (dto.getPrice() != null && !isBigDecimal(dto.getPrice(), 10, 4))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Price: '" + dto.getPrice() + "'");
+            throw new ValidationFailedException("Invalid Price: '" + dto.getPrice() + "'");
 
         if (dto.getPe() != null && !dto.getPe().isBlank() && !isBigDecimal(dto.getPe(), 5, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid PE: '" + dto.getPe() + "'");
+            throw new ValidationFailedException("Invalid PE: '" + dto.getPe() + "'");
 
         if (dto.getPs() != null && !dto.getPs().isBlank() && !isBigDecimal(dto.getPs(), 5, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid PS: '" + dto.getPe() + "'");
+            throw new ValidationFailedException("Invalid PS: '" + dto.getPe() + "'");
 
         if (dto.getDy() != null && !dto.getDy().isBlank() &&!isBigDecimal(dto.getDy(), 5, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid DY: '" + dto.getDy() + "'");
+            throw new ValidationFailedException("Invalid DY: '" + dto.getDy() + "'");
     }
 
 
     public static void validateCreateRecordDto(RecordCreateDto dto)
     {
         if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+            throw new ValidationFailedException("Invalid Date: '" + dto.getDate() + "'");
 
         if (dto.getTitle() == null || dto.getTitle().isBlank())
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Title: '" + dto.getTitle() + "'");
+            throw new ValidationFailedException("Invalid Title: '" + dto.getTitle() + "'");
 
         if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Price: '" + dto.getPrice() + "'");
+            throw new ValidationFailedException("Invalid Price: '" + dto.getPrice() + "'");
 
         validateUuid(dto.getCompanyId());
+    }
+
+    public static void validatePeriodCreateDto(PeriodCreateDto dto)
+    {
+        if (dto.getReportDate() != null && !Utils.isValidDbDate(dto.getReportDate()))
+            throw new ValidationFailedException("Invalid Report Date: '" + dto.getReportDate() + "'");
+
+        if (dto.getEndingMonth() == null || dto.getEndingMonth().isBlank() || !dto.getEndingMonth().matches("\\d\\d\\d\\d"))
+            throw new ValidationFailedException("Invalid Ending Month: '" + dto.getEndingMonth() + "'");
+
+        if (dto.getName() == null || !dto.getName().matches(".{4}"))
+            throw new ValidationFailedException("Invalid Name: '" + dto.getName() + "'");
+
+        validateUuid(dto.getCompanyId());
+    }
+
+    public static void validateUpdatePeriodDto(PeriodDto dto)
+    {
+        validateUuid(dto.getId());
+
+        if (dto.getReportDate() != null && !Utils.isValidDbDate(dto.getReportDate()))
+            throw new ValidationFailedException("Invalid Report Date: '" + dto.getReportDate() + "'");
+
+        if (dto.getEndingMonth() != null && !dto.getEndingMonth().matches("\\d\\d\\d\\d"))
+            throw new ValidationFailedException("Invalid Ending Month: '" + dto.getEndingMonth() + "'");
+
+        if (dto.getName() != null && !dto.getName().matches(".{4}"))
+            throw new ValidationFailedException("Invalid Name: '" + dto.getName() + "'");
+
+        if (dto.getPriceLatest() != null && !isBigDecimal(dto.getPriceLatest(), 10, 4))
+            throw new ValidationFailedException("Invalid Latest Price: '" + dto.getPriceLatest() + "'");
+
+        if (dto.getPriceHigh() != null && !isBigDecimal(dto.getPriceHigh(), 10, 4))
+            throw new ValidationFailedException("Invalid High Price: '" + dto.getPriceHigh() + "'");
+
+        if (dto.getPriceLow() != null && !isBigDecimal(dto.getPriceLow(), 10, 4))
+            throw new ValidationFailedException("Invalid Low Price: '" + dto.getPriceLow() + "'");
+
+        if (dto.getRevenue() != null && !isBigDecimal(dto.getRevenue(), 8, 2))
+            throw new ValidationFailedException("Invalid Revenue: '" + dto.getRevenue() + "'");
+
+        if (dto.getCostGoodsSold() != null && !isBigDecimal(dto.getCostGoodsSold(), 8, 2))
+            throw new ValidationFailedException("Invalid Cost of Goods Sold: '" + dto.getCostGoodsSold() + "'");
+
+        if (dto.getOperatingExpenses() != null && !isBigDecimal(dto.getOperatingExpenses(), 8, 2))
+            throw new ValidationFailedException("Invalid Operating Expenses: '" + dto.getOperatingExpenses() + "'");
+
+        if (dto.getNetIncome() != null && !isBigDecimal(dto.getNetIncome(), 8, 2))
+            throw new ValidationFailedException("Invalid Net Income: '" + dto.getNetIncome() + "'");
     }
 
     public static void validateCreateTradeDto(TradeCreateDto dto)
     {
         if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+            throw new ValidationFailedException("Invalid Date: '" + dto.getDate() + "'");
 
         if (dto.getQuantity() == null || !isBigDecimal(dto.getQuantity(), 8, 4))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Quantity: '" + dto.getQuantity() + "'");
+            throw new ValidationFailedException("Invalid Quantity: '" + dto.getQuantity() + "'");
 
         if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Price: '" + dto.getPrice() + "'");
+            throw new ValidationFailedException("Invalid Price: '" + dto.getPrice() + "'");
 
         if (dto.getFees() == null || !isBigDecimal(dto.getFees(), 5, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Fees: '" + dto.getFees() + "'");
+            throw new ValidationFailedException("Invalid Fees: '" + dto.getFees() + "'");
 
         validateUuid(dto.getCompanyId());
     }
@@ -133,21 +184,21 @@ public class Validator
     public static void validateSellTradeDto(TradeSellDto dto)
     {
         if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+            throw new ValidationFailedException("Invalid Date: '" + dto.getDate() + "'");
 
         if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Price: '" + dto.getPrice() + "'");
+            throw new ValidationFailedException("Invalid Price: '" + dto.getPrice() + "'");
 
         if (dto.getFees() == null || !isBigDecimal(dto.getFees(), 5, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Fees: '" + dto.getFees() + "'");
+            throw new ValidationFailedException("Invalid Fees: '" + dto.getFees() + "'");
 
         if (dto.getTrades().size() == 0)
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "No trades to sell provided");
+            throw new ValidationFailedException("No trades to sell provided");
 
         for (TradeSellDto.Trade trade : dto.getTrades())
         {
             if (trade.getQuantity() == null || !isBigDecimal(trade.getQuantity(), 8, 4))
-                throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Quantity: '" + trade.getQuantity() + "'");
+                throw new ValidationFailedException("Invalid Quantity: '" + trade.getQuantity() + "'");
 
             validateUuid(trade.getTradeId());
         }
@@ -156,13 +207,13 @@ public class Validator
     public static void validateCreateDividendDto(DividendCreateDto dto)
     {
         if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Date: '" + dto.getDate() + "'");
+            throw new ValidationFailedException("Invalid Date: '" + dto.getDate() + "'");
 
         if (dto.getDividend() == null || !isBigDecimal(dto.getDividend(), 7, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Dividend: '" + dto.getDividend() + "'");
+            throw new ValidationFailedException("Invalid Dividend: '" + dto.getDividend() + "'");
 
         if (dto.getTax() == null || !isBigDecimal(dto.getTax(), 6, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Tax: '" + dto.getTax() + "'");
+            throw new ValidationFailedException("Invalid Tax: '" + dto.getTax() + "'");
 
         validateUuid(dto.getCompanyId());
     }
@@ -171,19 +222,19 @@ public class Validator
     {
         if (dto.getQuarter() == null || dto.getQuarter().isBlank()
                 || dto.getQuarter().length() != 4 || !dto.getQuarter().matches("\\d\\d(Q1|Q2|Q3|Q4|H1|H2|FY)"))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Quarter: '" + dto.getQuarter() + "'");
+            throw new ValidationFailedException("Invalid Quarter: '" + dto.getQuarter() + "'");
 
         if (dto.getRevenue() == null || !isBigDecimal(dto.getRevenue(), 8, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Revenue: '" + dto.getRevenue() + "'");
+            throw new ValidationFailedException("Invalid Revenue: '" + dto.getRevenue() + "'");
 
         if (dto.getCostGoodsSold() == null || !isBigDecimal(dto.getCostGoodsSold(), 8, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Cost of Goods Sold: '" + dto.getCostGoodsSold() + "'");
+            throw new ValidationFailedException("Invalid Cost of Goods Sold: '" + dto.getCostGoodsSold() + "'");
 
         if (dto.getOperatingExpenses() == null || !isBigDecimal(dto.getOperatingExpenses(), 8, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Operating Expenses: '" + dto.getOperatingExpenses() + "'");
+            throw new ValidationFailedException("Invalid Operating Expenses: '" + dto.getOperatingExpenses() + "'");
 
         if (dto.getNetIncome() == null || !isBigDecimal(dto.getNetIncome(), 8, 2))
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Net Income: '" + dto.getNetIncome() + "'");
+            throw new ValidationFailedException("Invalid Net Income: '" + dto.getNetIncome() + "'");
 
         validateUuid(dto.getCompanyId());
     }
@@ -191,10 +242,10 @@ public class Validator
     public static void validateCreateEditCompanyDto(CompanyDto dto, boolean isCreate)
     {
         if (dto.getCurrency() == null)
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Missing Currency Parameter");
+            throw new ValidationFailedException("Missing Currency Parameter");
 
         if (dto.getWatching() == null)
-            throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Missing Watching Parameter");
+            throw new ValidationFailedException("Missing Watching Parameter");
 
         if (dto.getSector() != null) Validator.validateSector(dto.getSector().getKey());
 
@@ -203,7 +254,7 @@ public class Validator
             if (shares.isBlank() || shares.length() > 7
                     || (!shares.toUpperCase().endsWith("M") && !shares.toUpperCase().endsWith("B"))
                     || !isBigDecimal(shares.substring(0, shares.length() - 1), 5, 2))
-                throw new ResponseStatusException(Response.Status.BAD_REQUEST, "Invalid Shares Parameter: '" + shares + "'");
+                throw new ValidationFailedException("Invalid Shares Parameter: '" + shares + "'");
         }
 
         if (isCreate)
