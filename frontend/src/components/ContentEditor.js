@@ -3,9 +3,6 @@ import {Editable, Slate, useSlate, withReact} from 'slate-react'
 import {createEditor, Editor, Element as SlateElement, Transforms} from 'slate'
 import {withHistory} from 'slate-history'
 import {css, cx} from '@emotion/css'
-import {backend} from "../properties"
-import axios from "axios"
-import {handleError} from "../utils"
 
 const LIST_TYPES = ['numbered-list', 'bulleted-list']
 const TEXT_ALIGN_TYPES = ['left', 'center', 'right', 'justify']
@@ -13,7 +10,7 @@ const DEFAULT_VALUE = [{type: 'paragraph', children: [{ text: '' }],}]
 
 
 const ContentEditor = (props) => {
-    const {record} = props
+    const {content} = props
     const renderElement = useCallback(props => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const editor = useMemo(() => withHistory(withReact(createEditor())), [])
@@ -23,13 +20,11 @@ const ContentEditor = (props) => {
 
     function handleUnFocus() {
         setEditing(false)
-        axios.put(backend + "/record", {id: record.id, content: JSON.stringify(value)})
-            .then((response) => {
-                props.handleUpdate(value)
-            }).catch((error) => {handleError(error)})
+        props.handleUpdate(value)
     }
+
     return (
-        <Slate editor={editor} initialValue={record.content ? JSON.parse(record.content) : DEFAULT_VALUE}
+        <Slate editor={editor} initialValue={content ? JSON.parse(content) : DEFAULT_VALUE}
                onChange={value => {
                    const isAstChange = editor.operations.some(op => 'set_selection' !== op.type0)
                    if (isAstChange) setValue(value)
