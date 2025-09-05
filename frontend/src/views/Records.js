@@ -31,9 +31,8 @@ const Records = props => {
         // eslint-disable-next-line
     }, [])
 
+    const [dataOld, setDataOld] = useState(null)
     const [data, setData] = useState(null)
-    const [periods, setPeriods] = useState(null)
-    const [company, setCompany] = useState(null)
     const [loaded, setLoaded] = useState(false)
     const [error, setError] = useState(null)
     const [openAddRecordDialog, setOpenAddRecordDialog] = useState(false)
@@ -45,14 +44,13 @@ const Records = props => {
         if (props.companySelectorValue) {
             axios.get(backend + "/record/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
                 .then((response) => {
-                    setData(response.data)
+                    setDataOld(response.data)
                     setError(null)
 
 
                     axios.get(backend + "/period/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
                         .then((response) => {
-                            setPeriods(response.data.periods)
-                            setCompany(response.data.company)
+                            setData(response.data)
                             setError(null)
                             setLoaded(true)
                         }).catch((error) => {
@@ -102,8 +100,8 @@ const Records = props => {
     }
 
     function handleConfirmWatch() {
-        const newWatching = !data.company.watching
-        const companyData = {...data.company}
+        const newWatching = !dataOld.company.watching
+        const companyData = {...dataOld.company}
         companyData.watching = newWatching
         axios.put(backend + "/company", companyData)
             .then(() => {
@@ -116,21 +114,21 @@ const Records = props => {
         <>
             {/*<CompanySelector refresh={refresh} {...props}/>*/}
             {props.companySelectorValue && !loaded && <Loader error={error}/>}
-            {props.companySelectorValue && loaded && data.company.ticker !== undefined &&
+            {props.companySelectorValue && loaded && dataOld.company.ticker !== undefined &&
                 <Grid container direction="row" sx={{justifyContent: "center", alignItems: "flex-start"}}>
                     {/*minWidth was 700 before*/}
-                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 500, width: 500, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
+                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
                                 <Box sx={{color: 'text.secondary'}}>Records</Box>
                                 <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
-                                    {data.company.ticker}
+                                    {dataOld.company.ticker}
                                 </Box>
-                                {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
-                                {data.marketCap && <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {data.company.currency}{data.marketCap}</Box>}
+                                {dataOld.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{dataOld.company.sector.name}</Box>}
+                                {dataOld.marketCap && <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {dataOld.company.currency}{dataOld.marketCap}</Box>}
 
                                 <Financials sx={{marginBottom: "20px", marginTop: "20px"}}
-                                            financials={data.financials}
+                                            financials={dataOld.financials}
                                             triggerRefresh={triggerRefresh}
                                             expand={expandFinancials}
                                             setExpand={setExpandFinancials}
@@ -138,11 +136,11 @@ const Records = props => {
                                 />
 
                                 <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
-                                    {data.company.watching && <StarIcon sx={{color: 'gold',}}/>}
-                                    {!data.company.watching && <StarBorderIcon sx={{color: 'lightgrey',}}/>}
+                                    {dataOld.company.watching && <StarIcon sx={{color: 'gold',}}/>}
+                                    {!dataOld.company.watching && <StarBorderIcon sx={{color: 'lightgrey',}}/>}
                                 </Button>
                                 <Dialog open={openConfirmWatchDialog} onClose={() => setOpenConfirmWatchDialog(false)}>
-                                    <DialogTitle>{"Are you sure to " + (data.company.watching ? "unwatch" : "watch") + " the company?"}</DialogTitle>
+                                    <DialogTitle>{"Are you sure to " + (dataOld.company.watching ? "unwatch" : "watch") + " the company?"}</DialogTitle>
                                     <DialogActions>
                                         <Button onClick={() => setOpenConfirmWatchDialog(false)}>Cancel</Button>
                                         <Button onClick={() => handleConfirmWatch()} autoFocus>Confirm</Button>
@@ -159,15 +157,15 @@ const Records = props => {
                                 />
                             </Box>
 
-                            {data.owns.length > 0 &&
+                            {dataOld.owns.length > 0 &&
                                 <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
-                                    {data.owns.map((own, index) => (
+                                    {dataOld.owns.map((own, index) => (
                                         <Box key={index} sx={{marginLeft: "10px"}}>
                                             <Box sx={{color: profitColor(own.profit), fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
                                                 {own.profit && own.profit}
                                             </Box>
                                             <Box sx={{color: 'text.secondary', fontSize: 16, fontFamily: "Roboto",}}>
-                                                {own.quantity}@{own.price}{data.company.currency}
+                                                {own.quantity}@{own.price}{dataOld.company.currency}
                                             </Box>
                                         </Box>
                                     ))}
@@ -175,20 +173,20 @@ const Records = props => {
                             }
 
                             <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
-                                <LatestValueBox label="latest price" data={data.latest.price} suffix={data.company.currency}/>
-                                <LatestValueBox label="latest P/E" data={data.latest.pe} suffix="" sx={{marginLeft: "10px"}}/>
-                                <LatestValueBox label="latest P/S" data={data.latest.ps} suffix="" sx={{marginLeft: "10px"}}/>
-                                <LatestValueBox label="latest DY" data={data.latest.dy} suffix="%" sx={{marginLeft: "10px"}}/>
-                                <LatestValueBox label="latest targets" data={data.latest.targets} suffix="" sx={{marginLeft: "10px"}}/>
+                                <LatestValueBox label="latest price" data={dataOld.latest.price} suffix={dataOld.company.currency}/>
+                                <LatestValueBox label="latest P/E" data={dataOld.latest.pe} suffix="" sx={{marginLeft: "10px"}}/>
+                                <LatestValueBox label="latest P/S" data={dataOld.latest.ps} suffix="" sx={{marginLeft: "10px"}}/>
+                                <LatestValueBox label="latest DY" data={dataOld.latest.dy} suffix="%" sx={{marginLeft: "10px"}}/>
+                                <LatestValueBox label="latest targets" data={dataOld.latest.targets} suffix="" sx={{marginLeft: "10px"}}/>
                                 <Box sx={{ flexGrow: 1 }} />
-                                <LatestValueBox label="latest strategy" data={data.latest.strategy} suffix="" sx={{marginLeft: "10px"}}/>
+                                <LatestValueBox label="latest strategy" data={dataOld.latest.strategy} suffix="" sx={{marginLeft: "10px"}}/>
                             </Grid>
 
-                            {data.records.map((record, index) => (
+                            {dataOld.records.map((record, index) => (
                                 <BorderedSection key={record.id} title={record.date} style={{color: 'text.primary'}}>
 
                                     <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
-                                        <EditableValueBox value={record.price} suffix={data.company.currency} label="price"
+                                        <EditableValueBox value={record.price} suffix={dataOld.company.currency} label="price"
                                                           updateObject={(value) => {return {id: record.id, price: value}}}
                                                           validateInput={(value) => validateNumber(value, false, 10, 4)}
                                                           handleUpdate={triggerRefresh}
@@ -208,7 +206,7 @@ const Records = props => {
                                                           validateInput={(value) => validateNumber(value, true, 5, 2)}
                                                           handleUpdate={triggerRefresh}
                                         />
-                                        <EditableValueBox value={record.targets} suffix={data.company.currency} label="targets" style={{marginLeft: "5px"}}
+                                        <EditableValueBox value={record.targets} suffix={dataOld.company.currency} label="targets" style={{marginLeft: "5px"}}
                                                           updateObject={(value) => {return {id: record.id, targets: value}}}
                                                           validateInput={(value) => ""}
                                                           handleUpdate={triggerRefresh}
@@ -235,68 +233,18 @@ const Records = props => {
                             ))}
                         </CardContent>
                     </Card>
-                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 500, width: 500, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
+                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
                                 <Box sx={{color: 'text.secondary'}}>Research</Box>
                                 <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
-                                    {company.ticker}
-                                </Box>
-                                {company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{company.sector.name}</Box>}
-
-                                <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
-                                    {company.watching && <StarIcon sx={{color: 'gold',}}/>}
-                                    {!company.watching && <StarBorderIcon sx={{color: 'lightgrey',}}/>}
-                                </Button>
-                                <Dialog open={openConfirmWatchDialog} onClose={() => setOpenConfirmWatchDialog(false)}>
-                                    <DialogTitle>{"Are you sure to " + (company.watching ? "unwatch" : "watch") + " the company?"}</DialogTitle>
-                                    <DialogActions>
-                                        <Button onClick={() => setOpenConfirmWatchDialog(false)}>Cancel</Button>
-                                        <Button onClick={() => handleConfirmWatch()} autoFocus>Confirm</Button>
-                                    </DialogActions>
-                                </Dialog>
-
-                                <Button sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddPeriodDialog(true)}>
-                                    <ControlPointIcon sx={{color: 'lightgreen',}}/>
-                                </Button>
-                                <AddPeriodDialog open={openAddPeriodDialog}
-                                                 handleClose={() => setOpenAddPeriodDialog(false)}
-                                                 triggerRefresh={triggerRefresh}
-                                                 companyId={props.companySelectorValue.id}
-                                />
-                            </Box>
-
-
-
-
-                            {periods.map((period, index) => (
-                                <BorderedSection key={period.id} title={period.name + " - " + period.endingMonth + " - " + period.reportDate} style={{color: 'text.primary'}}>
-
-                                    <Typography>
-                                        {period.shares + " " + period.priceLatest + " " + period.priceLow + " " + period.priceHigh}
-                                    </Typography>
-
-                                    <div style={{width: "700px", margin: "15px auto 0 auto"}}>
-                                        <ContentEditor content={period.research} handleUpdate={(value) => periodUpdated(period.id, value)}/>
-                                    </div>
-
-
-                                </BorderedSection>
-                            ))}
-                        </CardContent>
-                    </Card>
-                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 500, width: 500, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
-                        <CardContent>
-                            <Box sx={{position: "relative"}}>
-                                <Box sx={{color: 'text.secondary'}}>Records</Box>
-                                <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
                                     {data.company.ticker}
                                 </Box>
                                 {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
-                                {data.marketCap && <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {data.company.currency}{data.marketCap}</Box>}
 
                                 <Financials sx={{marginBottom: "20px", marginTop: "20px"}}
                                             financials={data.financials}
+                                            ttm={data.ttm}
                                             triggerRefresh={triggerRefresh}
                                             expand={expandFinancials}
                                             setExpand={setExpandFinancials}
@@ -315,6 +263,66 @@ const Records = props => {
                                     </DialogActions>
                                 </Dialog>
 
+                                <Button sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddPeriodDialog(true)}>
+                                    <ControlPointIcon sx={{color: 'lightgreen',}}/>
+                                </Button>
+                                <AddPeriodDialog open={openAddPeriodDialog}
+                                                 handleClose={() => setOpenAddPeriodDialog(false)}
+                                                 triggerRefresh={triggerRefresh}
+                                                 companyId={props.companySelectorValue.id}
+                                />
+                            </Box>
+
+                            {data.periods.map((period, index) => (
+                                <BorderedSection key={period.id}
+                                                 title={period.name + " - ending: " + period.endingMonth + " - report: " + period.reportDate}
+                                                 style={{color: 'text.primary'}}>
+
+                                    <Typography sx={{color: 'text.secondary', fontSize: 14}}>
+                                        {"Shares: " + period.shares + " | Price: " + period.priceLatest + " | L: " + period.priceLow + " | H: " + period.priceHigh}
+                                    </Typography>
+                                    {period.revenue && <Typography sx={{color: 'text.secondary', fontSize: 14}} >
+                                        {"Revenue: " + period.revenue + " | Costs of Goods: " + period.costGoodsSold + " | Oprating Exp.: " + period.operatingExpenses + " | Net Income: " + period.netIncome}
+                                    </Typography>}
+
+                                    <div style={{width: "700px", margin: "15px auto 0 auto"}}>
+                                        <ContentEditor content={period.research} handleUpdate={(value) => periodUpdated(period.id, value)}/>
+                                    </div>
+
+                                </BorderedSection>
+                            ))}
+                        </CardContent>
+                    </Card>
+                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
+                        <CardContent>
+                            <Box sx={{position: "relative"}}>
+                                <Box sx={{color: 'text.secondary'}}>Records</Box>
+                                <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
+                                    {dataOld.company.ticker}
+                                </Box>
+                                {dataOld.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{dataOld.company.sector.name}</Box>}
+                                {dataOld.marketCap && <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {dataOld.company.currency}{dataOld.marketCap}</Box>}
+
+                                <Financials sx={{marginBottom: "20px", marginTop: "20px"}}
+                                            financials={dataOld.financials}
+                                            triggerRefresh={triggerRefresh}
+                                            expand={expandFinancials}
+                                            setExpand={setExpandFinancials}
+                                            {...props}
+                                />
+
+                                <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
+                                    {dataOld.company.watching && <StarIcon sx={{color: 'gold',}}/>}
+                                    {!dataOld.company.watching && <StarBorderIcon sx={{color: 'lightgrey',}}/>}
+                                </Button>
+                                <Dialog open={openConfirmWatchDialog} onClose={() => setOpenConfirmWatchDialog(false)}>
+                                    <DialogTitle>{"Are you sure to " + (dataOld.company.watching ? "unwatch" : "watch") + " the company?"}</DialogTitle>
+                                    <DialogActions>
+                                        <Button onClick={() => setOpenConfirmWatchDialog(false)}>Cancel</Button>
+                                        <Button onClick={() => handleConfirmWatch()} autoFocus>Confirm</Button>
+                                    </DialogActions>
+                                </Dialog>
+
                                 <Button sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddRecordDialog(true)}>
                                     <ControlPointIcon sx={{color: 'lightgreen',}}/>
                                 </Button>
@@ -325,15 +333,15 @@ const Records = props => {
                                 />
                             </Box>
 
-                            {data.owns.length > 0 &&
+                            {dataOld.owns.length > 0 &&
                                 <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
-                                    {data.owns.map((own, index) => (
+                                    {dataOld.owns.map((own, index) => (
                                         <Box key={index} sx={{marginLeft: "10px"}}>
                                             <Box sx={{color: profitColor(own.profit), fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
                                                 {own.profit && own.profit}
                                             </Box>
                                             <Box sx={{color: 'text.secondary', fontSize: 16, fontFamily: "Roboto",}}>
-                                                {own.quantity}@{own.price}{data.company.currency}
+                                                {own.quantity}@{own.price}{dataOld.company.currency}
                                             </Box>
                                         </Box>
                                     ))}
@@ -341,20 +349,20 @@ const Records = props => {
                             }
 
                             <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
-                                <LatestValueBox label="latest price" data={data.latest.price} suffix={data.company.currency}/>
-                                <LatestValueBox label="latest P/E" data={data.latest.pe} suffix="" sx={{marginLeft: "10px"}}/>
-                                <LatestValueBox label="latest P/S" data={data.latest.ps} suffix="" sx={{marginLeft: "10px"}}/>
-                                <LatestValueBox label="latest DY" data={data.latest.dy} suffix="%" sx={{marginLeft: "10px"}}/>
-                                <LatestValueBox label="latest targets" data={data.latest.targets} suffix="" sx={{marginLeft: "10px"}}/>
+                                <LatestValueBox label="latest price" data={dataOld.latest.price} suffix={dataOld.company.currency}/>
+                                <LatestValueBox label="latest P/E" data={dataOld.latest.pe} suffix="" sx={{marginLeft: "10px"}}/>
+                                <LatestValueBox label="latest P/S" data={dataOld.latest.ps} suffix="" sx={{marginLeft: "10px"}}/>
+                                <LatestValueBox label="latest DY" data={dataOld.latest.dy} suffix="%" sx={{marginLeft: "10px"}}/>
+                                <LatestValueBox label="latest targets" data={dataOld.latest.targets} suffix="" sx={{marginLeft: "10px"}}/>
                                 <Box sx={{ flexGrow: 1 }} />
-                                <LatestValueBox label="latest strategy" data={data.latest.strategy} suffix="" sx={{marginLeft: "10px"}}/>
+                                <LatestValueBox label="latest strategy" data={dataOld.latest.strategy} suffix="" sx={{marginLeft: "10px"}}/>
                             </Grid>
 
-                            {data.records.map((record, index) => (
+                            {dataOld.records.map((record, index) => (
                                 <BorderedSection key={record.id} title={record.date} style={{color: 'text.primary'}}>
 
                                     <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
-                                        <EditableValueBox value={record.price} suffix={data.company.currency} label="price"
+                                        <EditableValueBox value={record.price} suffix={dataOld.company.currency} label="price"
                                                           updateObject={(value) => {return {id: record.id, price: value}}}
                                                           validateInput={(value) => validateNumber(value, false, 10, 4)}
                                                           handleUpdate={triggerRefresh}
@@ -374,7 +382,7 @@ const Records = props => {
                                                           validateInput={(value) => validateNumber(value, true, 5, 2)}
                                                           handleUpdate={triggerRefresh}
                                         />
-                                        <EditableValueBox value={record.targets} suffix={data.company.currency} label="targets" style={{marginLeft: "5px"}}
+                                        <EditableValueBox value={record.targets} suffix={dataOld.company.currency} label="targets" style={{marginLeft: "5px"}}
                                                           updateObject={(value) => {return {id: record.id, targets: value}}}
                                                           validateInput={(value) => ""}
                                                           handleUpdate={triggerRefresh}
