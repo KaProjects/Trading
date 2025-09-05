@@ -55,7 +55,7 @@ public class DividendService
         Dividend newDividend = new Dividend();
 
         newDividend.setCompany(companyService.getCompany(dto.getCompanyId()));
-        newDividend.setDate(convertService.parse(dto.getDate()));
+        newDividend.setDate(convertService.parseDate(dto.getDate()));
         newDividend.setDividend(new BigDecimal(dto.getDividend()));
         newDividend.setTax(new BigDecimal(dto.getTax()));
 

@@ -33,7 +33,7 @@ public class RecordService
             throw new ServiceFailureException("record with id '" + dto.getId() + "' not found");
         }
 
-        if (dto.getDate() != null) record.setDate(convertService.parse(dto.getDate()));
+        if (dto.getDate() != null) record.setDate(convertService.parseDate(dto.getDate()));
         if (dto.getTitle() != null) record.setTitle(dto.getTitle());
         if (dto.getPrice() != null) record.setPrice(new BigDecimal(dto.getPrice()));
         if (dto.getPe() != null) record.setPe(dto.getPe().isBlank() ? null : new BigDecimal(dto.getPe()));
@@ -51,7 +51,7 @@ public class RecordService
         Record newRecord = new Record();
 
         newRecord.setCompany(companyService.getCompany(dto.getCompanyId()));
-        newRecord.setDate(convertService.parse(dto.getDate()));
+        newRecord.setDate(convertService.parseDate(dto.getDate()));
         newRecord.setPrice(new BigDecimal(dto.getPrice()));
         newRecord.setTitle(dto.getTitle());
 

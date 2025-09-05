@@ -31,7 +31,7 @@ public class Period extends AbstractEntity
     private Date reportDate;
 
     @Column(name = "shares")
-    private String shares;
+    private BigDecimal shares;
 
     @Column(name = "price_latest")
     private BigDecimal priceLatest;

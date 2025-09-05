@@ -38,14 +38,46 @@ class PeriodResourceTest
         assertThat(dto.getCompany().getWatching(), is(true));
         assertThat(dto.getCompany().getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
 
-        assertThat(dto.getPeriods().size(), is(2));
+        assertThat(dto.getPeriods().size(), is(3));
         assertThat(dto.getPeriods().get(0).getName(), is("25Q1"));
-        assertThat(dto.getPeriods().get(0).getEndingMonth(), is("2504"));
-        assertThat(dto.getPeriods().get(0).getReportDate(), is(nullValue()));
+        assertThat(dto.getPeriods().get(0).getEndingMonth(), is("04/2025"));
+        assertThat(dto.getPeriods().get(0).getReportDate(), is(""));
         assertThat(dto.getPeriods().get(1).getName(), is("24Q4"));
-        assertThat(dto.getPeriods().get(1).getEndingMonth(), is("2501"));
+        assertThat(dto.getPeriods().get(1).getEndingMonth(), is("01/2025"));
         assertThat(dto.getPeriods().get(1).getReportDate(), is("15.02.2025"));
+        assertThat(dto.getPeriods().get(1).getRevenue(), is("1B"));
+        assertThat(dto.getPeriods().get(1).getCostGoodsSold(), is("500M"));
+        assertThat(dto.getPeriods().get(1).getOperatingExpenses(), is("300M"));
+        assertThat(dto.getPeriods().get(1).getNetIncome(), is("80M"));
+        assertThat(dto.getPeriods().get(2).getName(), is("24Q3"));
+        assertThat(dto.getPeriods().get(2).getEndingMonth(), is("10/2024"));
+        assertThat(dto.getPeriods().get(2).getReportDate(), is("15.11.2024"));
+        assertThat(dto.getPeriods().get(2).getRevenue(), is("500M"));
+        assertThat(dto.getPeriods().get(2).getCostGoodsSold(), is("400M"));
+        assertThat(dto.getPeriods().get(2).getOperatingExpenses(), is("50M"));
+        assertThat(dto.getPeriods().get(2).getNetIncome(), is("0M"));
 
+        assertThat(dto.getFinancials().size(), is(2));
+        assertThat(dto.getFinancials().get(0).getPeriod(), is("24Q4"));
+        assertThat(dto.getFinancials().get(0).getRevenue(), is("1B"));
+        assertThat(dto.getFinancials().get(0).getCostGoodsSold(), is("500M"));
+        assertThat(dto.getFinancials().get(0).getGrossProfit(), is("500M"));
+        assertThat(dto.getFinancials().get(0).getGrossMargin(), is("50"));
+        assertThat(dto.getFinancials().get(0).getOperatingExpenses(), is("300M"));
+        assertThat(dto.getFinancials().get(0).getOperatingIncome(), is("200M"));
+        assertThat(dto.getFinancials().get(0).getOperatingMargin(), is("20"));
+        assertThat(dto.getFinancials().get(0).getNetIncome(), is("80M"));
+        assertThat(dto.getFinancials().get(0).getNetMargin(), is("8"));
+
+        assertThat(dto.getTtm().getRevenue(), is("3B"));
+        assertThat(dto.getTtm().getCostGoodsSold(), is("1.8B"));
+        assertThat(dto.getTtm().getGrossProfit(), is("1.2B"));
+        assertThat(dto.getTtm().getGrossMargin(), is("40"));
+        assertThat(dto.getTtm().getOperatingExpenses(), is("700M"));
+        assertThat(dto.getTtm().getOperatingIncome(), is("500M"));
+        assertThat(dto.getTtm().getOperatingMargin(), is("17"));
+        assertThat(dto.getTtm().getNetIncome(), is("160M"));
+        assertThat(dto.getTtm().getNetMargin(), is("5"));
     }
 
     @Test
@@ -91,9 +123,9 @@ class PeriodResourceTest
         assertThat(periodsDto.getCompany().getTicker(), is("XXX"));
         assertThat(periodsDto.getPeriods().size(), is(1));
         assertThat(periodsDto.getPeriods().get(0).getName(), is(newName));
-        assertThat(periodsDto.getPeriods().get(0).getEndingMonth(), is(newEndingMonth));
+        assertThat(periodsDto.getPeriods().get(0).getEndingMonth(), is("11/2020"));
         assertThat(periodsDto.getPeriods().get(0).getReportDate(), is("15.12.2020"));
-        assertThat(periodsDto.getPeriods().get(0).getShares(), is(newShares));
+        assertThat(periodsDto.getPeriods().get(0).getShares(), is("12.35B"));
         assertThat(periodsDto.getPeriods().get(0).getPriceLatest(), is(newPriceLatest));
         assertThat(periodsDto.getPeriods().get(0).getPriceHigh(), is(newPriceHigh));
         assertThat(periodsDto.getPeriods().get(0).getPriceLow(), is(newPriceLow));
@@ -148,6 +180,9 @@ class PeriodResourceTest
         assertThat(afterDto.getCostGoodsSold(), is(beforeDto.getCostGoodsSold()));
         assertThat(afterDto.getOperatingExpenses(), is(beforeDto.getOperatingExpenses()));
         assertThat(afterDto.getNetIncome(), is(beforeDto.getNetIncome()));
+
+        assertThat(afterPeriodsDto.getTtm(), is(nullValue()));
+        assertThat(afterPeriodsDto.getFinancials().size(), is(0));
     }
 
     @Test
@@ -339,7 +374,7 @@ class PeriodResourceTest
         assertThat(periodsDto.getCompany().getTicker(), is("ZZZ"));
         assertThat(periodsDto.getPeriods().size(), is(1));
         assertThat(periodsDto.getPeriods().get(0).getName(), is(dto.getName()));
-        assertThat(periodsDto.getPeriods().get(0).getEndingMonth(), is(dto.getEndingMonth()));
+        assertThat(periodsDto.getPeriods().get(0).getEndingMonth(), is("10/2015"));
         assertThat(periodsDto.getPeriods().get(0).getReportDate(), is("11.11.2015"));
         assertThat(periodsDto.getPeriods().get(0).getPriceLatest(), is(blankString()));
         assertThat(periodsDto.getPeriods().get(0).getPriceHigh(), is(blankString()));

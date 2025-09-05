@@ -10,4 +10,6 @@ public class PeriodsDto
 {
     private CompanyDto company;
     private List<PeriodDto> periods = new ArrayList<>();
+    private List<FinancialDto> financials = new ArrayList<>();
+    private FinancialDto ttm;
 }

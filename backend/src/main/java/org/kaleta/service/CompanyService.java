@@ -8,6 +8,7 @@ import org.kaleta.dao.CompanyDao;
 import org.kaleta.dao.RecordDao;
 import org.kaleta.dao.TradeDao;
 import org.kaleta.dto.CompanyDto;
+import org.kaleta.dto.SectorDto;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Sector;
 import org.kaleta.model.CompanyInfo;
@@ -26,8 +27,6 @@ public class CompanyService
     RecordDao recordDao;
     @Inject
     TradeDao tradeDao;
-    @Inject
-    ConvertService convertService;
 
     public List<Company> getCompanies()
     {
@@ -129,15 +128,29 @@ public class CompanyService
         companyDao.create(newCompany);
     }
 
-    public CompanyDto from(Company company)
+    public CompanyDto getDto(String companyId)
+    {
+        return from(getCompany(companyId));
+    }
+
+    private CompanyDto from(Company company)
     {
         CompanyDto dto = new CompanyDto();
         dto.setId(company.getId());
         dto.setTicker(company.getTicker());
         dto.setCurrency(company.getCurrency());
         dto.setWatching(company.isWatching());
-        dto.setSector(convertService.from(company.getSector()));
+        dto.setSector(from(company.getSector()));
         dto.setShares(company.getShares());
+        return dto;
+    }
+
+    private SectorDto from(Sector sector)
+    {
+        if (sector == null) return null;
+        SectorDto dto = new SectorDto();
+        dto.setKey(sector.toString());
+        dto.setName(sector.getName());
         return dto;
     }
 }

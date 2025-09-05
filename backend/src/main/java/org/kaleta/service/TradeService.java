@@ -74,7 +74,7 @@ public class TradeService
         Trade newTrade = new Trade();
 
         newTrade.setCompany(companyService.getCompany(dto.getCompanyId()));
-        newTrade.setPurchaseDate(convertService.parse(dto.getDate()));
+        newTrade.setPurchaseDate(convertService.parseDate(dto.getDate()));
         newTrade.setQuantity(new BigDecimal(dto.getQuantity()));
         newTrade.setPurchasePrice(new BigDecimal(dto.getPrice()));
         newTrade.setPurchaseFees(new BigDecimal(dto.getFees()));
@@ -104,7 +104,7 @@ public class TradeService
             }
         }
 
-        Date date = convertService.parse(dto.getDate());
+        Date date = convertService.parseDate(dto.getDate());
 
         for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {
