@@ -13,8 +13,11 @@ import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import {handleError, validateNumber} from "../utils";
 import LatestValueBox from "../components/LatestValueBox";
-import Financials from "../components/Financials";
+import PeriodFinancials from "../components/PeriodFinancials";
 import AddPeriodDialog from "../dialog/AddPeriodDialog";
+import RecordFinancials from "../components/RecordFinancials";
+import AddPeriodFinancialDialog from "../dialog/AddPeriodFinancialDialog";
+import Tooltip from "@mui/material/Tooltip";
 
 
 function profitColor(profit){
@@ -39,6 +42,7 @@ const Records = props => {
     const [openAddPeriodDialog, setOpenAddPeriodDialog] = useState(false)
     const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
     const [expandFinancials, setExpandFinancials] = useState(false)
+    const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
 
     function fetchData(companyChanged) {
         if (props.companySelectorValue) {
@@ -127,12 +131,12 @@ const Records = props => {
                                 {dataOld.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{dataOld.company.sector.name}</Box>}
                                 {dataOld.marketCap && <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {dataOld.company.currency}{dataOld.marketCap}</Box>}
 
-                                <Financials sx={{marginBottom: "20px", marginTop: "20px"}}
-                                            financials={dataOld.financials}
-                                            triggerRefresh={triggerRefresh}
-                                            expand={expandFinancials}
-                                            setExpand={setExpandFinancials}
-                                            {...props}
+                                <RecordFinancials sx={{marginBottom: "20px", marginTop: "20px"}}
+                                                  financials={dataOld.financials}
+                                                  triggerRefresh={triggerRefresh}
+                                                  expand={expandFinancials}
+                                                  setExpand={setExpandFinancials}
+                                                  {...props}
                                 />
 
                                 <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
@@ -242,13 +246,13 @@ const Records = props => {
                                 </Box>
                                 {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
 
-                                <Financials sx={{marginBottom: "20px", marginTop: "20px"}}
-                                            financials={data.financials}
-                                            ttm={data.ttm}
-                                            triggerRefresh={triggerRefresh}
-                                            expand={expandFinancials}
-                                            setExpand={setExpandFinancials}
-                                            {...props}
+                                <PeriodFinancials sx={{marginBottom: "20px", marginTop: "20px"}}
+                                                  financials={data.financials}
+                                                  ttm={data.ttm}
+                                                  triggerRefresh={triggerRefresh}
+                                                  expand={expandFinancials}
+                                                  setExpand={setExpandFinancials}
+                                                  {...props}
                                 />
 
                                 <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
@@ -273,6 +277,14 @@ const Records = props => {
                                 />
                             </Box>
 
+                            <AddPeriodFinancialDialog open={openAddFinancialDialog !== null}
+                                                      period={openAddFinancialDialog}
+                                                      triggerRefresh={triggerRefresh}
+                                                      handleClose={() => setOpenAddFinancialDialog(null)}
+                                                      companyId={props.companySelectorValue.id}
+                                                      {...props}
+                            />
+
                             {data.periods.map((period, index) => (
                                 <BorderedSection key={period.id}
                                                  title={period.name + " - ending: " + period.endingMonth + " - report: " + period.reportDate}
@@ -281,13 +293,27 @@ const Records = props => {
                                     <Typography sx={{color: 'text.secondary', fontSize: 14}}>
                                         {"Shares: " + period.shares + " | Price: " + period.priceLatest + " | L: " + period.priceLow + " | H: " + period.priceHigh}
                                     </Typography>
-                                    {period.revenue && <Typography sx={{color: 'text.secondary', fontSize: 14}} >
-                                        {"Revenue: " + period.revenue + " | Costs of Goods: " + period.costGoodsSold + " | Oprating Exp.: " + period.operatingExpenses + " | Net Income: " + period.netIncome}
-                                    </Typography>}
 
                                     <div style={{width: "700px", margin: "15px auto 0 auto"}}>
                                         <ContentEditor content={period.research} handleUpdate={(value) => periodUpdated(period.id, value)}/>
                                     </div>
+
+                                    {period.revenue &&
+                                        <Typography sx={{color: 'text.secondary', fontSize: 14}} >
+                                            {"Revenue: " + period.revenue
+                                                + " | Costs of Goods: " + period.costGoodsSold
+                                                + " | Oprating Exp.: " + period.operatingExpenses
+                                                + " | Net Income: " + period.netIncome
+                                                + " | Dividend: " + period.dividend}
+                                        </Typography>
+                                    }
+                                    {!period.revenue &&
+                                        <Tooltip title="Add Financials">
+                                            <Button sx={{height: "25px"}} onClick={() => setOpenAddFinancialDialog(period)}>
+                                                <ControlPointIcon sx={{color: 'lightgreen'}}/>
+                                            </Button>
+                                        </Tooltip>
+                                    }
 
                                 </BorderedSection>
                             ))}
@@ -303,12 +329,12 @@ const Records = props => {
                                 {dataOld.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{dataOld.company.sector.name}</Box>}
                                 {dataOld.marketCap && <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {dataOld.company.currency}{dataOld.marketCap}</Box>}
 
-                                <Financials sx={{marginBottom: "20px", marginTop: "20px"}}
-                                            financials={dataOld.financials}
-                                            triggerRefresh={triggerRefresh}
-                                            expand={expandFinancials}
-                                            setExpand={setExpandFinancials}
-                                            {...props}
+                                <PeriodFinancials sx={{marginBottom: "20px", marginTop: "20px"}}
+                                                  financials={dataOld.financials}
+                                                  triggerRefresh={triggerRefresh}
+                                                  expand={expandFinancials}
+                                                  setExpand={setExpandFinancials}
+                                                  {...props}
                                 />
 
                                 <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>

@@ -13,17 +13,13 @@ import {
 import React, {useState} from "react";
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
-import ControlPointIcon from "@mui/icons-material/ControlPoint";
-import Tooltip from "@mui/material/Tooltip";
-import AddFinancialDialog from "../dialog/AddFinancialDialog";
 
 
-const Financials = props => {
+const PeriodFinancials = props => {
     const {financials, ttm, expand, setExpand} = props
     const [showExpand, setShowExpand] = useState(false)
-    const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(false)
 
-    const headers = ["Revenue", "Gross Profit", "Operating Income", "Net Income", "Period"]
+    const headers = ["Revenue", "Gross Profit", "Operating Income", "Net Income", "Period", "Dividend"]
     const labels = ["revenue", "gross profit", "operating income", "net income"]
 
     function boxWithMarginAndLabel(value, label, margin){
@@ -43,12 +39,6 @@ const Financials = props => {
 
     return(
         <Paper elevation={0}  sx={props.sx} onMouseEnter={() => setShowExpand(true)} onMouseLeave={() => setShowExpand(false)}>
-
-        <AddFinancialDialog open={openAddFinancialDialog}
-                            handleClose={() => setOpenAddFinancialDialog(false)}
-                            companyId={props.companySelectorValue.id}
-                            {...props}
-        />
 
         <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
             {ttm && boxWithMarginAndLabel(ttm.revenue, labels[0], 100)}
@@ -80,6 +70,7 @@ const Financials = props => {
                             <TableCell key={2} sx={{textAlign: "right"}}>{cellWithMargin(financial.operatingIncome, financial.operatingMargin)}</TableCell>
                             <TableCell key={3} sx={{textAlign: "right"}}>{cellWithMargin(financial.netIncome, financial.netMargin)}</TableCell>
                             <TableCell key={4} sx={{textAlign: "center"}}>{financial.period}</TableCell>
+                            <TableCell key={5} sx={{textAlign: "right"}}>{financial.dividend}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -90,4 +81,4 @@ const Financials = props => {
         </Paper>
     )
 }
-export default Financials
+export default PeriodFinancials

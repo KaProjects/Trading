@@ -6,7 +6,7 @@ import {backend} from "../properties";
 import {getFinancial} from "../service/PolygonIoService";
 import FindReplaceIcon from '@mui/icons-material/FindReplace';
 
-const AddFinancialDialog = props => {
+const AddRecordFinancialDialog = props => {
     const {handleClose, open} = props
 
     const [alert, setAlert] = useState(null)
@@ -125,4 +125,4 @@ const AddFinancialDialog = props => {
         </Dialog>
     )
 }
-export default AddFinancialDialog
+export default AddRecordFinancialDialog
