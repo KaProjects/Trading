@@ -15,4 +15,5 @@ public class FinancialDto
     private String operatingMargin;
     private String netIncome;
     private String netMargin;
+    private String dividend;
 }

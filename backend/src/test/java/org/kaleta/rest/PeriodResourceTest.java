@@ -49,6 +49,7 @@ class PeriodResourceTest
         assertThat(dto.getPeriods().get(1).getCostGoodsSold(), is("500M"));
         assertThat(dto.getPeriods().get(1).getOperatingExpenses(), is("300M"));
         assertThat(dto.getPeriods().get(1).getNetIncome(), is("80M"));
+        assertThat(dto.getPeriods().get(1).getDividend(), is("20M"));
         assertThat(dto.getPeriods().get(2).getName(), is("24Q3"));
         assertThat(dto.getPeriods().get(2).getEndingMonth(), is("10/2024"));
         assertThat(dto.getPeriods().get(2).getReportDate(), is("15.11.2024"));
@@ -56,6 +57,7 @@ class PeriodResourceTest
         assertThat(dto.getPeriods().get(2).getCostGoodsSold(), is("400M"));
         assertThat(dto.getPeriods().get(2).getOperatingExpenses(), is("50M"));
         assertThat(dto.getPeriods().get(2).getNetIncome(), is("0M"));
+        assertThat(dto.getPeriods().get(2).getDividend(), is("10M"));
 
         assertThat(dto.getFinancials().size(), is(2));
         assertThat(dto.getFinancials().get(0).getPeriod(), is("24Q4"));
@@ -95,6 +97,7 @@ class PeriodResourceTest
         String newCostGoodsSold = "5";
         String newOperatingExpenses = "10";
         String newNetIncome = "5";
+        String newDividends = "2";
 
         PeriodDto dto = new PeriodDto();
         dto.setId("550e8400-e29b-41d4-a716-446655440000");
@@ -110,6 +113,7 @@ class PeriodResourceTest
         dto.setCostGoodsSold(newCostGoodsSold);
         dto.setOperatingExpenses(newOperatingExpenses);
         dto.setNetIncome(newNetIncome);
+        dto.setDividend(newDividends);
 
         Assert.put204(path, dto);
 
@@ -134,6 +138,7 @@ class PeriodResourceTest
         assertThat(periodsDto.getPeriods().get(0).getCostGoodsSold(), is(newCostGoodsSold + "M"));
         assertThat(periodsDto.getPeriods().get(0).getOperatingExpenses(), is(newOperatingExpenses + "M"));
         assertThat(periodsDto.getPeriods().get(0).getNetIncome(), is(newNetIncome + "M"));
+        assertThat(periodsDto.getPeriods().get(0).getDividend(), is(newDividends + "M"));
     }
 
     @Test
@@ -180,6 +185,7 @@ class PeriodResourceTest
         assertThat(afterDto.getCostGoodsSold(), is(beforeDto.getCostGoodsSold()));
         assertThat(afterDto.getOperatingExpenses(), is(beforeDto.getOperatingExpenses()));
         assertThat(afterDto.getNetIncome(), is(beforeDto.getNetIncome()));
+        assertThat(afterDto.getDividend(), is(beforeDto.getDividend()));
 
         assertThat(afterPeriodsDto.getTtm(), is(nullValue()));
         assertThat(afterPeriodsDto.getFinancials().size(), is(0));
@@ -350,6 +356,22 @@ class PeriodResourceTest
 
         dto.setNetIncome("10.123");
         Assert.put400(path, dto, "Invalid Net Income:");
+
+        dto.setNetIncome(null);
+        dto.setDividend("x");
+        Assert.put400(path, dto, "Invalid Dividends:");
+
+        dto.setDividend(".1");
+        Assert.put400(path, dto, "Invalid Dividends:");
+
+        dto.setDividend("1.");
+        Assert.put400(path, dto, "Invalid Dividends:");
+
+        dto.setDividend("1234567");
+        Assert.put400(path, dto, "Invalid Dividends:");
+
+        dto.setDividend("10.123");
+        Assert.put400(path, dto, "Invalid Dividends:");
     }
 
     @Test

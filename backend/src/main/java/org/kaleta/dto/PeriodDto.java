@@ -18,4 +18,5 @@ public class PeriodDto
     private String costGoodsSold;
     private String operatingExpenses;
     private String netIncome;
+    private String dividend;
 }

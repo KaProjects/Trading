@@ -73,6 +73,7 @@ public class Generator
             period.setCostGoodsSold(randomBigDecimal(period.getRevenue(), 2));
             period.setOperatingExpenses(randomBigDecimal(period.getCostGoodsSold(), 2));
             period.setNetIncome(randomBigDecimal(period.getOperatingExpenses(), 2));
+            period.setDividend(randomBigDecimal(period.getNetIncome(), 2));
         }
         return period;
     }

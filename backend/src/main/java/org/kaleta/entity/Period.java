@@ -56,4 +56,7 @@ public class Period extends AbstractEntity
 
     @Column(name = "net_income")
     private BigDecimal netIncome;
+
+    @Column(name = "dividend")
+    private BigDecimal dividend;
 }

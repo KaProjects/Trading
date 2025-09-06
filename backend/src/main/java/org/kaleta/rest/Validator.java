@@ -1,6 +1,5 @@
 package org.kaleta.rest;
 
-import jakarta.ws.rs.core.Response;
 import org.kaleta.Utils;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.DividendCreateDto;
@@ -165,6 +164,9 @@ public class Validator
 
         if (dto.getNetIncome() != null && !isBigDecimal(dto.getNetIncome(), 8, 2))
             throw new ValidationFailedException("Invalid Net Income: '" + dto.getNetIncome() + "'");
+
+        if (dto.getDividend() != null && !isBigDecimal(dto.getDividend(), 8, 2))
+            throw new ValidationFailedException("Invalid Dividends: '" + dto.getDividend() + "'");
     }
 
     public static void validateCreateTradeDto(TradeCreateDto dto)

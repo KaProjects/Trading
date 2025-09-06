@@ -48,6 +48,7 @@ public class PeriodService
         if (dto.getCostGoodsSold() != null) period.setCostGoodsSold(new BigDecimal(dto.getCostGoodsSold()));
         if (dto.getOperatingExpenses() != null) period.setOperatingExpenses(new BigDecimal(dto.getOperatingExpenses()));
         if (dto.getNetIncome() != null) period.setNetIncome(new BigDecimal(dto.getNetIncome()));
+        if (dto.getDividend() != null) period.setDividend(new BigDecimal(dto.getDividend()));
 
         periodDao.save(period);
     }
@@ -103,6 +104,7 @@ public class PeriodService
         dto.setCostGoodsSold(convertService.formatMillions(period.getCostGoodsSold()));
         dto.setOperatingExpenses(convertService.formatMillions(period.getOperatingExpenses()));
         dto.setNetIncome(convertService.formatMillions(period.getNetIncome()));
+        dto.setDividend(convertService.formatMillions(period.getDividend()));
         return dto;
     }
 
@@ -130,6 +132,8 @@ public class PeriodService
         BigDecimal netMargin = period.getNetIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
         dto.setNetMargin(convertService.formatNoDecimal(netMargin));
 
+        dto.setDividend(convertService.formatMillions(period.getDividend()));
+
         return dto;
     }
 
@@ -142,6 +146,7 @@ public class PeriodService
         BigDecimal cogs = new BigDecimal(0);
         BigDecimal opExpenses = new BigDecimal(0);
         BigDecimal netIncome = new BigDecimal(0);
+        BigDecimal dividend = new BigDecimal(0);
 
         for (int i=0; i<4; i++){
             if (quarters.size() > i){
@@ -149,14 +154,14 @@ public class PeriodService
                 cogs = cogs.add(quarters.get(i).getCostGoodsSold());
                 opExpenses = opExpenses.add(quarters.get(i).getOperatingExpenses());
                 netIncome = netIncome.add(quarters.get(i).getNetIncome());
-
+                dividend = dividend.add(quarters.get(i).getDividend());
             } else {
                 BigDecimal multiplier = new BigDecimal(4).divide(new BigDecimal(i), 4, RoundingMode.HALF_UP);
                 revenue = revenue.multiply(multiplier);
                 cogs = cogs.multiply(multiplier);
                 opExpenses = opExpenses.multiply(multiplier);
                 netIncome = netIncome.multiply(multiplier);
-
+                dividend = dividend.multiply(multiplier);
                 break;
             }
         }
@@ -166,7 +171,7 @@ public class PeriodService
         ttm.setCostGoodsSold(cogs.setScale(0, RoundingMode.HALF_UP));
         ttm.setOperatingExpenses(opExpenses.setScale(0, RoundingMode.HALF_UP));
         ttm.setNetIncome(netIncome.setScale(0, RoundingMode.HALF_UP));
-
+        ttm.setDividend(dividend.setScale(0, RoundingMode.HALF_UP));
         return computeFinancialFrom(ttm);
     }
 
@@ -181,6 +186,7 @@ public class PeriodService
                     quarter.setCostGoodsSold(period.getCostGoodsSold().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarter.setOperatingExpenses(period.getOperatingExpenses().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarter.setNetIncome(period.getNetIncome().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
+                    quarter.setDividend(period.getDividend().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarters.add(quarter);
                     quarters.add(quarter);
                     quarters.add(quarter);
@@ -191,6 +197,7 @@ public class PeriodService
                     quarter.setCostGoodsSold(period.getCostGoodsSold().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarter.setOperatingExpenses(period.getOperatingExpenses().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarter.setNetIncome(period.getNetIncome().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
+                    quarter.setDividend(period.getDividend().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarters.add(quarter);
                     quarters.add(quarter);
                     break;

@@ -94,6 +94,7 @@ public class PeriodServiceTest
         periodDto.setCostGoodsSold("10250");
         periodDto.setOperatingExpenses("1250");
         periodDto.setNetIncome("125");
+        periodDto.setDividend("50");
 
         service.update(periodDto);
 
@@ -113,6 +114,7 @@ public class PeriodServiceTest
         assertThat(captor.getValue().getCostGoodsSold(), is(new BigDecimal("10250")));
         assertThat(captor.getValue().getOperatingExpenses(), is(new BigDecimal("1250")));
         assertThat(captor.getValue().getNetIncome(), is(new BigDecimal("125")));
+        assertThat(captor.getValue().getDividend(), is(new BigDecimal("50")));
     }
 
     @Test
@@ -144,6 +146,7 @@ public class PeriodServiceTest
         assertThat(captor.getValue().getCostGoodsSold(), is(period.getCostGoodsSold()));
         assertThat(captor.getValue().getOperatingExpenses(), is(period.getOperatingExpenses()));
         assertThat(captor.getValue().getNetIncome(), is(period.getNetIncome()));
+        assertThat(captor.getValue().getDividend(), is(period.getDividend()));
     }
 
     @Test
@@ -219,6 +222,7 @@ public class PeriodServiceTest
         period1.setCostGoodsSold(new BigDecimal("2000"));
         period1.setOperatingExpenses(new BigDecimal("500"));
         period1.setNetIncome(new BigDecimal("100"));
+        period1.setDividend(new BigDecimal("40"));
         Period period2 = Generator.generatePeriod(company, false, "25Q2", "2507");
 
         when(companyDao.get(company.getId())).thenReturn(company);
@@ -241,6 +245,7 @@ public class PeriodServiceTest
         assertThat(dto.getFinancials().get(0).getOperatingMargin(), is("17"));
         assertThat(dto.getFinancials().get(0).getNetIncome(), is("100M"));
         assertThat(dto.getFinancials().get(0).getNetMargin(), is("3"));
+        assertThat(dto.getFinancials().get(0).getDividend(), is("40M"));
     }
 
     @Test
@@ -252,12 +257,14 @@ public class PeriodServiceTest
         period1.setCostGoodsSold(new BigDecimal("2000"));
         period1.setOperatingExpenses(new BigDecimal("500"));
         period1.setNetIncome(new BigDecimal("100"));
+        period1.setDividend(new BigDecimal("10"));
         Period period2 = Generator.generatePeriod(company, false, "25Q2", "2507");
         Period period3 = Generator.generatePeriod(company, true, "24Q4", "2501");
         period3.setRevenue(new BigDecimal("2500"));
         period3.setCostGoodsSold(new BigDecimal("1000"));
         period3.setOperatingExpenses(new BigDecimal("400"));
         period3.setNetIncome(new BigDecimal("50"));
+        period3.setDividend(new BigDecimal("5"));
 
         when(companyDao.get(company.getId())).thenReturn(company);
         when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
@@ -278,6 +285,7 @@ public class PeriodServiceTest
         assertThat(dto.getTtm().getOperatingMargin(), is("29"));
         assertThat(dto.getTtm().getNetIncome(), is("300M"));
         assertThat(dto.getTtm().getNetMargin(), is("3"));
+        assertThat(dto.getTtm().getDividend(), is("30M"));
     }
 
     @Test
@@ -289,12 +297,14 @@ public class PeriodServiceTest
         period1.setCostGoodsSold(new BigDecimal("2000"));
         period1.setOperatingExpenses(new BigDecimal("500"));
         period1.setNetIncome(new BigDecimal("100"));
+        period1.setDividend(new BigDecimal("10.55"));
         Period period2 = Generator.generatePeriod(company, false, "25H2", "2510");
         Period period3 = Generator.generatePeriod(company, true, "24H2", "2410");
         period3.setRevenue(new BigDecimal("2500"));
         period3.setCostGoodsSold(new BigDecimal("1000"));
         period3.setOperatingExpenses(new BigDecimal("400"));
         period3.setNetIncome(new BigDecimal("50"));
+        period3.setDividend(new BigDecimal("9.45"));
 
         when(companyDao.get(company.getId())).thenReturn(company);
         when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
@@ -315,6 +325,7 @@ public class PeriodServiceTest
         assertThat(dto.getTtm().getOperatingMargin(), is("29"));
         assertThat(dto.getTtm().getNetIncome(), is("150M"));
         assertThat(dto.getTtm().getNetMargin(), is("3"));
+        assertThat(dto.getTtm().getDividend(), is("20M"));
     }
 
     @Test
@@ -326,12 +337,14 @@ public class PeriodServiceTest
         period1.setCostGoodsSold(new BigDecimal("2000"));
         period1.setOperatingExpenses(new BigDecimal("500"));
         period1.setNetIncome(new BigDecimal("100"));
+        period1.setDividend(new BigDecimal("10"));
         Period period2 = Generator.generatePeriod(company, false, "26FY", "2601");
         Period period3 = Generator.generatePeriod(company, true, "24FY", "2401");
         period3.setRevenue(new BigDecimal("2500"));
         period3.setCostGoodsSold(new BigDecimal("1000"));
         period3.setOperatingExpenses(new BigDecimal("400"));
         period3.setNetIncome(new BigDecimal("50"));
+        period3.setDividend(new BigDecimal("5"));
 
         when(companyDao.get(company.getId())).thenReturn(company);
         when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
@@ -351,6 +364,7 @@ public class PeriodServiceTest
         assertThat(dto.getTtm().getOperatingMargin(), is("17"));
         assertThat(dto.getTtm().getNetIncome(), is("100M"));
         assertThat(dto.getTtm().getNetMargin(), is("3"));
+        assertThat(dto.getTtm().getDividend(), is("10M"));
     }
 
     @Test
@@ -362,12 +376,14 @@ public class PeriodServiceTest
         period1.setCostGoodsSold(new BigDecimal("2000"));
         period1.setOperatingExpenses(new BigDecimal("500"));
         period1.setNetIncome(new BigDecimal("100"));
+        period1.setDividend(new BigDecimal("10"));
         Period period2 = Generator.generatePeriod(company, false, "25Q2", "2507");
         Period period3 = Generator.generatePeriod(company, true, "24H2", "2501");
         period3.setRevenue(new BigDecimal("2500"));
         period3.setCostGoodsSold(new BigDecimal("1000"));
         period3.setOperatingExpenses(new BigDecimal("400"));
         period3.setNetIncome(new BigDecimal("50"));
+        period3.setDividend(new BigDecimal("5"));
 
         when(companyDao.get(company.getId())).thenReturn(company);
         when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
@@ -387,6 +403,7 @@ public class PeriodServiceTest
         assertThat(dto.getTtm().getOperatingMargin(), is("29"));
         assertThat(dto.getTtm().getNetIncome(), is("200M"));
         assertThat(dto.getTtm().getNetMargin(), is("3"));
+        assertThat(dto.getTtm().getDividend(), is("20M"));
     }
 
     @Test
@@ -420,5 +437,36 @@ public class PeriodServiceTest
         } catch (IllegalArgumentException e) {
             assertThat(e.getMessage(), is("Invalid period name: '25XY'"));
         }
+    }
+
+    @Test
+    void getByCompanyIdTtmNegativeValues ()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, true, "25Q1", "2504");
+        period1.setRevenue(new BigDecimal("3000"));
+        period1.setCostGoodsSold(new BigDecimal("2000"));
+        period1.setOperatingExpenses(new BigDecimal("500"));
+        period1.setNetIncome(new BigDecimal("-100"));
+
+        when(companyDao.get(company.getId())).thenReturn(company);
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1)));
+
+        PeriodsDto dto = service.getBy(company.getId());
+
+        assertThat(dto.getCompany().getId(), is(company.getId()));
+        assertThat(dto.getPeriods().size(), is(1));
+        assertThat(dto.getFinancials().size(), is(1));
+
+        assertThat(dto.getTtm().getPeriod(), is(nullValue()));
+        assertThat(dto.getTtm().getRevenue(), is("12B"));
+        assertThat(dto.getTtm().getCostGoodsSold(), is("8B"));
+        assertThat(dto.getTtm().getGrossProfit(), is("4B"));
+        assertThat(dto.getTtm().getGrossMargin(), is("33"));
+        assertThat(dto.getTtm().getOperatingExpenses(), is("2B"));
+        assertThat(dto.getTtm().getOperatingIncome(), is("2B"));
+        assertThat(dto.getTtm().getOperatingMargin(), is("17"));
+        assertThat(dto.getTtm().getNetIncome(), is("-400M"));
+        assertThat(dto.getTtm().getNetMargin(), is("-3"));
     }
 }

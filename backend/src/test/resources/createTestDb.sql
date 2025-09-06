@@ -68,9 +68,9 @@ INSERT INTO Financial (id, companyId, quarter, revenue, cogs, op_exp, net_income
 INSERT INTO Financial (id, companyId, quarter, revenue, cogs, op_exp, net_income) VALUES ('a1f81be4-5a7a-426d-b9ca-90d9e08e7cb8', '6877c444-00ee-4af5-99ef-415980484d8c', '23Q1', '1000', '100', '50', '800');
 INSERT INTO Financial (id, companyId, quarter, revenue, cogs, op_exp, net_income) VALUES ('a1f81be4-5a55-426d-b9ca-90d9e08e7cb8', '6877c555-00ee-4af5-99ef-415980484d8c', '23Q1', '1000', '100', '50', '800');
 
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income) VALUES ('getPeriods1', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend) VALUES ('getPeriods1', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES ('getPeriods2', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '25Q1', '2504');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income) VALUES ('getPeriods3', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q3', '2410', '2024-11-15', '500', '400', '50', '0');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend) VALUES ('getPeriods3', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10');
 
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('550e8400-e29b-41d4-a716-446655440000', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', 'UPD1', '2501', '2025-02-15');
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('9c3e92c2-2a66-46de-83f6-57eeb8a7b4b4', '0a16ba1d-99de-4306-8fc5-81ee11b60ea0', 'UPD2', '2501', '2025-02-15');
