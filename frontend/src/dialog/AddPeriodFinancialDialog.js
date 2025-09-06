@@ -11,6 +11,7 @@ const AddPeriodFinancialDialog = props => {
     const [alert, setAlert] = useState(null)
     const [importInfo, setImportInfo] = useState("")
 
+    const [shares, setShares] = useState("")
     const [revenue, setRevenue] = useState("")
     const [cogs, setCogs] = useState("")
     const [opExp, setOpExp] = useState("")
@@ -21,6 +22,7 @@ const AddPeriodFinancialDialog = props => {
         if (open) {
             setAlert(null)
             setImportInfo("")
+            setShares("")
             setRevenue("")
             setCogs("")
             setOpExp("")
@@ -32,7 +34,7 @@ const AddPeriodFinancialDialog = props => {
     }, [open])
 
     function createFinancial() {
-        const financialData = {id: period.id, revenue: revenue, costGoodsSold: cogs, operatingExpenses: opExp, netIncome: netIncome, dividend: dividend}
+        const financialData = {id: period.id, shares: shares, revenue: revenue, costGoodsSold: cogs, operatingExpenses: opExp, netIncome: netIncome, dividend: dividend}
         axios.put(backend + "/period", financialData)
             .then((response) => {
                 props.triggerRefresh()
@@ -48,6 +50,8 @@ const AddPeriodFinancialDialog = props => {
 
         if (financial) {
             setImportInfo("found: " + financial.start_date + " => " + financial.end_date)
+            const shares = financial.financials.income_statement.basic_average_shares.value.toString()
+            setShares(shares.substring(0, shares.length - 6))
             const revenues = financial.financials.income_statement.revenues.value.toString()
             setRevenue(revenues.substring(0, revenues.length - 6))
             const cogs = financial.financials.income_statement.cost_of_revenue.value.toString()
@@ -58,6 +62,7 @@ const AddPeriodFinancialDialog = props => {
             setNetIncome(ni.substring(0, ni.length - 6))
         } else {
             setImportInfo("not found")
+            setShares("")
             setRevenue("")
             setCogs("")
             setOpExp("")
@@ -75,6 +80,13 @@ const AddPeriodFinancialDialog = props => {
             <DialogContent>
                 <Typography>{importInfo}</Typography>
 
+                <TextField required margin="dense" fullWidth variant="standard" id="company-financial-shares"
+                           value={shares}
+                           label="Shares (in Millions)"
+                           onChange={(e) => {setShares(e.target.value);setAlert(null);}}
+                           error={validateNumber(shares, false, 8, 2) !== ""}
+                           helperText={validateNumber(shares, false, 8, 2)}
+                />
                 <TextField required margin="dense" fullWidth variant="standard" id="company-financial-revenue"
                            value={revenue}
                            label="Revenue (in Millions)"
