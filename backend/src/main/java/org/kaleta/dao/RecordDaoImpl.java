@@ -11,7 +11,6 @@ import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
-@Deprecated
 @ApplicationScoped
 public class RecordDaoImpl implements RecordDao
 {

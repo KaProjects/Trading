@@ -5,9 +5,7 @@ import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
 import org.kaleta.dto.PeriodCreateDto;
 import org.kaleta.dto.PeriodDto;
-import org.kaleta.dto.PeriodsDto;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Sector;
+import org.kaleta.dto.ResearchUiDto;
 import org.kaleta.framework.Assert;
 
 import java.util.UUID;
@@ -24,66 +22,7 @@ class PeriodResourceTest
     private final String path = "/period";
 
     @Test
-    void getPeriods()
-    {
-        PeriodsDto dto = given().when()
-                .get("/period/adb89a0a-86bc-4854-8a55-058ad2e6308f")
-                .then()
-                .statusCode(200)
-                .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", PeriodsDto.class);
-
-        assertThat(dto.getCompany().getTicker(), is("NVDA"));
-        assertThat(dto.getCompany().getCurrency(), is(Currency.$));
-        assertThat(dto.getCompany().getWatching(), is(true));
-        assertThat(dto.getCompany().getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
-
-        assertThat(dto.getPeriods().size(), is(3));
-        assertThat(dto.getPeriods().get(0).getName(), is("25Q1"));
-        assertThat(dto.getPeriods().get(0).getEndingMonth(), is("04/2025"));
-        assertThat(dto.getPeriods().get(0).getReportDate(), is(""));
-        assertThat(dto.getPeriods().get(1).getName(), is("24Q4"));
-        assertThat(dto.getPeriods().get(1).getEndingMonth(), is("01/2025"));
-        assertThat(dto.getPeriods().get(1).getReportDate(), is("15.02.2025"));
-        assertThat(dto.getPeriods().get(1).getRevenue(), is("1B"));
-        assertThat(dto.getPeriods().get(1).getCostGoodsSold(), is("500M"));
-        assertThat(dto.getPeriods().get(1).getOperatingExpenses(), is("300M"));
-        assertThat(dto.getPeriods().get(1).getNetIncome(), is("80M"));
-        assertThat(dto.getPeriods().get(1).getDividend(), is("20M"));
-        assertThat(dto.getPeriods().get(2).getName(), is("24Q3"));
-        assertThat(dto.getPeriods().get(2).getEndingMonth(), is("10/2024"));
-        assertThat(dto.getPeriods().get(2).getReportDate(), is("15.11.2024"));
-        assertThat(dto.getPeriods().get(2).getRevenue(), is("500M"));
-        assertThat(dto.getPeriods().get(2).getCostGoodsSold(), is("400M"));
-        assertThat(dto.getPeriods().get(2).getOperatingExpenses(), is("50M"));
-        assertThat(dto.getPeriods().get(2).getNetIncome(), is("0M"));
-        assertThat(dto.getPeriods().get(2).getDividend(), is("10M"));
-
-        assertThat(dto.getFinancials().size(), is(2));
-        assertThat(dto.getFinancials().get(0).getPeriod(), is("24Q4"));
-        assertThat(dto.getFinancials().get(0).getRevenue(), is("1B"));
-        assertThat(dto.getFinancials().get(0).getCostGoodsSold(), is("500M"));
-        assertThat(dto.getFinancials().get(0).getGrossProfit(), is("500M"));
-        assertThat(dto.getFinancials().get(0).getGrossMargin(), is("50"));
-        assertThat(dto.getFinancials().get(0).getOperatingExpenses(), is("300M"));
-        assertThat(dto.getFinancials().get(0).getOperatingIncome(), is("200M"));
-        assertThat(dto.getFinancials().get(0).getOperatingMargin(), is("20"));
-        assertThat(dto.getFinancials().get(0).getNetIncome(), is("80M"));
-        assertThat(dto.getFinancials().get(0).getNetMargin(), is("8"));
-
-        assertThat(dto.getTtm().getRevenue(), is("3B"));
-        assertThat(dto.getTtm().getCostGoodsSold(), is("1.8B"));
-        assertThat(dto.getTtm().getGrossProfit(), is("1.2B"));
-        assertThat(dto.getTtm().getGrossMargin(), is("40"));
-        assertThat(dto.getTtm().getOperatingExpenses(), is("700M"));
-        assertThat(dto.getTtm().getOperatingIncome(), is("500M"));
-        assertThat(dto.getTtm().getOperatingMargin(), is("17"));
-        assertThat(dto.getTtm().getNetIncome(), is("160M"));
-        assertThat(dto.getTtm().getNetMargin(), is("5"));
-    }
-
-    @Test
-    void updatePeriod()
+    void update()
     {
         String newName = "20H2";
         String newEndingMonth = "2011";
@@ -117,43 +56,43 @@ class PeriodResourceTest
 
         Assert.put204(path, dto);
 
-        PeriodsDto periodsDto = given().when()
-                .get("/period/e7c49260-53da-42c1-80cf-eccf6ed928a7")
+        ResearchUiDto researchDto = given().when()
+                .get("/research/e7c49260-53da-42c1-80cf-eccf6ed928a7")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", PeriodsDto.class);
+                .extract().response().jsonPath().getObject("", ResearchUiDto.class);
 
-        assertThat(periodsDto.getCompany().getTicker(), is("XXX"));
-        assertThat(periodsDto.getPeriods().size(), is(1));
-        assertThat(periodsDto.getPeriods().get(0).getName(), is(newName));
-        assertThat(periodsDto.getPeriods().get(0).getEndingMonth(), is("11/2020"));
-        assertThat(periodsDto.getPeriods().get(0).getReportDate(), is("15.12.2020"));
-        assertThat(periodsDto.getPeriods().get(0).getShares(), is("12.35B"));
-        assertThat(periodsDto.getPeriods().get(0).getPriceLatest(), is(newPriceLatest));
-        assertThat(periodsDto.getPeriods().get(0).getPriceHigh(), is(newPriceHigh));
-        assertThat(periodsDto.getPeriods().get(0).getPriceLow(), is(newPriceLow));
-        assertThat(periodsDto.getPeriods().get(0).getResearch(), is(newResearch));
-        assertThat(periodsDto.getPeriods().get(0).getRevenue(), is(newRevenue + "M"));
-        assertThat(periodsDto.getPeriods().get(0).getCostGoodsSold(), is(newCostGoodsSold + "M"));
-        assertThat(periodsDto.getPeriods().get(0).getOperatingExpenses(), is(newOperatingExpenses + "M"));
-        assertThat(periodsDto.getPeriods().get(0).getNetIncome(), is(newNetIncome + "M"));
-        assertThat(periodsDto.getPeriods().get(0).getDividend(), is(newDividends + "M"));
+        assertThat(researchDto.getCompany().getTicker(), is("XXX"));
+        assertThat(researchDto.getPeriods().size(), is(1));
+        assertThat(researchDto.getPeriods().get(0).getName(), is(newName));
+        assertThat(researchDto.getPeriods().get(0).getEndingMonth(), is("11/2020"));
+        assertThat(researchDto.getPeriods().get(0).getReportDate(), is("15.12.2020"));
+        assertThat(researchDto.getPeriods().get(0).getShares(), is("12.35B"));
+        assertThat(researchDto.getPeriods().get(0).getPriceLatest(), is(newPriceLatest));
+        assertThat(researchDto.getPeriods().get(0).getPriceHigh(), is(newPriceHigh));
+        assertThat(researchDto.getPeriods().get(0).getPriceLow(), is(newPriceLow));
+        assertThat(researchDto.getPeriods().get(0).getResearch(), is(newResearch));
+        assertThat(researchDto.getPeriods().get(0).getRevenue(), is(newRevenue + "M"));
+        assertThat(researchDto.getPeriods().get(0).getCostGoodsSold(), is(newCostGoodsSold + "M"));
+        assertThat(researchDto.getPeriods().get(0).getOperatingExpenses(), is(newOperatingExpenses + "M"));
+        assertThat(researchDto.getPeriods().get(0).getNetIncome(), is(newNetIncome + "M"));
+        assertThat(researchDto.getPeriods().get(0).getDividend(), is(newDividends + "M"));
     }
 
     @Test
-    void updatePeriodOnlyResearch()
+    void updateOnlyResearch()
     {
-        PeriodsDto periodsDto = given().when()
-                .get("/period/0a16ba1d-99de-4306-8fc5-81ee11b60ea0")
+        ResearchUiDto researchDtoBefore = given().when()
+                .get("/research/0a16ba1d-99de-4306-8fc5-81ee11b60ea0")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", PeriodsDto.class);
+                .extract().response().jsonPath().getObject("", ResearchUiDto.class);
 
-        assertThat(periodsDto.getPeriods().size(), is(1));
+        assertThat(researchDtoBefore.getPeriods().size(), is(1));
 
-        PeriodDto beforeDto = periodsDto.getPeriods().get(0);
+        PeriodDto beforeDto = researchDtoBefore.getPeriods().get(0);
 
         String newResearch = "XXXXXXXXX";
         PeriodDto dto = new PeriodDto();
@@ -162,16 +101,16 @@ class PeriodResourceTest
 
         Assert.put204(path, dto);
 
-        PeriodsDto afterPeriodsDto = given().when()
-                .get("/period/0a16ba1d-99de-4306-8fc5-81ee11b60ea0")
+        ResearchUiDto researchDtoAfter = given().when()
+                .get("/research/0a16ba1d-99de-4306-8fc5-81ee11b60ea0")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", PeriodsDto.class);
+                .extract().response().jsonPath().getObject("", ResearchUiDto.class);
 
-        assertThat(afterPeriodsDto.getPeriods().size(), is(1));
+        assertThat(researchDtoAfter.getPeriods().size(), is(1));
 
-        PeriodDto afterDto = afterPeriodsDto.getPeriods().get(0);
+        PeriodDto afterDto = researchDtoAfter.getPeriods().get(0);
 
         assertThat(afterDto.getId(), is(beforeDto.getId()));
         assertThat(afterDto.getName(), is(beforeDto.getName()));
@@ -187,12 +126,12 @@ class PeriodResourceTest
         assertThat(afterDto.getNetIncome(), is(beforeDto.getNetIncome()));
         assertThat(afterDto.getDividend(), is(beforeDto.getDividend()));
 
-        assertThat(afterPeriodsDto.getTtm(), is(nullValue()));
-        assertThat(afterPeriodsDto.getFinancials().size(), is(0));
+        assertThat(researchDtoAfter.getTtm(), is(nullValue()));
+        assertThat(researchDtoAfter.getFinancials().size(), is(0));
     }
 
     @Test
-    void updatePeriodInvalidValues()
+    void updateInvalidValues()
     {
         Assert.put400(path, null, "Payload is NULL");
 
@@ -375,7 +314,7 @@ class PeriodResourceTest
     }
 
     @Test
-    void createPeriod()
+    void create()
     {
         String companyId = "6a1e9d75-63b3-45a0-9ed7-dc38cfd22551";
         PeriodCreateDto dto = new PeriodCreateDto();
@@ -386,29 +325,29 @@ class PeriodResourceTest
 
         Assert.post201(path, dto);
 
-        PeriodsDto periodsDto = given().when()
-                .get("/period/" + companyId)
+        ResearchUiDto researchDto = given().when()
+                .get("/research/" + companyId)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", PeriodsDto.class);
+                .extract().response().jsonPath().getObject("", ResearchUiDto.class);
 
-        assertThat(periodsDto.getCompany().getTicker(), is("ZZZ"));
-        assertThat(periodsDto.getPeriods().size(), is(1));
-        assertThat(periodsDto.getPeriods().get(0).getName(), is(dto.getName()));
-        assertThat(periodsDto.getPeriods().get(0).getEndingMonth(), is("10/2015"));
-        assertThat(periodsDto.getPeriods().get(0).getReportDate(), is("11.11.2015"));
-        assertThat(periodsDto.getPeriods().get(0).getPriceLatest(), is(blankString()));
-        assertThat(periodsDto.getPeriods().get(0).getPriceHigh(), is(blankString()));
-        assertThat(periodsDto.getPeriods().get(0).getPriceLow(), is(blankString()));
-        assertThat(periodsDto.getPeriods().get(0).getRevenue(), is(blankString()));
-        assertThat(periodsDto.getPeriods().get(0).getCostGoodsSold(), is(blankString()));
-        assertThat(periodsDto.getPeriods().get(0).getOperatingExpenses(), is(blankString()));
-        assertThat(periodsDto.getPeriods().get(0).getNetIncome(), is(blankString()));
+        assertThat(researchDto.getCompany().getTicker(), is("ZZZ"));
+        assertThat(researchDto.getPeriods().size(), is(1));
+        assertThat(researchDto.getPeriods().get(0).getName(), is(dto.getName()));
+        assertThat(researchDto.getPeriods().get(0).getEndingMonth(), is("10/2015"));
+        assertThat(researchDto.getPeriods().get(0).getReportDate(), is("11.11.2015"));
+        assertThat(researchDto.getPeriods().get(0).getPriceLatest(), is(blankString()));
+        assertThat(researchDto.getPeriods().get(0).getPriceHigh(), is(blankString()));
+        assertThat(researchDto.getPeriods().get(0).getPriceLow(), is(blankString()));
+        assertThat(researchDto.getPeriods().get(0).getRevenue(), is(blankString()));
+        assertThat(researchDto.getPeriods().get(0).getCostGoodsSold(), is(blankString()));
+        assertThat(researchDto.getPeriods().get(0).getOperatingExpenses(), is(blankString()));
+        assertThat(researchDto.getPeriods().get(0).getNetIncome(), is(blankString()));
     }
 
     @Test
-    void createRecordInvalidValues()
+    void createInvalidValues()
     {
         String validCompanyId = "d98c9ea1-ef2a-400a-bc7f-00d90e5d8e10";
         String validName = "FY19";
@@ -461,9 +400,4 @@ class PeriodResourceTest
         Assert.post400(path, dto, "company with id '" + dto.getCompanyId() + "' not found");
     }
 
-    @Test
-    void parameterValidator()
-    {
-        Assert.get400("/period/" + "AAAAAA", "Invalid UUID Parameter");
-    }
 }

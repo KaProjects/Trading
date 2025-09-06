@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
-public class PeriodsDto
+public class ResearchUiDto
 {
     private CompanyDto company;
     private List<PeriodDto> periods = new ArrayList<>();

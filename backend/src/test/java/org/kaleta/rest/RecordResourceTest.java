@@ -44,7 +44,7 @@ class RecordResourceTest
     }
 
     @Test
-    void updateRecord()
+    void update()
     {
         String newDate = "2024-01-01";
         String newTitle = "new title";
@@ -91,7 +91,7 @@ class RecordResourceTest
     }
 
     @Test
-    void updateRecordOnlyContent()
+    void updateOnlyContent()
     {
         RecordsUiDto beforeRecordsUiDto = given().when()
                 .get("/record/66c725b2-9987-4653-a49c-3a9906168d2a")
@@ -135,7 +135,7 @@ class RecordResourceTest
     }
 
     @Test
-    void updateRecordNullableValue()
+    void updateNullableValue()
     {
         RecordsUiDto beforeRecordsUiDto = given().when()
                 .get("/record/66c725b2-9987-4653-a49c-3a9906168d2a")
@@ -180,7 +180,7 @@ class RecordResourceTest
     }
 
     @Test
-    void updateRecordInvalidValues()
+    void updateInvalidValues()
     {
         Assert.put400("/record", null, "Payload is NULL");
 
@@ -282,7 +282,7 @@ class RecordResourceTest
     }
 
     @Test
-    void createRecord()
+    void create()
     {
         RecordCreateDto dto = new RecordCreateDto();
         dto.setCompanyId("d98c9ea1-ef2a-400a-bc7f-00d90e5d8e10");
@@ -329,7 +329,7 @@ class RecordResourceTest
     }
 
     @Test
-    void createRecordInvalidValues()
+    void createInvalidValues()
     {
         String validCompanyId = "d98c9ea1-ef2a-400a-bc7f-00d90e5d8e10";
         String validPrice = "10.1";

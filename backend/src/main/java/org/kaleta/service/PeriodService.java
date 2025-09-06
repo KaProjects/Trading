@@ -8,14 +8,12 @@ import org.kaleta.dao.PeriodDao;
 import org.kaleta.dto.FinancialDto;
 import org.kaleta.dto.PeriodCreateDto;
 import org.kaleta.dto.PeriodDto;
-import org.kaleta.dto.PeriodsDto;
 import org.kaleta.entity.Period;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class PeriodService
@@ -65,30 +63,14 @@ public class PeriodService
         periodDao.create(period);
     }
 
-    public PeriodsDto getBy(String companyId)
+    public List<Period> getBy(String companyId)
     {
-        PeriodsDto dto = new PeriodsDto();
-        dto.setCompany(companyService.getDto(companyId));
-
         List<Period> periods = periodDao.list(companyId);
         periods.sort((a, b) -> -Utils.compareEndingMonths(a.getEndingMonth(), b.getEndingMonth()));
-
-        for (Period period : periods) {
-            dto.getPeriods().add(from(period));
-            if (period.getRevenue() != null){
-                dto.getFinancials().add(computeFinancialFrom(period));
-            }
-        }
-        dto.setTtm(computeTtmFrom(
-                periods.stream()
-                        .filter(p -> p.getRevenue() != null)
-                        .limit(4)
-                        .collect(Collectors.toList()))
-        );
-        return dto;
+        return periods;
     }
 
-    private PeriodDto from(Period period)
+    public PeriodDto dtoFrom(Period period)
     {
         PeriodDto dto = new PeriodDto();
         dto.setId(period.getId());
@@ -108,7 +90,7 @@ public class PeriodService
         return dto;
     }
 
-    private FinancialDto computeFinancialFrom(Period period) {
+    public FinancialDto computeFinancialFrom(Period period) {
         FinancialDto dto = new FinancialDto();
 
         dto.setPeriod(period.getName());
@@ -137,9 +119,10 @@ public class PeriodService
         return dto;
     }
 
-    private FinancialDto computeTtmFrom(List<Period> periods)
+    public FinancialDto computeTtmFrom(List<Period> periods)
     {
         if (periods.isEmpty()) return null;
+        periods.sort((a, b) -> -Utils.compareEndingMonths(a.getEndingMonth(), b.getEndingMonth()));
         List<Period> quarters = periodsToQuarters(periods);
 
         BigDecimal revenue = new BigDecimal(0);
@@ -179,6 +162,8 @@ public class PeriodService
     {
         List<Period> quarters = new ArrayList<>();
         for (Period period : periods){
+            if (period.getRevenue() == null)
+                throw new ServiceFailureException("not reported period provided for ttm computation!");
             Period quarter = new Period();
             switch (period.getName().substring(2,3)){
                 case "F":
@@ -204,7 +189,7 @@ public class PeriodService
                 case "Q":
                     quarters.add(period);
                     break;
-                default: throw new IllegalArgumentException("Invalid period name: '" + period.getName() + "'");
+                default: throw new ServiceFailureException("Invalid period name: '" + period.getName() + "'");
             }
         }
         return quarters;

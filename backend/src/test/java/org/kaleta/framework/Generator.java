@@ -3,6 +3,7 @@ package org.kaleta.framework;
 import org.kaleta.entity.Company;
 import org.kaleta.entity.Currency;
 import org.kaleta.entity.Period;
+import org.kaleta.entity.Record;
 import org.kaleta.entity.Sector;
 
 import java.math.BigDecimal;
@@ -62,7 +63,7 @@ public class Generator
         period.setCompany(company);
         period.setName(name);
         period.setEndingMonth(endingMonth);
-        period.setResearch("content");
+        period.setResearch("content " + String.format("%02d", RANDOM.nextInt(100)));
         period.setShares(randomBigDecimal(new BigDecimal(999999), 2));
         period.setPriceHigh(randomBigDecimal(new BigDecimal(999999), 4));
         period.setPriceLatest(randomBigDecimal(period.getPriceHigh(), 4));
@@ -76,5 +77,40 @@ public class Generator
             period.setDividend(randomBigDecimal(period.getNetIncome(), 2));
         }
         return period;
+    }
+
+    public static Period generatePeriod(
+            Company company, String name, String endingMonth,
+            String revenue, String costGoodsSold, String operatingExpense, String netIncome, String dividend
+    ) {
+        Period period = generatePeriod(company, false, name, endingMonth);
+        period.setReportDate(Date.valueOf(randomDate(Integer.parseInt("20" + period.getName().substring(0,2)))));
+        period.setRevenue(new BigDecimal(revenue));
+        period.setCostGoodsSold(new BigDecimal(costGoodsSold));
+        period.setOperatingExpenses(new BigDecimal(operatingExpense));
+        period.setNetIncome(new BigDecimal(netIncome));
+        period.setDividend(new BigDecimal(dividend));
+        return period;
+    }
+
+    public static Record generateRecord(Company company)
+    {
+        return generateRecord(company, randomDate(RANDOM.nextInt(100) + 2000));
+    }
+
+    public static Record generateRecord(Company company, String date)
+    {
+        Record record = new Record();
+        record.setCompany(company);
+        record.setTitle("title " + String.format("%02d", RANDOM.nextInt(100)));
+        record.setDate(Date.valueOf(date));
+        record.setPrice(randomBigDecimal(new BigDecimal(999999), 2));
+        record.setPe(randomBigDecimal(new BigDecimal(999), 2));
+        record.setPs(randomBigDecimal(new BigDecimal(999), 2));
+        record.setDy(randomBigDecimal(new BigDecimal(999), 2));
+        record.setTargets("targets " + String.format("%02d", RANDOM.nextInt(100)));
+        record.setContent("content " + String.format("%02d", RANDOM.nextInt(100)));
+        record.setStrategy("strategy " + String.format("%02d", RANDOM.nextInt(100)));
+        return record;
     }
 }

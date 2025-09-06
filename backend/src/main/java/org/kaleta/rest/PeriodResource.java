@@ -20,22 +20,10 @@ public class PeriodResource
     @Inject
     PeriodService periodService;
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("/{companyId}")
-    public Response getPeriods(@PathParam("companyId") String companyId)
-    {
-        return Endpoint.process(
-            () -> Validator.validateUuid(companyId),
-            () -> {
-                return periodService.getBy(companyId);
-            });
-    }
-
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response updatePeriod(PeriodDto periodDto)
+    public Response update(PeriodDto periodDto)
     {
         return Endpoint.process(
             () -> {
@@ -51,7 +39,7 @@ public class PeriodResource
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response createPeriod(PeriodCreateDto periodCreateDto)
+    public Response create(PeriodCreateDto periodCreateDto)
     {
         return Endpoint.process(
             () -> {

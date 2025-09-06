@@ -44,6 +44,7 @@ public class RecordResource
     @Inject
     FinancialService financialService;
 
+    @Deprecated
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{companyId}")
@@ -89,7 +90,7 @@ public class RecordResource
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response updateRecord(RecordDto recordDto)
+    public Response update(RecordDto recordDto)
     {
         return Endpoint.process(
             () -> {
@@ -98,7 +99,7 @@ public class RecordResource
                 Validator.validateUpdateRecordDto(recordDto);
             },
             () -> {
-                recordService.updateRecord(recordDto);
+                recordService.update(recordDto);
                 return Response.noContent().build();
             });
     }
@@ -107,7 +108,7 @@ public class RecordResource
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response createRecord(RecordCreateDto recordCreateDto)
+    public Response create(RecordCreateDto recordCreateDto)
     {
         return Endpoint.process(
             () -> {
@@ -115,7 +116,7 @@ public class RecordResource
                 Validator.validateCreateRecordDto(recordCreateDto);
             },
             () -> {
-                Record record = recordService.createRecord(recordCreateDto);
+                Record record = recordService.create(recordCreateDto);
                 return Response.status(Response.Status.CREATED).entity(RecordDto.from(record)).build();
             });
     }

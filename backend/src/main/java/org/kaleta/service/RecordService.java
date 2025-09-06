@@ -3,6 +3,7 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
+import org.kaleta.Utils;
 import org.kaleta.dao.RecordDao;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
@@ -11,9 +12,9 @@ import org.kaleta.model.RecordsModel;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-@Deprecated
 @ApplicationScoped
 public class RecordService
 {
@@ -24,7 +25,7 @@ public class RecordService
     @Inject
     ConvertService convertService;
 
-    public void updateRecord(RecordDto dto)
+    public void update(RecordDto dto)
     {
         Record record;
         try {
@@ -46,7 +47,7 @@ public class RecordService
         recordDao.save(record);
     }
 
-    public Record createRecord(RecordCreateDto dto)
+    public Record create(RecordCreateDto dto)
     {
         Record newRecord = new Record();
 
@@ -54,12 +55,23 @@ public class RecordService
         newRecord.setDate(convertService.parseDate(dto.getDate()));
         newRecord.setPrice(new BigDecimal(dto.getPrice()));
         newRecord.setTitle(dto.getTitle());
+        if (dto.getPe() != null) newRecord.setPe(new BigDecimal(dto.getPe()));
+        if (dto.getPs() != null) newRecord.setPs(new BigDecimal(dto.getPs()));
+        if (dto.getDy() != null) newRecord.setDy(new BigDecimal(dto.getDy()));
 
         recordDao.create(newRecord);
 
         return recordDao.get(newRecord.getId());
     }
 
+    public List<Record> getBy(String companyId)
+    {
+        List<Record> records = recordDao.list(companyId);
+        records.sort((a, b) -> -Utils.compareDbDates(a.getDate(), b.getDate()));
+        return records;
+    }
+
+    @Deprecated
     public RecordsModel getRecordsModel(String companyId)
     {
         return new RecordsModel(recordDao.list(companyId));

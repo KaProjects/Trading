@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS Execution;
 DROP TABLE IF EXISTS Period;
 DROP TABLE IF EXISTS Dividend;
 DROP TABLE IF EXISTS Trade;
@@ -77,8 +78,7 @@ CREATE TABLE Period
     cogs         DECIMAL(8, 2),
     op_exp       DECIMAL(8, 2),
     net_income   DECIMAL(8, 2),
-
-
-    companyId  VARCHAR(36)   NOT NULL,
+    dividend     DECIMAL(8, 2),
+    companyId    VARCHAR(36)   NOT NULL,
     CONSTRAINT `fk_periodCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );

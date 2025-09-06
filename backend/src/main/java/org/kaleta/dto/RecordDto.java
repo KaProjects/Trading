@@ -7,7 +7,6 @@ import org.kaleta.entity.Record;
 
 import static org.kaleta.Utils.format;
 
-@Deprecated
 @Data
 public class RecordDto
 {
@@ -22,6 +21,7 @@ public class RecordDto
     private String targets;
     private String strategy;
 
+    @Deprecated
     public static RecordDto from(Record record){
         RecordDto dto = new RecordDto();
         dto.setId(record.getId());
