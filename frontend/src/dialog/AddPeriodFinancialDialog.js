@@ -3,38 +3,66 @@ import {handleError, validateNumber} from "../utils";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
-import {getFinancial} from "../service/PolygonIoService";
+import {getFinancial, getQuote} from "../service/PolygonIoService";
 
 const AddPeriodFinancialDialog = props => {
     const {handleClose, open, period} = props
 
     const [alert, setAlert] = useState(null)
-    const [importInfo, setImportInfo] = useState("")
+    const [financialImportInfo, setFinancialImportInfo] = useState("")
+    const [priceImportInfo, setPriceImportInfo] = useState("")
 
+    const [reportDate, setReportDate] = useState("")
     const [shares, setShares] = useState("")
     const [revenue, setRevenue] = useState("")
     const [cogs, setCogs] = useState("")
     const [opExp, setOpExp] = useState("")
     const [netIncome, setNetIncome] = useState("")
     const [dividend, setDividend] = useState("")
+    const [priceH, setPriceH] = useState("")
+    const [priceL, setPriceL] = useState("")
 
     useEffect(() => {
         if (open) {
             setAlert(null)
-            setImportInfo("")
+            setFinancialImportInfo("")
+            setPriceImportInfo("")
+            if (period.reportDate) {
+                const [day, month, year] = period.reportDate.split(".")
+                setReportDate(`${year}-${month}-${day}`)
+            }
+            setReportDate(period.reportDate)
             setShares("")
             setRevenue("")
             setCogs("")
             setOpExp("")
             setNetIncome("")
             setDividend("")
-            retrieveFinancial()
+            setPriceH("")
+            setPriceL("")
+            retrieveFinancials()
         }
         // eslint-disable-next-line
     }, [open])
 
+    useEffect(() => {
+        if (reportDate) {
+            const toDate = new Date(reportDate)
+            toDate.setDate(toDate.getDate() - 1)
+            period.quoteToDate = toDate.toISOString().split("T")[0]
+            if (!period.quoteFromDate) {
+                const from = new Date(reportDate)
+                from.setMonth(from.getMonth() - 3)
+                period.quoteFromDate = from.toISOString().split("T")[0]
+            }
+            retrievePrices(props.companySelectorValue.ticker, period.quoteFromDate, period.quoteToDate)
+        }
+        // eslint-disable-next-line
+    }, [reportDate])
+
     function createFinancial() {
-        const financialData = {id: period.id, shares: shares, revenue: revenue, costGoodsSold: cogs, operatingExpenses: opExp, netIncome: netIncome, dividend: dividend}
+        const financialData = {id: period.id, reportDate: reportDate, priceLow: priceL, priceHigh: priceH,
+            shares: shares, revenue: revenue, costGoodsSold: cogs, operatingExpenses: opExp, netIncome: netIncome, dividend: dividend}
         axios.put(backend + "/period", financialData)
             .then((response) => {
                 props.triggerRefresh()
@@ -42,14 +70,14 @@ const AddPeriodFinancialDialog = props => {
             }).catch((error) => {setAlert(handleError(error))})
     }
 
-    async function retrieveFinancial() {
+    async function retrieveFinancials() {
         const year = "20" + period.name.substring(0,2)
         const term = period.name.substring(2,4)
 
         const financial = await getFinancial(props.companySelectorValue.ticker, year, term);
 
         if (financial) {
-            setImportInfo("found: " + financial.start_date + " => " + financial.end_date)
+            setFinancialImportInfo("found: " + financial.start_date + " => " + financial.end_date)
             const shares = financial.financials.income_statement.basic_average_shares.value.toString()
             setShares(shares.substring(0, shares.length - 6))
             const revenues = financial.financials.income_statement.revenues.value.toString()
@@ -61,12 +89,23 @@ const AddPeriodFinancialDialog = props => {
             const ni = financial.financials.income_statement.net_income_loss.value.toString()
             setNetIncome(ni.substring(0, ni.length - 6))
         } else {
-            setImportInfo("not found")
+            setFinancialImportInfo("not found")
             setShares("")
             setRevenue("")
             setCogs("")
             setOpExp("")
             setNetIncome("")
+        }
+    }
+
+    async function retrievePrices(ticker, from, to) {
+        const quote = await getQuote(ticker, from, to);
+        if (quote) {
+            setPriceImportInfo("found: " + from+ " => " + to)
+            setPriceH(quote.h.toString())
+            setPriceL(quote.l.toString())
+        } else {
+            setPriceImportInfo("not found")
         }
     }
 
@@ -78,8 +117,7 @@ const AddPeriodFinancialDialog = props => {
         >
             <DialogTitle>Add Financial for {props.companySelectorValue.ticker} {period ? period.name : ""}</DialogTitle>
             <DialogContent>
-                <Typography>{importInfo}</Typography>
-
+                <Typography>{financialImportInfo}</Typography>
                 <TextField required margin="dense" fullWidth variant="standard" id="company-financial-shares"
                            value={shares}
                            label="Shares (in Millions)"
@@ -121,6 +159,27 @@ const AddPeriodFinancialDialog = props => {
                            onChange={(e) => {setDividend(e.target.value);setAlert(null);}}
                            error={validateNumber(dividend, false, 8, 2) !== ""}
                            helperText={validateNumber(dividend, false, 8, 2)}
+                />
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-period-report-date"
+                           type="date"
+                           value={reportDate}
+                           onChange={(e) => {setReportDate(e.target.value);setAlert(null);}}
+                           error={reportDate === ""}
+                />
+                <Typography>{priceImportInfo}</Typography>
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-period-price-h"
+                           value={priceH}
+                           label="Highest Price"
+                           onChange={(e) => {setPriceH(e.target.value);setAlert(null);}}
+                           error={validateNumber(priceH, false, 10, 4) !== ""}
+                           helperText={validateNumber(priceH, false, 10, 4)}
+                />
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-period-price-l"
+                           value={priceL}
+                           label="Lowest Price"
+                           onChange={(e) => {setPriceL(e.target.value);setAlert(null);}}
+                           error={validateNumber(priceL, false, 10, 4) !== ""}
+                           helperText={validateNumber(priceL, false, 10, 4)}
                 />
             </DialogContent>
             {alert &&

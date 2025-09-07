@@ -52,7 +52,7 @@ const Records = props => {
                     setError(null)
 
 
-                    axios.get(backend + "/period/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
+                    axios.get(backend + "/research/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
                         .then((response) => {
                             setData(response.data)
                             setError(null)
@@ -290,26 +290,38 @@ const Records = props => {
                                                  title={period.name + " - ending: " + period.endingMonth + " - report: " + period.reportDate}
                                                  style={{color: 'text.primary'}}>
 
-                                    <Typography sx={{color: 'text.secondary', fontSize: 14}}>
-                                        {"Shares: " + period.shares + " | Price: " + period.priceLatest + " | L: " + period.priceLow + " | H: " + period.priceHigh}
-                                    </Typography>
 
                                     <div style={{width: "700px", margin: "15px auto 0 auto"}}>
                                         <ContentEditor content={period.research} handleUpdate={(value) => periodUpdated(period.id, value)}/>
                                     </div>
 
                                     {period.revenue &&
-                                        <Typography sx={{color: 'text.secondary', fontSize: 14}} >
-                                            {"Revenue: " + period.revenue
-                                                + " | Costs of Goods: " + period.costGoodsSold
-                                                + " | Oprating Exp.: " + period.operatingExpenses
-                                                + " | Net Income: " + period.netIncome
-                                                + " | Dividend: " + period.dividend}
-                                        </Typography>
+                                        <>
+                                            <Typography sx={{color: 'text.secondary', fontSize: 14}}>
+                                                {"Shares: " + period.shares
+                                                    + " | H: " +  period.priceHigh + data.company.currency
+                                                    + " | L: " + period.priceLow + data.company.currency
+                                                    + " | Dividend: " + period.dividend}
+                                            </Typography>
+                                            <Typography sx={{color: 'text.secondary', fontSize: 14}} >
+                                                {"Revenue: " + period.revenue
+                                                    + " | Costs of Goods: " + period.costGoodsSold
+                                                    + " | Op. Exp.: " + period.operatingExpenses
+                                                    + " | Net Income: " + period.netIncome}
+                                            </Typography>
+                                        </>
                                     }
                                     {!period.revenue &&
                                         <Tooltip title="Add Financials">
-                                            <Button sx={{height: "25px"}} onClick={() => setOpenAddFinancialDialog(period)}>
+                                            <Button sx={{height: "25px"}} onClick={() => {
+                                                if (data.periods[index + 1] && data.periods[index + 1].reportDate) {
+                                                    const [day, month, year] = data.periods[index + 1].reportDate.split(".")
+                                                    const date = new Date(`${year}-${month}-${day}`)
+                                                    date.setDate(date.getDate() + 1)
+                                                    period.quoteFromDate = date.toISOString().split("T")[0]
+                                                }
+                                                setOpenAddFinancialDialog(period)
+                                            }}>
                                                 <ControlPointIcon sx={{color: 'lightgreen'}}/>
                                             </Button>
                                         </Tooltip>

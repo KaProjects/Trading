@@ -36,14 +36,14 @@ const AddPeriodDialog = props => {
         >
             <DialogTitle>Add Period</DialogTitle>
             <DialogContent>
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-title"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-period-name"
                            value={name}
                            label="Name"
                            onChange={(e) => {setName(e.target.value);setAlert(null);}}
                            error={name.length !== 4}
                            helperText={name.length !== 4 ? "exactly 4 symbols, e.g. 25FY, 25Q1, ..." : ""}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-price"
+                <TextField required margin="dense" fullWidth variant="standard" id="trader-period-end-month"
                            value={endingMonth}
                            label="Ending Month"
                            onChange={(e) => {setEndingMonth(e.target.value);setAlert(null);}}
