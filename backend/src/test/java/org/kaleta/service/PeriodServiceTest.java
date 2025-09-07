@@ -71,7 +71,6 @@ public class PeriodServiceTest
         periodDto.setEndingMonth("3012");
         periodDto.setReportDate("3030-01-01");
         periodDto.setShares("10000");
-        periodDto.setPriceLatest("204");
         periodDto.setPriceLow("20");
         periodDto.setPriceHigh("300");
         periodDto.setResearch("new findings");
@@ -92,7 +91,6 @@ public class PeriodServiceTest
         assertThat(captor.getValue().getReportDate(), is(Date.valueOf("3030-1-1")));
         assertThat(captor.getValue().getShares(), is(new BigDecimal("10000")));
         assertThat(captor.getValue().getPriceHigh(), is(new BigDecimal("300")));
-        assertThat(captor.getValue().getPriceLatest(), is(new BigDecimal("204")));
         assertThat(captor.getValue().getPriceLow(), is(new BigDecimal("20")));
         assertThat(captor.getValue().getResearch(), is("new findings"));
         assertThat(captor.getValue().getRevenue(), is(new BigDecimal("100250")));
@@ -124,7 +122,6 @@ public class PeriodServiceTest
         assertThat(captor.getValue().getReportDate(), is(period.getReportDate()));
         assertThat(captor.getValue().getShares(), is(period.getShares()));
         assertThat(captor.getValue().getPriceHigh(), is(period.getPriceHigh()));
-        assertThat(captor.getValue().getPriceLatest(), is(period.getPriceLatest()));
         assertThat(captor.getValue().getPriceLow(), is(period.getPriceLow()));
         assertThat(captor.getValue().getResearch(), is(period.getResearch()));
         assertThat(captor.getValue().getRevenue(), is(period.getRevenue()));
@@ -208,7 +205,6 @@ public class PeriodServiceTest
         period.setEndingMonth("3012");
         period.setReportDate(Date.valueOf("2026-03-30"));
         period.setShares(new BigDecimal("10000"));
-        period.setPriceLatest(new BigDecimal("204"));
         period.setPriceLow(new BigDecimal("20"));
         period.setPriceHigh(new BigDecimal("300"));
         period.setResearch("new findings");
@@ -226,7 +222,6 @@ public class PeriodServiceTest
         assertThat(dto.getReportDate(), is("30.03.2026"));
         assertThat(dto.getShares(), is("10B"));
         assertThat(dto.getPriceHigh(), is("300"));
-        assertThat(dto.getPriceLatest(), is("204"));
         assertThat(dto.getPriceLow(), is("20"));
         assertThat(dto.getResearch(), is(period.getResearch()));
         assertThat(dto.getRevenue(), is("100.25B"));
@@ -246,7 +241,6 @@ public class PeriodServiceTest
         period.setEndingMonth("3012");
         period.setReportDate(Date.valueOf("2026-03-30"));
         period.setShares(new BigDecimal("10000"));
-        period.setPriceLatest(new BigDecimal("204"));
         period.setPriceLow(new BigDecimal("20"));
         period.setPriceHigh(new BigDecimal("300"));
         period.setResearch("new findings");

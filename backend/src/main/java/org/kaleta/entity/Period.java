@@ -33,9 +33,6 @@ public class Period extends AbstractEntity
     @Column(name = "shares")
     private BigDecimal shares;
 
-    @Column(name = "price_latest")
-    private BigDecimal priceLatest;
-
     @Column(name = "price_low")
     private BigDecimal priceLow;
 

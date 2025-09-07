@@ -44,7 +44,6 @@ class PeriodResourceTest
         dto.setEndingMonth(newEndingMonth);
         dto.setReportDate(newReportDate);
         dto.setShares(newShares);
-        dto.setPriceLatest(newPriceLatest);
         dto.setPriceLow(newPriceLow);
         dto.setPriceHigh(newPriceHigh);
         dto.setResearch(newResearch);
@@ -69,7 +68,6 @@ class PeriodResourceTest
         assertThat(researchDto.getPeriods().get(0).getEndingMonth(), is("11/2020"));
         assertThat(researchDto.getPeriods().get(0).getReportDate(), is("15.12.2020"));
         assertThat(researchDto.getPeriods().get(0).getShares(), is("12.35B"));
-        assertThat(researchDto.getPeriods().get(0).getPriceLatest(), is(newPriceLatest));
         assertThat(researchDto.getPeriods().get(0).getPriceHigh(), is(newPriceHigh));
         assertThat(researchDto.getPeriods().get(0).getPriceLow(), is(newPriceLow));
         assertThat(researchDto.getPeriods().get(0).getResearch(), is(newResearch));
@@ -116,7 +114,6 @@ class PeriodResourceTest
         assertThat(afterDto.getName(), is(beforeDto.getName()));
         assertThat(afterDto.getEndingMonth(), is(beforeDto.getEndingMonth()));
         assertThat(afterDto.getReportDate(), is(beforeDto.getReportDate()));
-        assertThat(afterDto.getPriceLatest(), is(beforeDto.getPriceLatest()));
         assertThat(afterDto.getPriceHigh(), is(beforeDto.getPriceHigh()));
         assertThat(afterDto.getPriceLow(), is(beforeDto.getPriceLow()));
         assertThat(afterDto.getResearch(), is(newResearch));
@@ -185,22 +182,6 @@ class PeriodResourceTest
         Assert.put400(path, dto, "Invalid Shares:");
 
         dto.setShares(null);
-        dto.setPriceLatest("x");
-        Assert.put400(path, dto, "Invalid Latest Price:");
-
-        dto.setPriceLatest(".1");
-        Assert.put400(path, dto, "Invalid Latest Price:");
-
-        dto.setPriceLatest("1.");
-        Assert.put400(path, dto, "Invalid Latest Price:");
-
-        dto.setPriceLatest("1234567");
-        Assert.put400(path, dto, "Invalid Latest Price:");
-
-        dto.setPriceLatest("10.12345");
-        Assert.put400(path, dto, "Invalid Latest Price:");
-
-        dto.setPriceLatest(null);
         dto.setPriceHigh("x");
         Assert.put400(path, dto, "Invalid High Price:");
 
@@ -337,7 +318,6 @@ class PeriodResourceTest
         assertThat(researchDto.getPeriods().get(0).getName(), is(dto.getName()));
         assertThat(researchDto.getPeriods().get(0).getEndingMonth(), is("10/2015"));
         assertThat(researchDto.getPeriods().get(0).getReportDate(), is("11.11.2015"));
-        assertThat(researchDto.getPeriods().get(0).getPriceLatest(), is(blankString()));
         assertThat(researchDto.getPeriods().get(0).getPriceHigh(), is(blankString()));
         assertThat(researchDto.getPeriods().get(0).getPriceLow(), is(blankString()));
         assertThat(researchDto.getPeriods().get(0).getRevenue(), is(blankString()));

@@ -70,7 +70,6 @@ CREATE TABLE Period
     ending_month CHAR(4)       NOT NULL,
     report_date  DATE,
     research     TEXT,
-    price_latest DECIMAL(10, 4),
     price_low    DECIMAL(10, 4),
     price_high   DECIMAL(10, 4),
     shares       DECIMAL(8, 2),

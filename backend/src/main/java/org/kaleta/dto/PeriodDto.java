@@ -10,7 +10,6 @@ public class PeriodDto
     private String endingMonth;
     private String reportDate;
     private String shares;
-    private String priceLatest;
     private String priceLow;
     private String priceHigh;
     private String research;

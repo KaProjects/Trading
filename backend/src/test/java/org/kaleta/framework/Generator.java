@@ -66,8 +66,7 @@ public class Generator
         period.setResearch("content " + String.format("%02d", RANDOM.nextInt(100)));
         period.setShares(randomBigDecimal(new BigDecimal(999999), 2));
         period.setPriceHigh(randomBigDecimal(new BigDecimal(999999), 4));
-        period.setPriceLatest(randomBigDecimal(period.getPriceHigh(), 4));
-        period.setPriceLow(randomBigDecimal(period.getPriceLatest(), 4));
+        period.setPriceLow(randomBigDecimal(period.getPriceHigh(), 4));
         if (reported) {
             period.setReportDate(Date.valueOf(randomDate(Integer.parseInt("20" + period.getName().substring(0,2)))));
             period.setRevenue(randomBigDecimal(new BigDecimal(999999), 2));
