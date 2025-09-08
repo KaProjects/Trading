@@ -1,6 +1,7 @@
 package org.kaleta.dto;
 
 import lombok.Data;
+import org.kaleta.persistence.entity.Dividend;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,11 +25,11 @@ public class DividendsUiDto
         Arrays.fill(sums, "");
     }
 
-    public static DividendsUiDto from(List<org.kaleta.entity.Dividend> dividends)
+    public static DividendsUiDto from(List<Dividend> dividends)
     {
         DividendsUiDto dividendsUiDto = new DividendsUiDto();
 
-        for (org.kaleta.entity.Dividend dividend : dividends)
+        for (Dividend dividend : dividends)
         {
             dividendsUiDto.getDividends().add(DividendDto.from(dividend));
         }

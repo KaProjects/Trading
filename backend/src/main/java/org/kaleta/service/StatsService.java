@@ -4,9 +4,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.joda.time.DateTime;
 import org.kaleta.Utils;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Dividend;
-import org.kaleta.entity.Trade;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Dividend;
+import org.kaleta.persistence.entity.Trade;
 import org.kaleta.model.StatsByCompany;
 import org.kaleta.model.StatsByPeriod;
 

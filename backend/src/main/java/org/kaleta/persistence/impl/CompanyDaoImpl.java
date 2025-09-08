@@ -1,13 +1,14 @@
-package org.kaleta.dao;
+package org.kaleta.persistence.impl;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
-import org.kaleta.entity.Company;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Sector;
+import org.kaleta.persistence.api.CompanyDao;
+import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Sector;
 
 import java.util.List;
 

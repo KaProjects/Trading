@@ -1,11 +1,11 @@
-package org.kaleta.dao;
+package org.kaleta.persistence.api;
 
-import org.kaleta.entity.Trade;
 import org.kaleta.model.CompanyInfo;
+import org.kaleta.persistence.entity.Trade;
 
 import java.util.List;
 
-public interface TradeDao
+public interface TradeDao extends SuperDao<Trade>
 {
     /**
      * @return lists of trades that match provided filters (null filter = all values)
@@ -16,16 +16,6 @@ public interface TradeDao
      * @return latest purchase dates for every company (that have at least open trade)
      */
     List<CompanyInfo> latestPurchase();
-
-    /**
-     * creates new trade
-     */
-    void create(Trade trade);
-
-    /**
-     * @return trade according to specified ID
-     */
-    Trade get(String id);
 
     /**
      * saves all the instance of the specified trades

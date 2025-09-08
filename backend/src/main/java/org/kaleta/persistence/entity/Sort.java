@@ -1,4 +1,4 @@
-package org.kaleta.entity;
+package org.kaleta.persistence.entity;
 
 public class Sort
 {

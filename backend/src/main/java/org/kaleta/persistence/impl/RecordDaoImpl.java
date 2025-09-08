@@ -1,44 +1,21 @@
-package org.kaleta.dao;
+package org.kaleta.persistence.impl;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
-import org.kaleta.entity.Record;
 import org.kaleta.model.CompanyInfo;
+import org.kaleta.persistence.api.RecordDao;
+import org.kaleta.persistence.entity.Record;
 
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
-public class RecordDaoImpl implements RecordDao
+public class RecordDaoImpl extends SuperDaoImpl<Record> implements RecordDao
 {
-    @PersistenceContext
-    EntityManager entityManager;
-
-    private final String selectQuery = "SELECT r FROM Record r";
-
     @Override
-    public List<Record> list()
+    protected Class<Record> getEntityClass()
     {
-        return entityManager.createQuery(selectQuery, Record.class).getResultList();
-    }
-
-    @Override
-    public List<Record> list(String companyId)
-    {
-        return entityManager.createQuery(selectQuery + " WHERE r.company.id=:companyId", Record.class)
-                .setParameter("companyId", companyId)
-                .getResultList();
-    }
-
-    @Override
-    public Record get(String recordId)
-    {
-        return entityManager.createQuery(selectQuery + " WHERE r.id=:recordId", Record.class)
-                .setParameter("recordId", recordId)
-                .getSingleResult();
+        return Record.class;
     }
 
     @Override
@@ -67,19 +44,5 @@ public class RecordDaoImpl implements RecordDao
             infos.add(info);
         }
         return infos;
-    }
-
-    @Override
-    @Transactional
-    public void save(Record record)
-    {
-        entityManager.merge(record);
-    }
-
-    @Override
-    @Transactional
-    public void create(Record record)
-    {
-        entityManager.persist(record);
     }
 }

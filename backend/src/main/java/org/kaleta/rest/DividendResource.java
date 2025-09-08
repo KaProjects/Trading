@@ -12,7 +12,7 @@ import jakarta.ws.rs.core.Response;
 import org.kaleta.dto.DividendCreateDto;
 import org.kaleta.dto.DividendDto;
 import org.kaleta.dto.DividendsUiDto;
-import org.kaleta.entity.Dividend;
+import org.kaleta.persistence.entity.Dividend;
 import org.kaleta.service.DividendService;
 
 import java.util.List;

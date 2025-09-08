@@ -3,7 +3,7 @@ package org.kaleta.dto;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.kaleta.entity.Sort;
+import org.kaleta.persistence.entity.Sort;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +42,7 @@ public class CompanyUiDto
         private int records = 0;
         private int financials = 0;
 
-        public static Company from(org.kaleta.entity.Company company)
+        public static Company from(org.kaleta.persistence.entity.Company company)
         {
             Company dto = new Company();
             dto.setId(company.getId());

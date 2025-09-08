@@ -1,9 +1,7 @@
-package org.kaleta.entity;
+package org.kaleta.persistence.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -16,12 +14,8 @@ import java.sql.Date;
 @EqualsAndHashCode(callSuper=true)
 @Entity
 @Table(name = "Trade")
-public class Trade extends AbstractEntity
+public class Trade extends AbstractCompanyEntity
 {
-    @ManyToOne
-    @JoinColumn(name ="companyId", nullable = false)
-    private Company company;
-
     @Column(name = "quantity", nullable = false)
     private BigDecimal quantity;
 
@@ -45,12 +39,12 @@ public class Trade extends AbstractEntity
 
     public String getTicker()
     {
-        return company.getTicker();
+        return getCompany().getTicker();
     }
 
     public Currency getCurrency()
     {
-        return company.getCurrency();
+        return getCompany().getCurrency();
     }
 
     public BigDecimal getPurchaseTotal()

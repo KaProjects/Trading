@@ -11,7 +11,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.internal.NonNull;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.kaleta.entity.Trade;
+import org.kaleta.persistence.entity.Trade;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
 

@@ -1,7 +1,6 @@
 package org.kaleta.model;
 
-import lombok.Data;
-import org.kaleta.entity.Financial;
+import org.kaleta.persistence.entity.Financial;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

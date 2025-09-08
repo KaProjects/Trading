@@ -5,13 +5,13 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.Test;
-import org.kaleta.dao.CompanyDao;
-import org.kaleta.dao.PeriodDao;
+import org.kaleta.persistence.api.CompanyDao;
+import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.dto.FinancialDto;
 import org.kaleta.dto.PeriodCreateDto;
 import org.kaleta.dto.PeriodDto;
-import org.kaleta.entity.Company;
-import org.kaleta.entity.Period;
+import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Period;
 import org.kaleta.framework.Generator;
 import org.mockito.ArgumentCaptor;
 

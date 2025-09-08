@@ -1,23 +1,22 @@
-package org.kaleta.dao;
+package org.kaleta.persistence.impl;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
-import jakarta.transaction.Transactional;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Dividend;
-import org.kaleta.entity.Sector;
+import org.kaleta.persistence.api.DividendDao;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Dividend;
+import org.kaleta.persistence.entity.Sector;
 
 import java.util.List;
 
 @ApplicationScoped
-public class DividendDaoImpl implements DividendDao
+public class DividendDaoImpl extends SuperDaoImpl<Dividend> implements DividendDao
 {
-    @PersistenceContext
-    EntityManager entityManager;
-
-    private final String selectQuery = "SELECT d FROM Dividend d";
+    @Override
+    protected Class<Dividend> getEntityClass()
+    {
+        return Dividend.class;
+    }
 
     @Override
     public List<Dividend> list(String companyId, String currency, String year, String sector)
@@ -25,25 +24,25 @@ public class DividendDaoImpl implements DividendDao
         String joinWord = " WHERE ";
         String companyCondition = "";
         if (companyId != null){
-            companyCondition = joinWord + "d.company.id=:companyId";
+            companyCondition = joinWord + "t.company.id=:companyId";
             joinWord = " AND ";
         }
 
         String currencyCondition = "";
         if (currency != null){
-            currencyCondition = joinWord + "d.company.currency=:currency";
+            currencyCondition = joinWord + "t.company.currency=:currency";
             joinWord = " AND ";
         }
 
         String sectorCondition = "";
         if (sector != null){
-            sectorCondition = joinWord + "d.company.sector=:sector";
+            sectorCondition = joinWord + "t.company.sector=:sector";
             joinWord = " AND ";
         }
 
         String yearCondition = "";
         if (year != null){
-            yearCondition = joinWord + "YEAR(d.date)=:year";
+            yearCondition = joinWord + "YEAR(t.date)=:year";
         }
 
         TypedQuery<Dividend> query = entityManager.createQuery(selectQuery
@@ -58,20 +57,5 @@ public class DividendDaoImpl implements DividendDao
         if (year != null ) query.setParameter("year", year);
 
         return query.getResultList();
-    }
-
-    @Override
-    @Transactional
-    public void create(Dividend dividend)
-    {
-        entityManager.persist(dividend);
-    }
-
-    @Override
-    public Dividend get(String id)
-    {
-        return entityManager.createQuery(selectQuery + " WHERE d.id=:dividendId", Dividend.class)
-                .setParameter("dividendId", id)
-                .getSingleResult();
     }
 }

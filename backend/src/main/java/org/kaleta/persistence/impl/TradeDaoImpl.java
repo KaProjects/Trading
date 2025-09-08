@@ -1,26 +1,25 @@
-package org.kaleta.dao;
+package org.kaleta.persistence.impl;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
-import jakarta.transaction.Transactional;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Sector;
-import org.kaleta.entity.Trade;
 import org.kaleta.model.CompanyInfo;
+import org.kaleta.persistence.api.TradeDao;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Sector;
+import org.kaleta.persistence.entity.Trade;
 
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
-public class TradeDaoImpl implements TradeDao
+public class TradeDaoImpl extends SuperDaoImpl<Trade> implements TradeDao
 {
-    @PersistenceContext
-    EntityManager entityManager;
-
-    private final String selectQuery = "SELECT t FROM Trade t";
+    @Override
+    protected Class<Trade> getEntityClass()
+    {
+        return Trade.class;
+    }
 
     @Override
     public List<Trade> list(Boolean active, String companyId, String currency, String purchaseYear, String sellYear, String sector)
@@ -95,29 +94,5 @@ public class TradeDaoImpl implements TradeDao
             infos.add(info);
         }
         return infos;
-    }
-
-    @Override
-    @Transactional
-    public void create(Trade trade)
-    {
-        entityManager.persist(trade);
-    }
-
-    @Override
-    public Trade get(String id)
-    {
-        return entityManager.createQuery(selectQuery + " WHERE t.id=:tradeId", Trade.class)
-                .setParameter("tradeId", id)
-                .getSingleResult();
-    }
-
-    @Override
-    @Transactional
-    public void saveAll(List<Trade> trades)
-    {
-        for (Trade trade : trades){
-            entityManager.merge(trade);
-        }
     }
 }

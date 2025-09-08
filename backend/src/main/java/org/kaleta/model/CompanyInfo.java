@@ -1,7 +1,7 @@
 package org.kaleta.model;
 
 import lombok.Data;
-import org.kaleta.entity.Sector;
+import org.kaleta.persistence.entity.Sector;
 
 import java.sql.Date;
 

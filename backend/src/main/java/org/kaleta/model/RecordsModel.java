@@ -2,7 +2,7 @@ package org.kaleta.model;
 
 import lombok.Data;
 import org.kaleta.Utils;
-import org.kaleta.entity.Record;
+import org.kaleta.persistence.entity.Record;
 
 import java.sql.Date;
 import java.util.List;

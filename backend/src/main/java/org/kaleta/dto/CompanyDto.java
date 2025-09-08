@@ -1,8 +1,8 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.entity.Company;
-import org.kaleta.entity.Currency;
+import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Currency;
 
 import java.util.ArrayList;
 import java.util.List;

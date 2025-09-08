@@ -2,8 +2,8 @@ package org.kaleta.dto;
 
 import lombok.Data;
 import org.kaleta.Utils;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Dividend;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Dividend;
 
 import static org.kaleta.Utils.format;
 

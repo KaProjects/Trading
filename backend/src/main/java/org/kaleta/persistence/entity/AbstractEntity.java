@@ -1,4 +1,4 @@
-package org.kaleta.entity;
+package org.kaleta.persistence.entity;
 
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;

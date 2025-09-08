@@ -3,11 +3,11 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.dao.TradeDao;
+import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeSellDto;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Trade;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Trade;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

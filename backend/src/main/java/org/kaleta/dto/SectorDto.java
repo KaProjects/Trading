@@ -1,7 +1,7 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.entity.Sector;
+import org.kaleta.persistence.entity.Sector;
 
 @Data
 public class SectorDto

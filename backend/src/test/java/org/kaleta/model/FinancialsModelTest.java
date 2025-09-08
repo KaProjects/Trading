@@ -2,7 +2,7 @@ package org.kaleta.model;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
-import org.kaleta.entity.Financial;
+import org.kaleta.persistence.entity.Financial;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

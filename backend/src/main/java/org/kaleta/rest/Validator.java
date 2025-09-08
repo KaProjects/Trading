@@ -10,9 +10,9 @@ import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeSellDto;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Sector;
-import org.kaleta.entity.Sort;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Sector;
+import org.kaleta.persistence.entity.Sort;
 
 import java.math.BigDecimal;
 import java.util.UUID;

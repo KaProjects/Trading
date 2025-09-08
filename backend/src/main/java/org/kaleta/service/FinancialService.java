@@ -2,9 +2,9 @@ package org.kaleta.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.kaleta.dao.FinancialDao;
+import org.kaleta.persistence.api.FinancialDao;
 import org.kaleta.dto.FinancialCreateDto;
-import org.kaleta.entity.Financial;
+import org.kaleta.persistence.entity.Financial;
 import org.kaleta.model.FinancialsModel;
 
 import java.math.BigDecimal;

@@ -11,9 +11,9 @@ import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.CompanyUiDto;
 import org.kaleta.dto.RecordsUiCompanyListsDto;
 import org.kaleta.dto.SectorDto;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Sector;
-import org.kaleta.entity.Sort;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Sector;
+import org.kaleta.persistence.entity.Sort;
 import org.kaleta.framework.Assert;
 
 import java.util.List;

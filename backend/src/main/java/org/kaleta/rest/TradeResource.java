@@ -14,7 +14,7 @@ import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeDto;
 import org.kaleta.dto.TradeSellDto;
 import org.kaleta.dto.TradesUiDto;
-import org.kaleta.entity.Trade;
+import org.kaleta.persistence.entity.Trade;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.service.FirebaseService;
 import org.kaleta.service.TradeService;

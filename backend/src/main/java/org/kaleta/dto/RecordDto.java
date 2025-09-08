@@ -1,9 +1,8 @@
 package org.kaleta.dto;
 
 import lombok.Data;
-import org.kaleta.Constants;
 import org.kaleta.Utils;
-import org.kaleta.entity.Record;
+import org.kaleta.persistence.entity.Record;
 
 import static org.kaleta.Utils.format;
 

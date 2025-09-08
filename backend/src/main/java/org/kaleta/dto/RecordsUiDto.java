@@ -3,6 +3,8 @@ package org.kaleta.dto;
 import lombok.Data;
 import org.kaleta.model.FinancialsModel;
 import org.kaleta.model.RecordsModel;
+import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Record;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -24,11 +26,11 @@ public class RecordsUiDto
     private Financials financials;
 
     public RecordsUiDto() {}
-    public RecordsUiDto(org.kaleta.entity.Company company, RecordsModel recordsModel)
+    public RecordsUiDto(Company company, RecordsModel recordsModel)
     {
         this.company = CompanyDto.from(company);
 
-        for (org.kaleta.entity.Record record : recordsModel.getSortedRecords()) {
+        for (Record record : recordsModel.getSortedRecords()) {
             this.records.add(RecordDto.from(record));
         }
         latest = new Latests();
@@ -107,7 +109,7 @@ public class RecordsUiDto
 
     public void setFinancialsFrom(FinancialsModel financialsModel)
     {
-        for (org.kaleta.entity.Financial financial : financialsModel.getSortedFinancials())
+        for (org.kaleta.persistence.entity.Financial financial : financialsModel.getSortedFinancials())
         {
             Financial dto = new Financial();
             dto.setQuarter(financial.getQuarter());
@@ -123,7 +125,7 @@ public class RecordsUiDto
             financials.values.add(dto);
         }
 
-        org.kaleta.entity.Financial ttmFinancials = financialsModel.getTtmFinancials();
+        org.kaleta.persistence.entity.Financial ttmFinancials = financialsModel.getTtmFinancials();
 
         if (ttmFinancials != null)
         {

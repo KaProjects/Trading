@@ -2,10 +2,10 @@ package org.kaleta.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.kaleta.dao.DividendDao;
+import org.kaleta.persistence.api.DividendDao;
 import org.kaleta.dto.DividendCreateDto;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Dividend;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Dividend;
 
 import java.math.BigDecimal;
 import java.util.HashMap;

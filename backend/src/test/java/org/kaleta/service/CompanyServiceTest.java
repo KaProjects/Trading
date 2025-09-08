@@ -5,9 +5,9 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.Test;
-import org.kaleta.dao.CompanyDao;
+import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.dto.CompanyDto;
-import org.kaleta.entity.Company;
+import org.kaleta.persistence.entity.Company;
 import org.kaleta.framework.Generator;
 
 import java.util.UUID;

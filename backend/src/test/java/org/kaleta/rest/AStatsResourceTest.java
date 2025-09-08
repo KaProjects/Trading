@@ -6,8 +6,8 @@ import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 import org.kaleta.dto.StatsUiByCompanyDto;
 import org.kaleta.dto.StatsUiByPeriodDto;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Sector;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Sector;
 import org.kaleta.framework.Assert;
 
 import static io.restassured.RestAssured.given;

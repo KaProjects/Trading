@@ -1,10 +1,10 @@
 package org.kaleta.framework;
 
-import org.kaleta.entity.Company;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Period;
-import org.kaleta.entity.Record;
-import org.kaleta.entity.Sector;
+import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Period;
+import org.kaleta.persistence.entity.Record;
+import org.kaleta.persistence.entity.Sector;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

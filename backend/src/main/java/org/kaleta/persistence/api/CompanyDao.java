@@ -1,6 +1,6 @@
-package org.kaleta.dao;
+package org.kaleta.persistence.api;
 
-import org.kaleta.entity.Company;
+import org.kaleta.persistence.entity.Company;
 
 import java.util.List;
 

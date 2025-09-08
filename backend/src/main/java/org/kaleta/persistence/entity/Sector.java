@@ -1,8 +1,6 @@
-package org.kaleta.entity;
+package org.kaleta.persistence.entity;
 
 import lombok.Getter;
-
-import java.util.Arrays;
 
 public enum Sector
 {
