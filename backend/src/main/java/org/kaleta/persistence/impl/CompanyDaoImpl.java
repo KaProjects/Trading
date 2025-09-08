@@ -1,10 +1,7 @@
 package org.kaleta.persistence.impl;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
-import jakarta.transaction.Transactional;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
@@ -13,18 +10,12 @@ import org.kaleta.persistence.entity.Sector;
 import java.util.List;
 
 @ApplicationScoped
-public class CompanyDaoImpl implements CompanyDao
+public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
 {
-    @PersistenceContext
-    EntityManager entityManager;
-
-    private final String selectQuery = "SELECT c FROM Company c";
-
-
     @Override
-    public List<Company> list()
+    protected Class<Company> getEntityClass()
     {
-        return entityManager.createQuery(selectQuery, Company.class).getResultList();
+        return Company.class;
     }
 
     @Override
@@ -34,13 +25,13 @@ public class CompanyDaoImpl implements CompanyDao
 
         String currencyCondition = "";
         if (currency != null){
-            currencyCondition = joinWord + "c.currency=:currency";
+            currencyCondition = joinWord + "t.currency=:currency";
             joinWord = " AND ";
         }
 
         String sectorCondition = "";
         if (sector != null){
-            sectorCondition = joinWord + "c.sector=:sector";
+            sectorCondition = joinWord + "t.sector=:sector";
         }
 
         TypedQuery<Company> query = entityManager.createQuery(selectQuery
@@ -54,32 +45,10 @@ public class CompanyDaoImpl implements CompanyDao
     }
 
     @Override
-    public Company get(String companyId)
-    {
-        return entityManager.createQuery(selectQuery + " WHERE c.id=:companyId", Company.class)
-                .setParameter("companyId", companyId)
-                .getSingleResult();
-    }
-
-    @Override
     public Company getByTicker(String ticker)
     {
-        return entityManager.createQuery(selectQuery + " WHERE c.ticker=:ticker", Company.class)
+        return entityManager.createQuery(selectQuery + " WHERE t.ticker=:ticker", Company.class)
                 .setParameter("ticker", ticker)
                 .getSingleResult();
-    }
-
-    @Override
-    @Transactional
-    public void save(Company company)
-    {
-        entityManager.merge(company);
-    }
-
-    @Override
-    @Transactional
-    public void create(Company company)
-    {
-        entityManager.persist(company);
     }
 }

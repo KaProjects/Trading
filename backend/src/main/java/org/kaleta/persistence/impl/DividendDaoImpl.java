@@ -10,7 +10,7 @@ import org.kaleta.persistence.entity.Sector;
 import java.util.List;
 
 @ApplicationScoped
-public class DividendDaoImpl extends SuperDaoImpl<Dividend> implements DividendDao
+public class DividendDaoImpl extends EntityCompanyDaoImpl<Dividend> implements DividendDao
 {
     @Override
     protected Class<Dividend> getEntityClass()

@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
-public class TradeDaoImpl extends SuperDaoImpl<Trade> implements TradeDao
+public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDao
 {
     @Override
     protected Class<Trade> getEntityClass()

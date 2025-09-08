@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
-public class RecordDaoImpl extends SuperDaoImpl<Record> implements RecordDao
+public class RecordDaoImpl extends EntityCompanyDaoImpl<Record> implements RecordDao
 {
     @Override
     protected Class<Record> getEntityClass()

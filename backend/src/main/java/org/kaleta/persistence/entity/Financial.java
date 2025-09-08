@@ -13,7 +13,7 @@ import java.math.RoundingMode;
 @EqualsAndHashCode(callSuper=true)
 @Entity
 @Table(name = "Financial")
-public class Financial extends AbstractCompanyEntity
+public class Financial extends AbstractEntityCompany
 {
     @Column(name = "quarter", nullable = false)
     private String quarter;

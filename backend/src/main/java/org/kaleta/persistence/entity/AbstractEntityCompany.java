@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @MappedSuperclass
-public class AbstractCompanyEntity extends AbstractEntity
+public class AbstractEntityCompany extends AbstractEntity
 {
     @ManyToOne
     @JoinColumn(name ="companyId", nullable = false)

@@ -13,7 +13,7 @@ import java.sql.Date;
 @EqualsAndHashCode(callSuper=true)
 @Entity
 @Table(name = "Dividend")
-public class Dividend extends AbstractCompanyEntity
+public class Dividend extends AbstractEntityCompany
 {
     @Column(name = "date", nullable = false)
     private Date date;

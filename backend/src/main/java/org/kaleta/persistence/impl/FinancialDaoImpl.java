@@ -5,7 +5,7 @@ import org.kaleta.persistence.api.FinancialDao;
 import org.kaleta.persistence.entity.Financial;
 
 @ApplicationScoped
-public class FinancialDaoImpl extends SuperDaoImpl<Financial> implements FinancialDao
+public class FinancialDaoImpl extends EntityCompanyDaoImpl<Financial> implements FinancialDao
 {
     @Override
     protected Class<Financial> getEntityClass()

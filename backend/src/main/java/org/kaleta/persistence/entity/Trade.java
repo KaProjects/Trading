@@ -14,7 +14,7 @@ import java.sql.Date;
 @EqualsAndHashCode(callSuper=true)
 @Entity
 @Table(name = "Trade")
-public class Trade extends AbstractCompanyEntity
+public class Trade extends AbstractEntityCompany
 {
     @Column(name = "quantity", nullable = false)
     private BigDecimal quantity;

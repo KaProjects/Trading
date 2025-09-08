@@ -5,7 +5,7 @@ import org.kaleta.persistence.entity.Record;
 
 import java.util.List;
 
-public interface RecordDao extends SuperDao<Record>
+public interface RecordDao extends EntityCompanyDao<Record>
 {
     /**
      * @return latest record dates for every company (that have at least one record)

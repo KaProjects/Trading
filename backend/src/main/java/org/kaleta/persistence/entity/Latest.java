@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper=true)
 @Entity
 @Table(name = "Latest")
-public class Latest extends AbstractCompanyEntity
+public class Latest extends AbstractEntityCompany
 {
     @Column(name = "datetime")
     private LocalDateTime datetime;

@@ -4,7 +4,7 @@ import org.kaleta.persistence.entity.Dividend;
 
 import java.util.List;
 
-public interface DividendDao extends SuperDao<Dividend>
+public interface DividendDao extends EntityCompanyDao<Dividend>
 {
     /**
      * @return lists of dividends that match provided filters (null filter = all values)

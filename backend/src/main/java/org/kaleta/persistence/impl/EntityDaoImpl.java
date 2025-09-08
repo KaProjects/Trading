@@ -3,12 +3,12 @@ package org.kaleta.persistence.impl;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
-import org.kaleta.persistence.api.SuperDao;
-import org.kaleta.persistence.entity.AbstractCompanyEntity;
+import org.kaleta.persistence.api.EntityDao;
+import org.kaleta.persistence.entity.AbstractEntity;
 
 import java.util.List;
 
-public abstract class SuperDaoImpl<C extends AbstractCompanyEntity> implements SuperDao<C>
+public abstract class EntityDaoImpl<C extends AbstractEntity> implements EntityDao<C>
 {
     @PersistenceContext
     EntityManager entityManager;
@@ -24,19 +24,18 @@ public abstract class SuperDaoImpl<C extends AbstractCompanyEntity> implements S
     }
 
     @Override
-    public List<C> list(String companyId)
-    {
-        return entityManager.createQuery( selectQuery + "WHERE t.company.id=:companyId", getEntityClass())
-                .setParameter("companyId", companyId)
-                .getResultList();
-    }
-
-    @Override
     public C get(String id)
     {
         return entityManager.createQuery(selectQuery + "WHERE t.id=:id", getEntityClass())
                 .setParameter("id", id)
                 .getSingleResult();
+    }
+
+    @Transactional
+    @Override
+    public void create(C c)
+    {
+        entityManager.persist(c);
     }
 
     @Transactional
@@ -53,12 +52,5 @@ public abstract class SuperDaoImpl<C extends AbstractCompanyEntity> implements S
         for (C c : list){
             entityManager.merge(c);
         }
-    }
-
-    @Transactional
-    @Override
-    public void create(C c)
-    {
-        entityManager.persist(c);
     }
 }

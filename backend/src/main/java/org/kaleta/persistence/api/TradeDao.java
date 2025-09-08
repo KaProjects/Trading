@@ -5,7 +5,7 @@ import org.kaleta.persistence.entity.Trade;
 
 import java.util.List;
 
-public interface TradeDao extends SuperDao<Trade>
+public interface TradeDao extends EntityCompanyDao<Trade>
 {
     /**
      * @return lists of trades that match provided filters (null filter = all values)
