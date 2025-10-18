@@ -19,7 +19,7 @@ async def cron():
 
     while True:
         schedule.run_pending()
-        await asyncio.sleep(1)
+        await asyncio.sleep(60)
 
 if __name__ == '__main__':
     envs = utils.parse("envs.json")
