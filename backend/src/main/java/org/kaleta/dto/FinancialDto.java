@@ -3,6 +3,7 @@ package org.kaleta.dto;
 import lombok.Data;
 
 @Data
+@Deprecated
 public class FinancialDto
 {
     private String period;

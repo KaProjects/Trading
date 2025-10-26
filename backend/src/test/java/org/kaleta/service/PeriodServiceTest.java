@@ -7,6 +7,7 @@ import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.Test;
 import org.kaleta.Utils;
 import org.kaleta.framework.Generator;
+import org.kaleta.model.Periods;
 import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Period;
@@ -19,9 +20,14 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
@@ -178,6 +184,312 @@ public class PeriodServiceTest
         updateAndAssertPeriod(dto, period, null);
     }
 
+    @Test
+    void getBy_quarters()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25Q2"), YearMonth.of(2025, 7), "1000", "300", "200", "100", "20");
+        Period period2 = Generator.generatePeriod(company, false, PeriodName.valueOf("25Q3"), YearMonth.of(2025, 10));
+        Period period3 = Generator.generatePeriod(company, PeriodName.valueOf("25Q1"), YearMonth.of(2025, 4), "950", "400", "300", "50", "10");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getPeriods().size(), is(3));
+        assertPeriod(periods.getPeriods().get(0), period2);
+        assertPeriod(periods.getPeriods().get(1), period1);
+        assertPeriod(periods.getPeriods().get(2), period3);
+
+        assertThat(periods.getFinancials().size(), is(2));
+
+        assertThat(periods.getFinancials().get(0).getPeriod(), is(period1.getName()));
+        assertThat(periods.getFinancials().get(0).getRevenue(), comparesEqualTo(period1.getRevenue()));
+        assertThat(periods.getFinancials().get(0).getCostGoodsSold(), comparesEqualTo(period1.getCostGoodsSold()));
+        assertThat(periods.getFinancials().get(0).getGrossProfit(), comparesEqualTo(new BigDecimal("700")));
+        assertThat(periods.getFinancials().get(0).getGrossMargin(), comparesEqualTo(new BigDecimal("70")));
+        assertThat(periods.getFinancials().get(0).getOperatingExpenses(), comparesEqualTo(period1.getOperatingExpenses()));
+        assertThat(periods.getFinancials().get(0).getOperatingIncome(), comparesEqualTo(new BigDecimal("500")));
+        assertThat(periods.getFinancials().get(0).getOperatingMargin(), comparesEqualTo(new BigDecimal("50")));
+        assertThat(periods.getFinancials().get(0).getNetIncome(), comparesEqualTo(period1.getNetIncome()));
+        assertThat(periods.getFinancials().get(0).getNetMargin(), comparesEqualTo(new BigDecimal("10")));
+        assertThat(periods.getFinancials().get(0).getDividend(), comparesEqualTo(period1.getDividend()));
+
+        assertThat(periods.getFinancials().get(1).getPeriod(), is(period3.getName()));
+        assertThat(periods.getFinancials().get(1).getRevenue(), comparesEqualTo(period3.getRevenue()));
+        assertThat(periods.getFinancials().get(1).getCostGoodsSold(), comparesEqualTo(period3.getCostGoodsSold()));
+        assertThat(periods.getFinancials().get(1).getGrossProfit(), comparesEqualTo(new BigDecimal("550")));
+        assertThat(periods.getFinancials().get(1).getGrossMargin(), comparesEqualTo(new BigDecimal("57.89")));
+        assertThat(periods.getFinancials().get(1).getOperatingExpenses(), comparesEqualTo(period3.getOperatingExpenses()));
+        assertThat(periods.getFinancials().get(1).getOperatingIncome(), comparesEqualTo(new BigDecimal("250")));
+        assertThat(periods.getFinancials().get(1).getOperatingMargin(), comparesEqualTo(new BigDecimal("26.32")));
+        assertThat(periods.getFinancials().get(1).getNetIncome(), comparesEqualTo(period3.getNetIncome()));
+        assertThat(periods.getFinancials().get(1).getNetMargin(), comparesEqualTo(new BigDecimal("5.26")));
+        assertThat(periods.getFinancials().get(1).getDividend(), comparesEqualTo(period3.getDividend()));
+
+        assertThat(periods.getTtm(), is(notNullValue()));
+
+        assertThat(periods.getTtm().getRevenue(), comparesEqualTo(new BigDecimal("3900")));
+        assertThat(periods.getTtm().getCostGoodsSold(), comparesEqualTo(new BigDecimal("1400")));
+        assertThat(periods.getTtm().getGrossProfit(), comparesEqualTo(new BigDecimal("2500")));
+        assertThat(periods.getTtm().getGrossMargin(), comparesEqualTo(new BigDecimal("64.1")));
+
+        assertThat(periods.getTtm().getOperatingExpenses(), comparesEqualTo(new BigDecimal("1000")));
+        assertThat(periods.getTtm().getOperatingIncome(), comparesEqualTo(new BigDecimal("1500")));
+        assertThat(periods.getTtm().getOperatingMargin(), comparesEqualTo(new BigDecimal("38.46")));
+
+        assertThat(periods.getTtm().getNetIncome(), comparesEqualTo(new BigDecimal("300")));
+        assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("7.69")));
+
+        assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("60")));
+    }
+
+    @Test
+    void getBy_halves()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("24H1"), YearMonth.of(2024, 4), "1000", "300", "200", "100", "20");
+        Period period2 = Generator.generatePeriod(company, false, PeriodName.valueOf("25H1"), YearMonth.of(2025, 4));
+        Period period3 = Generator.generatePeriod(company, PeriodName.valueOf("24H2"), YearMonth.of(2024, 10), "950", "400", "300", "50", "10");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getPeriods().size(), is(3));
+        assertPeriod(periods.getPeriods().get(0), period2);
+        assertPeriod(periods.getPeriods().get(1), period3);
+        assertPeriod(periods.getPeriods().get(2), period1);
+
+        assertThat(periods.getFinancials().size(), is(2));
+
+        assertThat(periods.getFinancials().get(0).getPeriod(), is(period3.getName()));
+        assertThat(periods.getFinancials().get(0).getRevenue(), comparesEqualTo(period3.getRevenue()));
+        assertThat(periods.getFinancials().get(0).getCostGoodsSold(), comparesEqualTo(period3.getCostGoodsSold()));
+        assertThat(periods.getFinancials().get(0).getGrossProfit(), comparesEqualTo(new BigDecimal("550")));
+        assertThat(periods.getFinancials().get(0).getGrossMargin(), comparesEqualTo(new BigDecimal("57.89")));
+        assertThat(periods.getFinancials().get(0).getOperatingExpenses(), comparesEqualTo(period3.getOperatingExpenses()));
+        assertThat(periods.getFinancials().get(0).getOperatingIncome(), comparesEqualTo(new BigDecimal("250")));
+        assertThat(periods.getFinancials().get(0).getOperatingMargin(), comparesEqualTo(new BigDecimal("26.32")));
+        assertThat(periods.getFinancials().get(0).getNetIncome(), comparesEqualTo(period3.getNetIncome()));
+        assertThat(periods.getFinancials().get(0).getNetMargin(), comparesEqualTo(new BigDecimal("5.26")));
+        assertThat(periods.getFinancials().get(0).getDividend(), comparesEqualTo(period3.getDividend()));
+
+        assertThat(periods.getFinancials().get(1).getPeriod(), is(period1.getName()));
+        assertThat(periods.getFinancials().get(1).getRevenue(), comparesEqualTo(period1.getRevenue()));
+        assertThat(periods.getFinancials().get(1).getCostGoodsSold(), comparesEqualTo(period1.getCostGoodsSold()));
+        assertThat(periods.getFinancials().get(1).getGrossProfit(), comparesEqualTo(new BigDecimal("700")));
+        assertThat(periods.getFinancials().get(1).getGrossMargin(), comparesEqualTo(new BigDecimal("70")));
+        assertThat(periods.getFinancials().get(1).getOperatingExpenses(), comparesEqualTo(period1.getOperatingExpenses()));
+        assertThat(periods.getFinancials().get(1).getOperatingIncome(), comparesEqualTo(new BigDecimal("500")));
+        assertThat(periods.getFinancials().get(1).getOperatingMargin(), comparesEqualTo(new BigDecimal("50")));
+        assertThat(periods.getFinancials().get(1).getNetIncome(), comparesEqualTo(period1.getNetIncome()));
+        assertThat(periods.getFinancials().get(1).getNetMargin(), comparesEqualTo(new BigDecimal("10")));
+        assertThat(periods.getFinancials().get(1).getDividend(), comparesEqualTo(period1.getDividend()));
+
+        assertThat(periods.getTtm(), is(notNullValue()));
+
+        assertThat(periods.getTtm().getRevenue(), comparesEqualTo(new BigDecimal("1950")));
+        assertThat(periods.getTtm().getCostGoodsSold(), comparesEqualTo(new BigDecimal("700")));
+        assertThat(periods.getTtm().getGrossProfit(), comparesEqualTo(new BigDecimal("1250")));
+        assertThat(periods.getTtm().getGrossMargin(), comparesEqualTo(new BigDecimal("64.1")));
+
+        assertThat(periods.getTtm().getOperatingExpenses(), comparesEqualTo(new BigDecimal("500")));
+        assertThat(periods.getTtm().getOperatingIncome(), comparesEqualTo(new BigDecimal("750")));
+        assertThat(periods.getTtm().getOperatingMargin(), comparesEqualTo(new BigDecimal("38.46")));
+
+        assertThat(periods.getTtm().getNetIncome(), comparesEqualTo(new BigDecimal("150")));
+        assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("7.69")));
+
+        assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("30")));
+    }
+
+    @Test
+    void getBy_years()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25FY"), YearMonth.of(2025, 12), "1000", "300", "200", "100", "20");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("24FY"), YearMonth.of(2024, 12), "950", "400", "300", "50", "10");
+        Period period3 = Generator.generatePeriod(company, false ,PeriodName.valueOf("26FY"), YearMonth.of(2026, 12));
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getPeriods().size(), is(3));
+        assertPeriod(periods.getPeriods().get(0), period3);
+        assertPeriod(periods.getPeriods().get(1), period1);
+        assertPeriod(periods.getPeriods().get(2), period2);
+
+        assertThat(periods.getFinancials().size(), is(2));
+
+        assertThat(periods.getFinancials().get(0).getPeriod(), is(period1.getName()));
+        assertThat(periods.getFinancials().get(0).getRevenue(), comparesEqualTo(period1.getRevenue()));
+        assertThat(periods.getFinancials().get(0).getCostGoodsSold(), comparesEqualTo(period1.getCostGoodsSold()));
+        assertThat(periods.getFinancials().get(0).getGrossProfit(), comparesEqualTo(new BigDecimal("700")));
+        assertThat(periods.getFinancials().get(0).getGrossMargin(), comparesEqualTo(new BigDecimal("70")));
+        assertThat(periods.getFinancials().get(0).getOperatingExpenses(), comparesEqualTo(period1.getOperatingExpenses()));
+        assertThat(periods.getFinancials().get(0).getOperatingIncome(), comparesEqualTo(new BigDecimal("500")));
+        assertThat(periods.getFinancials().get(0).getOperatingMargin(), comparesEqualTo(new BigDecimal("50")));
+        assertThat(periods.getFinancials().get(0).getNetIncome(), comparesEqualTo(period1.getNetIncome()));
+        assertThat(periods.getFinancials().get(0).getNetMargin(), comparesEqualTo(new BigDecimal("10")));
+        assertThat(periods.getFinancials().get(0).getDividend(), comparesEqualTo(period1.getDividend()));
+
+        assertThat(periods.getFinancials().get(1).getPeriod(), is(period2.getName()));
+        assertThat(periods.getFinancials().get(1).getRevenue(), comparesEqualTo(period2.getRevenue()));
+        assertThat(periods.getFinancials().get(1).getCostGoodsSold(), comparesEqualTo(period2.getCostGoodsSold()));
+        assertThat(periods.getFinancials().get(1).getGrossProfit(), comparesEqualTo(new BigDecimal("550")));
+        assertThat(periods.getFinancials().get(1).getGrossMargin(), comparesEqualTo(new BigDecimal("57.89")));
+        assertThat(periods.getFinancials().get(1).getOperatingExpenses(), comparesEqualTo(period2.getOperatingExpenses()));
+        assertThat(periods.getFinancials().get(1).getOperatingIncome(), comparesEqualTo(new BigDecimal("250")));
+        assertThat(periods.getFinancials().get(1).getOperatingMargin(), comparesEqualTo(new BigDecimal("26.32")));
+        assertThat(periods.getFinancials().get(1).getNetIncome(), comparesEqualTo(period2.getNetIncome()));
+        assertThat(periods.getFinancials().get(1).getNetMargin(), comparesEqualTo(new BigDecimal("5.26")));
+        assertThat(periods.getFinancials().get(1).getDividend(), comparesEqualTo(period2.getDividend()));
+
+        assertThat(periods.getTtm(), is(notNullValue()));
+
+        assertThat(periods.getTtm().getRevenue(), comparesEqualTo(new BigDecimal("1000")));
+        assertThat(periods.getTtm().getCostGoodsSold(), comparesEqualTo(new BigDecimal("300")));
+        assertThat(periods.getTtm().getGrossProfit(), comparesEqualTo(new BigDecimal("700")));
+        assertThat(periods.getTtm().getGrossMargin(), comparesEqualTo(new BigDecimal("70")));
+
+        assertThat(periods.getTtm().getOperatingExpenses(), comparesEqualTo(new BigDecimal("200")));
+        assertThat(periods.getTtm().getOperatingIncome(), comparesEqualTo(new BigDecimal("500")));
+        assertThat(periods.getTtm().getOperatingMargin(), comparesEqualTo(new BigDecimal("50")));
+
+        assertThat(periods.getTtm().getNetIncome(), comparesEqualTo(new BigDecimal("100")));
+        assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("10")));
+
+        assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("20")));
+    }
+
+    @Test
+    void getBy_mix()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("24FY"), YearMonth.of(2024, 12), "1000", "300", "200", "100", "20");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("25Q1"), YearMonth.of(2025, 3), "500", "100", "100", "100", "10");
+        Period period3 = Generator.generatePeriod(company, false ,PeriodName.valueOf("25Q2"), YearMonth.of(2025, 6));
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getPeriods().size(), is(3));
+        assertPeriod(periods.getPeriods().get(0), period3);
+        assertPeriod(periods.getPeriods().get(1), period2);
+        assertPeriod(periods.getPeriods().get(2), period1);
+
+        assertThat(periods.getFinancials().size(), is(2));
+
+        assertThat(periods.getFinancials().get(0).getPeriod(), is(period2.getName()));
+        assertThat(periods.getFinancials().get(0).getRevenue(), comparesEqualTo(period2.getRevenue()));
+        assertThat(periods.getFinancials().get(0).getCostGoodsSold(), comparesEqualTo(period2.getCostGoodsSold()));
+        assertThat(periods.getFinancials().get(0).getGrossProfit(), comparesEqualTo(new BigDecimal("400")));
+        assertThat(periods.getFinancials().get(0).getGrossMargin(), comparesEqualTo(new BigDecimal("80")));
+        assertThat(periods.getFinancials().get(0).getOperatingExpenses(), comparesEqualTo(period2.getOperatingExpenses()));
+        assertThat(periods.getFinancials().get(0).getOperatingIncome(), comparesEqualTo(new BigDecimal("300")));
+        assertThat(periods.getFinancials().get(0).getOperatingMargin(), comparesEqualTo(new BigDecimal("60")));
+        assertThat(periods.getFinancials().get(0).getNetIncome(), comparesEqualTo(period2.getNetIncome()));
+        assertThat(periods.getFinancials().get(0).getNetMargin(), comparesEqualTo(new BigDecimal("20")));
+        assertThat(periods.getFinancials().get(0).getDividend(), comparesEqualTo(period2.getDividend()));
+
+        assertThat(periods.getFinancials().get(1).getPeriod(), is(period1.getName()));
+        assertThat(periods.getFinancials().get(1).getRevenue(), comparesEqualTo(period1.getRevenue()));
+        assertThat(periods.getFinancials().get(1).getCostGoodsSold(), comparesEqualTo(period1.getCostGoodsSold()));
+        assertThat(periods.getFinancials().get(1).getGrossProfit(), comparesEqualTo(new BigDecimal("700")));
+        assertThat(periods.getFinancials().get(1).getGrossMargin(), comparesEqualTo(new BigDecimal("70")));
+        assertThat(periods.getFinancials().get(1).getOperatingExpenses(), comparesEqualTo(period1.getOperatingExpenses()));
+        assertThat(periods.getFinancials().get(1).getOperatingIncome(), comparesEqualTo(new BigDecimal("500")));
+        assertThat(periods.getFinancials().get(1).getOperatingMargin(), comparesEqualTo(new BigDecimal("50")));
+        assertThat(periods.getFinancials().get(1).getNetIncome(), comparesEqualTo(period1.getNetIncome()));
+        assertThat(periods.getFinancials().get(1).getNetMargin(), comparesEqualTo(new BigDecimal("10")));
+        assertThat(periods.getFinancials().get(1).getDividend(), comparesEqualTo(period1.getDividend()));
+
+        assertThat(periods.getTtm(), is(notNullValue()));
+
+        assertThat(periods.getTtm().getRevenue(), comparesEqualTo(new BigDecimal("1250")));
+        assertThat(periods.getTtm().getCostGoodsSold(), comparesEqualTo(new BigDecimal("325")));
+        assertThat(periods.getTtm().getGrossProfit(), comparesEqualTo(new BigDecimal("925")));
+        assertThat(periods.getTtm().getGrossMargin(), comparesEqualTo(new BigDecimal("74")));
+
+        assertThat(periods.getTtm().getOperatingExpenses(), comparesEqualTo(new BigDecimal("250")));
+        assertThat(periods.getTtm().getOperatingIncome(), comparesEqualTo(new BigDecimal("675")));
+        assertThat(periods.getTtm().getOperatingMargin(), comparesEqualTo(new BigDecimal("54")));
+
+        assertThat(periods.getTtm().getNetIncome(), comparesEqualTo(new BigDecimal("175")));
+        assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("14")));
+
+        assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("25")));
+    }
+
+    @Test
+    void getBy_notReported()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, false, PeriodName.valueOf("24FY"), YearMonth.of(2024, 12));
+        Period period2 = Generator.generatePeriod(company, false, PeriodName.valueOf("25Q1"), YearMonth.of(2025, 3));
+        Period period3 = Generator.generatePeriod(company, false ,PeriodName.valueOf("25Q2"), YearMonth.of(2025, 6));
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getPeriods().size(), is(3));
+        assertPeriod(periods.getPeriods().get(0), period3);
+        assertPeriod(periods.getPeriods().get(1), period2);
+        assertPeriod(periods.getPeriods().get(2), period1);
+
+        assertThat(periods.getFinancials().size(), is(0));
+
+        assertThat(periods.getTtm(), is(nullValue()));
+    }
+
+    @Test
+    void getBy_noPeriods()
+    {
+        Company company = Generator.generateCompany();
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>());
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getPeriods().size(), is(0));
+
+        assertThat(periods.getFinancials().size(), is(0));
+
+        assertThat(periods.getTtm(), is(nullValue()));
+    }
+
+    private void assertPeriod(Periods.Period actual, Period expected)
+    {
+        assertThat(actual.getId(), is(expected.getId()));
+        assertThat(actual.getName(), is(expected.getName()));
+        assertThat(actual.getShares(), is(expected.getShares()));
+        assertThat(actual.getResearch(), is(expected.getResearch()));
+        assertThat(actual.getPriceHigh(), is(expected.getPriceHigh()));
+        assertThat(actual.getPriceLow(), is(expected.getPriceLow()));
+        assertThat(actual.getEndingMonth(), is(expected.getEndingMonth()));
+        assertThat(actual.getReportDate(), is(expected.getReportDate()));
+        if (expected.getRevenue() != null) {
+            assertThat(actual.getFinancial(), is(notNullValue()));
+            assertThat(actual.getFinancial().getPeriod(), is(expected.getName()));
+            assertThat(actual.getFinancial().getRevenue(), is(expected.getRevenue()));
+            assertThat(actual.getFinancial().getCostGoodsSold(), is(expected.getCostGoodsSold()));
+            assertThat(actual.getFinancial().getGrossProfit(), is(notNullValue()));
+            assertThat(actual.getFinancial().getGrossMargin(), is(notNullValue()));
+            assertThat(actual.getFinancial().getOperatingExpenses(), is(expected.getOperatingExpenses()));
+            assertThat(actual.getFinancial().getOperatingIncome(), is(notNullValue()));
+            assertThat(actual.getFinancial().getOperatingMargin(), is(notNullValue()));
+            assertThat(actual.getFinancial().getNetIncome(), is(expected.getNetIncome()));
+            assertThat(actual.getFinancial().getNetMargin(), is(notNullValue()));
+            assertThat(actual.getFinancial().getDividend(), is(expected.getDividend()));
+        } else {
+            assertThat(actual.getFinancial(), is(nullValue()));
+        }
+    }
+
     private void createAndAssertPeriod(String name, String endingMonth, String reportDate, Class<? extends Exception> expectedException)
     {
         Company company = Generator.generateCompany();
@@ -245,242 +557,4 @@ public class PeriodServiceTest
             assertThrows(expectedException, () -> periodService.update(dto));
         }
     }
-
-
-
-//    @Test
-//    void getByCompanyId() {
-//        Company company = Generator.generateCompany();
-//        Period period1 = Generator.generatePeriod(company, true, "25Q1", "2504");
-//        Period period2 = Generator.generatePeriod(company, false, "25Q2", "2507");
-//        Period period3 = Generator.generatePeriod(company, true, "24Q4", "2501");
-//
-//        when(companyDao.get(company.getId())).thenReturn(company);
-//        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
-//
-//        List<Period> periods = periodService.getFor(company.getId());
-//
-//        assertThat(periods.get(0).getId(), is(period2.getId()));
-//        assertThat(periods.get(1).getId(), is(period1.getId()));
-//        assertThat(periods.get(2).getId(), is(period3.getId()));
-//    }
-//
-
-
-//
-//
-//    @Test
-//    void dtoFromPeriod()
-//    {
-//        Company company = Generator.generateCompany();
-//        Period period = new Period();
-//        period.setCompany(company);
-//        period.setName("YOLO");
-//        period.setEndingMonth("3012");
-//        period.setReportDate(Date.valueOf("2026-03-30"));
-//        period.setShares(new BigDecimal("10000"));
-//        period.setPriceLow(new BigDecimal("20"));
-//        period.setPriceHigh(new BigDecimal("300"));
-//        period.setResearch("new findings");
-//        period.setRevenue(new  BigDecimal("100250"));
-//        period.setCostGoodsSold(new BigDecimal("10250"));
-//        period.setOperatingExpenses(new  BigDecimal("1250"));
-//        period.setNetIncome(new BigDecimal("125"));
-//        period.setDividend(new BigDecimal("50"));
-//
-//        PeriodDto dto = periodService.dtoFrom(period);
-//
-//        assertThat(dto.getId(), is(period.getId()));
-//        assertThat(dto.getName(), is(period.getName()));
-//        assertThat(dto.getEndingMonth(), is("12/2030"));
-//        assertThat(dto.getReportDate(), is("30.03.2026"));
-//        assertThat(dto.getShares(), is("10B"));
-//        assertThat(dto.getPriceHigh(), is("300"));
-//        assertThat(dto.getPriceLow(), is("20"));
-//        assertThat(dto.getResearch(), is(period.getResearch()));
-//        assertThat(dto.getRevenue(), is("100.25B"));
-//        assertThat(dto.getCostGoodsSold(), is("10.25B"));
-//        assertThat(dto.getOperatingExpenses(), is("1.25B"));
-//        assertThat(dto.getNetIncome(), is("125M"));
-//        assertThat(dto.getDividend(), is("50M"));
-//    }
-//
-//    @Test
-//    void computeFinancialPeriod()
-//    {
-//        Company company = Generator.generateCompany();
-//        Period period = new Period();
-//        period.setCompany(company);
-//        period.setName("YOLO");
-//        period.setEndingMonth("3012");
-//        period.setReportDate(Date.valueOf("2026-03-30"));
-//        period.setShares(new BigDecimal("10000"));
-//        period.setPriceLow(new BigDecimal("20"));
-//        period.setPriceHigh(new BigDecimal("300"));
-//        period.setResearch("new findings");
-//        period.setRevenue(new  BigDecimal("3000"));
-//        period.setCostGoodsSold(new BigDecimal("2000"));
-//        period.setOperatingExpenses(new  BigDecimal("500"));
-//        period.setNetIncome(new BigDecimal("-100"));
-//        period.setDividend(new BigDecimal("40"));
-//
-//        FinancialDto dto = periodService.computeFinancialFrom(period);
-//
-//        assertThat(dto.getPeriod(), is("YOLO"));
-//        assertThat(dto.getRevenue(), is("3B"));
-//        assertThat(dto.getCostGoodsSold(), is("2B"));
-//        assertThat(dto.getGrossProfit(), is("1B"));
-//        assertThat(dto.getGrossMargin(), is("33"));
-//        assertThat(dto.getOperatingExpenses(), is("500M"));
-//        assertThat(dto.getOperatingIncome(), is("500M"));
-//        assertThat(dto.getOperatingMargin(), is("17"));
-//        assertThat(dto.getNetIncome(), is("-100M"));
-//        assertThat(dto.getNetMargin(), is("-3"));
-//        assertThat(dto.getDividend(), is("40M"));
-//    }
-//
-//    @Test
-//    void computeTtmFromQuarters()
-//    {
-//        Company company = Generator.generateCompany();
-//        Period period1 = Generator.generatePeriod(company, true, "25Q1", "2504");
-//        period1.setRevenue(new BigDecimal("3000"));
-//        period1.setCostGoodsSold(new BigDecimal("2000"));
-//        period1.setOperatingExpenses(new BigDecimal("500"));
-//        period1.setNetIncome(new BigDecimal("100"));
-//        period1.setDividend(new BigDecimal("10"));
-//        Period period2 = Generator.generatePeriod(company, true, "24Q4", "2501");
-//        period2.setRevenue(new BigDecimal("2500"));
-//        period2.setCostGoodsSold(new BigDecimal("1000"));
-//        period2.setOperatingExpenses(new BigDecimal("400"));
-//        period2.setNetIncome(new BigDecimal("50"));
-//        period2.setDividend(new BigDecimal("5"));
-//
-//        Period ttm = periodService.computeTtmFrom(new ArrayList<>(List.of(period1, period2)));
-//
-//        assertThat(ttm.getName(), is(nullValue()));
-//        assertThat(ttm.getRevenue(), is(new BigDecimal("11000")));
-//        assertThat(ttm.getCostGoodsSold(), is(new BigDecimal("6000")));
-//        assertThat(ttm.getOperatingExpenses(), is(new BigDecimal("1800")));
-//        assertThat(ttm.getNetIncome(), is(new BigDecimal("300")));
-//        assertThat(ttm.getDividend(), is(new BigDecimal("30")));
-//        assertThat(ttm.getShares(), is(period1.getShares()));
-//    }
-//
-//    @Test
-//    void computeTtmFromFromHalfYears()
-//    {
-//        Company company = Generator.generateCompany();
-//        Period period1 = Generator.generatePeriod(company, true, "25H1", "2504");
-//        period1.setRevenue(new BigDecimal("3000"));
-//        period1.setCostGoodsSold(new BigDecimal("2000"));
-//        period1.setOperatingExpenses(new BigDecimal("500"));
-//        period1.setNetIncome(new BigDecimal("100"));
-//        period1.setDividend(new BigDecimal("10.55"));
-//        Period period2 = Generator.generatePeriod(company, true, "24H2", "2410");
-//        period2.setRevenue(new BigDecimal("2500"));
-//        period2.setCostGoodsSold(new BigDecimal("1000"));
-//        period2.setOperatingExpenses(new BigDecimal("400"));
-//        period2.setNetIncome(new BigDecimal("50"));
-//        period2.setDividend(new BigDecimal("9.45"));
-//
-//        Period ttm = periodService.computeTtmFrom(new ArrayList<>(List.of(period1, period2)));
-//
-//        assertThat(ttm.getName(), is(nullValue()));
-//        assertThat(ttm.getRevenue(), is(new BigDecimal("5500")));
-//        assertThat(ttm.getCostGoodsSold(), is(new BigDecimal("3000")));
-//        assertThat(ttm.getOperatingExpenses(), is(new BigDecimal("900")));
-//        assertThat(ttm.getNetIncome(), is(new BigDecimal("150")));
-//        assertThat(ttm.getDividend(), is(new BigDecimal("20")));
-//        assertThat(ttm.getShares(), is(period1.getShares()));
-//    }
-//
-//    @Test
-//    void computeTtmFromYears()
-//    {
-//        Company company = Generator.generateCompany();
-//        Period period1 = Generator.generatePeriod(company, true, "25FY", "2501");
-//        period1.setRevenue(new BigDecimal("3000"));
-//        period1.setCostGoodsSold(new BigDecimal("2000"));
-//        period1.setOperatingExpenses(new BigDecimal("500"));
-//        period1.setNetIncome(new BigDecimal("100"));
-//        period1.setDividend(new BigDecimal("10"));
-//        Period period2 = Generator.generatePeriod(company, true, "24FY", "2401");
-//        period2.setRevenue(new BigDecimal("2500"));
-//        period2.setCostGoodsSold(new BigDecimal("1000"));
-//        period2.setOperatingExpenses(new BigDecimal("400"));
-//        period2.setNetIncome(new BigDecimal("50"));
-//        period2.setDividend(new BigDecimal("5"));
-//
-//        Period ttm = periodService.computeTtmFrom(new ArrayList<>(List.of(period1, period2)));
-//
-//        assertThat(ttm.getName(), is(nullValue()));
-//        assertThat(ttm.getRevenue(), is(new BigDecimal("3000")));
-//        assertThat(ttm.getCostGoodsSold(), is(new BigDecimal("2000")));
-//        assertThat(ttm.getOperatingExpenses(), is(new BigDecimal("500")));
-//        assertThat(ttm.getNetIncome(), is(new BigDecimal("100")));
-//        assertThat(ttm.getDividend(), is(new BigDecimal("10")));
-//        assertThat(ttm.getShares(), is(period1.getShares()));
-//    }
-//
-//    @Test
-//    void computeTtmFromMix()
-//    {
-//        Company company = Generator.generateCompany();
-//        Period period1 = Generator.generatePeriod(company, true, "25Q1", "2504");
-//        period1.setRevenue(new BigDecimal("3000"));
-//        period1.setCostGoodsSold(new BigDecimal("2000"));
-//        period1.setOperatingExpenses(new BigDecimal("500"));
-//        period1.setNetIncome(new BigDecimal("100"));
-//        period1.setDividend(new BigDecimal("10"));
-//        Period period2 = Generator.generatePeriod(company, true, "24H2", "2501");
-//        period2.setRevenue(new BigDecimal("2500"));
-//        period2.setCostGoodsSold(new BigDecimal("1000"));
-//        period2.setOperatingExpenses(new BigDecimal("400"));
-//        period2.setNetIncome(new BigDecimal("50"));
-//        period2.setDividend(new BigDecimal("5"));
-//
-//        Period ttm = periodService.computeTtmFrom(new ArrayList<>(List.of(period1, period2)));
-//
-//        assertThat(ttm.getName(), is(nullValue()));
-//        assertThat(ttm.getRevenue(), is(new BigDecimal("7333")));
-//        assertThat(ttm.getCostGoodsSold(), is(new BigDecimal("4000")));
-//        assertThat(ttm.getOperatingExpenses(), is(new BigDecimal("1200")));
-//        assertThat(ttm.getNetIncome(), is(new BigDecimal("200")));
-//        assertThat(ttm.getDividend(), is(new BigDecimal("20")));
-//        assertThat(ttm.getShares(), is(period1.getShares()));
-//    }
-//
-//    @Test
-//    void computeTtmFromNoPeriods()
-//    {
-//        Period ttm = periodService.computeTtmFrom(new ArrayList<>());
-//        assertThat(ttm, is(nullValue()));
-//    }
-//
-//    @Test
-//    void computeTtmFromInvalidPeriodName()
-//    {
-//        Company company = Generator.generateCompany();
-//        Period period = Generator.generatePeriod(company, true, "25XY", "2504");
-//
-//        try {
-//            periodService.computeTtmFrom(new ArrayList<>(List.of(period)));
-//        } catch (ServiceFailureException e) {
-//            assertThat(e.getMessage(), is("Invalid period name: '25XY'"));
-//        }
-//    }
-//
-//    @Test
-//    void computeTtmFromNotReportedPeriod()
-//    {
-//        Company company = Generator.generateCompany();
-//        Period period = Generator.generatePeriod(company, false);
-//
-//        try {
-//            periodService.computeTtmFrom(new ArrayList<>(List.of(period)));
-//        } catch (ServiceFailureException e) {
-//            assertThat(e.getMessage(), is("not reported period provided for ttm computation!"));
-//        }
-//    }
 }

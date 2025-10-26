@@ -7,6 +7,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
+@Deprecated
 public class FinancialsModel
 {
     private final List<Financial> financials;

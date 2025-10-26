@@ -4,7 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.Utils;
-import org.kaleta.model.Financial;
 import org.kaleta.model.Periods;
 import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.entity.Period;
@@ -62,18 +61,21 @@ public class PeriodService
         periodDao.save(period);
     }
 
-    public Periods getFor(String companyId)
+    public Periods getBy(String companyId)
     {
         List<Period> periods = periodDao.list(companyId);
         periods.sort((a, b) -> -a.getEndingMonth().compareTo(b.getEndingMonth()));
 
         Periods model = new Periods();
-        model.getPeriods().addAll(periods);
 
         for (Period period : periods) {
+            Periods.Period periodModel = from(period);
             if (period.getRevenue() != null){
-                model.getFinancials().add(computeFinancial(period));
+                Periods.Financial financial = computeFinancial(period);
+                model.getFinancials().add(financial);
+                periodModel.setFinancial(financial);
             }
+            model.getPeriods().add(periodModel);
         }
         Period ttm = computeTtm(
                 periods.stream()
@@ -86,8 +88,23 @@ public class PeriodService
         return model;
     }
 
-    private Financial computeFinancial(Period period) {
-        Financial financial = new Financial();
+    private Periods.Period from(Period entity)
+    {
+        Periods.Period period = new Periods.Period();
+        period.setId(entity.getId());
+        period.setName(entity.getName());
+        period.setEndingMonth(entity.getEndingMonth());
+        period.setReportDate(entity.getReportDate());
+        period.setShares(entity.getShares());
+        period.setPriceLow(entity.getPriceLow());
+        period.setPriceHigh(entity.getPriceHigh());
+        period.setResearch(entity.getResearch());
+        return period;
+    }
+
+    private Periods.Financial computeFinancial(Period period)
+    {
+        Periods.Financial financial = new Periods.Financial();
 
         financial.setPeriod(period.getName());
         financial.setRevenue(period.getRevenue());
