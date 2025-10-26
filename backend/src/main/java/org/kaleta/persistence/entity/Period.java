@@ -1,13 +1,17 @@
 package org.kaleta.persistence.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.kaleta.persistence.converter.PeriodNameConverter;
+import org.kaleta.persistence.converter.YearMonthConverter;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.time.YearMonth;
 
 @Data
 @EqualsAndHashCode(callSuper=true)
@@ -15,11 +19,13 @@ import java.sql.Date;
 @Table(name = "Period")
 public class Period extends AbstractEntityCompany
 {
+    @Convert(converter = PeriodNameConverter.class)
     @Column(name = "name", nullable = false)
-    private String name;
+    private PeriodName name;
 
+    @Convert(converter = YearMonthConverter.class)
     @Column(name = "ending_month", nullable = false)
-    private String endingMonth;
+    private YearMonth endingMonth;
 
     @Column(name = "report_date")
     private Date reportDate;

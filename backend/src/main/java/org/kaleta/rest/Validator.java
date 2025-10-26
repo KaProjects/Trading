@@ -4,8 +4,6 @@ import org.kaleta.Utils;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.DividendCreateDto;
 import org.kaleta.dto.FinancialCreateDto;
-import org.kaleta.dto.PeriodCreateDto;
-import org.kaleta.dto.PeriodDto;
 import org.kaleta.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.dto.TradeCreateDto;
@@ -17,6 +15,7 @@ import org.kaleta.persistence.entity.Sort;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+@Deprecated // TODO use jakarta.validation
 public class Validator
 {
     public static void validatePayload(Object payload)
@@ -112,58 +111,6 @@ public class Validator
             throw new ValidationFailedException("Invalid Price: '" + dto.getPrice() + "'");
 
         validateUuid(dto.getCompanyId());
-    }
-
-    public static void validatePeriodCreateDto(PeriodCreateDto dto)
-    {
-        if (dto.getReportDate() != null && !Utils.isValidDbDate(dto.getReportDate()))
-            throw new ValidationFailedException("Invalid Report Date: '" + dto.getReportDate() + "'");
-
-        if (dto.getEndingMonth() == null || dto.getEndingMonth().isBlank() || !dto.getEndingMonth().matches("\\d\\d\\d\\d"))
-            throw new ValidationFailedException("Invalid Ending Month: '" + dto.getEndingMonth() + "'");
-
-        if (dto.getName() == null || !dto.getName().matches(".{4}"))
-            throw new ValidationFailedException("Invalid Name: '" + dto.getName() + "'");
-
-        validateUuid(dto.getCompanyId());
-    }
-
-    public static void validateUpdatePeriodDto(PeriodDto dto)
-    {
-        validateUuid(dto.getId());
-
-        if (dto.getReportDate() != null && !Utils.isValidDbDate(dto.getReportDate()))
-            throw new ValidationFailedException("Invalid Report Date: '" + dto.getReportDate() + "'");
-
-        if (dto.getEndingMonth() != null && !dto.getEndingMonth().matches("\\d\\d\\d\\d"))
-            throw new ValidationFailedException("Invalid Ending Month: '" + dto.getEndingMonth() + "'");
-
-        if (dto.getName() != null && !dto.getName().matches(".{4}"))
-            throw new ValidationFailedException("Invalid Name: '" + dto.getName() + "'");
-
-        if (dto.getShares() != null && !isBigDecimal(dto.getShares(), 8, 2))
-            throw new ValidationFailedException("Invalid Shares: '" + dto.getRevenue() + "'");
-
-        if (dto.getPriceHigh() != null && !isBigDecimal(dto.getPriceHigh(), 10, 4))
-            throw new ValidationFailedException("Invalid High Price: '" + dto.getPriceHigh() + "'");
-
-        if (dto.getPriceLow() != null && !isBigDecimal(dto.getPriceLow(), 10, 4))
-            throw new ValidationFailedException("Invalid Low Price: '" + dto.getPriceLow() + "'");
-
-        if (dto.getRevenue() != null && !isBigDecimal(dto.getRevenue(), 8, 2))
-            throw new ValidationFailedException("Invalid Revenue: '" + dto.getRevenue() + "'");
-
-        if (dto.getCostGoodsSold() != null && !isBigDecimal(dto.getCostGoodsSold(), 8, 2))
-            throw new ValidationFailedException("Invalid Cost of Goods Sold: '" + dto.getCostGoodsSold() + "'");
-
-        if (dto.getOperatingExpenses() != null && !isBigDecimal(dto.getOperatingExpenses(), 8, 2))
-            throw new ValidationFailedException("Invalid Operating Expenses: '" + dto.getOperatingExpenses() + "'");
-
-        if (dto.getNetIncome() != null && !isBigDecimal(dto.getNetIncome(), 8, 2))
-            throw new ValidationFailedException("Invalid Net Income: '" + dto.getNetIncome() + "'");
-
-        if (dto.getDividend() != null && !isBigDecimal(dto.getDividend(), 8, 2))
-            throw new ValidationFailedException("Invalid Dividends: '" + dto.getDividend() + "'");
     }
 
     public static void validateCreateTradeDto(TradeCreateDto dto)

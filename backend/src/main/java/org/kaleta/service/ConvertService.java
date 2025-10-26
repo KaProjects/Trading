@@ -10,6 +10,7 @@ import java.sql.Date;
 @ApplicationScoped
 public class ConvertService
 {
+    @Deprecated
     public Date parseDate(String date)
     {
         if (date != null && Utils.isValidDbDate(date)){
@@ -19,6 +20,7 @@ public class ConvertService
         }
     }
 
+    @Deprecated // TODO should be in UI
     public String format(Date date)
     {
         if (date == null) return "";
@@ -26,6 +28,7 @@ public class ConvertService
         return split[2] + "." + split[1] + "." + split[0];
     }
 
+    @Deprecated // TODO should be in UI
     public String format(BigDecimal value)
     {
         if (value == null) return "";
@@ -39,6 +42,7 @@ public class ConvertService
      *
      * @return formatted value of millions
      */
+    @Deprecated // TODO should be in UI
     public String formatMillions(BigDecimal value)
     {
         if (value == null) return "";
@@ -53,6 +57,7 @@ public class ConvertService
      * Examples:
      * 2502 -> 02/2025
      */
+    @Deprecated // TODO should be in UI
     public String formatMonth(String value)
     {
         if (value == null) return "";
@@ -65,6 +70,7 @@ public class ConvertService
      * 10.52 -> 11
      * 10.12 -> 10
      */
+    @Deprecated // TODO should be in UI
     public String formatNoDecimal(BigDecimal value)
     {
         if (value == null){

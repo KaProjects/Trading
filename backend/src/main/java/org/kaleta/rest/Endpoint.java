@@ -8,6 +8,7 @@ import io.quarkus.logging.Log;
 
 public class Endpoint
 {
+    @Deprecated // TODO use jakarta.validation + return Response.ok().entity(content).build()
     public static Response process(Runnable validators, Supplier<Object> logic) {
         try {
             validators.run();

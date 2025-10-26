@@ -4,16 +4,20 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.Utils;
+import org.kaleta.model.Financial;
+import org.kaleta.model.Periods;
 import org.kaleta.persistence.api.PeriodDao;
-import org.kaleta.dto.FinancialDto;
-import org.kaleta.dto.PeriodCreateDto;
-import org.kaleta.dto.PeriodDto;
 import org.kaleta.persistence.entity.Period;
+import org.kaleta.persistence.entity.PeriodName;
+import org.kaleta.rest.dto.PeriodCreateDto;
+import org.kaleta.rest.dto.PeriodUpdateDto;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class PeriodService
@@ -22,10 +26,18 @@ public class PeriodService
     PeriodDao periodDao;
     @Inject
     CompanyService companyService;
-    @Inject
-    ConvertService convertService;
 
-    public void update(PeriodDto dto)
+    public void create(PeriodCreateDto dto)
+    {
+        Period period = new Period();
+        period.setCompany(companyService.getCompany(dto.getCompanyId()));
+        period.setName(PeriodName.valueOf(dto.getName()));
+        period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
+        period.setReportDate(Utils.nullableDateValueOf(dto.getReportDate()));
+        periodDao.create(period);
+    }
+
+    public void update(PeriodUpdateDto dto)
     {
         Period period;
         try {
@@ -34,9 +46,9 @@ public class PeriodService
             throw new ServiceFailureException("period with id '" + dto.getId() + "' not found");
         }
 
-        if (dto.getName() != null) period.setName(dto.getName());
-        if (dto.getEndingMonth() != null) period.setEndingMonth(dto.getEndingMonth());
-        if (dto.getReportDate() != null) period.setReportDate(convertService.parseDate(dto.getReportDate()));
+        if (dto.getName() != null) period.setName(PeriodName.valueOf(dto.getName()));
+        if (dto.getEndingMonth() != null) period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
+        if (dto.getReportDate() != null) period.setReportDate(Utils.nullableDateValueOf(dto.getReportDate()));
         if (dto.getShares() != null) period.setShares(new BigDecimal(dto.getShares()));
         if (dto.getPriceHigh() != null) period.setPriceHigh(new BigDecimal(dto.getPriceHigh()));
         if (dto.getPriceLow() != null) period.setPriceLow(new BigDecimal(dto.getPriceLow()));
@@ -50,77 +62,63 @@ public class PeriodService
         periodDao.save(period);
     }
 
-    public void create(PeriodCreateDto dto)
-    {
-        Period period = new Period();
-
-        period.setCompany(companyService.getCompany(dto.getCompanyId()));
-        period.setName(dto.getName());
-        period.setEndingMonth(dto.getEndingMonth());
-        if (dto.getReportDate() != null) period.setReportDate(convertService.parseDate(dto.getReportDate()));
-
-        periodDao.create(period);
-    }
-
-    public List<Period> getBy(String companyId)
+    public Periods getFor(String companyId)
     {
         List<Period> periods = periodDao.list(companyId);
-        periods.sort((a, b) -> -Utils.compareEndingMonths(a.getEndingMonth(), b.getEndingMonth()));
-        return periods;
+        periods.sort((a, b) -> -a.getEndingMonth().compareTo(b.getEndingMonth()));
+
+        Periods model = new Periods();
+        model.getPeriods().addAll(periods);
+
+        for (Period period : periods) {
+            if (period.getRevenue() != null){
+                model.getFinancials().add(computeFinancial(period));
+            }
+        }
+        Period ttm = computeTtm(
+                periods.stream()
+                        .filter(p -> p.getRevenue() != null)
+                        .limit(4)
+                        .collect(Collectors.toList()));
+        if (ttm != null){
+            model.setTtm(computeFinancial(ttm));
+        }
+        return model;
     }
 
-    public PeriodDto dtoFrom(Period period)
-    {
-        PeriodDto dto = new PeriodDto();
-        dto.setId(period.getId());
-        dto.setName(period.getName());
-        dto.setEndingMonth(convertService.formatMonth(period.getEndingMonth()));
-        dto.setReportDate(convertService.format(period.getReportDate()));
-        dto.setShares(convertService.formatMillions(period.getShares()));
-        dto.setPriceHigh(convertService.format(period.getPriceHigh()));
-        dto.setPriceLow(convertService.format(period.getPriceLow()));
-        dto.setResearch(period.getResearch());
-        dto.setRevenue(convertService.formatMillions(period.getRevenue()));
-        dto.setCostGoodsSold(convertService.formatMillions(period.getCostGoodsSold()));
-        dto.setOperatingExpenses(convertService.formatMillions(period.getOperatingExpenses()));
-        dto.setNetIncome(convertService.formatMillions(period.getNetIncome()));
-        dto.setDividend(convertService.formatMillions(period.getDividend()));
-        return dto;
-    }
+    private Financial computeFinancial(Period period) {
+        Financial financial = new Financial();
 
-    public FinancialDto computeFinancialFrom(Period period) {
-        FinancialDto dto = new FinancialDto();
-
-        dto.setPeriod(period.getName());
-        dto.setRevenue(convertService.formatMillions(period.getRevenue()));
-        dto.setCostGoodsSold(convertService.formatMillions(period.getCostGoodsSold()));
-        dto.setOperatingExpenses(convertService.formatMillions(period.getOperatingExpenses()));
-        dto.setNetIncome(convertService.formatMillions(period.getNetIncome()));
+        financial.setPeriod(period.getName());
+        financial.setRevenue(period.getRevenue());
+        financial.setCostGoodsSold(period.getCostGoodsSold());
+        financial.setOperatingExpenses(period.getOperatingExpenses());
+        financial.setNetIncome(period.getNetIncome());
 
         BigDecimal grossProfit = period.getRevenue().subtract(period.getCostGoodsSold());
-        dto.setGrossProfit(convertService.formatMillions(grossProfit));
+        financial.setGrossProfit(grossProfit);
 
         BigDecimal grossMargin = grossProfit.multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        dto.setGrossMargin(convertService.formatNoDecimal(grossMargin));
+        financial.setGrossMargin(grossMargin);
 
         BigDecimal operatingIncome = grossProfit.subtract(period.getOperatingExpenses());
-        dto.setOperatingIncome(convertService.formatMillions(operatingIncome));
+        financial.setOperatingIncome(operatingIncome);
 
         BigDecimal operatingMargin = operatingIncome.multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        dto.setOperatingMargin(convertService.formatNoDecimal(operatingMargin));
+        financial.setOperatingMargin(operatingMargin);
 
         BigDecimal netMargin = period.getNetIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        dto.setNetMargin(convertService.formatNoDecimal(netMargin));
+        financial.setNetMargin(netMargin);
 
-        dto.setDividend(convertService.formatMillions(period.getDividend()));
+        financial.setDividend(period.getDividend());
 
-        return dto;
+        return financial;
     }
 
-    public FinancialDto computeTtmFrom(List<Period> periods)
+    private Period computeTtm(List<Period> periods)
     {
         if (periods.isEmpty()) return null;
-        periods.sort((a, b) -> -Utils.compareEndingMonths(a.getEndingMonth(), b.getEndingMonth()));
+        periods.sort((a, b) -> -a.getEndingMonth().compareTo(b.getEndingMonth()));
         List<Period> quarters = periodsToQuarters(periods);
 
         BigDecimal revenue = new BigDecimal(0);
@@ -153,7 +151,8 @@ public class PeriodService
         ttm.setOperatingExpenses(opExpenses.setScale(0, RoundingMode.HALF_UP));
         ttm.setNetIncome(netIncome.setScale(0, RoundingMode.HALF_UP));
         ttm.setDividend(dividend.setScale(0, RoundingMode.HALF_UP));
-        return computeFinancialFrom(ttm);
+        ttm.setShares(quarters.get(0).getShares());
+        return ttm;
     }
 
     private List<Period> periodsToQuarters(List<Period> periods)
@@ -163,31 +162,33 @@ public class PeriodService
             if (period.getRevenue() == null)
                 throw new ServiceFailureException("not reported period provided for ttm computation!");
             Period quarter = new Period();
-            switch (period.getName().substring(2,3)){
-                case "F":
+            switch (period.getName().getType()){
+                case FY:
                     quarter.setRevenue(period.getRevenue().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarter.setCostGoodsSold(period.getCostGoodsSold().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarter.setOperatingExpenses(period.getOperatingExpenses().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarter.setNetIncome(period.getNetIncome().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarter.setDividend(period.getDividend().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
+                    quarter.setShares(period.getShares());
                     quarters.add(quarter);
                     quarters.add(quarter);
                     quarters.add(quarter);
                     quarters.add(quarter);
                     break;
-                case "H":
+                case H1: case H2:
                     quarter.setRevenue(period.getRevenue().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarter.setCostGoodsSold(period.getCostGoodsSold().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarter.setOperatingExpenses(period.getOperatingExpenses().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarter.setNetIncome(period.getNetIncome().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarter.setDividend(period.getDividend().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
+                    quarter.setShares(period.getShares());
                     quarters.add(quarter);
                     quarters.add(quarter);
                     break;
-                case "Q":
+                case Q1: case Q2: case Q3: case Q4:
                     quarters.add(period);
                     break;
-                default: throw new ServiceFailureException("Invalid period name: '" + period.getName() + "'");
+                default: throw new ServiceFailureException("Invalid period type: '" + period.getName().getType() + "'");
             }
         }
         return quarters;

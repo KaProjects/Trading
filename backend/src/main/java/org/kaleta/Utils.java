@@ -94,6 +94,7 @@ public class Utils
     /**
      * @return formula: (now/before - 1) * 100
      */
+    @Deprecated // TODO move to arithmetic service
     public static BigDecimal computeProfit(BigDecimal before, BigDecimal now)
     {
         if (format(before).equals("0")) return null;
@@ -127,12 +128,8 @@ public class Utils
         }
     }
 
-    public static int compareEndingMonths(String aEndingMonth, String bEndingMonth)
-    {
-        int compare = Integer.parseInt(aEndingMonth.substring(0,2)) - Integer.parseInt(bEndingMonth.substring(0,2));
-        if (compare == 0)
-            compare = Integer.parseInt(aEndingMonth.substring(2,4)) - Integer.parseInt(bEndingMonth.substring(2,4));
-
-        return compare;
+    public static Date nullableDateValueOf(String date) {
+        if  (date == null) return null;
+        return Date.valueOf(date);
     }
 }

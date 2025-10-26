@@ -3,15 +3,15 @@ package org.kaleta.framework;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import jakarta.ws.rs.core.Response;
-import org.kaleta.dto.CompanyDto;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 public class Assert
 {
-    public static void post400(String uri, Object dto, String expectedError)
+    public static void post400(String uri, Object dto, String expectedMessage)
     {
         RequestSpecification rs = given().contentType(ContentType.JSON);
         if (dto != null) rs = rs.body(dto);
@@ -20,7 +20,7 @@ public class Assert
                 .then()
                 .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
                 .extract().body().asString();
-        assertThat(responseBody, containsString(expectedError));
+        assertThat(responseBody, containsString(expectedMessage));
     }
 
     public static void get400(String uri, String expectedError)
@@ -49,7 +49,8 @@ public class Assert
         given().contentType(ContentType.JSON)
                 .body(dto)
                 .when().put(uri)
-                .then().statusCode(Response.Status.NO_CONTENT.getStatusCode());
+                .then().log().ifError()
+                .statusCode(Response.Status.NO_CONTENT.getStatusCode());
     }
 
     public static void post201(String uri, Object dto)
@@ -57,6 +58,41 @@ public class Assert
         given().contentType(ContentType.JSON)
                 .body(dto)
                 .when().post(uri)
-                .then().statusCode(Response.Status.CREATED.getStatusCode());
+                .then().log().ifError()
+                .statusCode(Response.Status.CREATED.getStatusCode());
+    }
+
+    public static void postValidationError(String uri, Object dto, String... expectedViolations)
+    {
+        RequestSpecification rs = given().contentType(ContentType.JSON);
+        if (dto != null) rs = rs.body(dto);
+        ValidationErrorResponse response = rs.when()
+                .post(uri)
+                .then()
+                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().as(ValidationErrorResponse.class);
+        assertThat(response.getTitle(), is("Constraint Violation"));
+        assertThat(response.getStatus(), is(400));
+        assertThat(response.getViolations().toString(),response.getViolations().size(), is(expectedViolations.length));
+        for (int i = 0; i < expectedViolations.length; i++) {
+            assertThat(response.getViolations().get(i).getMessage(), is(expectedViolations[i]));
+        }
+    }
+
+    public static void putValidationError(String uri, Object dto, String... expectedViolations)
+    {
+        RequestSpecification rs = given().contentType(ContentType.JSON);
+        if (dto != null) rs = rs.body(dto);
+        ValidationErrorResponse response = rs.when()
+                .put(uri)
+                .then()
+                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().as(ValidationErrorResponse.class);
+        assertThat(response.getTitle(), is("Constraint Violation"));
+        assertThat(response.getStatus(), is(400));
+        assertThat(response.getViolations().toString(),response.getViolations().size(), is(expectedViolations.length));
+        for (int i = 0; i < expectedViolations.length; i++) {
+            assertThat(response.getViolations().get(i).getMessage(), is(expectedViolations[i]));
+        }
     }
 }
