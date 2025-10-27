@@ -242,6 +242,8 @@ public class PeriodServiceTest
         assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("7.69")));
 
         assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("60")));
+
+        assertThat(periods.getTtm().getShares(), comparesEqualTo(period1.getShares()));
     }
 
     @Test
@@ -302,6 +304,8 @@ public class PeriodServiceTest
         assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("7.69")));
 
         assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("30")));
+
+        assertThat(periods.getTtm().getShares(), comparesEqualTo(period3.getShares()));
     }
 
     @Test
@@ -362,6 +366,8 @@ public class PeriodServiceTest
         assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("10")));
 
         assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("20")));
+
+        assertThat(periods.getTtm().getShares(), comparesEqualTo(period1.getShares()));
     }
 
     @Test
@@ -422,6 +428,8 @@ public class PeriodServiceTest
         assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("14")));
 
         assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("25")));
+
+        assertThat(periods.getTtm().getShares(), comparesEqualTo(period2.getShares()));
     }
 
     @Test

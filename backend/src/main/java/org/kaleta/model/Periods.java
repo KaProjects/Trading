@@ -44,5 +44,6 @@ public class Periods
         private BigDecimal netIncome;
         private BigDecimal netMargin;
         private BigDecimal dividend;
+        private BigDecimal shares;
     }
 }

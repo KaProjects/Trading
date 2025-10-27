@@ -99,6 +99,7 @@ public class Generator
         period.setOperatingExpenses(new BigDecimal(operatingExpense));
         period.setNetIncome(new BigDecimal(netIncome));
         period.setDividend(new BigDecimal(dividend));
+        period.setShares(randomBigDecimal(new BigDecimal(999999), 2));
         return period;
     }
 

@@ -129,6 +129,8 @@ public class PeriodService
 
         financial.setDividend(period.getDividend());
 
+        financial.setShares(period.getShares());
+
         return financial;
     }
 
