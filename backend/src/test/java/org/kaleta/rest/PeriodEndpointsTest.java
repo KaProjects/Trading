@@ -145,7 +145,7 @@ class PeriodEndpointsTest
 
         Assert.put204(path, dto);
 
-        List<Period> periods = periodDao.list("e7c49260-53da-42c1-80cf-eccf6ed928a7");
+        List<Period> periods = periodDao.list("9c858901-8a57-4791-81fe-4c455b099bc9");
         assertThat(periods.size(), is(1));
         Period period = periods.get(0);
         assertThat(period.getName(), is(PeriodName.valueOf(dto.getName())));
