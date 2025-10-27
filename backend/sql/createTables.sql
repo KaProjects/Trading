@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS Execution;
+DROP TABLE IF EXISTS Latest;
 DROP TABLE IF EXISTS Period;
 DROP TABLE IF EXISTS Dividend;
 DROP TABLE IF EXISTS Trade;
@@ -80,4 +80,12 @@ CREATE TABLE Period
     dividend     DECIMAL(8, 2),
     companyId    VARCHAR(36)   NOT NULL,
     CONSTRAINT `fk_periodCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
+);
+CREATE TABLE Latest
+(
+    id           VARCHAR(36)     NOT NULL PRIMARY KEY,
+    datetime     DATETIME        NOT NULL,
+    price        DECIMAL(10, 4)  NOT NULL,
+    companyId    VARCHAR(36)     NOT NULL,
+    CONSTRAINT `fk_latestCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );

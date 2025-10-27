@@ -2,6 +2,7 @@ package org.kaleta.framework;
 
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.persistence.entity.Record;
@@ -11,6 +12,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -118,5 +121,20 @@ public class Generator
         record.setContent("content " + String.format("%02d", RANDOM.nextInt(100)));
         record.setStrategy("strategy " + String.format("%02d", RANDOM.nextInt(100)));
         return record;
+    }
+
+    public static Latest generateLatest(Company company)
+    {
+        Latest latest = new Latest();
+        latest.setDatetime(LocalDateTime.of(
+                2000 + RANDOM.nextInt(100),
+                Month.of(RANDOM.nextInt(12) + 1),
+                RANDOM.nextInt(31) + 1,
+                RANDOM.nextInt(24),
+                RANDOM.nextInt(60)
+        ));
+        latest.setCompany(company);
+        latest.setPrice(randomBigDecimal(new BigDecimal(999999), 2));
+        return latest;
     }
 }

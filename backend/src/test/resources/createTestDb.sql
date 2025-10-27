@@ -72,10 +72,22 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cog
 INSERT INTO Period (id, companyId, name, ending_month) VALUES ('getPeriods2', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '25Q1', '2504');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend) VALUES ('getPeriods3', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10');
 
-INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('550e8400-e29b-41d4-a716-446655440000', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '21Q1', '2501', '2025-02-15');
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('9c3e92c2-2a66-46de-83f6-57eeb8a7b4b4', '0a16ba1d-99de-4306-8fc5-81ee11b60ea0', '22Q2', '2501', '2025-02-15');
+
 
 -- for rest.*EndpointsTest.create tests
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('6877c555-1234-4af5-99ef-415980484d8c', 'CRE', '$', true);
 
+
+-- for rest.*EndpointsTests.update tests
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('9c858901-8a57-4791-81fe-4c455b099bc9', 'UPD', '$', true);
+INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('550e8400-e29b-41d4-a716-446655440000', '9c858901-8a57-4791-81fe-4c455b099bc9', '21Q1', '2501', '2025-02-15');
+
+
+-- for ResearchEndpointsTest.get test
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('f47ac10b-58cc-4372-a567-0e02b2c3d479', 'RCH', '$', true);
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend) VALUES ('9b37ef3c-3df6-4d1d-8c65-4a1e41a64b8f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES ('e0c17a5a-f27f-4b82-9a42-7d8e5b6c3a72', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '25Q1', '2504');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend) VALUES ('3f9a40e1-6b0b-44c5-9db3-6c75c3a3d13f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10');
+INSERT INTO Latest (id, companyId, datetime, price) VALUES ('9b3a4e42-84b3-4e3a-b60e-fb019b09b5ef', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '2025-10-27 14:35:00', '1234')
 

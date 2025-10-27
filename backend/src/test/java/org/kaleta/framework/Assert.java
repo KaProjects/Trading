@@ -66,33 +66,32 @@ public class Assert
     {
         RequestSpecification rs = given().contentType(ContentType.JSON);
         if (dto != null) rs = rs.body(dto);
-        ValidationErrorResponse response = rs.when()
-                .post(uri)
-                .then()
-                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
-                .extract().as(ValidationErrorResponse.class);
-        assertThat(response.getTitle(), is("Constraint Violation"));
-        assertThat(response.getStatus(), is(400));
-        assertThat(response.getViolations().toString(),response.getViolations().size(), is(expectedViolations.length));
-        for (int i = 0; i < expectedViolations.length; i++) {
-            assertThat(response.getViolations().get(i).getMessage(), is(expectedViolations[i]));
-        }
+        assertValidationErrorResponse(rs.when().post(uri), expectedViolations);
     }
 
     public static void putValidationError(String uri, Object dto, String... expectedViolations)
     {
         RequestSpecification rs = given().contentType(ContentType.JSON);
         if (dto != null) rs = rs.body(dto);
-        ValidationErrorResponse response = rs.when()
-                .put(uri)
-                .then()
+        assertValidationErrorResponse(rs.when().put(uri), expectedViolations);
+    }
+
+    public static void getValidationError(String uri, String... expectedViolations)
+    {
+        RequestSpecification rs = given().contentType(ContentType.JSON);
+        assertValidationErrorResponse(rs.when().get(uri), expectedViolations);
+    }
+
+    private static void assertValidationErrorResponse(io.restassured.response.Response response, String... expectedViolations)
+    {
+        ValidationErrorResponse validationErrorResponse = response.then()
                 .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
                 .extract().as(ValidationErrorResponse.class);
-        assertThat(response.getTitle(), is("Constraint Violation"));
-        assertThat(response.getStatus(), is(400));
-        assertThat(response.getViolations().toString(),response.getViolations().size(), is(expectedViolations.length));
+        assertThat(validationErrorResponse.getTitle(), is("Constraint Violation"));
+        assertThat(validationErrorResponse.getStatus(), is(400));
+        assertThat(validationErrorResponse.getViolations().toString(),validationErrorResponse.getViolations().size(), is(expectedViolations.length));
         for (int i = 0; i < expectedViolations.length; i++) {
-            assertThat(response.getViolations().get(i).getMessage(), is(expectedViolations[i]));
+            assertThat(validationErrorResponse.getViolations().get(i).getMessage(), is(expectedViolations[i]));
         }
     }
 }
