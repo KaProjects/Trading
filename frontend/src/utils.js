@@ -50,3 +50,35 @@ export function validateShares(value) {
     const number = value.substring(0, value.length - 1)
     return validateNumber(number, false, 5, 2)
 }
+
+export function formatPeriodName(period) {
+    if (period === null || period === undefined) return "";
+    return period.year.substring(2, 4) + period.type;
+}
+
+export function formatMillions(millions) {
+    if (millions === null || millions === undefined) return "";
+
+    const num = Number(millions);
+
+    if (num >= 1000) {
+        return formatDecimals(num / 1000, 0, 2) + "B";
+    } else {
+        return formatDecimals(num, 0, 2) + "M";
+    }
+}
+
+export function formatDecimals(number, min, max) {
+    if (number === null || number === undefined) return "";
+
+    return Number(number).toLocaleString("en-US", {
+        minimumFractionDigits: min,
+        maximumFractionDigits: max,
+    });
+}
+
+export function formatDate(date) {
+    if (date === null || date === undefined) return "";
+    const [year, month, day] = date.split("-");
+    return `${day}.${month}.${year}`;
+}

@@ -44,11 +44,11 @@ const AddPeriodDialog = props => {
                            helperText={name.length !== 4 ? "exactly 4 symbols, e.g. 25FY, 25Q1, ..." : ""}
                 />
                 <TextField required margin="dense" fullWidth variant="standard" id="trader-period-end-month"
+                           type="month"
                            value={endingMonth}
                            label="Ending Month"
                            onChange={(e) => {setEndingMonth(e.target.value);setAlert(null);}}
-                           error={endingMonth.length !== 4 || isNaN(endingMonth)}
-                           helperText={(endingMonth.length !== 4 || isNaN(endingMonth)) ? "exactly 4 numbers - YYMM" : ""}
+                           error={endingMonth === ""}
                 />
             </DialogContent>
             {alert &&

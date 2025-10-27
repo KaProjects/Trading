@@ -1,5 +1,5 @@
 import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography} from "@mui/material";
-import {handleError, validateNumber} from "../utils";
+import {formatPeriodName, handleError, validateNumber} from "../utils";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
@@ -27,11 +27,7 @@ const AddPeriodFinancialDialog = props => {
             setAlert(null)
             setFinancialImportInfo("")
             setPriceImportInfo("")
-            if (period.reportDate) {
-                const [day, month, year] = period.reportDate.split(".")
-                setReportDate(`${year}-${month}-${day}`)
-            }
-            setReportDate(period.reportDate)
+            setReportDate(period.reportDate ? period.reportDate : "")
             setShares("")
             setRevenue("")
             setCogs("")
@@ -71,10 +67,7 @@ const AddPeriodFinancialDialog = props => {
     }
 
     async function retrieveFinancials() {
-        const year = "20" + period.name.substring(0,2)
-        const term = period.name.substring(2,4)
-
-        const financial = await getFinancial(props.companySelectorValue.ticker, year, term);
+        const financial = await getFinancial(props.companySelectorValue.ticker, period.name.year, period.name.type);
 
         if (financial) {
             setFinancialImportInfo("found: " + financial.start_date + " => " + financial.end_date)
@@ -115,7 +108,7 @@ const AddPeriodFinancialDialog = props => {
             onClose={handleClose}
             PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createFinancial()},}}
         >
-            <DialogTitle>Add Financial for {props.companySelectorValue.ticker} {period ? period.name : ""}</DialogTitle>
+            <DialogTitle>Add Financial for {props.companySelectorValue.ticker} {period ? formatPeriodName(period.name) : ""}</DialogTitle>
             <DialogContent>
                 <Typography>{financialImportInfo}</Typography>
                 <TextField required margin="dense" fullWidth variant="standard" id="company-financial-shares"

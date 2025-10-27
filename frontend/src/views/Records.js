@@ -11,7 +11,7 @@ import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import AddRecordDialog from "../dialog/AddRecordDialog";
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import {handleError, validateNumber} from "../utils";
+import {formatDate, formatMillions, formatPeriodName, handleError, validateNumber} from "../utils";
 import LatestValueBox from "../components/LatestValueBox";
 import PeriodFinancials from "../components/PeriodFinancials";
 import AddPeriodDialog from "../dialog/AddPeriodDialog";
@@ -114,13 +114,23 @@ const Records = props => {
         setOpenConfirmWatchDialog(false)
     }
 
+    function formatEndingMonth(endingMonth) {
+        if (endingMonth === null || endingMonth === undefined) return "";
+        return endingMonth.substring(5, 7) + "/" + endingMonth.substring(2, 4);
+    }
+
+    function formatPrice(price, currency) {
+        if (price === null || price === undefined) return "";
+        return price + currency;
+    }
+
     return (
         <>
             {/*<CompanySelector refresh={refresh} {...props}/>*/}
             {props.companySelectorValue && !loaded && <Loader error={error}/>}
             {props.companySelectorValue && loaded && dataOld.company.ticker !== undefined &&
                 <Grid container direction="row" sx={{justifyContent: "center", alignItems: "flex-start"}}>
-                    {/*minWidth was 700 before*/}
+                    {/*TODO old */}
                     <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
@@ -237,6 +247,7 @@ const Records = props => {
                             ))}
                         </CardContent>
                     </Card>
+                    {/*TODO periods */}
                     <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
@@ -247,8 +258,8 @@ const Records = props => {
                                 {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
 
                                 <PeriodFinancials sx={{marginBottom: "20px", marginTop: "20px"}}
-                                                  financials={data.financials}
-                                                  ttm={data.ttm}
+                                                  financials={data.periods.financials}
+                                                  ttm={data.periods.ttm}
                                                   triggerRefresh={triggerRefresh}
                                                   expand={expandFinancials}
                                                   setExpand={setExpandFinancials}
@@ -285,9 +296,9 @@ const Records = props => {
                                                       {...props}
                             />
 
-                            {data.periods.map((period, index) => (
+                            {data.periods.periods.map((period, index) => (
                                 <BorderedSection key={period.id}
-                                                 title={period.name + " - ending: " + period.endingMonth + " - report: " + period.reportDate}
+                                                 title={formatPeriodName(period.name) + " - ending: " + formatEndingMonth(period.endingMonth) + " - report: " + formatDate(period.reportDate)}
                                                  style={{color: 'text.primary'}}>
 
 
@@ -295,28 +306,27 @@ const Records = props => {
                                         <ContentEditor content={period.research} handleUpdate={(value) => periodUpdated(period.id, value)}/>
                                     </div>
 
-                                    {period.revenue &&
+                                    {period.financial &&
                                         <>
                                             <Typography sx={{color: 'text.secondary', fontSize: 14}}>
-                                                {"Shares: " + period.shares
-                                                    + " | H: " +  period.priceHigh + data.company.currency
-                                                    + " | L: " + period.priceLow + data.company.currency
-                                                    + " | Dividend: " + period.dividend}
+                                                {"Shares: " + formatMillions(period.shares)
+                                                    + " | H: " + formatPrice(period.priceHigh, data.company.currency)
+                                                    + " | L: " + formatPrice(period.priceLow, data.company.currency)
+                                                    + " | Dividend: " + formatMillions(period.financial.dividend)}
                                             </Typography>
                                             <Typography sx={{color: 'text.secondary', fontSize: 14}} >
-                                                {"Revenue: " + period.revenue
-                                                    + " | Costs of Goods: " + period.costGoodsSold
-                                                    + " | Op. Exp.: " + period.operatingExpenses
-                                                    + " | Net Income: " + period.netIncome}
+                                                {"Revenue: " + formatMillions(period.financial.revenue)
+                                                    + " | Costs of Goods: " + formatMillions(period.financial.costGoodsSold)
+                                                    + " | Op. Exp.: " + formatMillions(period.financial.operatingExpenses)
+                                                    + " | Net Income: " + formatMillions(period.financial.netIncome)}
                                             </Typography>
                                         </>
                                     }
-                                    {!period.revenue &&
+                                    {!period.financial &&
                                         <Tooltip title="Add Financials">
                                             <Button sx={{height: "25px"}} onClick={() => {
-                                                if (data.periods[index + 1] && data.periods[index + 1].reportDate) {
-                                                    const [day, month, year] = data.periods[index + 1].reportDate.split(".")
-                                                    const date = new Date(`${year}-${month}-${day}`)
+                                                if (data.periods.periods[index + 1] && data.periods.periods[index + 1].reportDate) {
+                                                    const date = new Date(data.periods.periods[index + 1].reportDate)
                                                     date.setDate(date.getDate() + 1)
                                                     period.quoteFromDate = date.toISOString().split("T")[0]
                                                 }
@@ -331,6 +341,7 @@ const Records = props => {
                             ))}
                         </CardContent>
                     </Card>
+                    {/*TODO records */}
                     <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
