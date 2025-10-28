@@ -6,11 +6,9 @@ import jakarta.inject.Inject;
 import org.kaleta.client.FinnhubClient;
 import org.kaleta.client.RequestFailureException;
 import org.kaleta.client.dto.FinnhubQuote;
-import org.kaleta.dto.LatestUiDto;
 import org.kaleta.persistence.api.LatestDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Latest;
-import org.kaleta.persistence.entity.Period;
 
 import java.math.BigDecimal;
 import java.time.Instant;

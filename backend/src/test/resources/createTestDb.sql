@@ -89,5 +89,7 @@ INSERT INTO Company (id, ticker, currency, watching) VALUES ('f47ac10b-58cc-4372
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend, shares) VALUES ('9b37ef3c-3df6-4d1d-8c65-4a1e41a64b8f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20', '100');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES ('e0c17a5a-f27f-4b82-9a42-7d8e5b6c3a72', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '25Q1', '2504');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend, shares) VALUES ('3f9a40e1-6b0b-44c5-9db3-6c75c3a3d13f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10', '90');
-INSERT INTO Latest (id, companyId, datetime, price) VALUES ('9b3a4e42-84b3-4e3a-b60e-fb019b09b5ef', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '2025-10-27 14:35:00', '1234')
+INSERT INTO Latest (id, companyId, datetime, price) VALUES ('9b3a4e42-84b3-4e3a-b60e-fb019b09b5ef', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '2025-10-27 14:35:00', '1234');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('cfa94677-53b1-4d4a-8c9e-0f4c9923280f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '10', '2021-01-05', '90', '10');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('df602f02-0cf9-47f8-84a2-1f44ed46856c', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '20', '2020-12-30', '180', '10');
 
