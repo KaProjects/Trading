@@ -4,6 +4,7 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -20,6 +21,7 @@ import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.RecordCreateDto;
 import org.kaleta.rest.dto.RecordUpdateDto;
+import org.kaleta.rest.validation.ValidUuid;
 import org.kaleta.service.CompanyService;
 import org.kaleta.service.FinancialService;
 import org.kaleta.service.FirebaseService;
@@ -112,5 +114,17 @@ public class RecordEndpoints
                 recordService.create(recordCreateDto);
                 return Response.status(Response.Status.CREATED).build();
             });
+    }
+
+    @DELETE
+    @Path("/{recordId}")
+    public Response delete(@NotNull @ValidUuid @PathParam("recordId") String recordId)
+    {
+        return Endpoint.process(
+                () -> {},
+                () -> {
+                    recordService.delete(recordId);
+                    return Response.status(Response.Status.OK).build();
+                });
     }
 }

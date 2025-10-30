@@ -91,6 +91,13 @@ INSERT INTO Company (id, ticker, currency, watching) VALUES ('6a3a3e5d-8d5d-47df
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('c40b6e24-0e9d-496d-9135-6cf4a9d1e8ce', '6a3a3e5d-8d5d-47df-b3e1-2aafcf69e86d', '21Q1', '2501', '2025-02-15');
 INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES ('3b1e7f0f-f263-4a8e-86a7-1b6c4c9e3ad2', '6a3a3e5d-8d5d-47df-b3e1-2aafcf69e86d', '2021-04-05', 'xxx', '100', '10.1');
 
+-- for rest.*EndpointsTests.delete tests
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('7c2df8b3-945d-478e-bd4d-7dca4c1432a2', 'DEL', '$', true);
+INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES ('a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43', '7c2df8b3-945d-478e-bd4d-7dca4c1432a2', '2021-04-05', 'xxx', '100', '10.1');
+
+-- for rest.*EndpointsTests.deleteInvalidValues tests
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('5ad1f832-b57f-4de8-a303-f0d0454ab8b1', 'DINV', '$', true);
+INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES ('9c54a4c2-03d1-4f7a-8a36-6b7027d82d2a', '5ad1f832-b57f-4de8-a303-f0d0454ab8b1', '2021-04-05', 'xxx', '100', '10.1');
 
 -- for ResearchEndpointsTest.get test
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('f47ac10b-58cc-4372-a567-0e02b2c3d479', 'RCH', '$', true);

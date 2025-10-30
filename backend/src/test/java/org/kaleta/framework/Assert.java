@@ -32,6 +32,15 @@ public class Assert
                 .extract().body().asString(), containsString(expectedError));
     }
 
+    public static void delete400(String uri, String expectedError)
+    {
+        assertThat(given().when()
+                .delete(uri)
+                .then()
+                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString(expectedError));
+    }
+
     public static void put400(String uri, Object dto, String expectedError)
     {
         RequestSpecification rs = given().contentType(ContentType.JSON);
@@ -62,6 +71,13 @@ public class Assert
                 .statusCode(Response.Status.CREATED.getStatusCode());
     }
 
+    public static void delete200(String uri)
+    {
+        given().when().delete(uri)
+                .then().log().ifError()
+                .statusCode(Response.Status.OK.getStatusCode());
+    }
+
     public static void postValidationError(String uri, Object dto, String... expectedViolations)
     {
         RequestSpecification rs = given().contentType(ContentType.JSON);
@@ -80,6 +96,12 @@ public class Assert
     {
         RequestSpecification rs = given().contentType(ContentType.JSON);
         assertValidationErrorResponse(rs.when().get(uri), expectedViolations);
+    }
+
+    public static void deleteValidationError(String uri, String... expectedViolations)
+    {
+        RequestSpecification rs = given().contentType(ContentType.JSON);
+        assertValidationErrorResponse(rs.when().delete(uri), expectedViolations);
     }
 
     private static void assertValidationErrorResponse(io.restassured.response.Response response, String... expectedViolations)

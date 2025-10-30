@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.comparesEqualTo;
@@ -26,6 +27,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -128,6 +130,28 @@ public class RecordServiceTest
         assertThat(records.get(0).getId(), is(record3.getId()));
         assertThat(records.get(1).getId(), is(record1.getId()));
         assertThat(records.get(2).getId(), is(record2.getId()));
+    }
+
+    @Test
+    void delete()
+    {
+        Company company = Generator.generateCompany();
+        Record record = Generator.generateRecord(company, "2020-01-01");
+
+        String randomId = UUID.randomUUID().toString();
+
+        when(recordDao.get(record.getId())).thenReturn(record);
+        when(recordDao.get(randomId)).thenThrow(NoResultException.class);
+
+        assertThrows(ServiceFailureException.class, () -> recordService.delete(randomId));
+
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(recordDao, times(0)).delete(captor.capture());
+
+        recordService.delete(record.getId());
+        verify(recordDao).delete(captor.capture());
+
+        assertThat(captor.getValue(), is(record.getId()));
     }
 
     private void updateAndAssertRecord(RecordUpdateDto dto, Record record, Class<? extends Exception> expectedException)

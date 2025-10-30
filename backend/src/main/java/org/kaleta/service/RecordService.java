@@ -69,6 +69,15 @@ public class RecordService
         return records;
     }
 
+    public void delete(String recordId){
+        try {
+            recordDao.get(recordId);
+        } catch (NoResultException e){
+            throw new ServiceFailureException("record with id '" + recordId + "' not found");
+        }
+        recordDao.delete(recordId);
+    }
+
     @Deprecated
     public RecordsModel getRecordsModel(String companyId)
     {

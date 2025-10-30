@@ -16,4 +16,9 @@ public interface RecordDao extends EntityCompanyDao<Record>
      * @return latest strategy dates for every company (that have at least one strategy)
      */
     List<CompanyInfo> latestStrategy();
+
+    /**
+     * removes the instance specified by id.
+     */
+    void delete(String recordId);
 }

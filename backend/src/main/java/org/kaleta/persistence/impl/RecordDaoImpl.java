@@ -1,6 +1,7 @@
 package org.kaleta.persistence.impl;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 import org.kaleta.model.CompanyInfo;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.entity.Record;
@@ -44,5 +45,15 @@ public class RecordDaoImpl extends EntityCompanyDaoImpl<Record> implements Recor
             infos.add(info);
         }
         return infos;
+    }
+
+    @Transactional
+    @Override
+    public void delete(String recordId)
+    {
+        Record managed = entityManager.find(Record.class, recordId);
+        if (managed != null) {
+            entityManager.remove(managed);
+        }
     }
 }

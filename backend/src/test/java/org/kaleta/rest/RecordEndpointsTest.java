@@ -272,6 +272,22 @@ class RecordEndpointsTest
     }
 
     @Test
+    void delete()
+    {
+        Assert.delete200(path + "/a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+    }
+
+    @Test
+    void deleteInvalidValues()
+    {
+        Assert.deleteValidationError(path + "/x","must be a valid UUID");
+
+        String randomId = UUID.randomUUID().toString();
+        Assert.delete400(path + "/" + randomId, "record with id '" + randomId + "' not found");
+    }
+
+
+    @Test
     void getRecords()
     {
         RecordsUiDto dto = given().when()

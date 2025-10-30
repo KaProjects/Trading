@@ -120,9 +120,13 @@ public class Generator
         record.setTitle("title " + String.format("%02d", RANDOM.nextInt(100)));
         record.setDate(Date.valueOf(date));
         record.setPrice(randomBigDecimal(new BigDecimal(999999), 2));
-        record.setPriceToNetIncome(randomBigDecimal(new BigDecimal(999), 2));
-        record.setPriceToRevenues(randomBigDecimal(new BigDecimal(999), 2));
+        record.setPriceToRevenues(randomBigDecimal(new BigDecimal(9999), 2));
+        record.setPriceToGrossProfit(randomBigDecimal(new BigDecimal(9999), 2));
+        record.setPriceToOperatingIncome(randomBigDecimal(new BigDecimal(9999), 2));
+        record.setPriceToNetIncome(randomBigDecimal(new BigDecimal(9999), 2));
         record.setDividendYield(randomBigDecimal(new BigDecimal(999), 2));
+        record.setAvgAssetPrice(randomBigDecimal(new BigDecimal(999999), 4));
+        record.setSumAssetQuantity(randomBigDecimal(new BigDecimal(9999), 4));
         record.setTargets("targets " + String.format("%02d", RANDOM.nextInt(100)));
         record.setContent("content " + String.format("%02d", RANDOM.nextInt(100)));
         record.setStrategy("strategy " + String.format("%02d", RANDOM.nextInt(100)));
