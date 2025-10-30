@@ -27,9 +27,9 @@ public class RecordDto
         dto.setDate(Utils.format(record.getDate()));
         dto.setTitle(record.getTitle());
         dto.setPrice(format(record.getPrice()));
-        dto.setPe(format(record.getPe()));
-        dto.setPs(format(record.getPs()));
-        dto.setDy(format(record.getDy()));
+        dto.setPe(format(record.getPriceToNetIncome()));
+        dto.setPs(format(record.getPriceToRevenues()));
+        dto.setDy(format(record.getDividendYield()));
         dto.setTargets(record.getTargets());
         dto.setContent(record.getContent());
         dto.setStrategy(record.getStrategy());

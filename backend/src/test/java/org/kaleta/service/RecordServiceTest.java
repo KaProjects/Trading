@@ -4,26 +4,28 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
-import org.kaleta.dao.CompanyDao;
-import org.kaleta.dao.RecordDao;
-import org.kaleta.dto.RecordCreateDto;
-import org.kaleta.dto.RecordDto;
-import org.kaleta.entity.Company;
-import org.kaleta.entity.Record;
+import org.kaleta.Utils;
 import org.kaleta.framework.Generator;
+import org.kaleta.persistence.api.RecordDao;
+import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Record;
+import org.kaleta.rest.dto.RecordCreateDto;
+import org.kaleta.rest.dto.RecordUpdateDto;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.times;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,204 +33,179 @@ import static org.mockito.Mockito.when;
 public class RecordServiceTest
 {
     @InjectMock
-    CompanyDao companyDao;
-
+    CompanyService companyService;
     @InjectMock
     RecordDao recordDao;
 
     @Inject
-    RecordService service;
+    RecordService recordService;
 
     @Test
-    void getByCompanyId() {
-        Company company = Generator.generateCompany();
-        Record record1 = Generator.generateRecord(company, "2025-10-01");
-        Record record2 = Generator.generateRecord(company, "2024-11-21");
-        Record record3 = Generator.generateRecord(company, "2025-12-15");
+    void create()
+    {
+        String validD = "3030-01-01";
+        String validT = "new title";
+        String validP = Generator.randomBigDecimal(999999, 4).toString();
+        String validPs = Generator.randomBigDecimal(9999, 2).toString();
+        String validPg = Generator.randomBigDecimal(9999, 2).toString();
+        String validPo = Generator.randomBigDecimal(9999, 2).toString();
+        String validPe = Generator.randomBigDecimal(9999, 2).toString();
+        String validDy = Generator.randomBigDecimal(999, 2).toString();
+        String validQ = Generator.randomBigDecimal(9999, 4).toString();
+        String validPp = Generator.randomBigDecimal(999999, 4).toString();
 
-        when(companyDao.get(company.getId())).thenReturn(company);
-        when(recordDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(record1, record2, record3)));
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, validPp, null);
+        createAndAssertRecord(validD, validT, validP, null, null, null, null, null, null, null, null);
 
-        List<Record> records = service.getBy(company.getId());
+        createAndAssertRecord("", validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+        createAndAssertRecord("abcd", validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+        createAndAssertRecord("2020-30-01", validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+        createAndAssertRecord("2020-12-40", validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
 
-        assertThat(records.get(0).getId(), is(record3.getId()));
-        assertThat(records.get(1).getId(), is(record1.getId()));
-        assertThat(records.get(2).getId(), is(record2.getId()));
+        createAndAssertRecord(validD, validT, "", validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+        createAndAssertRecord(validD, validT, "x", validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+
+        createAndAssertRecord(validD, validT, validP, "", validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+        createAndAssertRecord(validD, validT, validP, "x", validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+
+        createAndAssertRecord(validD, validT, validP, validPs, "", validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+        createAndAssertRecord(validD, validT, validP, validPs, "x", validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, "", validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, "x", validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, "", validDy, validQ, validPp, IllegalArgumentException.class);
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, "x", validDy, validQ, validPp, IllegalArgumentException.class);
+
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, "", validQ, validPp, IllegalArgumentException.class);
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, "x", validQ, validPp, IllegalArgumentException.class);
+
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, validDy, "", validPp, IllegalArgumentException.class);
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, validDy, "x", validPp, IllegalArgumentException.class);
+
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, "", IllegalArgumentException.class);
+        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, "x", IllegalArgumentException.class);
     }
 
     @Test
     void update()
     {
         Company company = Generator.generateCompany();
-        Record record = Generator.generateRecord(company);
+        Record record = Generator.generateRecord(company, "2020-01-01");
 
         when(recordDao.get(record.getId())).thenReturn(record);
+        when(recordDao.get(null)).thenThrow(NoResultException.class);
 
-        RecordDto dto = new RecordDto();
+        RecordUpdateDto dto = new RecordUpdateDto();
+
+        updateAndAssertRecord(dto, record, ServiceFailureException.class);
+
         dto.setId(record.getId());
-        dto.setDate("3030-01-01");
-        dto.setTitle("new title");
-        dto.setPrice("1234.56");
-        dto.setPe("66.11");
-        dto.setPs("30.4");
-        dto.setDy("5.5");
-        dto.setTargets("(10-100)~60");
-        dto.setContent("a content");
-        dto.setStrategy("buy or so");
+        updateAndAssertRecord(dto, record, null);
 
-        service.update(dto);
+        dto.setTitle("title");
+        updateAndAssertRecord(dto, record, null);
 
-        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
-        verify(recordDao).save(captor.capture());
+        dto.setContent("content");
+        updateAndAssertRecord(dto, record, null);
 
-        assertThat(captor.getValue().getCompany().getId(), is(company.getId()));
-        assertThat(captor.getValue().getDate(), is(Date.valueOf("3030-1-1")));
-        assertThat(captor.getValue().getTitle(), is("new title"));
-        assertThat(captor.getValue().getPrice(), is(new BigDecimal("1234.56")));
-        assertThat(captor.getValue().getPe(), is(new BigDecimal("66.11")));
-        assertThat(captor.getValue().getPs(), is(new BigDecimal("30.4")));
-        assertThat(captor.getValue().getDy(), is(new  BigDecimal("5.5")));
-        assertThat(captor.getValue().getTargets(), is("(10-100)~60"));
-        assertThat(captor.getValue().getContent(), is("a content"));
-        assertThat(captor.getValue().getStrategy(), is("buy or so"));
+        dto.setStrategy("strategy");
+        updateAndAssertRecord(dto, record, null);
     }
 
     @Test
-    void updateNoChange()
-    {
+    void getBy() {
         Company company = Generator.generateCompany();
-        Record record = Generator.generateRecord(company);
+        Record record1 = Generator.generateRecord(company, "2025-10-01");
+        Record record2 = Generator.generateRecord(company, "2024-11-21");
+        Record record3 = Generator.generateRecord(company, "2025-12-15");
 
-        when(recordDao.get(record.getId())).thenReturn(record);
+        when(companyService.getCompany(company.getId())).thenReturn(company);
+        when(recordDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(record1, record2, record3)));
 
-        RecordDto dto = new RecordDto();
-        dto.setId(record.getId());
+        List<Record> records = recordService.getBy(company.getId());
 
-        service.update(dto);
-
-        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
-        verify(recordDao).save(captor.capture());
-
-        assertThat(captor.getValue().getCompany().getId(), is(company.getId()));
-        assertThat(captor.getValue().getDate(), is(record.getDate()));
-        assertThat(captor.getValue().getTitle(), is(record.getTitle()));
-        assertThat(captor.getValue().getPrice(), is(record.getPrice()));
-        assertThat(captor.getValue().getPe(), is(record.getPe()));
-        assertThat(captor.getValue().getPs(), is(record.getPs()));
-        assertThat(captor.getValue().getDy(), is(record.getDy()));
-        assertThat(captor.getValue().getTargets(), is(record.getTargets()));
-        assertThat(captor.getValue().getContent(), is(record.getContent()));
-        assertThat(captor.getValue().getStrategy(), is(record.getStrategy()));
+        assertThat(records.get(0).getId(), is(record3.getId()));
+        assertThat(records.get(1).getId(), is(record1.getId()));
+        assertThat(records.get(2).getId(), is(record2.getId()));
     }
 
-    @Test
-    void updateNullableValues()
+    private void updateAndAssertRecord(RecordUpdateDto dto, Record record, Class<? extends Exception> expectedException)
     {
-        Company company = Generator.generateCompany();
-        Record record = Generator.generateRecord(company);
+        if (expectedException == null)
+        {
+            recordService.update(dto);
 
-        when(recordDao.get(record.getId())).thenReturn(record);
+            ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+            verify(recordDao).save(captor.capture());
 
-        RecordDto dto = new RecordDto();
-        dto.setId(record.getId());
-        dto.setDate("3030-01-01");
-        dto.setTitle("new title");
-        dto.setPrice("1234.56");
-        dto.setPe("");
-        dto.setPs("");
-        dto.setDy("");
-        dto.setTargets("");
-        dto.setContent("");
-        dto.setStrategy("");
+            assertThat(captor.getValue().getCompany().getId(), is(record.getCompany().getId()));
 
-        service.update(dto);
+            assertThat(captor.getValue().getTitle(), (dto.getTitle() == null) ? is(record.getTitle()) : is(dto.getTitle()));
+            assertThat(captor.getValue().getContent(), (dto.getContent() == null) ? is(record.getContent()) : is(dto.getContent()));
+            assertThat(captor.getValue().getStrategy(), (dto.getStrategy() == null) ? is(record.getStrategy()) : is(dto.getStrategy()));
 
-        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
-        verify(recordDao).save(captor.capture());
 
-        assertThat(captor.getValue().getCompany().getId(), is(company.getId()));
-        assertThat(captor.getValue().getDate(), is(Date.valueOf("3030-1-1")));
-        assertThat(captor.getValue().getTitle(), is("new title"));
-        assertThat(captor.getValue().getPrice(), is(new BigDecimal("1234.56")));
-        assertThat(captor.getValue().getPe(), is(nullValue()));
-        assertThat(captor.getValue().getPs(), is(nullValue()));
-        assertThat(captor.getValue().getDy(), is(nullValue()));
-        assertThat(captor.getValue().getTargets(), is(""));
-        assertThat(captor.getValue().getContent(), is(""));
-        assertThat(captor.getValue().getStrategy(), is(""));
-    }
-
-    @Test
-    void updateNonexistent()
-    {
-        RecordDto dto = new RecordDto();
-        dto.setId(UUID.randomUUID().toString());
-
-        when(recordDao.get(dto.getId())).thenThrow(NoResultException.class);
-
-        try {
-            service.update(dto);
-        } catch (RuntimeException e) {
-            assertThat(e.getClass(), is(ServiceFailureException.class));
-            assertThat(e.getMessage(), is("record with id '" + dto.getId() + "' not found"));
+            clearInvocations(recordDao);
+        } else {
+            assertThrows(expectedException, () -> recordService.update(dto));
         }
-        verify(recordDao, times(1)).get(dto.getId());
     }
 
-    @Test
-    void create()
+    private void createAndAssertRecord(String date, String title, String price,
+                                       String ps, String pg, String po, String pe, String dy,
+                                       String q, String pp,
+                                       Class<? extends Exception> expectedException)
     {
         Company company = Generator.generateCompany();
+        when(companyService.getCompany(company.getId())).thenReturn(company);
 
-        when(companyDao.get(company.getId())).thenReturn(company);
+        RecordCreateDto dto = new RecordCreateDto();
+        dto.setCompanyId(company.getId());
+        dto.setDate(date);
+        dto.setPrice(price);
+        dto.setTitle(title);
+        dto.setPriceToRevenues(ps);
+        dto.setPriceToGrossProfit(pg);
+        dto.setPriceToOperatingIncome(po);
+        dto.setPriceToNetIncome(pe);
+        dto.setDividendYield(dy);
+        dto.setSumAssetQuantity(q);
+        dto.setAvgAssetPrice(pp);
 
-        RecordCreateDto createDto = new RecordCreateDto();
-        createDto.setCompanyId(company.getId());
-        createDto.setDate("3030-01-01");
-        createDto.setTitle("new title");
-        createDto.setPrice("1234.56");
-        createDto.setPe("66.11");
-        createDto.setPs("30.4");
-        createDto.setDy("5.5");
+        if (expectedException == null) {
+            recordService.create(dto);
 
-        service.create(createDto);
+            ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+            verify(recordDao).create(captor.capture());
 
-        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
-        verify(recordDao).create(captor.capture());
+            assertThat(captor.getValue().getCompany().getId(), is(company.getId()));
+            assertThat(captor.getValue().getDate(), is(Date.valueOf(date)));
+            assertThat(captor.getValue().getPrice(), comparesEqualTo(Utils.createNullableBigDecimal(price)));
+            assertThat(captor.getValue().getTitle(), is(title));
 
-        assertThat(captor.getValue().getCompany().getId(), is(company.getId()));
-        assertThat(captor.getValue().getDate(), is(Date.valueOf("3030-01-01")));
-        assertThat(captor.getValue().getTitle(), is("new title"));
-        assertThat(captor.getValue().getPrice(), is(new BigDecimal("1234.56")));
-        assertThat(captor.getValue().getPe(), is(new BigDecimal("66.11")));
-        assertThat(captor.getValue().getPs(), is(new BigDecimal("30.4")));
-        assertThat(captor.getValue().getDy(), is(new  BigDecimal("5.5")));
+            assertThat(captor.getValue().getPriceToRevenues(), nullableComparesEqualTo(ps));
+            assertThat(captor.getValue().getPriceToGrossProfit(), nullableComparesEqualTo(pg));
+            assertThat(captor.getValue().getPriceToOperatingIncome(), nullableComparesEqualTo(po));
+            assertThat(captor.getValue().getPriceToNetIncome(), nullableComparesEqualTo(pe));
+
+            assertThat(captor.getValue().getDividendYield(), nullableComparesEqualTo(dy));
+
+            assertThat(captor.getValue().getSumAssetQuantity(), nullableComparesEqualTo(q));
+            assertThat(captor.getValue().getAvgAssetPrice(), nullableComparesEqualTo(pp));
+
+            clearInvocations(recordDao);
+        } else {
+            assertThrows(expectedException, () -> recordService.create(dto));
+        }
     }
 
-    @Test
-    void createWithNullableValues()
+    private Matcher<? super java.math.BigDecimal> nullableComparesEqualTo(final String bigDecimal)
     {
-        Company company = Generator.generateCompany();
-
-        when(companyDao.get(company.getId())).thenReturn(company);
-
-        RecordCreateDto createDto = new RecordCreateDto();
-        createDto.setCompanyId(company.getId());
-        createDto.setDate("3030-01-01");
-        createDto.setTitle("new title");
-        createDto.setPrice("1234.56");
-
-        service.create(createDto);
-
-        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
-        verify(recordDao).create(captor.capture());
-
-        assertThat(captor.getValue().getCompany().getId(), is(company.getId()));
-        assertThat(captor.getValue().getDate(), is(Date.valueOf("3030-01-01")));
-        assertThat(captor.getValue().getTitle(), is("new title"));
-        assertThat(captor.getValue().getPrice(), is(new BigDecimal("1234.56")));
-        assertThat(captor.getValue().getPe(), is(nullValue()));
-        assertThat(captor.getValue().getPs(), is(nullValue()));
-        assertThat(captor.getValue().getDy(), is(nullValue()));
+        if (bigDecimal == null){
+            return is(nullValue());
+        } else {
+            return comparesEqualTo(new  BigDecimal(bigDecimal));
+        }
     }
 }

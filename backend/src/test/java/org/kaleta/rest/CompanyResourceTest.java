@@ -41,7 +41,7 @@ class CompanyResourceTest
                 .get("/company")
                 .then()
                 .statusCode(200)
-                .body("size()", is(20))
+                .body("size()", is(22))
                 .extract().response().jsonPath().getList("", CompanyDto.class);
 
         assertThat(dtos.get(0).getTicker(), is("ABCD"));
@@ -58,10 +58,10 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiCompanyListsDto.class);
 
-        assertThat(dto.getWatchingOldestReview().size(), is(17));
-        assertThat(dto.getWatchingOldestReview().get(15).getTicker(), is("SHELL"));
+        assertThat(dto.getWatchingOldestReview().size(), is(19));
+        assertThat(dto.getWatchingOldestReview().get(15).getTicker(), is("XFC"));
 
-        assertThat(dto.getOwnedWithoutStrategy().size(), is(4));
+        assertThat(dto.getOwnedWithoutStrategy().size(), is(5));
         assertThat(dto.getOwnedWithoutStrategy(), hasItem(hasTicker("XRSB")));
         assertThat(dto.getOwnedWithoutStrategy(), not(hasItem(hasTicker("XRSA"))));
 
@@ -265,17 +265,17 @@ class CompanyResourceTest
 
         assertThat(dto.getColumns().size(), is(10));
         assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
-        assertThat(dto.getCompanies().size(), is(20));
-        assertThat(dto.getCompanies().get(3).getTicker(), is("NVDA"));
-        assertThat(dto.getCompanies().get(3).getCurrency(), is(Currency.$));
-        assertThat(dto.getCompanies().get(3).getWatching(), is(true));
-        assertThat(dto.getCompanies().get(3).getSector(), is(SectorDto.from(Sector.SEMICONDUCTORS)));
-        assertThat(dto.getCompanies().get(3).getShares(), is("900.78M"));
-        assertThat(dto.getCompanies().get(3).getTotalTrades(), is(1));
-        assertThat(dto.getCompanies().get(3).getActiveTrades(), is(0));
-        assertThat(dto.getCompanies().get(3).getDividends(), is(2));
-        assertThat(dto.getCompanies().get(3).getRecords(), is(2));
-        assertThat(dto.getCompanies().get(3).getFinancials(), is(3));
+        assertThat(dto.getCompanies().size(), is(22));
+        assertThat(dto.getCompanies().get(4).getTicker(), is("NVDA"));
+        assertThat(dto.getCompanies().get(4).getCurrency(), is(Currency.$));
+        assertThat(dto.getCompanies().get(4).getWatching(), is(true));
+        assertThat(dto.getCompanies().get(4).getSector(), is(SectorDto.from(Sector.SEMICONDUCTORS)));
+        assertThat(dto.getCompanies().get(4).getShares(), is("900.78M"));
+        assertThat(dto.getCompanies().get(4).getTotalTrades(), is(1));
+        assertThat(dto.getCompanies().get(4).getActiveTrades(), is(0));
+        assertThat(dto.getCompanies().get(4).getDividends(), is(2));
+        assertThat(dto.getCompanies().get(4).getRecords(), is(2));
+        assertThat(dto.getCompanies().get(4).getFinancials(), is(3));
     }
 
     @Test
@@ -340,20 +340,20 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         int expectedColumns = 10;
-        int expectedCompanies = 20;
+        int expectedCompanies = 22;
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
         assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
-        assertThat(dto.getCompanies().get(3).getTicker(), is("NVDA"));
-        assertThat(dto.getCompanies().get(3).getCurrency(), is(Currency.$));
-        assertThat(dto.getCompanies().get(3).getWatching(), is(true));
-        assertThat(dto.getCompanies().get(3).getSector(), is(SectorDto.from(Sector.SEMICONDUCTORS)));
-        assertThat(dto.getCompanies().get(3).getTotalTrades(), is(1));
-        assertThat(dto.getCompanies().get(3).getActiveTrades(), is(0));
-        assertThat(dto.getCompanies().get(3).getDividends(), is(2));
-        assertThat(dto.getCompanies().get(3).getRecords(), is(2));
-        assertThat(dto.getCompanies().get(3).getFinancials(), is(3));
+        assertThat(dto.getCompanies().get(4).getTicker(), is("NVDA"));
+        assertThat(dto.getCompanies().get(4).getCurrency(), is(Currency.$));
+        assertThat(dto.getCompanies().get(4).getWatching(), is(true));
+        assertThat(dto.getCompanies().get(4).getSector(), is(SectorDto.from(Sector.SEMICONDUCTORS)));
+        assertThat(dto.getCompanies().get(4).getTotalTrades(), is(1));
+        assertThat(dto.getCompanies().get(4).getActiveTrades(), is(0));
+        assertThat(dto.getCompanies().get(4).getDividends(), is(2));
+        assertThat(dto.getCompanies().get(4).getRecords(), is(2));
+        assertThat(dto.getCompanies().get(4).getFinancials(), is(3));
 
         dto = given().when()
                 .get("/company/aggregate?sort=" + Sort.CompanyAggregate.CURRENCY)

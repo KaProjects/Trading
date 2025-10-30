@@ -56,12 +56,12 @@ class TradeResourceTest
         assertThat(dto.getColumns().size(), is(6));
         assertThat(dto.getColumns().get(1).getName(), is("#"));
         assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
-        assertThat(dto.getTrades().size(), is(12));
+        assertThat(dto.getTrades().size(), is(14));
         assertThat(dto.getTrades().get(0).getPurchaseDate(), is("11.11.2023"));
         assertThat(dto.getTrades().get(1).getPurchaseDate(), is("05.04.2023"));
         assertThat(dto.getTrades().get(2).getPurchaseDate(), is("01.11.2022"));
         assertThat(dto.getTrades().get(3).getPurchaseDate(), is("10.05.2021"));
-        assertThat(dto.getSums(), is(new String[]{"9", "4", "", "", "", "407.62", "2590769.35", "", "", "", "100.5", "10039.5", "2331.17", "30.24"}));
+        assertThat(dto.getSums(), is(new String[]{"10", "4", "", "", "", "427.62", "2595289.35", "", "", "", "100.5", "10039.5", "2331.17", "30.24"}));
     }
 
     @Test
@@ -76,14 +76,14 @@ class TradeResourceTest
         assertThat(dto.getColumns().size(), is(6));
         assertThat(dto.getColumns().get(1).getName(), is("#"));
         assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
-        assertThat(dto.getTrades().size(), is(7));
+        assertThat(dto.getTrades().size(), is(9));
         assertThat(dto.getTrades().get(0).getPurchaseDate(), is("05.04.2023"));
         assertThat(dto.getTrades().get(0).getTicker(), is("CEZ"));
         assertThat(dto.getTrades().get(0).getPurchaseTotal(), is("575599.35"));
         assertThat(dto.getTrades().get(1).getPurchaseDate(), is("01.11.2022"));
         assertThat(dto.getTrades().get(1).getTicker(), is("RR"));
         assertThat(dto.getTrades().get(1).getPurchaseTotal(), is("2000025"));
-        assertThat(dto.getSums(), is(new String[]{"6", "3", "", "", "", "326.79", "2584081.02", "", "", "", "0", "0", "", ""}));
+        assertThat(dto.getSums(), is(new String[]{"7", "3", "", "", "", "346.79", "2588601.02", "", "", "", "0", "0", "", ""}));
     }
 
     @Test

@@ -132,4 +132,10 @@ public class Utils
         if  (date == null) return null;
         return Date.valueOf(date);
     }
+
+    public static BigDecimal createNullableBigDecimal(String bigDecimal)
+    {
+        if (bigDecimal == null) return null;
+        return new BigDecimal(bigDecimal);
+    }
 }

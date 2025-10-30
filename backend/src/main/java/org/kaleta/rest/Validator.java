@@ -4,7 +4,7 @@ import org.kaleta.Utils;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.DividendCreateDto;
 import org.kaleta.dto.FinancialCreateDto;
-import org.kaleta.dto.RecordCreateDto;
+import org.kaleta.rest.dto.RecordCreateDto;
 import org.kaleta.dto.RecordDto;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeSellDto;

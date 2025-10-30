@@ -39,15 +39,15 @@ INSERT INTO Record (id, companyId, date, title, price) VALUES ('2', '4efe9235-0c
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('2b', '4efe9235-0c00-4b51-aa81-f2febbb65232', '2023-07-10', 'sold 100@30.4€', '30.4');
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('3', 'eaca1473-33c2-4128-a0f2-b7853cdece41', '2022-11-01', 'bought 10@200£', '400.5');
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('4', '61cc8096-87ac-4197-8b54-7c2595274bcc', '2021-04-05', 'bought 1150.1234@500500.25K', '400.5');
-INSERT INTO Record (id, companyId, date, title, price, pe) VALUES ('2ccbf4fe-dbe7-4c40-a2a2-49bf79f15dad', '66c725b2-9987-4653-a49c-3a9906168d2a', '2021-04-05', 'xxx', '100', '10.1');
+INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES ('2ccbf4fe-dbe7-4c40-a2a2-49bf79f15dad', '66c725b2-9987-4653-a49c-3a9906168d2a', '2021-04-05', 'xxx', '100', '10.1');
 
 INSERT INTO Record (id, companyId, date, title, price, strategy) VALUES ('3ec4752e-a716-4aed-ad05-350af8d42a26', '5cda9759-c31f-4c5c-ac0b-b5e1de01fdf0', '2021-04-05', '2021 strategy of A', '100', 'strat of A');
 INSERT INTO Record (id, companyId, date, title, price, strategy) VALUES ('042a4b91-298d-49ff-8941-884501af459d', '7781fba0-7071-45d7-b952-3c5f07ce564c', '2020-12-20', '2020 strategy of B', '200', 'strat of B');
 
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('ff16e565-ec34-46f1-989b-3eb64e8c7cac', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-11-01', 'latest price', '100');
-INSERT INTO Record (id, companyId, date, title, price, pe) VALUES ('b062b0d1-8682-4f13-81e9-2cc59dc63e66', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-10-01', 'latest pe', '90', '5');
-INSERT INTO Record (id, companyId, date, title, price, pe, ps) VALUES ('69d3e956-b155-40c2-8e2e-8679a2d0f657', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-09-01', 'latest ps', '80', '5.5', '4');
-INSERT INTO Record (id, companyId, date, title, price, ps, dy) VALUES ('675574fe-d212-4a96-9526-f3a8b91215bb', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-08-01', 'latest dy', '110', '3', '1.5');
+INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES ('b062b0d1-8682-4f13-81e9-2cc59dc63e66', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-10-01', 'latest pe', '90', '5');
+INSERT INTO Record (id, companyId, date, title, price, p_net, p_rev) VALUES ('69d3e956-b155-40c2-8e2e-8679a2d0f657', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-09-01', 'latest ps', '80', '5.5', '4');
+INSERT INTO Record (id, companyId, date, title, price, p_rev, dy) VALUES ('675574fe-d212-4a96-9526-f3a8b91215bb', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-08-01', 'latest dy', '110', '3', '1.5');
 INSERT INTO Record (id, companyId, date, title, price, dy, targets) VALUES ('d0ccae7d-af8c-4625-8ca3-e9628765df4f', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-07-01', 'latest targets', '90', '1', '10-5~7');
 INSERT INTO Record (id, companyId, date, title, price, targets, strategy) VALUES ('0ac349c6-431d-4379-a2aa-2a8d4ba9c3ca', 'ededb691-b3c0-4c66-b03d-4e7b46bb2489', '2022-06-01', 'latest strategy', '70', '8-4~6', 'strat');
 
@@ -78,10 +78,18 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('9c3
 -- for rest.*EndpointsTest.create tests
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('6877c555-1234-4af5-99ef-415980484d8c', 'CRE', '$', true);
 
+-- for rest.*EndpointsTest.createInvalidValues tests
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('f5b87b39-6b61-4c32-8c09-4f34e97c2d7d', 'CINV', '$', true);
 
 -- for rest.*EndpointsTests.update tests
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('9c858901-8a57-4791-81fe-4c455b099bc9', 'UPD', '$', true);
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('550e8400-e29b-41d4-a716-446655440000', '9c858901-8a57-4791-81fe-4c455b099bc9', '21Q1', '2501', '2025-02-15');
+INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES ('b5a8a2b3-08b7-4a71-9301-f57d44a0a9cb', '9c858901-8a57-4791-81fe-4c455b099bc9', '2021-04-05', 'xxx', '100', '10.1');
+
+-- for rest.*EndpointsTests.updateInvalidValues tests
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('6a3a3e5d-8d5d-47df-b3e1-2aafcf69e86d', 'UINV', '$', true);
+INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('c40b6e24-0e9d-496d-9135-6cf4a9d1e8ce', '6a3a3e5d-8d5d-47df-b3e1-2aafcf69e86d', '21Q1', '2501', '2025-02-15');
+INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES ('3b1e7f0f-f263-4a8e-86a7-1b6c4c9e3ad2', '6a3a3e5d-8d5d-47df-b3e1-2aafcf69e86d', '2021-04-05', 'xxx', '100', '10.1');
 
 
 -- for ResearchEndpointsTest.get test

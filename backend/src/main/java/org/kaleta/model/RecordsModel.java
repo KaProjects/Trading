@@ -33,8 +33,8 @@ public class RecordsModel
     public Latest getLatestPe()
     {
         for (Record record : this.getSortedRecords()) {
-            if (record.getPe() != null) {
-                return new Latest(record.getPe(), record.getDate());
+            if (record.getPriceToNetIncome() != null) {
+                return new Latest(record.getPriceToNetIncome(), record.getDate());
             }
         }
         return null;
@@ -43,8 +43,8 @@ public class RecordsModel
     public Latest getLatestPs()
     {
         for (Record record : this.getSortedRecords()) {
-            if (record.getPs() != null) {
-                return new Latest(record.getPs(), record.getDate());
+            if (record.getPriceToRevenues() != null) {
+                return new Latest(record.getPriceToRevenues(), record.getDate());
             }
         }
         return null;
@@ -53,8 +53,8 @@ public class RecordsModel
     public Latest getLatestDy()
     {
         for (Record record : this.getSortedRecords()) {
-            if (record.getDy() != null) {
-                return new Latest(record.getDy(), record.getDate());
+            if (record.getDividendYield() != null) {
+                return new Latest(record.getDividendYield(), record.getDate());
             }
         }
         return null;

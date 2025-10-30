@@ -44,6 +44,7 @@ class PeriodEndpointsTest
         List<Period> periods = periodDao.list(companyId);
         assertThat(periods.size(), is(1));
         Period period = periods.get(0);
+        assertThat(period.getCompany().getTicker(), is("CRE"));
         assertThat(period.getName(), is(PeriodName.valueOf(dto.getName())));
         assertThat(period.getEndingMonth(), is(YearMonth.parse(dto.getEndingMonth())));
         assertThat(period.getReportDate(), is(Date.valueOf(dto.getReportDate())));
@@ -61,7 +62,7 @@ class PeriodEndpointsTest
     @Test
     void createInvalidValues()
     {
-        String validCompanyId = "d98c9ea1-ef2a-400a-bc7f-00d90e5d8e10";
+        String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
         String validName = "19FY";
         String validEndingMonth = "2019-11";
         String validReportDate = "2020-01-01";
@@ -176,7 +177,7 @@ class PeriodEndpointsTest
         dto.setId(UUID.randomUUID().toString());
         Assert.put400(path, dto, "period with id '" + dto.getId() + "' not found");
 
-        dto.setId("2ccbf4fe-dbe7-4c40-a2a2-49bf79f15dad");
+        dto.setId("c40b6e24-0e9d-496d-9135-6cf4a9d1e8ce");
         dto.setName("");
         Assert.putValidationError(path, dto, "must be a valid PeriodName");
         dto.setName("2025FY");

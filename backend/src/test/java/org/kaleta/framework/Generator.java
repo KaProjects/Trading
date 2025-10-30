@@ -30,6 +30,11 @@ public class Generator
         return constants[RANDOM.nextInt(constants.length)];
     }
 
+    public static BigDecimal randomBigDecimal(int max, int scale)
+    {
+        return randomBigDecimal(BigDecimal.valueOf(max), scale);
+    }
+
     public static BigDecimal randomBigDecimal(BigDecimal max, int scale) {
         BigDecimal scaledMax = max.movePointRight(scale);
         long bound = scaledMax.longValueExact();
@@ -115,9 +120,9 @@ public class Generator
         record.setTitle("title " + String.format("%02d", RANDOM.nextInt(100)));
         record.setDate(Date.valueOf(date));
         record.setPrice(randomBigDecimal(new BigDecimal(999999), 2));
-        record.setPe(randomBigDecimal(new BigDecimal(999), 2));
-        record.setPs(randomBigDecimal(new BigDecimal(999), 2));
-        record.setDy(randomBigDecimal(new BigDecimal(999), 2));
+        record.setPriceToNetIncome(randomBigDecimal(new BigDecimal(999), 2));
+        record.setPriceToRevenues(randomBigDecimal(new BigDecimal(999), 2));
+        record.setDividendYield(randomBigDecimal(new BigDecimal(999), 2));
         record.setTargets("targets " + String.format("%02d", RANDOM.nextInt(100)));
         record.setContent("content " + String.format("%02d", RANDOM.nextInt(100)));
         record.setStrategy("strategy " + String.format("%02d", RANDOM.nextInt(100)));

@@ -4,14 +4,13 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.Utils;
+import org.kaleta.dto.CompanyDto;
+import org.kaleta.model.CompanyInfo;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.api.TradeDao;
-import org.kaleta.dto.CompanyDto;
-import org.kaleta.dto.SectorDto;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Sector;
-import org.kaleta.model.CompanyInfo;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -126,31 +125,5 @@ public class CompanyService
         newCompany.setWatching(companyDto.getWatching());
         newCompany.setShares(companyDto.getShares());
         companyDao.create(newCompany);
-    }
-
-    public CompanyDto getDto(String companyId)
-    {
-        return from(getCompany(companyId));
-    }
-
-    private CompanyDto from(Company company)
-    {
-        CompanyDto dto = new CompanyDto();
-        dto.setId(company.getId());
-        dto.setTicker(company.getTicker());
-        dto.setCurrency(company.getCurrency());
-        dto.setWatching(company.isWatching());
-        dto.setSector(from(company.getSector()));
-        dto.setShares(company.getShares());
-        return dto;
-    }
-
-    private SectorDto from(Sector sector)
-    {
-        if (sector == null) return null;
-        SectorDto dto = new SectorDto();
-        dto.setKey(sector.toString());
-        dto.setName(sector.getName());
-        return dto;
     }
 }
