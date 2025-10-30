@@ -51,43 +51,39 @@ public class RecordEndpoints
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{companyId}")
-    public Response getRecords(@PathParam("companyId") String companyId)
+    public Response getRecords(@NotNull @ValidUuid @PathParam("companyId") String companyId)
     {
-        return Endpoint.process(
-            () -> Validator.validateUuid(companyId),
-            () -> {
-                Company company = companyService.getCompany(companyId);
-                RecordsModel recordsModel = recordService.getRecordsModel(company.getId());
+        Company company = companyService.getCompany(companyId);
+        RecordsModel recordsModel = recordService.getRecordsModel(company.getId());
 
-                RecordsUiDto dto = new RecordsUiDto(company, recordsModel);
+        RecordsUiDto dto = new RecordsUiDto(company, recordsModel);
 
-                if (firebaseService.hasCompany(company.getTicker())){
-                    FirebaseCompany firebaseCompany = firebaseService.getCompany(company.getTicker());
-                    Date firebaseLatestDate = Date.valueOf(firebaseCompany.getTime().split("T")[0]);
-                    if (Utils.compareDbDates(firebaseLatestDate, recordsModel.getLatestPrice().getDate()) >= 0){
-                        dto.setLatestPrice(new RecordsUiDto.Latest(firebaseCompany.getPrice(), format(firebaseLatestDate)));
-                    }
-                }
+        if (firebaseService.hasCompany(company.getTicker())){
+            FirebaseCompany firebaseCompany = firebaseService.getCompany(company.getTicker());
+            Date firebaseLatestDate = Date.valueOf(firebaseCompany.getTime().split("T")[0]);
+            if (Utils.compareDbDates(firebaseLatestDate, recordsModel.getLatestPrice().getDate()) >= 0){
+                dto.setLatestPrice(new RecordsUiDto.Latest(firebaseCompany.getPrice(), format(firebaseLatestDate)));
+            }
+        }
 
-                if (dto.getLatest().getPrice() != null && company.getShares() != null){
-                    dto.setMarketCap(companyService.computeMarketCap(dto.getLatest().getPrice().getValue(), company.getShares()));
-                }
+        if (dto.getLatest().getPrice() != null && company.getShares() != null){
+            dto.setMarketCap(companyService.computeMarketCap(dto.getLatest().getPrice().getValue(), company.getShares()));
+        }
 
-                dto.setFinancialsFrom(financialService.getFinancialsModel(companyId));
+        dto.setFinancialsFrom(financialService.getFinancialsModel(companyId));
 
-                for (Trade trade : tradeService.getTrades(true, companyId, null, null, null, null))
-                {
-                    RecordsUiDto.Own own = new RecordsUiDto.Own();
-                    own.setQuantity(format(trade.getQuantity()));
-                    own.setPrice(format(trade.getPurchasePrice()));
-                    BigDecimal profit = Utils.computeProfit(trade.getPurchasePrice(), new BigDecimal(dto.getLatest().getPrice().getValue()));
-                    if (profit != null){
-                        own.setProfit((profit.compareTo(new BigDecimal("0")) > 0 ? "+" : "") + format(profit) + "%");
-                    }
-                    dto.getOwns().add(own);
-                }
-                return dto;
-            });
+        for (Trade trade : tradeService.getTrades(true, companyId, null, null, null, null))
+        {
+            RecordsUiDto.Own own = new RecordsUiDto.Own();
+            own.setQuantity(format(trade.getQuantity()));
+            own.setPrice(format(trade.getPurchasePrice()));
+            BigDecimal profit = Utils.computeProfit(trade.getPurchasePrice(), new BigDecimal(dto.getLatest().getPrice().getValue()));
+            if (profit != null){
+                own.setProfit((profit.compareTo(new BigDecimal("0")) > 0 ? "+" : "") + format(profit) + "%");
+            }
+            dto.getOwns().add(own);
+        }
+        return Response.ok().entity(dto).build();
     }
 
     @PUT
@@ -95,12 +91,8 @@ public class RecordEndpoints
     @Path("/")
     public Response update(@Valid @NotNull RecordUpdateDto recordUpdateDto)
     {
-        return Endpoint.process(
-            () -> {},
-            () -> {
-                recordService.update(recordUpdateDto);
-                return Response.noContent().build();
-            });
+        recordService.update(recordUpdateDto);
+        return Response.noContent().build();
     }
 
     @POST
@@ -108,23 +100,15 @@ public class RecordEndpoints
     @Path("/")
     public Response create(@Valid @NotNull RecordCreateDto recordCreateDto)
     {
-        return Endpoint.process(
-            () -> {},
-            () -> {
-                recordService.create(recordCreateDto);
-                return Response.status(Response.Status.CREATED).build();
-            });
+        recordService.create(recordCreateDto);
+        return Response.status(Response.Status.CREATED).build();
     }
 
     @DELETE
     @Path("/{recordId}")
     public Response delete(@NotNull @ValidUuid @PathParam("recordId") String recordId)
     {
-        return Endpoint.process(
-                () -> {},
-                () -> {
-                    recordService.delete(recordId);
-                    return Response.status(Response.Status.OK).build();
-                });
+        recordService.delete(recordId);
+        return Response.status(Response.Status.OK).build();
     }
 }

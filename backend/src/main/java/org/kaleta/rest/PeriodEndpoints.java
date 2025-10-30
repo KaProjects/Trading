@@ -24,12 +24,8 @@ public class PeriodEndpoints
     @Path("/")
     public Response update(@Valid @NotNull PeriodUpdateDto periodDto)
     {
-        return Endpoint.process(
-            () -> {},
-            () -> {
-                periodService.update(periodDto);
-                return Response.noContent().build();
-            });
+        periodService.update(periodDto);
+        return Response.noContent().build();
     }
 
     @POST
@@ -37,11 +33,7 @@ public class PeriodEndpoints
     @Path("/")
     public Response create(@Valid @NotNull PeriodCreateDto periodCreateDto)
     {
-        return Endpoint.process(
-            () -> {},
-            () -> {
-                periodService.create(periodCreateDto);
-                return Response.status(Response.Status.CREATED).build();
-            });
+        periodService.create(periodCreateDto);
+        return Response.status(Response.Status.CREATED).build();
     }
 }

@@ -309,9 +309,12 @@ class RecordEndpointsTest
     }
 
     @Test
-    void parameterValidator()
+    void getRecordsInvalidValues()
     {
-        Assert.get400("/record/" + "AAAAAA", "Invalid UUID Parameter");
+        Assert.getValidationError("/record/" + "AAAAAA", "must be a valid UUID");
+
+        String randomId = UUID.randomUUID().toString();
+        Assert.get400(path + "/" + randomId, "company with id '" + randomId + "' not found");
     }
 
     @Test
