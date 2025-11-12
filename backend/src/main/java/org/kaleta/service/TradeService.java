@@ -3,9 +3,11 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
+import org.kaleta.Utils;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeSellDto;
 import org.kaleta.model.Asset;
+import org.kaleta.model.Assets;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Trade;
@@ -159,26 +161,61 @@ public class TradeService
         return map;
     }
 
-    public List<Asset> getAssets(String companyId, BigDecimal currentPrice)
+    public Assets getAssets(String companyId, BigDecimal currentPrice)
     {
         List<Asset> assets = new ArrayList<>();
         for (Trade trade : getTrades(true, companyId, null, null, null, null))
         {
-            Asset asset = new Asset();
-            asset.setQuantity(trade.getQuantity());
-            asset.setPurchasePrice(trade.getPurchasePrice());
+            assets.add(createAsset(currentPrice, trade.getQuantity(), trade.getPurchasePrice()));
+        }
+
+        Assets model = new Assets();
+        model.getAssets().addAll(assets);
+        model.setAggregate(computeAssetAggregate(assets));
+
+        return model;
+    }
+
+    private Asset createAsset(BigDecimal currentPrice, BigDecimal quantity, BigDecimal purchasePrice)
+    {
+        Asset asset = new Asset();
+        asset.setQuantity(quantity);
+        asset.setPurchasePrice(purchasePrice);
+
+        if (currentPrice != null)
+        {
             asset.setCurrentPrice(currentPrice);
 
-            if (trade.getPurchasePrice().compareTo(new BigDecimal(0)) != 0)
+            if (purchasePrice.compareTo(new BigDecimal(0)) != 0)
             {
-                asset.setProfitPercent(currentPrice.divide(trade.getPurchasePrice(), 4, RoundingMode.HALF_UP)
+                asset.setProfitPercent(currentPrice.divide(purchasePrice, 4, RoundingMode.HALF_UP)
                         .subtract(new BigDecimal(1)).multiply(new BigDecimal(100)));
             }
 
-            asset.setProfitValue(currentPrice.subtract(trade.getPurchasePrice()).multiply(trade.getQuantity()));
-
-            assets.add(asset);
+            asset.setProfitValue(currentPrice.subtract(purchasePrice).multiply(quantity));
         }
-        return assets;
+        return asset;
+    }
+
+    private Asset computeAssetAggregate(List<Asset> assets)
+    {
+        if (assets == null || assets.isEmpty()) return null;
+
+        BigDecimal currentPrice = assets.get(0).getCurrentPrice();
+        BigDecimal sumQuantity = BigDecimal.ZERO;
+        BigDecimal purchaseCosts = BigDecimal.ZERO;
+
+        for (Asset asset : assets)
+        {
+            if (!Utils.equalsNullableBigDecimal(asset.getCurrentPrice(), currentPrice))
+                throw new ServiceFailureException("Corrupt data - all current prices should be the same: " + asset.getCurrentPrice() + " != " + currentPrice);
+
+            sumQuantity = sumQuantity.add(asset.getQuantity());
+            purchaseCosts = purchaseCosts.add(asset.getPurchasePrice().multiply(asset.getQuantity()));
+        }
+
+        BigDecimal avgPurchasePrice = purchaseCosts.divide(sumQuantity, 2, RoundingMode.HALF_UP);
+
+        return createAsset(currentPrice, sumQuantity,  avgPurchasePrice);
     }
 }

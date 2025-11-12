@@ -138,4 +138,11 @@ public class Utils
         if (bigDecimal == null) return null;
         return new BigDecimal(bigDecimal);
     }
+
+    public static boolean equalsNullableBigDecimal(BigDecimal a, BigDecimal b)
+    {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return a.compareTo(b) == 0;
+    }
 }

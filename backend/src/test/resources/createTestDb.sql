@@ -107,4 +107,5 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cog
 INSERT INTO Latest (id, companyId, datetime, price) VALUES ('9b3a4e42-84b3-4e3a-b60e-fb019b09b5ef', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '2025-10-27 14:35:00', '1234');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('cfa94677-53b1-4d4a-8c9e-0f4c9923280f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '10', '2021-01-05', '90', '10');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('df602f02-0cf9-47f8-84a2-1f44ed46856c', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '20', '2020-12-30', '180', '10');
-
+INSERT INTO Record (id, companyId, date, title, price, p_rev, p_gross, p_oper, p_net, dy, asset_quantity, asset_price) VALUES ('8c3a25e2-4a68-4f4a-9273-97fd3eb51b2c', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '2021-04-05', 'xxx', '125', '10', '50', '100', '123', '10.12', '456', '75');
+INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES ('5f6cb8e1-dc5e-4eb5-b70e-0e1347cf9d7f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '2022-01-02', 'yyy', '100', '10.1');

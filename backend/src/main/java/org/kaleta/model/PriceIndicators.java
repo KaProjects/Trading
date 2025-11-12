@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-public class PriceRatios
+public class PriceIndicators
 {
     private LocalDateTime datetime;
     private BigDecimal price;
