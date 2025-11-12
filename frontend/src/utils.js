@@ -82,3 +82,9 @@ export function formatDate(date) {
     const [year, month, day] = date.split("-");
     return `${day}.${month}.${year}`;
 }
+
+export function formatPercent(value) {
+    if (value === null || value === undefined) return "";
+    value = formatDecimals(value * 100, 0, 2)
+    return value + "%";
+}

@@ -1,4 +1,15 @@
-import {Box, Button, Card, CardContent, Dialog, DialogActions, DialogTitle, Grid, Typography} from "@mui/material";
+import {
+    Box,
+    Button,
+    Card,
+    CardContent,
+    Dialog,
+    DialogActions,
+    DialogTitle,
+    Grid,
+    Stack,
+    Typography
+} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import Loader from "../components/Loader";
 import BorderedSection from "../components/BorderedSection";
@@ -11,14 +22,23 @@ import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import AddRecordDialog from "../dialog/AddRecordDialog";
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import {formatDate, formatMillions, formatPeriodName, handleError, validateNumber} from "../utils";
+import {
+    formatDate,
+    formatDecimals,
+    formatMillions,
+    formatPercent,
+    formatPeriodName,
+    handleError,
+    validateNumber
+} from "../utils";
 import LatestValueBox from "../components/LatestValueBox";
 import PeriodFinancials from "../components/PeriodFinancials";
 import AddPeriodDialog from "../dialog/AddPeriodDialog";
 import RecordFinancials from "../components/RecordFinancials";
 import AddPeriodFinancialDialog from "../dialog/AddPeriodFinancialDialog";
 import Tooltip from "@mui/material/Tooltip";
-
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
 function profitColor(profit){
     if (profit.startsWith("+")) return 'success.dark'
@@ -124,6 +144,44 @@ const Records = props => {
         return price + currency;
     }
 
+    function profitBox(value) {
+        if (!isNaN(Number(value))) {
+            value = formatDecimals(value, 0, 2)
+            let color = 'text.primary'
+
+            if (value > 0) {
+                value = "+" + value
+                color = 'success.dark'
+            }
+            if (value < 0){
+                color = 'error.dark'
+            }
+            return <Box sx={{color: color, fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
+                {value}%
+            </Box>
+        }
+    }
+
+    const DateTime = ({value, sx, iconMarginTop = '0'}) => {
+        if (value === null || value === undefined) return null;
+
+        let [date, time] = value.split("T")
+        let [year, month, day] = date.split("-")
+
+        const typoSx = {fontSize: sx.fontSize, align: 'center', noWrap: true, variant: 'string'}
+
+        return <Stack sx={sx} direction="row" alignItems={"stretch"}>
+            <CalendarTodayIcon sx={{fontSize: sx.fontSize, marginTop: iconMarginTop, marginRight: '0'}}/>
+            <Typography sx={typoSx}>
+                {day}.{month}.{year}
+            </Typography>
+            <AccessTimeIcon sx={{fontSize: sx.fontSize + 1, marginTop: iconMarginTop, marginRight: '1px'}}/>
+            <Typography sx={typoSx}>
+                {time}
+            </Typography>
+        </Stack>
+    }
+
     return (
         <>
             {/*<CompanySelector refresh={refresh} {...props}/>*/}
@@ -147,27 +205,6 @@ const Records = props => {
                                                   expand={expandFinancials}
                                                   setExpand={setExpandFinancials}
                                                   {...props}
-                                />
-
-                                <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
-                                    {dataOld.company.watching && <StarIcon sx={{color: 'gold',}}/>}
-                                    {!dataOld.company.watching && <StarBorderIcon sx={{color: 'lightgrey',}}/>}
-                                </Button>
-                                <Dialog open={openConfirmWatchDialog} onClose={() => setOpenConfirmWatchDialog(false)}>
-                                    <DialogTitle>{"Are you sure to " + (dataOld.company.watching ? "unwatch" : "watch") + " the company?"}</DialogTitle>
-                                    <DialogActions>
-                                        <Button onClick={() => setOpenConfirmWatchDialog(false)}>Cancel</Button>
-                                        <Button onClick={() => handleConfirmWatch()} autoFocus>Confirm</Button>
-                                    </DialogActions>
-                                </Dialog>
-
-                                <Button sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddRecordDialog(true)}>
-                                    <ControlPointIcon sx={{color: 'lightgreen',}}/>
-                                </Button>
-                                <AddRecordDialog open={openAddRecordDialog}
-                                                 handleClose={() => setOpenAddRecordDialog(false)}
-                                                 triggerRefresh={triggerRefresh}
-                                                 companyId={props.companySelectorValue.id}
                                 />
                             </Box>
 
@@ -346,31 +383,15 @@ const Records = props => {
                         <CardContent>
                             <Box sx={{position: "relative"}}>
                                 <Box sx={{color: 'text.secondary'}}>Records</Box>
-                                <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
-                                    {dataOld.company.ticker}
-                                </Box>
-                                {dataOld.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{dataOld.company.sector.name}</Box>}
-                                {dataOld.marketCap && <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {dataOld.company.currency}{dataOld.marketCap}</Box>}
 
-                                <PeriodFinancials sx={{marginBottom: "20px", marginTop: "20px"}}
-                                                  financials={dataOld.financials}
-                                                  triggerRefresh={triggerRefresh}
-                                                  expand={expandFinancials}
-                                                  setExpand={setExpandFinancials}
-                                                  {...props}
-                                />
-
-                                <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
-                                    {dataOld.company.watching && <StarIcon sx={{color: 'gold',}}/>}
-                                    {!dataOld.company.watching && <StarBorderIcon sx={{color: 'lightgrey',}}/>}
-                                </Button>
-                                <Dialog open={openConfirmWatchDialog} onClose={() => setOpenConfirmWatchDialog(false)}>
-                                    <DialogTitle>{"Are you sure to " + (dataOld.company.watching ? "unwatch" : "watch") + " the company?"}</DialogTitle>
-                                    <DialogActions>
-                                        <Button onClick={() => setOpenConfirmWatchDialog(false)}>Cancel</Button>
-                                        <Button onClick={() => handleConfirmWatch()} autoFocus>Confirm</Button>
-                                    </DialogActions>
-                                </Dialog>
+                                {data.latest &&
+                                <>
+                                    <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
+                                        {data.company.currency}{formatDecimals(data.latest.price,0,2)}
+                                    </Box>
+                                    <DateTime value={data.latest.datetime} sx={{marginTop: '-2px', color: 'text.secondary', fontSize: 11}} iconMarginTop={"1px"}/>
+                                </>
+                                }
 
                                 <Button sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddRecordDialog(true)}>
                                     <ControlPointIcon sx={{color: 'lightgreen',}}/>
@@ -382,30 +403,34 @@ const Records = props => {
                                 />
                             </Box>
 
-                            {dataOld.owns.length > 0 &&
+
+                            {data.indicators &&
+                                <Box>
+                                    <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {data.company.currency}{formatMillions(data.indicators.marketCap)}</Box>
+                                    <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Dividend Yield: {formatPercent(data.indicators.ttm.dividendYield)}</Box>
+
+                                    <Stack direction={"row"} spacing={2}>
+                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PS: {formatDecimals(data.indicators.ttm.marketCapToRevenues, 0, 2)}</Box>
+                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PG: {formatDecimals(data.indicators.ttm.marketCapToGrossIncome, 0, 2)}</Box>
+                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PO: {formatDecimals(data.indicators.ttm.marketCapToOperatingIncome, 0, 2)}</Box>
+                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PE: {formatDecimals(data.indicators.ttm.marketCapToNetIncome, 0, 2)}</Box>
+                                    </Stack>
+                                </Box>
+                            }
+
+
+                            {data.assets.assets.length > 0 &&
                                 <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
-                                    {dataOld.owns.map((own, index) => (
+                                    {data.assets.assets.map((asset, index) => (
                                         <Box key={index} sx={{marginLeft: "10px"}}>
-                                            <Box sx={{color: profitColor(own.profit), fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
-                                                {own.profit && own.profit}
-                                            </Box>
+                                            {asset.currentPrice && profitBox(asset.profitPercent)}
                                             <Box sx={{color: 'text.secondary', fontSize: 16, fontFamily: "Roboto",}}>
-                                                {own.quantity}@{own.price}{dataOld.company.currency}
+                                                {asset.quantity}@{asset.purchasePrice}{data.company.currency}
                                             </Box>
                                         </Box>
                                     ))}
                                 </Grid>
                             }
-
-                            <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
-                                <LatestValueBox label="latest price" data={dataOld.latest.price} suffix={dataOld.company.currency}/>
-                                <LatestValueBox label="latest P/E" data={dataOld.latest.pe} suffix="" sx={{marginLeft: "10px"}}/>
-                                <LatestValueBox label="latest P/S" data={dataOld.latest.ps} suffix="" sx={{marginLeft: "10px"}}/>
-                                <LatestValueBox label="latest DY" data={dataOld.latest.dy} suffix="%" sx={{marginLeft: "10px"}}/>
-                                <LatestValueBox label="latest targets" data={dataOld.latest.targets} suffix="" sx={{marginLeft: "10px"}}/>
-                                <Box sx={{ flexGrow: 1 }} />
-                                <LatestValueBox label="latest strategy" data={dataOld.latest.strategy} suffix="" sx={{marginLeft: "10px"}}/>
-                            </Grid>
 
                             {dataOld.records.map((record, index) => (
                                 <BorderedSection key={record.id} title={record.date} style={{color: 'text.primary'}}>
