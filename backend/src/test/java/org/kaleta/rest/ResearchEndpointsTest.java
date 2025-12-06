@@ -63,35 +63,66 @@ public class ResearchEndpointsTest
         assertThat(dto.getPeriods().getFinancials().get(1).getPeriod(), is(PeriodName.valueOf("24Q3")));
         assertThat(dto.getPeriods().getTtm(), is(notNullValue()));
 
-        // TODO list of records
+        assertThat(dto.getRecords().size(), is(2));
+        assertThat(dto.getRecords().get(0).getTitle(), is("yyy"));
+        assertThat(dto.getRecords().get(0).getDate().toString(), is("2022-01-02"));
+        assertThat(dto.getRecords().get(0).getPrice(), comparesEqualTo(new BigDecimal("100")));
+        assertThat(dto.getRecords().get(0).getPriceToRevenues(), is(nullValue()));
+        assertThat(dto.getRecords().get(0).getPriceToGrossProfit(), is(nullValue()));
+        assertThat(dto.getRecords().get(0).getPriceToOperatingIncome(), is(nullValue()));
+        assertThat(dto.getRecords().get(0).getPriceToNetIncome(), comparesEqualTo(new BigDecimal("10.1")));
+        assertThat(dto.getRecords().get(0).getDividendYield(), is(nullValue()));
+        assertThat(dto.getRecords().get(0).getAsset(), is(nullValue()));
+
+        assertThat(dto.getRecords().get(1).getTitle(), is("xxx"));
+        assertThat(dto.getRecords().get(1).getDate().toString(), is("2021-04-05"));
+        assertThat(dto.getRecords().get(1).getPrice(), comparesEqualTo(new BigDecimal("125")));
+        assertThat(dto.getRecords().get(1).getPriceToRevenues(), comparesEqualTo(new BigDecimal("10")));
+        assertThat(dto.getRecords().get(1).getPriceToGrossProfit(), comparesEqualTo(new BigDecimal("50")));
+        assertThat(dto.getRecords().get(1).getPriceToOperatingIncome(), comparesEqualTo(new BigDecimal("100")));
+        assertThat(dto.getRecords().get(1).getPriceToNetIncome(), comparesEqualTo(new BigDecimal("123")));
+        assertThat(dto.getRecords().get(1).getDividendYield(), comparesEqualTo(new BigDecimal("10.12")));
+        assertThat(dto.getRecords().get(1).getAsset(), is(notNullValue()));
+        assertThat(dto.getRecords().get(1).getAsset().getQuantity(), comparesEqualTo(new BigDecimal("456")));
+        assertThat(dto.getRecords().get(1).getAsset().getPurchasePrice(), comparesEqualTo(new BigDecimal("75")));
+        assertThat(dto.getRecords().get(1).getAsset().getCurrentPrice(), comparesEqualTo(new BigDecimal("125")));
+        assertThat(dto.getRecords().get(1).getAsset().getProfitPercent(), comparesEqualTo(new BigDecimal("66.67")));
+        assertThat(dto.getRecords().get(1).getAsset().getProfitValue(), comparesEqualTo(new BigDecimal("22800")));
 
         assertThat(dto.getLatest().getCompany().getId(), is(companyId));
         assertThat(dto.getLatest().getDatetime(), is(LocalDateTime.of(2025, 10, 27, 14, 35)));
         assertThat(dto.getLatest().getPrice(), comparesEqualTo(new BigDecimal("1234")));
 
-        assertThat(dto.getPriceRatios().getDatetime(), is(LocalDateTime.of(2025, 10, 27, 14, 35)));
-        assertThat(dto.getPriceRatios().getPrice(), comparesEqualTo(new BigDecimal("1234")));
-        assertThat(dto.getPriceRatios().getShares(), comparesEqualTo(new BigDecimal("100")));
-        assertThat(dto.getPriceRatios().getMarketCap(), comparesEqualTo(new BigDecimal("123400")));
-        assertThat(dto.getPriceRatios().getTtm(), is(notNullValue()));
+        assertThat(dto.getIndicators().getDatetime(), is(LocalDateTime.of(2025, 10, 27, 14, 35)));
+        assertThat(dto.getIndicators().getPrice(), comparesEqualTo(new BigDecimal("1234")));
+        assertThat(dto.getIndicators().getShares(), comparesEqualTo(new BigDecimal("100")));
+        assertThat(dto.getIndicators().getMarketCap(), comparesEqualTo(new BigDecimal("123400")));
+        assertThat(dto.getIndicators().getTtm(), is(notNullValue()));
 
-        assertThat(dto.getPriceRatios().getTtm().getMarketCapToRevenues(), comparesEqualTo(new BigDecimal("41.13")));
-        assertThat(dto.getPriceRatios().getTtm().getMarketCapToGrossIncome(), comparesEqualTo(new BigDecimal("102.83")));
-        assertThat(dto.getPriceRatios().getTtm().getMarketCapToOperatingIncome(), comparesEqualTo(new BigDecimal("246.8")));
-        assertThat(dto.getPriceRatios().getTtm().getMarketCapToNetIncome(), comparesEqualTo(new BigDecimal("771.25")));
-        assertThat(dto.getPriceRatios().getTtm().getDividendYield(), comparesEqualTo(new BigDecimal("0.05")));
+        assertThat(dto.getIndicators().getTtm().getMarketCapToRevenues(), comparesEqualTo(new BigDecimal("41.13")));
+        assertThat(dto.getIndicators().getTtm().getMarketCapToGrossIncome(), comparesEqualTo(new BigDecimal("102.83")));
+        assertThat(dto.getIndicators().getTtm().getMarketCapToOperatingIncome(), comparesEqualTo(new BigDecimal("246.8")));
+        assertThat(dto.getIndicators().getTtm().getMarketCapToNetIncome(), comparesEqualTo(new BigDecimal("771.25")));
+        assertThat(dto.getIndicators().getTtm().getDividendYield(), comparesEqualTo(new BigDecimal("0.05")));
 
-        assertThat(dto.getAssets().size(), is(2));
-        assertThat(dto.getAssets().get(0).getQuantity(), comparesEqualTo(new BigDecimal("10")));
-        assertThat(dto.getAssets().get(0).getPurchasePrice(), comparesEqualTo(new BigDecimal("90")));
-        assertThat(dto.getAssets().get(0).getCurrentPrice(), comparesEqualTo(dto.getLatest().getPrice()));
-        assertThat(dto.getAssets().get(0).getProfitValue(), comparesEqualTo(new BigDecimal("11440")));
-        assertThat(dto.getAssets().get(0).getProfitPercent(), comparesEqualTo(new BigDecimal("1271.11")));
-        assertThat(dto.getAssets().get(1).getQuantity(), comparesEqualTo(new BigDecimal("20")));
-        assertThat(dto.getAssets().get(1).getPurchasePrice(), comparesEqualTo(new BigDecimal("180")));
-        assertThat(dto.getAssets().get(1).getCurrentPrice(), comparesEqualTo(dto.getLatest().getPrice()));
-        assertThat(dto.getAssets().get(1).getProfitValue(), comparesEqualTo(new BigDecimal("21080")));
-        assertThat(dto.getAssets().get(1).getProfitPercent(), comparesEqualTo(new BigDecimal("585.56")));
+        assertThat(dto.getAssets().getAssets().size(), is(2));
+        assertThat(dto.getAssets().getAssets().get(0).getQuantity(), comparesEqualTo(new BigDecimal("10")));
+        assertThat(dto.getAssets().getAssets().get(0).getPurchasePrice(), comparesEqualTo(new BigDecimal("90")));
+        assertThat(dto.getAssets().getAssets().get(0).getCurrentPrice(), comparesEqualTo(dto.getIndicators().getPrice()));
+        assertThat(dto.getAssets().getAssets().get(0).getProfitValue(), comparesEqualTo(new BigDecimal("11440")));
+        assertThat(dto.getAssets().getAssets().get(0).getProfitPercent(), comparesEqualTo(new BigDecimal("1271.11")));
+        assertThat(dto.getAssets().getAssets().get(1).getQuantity(), comparesEqualTo(new BigDecimal("20")));
+        assertThat(dto.getAssets().getAssets().get(1).getPurchasePrice(), comparesEqualTo(new BigDecimal("180")));
+        assertThat(dto.getAssets().getAssets().get(1).getCurrentPrice(), comparesEqualTo(dto.getIndicators().getPrice()));
+        assertThat(dto.getAssets().getAssets().get(1).getProfitValue(), comparesEqualTo(new BigDecimal("21080")));
+        assertThat(dto.getAssets().getAssets().get(1).getProfitPercent(), comparesEqualTo(new BigDecimal("585.56")));
+
+        assertThat(dto.getAssets().getAggregate(), is(notNullValue()));
+        assertThat(dto.getAssets().getAggregate().getQuantity(), comparesEqualTo(new BigDecimal("30")));
+        assertThat(dto.getAssets().getAggregate().getCurrentPrice(), comparesEqualTo(new BigDecimal("1234")));
+        assertThat(dto.getAssets().getAggregate().getPurchasePrice(), comparesEqualTo(new BigDecimal("150")));
+        assertThat(dto.getAssets().getAggregate().getProfitValue(), comparesEqualTo(new BigDecimal("32520")));
+        assertThat(dto.getAssets().getAggregate().getProfitPercent(), comparesEqualTo(new BigDecimal("722.67")));
     }
 
     @Test

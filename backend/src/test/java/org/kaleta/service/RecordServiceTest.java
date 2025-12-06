@@ -125,7 +125,7 @@ public class RecordServiceTest
         when(companyService.getCompany(company.getId())).thenReturn(company);
         when(recordDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(record1, record2, record3)));
 
-        List<Record> records = recordService.getBy(company.getId());
+        List<org.kaleta.model.Record> records = recordService.getBy(company.getId());
 
         assertThat(records.get(0).getId(), is(record3.getId()));
         assertThat(records.get(1).getId(), is(record1.getId()));

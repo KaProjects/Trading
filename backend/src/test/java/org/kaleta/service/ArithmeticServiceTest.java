@@ -3,6 +3,7 @@ package org.kaleta.service;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+import org.kaleta.model.Asset;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
 
@@ -67,5 +68,34 @@ public class ArithmeticServiceTest
         assertThat(ttmRatios.getMarketCapToOperatingIncome(), is(nullValue()));
         assertThat(ttmRatios.getMarketCapToNetIncome(), is(nullValue()));
         assertThat(ttmRatios.getDividendYield(), is(nullValue()));
+    }
+
+    @Test
+    void computeAsset()
+    {
+        Asset asset = arithmeticService.computeAsset(new BigDecimal("200"), new BigDecimal("50"), new BigDecimal("150"));
+        assertThat(asset.getQuantity(), comparesEqualTo(new BigDecimal("50")));
+        assertThat(asset.getPurchasePrice(), comparesEqualTo(new BigDecimal("150")));
+        assertThat(asset.getCurrentPrice(), comparesEqualTo(new BigDecimal("200")));
+        assertThat(asset.getProfitPercent(), comparesEqualTo(new BigDecimal("33.33")));
+        assertThat(asset.getProfitValue(), comparesEqualTo(new BigDecimal("2500")));
+    }
+
+    @Test
+    void computeAsset_nullCurrentPrice()
+    {
+        Asset asset = arithmeticService.computeAsset(null, new BigDecimal("50"), new BigDecimal("150"));
+        assertThat(asset.getQuantity(), comparesEqualTo(new BigDecimal("50")));
+        assertThat(asset.getPurchasePrice(), comparesEqualTo(new BigDecimal("150")));
+        assertThat(asset.getCurrentPrice(), is(nullValue()));
+        assertThat(asset.getProfitPercent(), is(nullValue()));
+        assertThat(asset.getProfitValue(), is(nullValue()));
+    }
+
+    @Test
+    void computeAsset_noPurchase()
+    {
+        Asset asset = arithmeticService.computeAsset(new BigDecimal("200"), null, null);
+        assertThat(asset, is(nullValue()));
     }
 }

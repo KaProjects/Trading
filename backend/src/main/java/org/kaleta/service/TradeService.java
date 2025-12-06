@@ -33,6 +33,8 @@ public class TradeService
     CompanyService companyService;
     @Inject
     ConvertService convertService;
+    @Inject
+    ArithmeticService arithmeticService;
 
     public List<Trade> getTrades(Boolean active, String company, String currency, String purchaseYear, String sellYear, String sector)
     {
@@ -166,7 +168,7 @@ public class TradeService
         List<Asset> assets = new ArrayList<>();
         for (Trade trade : getTrades(true, companyId, null, null, null, null))
         {
-            assets.add(createAsset(currentPrice, trade.getQuantity(), trade.getPurchasePrice()));
+            assets.add(arithmeticService.computeAsset(currentPrice, trade.getQuantity(), trade.getPurchasePrice()));
         }
 
         Assets model = new Assets();
@@ -174,27 +176,6 @@ public class TradeService
         model.setAggregate(computeAssetAggregate(assets));
 
         return model;
-    }
-
-    private Asset createAsset(BigDecimal currentPrice, BigDecimal quantity, BigDecimal purchasePrice)
-    {
-        Asset asset = new Asset();
-        asset.setQuantity(quantity);
-        asset.setPurchasePrice(purchasePrice);
-
-        if (currentPrice != null)
-        {
-            asset.setCurrentPrice(currentPrice);
-
-            if (purchasePrice.compareTo(new BigDecimal(0)) != 0)
-            {
-                asset.setProfitPercent(currentPrice.divide(purchasePrice, 4, RoundingMode.HALF_UP)
-                        .subtract(new BigDecimal(1)).multiply(new BigDecimal(100)));
-            }
-
-            asset.setProfitValue(currentPrice.subtract(purchasePrice).multiply(quantity));
-        }
-        return asset;
     }
 
     private Asset computeAssetAggregate(List<Asset> assets)
@@ -216,6 +197,6 @@ public class TradeService
 
         BigDecimal avgPurchasePrice = purchaseCosts.divide(sumQuantity, 2, RoundingMode.HALF_UP);
 
-        return createAsset(currentPrice, sumQuantity,  avgPurchasePrice);
+        return arithmeticService.computeAsset(currentPrice, sumQuantity,  avgPurchasePrice);
     }
 }

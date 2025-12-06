@@ -1,6 +1,7 @@
 package org.kaleta.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import org.kaleta.model.Asset;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
 
@@ -33,5 +34,27 @@ public class ArithmeticService
             ratios.setDividendYield(financial.getDividend().multiply(new BigDecimal("100")).divide(marketCap, 2, RoundingMode.HALF_UP));
         }
         return ratios;
+    }
+
+    public Asset computeAsset(BigDecimal currentPrice, BigDecimal quantity, BigDecimal purchasePrice)
+    {
+        if (quantity == null || purchasePrice == null) return null;
+        Asset asset = new Asset();
+        asset.setQuantity(quantity);
+        asset.setPurchasePrice(purchasePrice);
+
+        if (currentPrice != null)
+        {
+            asset.setCurrentPrice(currentPrice);
+
+            if (purchasePrice.compareTo(new BigDecimal(0)) != 0)
+            {
+                asset.setProfitPercent(currentPrice.divide(purchasePrice, 4, RoundingMode.HALF_UP)
+                        .subtract(new BigDecimal(1)).multiply(new BigDecimal(100)));
+            }
+
+            asset.setProfitValue(currentPrice.subtract(purchasePrice).multiply(quantity));
+        }
+        return asset;
     }
 }

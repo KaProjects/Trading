@@ -15,6 +15,7 @@ import java.sql.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class RecordService
@@ -23,6 +24,8 @@ public class RecordService
     RecordDao recordDao;
     @Inject
     CompanyService companyService;
+    @Inject
+    ArithmeticService arithmeticService;
 
     public void create(RecordCreateDto dto)
     {
@@ -62,9 +65,10 @@ public class RecordService
         recordDao.save(record);
     }
 
-    public List<Record> getBy(String companyId)
+    public List<org.kaleta.model.Record> getBy(String companyId)
     {
-        List<Record> records = recordDao.list(companyId);
+        List<org.kaleta.model.Record> records = recordDao.list(companyId).stream()
+                .map(recordEntity -> from(recordEntity)).collect(Collectors.toList());
         records.sort((a, b) -> -Utils.compareDbDates(a.getDate(), b.getDate()));
         return records;
     }
@@ -98,5 +102,31 @@ public class RecordService
             map.put(companyId, aggregates);
         }
         return map;
+    }
+
+    private org.kaleta.model.Record from(Record recordEntity)
+    {
+        org.kaleta.model.Record  record = new org.kaleta.model.Record();
+
+        record.setId(recordEntity.getId());
+        record.setDate(recordEntity.getDate());
+        record.setTitle(recordEntity.getTitle());
+        record.setContent(recordEntity.getContent());
+
+        record.setPrice(recordEntity.getPrice());
+
+        record.setPriceToRevenues(recordEntity.getPriceToRevenues());
+        record.setPriceToGrossProfit(recordEntity.getPriceToGrossProfit());
+        record.setPriceToOperatingIncome(recordEntity.getPriceToOperatingIncome());
+        record.setPriceToNetIncome(recordEntity.getPriceToNetIncome());
+
+        record.setDividendYield(recordEntity.getDividendYield());
+
+        record.setStrategy(recordEntity.getStrategy());
+        record.setTargets(recordEntity.getTargets());
+
+        record.setAsset(arithmeticService.computeAsset(recordEntity.getPrice(), recordEntity.getSumAssetQuantity(), recordEntity.getAvgAssetPrice()));
+
+        return record;
     }
 }
