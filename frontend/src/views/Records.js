@@ -39,6 +39,7 @@ import AddPeriodFinancialDialog from "../dialog/AddPeriodFinancialDialog";
 import Tooltip from "@mui/material/Tooltip";
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import CompanySelector from "../components/CompanySelector";
 
 function profitColor(profit){
     if (profit.startsWith("+")) return 'success.dark'
@@ -144,24 +145,6 @@ const Records = props => {
         return price + currency;
     }
 
-    function profitBox(value) {
-        if (!isNaN(Number(value))) {
-            value = formatDecimals(value, 0, 2)
-            let color = 'text.primary'
-
-            if (value > 0) {
-                value = "+" + value
-                color = 'success.dark'
-            }
-            if (value < 0){
-                color = 'error.dark'
-            }
-            return <Box sx={{color: color, fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
-                {value}%
-            </Box>
-        }
-    }
-
     const DateTime = ({value, sx, iconMarginTop = '0'}) => {
         if (value === null || value === undefined) return null;
 
@@ -182,13 +165,42 @@ const Records = props => {
         </Stack>
     }
 
+    const AssetBox = ({asset, currency}) => {
+        let profitColor = 'text.primary'
+        let profitPercent = null
+
+        if (!isNaN(Number(asset.profitPercent))) {
+
+            profitPercent = formatDecimals(asset.profitPercent, 0, 2)
+
+            if (asset.profitPercent > 0) {
+                profitPercent = "+" + profitPercent
+                profitColor = 'success.dark'
+            }
+            if (asset.profitPercent < 0){
+                profitColor = 'error.dark'
+            }
+        }
+
+        return <Box sx={{marginLeft: "10px"}}>
+            {profitPercent &&
+                <Box sx={{color: profitColor, fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
+                    {profitPercent}%
+                </Box>
+            }
+            <Box sx={{color: "text.secondary", fontSize: 16, fontFamily: "Roboto",}}>
+                {asset.quantity}@{asset.purchasePrice}{currency}
+            </Box>
+        </Box>
+    }
+
     return (
         <>
-            {/*<CompanySelector refresh={refresh} {...props}/>*/}
+            {/* TODO fix <CompanySelector refresh={refresh} {...props}/>*/}
             {props.companySelectorValue && !loaded && <Loader error={error}/>}
             {props.companySelectorValue && loaded && dataOld.company.ticker !== undefined &&
                 <Grid container direction="row" sx={{justifyContent: "center", alignItems: "flex-start"}}>
-                    {/*TODO old */}
+                    {/* TODO deprecated*/}
                     <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
@@ -284,7 +296,6 @@ const Records = props => {
                             ))}
                         </CardContent>
                     </Card>
-                    {/*TODO periods */}
                     <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
@@ -378,7 +389,6 @@ const Records = props => {
                             ))}
                         </CardContent>
                     </Card>
-                    {/*TODO records */}
                     <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
@@ -400,9 +410,10 @@ const Records = props => {
                                                  handleClose={() => setOpenAddRecordDialog(false)}
                                                  triggerRefresh={triggerRefresh}
                                                  companyId={props.companySelectorValue.id}
+                                                 indicators={data.indicators}
+                                                 assets={data.assets}
                                 />
                             </Box>
-
 
                             {data.indicators &&
                                 <Box>
@@ -418,50 +429,32 @@ const Records = props => {
                                 </Box>
                             }
 
-
                             {data.assets.assets.length > 0 &&
                                 <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
                                     {data.assets.assets.map((asset, index) => (
-                                        <Box key={index} sx={{marginLeft: "10px"}}>
-                                            {asset.currentPrice && profitBox(asset.profitPercent)}
-                                            <Box sx={{color: 'text.secondary', fontSize: 16, fontFamily: "Roboto",}}>
-                                                {asset.quantity}@{asset.purchasePrice}{data.company.currency}
-                                            </Box>
-                                        </Box>
+                                        <AssetBox key={index} asset={asset} currency={data.company.currency}/>
                                     ))}
                                 </Grid>
                             }
 
-                            {dataOld.records.map((record, index) => (
-                                <BorderedSection key={record.id} title={record.date} style={{color: 'text.primary'}}>
+                            {data.records.map((record, index) => (
+                                <BorderedSection key={record.id} title={formatDate(record.date)} style={{color: 'text.primary'}}>
+                                    <Stack direction="row" justifyContent="flex-start" alignItems="stretch" spacing={2}>
+                                        <Box>{data.company.currency}{record.price}</Box>
+                                        <Box>PS:{record.priceToRevenues}</Box>
+                                        <Box>PG:{record.priceToGrossProfit}</Box>
+                                        <Box>PO:{record.priceToOperatingIncome}</Box>
+                                        <Box>PE:{record.priceToNetIncome}</Box>
+                                        <Box>DY:{record.dividendYield}</Box>
+                                        <Box>t:{record.targets}</Box>
+                                        <Box>s:{record.strategy}</Box>
+                                    </Stack>
 
-                                    <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
-                                        <EditableValueBox value={record.price} suffix={dataOld.company.currency} label="price"
-                                                          updateObject={(value) => {return {id: record.id, price: value}}}
-                                                          validateInput={(value) => validateNumber(value, false, 10, 4)}
-                                                          handleUpdate={triggerRefresh}
-                                        />
-                                        <EditableValueBox value={record.pe} suffix={""} label="p/e ratio" style={{marginLeft: "5px"}}
-                                                          updateObject={(value) => {return {id: record.id, pe: value}}}
-                                                          validateInput={(value) => validateNumber(value, true, 5, 2)}
-                                                          handleUpdate={triggerRefresh}
-                                        />
-                                        <EditableValueBox value={record.ps} suffix={""} label="p/s ratio" style={{marginLeft: "5px"}}
-                                                          updateObject={(value) => {return {id: record.id, ps: value}}}
-                                                          validateInput={(value) => validateNumber(value, true, 5, 2)}
-                                                          handleUpdate={triggerRefresh}
-                                        />
-                                        <EditableValueBox value={record.dy} suffix={"%"} label="dividend yield" style={{marginLeft: "5px"}}
-                                                          updateObject={(value) => {return {id: record.id, dy: value}}}
-                                                          validateInput={(value) => validateNumber(value, true, 5, 2)}
-                                                          handleUpdate={triggerRefresh}
-                                        />
-                                        <EditableValueBox value={record.targets} suffix={dataOld.company.currency} label="targets" style={{marginLeft: "5px"}}
-                                                          updateObject={(value) => {return {id: record.id, targets: value}}}
-                                                          validateInput={(value) => ""}
-                                                          handleUpdate={triggerRefresh}
-                                        />
-                                    </Grid>
+                                    {record.asset &&
+                                        <Stack direction="row" justifyContent="flex-start" alignItems="stretch" spacing={2}>
+                                            <AssetBox key={index} asset={record.asset} currency={data.company.currency}/>
+                                        </Stack>
+                                    }
 
                                     <EditableTypography value={record.title} label={"Title"} style={{margin: "12px auto auto 5px"}}
                                                         updateObject={(value) => {return {id: record.id, title: value}}}
@@ -472,12 +465,6 @@ const Records = props => {
                                     <div style={{width: "700px", margin: "15px auto 0 auto"}}>
                                         <ContentEditor record={record} handleUpdate={triggerRefresh}/>
                                     </div>
-
-                                    <EditableValueBox value={record.strategy} label="strategy" style={{marginTop: "5px"}}
-                                                      updateObject={(value) => {return {id: record.id, strategy: value}}}
-                                                      validateInput={(value) => ""}
-                                                      handleUpdate={triggerRefresh}
-                                    />
 
                                 </BorderedSection>
                             ))}

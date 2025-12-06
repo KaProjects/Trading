@@ -85,6 +85,6 @@ export function formatDate(date) {
 
 export function formatPercent(value) {
     if (value === null || value === undefined) return "";
-    value = formatDecimals(value * 100, 0, 2)
+    value = formatDecimals(value, 0, 2)
     return value + "%";
 }
