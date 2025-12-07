@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.kaleta.framework.Assert.assertBigDecimals;
 
 @QuarkusTest
 class PeriodEndpointsTest
@@ -32,16 +32,15 @@ class PeriodEndpointsTest
     @Test
     void create()
     {
-        String companyId = "6877c555-1234-4af5-99ef-415980484d8c";
         PeriodCreateDto dto = new PeriodCreateDto();
-        dto.setCompanyId(companyId);
+        dto.setCompanyId("6877c555-1234-4af5-99ef-415980484d8c");
         dto.setName("15FY");
         dto.setEndingMonth("2015-10");
         dto.setReportDate("2015-11-11");
 
         Assert.post201(path, dto);
 
-        List<Period> periods = periodDao.list(companyId);
+        List<Period> periods = periodDao.list(dto.getCompanyId());
         assertThat(periods.size(), is(1));
         Period period = periods.get(0);
         assertThat(period.getCompany().getTicker(), is("CRE"));
@@ -152,15 +151,15 @@ class PeriodEndpointsTest
         assertThat(period.getName(), is(PeriodName.valueOf(dto.getName())));
         assertThat(period.getEndingMonth(), is(YearMonth.parse(dto.getEndingMonth())));
         assertThat(period.getReportDate(), is(Date.valueOf(dto.getReportDate())));
-        assertThat(period.getShares(), comparesEqualTo(new BigDecimal(dto.getShares())));
-        assertThat(period.getPriceHigh(), comparesEqualTo(new BigDecimal(dto.getPriceHigh())));
-        assertThat(period.getPriceLow(), comparesEqualTo(new BigDecimal(dto.getPriceLow())));
+        assertBigDecimals(period.getShares(), new BigDecimal(dto.getShares()));
+        assertBigDecimals(period.getPriceHigh(), new BigDecimal(dto.getPriceHigh()));
+        assertBigDecimals(period.getPriceLow(), new BigDecimal(dto.getPriceLow()));
         assertThat(period.getResearch(), is(dto.getResearch()));
-        assertThat(period.getRevenue(), comparesEqualTo(new BigDecimal(dto.getRevenue())));
-        assertThat(period.getCostGoodsSold(), comparesEqualTo(new BigDecimal(dto.getCostGoodsSold())));
-        assertThat(period.getOperatingExpenses(), comparesEqualTo(new BigDecimal(dto.getOperatingExpenses())));
-        assertThat(period.getNetIncome(), comparesEqualTo(new BigDecimal(dto.getNetIncome())));
-        assertThat(period.getDividend(), comparesEqualTo(new BigDecimal(dto.getDividend())));
+        assertBigDecimals(period.getRevenue(), new BigDecimal(dto.getRevenue()));
+        assertBigDecimals(period.getCostGoodsSold(), new BigDecimal(dto.getCostGoodsSold()));
+        assertBigDecimals(period.getOperatingExpenses(), new BigDecimal(dto.getOperatingExpenses()));
+        assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
+        assertBigDecimals(period.getDividend(), new BigDecimal(dto.getDividend()));
     }
 
     @Test

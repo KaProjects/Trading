@@ -4,7 +4,6 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.kaleta.Utils;
 import org.kaleta.framework.Generator;
@@ -15,17 +14,15 @@ import org.kaleta.rest.dto.RecordCreateDto;
 import org.kaleta.rest.dto.RecordUpdateDto;
 import org.mockito.ArgumentCaptor;
 
-import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -205,31 +202,22 @@ public class RecordServiceTest
 
             assertThat(captor.getValue().getCompany().getId(), is(company.getId()));
             assertThat(captor.getValue().getDate(), is(Date.valueOf(date)));
-            assertThat(captor.getValue().getPrice(), comparesEqualTo(Utils.createNullableBigDecimal(price)));
+            assertBigDecimals(captor.getValue().getPrice(), Utils.createNullableBigDecimal(price));
             assertThat(captor.getValue().getTitle(), is(title));
 
-            assertThat(captor.getValue().getPriceToRevenues(), nullableComparesEqualTo(ps));
-            assertThat(captor.getValue().getPriceToGrossProfit(), nullableComparesEqualTo(pg));
-            assertThat(captor.getValue().getPriceToOperatingIncome(), nullableComparesEqualTo(po));
-            assertThat(captor.getValue().getPriceToNetIncome(), nullableComparesEqualTo(pe));
+            assertBigDecimals(captor.getValue().getPriceToRevenues(), Utils.createNullableBigDecimal(ps));
+            assertBigDecimals(captor.getValue().getPriceToGrossProfit(), Utils.createNullableBigDecimal(pg));
+            assertBigDecimals(captor.getValue().getPriceToOperatingIncome(), Utils.createNullableBigDecimal(po));
+            assertBigDecimals(captor.getValue().getPriceToNetIncome(), Utils.createNullableBigDecimal(pe));
 
-            assertThat(captor.getValue().getDividendYield(), nullableComparesEqualTo(dy));
+            assertBigDecimals(captor.getValue().getDividendYield(), Utils.createNullableBigDecimal(dy));
 
-            assertThat(captor.getValue().getSumAssetQuantity(), nullableComparesEqualTo(q));
-            assertThat(captor.getValue().getAvgAssetPrice(), nullableComparesEqualTo(pp));
+            assertBigDecimals(captor.getValue().getSumAssetQuantity(), Utils.createNullableBigDecimal(q));
+            assertBigDecimals(captor.getValue().getAvgAssetPrice(), Utils.createNullableBigDecimal(pp));
 
             clearInvocations(recordDao);
         } else {
             assertThrows(expectedException, () -> recordService.create(dto));
-        }
-    }
-
-    private Matcher<? super java.math.BigDecimal> nullableComparesEqualTo(final String bigDecimal)
-    {
-        if (bigDecimal == null){
-            return is(nullValue());
-        } else {
-            return comparesEqualTo(new  BigDecimal(bigDecimal));
         }
     }
 }

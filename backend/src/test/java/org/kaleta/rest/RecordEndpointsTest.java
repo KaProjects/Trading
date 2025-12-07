@@ -25,9 +25,9 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.kaleta.framework.Assert.assertBigDecimals;
 
 @QuarkusTest
 class RecordEndpointsTest
@@ -71,13 +71,13 @@ class RecordEndpointsTest
         assertThat(records.get(0).getDate(), is(Utils.nullableDateValueOf(dto.getDate())));
         assertThat(records.get(0).getTitle(), is(dto.getTitle()));
         assertThat(records.get(0).getPrice(), is(new BigDecimal(dto.getPrice())));
-        assertThat(records.get(0).getPriceToRevenues(), comparesEqualTo(new BigDecimal(dto.getPriceToRevenues())));
-        assertThat(records.get(0).getPriceToGrossProfit(), comparesEqualTo(new BigDecimal(dto.getPriceToGrossProfit())));
-        assertThat(records.get(0).getPriceToOperatingIncome(), comparesEqualTo(new BigDecimal(dto.getPriceToOperatingIncome())));
-        assertThat(records.get(0).getPriceToNetIncome(), comparesEqualTo(new BigDecimal(dto.getPriceToNetIncome())));
-        assertThat(records.get(0).getDividendYield(), comparesEqualTo(new BigDecimal(dto.getDividendYield())));
-        assertThat(records.get(0).getAvgAssetPrice(), comparesEqualTo(new BigDecimal(dto.getAvgAssetPrice())));
-        assertThat(records.get(0).getSumAssetQuantity(), comparesEqualTo(new BigDecimal(dto.getSumAssetQuantity())));
+        assertBigDecimals(records.get(0).getPriceToRevenues(), new BigDecimal(dto.getPriceToRevenues()));
+        assertBigDecimals(records.get(0).getPriceToGrossProfit(), new BigDecimal(dto.getPriceToGrossProfit()));
+        assertBigDecimals(records.get(0).getPriceToOperatingIncome(), new BigDecimal(dto.getPriceToOperatingIncome()));
+        assertBigDecimals(records.get(0).getPriceToNetIncome(), new BigDecimal(dto.getPriceToNetIncome()));
+        assertBigDecimals(records.get(0).getDividendYield(), new BigDecimal(dto.getDividendYield()));
+        assertBigDecimals(records.get(0).getAvgAssetPrice(), new BigDecimal(dto.getAvgAssetPrice()));
+        assertBigDecimals(records.get(0).getSumAssetQuantity(), new BigDecimal(dto.getSumAssetQuantity()));
         assertThat(records.get(0).getContent(), is(nullValue()));
         assertThat(records.get(0).getStrategy(), is(nullValue()));
         assertThat(records.get(0).getTargets(), is(nullValue()));

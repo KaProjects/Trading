@@ -22,10 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,8 +56,8 @@ public class LatestServiceTest
         Latest actual = latestService.getSyncedFor(company);
         assertThat(actual.getCompany().getId(), is(company.getId()));
         LocalDateTime datetime = Instant.ofEpochSecond(Long.parseLong(finnhubQuote.getT())).atZone(ZoneId.systemDefault()).toLocalDateTime();
-        assertThat(actual.getDatetime(), comparesEqualTo(datetime));
-        assertThat(actual.getPrice(), comparesEqualTo(new BigDecimal("1000")));
+        assertThat(actual.getDatetime(), is(datetime));
+        assertBigDecimals(actual.getPrice(), new BigDecimal("1000"));
 
         ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
         verify(latestDao, times(0)).create(captorCreate.capture());
@@ -80,8 +80,8 @@ public class LatestServiceTest
         Latest actual = latestService.getSyncedFor(company);
         assertThat(actual.getCompany().getId(), is(company.getId()));
         LocalDateTime datetime = Instant.ofEpochSecond(Long.parseLong(finnhubQuote.getT())).atZone(ZoneId.systemDefault()).toLocalDateTime();
-        assertThat(actual.getDatetime(), comparesEqualTo(datetime));
-        assertThat(actual.getPrice(), comparesEqualTo(new BigDecimal("1000")));
+        assertThat(actual.getDatetime(), is(datetime));
+        assertBigDecimals(actual.getPrice(), new BigDecimal("1000"));
 
         ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
         verify(latestDao, times(1)).create(captorCreate.capture());

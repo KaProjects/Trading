@@ -4,10 +4,14 @@ import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import jakarta.ws.rs.core.Response;
 
+import java.math.BigDecimal;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class Assert
 {
@@ -102,6 +106,15 @@ public class Assert
     {
         RequestSpecification rs = given().contentType(ContentType.JSON);
         assertValidationErrorResponse(rs.when().delete(uri), expectedViolations);
+    }
+
+    public static void assertBigDecimals(BigDecimal expected, BigDecimal actual)
+    {
+        if (expected == null){
+            assertThat(actual, is(nullValue()));
+        } else {
+            assertThat(actual, comparesEqualTo(expected));
+        }
     }
 
     private static void assertValidationErrorResponse(io.restassured.response.Response response, String... expectedViolations)

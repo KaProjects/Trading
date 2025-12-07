@@ -24,11 +24,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -204,46 +204,46 @@ public class PeriodServiceTest
         assertThat(periods.getFinancials().size(), is(2));
 
         assertThat(periods.getFinancials().get(0).getPeriod(), is(period1.getName()));
-        assertThat(periods.getFinancials().get(0).getRevenue(), comparesEqualTo(period1.getRevenue()));
-        assertThat(periods.getFinancials().get(0).getCostGoodsSold(), comparesEqualTo(period1.getCostGoodsSold()));
-        assertThat(periods.getFinancials().get(0).getGrossProfit(), comparesEqualTo(new BigDecimal("700")));
-        assertThat(periods.getFinancials().get(0).getGrossMargin(), comparesEqualTo(new BigDecimal("70")));
-        assertThat(periods.getFinancials().get(0).getOperatingExpenses(), comparesEqualTo(period1.getOperatingExpenses()));
-        assertThat(periods.getFinancials().get(0).getOperatingIncome(), comparesEqualTo(new BigDecimal("500")));
-        assertThat(periods.getFinancials().get(0).getOperatingMargin(), comparesEqualTo(new BigDecimal("50")));
-        assertThat(periods.getFinancials().get(0).getNetIncome(), comparesEqualTo(period1.getNetIncome()));
-        assertThat(periods.getFinancials().get(0).getNetMargin(), comparesEqualTo(new BigDecimal("10")));
-        assertThat(periods.getFinancials().get(0).getDividend(), comparesEqualTo(period1.getDividend()));
+        assertBigDecimals(periods.getFinancials().get(0).getRevenue(), period1.getRevenue());
+        assertBigDecimals(periods.getFinancials().get(0).getCostGoodsSold(), period1.getCostGoodsSold());
+        assertBigDecimals(periods.getFinancials().get(0).getGrossProfit(), new BigDecimal("700"));
+        assertBigDecimals(periods.getFinancials().get(0).getGrossMargin(), new BigDecimal("70"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingExpenses(), period1.getOperatingExpenses());
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome(), new BigDecimal("500"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingMargin(), new BigDecimal("50"));
+        assertBigDecimals(periods.getFinancials().get(0).getNetIncome(), period1.getNetIncome());
+        assertBigDecimals(periods.getFinancials().get(0).getNetMargin(), new BigDecimal("10"));
+        assertBigDecimals(periods.getFinancials().get(0).getDividend(), period1.getDividend());
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period3.getName()));
-        assertThat(periods.getFinancials().get(1).getRevenue(), comparesEqualTo(period3.getRevenue()));
-        assertThat(periods.getFinancials().get(1).getCostGoodsSold(), comparesEqualTo(period3.getCostGoodsSold()));
-        assertThat(periods.getFinancials().get(1).getGrossProfit(), comparesEqualTo(new BigDecimal("550")));
-        assertThat(periods.getFinancials().get(1).getGrossMargin(), comparesEqualTo(new BigDecimal("57.89")));
-        assertThat(periods.getFinancials().get(1).getOperatingExpenses(), comparesEqualTo(period3.getOperatingExpenses()));
-        assertThat(periods.getFinancials().get(1).getOperatingIncome(), comparesEqualTo(new BigDecimal("250")));
-        assertThat(periods.getFinancials().get(1).getOperatingMargin(), comparesEqualTo(new BigDecimal("26.32")));
-        assertThat(periods.getFinancials().get(1).getNetIncome(), comparesEqualTo(period3.getNetIncome()));
-        assertThat(periods.getFinancials().get(1).getNetMargin(), comparesEqualTo(new BigDecimal("5.26")));
-        assertThat(periods.getFinancials().get(1).getDividend(), comparesEqualTo(period3.getDividend()));
+        assertBigDecimals(periods.getFinancials().get(1).getRevenue(), period3.getRevenue());
+        assertBigDecimals(periods.getFinancials().get(1).getCostGoodsSold(), period3.getCostGoodsSold());
+        assertBigDecimals(periods.getFinancials().get(1).getGrossProfit(), new BigDecimal("550"));
+        assertBigDecimals(periods.getFinancials().get(1).getGrossMargin(), new BigDecimal("57.89"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingExpenses(), period3.getOperatingExpenses());
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome(), new BigDecimal("250"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingMargin(), new BigDecimal("26.32"));
+        assertBigDecimals(periods.getFinancials().get(1).getNetIncome(), period3.getNetIncome());
+        assertBigDecimals(periods.getFinancials().get(1).getNetMargin(), new BigDecimal("5.26"));
+        assertBigDecimals(periods.getFinancials().get(1).getDividend(), period3.getDividend());
 
         assertThat(periods.getTtm(), is(notNullValue()));
 
-        assertThat(periods.getTtm().getRevenue(), comparesEqualTo(new BigDecimal("3900")));
-        assertThat(periods.getTtm().getCostGoodsSold(), comparesEqualTo(new BigDecimal("1400")));
-        assertThat(periods.getTtm().getGrossProfit(), comparesEqualTo(new BigDecimal("2500")));
-        assertThat(periods.getTtm().getGrossMargin(), comparesEqualTo(new BigDecimal("64.1")));
+        assertBigDecimals(periods.getTtm().getRevenue(), new BigDecimal("3900"));
+        assertBigDecimals(periods.getTtm().getCostGoodsSold(), new BigDecimal("1400"));
+        assertBigDecimals(periods.getTtm().getGrossProfit(), new BigDecimal("2500"));
+        assertBigDecimals(periods.getTtm().getGrossMargin(), new BigDecimal("64.1"));
 
-        assertThat(periods.getTtm().getOperatingExpenses(), comparesEqualTo(new BigDecimal("1000")));
-        assertThat(periods.getTtm().getOperatingIncome(), comparesEqualTo(new BigDecimal("1500")));
-        assertThat(periods.getTtm().getOperatingMargin(), comparesEqualTo(new BigDecimal("38.46")));
+        assertBigDecimals(periods.getTtm().getOperatingExpenses(), new BigDecimal("1000"));
+        assertBigDecimals(periods.getTtm().getOperatingIncome(), new BigDecimal("1500"));
+        assertBigDecimals(periods.getTtm().getOperatingMargin(), new BigDecimal("38.46"));
 
-        assertThat(periods.getTtm().getNetIncome(), comparesEqualTo(new BigDecimal("300")));
-        assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("7.69")));
+        assertBigDecimals(periods.getTtm().getNetIncome(), new BigDecimal("300"));
+        assertBigDecimals(periods.getTtm().getNetMargin(), new BigDecimal("7.69"));
 
-        assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("60")));
+        assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("60"));
 
-        assertThat(periods.getTtm().getShares(), comparesEqualTo(period1.getShares()));
+        assertBigDecimals(periods.getTtm().getShares(), period1.getShares());
     }
 
     @Test
@@ -266,46 +266,46 @@ public class PeriodServiceTest
         assertThat(periods.getFinancials().size(), is(2));
 
         assertThat(periods.getFinancials().get(0).getPeriod(), is(period3.getName()));
-        assertThat(periods.getFinancials().get(0).getRevenue(), comparesEqualTo(period3.getRevenue()));
-        assertThat(periods.getFinancials().get(0).getCostGoodsSold(), comparesEqualTo(period3.getCostGoodsSold()));
-        assertThat(periods.getFinancials().get(0).getGrossProfit(), comparesEqualTo(new BigDecimal("550")));
-        assertThat(periods.getFinancials().get(0).getGrossMargin(), comparesEqualTo(new BigDecimal("57.89")));
-        assertThat(periods.getFinancials().get(0).getOperatingExpenses(), comparesEqualTo(period3.getOperatingExpenses()));
-        assertThat(periods.getFinancials().get(0).getOperatingIncome(), comparesEqualTo(new BigDecimal("250")));
-        assertThat(periods.getFinancials().get(0).getOperatingMargin(), comparesEqualTo(new BigDecimal("26.32")));
-        assertThat(periods.getFinancials().get(0).getNetIncome(), comparesEqualTo(period3.getNetIncome()));
-        assertThat(periods.getFinancials().get(0).getNetMargin(), comparesEqualTo(new BigDecimal("5.26")));
-        assertThat(periods.getFinancials().get(0).getDividend(), comparesEqualTo(period3.getDividend()));
+        assertBigDecimals(periods.getFinancials().get(0).getRevenue(), period3.getRevenue());
+        assertBigDecimals(periods.getFinancials().get(0).getCostGoodsSold(), period3.getCostGoodsSold());
+        assertBigDecimals(periods.getFinancials().get(0).getGrossProfit(), new BigDecimal("550"));
+        assertBigDecimals(periods.getFinancials().get(0).getGrossMargin(), new BigDecimal("57.89"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingExpenses(), period3.getOperatingExpenses());
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome(), new BigDecimal("250"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingMargin(), new BigDecimal("26.32"));
+        assertBigDecimals(periods.getFinancials().get(0).getNetIncome(), period3.getNetIncome());
+        assertBigDecimals(periods.getFinancials().get(0).getNetMargin(), new BigDecimal("5.26"));
+        assertBigDecimals(periods.getFinancials().get(0).getDividend(), period3.getDividend());
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period1.getName()));
-        assertThat(periods.getFinancials().get(1).getRevenue(), comparesEqualTo(period1.getRevenue()));
-        assertThat(periods.getFinancials().get(1).getCostGoodsSold(), comparesEqualTo(period1.getCostGoodsSold()));
-        assertThat(periods.getFinancials().get(1).getGrossProfit(), comparesEqualTo(new BigDecimal("700")));
-        assertThat(periods.getFinancials().get(1).getGrossMargin(), comparesEqualTo(new BigDecimal("70")));
-        assertThat(periods.getFinancials().get(1).getOperatingExpenses(), comparesEqualTo(period1.getOperatingExpenses()));
-        assertThat(periods.getFinancials().get(1).getOperatingIncome(), comparesEqualTo(new BigDecimal("500")));
-        assertThat(periods.getFinancials().get(1).getOperatingMargin(), comparesEqualTo(new BigDecimal("50")));
-        assertThat(periods.getFinancials().get(1).getNetIncome(), comparesEqualTo(period1.getNetIncome()));
-        assertThat(periods.getFinancials().get(1).getNetMargin(), comparesEqualTo(new BigDecimal("10")));
-        assertThat(periods.getFinancials().get(1).getDividend(), comparesEqualTo(period1.getDividend()));
+        assertBigDecimals(periods.getFinancials().get(1).getRevenue(), period1.getRevenue());
+        assertBigDecimals(periods.getFinancials().get(1).getCostGoodsSold(), period1.getCostGoodsSold());
+        assertBigDecimals(periods.getFinancials().get(1).getGrossProfit(), new BigDecimal("700"));
+        assertBigDecimals(periods.getFinancials().get(1).getGrossMargin(), new BigDecimal("70"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingExpenses(), period1.getOperatingExpenses());
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome(), new BigDecimal("500"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingMargin(), new BigDecimal("50"));
+        assertBigDecimals(periods.getFinancials().get(1).getNetIncome(), period1.getNetIncome());
+        assertBigDecimals(periods.getFinancials().get(1).getNetMargin(), new BigDecimal("10"));
+        assertBigDecimals(periods.getFinancials().get(1).getDividend(), period1.getDividend());
 
         assertThat(periods.getTtm(), is(notNullValue()));
 
-        assertThat(periods.getTtm().getRevenue(), comparesEqualTo(new BigDecimal("1950")));
-        assertThat(periods.getTtm().getCostGoodsSold(), comparesEqualTo(new BigDecimal("700")));
-        assertThat(periods.getTtm().getGrossProfit(), comparesEqualTo(new BigDecimal("1250")));
-        assertThat(periods.getTtm().getGrossMargin(), comparesEqualTo(new BigDecimal("64.1")));
+        assertBigDecimals(periods.getTtm().getRevenue(), new BigDecimal("1950"));
+        assertBigDecimals(periods.getTtm().getCostGoodsSold(), new BigDecimal("700"));
+        assertBigDecimals(periods.getTtm().getGrossProfit(), new BigDecimal("1250"));
+        assertBigDecimals(periods.getTtm().getGrossMargin(), new BigDecimal("64.1"));
 
-        assertThat(periods.getTtm().getOperatingExpenses(), comparesEqualTo(new BigDecimal("500")));
-        assertThat(periods.getTtm().getOperatingIncome(), comparesEqualTo(new BigDecimal("750")));
-        assertThat(periods.getTtm().getOperatingMargin(), comparesEqualTo(new BigDecimal("38.46")));
+        assertBigDecimals(periods.getTtm().getOperatingExpenses(), new BigDecimal("500"));
+        assertBigDecimals(periods.getTtm().getOperatingIncome(), new BigDecimal("750"));
+        assertBigDecimals(periods.getTtm().getOperatingMargin(), new BigDecimal("38.46"));
 
-        assertThat(periods.getTtm().getNetIncome(), comparesEqualTo(new BigDecimal("150")));
-        assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("7.69")));
+        assertBigDecimals(periods.getTtm().getNetIncome(), new BigDecimal("150"));
+        assertBigDecimals(periods.getTtm().getNetMargin(), new BigDecimal("7.69"));
 
-        assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("30")));
+        assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("30"));
 
-        assertThat(periods.getTtm().getShares(), comparesEqualTo(period3.getShares()));
+        assertBigDecimals(periods.getTtm().getShares(), period3.getShares());
     }
 
     @Test
@@ -328,46 +328,46 @@ public class PeriodServiceTest
         assertThat(periods.getFinancials().size(), is(2));
 
         assertThat(periods.getFinancials().get(0).getPeriod(), is(period1.getName()));
-        assertThat(periods.getFinancials().get(0).getRevenue(), comparesEqualTo(period1.getRevenue()));
-        assertThat(periods.getFinancials().get(0).getCostGoodsSold(), comparesEqualTo(period1.getCostGoodsSold()));
-        assertThat(periods.getFinancials().get(0).getGrossProfit(), comparesEqualTo(new BigDecimal("700")));
-        assertThat(periods.getFinancials().get(0).getGrossMargin(), comparesEqualTo(new BigDecimal("70")));
-        assertThat(periods.getFinancials().get(0).getOperatingExpenses(), comparesEqualTo(period1.getOperatingExpenses()));
-        assertThat(periods.getFinancials().get(0).getOperatingIncome(), comparesEqualTo(new BigDecimal("500")));
-        assertThat(periods.getFinancials().get(0).getOperatingMargin(), comparesEqualTo(new BigDecimal("50")));
-        assertThat(periods.getFinancials().get(0).getNetIncome(), comparesEqualTo(period1.getNetIncome()));
-        assertThat(periods.getFinancials().get(0).getNetMargin(), comparesEqualTo(new BigDecimal("10")));
-        assertThat(periods.getFinancials().get(0).getDividend(), comparesEqualTo(period1.getDividend()));
+        assertBigDecimals(periods.getFinancials().get(0).getRevenue(), period1.getRevenue());
+        assertBigDecimals(periods.getFinancials().get(0).getCostGoodsSold(), period1.getCostGoodsSold());
+        assertBigDecimals(periods.getFinancials().get(0).getGrossProfit(), new BigDecimal("700"));
+        assertBigDecimals(periods.getFinancials().get(0).getGrossMargin(), new BigDecimal("70"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingExpenses(), period1.getOperatingExpenses());
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome(), new BigDecimal("500"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingMargin(), new BigDecimal("50"));
+        assertBigDecimals(periods.getFinancials().get(0).getNetIncome(), period1.getNetIncome());
+        assertBigDecimals(periods.getFinancials().get(0).getNetMargin(), new BigDecimal("10"));
+        assertBigDecimals(periods.getFinancials().get(0).getDividend(), period1.getDividend());
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period2.getName()));
-        assertThat(periods.getFinancials().get(1).getRevenue(), comparesEqualTo(period2.getRevenue()));
-        assertThat(periods.getFinancials().get(1).getCostGoodsSold(), comparesEqualTo(period2.getCostGoodsSold()));
-        assertThat(periods.getFinancials().get(1).getGrossProfit(), comparesEqualTo(new BigDecimal("550")));
-        assertThat(periods.getFinancials().get(1).getGrossMargin(), comparesEqualTo(new BigDecimal("57.89")));
-        assertThat(periods.getFinancials().get(1).getOperatingExpenses(), comparesEqualTo(period2.getOperatingExpenses()));
-        assertThat(periods.getFinancials().get(1).getOperatingIncome(), comparesEqualTo(new BigDecimal("250")));
-        assertThat(periods.getFinancials().get(1).getOperatingMargin(), comparesEqualTo(new BigDecimal("26.32")));
-        assertThat(periods.getFinancials().get(1).getNetIncome(), comparesEqualTo(period2.getNetIncome()));
-        assertThat(periods.getFinancials().get(1).getNetMargin(), comparesEqualTo(new BigDecimal("5.26")));
-        assertThat(periods.getFinancials().get(1).getDividend(), comparesEqualTo(period2.getDividend()));
+        assertBigDecimals(periods.getFinancials().get(1).getRevenue(), period2.getRevenue());
+        assertBigDecimals(periods.getFinancials().get(1).getCostGoodsSold(), period2.getCostGoodsSold());
+        assertBigDecimals(periods.getFinancials().get(1).getGrossProfit(), new BigDecimal("550"));
+        assertBigDecimals(periods.getFinancials().get(1).getGrossMargin(), new BigDecimal("57.89"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingExpenses(), period2.getOperatingExpenses());
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome(), new BigDecimal("250"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingMargin(), new BigDecimal("26.32"));
+        assertBigDecimals(periods.getFinancials().get(1).getNetIncome(), period2.getNetIncome());
+        assertBigDecimals(periods.getFinancials().get(1).getNetMargin(), new BigDecimal("5.26"));
+        assertBigDecimals(periods.getFinancials().get(1).getDividend(), period2.getDividend());
 
         assertThat(periods.getTtm(), is(notNullValue()));
 
-        assertThat(periods.getTtm().getRevenue(), comparesEqualTo(new BigDecimal("1000")));
-        assertThat(periods.getTtm().getCostGoodsSold(), comparesEqualTo(new BigDecimal("300")));
-        assertThat(periods.getTtm().getGrossProfit(), comparesEqualTo(new BigDecimal("700")));
-        assertThat(periods.getTtm().getGrossMargin(), comparesEqualTo(new BigDecimal("70")));
+        assertBigDecimals(periods.getTtm().getRevenue(), new BigDecimal("1000"));
+        assertBigDecimals(periods.getTtm().getCostGoodsSold(), new BigDecimal("300"));
+        assertBigDecimals(periods.getTtm().getGrossProfit(), new BigDecimal("700"));
+        assertBigDecimals(periods.getTtm().getGrossMargin(), new BigDecimal("70"));
 
-        assertThat(periods.getTtm().getOperatingExpenses(), comparesEqualTo(new BigDecimal("200")));
-        assertThat(periods.getTtm().getOperatingIncome(), comparesEqualTo(new BigDecimal("500")));
-        assertThat(periods.getTtm().getOperatingMargin(), comparesEqualTo(new BigDecimal("50")));
+        assertBigDecimals(periods.getTtm().getOperatingExpenses(), new BigDecimal("200"));
+        assertBigDecimals(periods.getTtm().getOperatingIncome(), new BigDecimal("500"));
+        assertBigDecimals(periods.getTtm().getOperatingMargin(), new BigDecimal("50"));
 
-        assertThat(periods.getTtm().getNetIncome(), comparesEqualTo(new BigDecimal("100")));
-        assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("10")));
+        assertBigDecimals(periods.getTtm().getNetIncome(), new BigDecimal("100"));
+        assertBigDecimals(periods.getTtm().getNetMargin(), new BigDecimal("10"));
 
-        assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("20")));
+        assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("20"));
 
-        assertThat(periods.getTtm().getShares(), comparesEqualTo(period1.getShares()));
+        assertBigDecimals(periods.getTtm().getShares(), period1.getShares());
     }
 
     @Test
@@ -390,46 +390,46 @@ public class PeriodServiceTest
         assertThat(periods.getFinancials().size(), is(2));
 
         assertThat(periods.getFinancials().get(0).getPeriod(), is(period2.getName()));
-        assertThat(periods.getFinancials().get(0).getRevenue(), comparesEqualTo(period2.getRevenue()));
-        assertThat(periods.getFinancials().get(0).getCostGoodsSold(), comparesEqualTo(period2.getCostGoodsSold()));
-        assertThat(periods.getFinancials().get(0).getGrossProfit(), comparesEqualTo(new BigDecimal("400")));
-        assertThat(periods.getFinancials().get(0).getGrossMargin(), comparesEqualTo(new BigDecimal("80")));
-        assertThat(periods.getFinancials().get(0).getOperatingExpenses(), comparesEqualTo(period2.getOperatingExpenses()));
-        assertThat(periods.getFinancials().get(0).getOperatingIncome(), comparesEqualTo(new BigDecimal("300")));
-        assertThat(periods.getFinancials().get(0).getOperatingMargin(), comparesEqualTo(new BigDecimal("60")));
-        assertThat(periods.getFinancials().get(0).getNetIncome(), comparesEqualTo(period2.getNetIncome()));
-        assertThat(periods.getFinancials().get(0).getNetMargin(), comparesEqualTo(new BigDecimal("20")));
-        assertThat(periods.getFinancials().get(0).getDividend(), comparesEqualTo(period2.getDividend()));
+        assertBigDecimals(periods.getFinancials().get(0).getRevenue(), period2.getRevenue());
+        assertBigDecimals(periods.getFinancials().get(0).getCostGoodsSold(), period2.getCostGoodsSold());
+        assertBigDecimals(periods.getFinancials().get(0).getGrossProfit(), new BigDecimal("400"));
+        assertBigDecimals(periods.getFinancials().get(0).getGrossMargin(), new BigDecimal("80"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingExpenses(), period2.getOperatingExpenses());
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome(), new BigDecimal("300"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingMargin(), new BigDecimal("60"));
+        assertBigDecimals(periods.getFinancials().get(0).getNetIncome(), period2.getNetIncome());
+        assertBigDecimals(periods.getFinancials().get(0).getNetMargin(), new BigDecimal("20"));
+        assertBigDecimals(periods.getFinancials().get(0).getDividend(), period2.getDividend());
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period1.getName()));
-        assertThat(periods.getFinancials().get(1).getRevenue(), comparesEqualTo(period1.getRevenue()));
-        assertThat(periods.getFinancials().get(1).getCostGoodsSold(), comparesEqualTo(period1.getCostGoodsSold()));
-        assertThat(periods.getFinancials().get(1).getGrossProfit(), comparesEqualTo(new BigDecimal("700")));
-        assertThat(periods.getFinancials().get(1).getGrossMargin(), comparesEqualTo(new BigDecimal("70")));
-        assertThat(periods.getFinancials().get(1).getOperatingExpenses(), comparesEqualTo(period1.getOperatingExpenses()));
-        assertThat(periods.getFinancials().get(1).getOperatingIncome(), comparesEqualTo(new BigDecimal("500")));
-        assertThat(periods.getFinancials().get(1).getOperatingMargin(), comparesEqualTo(new BigDecimal("50")));
-        assertThat(periods.getFinancials().get(1).getNetIncome(), comparesEqualTo(period1.getNetIncome()));
-        assertThat(periods.getFinancials().get(1).getNetMargin(), comparesEqualTo(new BigDecimal("10")));
-        assertThat(periods.getFinancials().get(1).getDividend(), comparesEqualTo(period1.getDividend()));
+        assertBigDecimals(periods.getFinancials().get(1).getRevenue(), period1.getRevenue());
+        assertBigDecimals(periods.getFinancials().get(1).getCostGoodsSold(), period1.getCostGoodsSold());
+        assertBigDecimals(periods.getFinancials().get(1).getGrossProfit(), new BigDecimal("700"));
+        assertBigDecimals(periods.getFinancials().get(1).getGrossMargin(), new BigDecimal("70"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingExpenses(), period1.getOperatingExpenses());
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome(), new BigDecimal("500"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingMargin(), new BigDecimal("50"));
+        assertBigDecimals(periods.getFinancials().get(1).getNetIncome(), period1.getNetIncome());
+        assertBigDecimals(periods.getFinancials().get(1).getNetMargin(), new BigDecimal("10"));
+        assertBigDecimals(periods.getFinancials().get(1).getDividend(), period1.getDividend());
 
         assertThat(periods.getTtm(), is(notNullValue()));
 
-        assertThat(periods.getTtm().getRevenue(), comparesEqualTo(new BigDecimal("1250")));
-        assertThat(periods.getTtm().getCostGoodsSold(), comparesEqualTo(new BigDecimal("325")));
-        assertThat(periods.getTtm().getGrossProfit(), comparesEqualTo(new BigDecimal("925")));
-        assertThat(periods.getTtm().getGrossMargin(), comparesEqualTo(new BigDecimal("74")));
+        assertBigDecimals(periods.getTtm().getRevenue(), new BigDecimal("1250"));
+        assertBigDecimals(periods.getTtm().getCostGoodsSold(), new BigDecimal("325"));
+        assertBigDecimals(periods.getTtm().getGrossProfit(), new BigDecimal("925"));
+        assertBigDecimals(periods.getTtm().getGrossMargin(), new BigDecimal("74"));
 
-        assertThat(periods.getTtm().getOperatingExpenses(), comparesEqualTo(new BigDecimal("250")));
-        assertThat(periods.getTtm().getOperatingIncome(), comparesEqualTo(new BigDecimal("675")));
-        assertThat(periods.getTtm().getOperatingMargin(), comparesEqualTo(new BigDecimal("54")));
+        assertBigDecimals(periods.getTtm().getOperatingExpenses(), new BigDecimal("250"));
+        assertBigDecimals(periods.getTtm().getOperatingIncome(), new BigDecimal("675"));
+        assertBigDecimals(periods.getTtm().getOperatingMargin(), new BigDecimal("54"));
 
-        assertThat(periods.getTtm().getNetIncome(), comparesEqualTo(new BigDecimal("175")));
-        assertThat(periods.getTtm().getNetMargin(), comparesEqualTo(new BigDecimal("14")));
+        assertBigDecimals(periods.getTtm().getNetIncome(), new BigDecimal("175"));
+        assertBigDecimals(periods.getTtm().getNetMargin(), new BigDecimal("14"));
 
-        assertThat(periods.getTtm().getDividend(), comparesEqualTo(new BigDecimal("25")));
+        assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("25"));
 
-        assertThat(periods.getTtm().getShares(), comparesEqualTo(period2.getShares()));
+        assertBigDecimals(periods.getTtm().getShares(), period2.getShares());
     }
 
     @Test
