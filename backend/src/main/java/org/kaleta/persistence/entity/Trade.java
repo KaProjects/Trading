@@ -54,16 +54,19 @@ public class Trade extends AbstractEntityCompany
 
     public BigDecimal getSellTotal()
     {
+        if (sellPrice == null) return null;
         return sellPrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP).subtract(sellFees);
     }
 
     public BigDecimal getProfit()
     {
+        if (sellPrice == null) return null;
         return getSellTotal().subtract(getPurchaseTotal());
     }
 
     public BigDecimal getProfitPercentage()
     {
+        if (sellPrice == null) return null;
         if (purchasePrice.equals(new BigDecimal("0.0000"))) return null;
         return getSellTotal().divide(getPurchaseTotal(), 4, RoundingMode.HALF_UP).subtract(new BigDecimal(1)).multiply(new BigDecimal(100));
     }

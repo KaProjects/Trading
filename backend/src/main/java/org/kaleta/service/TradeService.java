@@ -32,8 +32,6 @@ public class TradeService
     @Inject
     CompanyService companyService;
     @Inject
-    ConvertService convertService;
-    @Inject
     ArithmeticService arithmeticService;
 
     public List<Trade> getTrades(Boolean active, String company, String currency, String purchaseYear, String sellYear, String sector)
@@ -79,7 +77,7 @@ public class TradeService
         Trade newTrade = new Trade();
 
         newTrade.setCompany(companyService.getCompany(dto.getCompanyId()));
-        newTrade.setPurchaseDate(convertService.parseDate(dto.getDate()));
+        newTrade.setPurchaseDate(Date.valueOf(dto.getDate()));
         newTrade.setQuantity(new BigDecimal(dto.getQuantity()));
         newTrade.setPurchasePrice(new BigDecimal(dto.getPrice()));
         newTrade.setPurchaseFees(new BigDecimal(dto.getFees()));
@@ -91,6 +89,7 @@ public class TradeService
 
     public void sellTrade(TradeSellDto dto)
     {
+        if (dto.getTrades().isEmpty()) throw new IllegalArgumentException("no trades specified");
         List<Trade> trades = new ArrayList<>();
         BigDecimal totalSellQuantity = new BigDecimal(0);
         for (TradeSellDto.Trade tradeDto : dto.getTrades())
@@ -109,7 +108,7 @@ public class TradeService
             }
         }
 
-        Date date = convertService.parseDate(dto.getDate());
+        Date date = Date.valueOf(dto.getDate());
 
         for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {

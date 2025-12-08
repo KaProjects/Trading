@@ -1,6 +1,8 @@
 package org.kaleta.rest;
 
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -24,7 +26,7 @@ import java.sql.Date;
 import java.util.List;
 
 @Path("/trade")
-public class TradeResource
+public class TradeEndpoints
 {
     @Inject
     TradeService tradeService;
@@ -69,35 +71,23 @@ public class TradeResource
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response createTrade(TradeCreateDto tradeCreateDto)
+    public Response createTrade(@Valid @NotNull TradeCreateDto tradeCreateDto)
     {
-        return Endpoint.process(
-            () -> {
-                Validator.validatePayload(tradeCreateDto);
-                Validator.validateCreateTradeDto(tradeCreateDto);
-            },
-            () -> {
-                Trade trade = tradeService.createTrade(tradeCreateDto);
-                firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null, null));
-                return Response.status(Response.Status.CREATED).entity(TradeDto.from(trade)).build();
-            });
+        tradeService.createTrade(tradeCreateDto);
+        firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null, null));
+        // TODO push record
+        return Response.status(Response.Status.CREATED).build();
     }
 
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response sellTrade(TradeSellDto tradeSellDto)
+    public Response sellTrade(@Valid @NotNull TradeSellDto tradeSellDto)
     {
-        return Endpoint.process(
-            () -> {
-                Validator.validatePayload(tradeSellDto);
-                Validator.validateSellTradeDto(tradeSellDto);
-            },
-            () -> {
-                tradeService.sellTrade(tradeSellDto);
-                firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null, null));
-                return Response.status(Response.Status.NO_CONTENT).build();
-            });
+        tradeService.sellTrade(tradeSellDto);
+        firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null, null));
+        // TODO push record
+        return Response.noContent().build();
     }
 }

@@ -7,6 +7,7 @@ import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.persistence.entity.Record;
 import org.kaleta.persistence.entity.Sector;
+ import org.kaleta.persistence.entity.Trade;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -146,5 +147,24 @@ public class Generator
         latest.setCompany(company);
         latest.setPrice(randomBigDecimal(new BigDecimal(999999), 2));
         return latest;
+    }
+
+    public static Trade randomTrade(Company company, BigDecimal quantity, boolean sold)
+    {
+        Trade trade = new Trade();
+        trade.setCompany(company);
+        trade.setQuantity(quantity);
+
+        trade.setPurchaseDate(Date.valueOf(randomDate(RANDOM.nextInt(100) + 2000)));
+        trade.setPurchasePrice(randomBigDecimal(new BigDecimal(999999), 2));
+        trade.setPurchaseFees(randomBigDecimal(new BigDecimal(999), 2));
+
+        if (sold) {
+            trade.setSellDate(Date.valueOf(randomDate(RANDOM.nextInt(100) + 2000)));
+            trade.setSellPrice(randomBigDecimal(new BigDecimal(999999), 2));
+            trade.setSellFees(randomBigDecimal(new BigDecimal(999), 2));
+        }
+
+        return trade;
     }
 }

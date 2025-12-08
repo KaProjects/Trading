@@ -77,58 +77,11 @@ public class Validator
             throw new ValidationFailedException("Invalid Ticker Parameter: '" + ticker + "'");
     }
 
-    public static void validateUpdateRecordDto(RecordDto dto)
-    {
-        if (dto.getDate() != null && !Utils.isValidDbDate(dto.getDate()))
-            throw new ValidationFailedException("Invalid Date: '" + dto.getDate() + "'");
-
-        if (dto.getTitle() != null && dto.getTitle().isBlank())
-            throw new ValidationFailedException("Invalid Title: '" + dto.getTitle() + "'");
-
-        if (dto.getPrice() != null && !isBigDecimal(dto.getPrice(), 10, 4))
-            throw new ValidationFailedException("Invalid Price: '" + dto.getPrice() + "'");
-
-        if (dto.getPe() != null && !dto.getPe().isBlank() && !isBigDecimal(dto.getPe(), 5, 2))
-            throw new ValidationFailedException("Invalid PE: '" + dto.getPe() + "'");
-
-        if (dto.getPs() != null && !dto.getPs().isBlank() && !isBigDecimal(dto.getPs(), 5, 2))
-            throw new ValidationFailedException("Invalid PS: '" + dto.getPe() + "'");
-
-        if (dto.getDy() != null && !dto.getDy().isBlank() &&!isBigDecimal(dto.getDy(), 5, 2))
-            throw new ValidationFailedException("Invalid DY: '" + dto.getDy() + "'");
-    }
 
 
-    public static void validateCreateRecordDto(RecordCreateDto dto)
-    {
-        if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
-            throw new ValidationFailedException("Invalid Date: '" + dto.getDate() + "'");
 
-        if (dto.getTitle() == null || dto.getTitle().isBlank())
-            throw new ValidationFailedException("Invalid Title: '" + dto.getTitle() + "'");
 
-        if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
-            throw new ValidationFailedException("Invalid Price: '" + dto.getPrice() + "'");
 
-        validateUuid(dto.getCompanyId());
-    }
-
-    public static void validateCreateTradeDto(TradeCreateDto dto)
-    {
-        if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
-            throw new ValidationFailedException("Invalid Date: '" + dto.getDate() + "'");
-
-        if (dto.getQuantity() == null || !isBigDecimal(dto.getQuantity(), 8, 4))
-            throw new ValidationFailedException("Invalid Quantity: '" + dto.getQuantity() + "'");
-
-        if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
-            throw new ValidationFailedException("Invalid Price: '" + dto.getPrice() + "'");
-
-        if (dto.getFees() == null || !isBigDecimal(dto.getFees(), 5, 2))
-            throw new ValidationFailedException("Invalid Fees: '" + dto.getFees() + "'");
-
-        validateUuid(dto.getCompanyId());
-    }
 
     public static void validateSellTradeDto(TradeSellDto dto)
     {
