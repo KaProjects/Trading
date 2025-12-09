@@ -8,6 +8,7 @@ import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Dividend;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,8 +24,6 @@ public class DividendService
     DividendDao dividendDao;
     @Inject
     CompanyService companyService;
-    @Inject
-    ConvertService convertService;
 
     public List<Dividend> getDividends(String company, String currency, String year, String sector)
     {
@@ -55,7 +54,7 @@ public class DividendService
         Dividend newDividend = new Dividend();
 
         newDividend.setCompany(companyService.getCompany(dto.getCompanyId()));
-        newDividend.setDate(convertService.parseDate(dto.getDate()));
+        newDividend.setDate(Date.valueOf(dto.getDate()));
         newDividend.setDividend(new BigDecimal(dto.getDividend()));
         newDividend.setTax(new BigDecimal(dto.getTax()));
 

@@ -29,6 +29,8 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.assertBigDecimals;
+import static org.kaleta.framework.InvalidValues.invalidBigDecimals;
+import static org.kaleta.framework.InvalidValues.invalidDates;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,10 +56,7 @@ public class PeriodServiceTest
         createAndAssertPeriod(validName, validEndingMonth, validReportDate, null);
         createAndAssertPeriod(validName, validEndingMonth, null, null);
 
-        createAndAssertPeriod(validName, validEndingMonth, "", IllegalArgumentException.class);
-        createAndAssertPeriod(validName, validEndingMonth, "abcd", IllegalArgumentException.class);
-        createAndAssertPeriod(validName, validEndingMonth, "2020-30-01", IllegalArgumentException.class);
-        createAndAssertPeriod(validName, validEndingMonth, "2020-12-40", IllegalArgumentException.class);
+        invalidDates().forEach(d -> createAndAssertPeriod(validName, validEndingMonth, d, IllegalArgumentException.class));
 
         createAndAssertPeriod(validName, null, validReportDate, NullPointerException.class);
         createAndAssertPeriod(validName, "", validReportDate, DateTimeParseException.class);
@@ -113,74 +112,70 @@ public class PeriodServiceTest
         dto.setEndingMonth("2025-10");
         updateAndAssertPeriod(dto, period, null);
 
-        dto.setReportDate("");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setReportDate("aaaa");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setReportDate("2020-30-01");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setReportDate("2020-12-40");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setReportDate("2020-01-04");
+        invalidDates().forEach(invalidDate -> {
+            dto.setReportDate(invalidDate);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setReportDate(Generator.randomDate(2025));
         updateAndAssertPeriod(dto, period, null);
 
-        dto.setShares("");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setShares("x");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setShares("10000");
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setShares(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setShares(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
 
-        dto.setPriceLow("");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setPriceLow("x");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setPriceLow("20");
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setPriceLow(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setPriceLow(String.valueOf(Generator.randomBigDecimal(999999, 4)));
         updateAndAssertPeriod(dto, period, null);
 
-        dto.setPriceHigh("");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setPriceHigh("x");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setPriceHigh("300");
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setPriceHigh(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setPriceHigh(String.valueOf(Generator.randomBigDecimal(999999, 4)));
         updateAndAssertPeriod(dto, period, null);
 
         dto.setResearch("new findings");
         updateAndAssertPeriod(dto, period, null);
 
-        dto.setRevenue("");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setRevenue("x");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setRevenue("100250");
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setRevenue(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setRevenue(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
 
-        dto.setCostGoodsSold("");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setCostGoodsSold("x");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setCostGoodsSold("10250");
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setCostGoodsSold(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setCostGoodsSold(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
 
-        dto.setOperatingExpenses("");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setOperatingExpenses("x");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setOperatingExpenses("1250");
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setOperatingExpenses(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setOperatingExpenses(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
 
-        dto.setNetIncome("");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setNetIncome("x");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setNetIncome("125");
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setNetIncome(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setNetIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
 
-        dto.setDividend("");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setDividend("x");
-        updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
-        dto.setDividend("50");
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setDividend(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
     }
 

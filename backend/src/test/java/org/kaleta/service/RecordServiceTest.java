@@ -56,48 +56,32 @@ public class RecordServiceTest
     @Test
     void create()
     {
-        String validD = "3030-01-01";
-        String validT = "new title";
-        String validP = Generator.randomBigDecimal(999999, 4).toString();
-        String validPs = Generator.randomBigDecimal(9999, 2).toString();
-        String validPg = Generator.randomBigDecimal(9999, 2).toString();
-        String validPo = Generator.randomBigDecimal(9999, 2).toString();
-        String validPe = Generator.randomBigDecimal(9999, 2).toString();
-        String validDy = Generator.randomBigDecimal(999, 2).toString();
-        String validQ = Generator.randomBigDecimal(9999, 4).toString();
-        String validPp = Generator.randomBigDecimal(999999, 4).toString();
+        String d = "3030-01-01";
+        String t = "new title";
+        String p = Generator.randomBigDecimal(999999, 4).toString();
+        String ps = Generator.randomBigDecimal(9999, 2).toString();
+        String pg = Generator.randomBigDecimal(9999, 2).toString();
+        String po = Generator.randomBigDecimal(9999, 2).toString();
+        String pe = Generator.randomBigDecimal(9999, 2).toString();
+        String dy = Generator.randomBigDecimal(999, 2).toString();
+        String q = Generator.randomBigDecimal(9999, 4).toString();
+        String pp = Generator.randomBigDecimal(999999, 4).toString();
 
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, validPp, null);
-        createAndAssertRecord(validD, validT, validP, null, null, null, null, null, null, null, null);
+        createAndAssertRecord(d, t, p, ps, pg, po, pe, dy, q, pp, null);
+        createAndAssertRecord(d, t, p, null, null, null, null, null, null, null, null);
 
-        createAndAssertRecord("", validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-        createAndAssertRecord("abcd", validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-        createAndAssertRecord("2020-30-01", validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-        createAndAssertRecord("2020-12-40", validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
+        createAndAssertRecord(null, t, p, ps, pg, po, pe, dy, q, pp, IllegalArgumentException.class);
+        invalidDates().forEach(date -> createAndAssertRecord(date, t, p, ps, pg, po, pe, dy, q, pp, IllegalArgumentException.class));
 
-        createAndAssertRecord(validD, validT, "", validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-        createAndAssertRecord(validD, validT, "x", validPs, validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-
-        createAndAssertRecord(validD, validT, validP, "", validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-        createAndAssertRecord(validD, validT, validP, "x", validPg, validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-
-        createAndAssertRecord(validD, validT, validP, validPs, "", validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-        createAndAssertRecord(validD, validT, validP, validPs, "x", validPo, validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, "", validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, "x", validPe, validDy, validQ, validPp, IllegalArgumentException.class);
-
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, "", validDy, validQ, validPp, IllegalArgumentException.class);
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, "x", validDy, validQ, validPp, IllegalArgumentException.class);
-
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, "", validQ, validPp, IllegalArgumentException.class);
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, "x", validQ, validPp, IllegalArgumentException.class);
-
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, validDy, "", validPp, IllegalArgumentException.class);
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, validDy, "x", validPp, IllegalArgumentException.class);
-
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, "", IllegalArgumentException.class);
-        createAndAssertRecord(validD, validT, validP, validPs, validPg, validPo, validPe, validDy, validQ, "x", IllegalArgumentException.class);
+        createAndAssertRecord(d, t, null, ps, pg, po, pe, dy, q, pp, NullPointerException.class);
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, ibd, ps, pg, po, pe, dy, q, pp, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ibd, pg, po, pe, dy, q, pp, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, ibd, po, pe, dy, q, pp, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, ibd, pe, dy, q, pp, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, ibd, dy, q, pp, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, pe, ibd, q, pp, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, pe, dy, ibd, pp, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, pe, dy, q, ibd, IllegalArgumentException.class));
     }
 
     @Test

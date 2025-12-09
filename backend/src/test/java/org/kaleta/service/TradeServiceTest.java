@@ -27,6 +27,8 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.assertBigDecimals;
+import static org.kaleta.framework.InvalidValues.invalidBigDecimals;
+import static org.kaleta.framework.InvalidValues.invalidDates;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -137,23 +139,16 @@ public class TradeServiceTest
         createAndAssertTrade(validDate, validPrice, validQ, validFees, null);
 
         createAndAssertTrade(validDate, validPrice, validQ, null, NullPointerException.class);
-        createAndAssertTrade(validDate, validPrice, validQ, "", IllegalArgumentException.class);
-        createAndAssertTrade(validDate, validPrice, validQ, "x", IllegalArgumentException.class);
+        invalidBigDecimals().forEach(ibd -> createAndAssertTrade(validDate, validPrice, validQ, ibd, IllegalArgumentException.class));
 
         createAndAssertTrade(validDate, validPrice, null, validFees, NullPointerException.class);
-        createAndAssertTrade(validDate, validPrice, "", validFees, IllegalArgumentException.class);
-        createAndAssertTrade(validDate, validPrice, "x", validFees, IllegalArgumentException.class);
+        invalidBigDecimals().forEach(ibd -> createAndAssertTrade(validDate, validPrice, ibd, validFees, IllegalArgumentException.class));
 
         createAndAssertTrade(validDate, null, validQ, validFees, NullPointerException.class);
-        createAndAssertTrade(validDate, "", validQ, validFees, IllegalArgumentException.class);
-        createAndAssertTrade(validDate, "x", validQ, validFees, IllegalArgumentException.class);
+        invalidBigDecimals().forEach(ibd -> createAndAssertTrade(validDate, ibd, validQ, validFees, IllegalArgumentException.class));
 
         createAndAssertTrade(null, validPrice, validQ, validFees, IllegalArgumentException.class);
-        createAndAssertTrade("", validPrice, validQ, validFees, IllegalArgumentException.class);
-        createAndAssertTrade("x", validPrice, validQ, validFees, IllegalArgumentException.class);
-        createAndAssertTrade("2020-30-1", validPrice, validQ, validFees, IllegalArgumentException.class);
-        createAndAssertTrade("2030-12-40", validPrice, validQ, validFees, IllegalArgumentException.class);
-        createAndAssertTrade("1.1.2012", validPrice, validQ, validFees, IllegalArgumentException.class);
+        invalidDates().forEach(date -> createAndAssertTrade(date, validPrice, validQ, validFees, IllegalArgumentException.class));
     }
 
     @Test
@@ -178,19 +173,13 @@ public class TradeServiceTest
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), null);
 
         sellAndAssertTrade(company.getId(), validDate, validPrice, null, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), NullPointerException.class);
-        sellAndAssertTrade(company.getId(), validDate, validPrice, "", validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
-        sellAndAssertTrade(company.getId(), validDate, validPrice, "x", validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
+        invalidBigDecimals().forEach(ibd -> sellAndAssertTrade(company.getId(), validDate, validPrice, ibd, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class));
 
         sellAndAssertTrade(company.getId(), validDate, null, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), NullPointerException.class);
-        sellAndAssertTrade(company.getId(), validDate, "", validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
-        sellAndAssertTrade(company.getId(), validDate, "x", validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
+        invalidBigDecimals().forEach(ibd -> sellAndAssertTrade(company.getId(), validDate, ibd, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class));
 
         sellAndAssertTrade(company.getId(), null, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
-        sellAndAssertTrade(company.getId(), "", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
-        sellAndAssertTrade(company.getId(), "x", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
-        sellAndAssertTrade(company.getId(), "2020-30-1", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
-        sellAndAssertTrade(company.getId(), "2030-12-40", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
-        sellAndAssertTrade(company.getId(), "1.1.2012", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
+        invalidDates().forEach(date -> sellAndAssertTrade(company.getId(), "", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class));
 
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), null);
 
