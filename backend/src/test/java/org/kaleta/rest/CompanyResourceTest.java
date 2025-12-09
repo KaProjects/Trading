@@ -41,7 +41,7 @@ class CompanyResourceTest
                 .get("/company")
                 .then()
                 .statusCode(200)
-                .body("size()", is(24))
+                .body("size()", is(25))
                 .extract().response().jsonPath().getList("", CompanyDto.class);
 
         assertThat(dtos.get(0).getTicker(), is("ABCD"));
@@ -58,8 +58,8 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiCompanyListsDto.class);
 
-        assertThat(dto.getWatchingOldestReview().size(), is(21));
-        assertThat(dto.getWatchingOldestReview().get(15).getTicker(), is("RR"));
+        assertThat(dto.getWatchingOldestReview().size(), is(22));
+        assertThat(dto.getWatchingOldestReview().get(15).getTicker(), is("RCH"));
 
         assertThat(dto.getOwnedWithoutStrategy().size(), is(5));
         assertThat(dto.getOwnedWithoutStrategy(), hasItem(hasTicker("XRSB")));
@@ -265,7 +265,7 @@ class CompanyResourceTest
 
         assertThat(dto.getColumns().size(), is(10));
         assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
-        assertThat(dto.getCompanies().size(), is(24));
+        assertThat(dto.getCompanies().size(), is(25));
         CompanyUiDto.Company company = dto.getCompanies().get(6);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
@@ -341,7 +341,7 @@ class CompanyResourceTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         int expectedColumns = 10;
-        int expectedCompanies = 24;
+        int expectedCompanies = 25;
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
         assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));

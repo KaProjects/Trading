@@ -17,7 +17,7 @@ public class PriceIndicators
     @Data
     public static class Financial {
         private BigDecimal marketCapToRevenues;
-        private BigDecimal marketCapToGrossIncome;
+        private BigDecimal marketCapToGrossProfit;
         private BigDecimal marketCapToOperatingIncome;
         private BigDecimal marketCapToNetIncome;
         private BigDecimal dividendYield;

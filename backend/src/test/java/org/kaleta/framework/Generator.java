@@ -1,5 +1,6 @@
 package org.kaleta.framework;
 
+import org.kaleta.model.Asset;
 import org.kaleta.model.Periods;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
@@ -188,4 +189,14 @@ public class Generator
         return financial;
     }
 
+    public static Asset generateAsset()
+    {
+        Asset asset = new Asset();
+        asset.setQuantity(randomBigDecimal(new BigDecimal(9999), 4));
+        asset.setPurchasePrice(randomBigDecimal(new BigDecimal(999999), 4));
+        asset.setCurrentPrice(randomBigDecimal(new BigDecimal(999999), 4));
+        asset.setProfitPercent(asset.getCurrentPrice().divide(asset.getPurchasePrice(), 4, RoundingMode.HALF_UP).subtract(new BigDecimal(1)).multiply(new BigDecimal(100)));
+        asset.setProfitValue(asset.getCurrentPrice().subtract(asset.getProfitPercent()).multiply(asset.getQuantity()));
+        return asset;
+    }
 }

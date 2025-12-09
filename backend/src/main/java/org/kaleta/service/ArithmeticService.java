@@ -23,7 +23,7 @@ public class ArithmeticService
             ratios.setMarketCapToRevenues(limit(new BigDecimal("9999.99"), marketCap.divide(financial.getRevenue(), 2, RoundingMode.HALF_UP)));
         }
         if (financial.getGrossProfit() != null && financial.getGrossProfit().compareTo(BigDecimal.ZERO) > 0) {
-            ratios.setMarketCapToGrossIncome(limit(new BigDecimal("9999.99"), marketCap.divide(financial.getGrossProfit(), 2, RoundingMode.HALF_UP)));
+            ratios.setMarketCapToGrossProfit(limit(new BigDecimal("9999.99"), marketCap.divide(financial.getGrossProfit(), 2, RoundingMode.HALF_UP)));
         }
         if (financial.getOperatingIncome() != null && financial.getOperatingIncome().compareTo(BigDecimal.ZERO) > 0) {
             ratios.setMarketCapToOperatingIncome(limit(new BigDecimal("9999.99"), marketCap.divide(financial.getOperatingIncome(), 2, RoundingMode.HALF_UP)));

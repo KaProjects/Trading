@@ -100,7 +100,7 @@ public class ResearchEndpointsTest
         assertThat(dto.getIndicators().getTtm(), is(notNullValue()));
 
         assertBigDecimals(dto.getIndicators().getTtm().getMarketCapToRevenues(), new BigDecimal("41.13"));
-        assertBigDecimals(dto.getIndicators().getTtm().getMarketCapToGrossIncome(), new BigDecimal("102.83"));
+        assertBigDecimals(dto.getIndicators().getTtm().getMarketCapToGrossProfit(), new BigDecimal("102.83"));
         assertBigDecimals(dto.getIndicators().getTtm().getMarketCapToOperatingIncome(), new BigDecimal("246.8"));
         assertBigDecimals(dto.getIndicators().getTtm().getMarketCapToNetIncome(), new BigDecimal("771.25"));
         assertBigDecimals(dto.getIndicators().getTtm().getDividendYield(), new BigDecimal("0.05"));

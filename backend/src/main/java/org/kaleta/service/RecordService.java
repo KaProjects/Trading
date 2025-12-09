@@ -63,21 +63,22 @@ public class RecordService
     {
         Company company = companyService.getCompany(companyId);
         Periods periods = periodService.getBy(companyId);
-        Latest latest = new Latest(company, LocalDate.parse(date).atStartOfDay(), new BigDecimal(price));
 
         Record newRecord = new Record();
 
         newRecord.setCompany(company);
-        newRecord.setTitle(titlePrefix + price + company.getCurrency());
+        newRecord.setTitle(titlePrefix + "@" + price + company.getCurrency());
 
         newRecord.setDate(Date.valueOf(date));
         newRecord.setPrice(new BigDecimal(price));
+
+        Latest latest = new Latest(company, LocalDate.parse(date).atStartOfDay(), new BigDecimal(price));
 
         if (periods.getTtm() != null && periods.getTtm().getShares() != null) {
             PriceIndicators indicators = arithmeticService.computeIndicators(latest, periods.getTtm());
 
             newRecord.setPriceToRevenues(indicators.getTtm().getMarketCapToRevenues());
-            newRecord.setPriceToGrossProfit(indicators.getTtm().getMarketCapToGrossIncome());
+            newRecord.setPriceToGrossProfit(indicators.getTtm().getMarketCapToGrossProfit());
             newRecord.setPriceToOperatingIncome(indicators.getTtm().getMarketCapToOperatingIncome());
             newRecord.setPriceToNetIncome(indicators.getTtm().getMarketCapToNetIncome());
 

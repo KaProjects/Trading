@@ -79,9 +79,8 @@ public class TradeEndpoints
         tradeService.createTrade(tradeCreateDto);
         firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null, null));
 
-        String recordTitle = "bought " + tradeCreateDto.getQuantity() + "@";
+        String recordTitle = "bought " + tradeCreateDto.getQuantity();
         recordService.createCurrent(tradeCreateDto.getCompanyId(), recordTitle,tradeCreateDto.getDate(), tradeCreateDto.getPrice());
-        // TODO unit test
 
         return Response.status(Response.Status.CREATED).build();
     }
@@ -96,9 +95,8 @@ public class TradeEndpoints
         firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null, null));
 
         double quantity = tradeSellDto.getTrades().stream().flatMapToDouble(trade -> DoubleStream.of(Double.parseDouble(trade.getQuantity()))).sum();
-        String recordTitle = "sold " + new BigDecimal(quantity) + "@";
+        String recordTitle = "sold " + new BigDecimal(quantity);
         recordService.createCurrent(tradeSellDto.getCompanyId(), recordTitle,tradeSellDto.getDate(), tradeSellDto.getPrice());
-        // TODO unit test
 
         return Response.noContent().build();
     }

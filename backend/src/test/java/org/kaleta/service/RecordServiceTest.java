@@ -4,17 +4,24 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.kaleta.Utils;
 import org.kaleta.framework.Generator;
+import org.kaleta.model.Assets;
+import org.kaleta.model.Periods;
+import org.kaleta.model.PriceIndicators;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Record;
 import org.kaleta.rest.dto.RecordCreateDto;
 import org.kaleta.rest.dto.RecordUpdateDto;
 import org.mockito.ArgumentCaptor;
 
+import java.math.BigDecimal;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +30,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.assertBigDecimals;
+import static org.kaleta.framework.InvalidValues.invalidBigDecimals;
+import static org.kaleta.framework.InvalidValues.invalidDates;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,6 +45,10 @@ public class RecordServiceTest
     CompanyService companyService;
     @InjectMock
     RecordDao recordDao;
+    @InjectMock
+    PeriodService periodService;
+    @InjectMock
+    TradeService tradeService;
 
     @Inject
     RecordService recordService;
@@ -149,6 +163,67 @@ public class RecordServiceTest
         verify(recordDao).delete(captor.capture());
 
         assertThat(captor.getValue(), is(record.getId()));
+    }
+
+    @Test
+    void createCurrent() {
+        Company company = Generator.generateCompany();
+        when(companyService.getCompany(company.getId())).thenReturn(company);
+        doThrow(new ServiceFailureException("")).when(companyService).getCompany("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+
+        Periods periods = new Periods();
+        periods.setTtm(Generator.generatePeriodsFinancial());
+        when(periodService.getBy(company.getId())).thenReturn(periods);
+
+        Assets assets = new Assets();
+        assets.setAggregate(Generator.generateAsset());
+        when(tradeService.getAssets(company.getId(), assets.getAggregate().getCurrentPrice())).thenReturn(assets);
+
+        String validD = "3030-01-01";
+        String validT = "new title";
+        String validP = String.valueOf(assets.getAggregate().getCurrentPrice());
+
+        PriceIndicators expectedRatios = new ArithmeticService().computeIndicators(new Latest(company, LocalDate.parse(validD).atStartOfDay(), new BigDecimal(validP)), periods.getTtm());
+
+        createCurrentAndAssertRecord(company.getId(), validT, validD, validP, expectedRatios, null);
+
+        createCurrentAndAssertRecord("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43", validT, validD, validP, expectedRatios, ServiceFailureException.class);
+
+        createCurrentAndAssertRecord(company.getId(), null, validD, validP, expectedRatios, null);
+
+        createCurrentAndAssertRecord(company.getId(), validT, null, validP, expectedRatios, IllegalArgumentException.class);
+        invalidDates().forEach(d -> createCurrentAndAssertRecord(company.getId(), validT, d, validP, expectedRatios, IllegalArgumentException.class));
+
+        createCurrentAndAssertRecord(company.getId(), validT, validD, null, expectedRatios, NullPointerException.class);
+        invalidBigDecimals().forEach(p -> createCurrentAndAssertRecord(company.getId(), validT, validD, p, expectedRatios, IllegalArgumentException.class));
+    }
+
+    private void createCurrentAndAssertRecord(String cid, String t, String d, String p,
+                                              PriceIndicators expectedRatios,
+                                              Class<? extends Exception> expectedException)
+    {
+        if (expectedException == null)
+        {
+            recordService.createCurrent(cid, t, d, p);
+
+            ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+            verify(recordDao).create(captor.capture());
+
+            assertThat(captor.getValue().getCompany().getId(), is(cid));
+            assertThat(captor.getValue().getTitle(), Matchers.startsWith((t == null) ? "null" : t));
+            assertThat(captor.getValue().getDate(), is(Date.valueOf(d)));
+            assertBigDecimals(captor.getValue().getPrice(), new BigDecimal(p));
+
+            assertBigDecimals(captor.getValue().getPriceToRevenues(), expectedRatios.getTtm().getMarketCapToRevenues());
+            assertBigDecimals(captor.getValue().getPriceToGrossProfit(), expectedRatios.getTtm().getMarketCapToGrossProfit());
+            assertBigDecimals(captor.getValue().getPriceToOperatingIncome(), expectedRatios.getTtm().getMarketCapToOperatingIncome());
+            assertBigDecimals(captor.getValue().getPriceToNetIncome(), expectedRatios.getTtm().getMarketCapToNetIncome());
+            assertBigDecimals(captor.getValue().getDividendYield(), expectedRatios.getTtm().getDividendYield());
+
+            clearInvocations(recordDao);
+        } else {
+            assertThrows(expectedException, () -> recordService.createCurrent(cid, t, d, p));
+        }
     }
 
     private void updateAndAssertRecord(RecordUpdateDto dto, Record record, Class<? extends Exception> expectedException)
