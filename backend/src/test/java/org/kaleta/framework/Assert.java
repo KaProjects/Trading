@@ -108,7 +108,7 @@ public class Assert
         assertValidationErrorResponse(rs.when().delete(uri), expectedViolations);
     }
 
-    public static void assertBigDecimals(BigDecimal expected, BigDecimal actual)
+    public static void assertBigDecimals(BigDecimal actual, BigDecimal expected)
     {
         if (expected == null){
             assertThat(actual, is(nullValue()));

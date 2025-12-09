@@ -354,6 +354,7 @@ class TradeEndpointsTest
     void sellTrade()
     {
         TradeSellDto dto = new TradeSellDto();
+        dto.setCompanyId("287d3d0f-4e0c-4b5a-9f8e-2d1c3b0a5f47");
         dto.setDate("2020-07-15");
         dto.setPrice("600");
         dto.setFees("15");
@@ -407,6 +408,7 @@ class TradeEndpointsTest
     @Test
     void sellTradeInvalidValues()
     {
+        String companyId = "287d3d0f-4e0c-4b5a-9f8e-2d1c3b0a5f47";
         String validDate = "2020-01-01";
         String validPrice = "100.5";
         String validFees = "15";
@@ -416,6 +418,7 @@ class TradeEndpointsTest
         Assert.putValidationError(path, null, "must not be null");
 
         TradeSellDto dto = new TradeSellDto();
+        dto.setCompanyId(companyId);
         dto.setDate(validDate);
         dto.setPrice(validPrice);
         dto.setFees(validFees);
@@ -491,5 +494,17 @@ class TradeEndpointsTest
 
         dto.getTrades().get(0).setTradeId(UUID.randomUUID().toString());
         Assert.put400("/trade", dto, "trade with id '" + dto.getTrades().get(0).getTradeId() + "' not found");
+        dto.getTrades().get(0).setTradeId(validTradeId);
+
+        dto.setCompanyId(null);
+        Assert.putValidationError(path, dto, "must not be null");
+        dto.setCompanyId("x");
+        Assert.putValidationError(path, dto, "must be a valid UUID");
+
+        dto.setCompanyId(UUID.randomUUID().toString());
+        Assert.put400(path, dto, "company with id '" + dto.getCompanyId() + "' not found");
+
+        dto.setCompanyId("6877c555-1234-4af5-99ef-415980484d8c");
+        Assert.put400(path, dto, "provided companyId and trade='" + validTradeId + "' companyId doesn't match");
     }
 }

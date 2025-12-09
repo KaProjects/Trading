@@ -4,14 +4,20 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.Utils;
+import org.kaleta.model.Assets;
+import org.kaleta.model.Periods;
+import org.kaleta.model.PriceIndicators;
 import org.kaleta.model.RecordsModel;
 import org.kaleta.persistence.api.RecordDao;
+import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Record;
 import org.kaleta.rest.dto.RecordCreateDto;
 import org.kaleta.rest.dto.RecordUpdateDto;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +32,10 @@ public class RecordService
     CompanyService companyService;
     @Inject
     ArithmeticService arithmeticService;
+    @Inject
+    PeriodService periodService;
+    @Inject
+    TradeService tradeService;
 
     public void create(RecordCreateDto dto)
     {
@@ -45,6 +55,41 @@ public class RecordService
 
         newRecord.setSumAssetQuantity(Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
         newRecord.setAvgAssetPrice(Utils.createNullableBigDecimal(dto.getAvgAssetPrice()));
+
+        recordDao.create(newRecord);
+    }
+
+    public void createCurrent(String companyId, String titlePrefix, String date, String price)
+    {
+        Company company = companyService.getCompany(companyId);
+        Periods periods = periodService.getBy(companyId);
+        Latest latest = new Latest(company, LocalDate.parse(date).atStartOfDay(), new BigDecimal(price));
+
+        Record newRecord = new Record();
+
+        newRecord.setCompany(company);
+        newRecord.setTitle(titlePrefix + price + company.getCurrency());
+
+        newRecord.setDate(Date.valueOf(date));
+        newRecord.setPrice(new BigDecimal(price));
+
+        if (periods.getTtm() != null && periods.getTtm().getShares() != null) {
+            PriceIndicators indicators = arithmeticService.computeIndicators(latest, periods.getTtm());
+
+            newRecord.setPriceToRevenues(indicators.getTtm().getMarketCapToRevenues());
+            newRecord.setPriceToGrossProfit(indicators.getTtm().getMarketCapToGrossIncome());
+            newRecord.setPriceToOperatingIncome(indicators.getTtm().getMarketCapToOperatingIncome());
+            newRecord.setPriceToNetIncome(indicators.getTtm().getMarketCapToNetIncome());
+
+            newRecord.setDividendYield(indicators.getTtm().getDividendYield());
+        }
+
+        Assets assets = tradeService.getAssets(companyId, latest.getPrice());
+
+        if (assets.getAggregate() != null) {
+            newRecord.setSumAssetQuantity(assets.getAggregate().getQuantity());
+            newRecord.setAvgAssetPrice(assets.getAggregate().getPurchasePrice());
+        }
 
         recordDao.create(newRecord);
     }

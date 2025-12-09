@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -163,49 +164,66 @@ public class TradeServiceTest
         String validFees = "50";
 
         Company company =  Generator.generateCompany();
-        Trade validTrade = Generator.randomTrade(company, new BigDecimal(5), false);
+        when(companyService.getCompany(company.getId())).thenReturn(company);
+        doThrow(new ServiceFailureException("")).when(companyService).getCompany("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+
+        Trade validTrade = Generator.generateTrade(company, new BigDecimal(5), false);
         List<TradeSellDto.Trade> validDtoTrades =  new ArrayList<>(List.of(new TradeSellDto.Trade(validTrade.getId(), "5")));
+        Trade expectedTrade = sell(validTrade, validDate, validPrice, validFees);
 
-        sellAndAssertTrade(validDate, validPrice, validFees, new ArrayList<>(), List.of(copy(validTrade)), null, IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, new ArrayList<>(), List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
 
-        sellAndAssertTrade(validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), null, null);
+        sellAndAssertTrade("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43", validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), ServiceFailureException.class);
 
-        sellAndAssertTrade(validDate, validPrice, null, validDtoTrades, List.of(copy(validTrade)), null, NullPointerException.class);
-        sellAndAssertTrade(validDate, validPrice, "", validDtoTrades, List.of(copy(validTrade)), null, IllegalArgumentException.class);
-        sellAndAssertTrade(validDate, validPrice, "x", validDtoTrades, List.of(copy(validTrade)), null, IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), null);
 
-        sellAndAssertTrade(validDate, null, validFees, validDtoTrades, List.of(copy(validTrade)), null, NullPointerException.class);
-        sellAndAssertTrade(validDate, "", validFees, validDtoTrades, List.of(copy(validTrade)), null, IllegalArgumentException.class);
-        sellAndAssertTrade(validDate, "x", validFees, validDtoTrades, List.of(copy(validTrade)), null, IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), validDate, validPrice, null, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), NullPointerException.class);
+        sellAndAssertTrade(company.getId(), validDate, validPrice, "", validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), validDate, validPrice, "x", validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
 
-        sellAndAssertTrade(null, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), null, IllegalArgumentException.class);
-        sellAndAssertTrade("", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), null, IllegalArgumentException.class);
-        sellAndAssertTrade("x", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), null, IllegalArgumentException.class);
-        sellAndAssertTrade("2020-30-1", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), null, IllegalArgumentException.class);
-        sellAndAssertTrade("2030-12-40", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), null, IllegalArgumentException.class);
-        sellAndAssertTrade("1.1.2012", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), null, IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), validDate, null, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), NullPointerException.class);
+        sellAndAssertTrade(company.getId(), validDate, "", validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), validDate, "x", validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
 
-        sellAndAssertTrade(validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), null, null);
+        sellAndAssertTrade(company.getId(), null, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), "", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), "x", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), "2020-30-1", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), "2030-12-40", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
+        sellAndAssertTrade(company.getId(), "1.1.2012", validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
 
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), null);
+
+        // higher than trade quantity
         validDtoTrades.get(0).setQuantity("7");
-        sellAndAssertTrade(validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), null, ServiceFailureException.class);
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), ServiceFailureException.class);
 
+        // lesser than trade quantity
         validDtoTrades.get(0).setQuantity("3");
+        Trade soldTrade = sell(validTrade, validDate, validPrice, validFees);
+        soldTrade.setQuantity(new BigDecimal("3"));
+        soldTrade.setPurchaseFees(validTrade.getPurchaseFees().multiply(new BigDecimal("3")).divide(new BigDecimal("5"), 2, RoundingMode.HALF_UP));
         Trade residualTrade = copy(validTrade);
         residualTrade.setQuantity(new BigDecimal("2"));
         residualTrade.setPurchaseFees(validTrade.getPurchaseFees().multiply(new BigDecimal("2")).divide(new BigDecimal("5"), 2, RoundingMode.HALF_UP));
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(soldTrade, residualTrade), null);
 
-        sellAndAssertTrade(validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), residualTrade, null);
-
-        Trade validTrade2 = Generator.randomTrade(company, new BigDecimal(3), false);
+        // 2 trades = split fees
+        Trade validTrade2 = Generator.generateTrade(company, new BigDecimal(3), false);
         validDtoTrades.get(0).setQuantity("5");
         validDtoTrades.add(new TradeSellDto.Trade(validTrade2.getId(), "3"));
+        Trade soldTrade1 = sell(validTrade, validDate, validPrice, String.valueOf(new BigDecimal(validFees).multiply(new BigDecimal("5")).divide(new BigDecimal("8"), 2, RoundingMode.HALF_UP)));
+        Trade soldTrade2 = sell(validTrade2, validDate, validPrice, String.valueOf(new BigDecimal(validFees).multiply(new BigDecimal("3")).divide(new BigDecimal("8"), 2, RoundingMode.HALF_UP)));
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade), copy(validTrade2)), List.of(soldTrade1, soldTrade2), null);
 
-        sellAndAssertTrade(validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade), copy(validTrade2)), null, null);
-
+        // nonexistent trade
         validDtoTrades.get(0).setTradeId("d7f1c3c8-4d7e-4558-9b3e-0b1fc6df3a43");
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade), copy(validTrade2)), List.of(copy(expectedTrade)), ServiceFailureException.class);
 
-        sellAndAssertTrade(validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade), copy(validTrade2)), null, ServiceFailureException.class);
+        // attempt to sell from different company
+        Trade malformed = copy(validTrade);
+        malformed.setId(UUID.randomUUID().toString());
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(malformed), List.of(copy(expectedTrade)), ServiceFailureException.class);
     }
 
     private Trade copy(Trade origin)
@@ -221,6 +239,15 @@ public class TradeServiceTest
         copy.setSellPrice(origin.getSellPrice());
         copy.setSellFees(origin.getSellFees());
         return copy;
+    }
+
+    private Trade sell(Trade active, String date, String price, String fees)
+    {
+        Trade sold = copy(active);
+        sold.setSellDate(Date.valueOf(date));
+        sold.setSellPrice(new BigDecimal(price));
+        sold.setSellFees(new BigDecimal(fees));
+        return sold;
     }
 
     private void createAndAssertTrade(String date, String price, String q, String fees, Class<? extends Exception> expectedException)
@@ -258,19 +285,20 @@ public class TradeServiceTest
         }
     }
 
-    private void sellAndAssertTrade(String date, String price, String fees,
+    private void sellAndAssertTrade(String cid, String date, String price, String fees,
                                     List<TradeSellDto.Trade> dtoTrades,
-                                    List<Trade> trades, 
-                                    Trade residualTrade,
+                                    List<Trade> initTrades,
+                                    List<Trade> expectedTrades,
                                     Class<? extends Exception> expectedException)
     {
         TradeSellDto dto = new TradeSellDto();
+        dto.setCompanyId(cid);
         dto.setDate(date);
         dto.setPrice(price);
         dto.setFees(fees);
         dto.setTrades(dtoTrades);
 
-        trades.forEach(trade ->  when(tradeDao.get(trade.getId())).thenReturn(trade));
+        initTrades.forEach(trade ->  when(tradeDao.get(trade.getId())).thenReturn(trade));
         doThrow(new NoResultException()).when(tradeDao).get("d7f1c3c8-4d7e-4558-9b3e-0b1fc6df3a43");
 
         if (expectedException == null) {
@@ -279,16 +307,11 @@ public class TradeServiceTest
             ArgumentCaptor<List<Trade>> captor = ArgumentCaptor.forClass(List.class);
             verify(tradeDao).saveAll(captor.capture());
 
-            assertThat(captor.getValue().size(), is(trades.size() + (residualTrade == null ? 0 : 1)));
+            assertThat(captor.getValue().size(), is(expectedTrades.size()));
 
             for (int i=0; i<captor.getValue().size(); i++)
             {
-                if (i < trades.size()) {
-                    assertTrade(captor.getValue().get(i), trades.get(i), true);
-                }  else {
-                    assertTrade(captor.getValue().get(i), residualTrade, false);
-                }
-
+                assertTrade(captor.getValue().get(i), expectedTrades.get(i), i < initTrades.size());
             }
 
             clearInvocations(tradeDao);

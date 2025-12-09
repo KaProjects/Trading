@@ -45,27 +45,20 @@ const SellTradeDialog = props => {
 
 
     function sellTrade() {
-        let totalQuantity = 0
         const tradesToSell = []
         trades.forEach(trade => {
             if (validateQuantity(trade) === "") {
                 const quantity = Number(trade.sellQuantity)
                 if (quantity > 0) {
-                    totalQuantity += quantity
                     tradesToSell.push({tradeId: trade.id, quantity: quantity})
                 }
             }
         })
 
-        axios.put(backend + "/trade", {date: date, price: price, fees: fees, trades: tradesToSell})
+        axios.put(backend + "/trade", {companyId: company.id, date: date, price: price, fees: fees, trades: tradesToSell})
             .then((response) => {
-                const title = "sold " + totalQuantity + "@" + price + company.currency
-                const recordData = {companyId: company.id, title: title, date: date, price: price}
-                axios.post(backend + "/record", recordData)
-                    .then((response) => {
-                        props.triggerRefresh()
-                        handleClose()
-                    }).catch((error) => {setAlert(handleError(error))})
+                props.triggerRefresh()
+                handleClose()
             }).catch((error) => {setAlert(handleError(error))})
     }
 

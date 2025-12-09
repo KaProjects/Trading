@@ -9,6 +9,7 @@ import org.kaleta.dto.TradeSellDto;
 import org.kaleta.model.Asset;
 import org.kaleta.model.Assets;
 import org.kaleta.persistence.api.TradeDao;
+import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Trade;
 
@@ -90,12 +91,17 @@ public class TradeService
     public void sellTrade(TradeSellDto dto)
     {
         if (dto.getTrades().isEmpty()) throw new IllegalArgumentException("no trades specified");
+        Company company = companyService.getCompany(dto.getCompanyId());
+
         List<Trade> trades = new ArrayList<>();
         BigDecimal totalSellQuantity = new BigDecimal(0);
         for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {
             try {
                 Trade trade = tradeDao.get(tradeDto.getTradeId());
+                if (!trade.getCompany().getId().equals(company.getId())) {
+                    throw new ServiceFailureException("provided companyId and trade='" + trade.getId() + "' companyId doesn't match");
+                }
                 BigDecimal sellQuantity = new BigDecimal(tradeDto.getQuantity());
                 if (trade.getQuantity().compareTo(sellQuantity) < 0){
                     throw new ServiceFailureException("unable to sell more than owned for tradeId='" + tradeDto.getTradeId() + "'");

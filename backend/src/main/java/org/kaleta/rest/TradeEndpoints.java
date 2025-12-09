@@ -13,17 +13,18 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.dto.TradeCreateDto;
-import org.kaleta.dto.TradeDto;
 import org.kaleta.dto.TradeSellDto;
 import org.kaleta.dto.TradesUiDto;
-import org.kaleta.persistence.entity.Trade;
 import org.kaleta.model.FirebaseCompany;
+import org.kaleta.persistence.entity.Trade;
 import org.kaleta.service.FirebaseService;
+import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
 
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.List;
+import java.util.stream.DoubleStream;
 
 @Path("/trade")
 public class TradeEndpoints
@@ -32,6 +33,8 @@ public class TradeEndpoints
     TradeService tradeService;
     @Inject
     FirebaseService firebaseService;
+    @Inject
+    RecordService recordService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -75,7 +78,11 @@ public class TradeEndpoints
     {
         tradeService.createTrade(tradeCreateDto);
         firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null, null));
-        // TODO push record
+
+        String recordTitle = "bought " + tradeCreateDto.getQuantity() + "@";
+        recordService.createCurrent(tradeCreateDto.getCompanyId(), recordTitle,tradeCreateDto.getDate(), tradeCreateDto.getPrice());
+        // TODO unit test
+
         return Response.status(Response.Status.CREATED).build();
     }
 
@@ -87,7 +94,12 @@ public class TradeEndpoints
     {
         tradeService.sellTrade(tradeSellDto);
         firebaseService.pushAssets(tradeService.getTrades(true, null, null, null, null, null));
-        // TODO push record
+
+        double quantity = tradeSellDto.getTrades().stream().flatMapToDouble(trade -> DoubleStream.of(Double.parseDouble(trade.getQuantity()))).sum();
+        String recordTitle = "sold " + new BigDecimal(quantity) + "@";
+        recordService.createCurrent(tradeSellDto.getCompanyId(), recordTitle,tradeSellDto.getDate(), tradeSellDto.getPrice());
+        // TODO unit test
+
         return Response.noContent().build();
     }
 }

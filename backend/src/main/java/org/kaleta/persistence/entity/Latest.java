@@ -20,4 +20,12 @@ public class Latest extends AbstractEntityCompany
 
     @Column(name = "price")
     private BigDecimal price;
+
+    public Latest(){}
+    public Latest(Company company, LocalDateTime datetime, BigDecimal price)
+    {
+        this.setCompany(company);
+        this.datetime = datetime;
+        this.price = price;
+    }
 }

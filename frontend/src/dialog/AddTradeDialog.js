@@ -42,13 +42,8 @@ const AddTradeDialog = props => {
         const tradeData = {companyId: company.id, date: date, price: price, quantity: quantity, fees: fees}
         axios.post(backend + "/trade", tradeData)
             .then((response) => {
-                const title = "bought " + quantity + "@" + price + company.currency
-                const recordData = {companyId: company.id, title: title, date: date, price: price}
-                axios.post(backend + "/record", recordData)
-                    .then((response) => {
-                        props.triggerRefresh()
-                        handleClose()
-                    }).catch((error) => {setAlert(handleError(error))})
+                props.triggerRefresh()
+                handleClose()
             }).catch((error) => {setAlert(handleError(error))})
     }
 

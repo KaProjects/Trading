@@ -9,8 +9,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.dto.CompanyDto;
-import org.kaleta.model.Periods;
-import org.kaleta.model.PriceIndicators;
 import org.kaleta.model.Record;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Latest;
@@ -68,22 +66,10 @@ public class ResearchEndpoints
         {
             dto.setLatest(latest);
 
-            PriceIndicators indicators = new PriceIndicators();
-
-            indicators.setDatetime(latest.getDatetime());
-            indicators.setPrice(latest.getPrice());
-
-            Periods.Financial ttm = dto.getPeriods().getTtm();
-
-            if (ttm != null && ttm.getShares() != null)
+            if (dto.getPeriods().getTtm() != null && dto.getPeriods().getTtm().getShares() != null)
             {
-                indicators.setShares(ttm.getShares());
-                indicators.setMarketCap(indicators.getPrice().multiply(indicators.getShares()));
-
-                indicators.setTtm(arithmeticService.computeFinancialRatios(indicators.getMarketCap(), ttm));
+                dto.setIndicators(arithmeticService.computeIndicators(latest, dto.getPeriods().getTtm()));
             }
-
-            dto.setIndicators(indicators);
 
             dto.setAssets(tradeService.getAssets(companyId, latest.getPrice()));
         } else {
@@ -92,4 +78,5 @@ public class ResearchEndpoints
 
         return Response.ok().entity(dto).build();
     }
+
 }

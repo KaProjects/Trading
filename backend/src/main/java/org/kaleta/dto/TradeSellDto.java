@@ -15,6 +15,9 @@ import java.util.List;
 public class TradeSellDto
 {
     @NotNull
+    @ValidUuid
+    private String companyId;
+    @NotNull
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")
     private String date;
     @NotNull

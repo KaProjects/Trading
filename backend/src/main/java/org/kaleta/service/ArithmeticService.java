@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.kaleta.model.Asset;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
+import org.kaleta.persistence.entity.Latest;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -19,19 +20,19 @@ public class ArithmeticService
         PriceIndicators.Financial ratios = new PriceIndicators.Financial();
 
         if (financial.getRevenue() != null && financial.getRevenue().compareTo(BigDecimal.ZERO) > 0) {
-            ratios.setMarketCapToRevenues(marketCap.divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
+            ratios.setMarketCapToRevenues(limit(new BigDecimal("9999.99"), marketCap.divide(financial.getRevenue(), 2, RoundingMode.HALF_UP)));
         }
         if (financial.getGrossProfit() != null && financial.getGrossProfit().compareTo(BigDecimal.ZERO) > 0) {
-            ratios.setMarketCapToGrossIncome(marketCap.divide(financial.getGrossProfit(), 2, RoundingMode.HALF_UP));
+            ratios.setMarketCapToGrossIncome(limit(new BigDecimal("9999.99"), marketCap.divide(financial.getGrossProfit(), 2, RoundingMode.HALF_UP)));
         }
         if (financial.getOperatingIncome() != null && financial.getOperatingIncome().compareTo(BigDecimal.ZERO) > 0) {
-            ratios.setMarketCapToOperatingIncome(marketCap.divide(financial.getOperatingIncome(), 2, RoundingMode.HALF_UP));
+            ratios.setMarketCapToOperatingIncome(limit(new BigDecimal("9999.99"), marketCap.divide(financial.getOperatingIncome(), 2, RoundingMode.HALF_UP)));
         }
         if (financial.getNetIncome() != null && financial.getNetIncome().compareTo(BigDecimal.ZERO) > 0) {
-            ratios.setMarketCapToNetIncome(marketCap.divide(financial.getNetIncome(), 2, RoundingMode.HALF_UP));
+            ratios.setMarketCapToNetIncome(limit(new BigDecimal("9999.99"), marketCap.divide(financial.getNetIncome(), 2, RoundingMode.HALF_UP)));
         }
         if (financial.getDividend() != null && financial.getDividend().compareTo(BigDecimal.ZERO) > 0) {
-            ratios.setDividendYield(financial.getDividend().multiply(new BigDecimal("100")).divide(marketCap, 2, RoundingMode.HALF_UP));
+            ratios.setDividendYield(limit(new BigDecimal("999.99"), financial.getDividend().multiply(new BigDecimal("100")).divide(marketCap, 2, RoundingMode.HALF_UP)));
         }
         return ratios;
     }
@@ -57,4 +58,24 @@ public class ArithmeticService
         }
         return asset;
     }
+
+    public PriceIndicators computeIndicators(Latest latest, Periods.Financial ttm)
+    {
+        PriceIndicators indicators = new PriceIndicators();
+
+        indicators.setDatetime(latest.getDatetime());
+        indicators.setPrice(latest.getPrice());
+
+        indicators.setShares(ttm.getShares());
+        indicators.setMarketCap(indicators.getPrice().multiply(indicators.getShares()));
+
+        indicators.setTtm(computeFinancialRatios(indicators.getMarketCap(), ttm));
+
+        return indicators;
+    }
+
+    private BigDecimal limit(BigDecimal max, BigDecimal value){
+        return (value.compareTo(max) > 0) ? max : value;
+    }
+
 }

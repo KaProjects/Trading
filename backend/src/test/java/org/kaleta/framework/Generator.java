@@ -1,5 +1,6 @@
 package org.kaleta.framework;
 
+import org.kaleta.model.Periods;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
@@ -149,7 +150,7 @@ public class Generator
         return latest;
     }
 
-    public static Trade randomTrade(Company company, BigDecimal quantity, boolean sold)
+    public static Trade generateTrade(Company company, BigDecimal quantity, boolean sold)
     {
         Trade trade = new Trade();
         trade.setCompany(company);
@@ -167,4 +168,24 @@ public class Generator
 
         return trade;
     }
+
+    public static Periods.Financial generatePeriodsFinancial()
+    {
+        Periods.Financial financial = new Periods.Financial();
+        financial.setPeriod(PeriodName.valueOf(String.format("%02d", RANDOM.nextInt(100))
+                + List.of("FY", "H1", "H2", "Q1", "Q2", "Q3", "Q4").get(RANDOM.nextInt(7))));
+        financial.setRevenue(randomBigDecimal(new BigDecimal(999999), 2));
+        financial.setCostGoodsSold(randomBigDecimal(financial.getRevenue(), 2));
+        financial.setGrossProfit(financial.getRevenue().subtract(financial.getCostGoodsSold()));
+        financial.setGrossMargin(financial.getGrossProfit().divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
+        financial.setOperatingExpenses(randomBigDecimal(financial.getCostGoodsSold(), 2));
+        financial.setOperatingIncome(financial.getGrossProfit().subtract(financial.getOperatingExpenses()));
+        financial.setOperatingMargin(financial.getOperatingIncome().divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
+        financial.setNetIncome(randomBigDecimal(financial.getOperatingExpenses(), 2));
+        financial.setOperatingMargin(financial.getNetIncome().divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
+        financial.setDividend(randomBigDecimal(financial.getNetIncome(), 2));
+        financial.setShares(randomBigDecimal(new BigDecimal(999999), 2));
+        return financial;
+    }
+
 }
