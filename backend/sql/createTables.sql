@@ -12,7 +12,6 @@ CREATE TABLE Company
     ticker   CHAR(5)     NOT NULL,
     currency CHAR(1)     NOT NULL,
     watching BOOL        NOT NULL,
-    shares   VARCHAR(7),
     sector   VARCHAR(30)
 );
 CREATE TABLE Financial

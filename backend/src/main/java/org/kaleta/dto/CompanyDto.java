@@ -15,7 +15,6 @@ public class CompanyDto implements Comparable<CompanyDto>
     private Currency currency;
     private Boolean watching;
     private SectorDto sector;
-    private String shares;
 
     @Override
     public int compareTo(CompanyDto other)
@@ -36,7 +35,6 @@ public class CompanyDto implements Comparable<CompanyDto>
             dto.setCurrency(company.getCurrency());
             dto.setWatching(company.isWatching());
             dto.setSector(SectorDto.from(company.getSector()));
-            dto.setShares(company.getShares());
             list.add(dto);
         }
         list.sort(CompanyDto::compareTo);
@@ -52,7 +50,6 @@ public class CompanyDto implements Comparable<CompanyDto>
         dto.setCurrency(company.getCurrency());
         dto.setWatching(company.isWatching());
         dto.setSector(SectorDto.from(company.getSector()));
-        dto.setShares(company.getShares());
         return dto;
     }
 }

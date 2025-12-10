@@ -66,10 +66,6 @@ public class RecordEndpoints
             }
         }
 
-        if (dto.getLatest().getPrice() != null && company.getShares() != null){
-            dto.setMarketCap(companyService.computeMarketCap(dto.getLatest().getPrice().getValue(), company.getShares()));
-        }
-
         dto.setFinancialsFrom(financialService.getFinancialsModel(companyId));
 
         for (Trade trade : tradeService.getTrades(true, companyId, null, null, null, null))
