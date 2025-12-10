@@ -1,8 +1,10 @@
 package org.kaleta.rest;
 
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.dto.TradeCreateDto;
 import org.kaleta.dto.TradeSellDto;
@@ -12,6 +14,7 @@ import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
+import org.kaleta.service.LatestService;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -24,6 +27,8 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.kaleta.framework.Assert.assertBigDecimals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 
 @QuarkusTest
@@ -34,22 +39,31 @@ class TradeEndpointsTest
     @Inject
     TradeDao tradeDao;
 
-    @Test
-    void parameterValidator()
+    @InjectMock
+    LatestService latestService;
+
+    @BeforeEach
+    void before()
     {
-        Assert.get400("/trade?companyId=" + "AAAAAA", "Invalid UUID Parameter");
-        Assert.get400("/trade?companyId=", "Invalid UUID Parameter");
+        when(latestService.getSyncedFor(any())).thenReturn(null);
+    }
 
-        Assert.get400("/trade?currency=" + "X", "Invalid Currency Parameter");
-        Assert.get400("/trade?currency=", "Invalid Currency Parameter");
+    @Test
+    void getTrades_invalidParameters()
+    {
+        Assert.getValidationError(path + "?companyId=AAAA", "must be a valid UUID");
+        Assert.getValidationError(path + "?companyId=", "must be a valid UUID");
 
-        Assert.get400("/trade?year=" + "20x2", "Invalid Year Parameter");
-        Assert.get400("/trade?year=" + "20222", "Invalid Year Parameter");
-        Assert.get400("/trade?year=" + "202", "Invalid Year Parameter");
-        Assert.get400("/trade?year=", "Invalid Year Parameter");
+        Assert.getValidationError(path + "?currency=X", "must be any of Currency");
+        Assert.getValidationError(path + "?currency=", "must be any of Currency");
 
-        Assert.get400("/trade?sector=" + "X", "Invalid Sector Parameter");
-        Assert.get400("/trade?sector=", "Invalid Sector Parameter");
+        Assert.getValidationError(path + "?year=20x2", "must match YYYY");
+        Assert.getValidationError(path + "?year=20222", "must match YYYY");
+        Assert.getValidationError(path + "?year=202", "must match YYYY");
+        Assert.getValidationError(path + "?year=", "must match YYYY");
+
+        Assert.getValidationError(path + "?sector=X", "must be any of Sector");
+        Assert.getValidationError(path + "?sector=", "must be any of Sector");
     }
 
     @Test
@@ -267,7 +281,7 @@ class TradeEndpointsTest
     }
 
     @Test
-    void createTradeInvalidValues()
+    void createTrade_invalidParameters()
     {
         String validCompanyId = "21322ef8-9e26-4eda-bf74-b0f0eb8925b1";
         String validDate = "2020-01-01";
@@ -406,7 +420,7 @@ class TradeEndpointsTest
     }
 
     @Test
-    void sellTradeInvalidValues()
+    void sellTrade_invalidParameters()
     {
         String companyId = "287d3d0f-4e0c-4b5a-9f8e-2d1c3b0a5f47";
         String validDate = "2020-01-01";

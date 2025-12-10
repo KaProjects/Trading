@@ -84,7 +84,7 @@ class RecordEndpointsTest
     }
 
     @Test
-    void createInvalidValues()
+    void create_invalidParameters()
     {
         String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
         String validPrice = Generator.randomBigDecimal(999999,4).toString();
@@ -257,7 +257,7 @@ class RecordEndpointsTest
     }
 
     @Test
-    void updateInvalidValues()
+    void update_invalidParameters()
     {
         Assert.putValidationError(path, null, "must not be null");
 
@@ -278,7 +278,7 @@ class RecordEndpointsTest
     }
 
     @Test
-    void deleteInvalidValues()
+    void delete_invalidParameters()
     {
         Assert.deleteValidationError(path + "/x","must be a valid UUID");
 
@@ -309,7 +309,7 @@ class RecordEndpointsTest
     }
 
     @Test
-    void getRecordsInvalidValues()
+    void getRecords_invalidParameters()
     {
         Assert.getValidationError("/record/" + "AAAAAA", "must be a valid UUID");
 

@@ -163,7 +163,7 @@ class FinancialResourceTest
     }
 
     @Test
-    void createFinancialInvalidValues()
+    void createFinancial_invalidParameters()
     {
         String validCompanyId = "6877c444-00ee-4af5-99ef-415980484d8c";
         String validQuarter = "23Q2";

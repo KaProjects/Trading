@@ -194,7 +194,7 @@ class DividendResourceTest
     }
 
     @Test
-    void createDividendInvalidValues()
+    void createDividend_invalidParameters()
     {
         String validCompanyId = "21322ef8-9e26-4eda-bf74-b0f0eb8925b1";
         String validDate = "2020-01-01";

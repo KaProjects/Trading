@@ -126,7 +126,7 @@ public class ResearchEndpointsTest
     }
 
     @Test
-    void getInvalidValues()
+    void get_invalidParameters()
     {
         Assert.getValidationError("/research/" + "AAAAAA", "must be a valid UUID");
 

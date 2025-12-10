@@ -77,35 +77,6 @@ public class Validator
             throw new ValidationFailedException("Invalid Ticker Parameter: '" + ticker + "'");
     }
 
-
-
-
-
-
-
-    public static void validateSellTradeDto(TradeSellDto dto)
-    {
-        if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))
-            throw new ValidationFailedException("Invalid Date: '" + dto.getDate() + "'");
-
-        if (dto.getPrice() == null || !isBigDecimal(dto.getPrice(), 10, 4))
-            throw new ValidationFailedException("Invalid Price: '" + dto.getPrice() + "'");
-
-        if (dto.getFees() == null || !isBigDecimal(dto.getFees(), 5, 2))
-            throw new ValidationFailedException("Invalid Fees: '" + dto.getFees() + "'");
-
-        if (dto.getTrades().size() == 0)
-            throw new ValidationFailedException("No trades to sell provided");
-
-        for (TradeSellDto.Trade trade : dto.getTrades())
-        {
-            if (trade.getQuantity() == null || !isBigDecimal(trade.getQuantity(), 8, 4))
-                throw new ValidationFailedException("Invalid Quantity: '" + trade.getQuantity() + "'");
-
-            validateUuid(trade.getTradeId());
-        }
-    }
-
     public static void validateCreateDividendDto(DividendCreateDto dto)
     {
         if (dto.getDate() == null || !Utils.isValidDbDate(dto.getDate()))

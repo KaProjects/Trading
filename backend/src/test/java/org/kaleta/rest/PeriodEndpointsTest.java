@@ -59,7 +59,7 @@ class PeriodEndpointsTest
     }
 
     @Test
-    void createInvalidValues()
+    void create_invalidParameters()
     {
         String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
         String validName = "19FY";
@@ -163,7 +163,7 @@ class PeriodEndpointsTest
     }
 
     @Test
-    void updateInvalidValues()
+    void update_invalidParameters()
     {
         Assert.putValidationError(path, null, "must not be null");
 
