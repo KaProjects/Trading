@@ -39,7 +39,7 @@ const AddRecordDialog = props => {
 
                 if (indicators.ttm) {
                     setPriceToRevenues(`${indicators.ttm.marketCapToRevenues ?? ''}`)
-                    setPriceToGrossProfit(`${indicators.ttm.marketCapToGrossIncome ?? ''}`)
+                    setPriceToGrossProfit(`${indicators.ttm.marketCapToGrossProfit ?? ''}`)
                     setPriceToOperatingIncome(`${indicators.ttm.marketCapToOperatingIncome ?? ''}`)
                     setPriceToNetIncome(`${indicators.ttm.marketCapToNetIncome ?? ''}`)
                     setDividendYield(`${indicators.ttm.dividendYield ?? ''}`)

@@ -28,7 +28,10 @@ public class LatestService
     {
         FinnhubQuote finnhubQuote = null;
         try {
-            finnhubQuote = finnhubClient.quote(company.getTicker());
+            FinnhubQuote quote = finnhubClient.quote(company.getTicker());
+            if (quote != null && !(quote.getC().equals("0") ||  quote.getT().equals("0"))) {
+                finnhubQuote = quote;
+            }
         } catch (RequestFailureException e){
             Log.info(e);
         }

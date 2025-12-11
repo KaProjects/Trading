@@ -46,10 +46,12 @@ const AddPeriodFinancialDialog = props => {
             const toDate = new Date(reportDate)
             toDate.setDate(toDate.getDate() - 1)
             period.quoteToDate = toDate.toISOString().split("T")[0]
-            if (!period.quoteFromDate) {
+            if (!period.quoteFirstAfterLastReportDate) {
                 const from = new Date(reportDate)
                 from.setMonth(from.getMonth() - 3)
                 period.quoteFromDate = from.toISOString().split("T")[0]
+            } else {
+                period.quoteFromDate = period.quoteFirstAfterLastReportDate
             }
             retrievePrices(props.companySelectorValue.ticker, period.quoteFromDate, period.quoteToDate)
         }
@@ -94,7 +96,7 @@ const AddPeriodFinancialDialog = props => {
     async function retrievePrices(ticker, from, to) {
         const quote = await getQuote(ticker, from, to);
         if (quote) {
-            setPriceImportInfo("found: " + from+ " => " + to)
+            setPriceImportInfo("found: " + from + " => " + to)
             setPriceH(quote.h.toString())
             setPriceL(quote.l.toString())
         } else {

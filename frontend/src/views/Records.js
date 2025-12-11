@@ -172,7 +172,7 @@ const Records = props => {
             {props.companySelectorValue && !loaded && <Loader error={error}/>}
             {props.companySelectorValue && loaded && data.company.ticker !== undefined &&
                 <Grid container direction="row" sx={{justifyContent: "center", alignItems: "flex-start"}}>
-                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
+                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 800, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
                                 <Box sx={{color: 'text.secondary'}}>Research</Box>
@@ -226,7 +226,7 @@ const Records = props => {
                                                  style={{color: 'text.primary'}}>
 
 
-                                    <div style={{width: "700px", margin: "15px auto 0 auto"}}>
+                                    <div style={{margin: "15px 0 0 0"}}>
                                         <ContentEditor content={period.research} handleUpdate={(value) => updatePeriodResearch(period.id, value)}/>
                                     </div>
 
@@ -252,7 +252,7 @@ const Records = props => {
                                                 if (data.periods.periods[index + 1] && data.periods.periods[index + 1].reportDate) {
                                                     const date = new Date(data.periods.periods[index + 1].reportDate)
                                                     date.setDate(date.getDate() + 1)
-                                                    period.quoteFromDate = date.toISOString().split("T")[0]
+                                                    period.quoteFirstAfterLastReportDate = date.toISOString().split("T")[0]
                                                 }
                                                 setOpenAddFinancialDialog(period)
                                             }}>
@@ -265,7 +265,7 @@ const Records = props => {
                             ))}
                         </CardContent>
                     </Card>
-                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 700, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
+                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 800, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
                                 <Box sx={{color: 'text.secondary'}}>Records</Box>
@@ -298,7 +298,7 @@ const Records = props => {
 
                                     <Stack direction={"row"} spacing={2}>
                                         <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PS: {formatDecimals(data.indicators.ttm.marketCapToRevenues, 0, 2)}</Box>
-                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PG: {formatDecimals(data.indicators.ttm.marketCapToGrossIncome, 0, 2)}</Box>
+                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PG: {formatDecimals(data.indicators.ttm.marketCapToGrossProfit, 0, 2)}</Box>
                                         <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PO: {formatDecimals(data.indicators.ttm.marketCapToOperatingIncome, 0, 2)}</Box>
                                         <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PE: {formatDecimals(data.indicators.ttm.marketCapToNetIncome, 0, 2)}</Box>
                                     </Stack>
@@ -337,7 +337,7 @@ const Records = props => {
                                                         validateInput={(value) => {if (value === "") return "not null"; return ""}}
                                                         handleUpdate={triggerRefresh}
                                     />
-                                    <div style={{width: "700px", margin: "15px auto 0 auto"}}>
+                                    <div style={{margin: "15px 0 0 0"}}>
                                         <ContentEditor content={record.content} handleUpdate={(value) => updateRecordContent(record.id, value)}/>
                                     </div>
 
