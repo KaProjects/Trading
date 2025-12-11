@@ -21,7 +21,6 @@ public class CompanyUiDto
         columns.add("#");
         columns.add("*");
         columns.add("Sector");
-        columns.add("Shares");
         columns.add("Total Trades");
         columns.add("Active Trades");
         columns.add("Dividends");

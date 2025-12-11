@@ -212,8 +212,6 @@ class CompanyResourceTest
         Assert.post400("/company", dto, "Missing Watching Parameter");
 
         dto.setWatching(Boolean.FALSE);
-        Assert.post400("/company", dto, "Invalid Shares Parameter");
-
 
         Assert.get400("/company/aggregate?sort=" ,"Invalid Company Aggregate Sort Parameter:");
         Assert.get400("/company/aggregate?sort=X" ,"Invalid Company Aggregate Sort Parameter:");

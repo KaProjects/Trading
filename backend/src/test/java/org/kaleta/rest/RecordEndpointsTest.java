@@ -302,7 +302,6 @@ class RecordEndpointsTest
         assertThat(dto.getCompany().getWatching(), is(true));
         assertThat(dto.getCompany().getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
         assertThat(dto.getLatest().getPrice().getValue(), is("500"));
-        assertThat(dto.getMarketCap(), is("450.39B"));
         assertThat(dto.getRecords().size(), is(2));
         assertThat(dto.getRecords().get(0).getDate(), is("05.01.2024"));
         assertThat(dto.getRecords().get(1).getDate(), is("11.11.2023"));
