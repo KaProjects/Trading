@@ -16,6 +16,7 @@ import java.math.RoundingMode;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -86,6 +87,20 @@ public class PeriodService
             model.setTtm(computeFinancial(ttm));
         }
         return model;
+    }
+
+    /**
+     * @return aggregates map <companyId, [financials count]>
+     */
+    public Map<String, int[]> getCompanyAggregates()
+    {
+        return periodDao.list().stream()
+                .filter(p -> p.getRevenue() != null)
+                .collect(Collectors.toMap(
+                        p -> p.getCompany().getId(),
+                        p -> new int[]{1},
+                        (a, b) -> {a[0] += b[0]; return a;}
+                ));
     }
 
     private Periods.Period from(Period entity)

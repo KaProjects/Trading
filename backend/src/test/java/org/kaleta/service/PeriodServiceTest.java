@@ -22,6 +22,7 @@ import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -463,6 +464,40 @@ public class PeriodServiceTest
         assertThat(periods.getFinancials().size(), is(0));
 
         assertThat(periods.getTtm(), is(nullValue()));
+    }
+
+    @Test
+    void getCompanyAggregates()
+    {
+        Company company1 = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company1, true);
+        Period period2 = Generator.generatePeriod(company1, true);
+        Period period3 = Generator.generatePeriod(company1, true);
+        Period period4 = Generator.generatePeriod(company1, false);
+        Company company2 = Generator.generateCompany();
+        Period period5 = Generator.generatePeriod(company2, true);
+        Period period6 = Generator.generatePeriod(company2, false);
+        Company company3 = Generator.generateCompany();
+        Period period7 = Generator.generatePeriod(company3, true);
+        Period period8 = Generator.generatePeriod(company3, false);
+        Period period9 = Generator.generatePeriod(company3, true);
+        Company company4 = Generator.generateCompany();
+        Period period10 = Generator.generatePeriod(company4, false);
+
+        when(periodDao.list()).thenReturn(List.of(period1, period2, period3, period4, period5, period6, period7, period8, period9, period10));
+
+        Map<String, int[]> map = periodService.getCompanyAggregates();
+        assertThat(map.size(), is(3));
+        assertThat(map.get(company1.getId()).length, is(1));
+        assertThat(map.get(company1.getId())[0], is(3));
+
+        assertThat(map.get(company2.getId()).length, is(1));
+        assertThat(map.get(company2.getId())[0], is(1));
+
+        assertThat(map.get(company3.getId()).length, is(1));
+        assertThat(map.get(company3.getId())[0], is(2));
+
+        assertThat(map.get(company4.getId()), is(nullValue()));
     }
 
     private void assertPeriod(Periods.Period actual, Period expected)
