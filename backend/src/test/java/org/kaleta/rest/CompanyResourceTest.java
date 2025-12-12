@@ -234,7 +234,7 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
-        assertThat(dto.getColumns().size(), is(10));
+        assertThat(dto.getColumns().size(), is(9));
         assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(25));
         CompanyUiDto.Company company = dto.getCompanies().get(6);
@@ -260,7 +260,7 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
-        assertThat(dto.getColumns().size(), is(10));
+        assertThat(dto.getColumns().size(), is(9));
         assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(1));
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
@@ -285,7 +285,7 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
-        assertThat(dto.getColumns().size(), is(10));
+        assertThat(dto.getColumns().size(), is(9));
         assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(1));
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
@@ -310,7 +310,7 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
-        int expectedColumns = 10;
+        int expectedColumns = 9;
         int expectedCompanies = 25;
 
         assertThat(dto.getColumns().size(), is(expectedColumns));

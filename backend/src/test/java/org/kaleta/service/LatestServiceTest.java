@@ -10,6 +10,7 @@ import org.kaleta.client.dto.FinnhubQuote;
 import org.kaleta.framework.Generator;
 import org.kaleta.persistence.api.LatestDao;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
 import org.mockito.ArgumentCaptor;
 
@@ -48,6 +49,7 @@ public class LatestServiceTest
         finnhubQuote.setT(String.valueOf(Instant.now().getEpochSecond()));
         finnhubQuote.setC("1000");
         Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
         Latest latest = Generator.generateLatest(company);
 
         when(finnhubClient.quote(company.getTicker())).thenReturn(finnhubQuote);
@@ -73,6 +75,7 @@ public class LatestServiceTest
         finnhubQuote.setT(String.valueOf(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)));
         finnhubQuote.setC("1000");
         Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
 
         when(finnhubClient.quote(company.getTicker())).thenReturn(finnhubQuote);
         when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
@@ -94,6 +97,7 @@ public class LatestServiceTest
     void getSyncedFor_notSyncedRetrieve() throws RequestFailureException
     {
         Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
         Latest latest = Generator.generateLatest(company);
 
         when(finnhubClient.quote(company.getTicker())).thenThrow(RequestFailureException.class);
@@ -115,6 +119,7 @@ public class LatestServiceTest
     void getSyncedFor_notSyncedNoData() throws RequestFailureException
     {
         Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
 
         when(finnhubClient.quote(company.getTicker())).thenThrow(RequestFailureException.class);
         when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
@@ -130,12 +135,60 @@ public class LatestServiceTest
     }
 
     @Test
+    void getSyncedFor_notSynced_non$() throws RequestFailureException
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.€);
+
+        when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
+
+        Latest actual = latestService.getSyncedFor(company);
+        assertThat(actual, is(nullValue()));
+
+        ArgumentCaptor<String> captorQuote = ArgumentCaptor.forClass(String.class);
+        verify(finnhubClient, times(0)).quote(captorQuote.capture());
+
+        ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
+        verify(latestDao, times(0)).create(captorCreate.capture());
+
+        ArgumentCaptor<Latest> captorSave = ArgumentCaptor.forClass(Latest.class);
+        verify(latestDao, times(0)).save(captorSave.capture());
+    }
+
+    @Test
+    void getSyncedFor_notSynced_emptyData() throws RequestFailureException
+    {
+        FinnhubQuote finnhubQuote = new FinnhubQuote();
+        finnhubQuote.setT("0");
+        finnhubQuote.setC("0");
+
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
+
+        when(finnhubClient.quote(company.getTicker())).thenReturn(finnhubQuote);
+        when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
+
+        Latest actual = latestService.getSyncedFor(company);
+        assertThat(actual, is(nullValue()));
+
+        ArgumentCaptor<String> captorQuote = ArgumentCaptor.forClass(String.class);
+        verify(finnhubClient, times(1)).quote(captorQuote.capture());
+
+        ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
+        verify(latestDao, times(0)).create(captorCreate.capture());
+
+        ArgumentCaptor<Latest> captorSave = ArgumentCaptor.forClass(Latest.class);
+        verify(latestDao, times(0)).save(captorSave.capture());
+    }
+
+    @Test
     void getSyncedFor_invalidData() throws RequestFailureException
     {
         FinnhubQuote finnhubQuote = new FinnhubQuote();
         finnhubQuote.setT(String.valueOf(Instant.now().getEpochSecond()));
         finnhubQuote.setC("1000");
         Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
         Latest latest1 = Generator.generateLatest(company);
         Latest latest2 = Generator.generateLatest(company);
 

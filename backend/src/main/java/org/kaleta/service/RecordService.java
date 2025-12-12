@@ -7,7 +7,6 @@ import org.kaleta.Utils;
 import org.kaleta.model.Assets;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
-import org.kaleta.model.RecordsModel;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Latest;
@@ -126,12 +125,6 @@ public class RecordService
             throw new ServiceFailureException("record with id '" + recordId + "' not found");
         }
         recordDao.delete(recordId);
-    }
-
-    @Deprecated
-    public RecordsModel getRecordsModel(String companyId)
-    {
-        return new RecordsModel(recordDao.list(companyId));
     }
 
     /**

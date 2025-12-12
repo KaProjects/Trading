@@ -3,11 +3,6 @@ package org.kaleta.rest;
 import org.kaleta.Utils;
 import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.DividendCreateDto;
-import org.kaleta.dto.FinancialCreateDto;
-import org.kaleta.rest.dto.RecordCreateDto;
-import org.kaleta.dto.RecordDto;
-import org.kaleta.dto.TradeCreateDto;
-import org.kaleta.dto.TradeSellDto;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Sort;
@@ -87,27 +82,6 @@ public class Validator
 
         if (dto.getTax() == null || !isBigDecimal(dto.getTax(), 6, 2))
             throw new ValidationFailedException("Invalid Tax: '" + dto.getTax() + "'");
-
-        validateUuid(dto.getCompanyId());
-    }
-
-    public static void validateCreateFinancialDto(FinancialCreateDto dto)
-    {
-        if (dto.getQuarter() == null || dto.getQuarter().isBlank()
-                || dto.getQuarter().length() != 4 || !dto.getQuarter().matches("\\d\\d(Q1|Q2|Q3|Q4|H1|H2|FY)"))
-            throw new ValidationFailedException("Invalid Quarter: '" + dto.getQuarter() + "'");
-
-        if (dto.getRevenue() == null || !isBigDecimal(dto.getRevenue(), 8, 2))
-            throw new ValidationFailedException("Invalid Revenue: '" + dto.getRevenue() + "'");
-
-        if (dto.getCostGoodsSold() == null || !isBigDecimal(dto.getCostGoodsSold(), 8, 2))
-            throw new ValidationFailedException("Invalid Cost of Goods Sold: '" + dto.getCostGoodsSold() + "'");
-
-        if (dto.getOperatingExpenses() == null || !isBigDecimal(dto.getOperatingExpenses(), 8, 2))
-            throw new ValidationFailedException("Invalid Operating Expenses: '" + dto.getOperatingExpenses() + "'");
-
-        if (dto.getNetIncome() == null || !isBigDecimal(dto.getNetIncome(), 8, 2))
-            throw new ValidationFailedException("Invalid Net Income: '" + dto.getNetIncome() + "'");
 
         validateUuid(dto.getCompanyId());
     }

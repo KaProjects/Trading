@@ -1,5 +1,6 @@
 package org.kaleta.rest;
 
+@Deprecated
 public class ValidationFailedException extends RuntimeException
 {
     public ValidationFailedException(String message)

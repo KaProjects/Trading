@@ -21,11 +21,11 @@ import org.kaleta.persistence.entity.Sort;
 import org.kaleta.model.CompanyInfo;
 import org.kaleta.service.CompanyService;
 import org.kaleta.service.DividendService;
-import org.kaleta.service.FinancialService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,8 +40,6 @@ public class CompanyResource
     DividendService dividendService;
     @Inject
     RecordService recordService;
-    @Inject
-    FinancialService financialService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -76,7 +74,7 @@ public class CompanyResource
             Map<String, int[]> tradeAggregates = tradeService.getCompanyAggregates();
             Map<String, int[]> dividendAggregates = dividendService.getCompanyAggregates();
             Map<String, int[]> recordAggregates = recordService.getCompanyAggregates();
-            Map<String, int[]> financialAggregates = financialService.getCompanyAggregates();
+            Map<String, int[]> financialAggregates = new HashMap<>();// TODO replace with period+reported aggregates financialService.getCompanyAggregates();
             for (Company company :  companyService.getCompanies(currency, sector))
             {
                 CompanyUiDto.Company companyDto = CompanyUiDto.Company.from(company);

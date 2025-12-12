@@ -1,7 +1,6 @@
 package org.kaleta;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Date;
 
 
@@ -36,19 +35,6 @@ public class Utils
             if (compare != 0) return compare;
         }
         return 0;
-    }
-
-    public static int compareShares(String sharesA, String sharesB)
-    {
-        if (sharesA == null) sharesA = "0M";
-        if (sharesB == null) sharesB = "0M";
-        String sharesApower = sharesA.substring(sharesA.length() - 1);
-        String sharesBpower = sharesB.substring(sharesB.length() - 1);
-        if (sharesApower.equals("B") && sharesBpower.equals("M")) return -1;
-        if (sharesApower.equals("M") && sharesBpower.equals("B")) return 1;
-        BigDecimal sharesAvalue = new BigDecimal(sharesA.substring(0, sharesA.length() - 1));
-        BigDecimal sharesBvalue = new BigDecimal(sharesB.substring(0, sharesB.length() - 1));
-        return -sharesAvalue.compareTo(sharesBvalue);
     }
 
     /**
@@ -88,43 +74,6 @@ public class Utils
             return "";
         } else {
             return value.stripTrailingZeros().toPlainString();
-        }
-    }
-
-    /**
-     * @return formula: (now/before - 1) * 100
-     */
-    @Deprecated // TODO move to arithmetic service
-    public static BigDecimal computeProfit(BigDecimal before, BigDecimal now)
-    {
-        if (format(before).equals("0")) return null;
-        return now.divide(before, 4, RoundingMode.HALF_UP).subtract(new BigDecimal(1)).multiply(new BigDecimal(100));
-    }
-
-    /**
-     * Examples:
-     * 100 -> 100M
-     * 1100 -> 1.10B
-     *
-     * @return formatted value of millions
-     */
-    @Deprecated
-    public static String formatMillions(BigDecimal value)
-    {
-        if (value.compareTo(new BigDecimal(1000)) > 0) {
-            return format(value.divide(new BigDecimal(1000), 2, RoundingMode.HALF_UP)) + "B";
-        } else {
-            return format(value) + "M";
-        }
-    }
-
-    @Deprecated
-    public static String formatNoDecimal(BigDecimal value)
-    {
-        if (value == null){
-            return "";
-        } else {
-            return value.setScale(0, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
         }
     }
 

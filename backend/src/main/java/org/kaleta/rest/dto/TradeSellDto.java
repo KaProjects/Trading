@@ -1,4 +1,4 @@
-package org.kaleta.dto;
+package org.kaleta.rest.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

@@ -56,13 +56,6 @@ INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('8f683c27-f334
 INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('719c545d-26d6-4437-8e1a-e1eea53b3967', '66c725b2-9987-4653-a49c-3a9906168d2a', '2020-12-01', '1000', '100');
 
 
-INSERT INTO Financial (id, companyId, quarter, revenue, cogs, op_exp, net_income) VALUES ('01596f61-19f6-409e-87b9-2bbc6b9b59a6', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '23Q3', '18120','8000','1100', '8125');
-INSERT INTO Financial (id, companyId, quarter, revenue, cogs, op_exp, net_income) VALUES ('58c89a63-2baf-481e-ad6a-4b03e5163bf9', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '23Q2', '13507', '6007', '1300', '4587');
-INSERT INTO Financial (id, companyId, quarter, revenue, cogs, op_exp, net_income) VALUES ('1c53f589-a00d-4b83-af33-b31fed0d9915', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '23Q1', '7192', '2192', '2600', '1234');
-
-INSERT INTO Financial (id, companyId, quarter, revenue, cogs, op_exp, net_income) VALUES ('a1f81be4-5a7a-426d-b9ca-90d9e08e7cb8', '6877c444-00ee-4af5-99ef-415980484d8c', '23Q1', '1000', '100', '50', '800');
-INSERT INTO Financial (id, companyId, quarter, revenue, cogs, op_exp, net_income) VALUES ('a1f81be4-5a55-426d-b9ca-90d9e08e7cb8', '6877c555-00ee-4af5-99ef-415980484d8c', '23Q1', '1000', '100', '50', '800');
-
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend) VALUES ('getPeriods1', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES ('getPeriods2', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '25Q1', '2504');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend) VALUES ('getPeriods3', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10');

@@ -8,6 +8,7 @@ import org.kaleta.client.RequestFailureException;
 import org.kaleta.client.dto.FinnhubQuote;
 import org.kaleta.persistence.api.LatestDao;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
 
 import java.math.BigDecimal;
@@ -27,13 +28,15 @@ public class LatestService
     public Latest getSyncedFor(Company company)
     {
         FinnhubQuote finnhubQuote = null;
-        try {
-            FinnhubQuote quote = finnhubClient.quote(company.getTicker());
-            if (quote != null && !(quote.getC().equals("0") ||  quote.getT().equals("0"))) {
-                finnhubQuote = quote;
+        if (company.getCurrency().equals(Currency.$)){
+            try {
+                FinnhubQuote quote = finnhubClient.quote(company.getTicker());
+                if (quote != null && !(quote.getC().equals("0") ||  quote.getT().equals("0"))) {
+                    finnhubQuote = quote;
+                }
+            } catch (RequestFailureException e){
+                Log.info(e);
             }
-        } catch (RequestFailureException e){
-            Log.info(e);
         }
 
         List<Latest> latests = latestDao.list(company.getId());

@@ -142,7 +142,7 @@ public class Generator
         latest.setDatetime(LocalDateTime.of(
                 2000 + RANDOM.nextInt(100),
                 Month.of(RANDOM.nextInt(12) + 1),
-                RANDOM.nextInt(31) + 1,
+                RANDOM.nextInt(28) + 1,
                 RANDOM.nextInt(24),
                 RANDOM.nextInt(60)
         ));

@@ -50,9 +50,9 @@ const Home = props => {
 
             <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="center"alignItems={{ xs: 'middle', md: 'flex-start' }} spacing={2} sx={{marginTop: "20px"}}>
                 <ClickableCard action={() => window.location.href='/records'}
-                               title={"Records"}
+                               title={"Research"}
                                icon={<FormatListBulletedIcon/>}
-                               description={"Collection of records for companies including related data like financials and ratios"}
+                               description={"Collection of periods and records for companies including related data like financials and ratios"}
                 />
                 <ClickableCard action={() => window.location.href='/companies'}
                                title={"Companies"}
