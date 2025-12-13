@@ -31,7 +31,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import CompanySelector from "../components/CompanySelector";
 
 
-const Records = props => {
+const Research = props => {
     const [refresh, setRefresh] = useState("")
 
     useEffect(() => {
@@ -351,4 +351,4 @@ const Records = props => {
         </>
     )
 }
-export default Records
+export default Research

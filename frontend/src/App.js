@@ -4,7 +4,7 @@ import {BrowserRouter, Route, Routes} from "react-router-dom";
 import MainBar from "./components/MainBar";
 import Home from "./views/Home";
 import Trades from "./views/Trades";
-import Records from "./views/Records";
+import Research from "./views/Research";
 import {backend} from "./properties";
 import axios from "axios";
 import {handleError} from "./utils";
@@ -169,7 +169,7 @@ class App extends Component {
                     <Routes>
                         <Route exact path="/" element={<Home {...this.state}/>}/>
                         <Route exact path="/trades" element={<Trades {...this.state}/>}/>
-                        <Route exact path="/records" element={<Records {...this.state}/>}/>
+                        <Route exact path="/research" element={<Research {...this.state}/>}/>
                         <Route exact path="/dividends" element={<Dividends {...this.state}/>}/>
                         <Route exact path="/stats" element={<Stats {...this.state}/>}/>
                         <Route exact path="/companies" element={<Companies {...this.state}/>}/>

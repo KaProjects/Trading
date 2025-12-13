@@ -112,8 +112,8 @@ const Companies = props => {
                                         <TableCellWithAction index={4} action={() => redirect(company.id, '/trades')}>{company.totalTrades}</TableCellWithAction>
                                         <TableCellWithAction index={5} action={() => redirect(company.id, '/trades', props.activeStates[0])}>{company.activeTrades}</TableCellWithAction>
                                         <TableCellWithAction index={6} action={() => redirect(company.id, '/dividends')}>{company.dividends}</TableCellWithAction>
-                                        <TableCellWithAction index={7} action={() => redirect(company.id, '/records')}>{company.records}</TableCellWithAction>
-                                        <TableCellWithAction index={8} action={() => redirect(company.id, '/records', null, true)}>{company.financials}</TableCellWithAction>
+                                        <TableCellWithAction index={7} action={() => redirect(company.id, '/research')}>{company.records}</TableCellWithAction>
+                                        <TableCellWithAction index={8} action={() => redirect(company.id, '/research', null, true)}>{company.financials}</TableCellWithAction>
                                     </TableRow>
                                 ))}
                             </TableBody>
