@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-import {useData} from "../fetch";
+import {useData} from "../service/BackendService";
 import Loader from "../components/Loader";
 import AddTradeDialog from "../dialog/AddTradeDialog";
 import SellTradeDialog from "../dialog/SellTradeDialog";

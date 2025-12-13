@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
-import {handleError, validateShares, validateTicker} from "../utils";
+import {handleError} from "../service/utils";
 import {
     Alert,
     Button,
@@ -15,6 +15,7 @@ import {
     Switch,
     TextField
 } from "@mui/material";
+import {validateTicker} from "../service/ValidationService";
 
 
 const EditCompanyDialog = props => {

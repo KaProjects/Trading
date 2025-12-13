@@ -1,7 +1,6 @@
 import {useEffect, useState} from "react";
 import axios from "axios";
-import {backend} from "./properties";
-import {handleError} from "./utils";
+import {backend} from "../properties";
 
 export const useData = (path) => {
 
@@ -18,7 +17,7 @@ export const useData = (path) => {
                 setError(null)
                 setLoaded(true)
             }).catch((error) => {
-                setError(handleError(error))
+                setError(error)
                 setLoaded(false)
             })
         // eslint-disable-next-line

@@ -1,9 +1,11 @@
 import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography} from "@mui/material";
-import {formatPeriodName, handleError, validateNumber} from "../utils";
+import {handleError} from "../service/utils";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
 import {getFinancial, getQuote} from "../service/PolygonIoService";
+import {formatPeriodName} from "../service/FormattingService";
+import {validateNumber} from "../service/ValidationService";
 
 const AddPeriodFinancialDialog = props => {
     const {handleClose, open, period} = props

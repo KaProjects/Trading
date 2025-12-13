@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from "react";
-import {useData} from "../fetch";
+import {useData} from "../service/BackendService";
 import Loader from "./Loader";
 import {Grid, List, ListItem, ListItemButton, ListItemText, ListSubheader, MenuItem, Select} from "@mui/material";
-import {recordEvent} from "../utils";
+import {recordEvent} from "../service/utils";
 
 const listStyle = {minWidth: "250px", maxHeight: "calc(100vh - 70px)", marginTop: "2px", overflowY: "scroll", bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2}
 const listHeaderStyle = {textAlign: "center", boxShadow: 1, borderRadius: 2, fontSize: "16px", color: "grey"}

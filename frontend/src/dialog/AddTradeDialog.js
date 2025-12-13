@@ -12,7 +12,8 @@ import {
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
 import axios from "axios";
-import {handleError, validateNumber} from "../utils";
+import {handleError} from "../service/utils";
+import {validateNumber} from "../service/ValidationService";
 
 
 const AddTradeDialog = props => {

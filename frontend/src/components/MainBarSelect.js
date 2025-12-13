@@ -1,5 +1,5 @@
 import {MenuItem, Select} from "@mui/material";
-import {recordEvent} from "../utils";
+import {recordEvent} from "../service/utils";
 
 
 const MainBarSelect = props => {

@@ -14,10 +14,11 @@ import {
     TableRow,
     TextField
 } from "@mui/material";
-import {handleError, validateNumber} from "../utils";
+import {handleError} from "../service/utils";
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
 import axios from "axios";
+import {validateNumber} from "../service/ValidationService";
 
 
 const SellTradeDialog = props => {

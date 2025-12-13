@@ -5,7 +5,7 @@ import Tooltip from "@mui/material/Tooltip";
 import {backend} from "../properties";
 import axios from "axios";
 import SnackbarErrorAlert from "./SnackbarErrorAlert";
-import {handleError} from "../utils";
+import {handleError} from "../service/utils";
 
 const EditableValueBox = props => {
 

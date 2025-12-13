@@ -13,7 +13,7 @@ import {
 import React, {useState} from "react";
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
-import {formatDecimals, formatMillions, formatPeriodName} from "../utils";
+import {formatDecimals, formatMillions, formatPeriodName} from "../service/FormattingService";
 
 
 const PeriodFinancials = props => {

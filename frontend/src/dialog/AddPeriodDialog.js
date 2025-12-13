@@ -2,7 +2,7 @@ import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextFi
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
 import axios from "axios";
-import {handleError} from "../utils";
+import {handleError} from "../service/utils";
 
 
 const AddPeriodDialog = props => {

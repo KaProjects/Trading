@@ -3,7 +3,7 @@ import {backend} from "../properties";
 import axios from "axios";
 import {FormControl, FormHelperText, Input, InputLabel, Typography} from "@mui/material";
 import SnackbarErrorAlert from "./SnackbarErrorAlert";
-import {handleError} from "../utils";
+import {handleError} from "../service/utils";
 
 
 const EditableTypography = props => {

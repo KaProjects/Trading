@@ -1,10 +1,7 @@
 import {restClient} from '@polygon.io/client-js';
 import {polygon_api_key} from "../properties";
 
-
-
 const rest = restClient(polygon_api_key);
-
 
 export function getFinancial(ticker, year, term) {
     let timeframe = undefined

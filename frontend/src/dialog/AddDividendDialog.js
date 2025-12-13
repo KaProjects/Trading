@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
-import {handleError, validateNumber} from "../utils";
+import {handleError} from "../service/utils";
 import {
     Alert,
     Button,
@@ -13,6 +13,7 @@ import {
     Select,
     TextField
 } from "@mui/material";
+import {validateNumber} from "../service/ValidationService";
 
 
 const AddDividendDialog = props => {

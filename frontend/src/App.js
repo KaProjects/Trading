@@ -7,7 +7,7 @@ import Trades from "./views/Trades";
 import Research from "./views/Research";
 import {backend} from "./properties";
 import axios from "axios";
-import {handleError} from "./utils";
+import {handleError} from "./service/utils";
 import Dividends from "./views/Dividends";
 import Stats from "./views/Stats";
 import Companies from "./views/Companies";

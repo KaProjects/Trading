@@ -21,7 +21,7 @@ import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import AddRecordDialog from "../dialog/AddRecordDialog";
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import {formatDate, formatDecimals, formatMillions, formatPercent, formatPeriodName, handleError} from "../utils";
+import {handleError} from "../service/utils";
 import PeriodFinancials from "../components/PeriodFinancials";
 import AddPeriodDialog from "../dialog/AddPeriodDialog";
 import AddPeriodFinancialDialog from "../dialog/AddPeriodFinancialDialog";
@@ -29,6 +29,7 @@ import Tooltip from "@mui/material/Tooltip";
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import CompanySelector from "../components/CompanySelector";
+import {formatDate, formatDecimals, formatMillions, formatPercent, formatPeriodName} from "../service/FormattingService";
 
 
 const Research = props => {
