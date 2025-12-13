@@ -29,7 +29,7 @@ const Trades = props => {
     }
 
     useEffect(() => {
-        if (data) {
+        if (data && !props.showYearSelector) {
             const years = new Set([])
             data.trades.forEach((trade) => {
                 years.add(trade.purchaseDate.split(".")[2])

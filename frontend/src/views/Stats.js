@@ -29,7 +29,7 @@ const Stats = props => {
 
         useEffect(() => {
             if (data && !props.showYearSelector){
-                props.toggleStatsSelectors([...data.years], false, true)
+                props.toggleStatsSelectors([...data.years].sort().reverse(), false, true)
             }
             // eslint-disable-next-line
         }, [data])

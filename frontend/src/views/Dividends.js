@@ -29,7 +29,7 @@ const Dividends = props => {
     }
 
     useEffect(() => {
-        if (data) {
+        if (data && !props.showYearSelector) {
             const years = new Set([])
             data.dividends.forEach((dividend) => {
                 years.add(dividend.date.split(".")[2])
