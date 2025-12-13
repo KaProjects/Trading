@@ -7,6 +7,7 @@ import org.kaleta.persistence.entity.Trade;
 
 import static org.kaleta.Utils.format;
 
+@Deprecated
 @Data
 public class TradeDto implements Comparable<TradeDto>
 {
@@ -42,6 +43,7 @@ public class TradeDto implements Comparable<TradeDto>
         }
     }
 
+    @Deprecated // TODO into TradeService / model / not formatting
     public static TradeDto from(Trade trade)
     {
         TradeDto dto = new TradeDto();

@@ -40,7 +40,7 @@ public class RecordService
     {
         Record newRecord = new Record();
 
-        newRecord.setCompany(companyService.getCompany(dto.getCompanyId()));
+        newRecord.setCompany(companyService.findEntity(dto.getCompanyId()));
         newRecord.setDate(Date.valueOf(dto.getDate()));
         newRecord.setPrice(new BigDecimal(dto.getPrice()));
         newRecord.setTitle(dto.getTitle());
@@ -60,7 +60,7 @@ public class RecordService
 
     public void createCurrent(String companyId, String titlePrefix, String date, String price)
     {
-        Company company = companyService.getCompany(companyId);
+        Company company = companyService.findEntity(companyId);
         Periods periods = periodService.getBy(companyId);
 
         Record newRecord = new Record();

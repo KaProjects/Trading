@@ -13,14 +13,15 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.kaleta.rest.dto.TradeCreateDto;
-import org.kaleta.rest.dto.TradeSellDto;
-import org.kaleta.dto.TradesUiDto;
+import org.kaleta.dto.TradeDto;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
+import org.kaleta.rest.dto.TradeCreateDto;
+import org.kaleta.rest.dto.TradeSellDto;
+import org.kaleta.rest.dto.TradesUiDto;
 import org.kaleta.rest.validation.ValidUuid;
 import org.kaleta.rest.validation.ValueOfEnum;
 import org.kaleta.service.FirebaseService;
@@ -34,6 +35,7 @@ import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
 @Path("/trade")
@@ -75,7 +77,7 @@ public class TradeEndpoints
 
             for (Trade trade : trades)
             {
-                synced.computeIfAbsent(trade.getCompany(), company -> latestService.getSyncedFor(company));
+                synced.computeIfAbsent(trade.getCompany(), company -> latestService.getSyncedFor(company.getId()));
 
                 if (synced.containsKey(trade.getCompany()))
                 {
@@ -86,7 +88,11 @@ public class TradeEndpoints
                 }
             }
         }
-        TradesUiDto dto = TradesUiDto.from(trades);
+
+        TradesUiDto dto = new TradesUiDto();
+        dto.setTrades(trades.stream().map(trade -> TradeDto.from(trade)).collect(Collectors.toList()));
+        dto.getTrades().sort(TradeDto::compareTo);
+
         dto.setSums(tradeService.computeSums(trades));
         return Response.ok(dto).build();
     }

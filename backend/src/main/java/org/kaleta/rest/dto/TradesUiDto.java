@@ -1,7 +1,7 @@
-package org.kaleta.dto;
+package org.kaleta.rest.dto;
 
 import lombok.Data;
-import org.kaleta.persistence.entity.Trade;
+import org.kaleta.dto.TradeDto;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,16 +32,5 @@ public class TradesUiDto
         private List<String> subColumns;
 
         public Column(String name, List<String> subColumns) {this.name = name;this.subColumns = subColumns;}
-    }
-
-    public static TradesUiDto from(List<Trade> trades)
-    {
-        TradesUiDto tradesUiDto = new TradesUiDto();
-
-        for (Trade trade : trades) {
-            tradesUiDto.getTrades().add(TradeDto.from(trade));
-        }
-        tradesUiDto.getTrades().sort(TradeDto::compareTo);
-        return tradesUiDto;
     }
 }

@@ -2,20 +2,23 @@ package org.kaleta.rest;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.kaleta.dto.CompanyDto;
-import org.kaleta.dto.CompanyUiDto;
 import org.kaleta.dto.RecordsUiCompanyListsDto;
-import org.kaleta.dto.SectorDto;
 import org.kaleta.framework.Assert;
+import org.kaleta.persistence.api.CompanyDao;
+import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Sort;
+import org.kaleta.rest.dto.CompanyCreateDto;
+import org.kaleta.rest.dto.CompanyUiDto;
+import org.kaleta.rest.dto.CompanyUpdateDto;
+import org.kaleta.rest.dto.CompanyValuesDto;
 
-import java.util.List;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -30,22 +33,28 @@ import static org.kaleta.framework.Matchers.hasTicker;
 
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class CompanyResourceTest
+class CompanyEndpointsTest
 {
     private final String path = "/company";
 
+    @Inject
+    CompanyDao companyDao;
+
     @Test
     @Order(1)
-    void getCompanies()
+    void getCompanyValues()
     {
-        List<CompanyDto> dtos = given().when()
-                .get(path)
+        CompanyValuesDto dto = given().when()
+                .get(path + "/values")
                 .then()
                 .statusCode(200)
-                .body("size()", is(25))
-                .extract().response().jsonPath().getList("", CompanyDto.class);
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", CompanyValuesDto.class);
 
-        assertThat(dtos.get(0).getTicker(), is("ABCD"));
+        assertThat(dto.getCompanies().size(), is(25));
+        assertThat(dto.getCompanies().get(0).getTicker(), is("ABCD"));
+        assertThat(dto.getSectors().size(), is(Sector.values().length));
+        assertThat(dto.getCurrencies().size(), is(Currency.values().length));
     }
 
     @Test
@@ -59,24 +68,24 @@ class CompanyResourceTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiCompanyListsDto.class);
 
-        assertThat(dto.getWatchingOldestReview().size(), is(22));
-        assertThat(dto.getWatchingOldestReview().get(15).getTicker(), is("RCH"));
+        assertThat(dto.getWatchingOldestReview().size(), is(21));
+        assertThat(dto.getWatchingOldestReview().get(15).getTicker(), is("RR"));
 
         assertThat(dto.getOwnedWithoutStrategy().size(), is(5));
         assertThat(dto.getOwnedWithoutStrategy(), hasItem(hasTicker("XRSB")));
         assertThat(dto.getOwnedWithoutStrategy(), not(hasItem(hasTicker("XRSA"))));
 
-        assertThat(dto.getNotWatching().size(), is(3));
+        assertThat(dto.getNotWatching().size(), is(4));
         assertThat(dto.getNotWatching(), hasItem(hasTicker("XCW")));
         assertThat(dto.getNotWatching(), hasItem(hasTicker("XXX")));
         assertThat(dto.getNotWatching(), hasItem(hasTicker("YYY")));
 
-        assertThat(dto.getSectors().keySet().size(), is(3));
+        assertThat(dto.getSectors().size(), is(3));
         assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()), is(not(nullValue())));
         assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()).size(), is(1));
         assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()).get(0).getTicker(), is("NVDA"));
         assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()), is(not(nullValue())));
-        assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).size(), is(1));
+        assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).size(), is(2));
         assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).get(0).getTicker(), is("XCW"));
         assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()), is(not(nullValue())));
         assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()).size(), is(1));
@@ -87,134 +96,143 @@ class CompanyResourceTest
     @Order(2)
     void updateCompany()
     {
-        CompanyDto dto = new CompanyDto();
-        dto.setId("5afe260b-c433-426c-9710-e9ff99faa5aa");
-        dto.setTicker("XCWWW");
-        dto.setCurrency(Currency.K);
-        dto.setSector(SectorDto.from(Sector.SEMICONDUCTORS));
-        dto.setWatching(true);
+        CompanyUpdateDto dto = new CompanyUpdateDto();
+        dto.setId("9c858901-8a57-4791-81fe-4c455b099bc9");
+        dto.setCurrency(Currency.K.toString());
+        dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setWatching(Boolean.FALSE.toString());
 
         Assert.put204(path, dto);
 
-        List<CompanyDto> companies = given().when()
-                .get(path)
-                .then()
-                .statusCode(200)
-                .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getList("", CompanyDto.class);
+        Company company = companyDao.get("9c858901-8a57-4791-81fe-4c455b099bc9");
 
-        boolean companyFound = false;
-        for (CompanyDto dtoAfter : companies) {
-            if (dtoAfter.getId().equals(dto.getId())) {
-                assertThat(dtoAfter.getTicker(), is(not(dto.getTicker())));
-                assertThat(dtoAfter.getCurrency(), is(dto.getCurrency()));
-                assertThat(dtoAfter.getSector(), is(dto.getSector()));
-                assertThat(dtoAfter.getWatching(), is(dto.getWatching()));
-                companyFound = true;
-            }
-        }
-        assertThat(companyFound, is(true));
+        assertThat(company.getTicker(), is("UPD"));
+        assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
+        assertThat(company.getSector(), is(Sector.valueOf(dto.getSector())));
+        assertThat(company.isWatching(), is(Boolean.parseBoolean(dto.getWatching())));
+    }
+
+    @Test
+    @Order(2)
+    void updateCompany_invalidParameters()
+    {
+        String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
+        String validCurrency = Currency.$.toString();
+        String validSector = Sector.SEMICONDUCTORS.toString();
+        String validWatching = "false";
+
+        Assert.putValidationError(path, null, "must not be null");
+
+        CompanyUpdateDto dto =  new CompanyUpdateDto();
+        dto.setId(validCompanyId);
+        dto.setCurrency(validCurrency);
+        dto.setSector(validSector);
+        dto.setWatching(validWatching);
+
+        dto.setCurrency(null);
+        Assert.putValidationError(path, dto, "must not be null");
+        dto.setCurrency("");
+        Assert.putValidationError(path, dto, "must be any of Currency");
+        dto.setCurrency("xyz");
+        Assert.putValidationError(path, dto, "must be any of Currency");
+        dto.setCurrency(validCurrency);
+
+        dto.setSector(null);
+        Assert.putValidationError(path, dto, "must not be null");
+        dto.setSector("");
+        Assert.putValidationError(path, dto, "must be any of Sector");
+        dto.setSector("xyz");
+        Assert.putValidationError(path, dto, "must be any of Sector");
+        dto.setSector(validSector);
+
+        dto.setWatching(null);
+        Assert.putValidationError(path, dto, "must not be null");
+        dto.setWatching("");
+        Assert.putValidationError(path, dto, "must be 'true' or 'false'");
+        dto.setWatching("xyz");
+        Assert.putValidationError(path, dto, "must be 'true' or 'false'");
+        dto.setWatching(validWatching);
+
+        dto.setId(null);
+        Assert.putValidationError(path, dto, "must not be null");
+        dto.setId("");
+        Assert.putValidationError(path, dto, "must be a valid UUID");
+        dto.setId("x");
+        Assert.putValidationError(path, dto, "must be a valid UUID");
+
+        dto.setId(UUID.randomUUID().toString());
+        Assert.put400(path, dto, "company with id '" + dto.getId() + "' not found");
     }
 
     @Test
     @Order(2)
     void createCompany()
     {
-        CompanyDto dto = new CompanyDto();
-        dto.setTicker("XCC");
-        dto.setCurrency(Currency.K);
-        dto.setSector(SectorDto.from(Sector.SEMICONDUCTORS));
-        dto.setWatching(false);
+        CompanyCreateDto dto = new CompanyCreateDto();
+        dto.setTicker("CCCCC");
+        dto.setCurrency(Currency.K.toString());
+        dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setWatching(Boolean.FALSE.toString());
 
         Assert.post201(path, dto);
 
-        List<CompanyDto> companies = given().when()
-                .get(path)
-                .then()
-                .statusCode(200)
-                .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getList("", CompanyDto.class);
+        Company company = companyDao.getByTicker(dto.getTicker());
 
-        boolean companyFound = false;
-        for (CompanyDto dtoAfter : companies) {
-            if (dtoAfter.getTicker().equals(dto.getTicker())) {
-                assertThat(dtoAfter.getId(), is(not(nullValue())));
-                assertThat(dtoAfter.getCurrency(), is(dto.getCurrency()));
-                assertThat(dtoAfter.getSector(), is(dto.getSector()));
-                assertThat(dtoAfter.getWatching(), is(dto.getWatching()));
-                companyFound = true;
-            }
-        }
-        assertThat(companyFound, is(true));
+        assertThat(company.getId(), is(not(nullValue())));
+        assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
+        assertThat(company.getSector(), is(Sector.valueOf(dto.getSector())));
+        assertThat(company.isWatching(), is(Boolean.parseBoolean(dto.getWatching())));
     }
 
     @Test
-    @Order(1)
-    void parameterValidator()
+    @Order(2)
+    void createCompany_invalidParameters()
     {
-        Assert.put400(path, null, "Payload is NULL");
+        String validTicker = "ICCCC";
+        String validCurrency = Currency.$.toString();
+        String validSector = Sector.SEMICONDUCTORS.toString();
+        String validWatching = "false";
 
-        CompanyDto dto =  new CompanyDto();
-        Assert.put400(path, dto, "Missing Currency Parameter");
+        Assert.postValidationError(path, null, "must not be null");
 
-        dto.setCurrency(Currency.€);
-        Assert.put400(path, dto, "Missing Watching Parameter");
+        CompanyCreateDto dto =  new CompanyCreateDto();
+        dto.setTicker(validTicker);
+        dto.setCurrency(validCurrency);
+        dto.setSector(validSector);
+        dto.setWatching(validWatching);
 
-        dto.setWatching(Boolean.FALSE);
-        dto.setSector(new SectorDto("", ""));
-        Assert.put400(path, dto, "Invalid Sector Parameter");
-
-        dto.setSector(new SectorDto("X", ""));
-        Assert.put400(path, dto, "Invalid Sector Parameter");
-
-        dto.setSector(SectorDto.from(Sector.CONSUMER_ELECTRONICS));
-        dto.setId("");
-        Assert.put400(path, dto, "Invalid UUID Parameter:");
-
-        dto.setId("x");
-        Assert.put400(path, dto, "Invalid UUID Parameter:");
-
-        dto.setId(UUID.randomUUID().toString());
-        Assert.put400(path, dto, "company with id '" + dto.getId() + "' not found");
-
-
-        Assert.post400(path, null, "Payload is NULL");
-
-        dto =  new CompanyDto();
-        dto.setWatching(true);
-        dto.setCurrency(Currency.€);
-        Assert.post400(path, dto, "Invalid Ticker Parameter");
-
-        dto.setTicker("");
-        Assert.post400(path, dto, "Invalid Ticker Parameter");
-
-        dto.setTicker("c");
-        Assert.post400(path, dto, "Invalid Ticker Parameter");
-
-        dto.setTicker("XXXYYY");
-        Assert.post400(path, dto, "Invalid Ticker Parameter");
-
-        dto.setTicker("NVDA");
-        Assert.post400(path, dto, "Company with ticker '" + dto.getTicker() + "' already exists!");
-
-        dto.setTicker("A");
-        dto.setSector(new SectorDto("", ""));
-        Assert.post400(path, dto, "Invalid Sector Parameter");
-
-        dto.setSector(new SectorDto("X", ""));
-        Assert.post400(path, dto, "Invalid Sector Parameter");
+        dto.setCurrency(null);
+        Assert.postValidationError(path, dto, "must not be null");
+        dto.setCurrency("");
+        Assert.postValidationError(path, dto, "must be any of Currency");
+        dto.setCurrency("xyz");
+        Assert.postValidationError(path, dto, "must be any of Currency");
+        dto.setCurrency(validCurrency);
 
         dto.setSector(null);
-        dto.setCurrency(null);
-        Assert.post400(path, dto, "Missing Currency Parameter");
+        Assert.postValidationError(path, dto, "must not be null");
+        dto.setSector("");
+        Assert.postValidationError(path, dto, "must be any of Sector");
+        dto.setSector("xyz");
+        Assert.postValidationError(path, dto, "must be any of Sector");
+        dto.setSector(validSector);
 
-        dto.setCurrency(Currency.€);
         dto.setWatching(null);
-        Assert.post400(path, dto, "Missing Watching Parameter");
+        Assert.postValidationError(path, dto, "must not be null");
+        dto.setWatching("");
+        Assert.postValidationError(path, dto, "must be 'true' or 'false'");
+        dto.setWatching("xyz");
+        Assert.postValidationError(path, dto, "must be 'true' or 'false'");
+        dto.setWatching(validWatching);
 
-        dto.setWatching(Boolean.FALSE);
-
-
+        dto.setTicker(null);
+        Assert.postValidationError(path, dto, "must not be null");
+        dto.setTicker("");
+        Assert.postValidationError(path, dto, "must be a valid Ticker");
+        dto.setTicker("ABCDEF");
+        Assert.postValidationError(path, dto, "must be a valid Ticker");
+        dto.setTicker("abcd");
+        Assert.postValidationError(path, dto, "must be a valid Ticker");
     }
 
     @Test
@@ -222,7 +240,7 @@ class CompanyResourceTest
     void getCompaniesWithAggregates()
     {
         CompanyUiDto dto = given().when()
-                .get(path + "/aggregate")
+                .get(path)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -235,7 +253,7 @@ class CompanyResourceTest
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getWatching(), is(true));
-        assertThat(company.getSector(), is(SectorDto.from(Sector.SEMICONDUCTORS)));
+        assertThat(company.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(company.getTotalTrades(), is(1));
         assertThat(company.getActiveTrades(), is(0));
         assertThat(company.getDividends(), is(2));
@@ -247,22 +265,22 @@ class CompanyResourceTest
     @Order(1)
     void getCompaniesWithAggregates_invalidParameters()
     {
-        Assert.getValidationError(path + "/aggregate?sort=" ,"must be any of CompanyAggregate");
-        Assert.getValidationError(path + "/aggregate?sort=X" ,"must be any of CompanyAggregate");
+        Assert.getValidationError(path + "?sort=" ,"must be any of CompanyAggregate");
+        Assert.getValidationError(path + "?sort=X" ,"must be any of CompanyAggregate");
 
-        Assert.getValidationError(path + "/aggregate?currency=" + "X", "must be any of Currency");
-        Assert.getValidationError(path + "/aggregate?currency=", "must be any of Currency");
+        Assert.getValidationError(path + "?currency=" + "X", "must be any of Currency");
+        Assert.getValidationError(path + "?currency=", "must be any of Currency");
 
-        Assert.getValidationError(path + "/aggregate?sector=" + "X", "must be any of Sector");
-        Assert.getValidationError(path + "/aggregate?sector=", "must be any of Sector");
+        Assert.getValidationError(path + "?sector=" + "X", "must be any of Sector");
+        Assert.getValidationError(path + "?sector=", "must be any of Sector");
     }
 
     @Test
     @Order(1)
-    void getCompaniesWithAggregatesFilterCurrency()
+    void getCompaniesWithAggregates_filterCurrency()
     {
         CompanyUiDto dto = given().when()
-                .get(path + "/aggregate?currency=" + Currency.€)
+                .get(path + "?currency=" + Currency.€)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -274,7 +292,7 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
         assertThat(dto.getCompanies().get(0).getWatching(), is(true));
-        assertThat(dto.getCompanies().get(0).getSector(), is(SectorDto.from(Sector.ENERGY_MINERALS)));
+        assertThat(dto.getCompanies().get(0).getSector().getKey(), is(Sector.ENERGY_MINERALS.toString()));
         assertThat(dto.getCompanies().get(0).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(0).getDividends(), is(0));
@@ -284,10 +302,10 @@ class CompanyResourceTest
 
     @Test
     @Order(1)
-    void getCompaniesWithAggregatesFilterSector()
+    void getCompaniesWithAggregates_filterSector()
     {
         CompanyUiDto dto = given().when()
-                .get(path + "/aggregate?sector=" + Sector.ENERGY_MINERALS)
+                .get(path + "?sector=" + Sector.ENERGY_MINERALS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -299,7 +317,7 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
         assertThat(dto.getCompanies().get(0).getWatching(), is(true));
-        assertThat(dto.getCompanies().get(0).getSector(), is(SectorDto.from(Sector.ENERGY_MINERALS)));
+        assertThat(dto.getCompanies().get(0).getSector().getKey(), is(Sector.ENERGY_MINERALS.toString()));
         assertThat(dto.getCompanies().get(0).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(0).getDividends(), is(0));
@@ -309,10 +327,10 @@ class CompanyResourceTest
 
     @Test
     @Order(1)
-    void getCompaniesWithAggregatesSorts()
+    void getCompaniesWithAggregates_sorts()
     {
         CompanyUiDto dto = given().when()
-                .get(path + "/aggregate?sort=" + Sort.CompanyAggregate.COMPANY)
+                .get(path + "?sort=" + Sort.CompanyAggregate.COMPANY)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -328,7 +346,7 @@ class CompanyResourceTest
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getWatching(), is(true));
-        assertThat(company.getSector(), is(SectorDto.from(Sector.SEMICONDUCTORS)));
+        assertThat(company.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(company.getTotalTrades(), is(1));
         assertThat(company.getActiveTrades(), is(0));
         assertThat(company.getDividends(), is(2));
@@ -336,7 +354,7 @@ class CompanyResourceTest
         assertThat(company.getFinancials(), is(2));
 
         dto = given().when()
-                .get(path + "/aggregate?sort=" + Sort.CompanyAggregate.CURRENCY)
+                .get(path + "?sort=" + Sort.CompanyAggregate.CURRENCY)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -350,7 +368,7 @@ class CompanyResourceTest
         }
 
         dto = given().when()
-                .get(path + "/aggregate?sort=" + Sort.CompanyAggregate.WATCHING)
+                .get(path + "?sort=" + Sort.CompanyAggregate.WATCHING)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -364,7 +382,7 @@ class CompanyResourceTest
         }
 
         dto = given().when()
-                .get(path + "/aggregate?sort=" + Sort.CompanyAggregate.SECTOR)
+                .get(path + "?sort=" + Sort.CompanyAggregate.SECTOR)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -375,11 +393,15 @@ class CompanyResourceTest
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         assertThat(dto.getCompanies().get(0).getSector(), is(not(nullValue())));
         for (int i=0; i<dto.getCompanies().size() - 1; i++){
-            assertThat(SectorDto.compare(dto.getCompanies().get(i).getSector(), dto.getCompanies().get(i + 1).getSector()), lessThanOrEqualTo(0));
+            if (dto.getCompanies().get(i).getSector() != null){
+                assertThat(dto.getCompanies().get(i).getSector().compareTo(dto.getCompanies().get(i + 1).getSector()), lessThanOrEqualTo(0));
+            } else {
+                assertThat(dto.getCompanies().get(i + 1).getSector(), is(nullValue()));
+            }
         }
 
         dto = given().when()
-                .get(path + "/aggregate?sort=" + Sort.CompanyAggregate.ALL_TRADES)
+                .get(path + "?sort=" + Sort.CompanyAggregate.ALL_TRADES)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -393,7 +415,7 @@ class CompanyResourceTest
         }
 
         dto = given().when()
-                .get(path + "/aggregate?sort=" + Sort.CompanyAggregate.ACTIVE_TRADES)
+                .get(path + "?sort=" + Sort.CompanyAggregate.ACTIVE_TRADES)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -407,7 +429,7 @@ class CompanyResourceTest
         }
 
         dto = given().when()
-                .get(path + "/aggregate?sort=" + Sort.CompanyAggregate.DIVIDENDS)
+                .get(path + "?sort=" + Sort.CompanyAggregate.DIVIDENDS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -421,7 +443,7 @@ class CompanyResourceTest
         }
 
         dto = given().when()
-                .get(path + "/aggregate?sort=" + Sort.CompanyAggregate.RECORDS)
+                .get(path + "?sort=" + Sort.CompanyAggregate.RECORDS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -435,7 +457,7 @@ class CompanyResourceTest
         }
 
         dto = given().when()
-                .get(path + "/aggregate?sort=" + Sort.CompanyAggregate.FINANCIALS)
+                .get(path + "?sort=" + Sort.CompanyAggregate.FINANCIALS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)

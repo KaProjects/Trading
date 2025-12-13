@@ -117,7 +117,7 @@ public class RecordServiceTest
         Record record2 = Generator.generateRecord(company, "2024-11-21");
         Record record3 = Generator.generateRecord(company, "2025-12-15");
 
-        when(companyService.getCompany(company.getId())).thenReturn(company);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
         when(recordDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(record1, record2, record3)));
 
         List<org.kaleta.model.Record> records = recordService.getBy(company.getId());
@@ -152,8 +152,8 @@ public class RecordServiceTest
     @Test
     void createCurrent() {
         Company company = Generator.generateCompany();
-        when(companyService.getCompany(company.getId())).thenReturn(company);
-        doThrow(new ServiceFailureException("")).when(companyService).getCompany("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+        doThrow(new ServiceFailureException("")).when(companyService).findEntity("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
 
         Periods periods = new Periods();
         periods.setTtm(Generator.generatePeriodsFinancial());
@@ -238,7 +238,7 @@ public class RecordServiceTest
                                        Class<? extends Exception> expectedException)
     {
         Company company = Generator.generateCompany();
-        when(companyService.getCompany(company.getId())).thenReturn(company);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
 
         RecordCreateDto dto = new RecordCreateDto();
         dto.setCompanyId(company.getId());

@@ -8,9 +8,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.kaleta.dto.CompanyDto;
 import org.kaleta.model.Record;
-import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.rest.dto.ResearchDto;
 import org.kaleta.rest.validation.ValidUuid;
@@ -45,15 +43,14 @@ public class ResearchEndpoints
     public Response get(@NotNull @ValidUuid @PathParam("companyId") String companyId)
     {
         ResearchDto dto = new ResearchDto();
-        Company company = companyService.getCompany(companyId);
-        dto.setCompany(CompanyDto.from(company));
+        dto.setCompany(companyService.getCompany(companyId));
 
         dto.setPeriods(periodService.getBy(companyId));
 
         List<Record> records = recordService.getBy(companyId);
         dto.getRecords().addAll(records);
 
-        Latest latest = latestService.getSyncedFor(company);
+        Latest latest = latestService.getSyncedFor(companyId);
 
         // backup if external service fails
         if (latest == null && !records.isEmpty()) {

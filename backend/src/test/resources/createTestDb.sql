@@ -70,7 +70,7 @@ INSERT INTO Company (id, ticker, currency, watching) VALUES ('6877c555-1234-4af5
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('f5b87b39-6b61-4c32-8c09-4f34e97c2d7d', 'CINV', '$', true);
 
 -- for rest.*EndpointsTests.update tests
-INSERT INTO Company (id, ticker, currency, watching) VALUES ('9c858901-8a57-4791-81fe-4c455b099bc9', 'UPD', '$', true);
+INSERT INTO Company (id, ticker, currency, watching, sector) VALUES ('9c858901-8a57-4791-81fe-4c455b099bc9', 'UPD', '$', false,  'ELECTRIC_VEHICLES');
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('550e8400-e29b-41d4-a716-446655440000', '9c858901-8a57-4791-81fe-4c455b099bc9', '21Q1', '2501', '2025-02-15');
 INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES ('b5a8a2b3-08b7-4a71-9301-f57d44a0a9cb', '9c858901-8a57-4791-81fe-4c455b099bc9', '2021-04-05', 'xxx', '100', '10.1');
 

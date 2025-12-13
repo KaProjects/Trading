@@ -38,6 +38,8 @@ public class LatestServiceTest
     LatestDao latestDao;
     @InjectMock
     FinnhubClient finnhubClient;
+    @InjectMock
+    CompanyService companyService;
 
     @Inject
     LatestService latestService;
@@ -54,8 +56,9 @@ public class LatestServiceTest
 
         when(finnhubClient.quote(company.getTicker())).thenReturn(finnhubQuote);
         when(latestDao.list(company.getId())).thenReturn(List.of(latest));
+        when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company);
+        Latest actual = latestService.getSyncedFor(company.getId());
         assertThat(actual.getCompany().getId(), is(company.getId()));
         LocalDateTime datetime = Instant.ofEpochSecond(Long.parseLong(finnhubQuote.getT())).atZone(ZoneId.systemDefault()).toLocalDateTime();
         assertThat(actual.getDatetime(), is(datetime));
@@ -79,8 +82,9 @@ public class LatestServiceTest
 
         when(finnhubClient.quote(company.getTicker())).thenReturn(finnhubQuote);
         when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
+        when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company);
+        Latest actual = latestService.getSyncedFor(company.getId());
         assertThat(actual.getCompany().getId(), is(company.getId()));
         LocalDateTime datetime = Instant.ofEpochSecond(Long.parseLong(finnhubQuote.getT())).atZone(ZoneId.systemDefault()).toLocalDateTime();
         assertThat(actual.getDatetime(), is(datetime));
@@ -102,8 +106,9 @@ public class LatestServiceTest
 
         when(finnhubClient.quote(company.getTicker())).thenThrow(RequestFailureException.class);
         when(latestDao.list(company.getId())).thenReturn(List.of(latest));
+        when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company);
+        Latest actual = latestService.getSyncedFor(company.getId());
         assertThat(actual.getCompany().getId(), is(latest.getCompany().getId()));
         assertThat(actual.getDatetime(), is(latest.getDatetime()));
         assertThat(actual.getPrice(), is(actual.getPrice()));
@@ -123,8 +128,9 @@ public class LatestServiceTest
 
         when(finnhubClient.quote(company.getTicker())).thenThrow(RequestFailureException.class);
         when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
+        when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company);
+        Latest actual = latestService.getSyncedFor(company.getId());
         assertThat(actual, is(nullValue()));
 
         ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
@@ -141,8 +147,9 @@ public class LatestServiceTest
         company.setCurrency(Currency.€);
 
         when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
+        when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company);
+        Latest actual = latestService.getSyncedFor(company.getId());
         assertThat(actual, is(nullValue()));
 
         ArgumentCaptor<String> captorQuote = ArgumentCaptor.forClass(String.class);
@@ -167,8 +174,9 @@ public class LatestServiceTest
 
         when(finnhubClient.quote(company.getTicker())).thenReturn(finnhubQuote);
         when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
+        when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company);
+        Latest actual = latestService.getSyncedFor(company.getId());
         assertThat(actual, is(nullValue()));
 
         ArgumentCaptor<String> captorQuote = ArgumentCaptor.forClass(String.class);
@@ -194,8 +202,9 @@ public class LatestServiceTest
 
         when(finnhubClient.quote(company.getTicker())).thenReturn(finnhubQuote);
         when(latestDao.list(company.getId())).thenReturn(List.of(latest1, latest2));
+        when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        assertThrows(ServiceFailureException.class, () -> latestService.getSyncedFor(company));
+        assertThrows(ServiceFailureException.class, () -> latestService.getSyncedFor(company.getId()));
 
         ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
         verify(latestDao, times(0)).create(captorCreate.capture());

@@ -30,7 +30,7 @@ public class PeriodService
     public void create(PeriodCreateDto dto)
     {
         Period period = new Period();
-        period.setCompany(companyService.getCompany(dto.getCompanyId()));
+        period.setCompany(companyService.findEntity(dto.getCompanyId()));
         period.setName(PeriodName.valueOf(dto.getName()));
         period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
         period.setReportDate(Utils.nullableDateValueOf(dto.getReportDate()));

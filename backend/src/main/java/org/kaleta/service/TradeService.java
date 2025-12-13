@@ -77,7 +77,7 @@ public class TradeService
     {
         Trade newTrade = new Trade();
 
-        newTrade.setCompany(companyService.getCompany(dto.getCompanyId()));
+        newTrade.setCompany(companyService.findEntity(dto.getCompanyId()));
         newTrade.setPurchaseDate(Date.valueOf(dto.getDate()));
         newTrade.setQuantity(new BigDecimal(dto.getQuantity()));
         newTrade.setPurchasePrice(new BigDecimal(dto.getPrice()));
@@ -91,7 +91,7 @@ public class TradeService
     public void sellTrade(TradeSellDto dto)
     {
         if (dto.getTrades().isEmpty()) throw new IllegalArgumentException("no trades specified");
-        Company company = companyService.getCompany(dto.getCompanyId());
+        Company company = companyService.findEntity(dto.getCompanyId());
 
         List<Trade> trades = new ArrayList<>();
         BigDecimal totalSellQuantity = new BigDecimal(0);

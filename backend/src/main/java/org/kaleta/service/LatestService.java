@@ -24,9 +24,13 @@ public class LatestService
     LatestDao latestDao;
     @Inject
     FinnhubClient finnhubClient;
+    @Inject
+    CompanyService companyService;
 
-    public Latest getSyncedFor(Company company)
+    public Latest getSyncedFor(String companyId)
     {
+        Company company = companyService.findEntity(companyId);
+
         FinnhubQuote finnhubQuote = null;
         if (company.getCurrency().equals(Currency.$)){
             try {

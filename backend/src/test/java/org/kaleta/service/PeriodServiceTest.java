@@ -531,7 +531,7 @@ public class PeriodServiceTest
     private void createAndAssertPeriod(String name, String endingMonth, String reportDate, Class<? extends Exception> expectedException)
     {
         Company company = Generator.generateCompany();
-        when(companyService.getCompany(company.getId())).thenReturn(company);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
 
         PeriodCreateDto createDto = new PeriodCreateDto();
         createDto.setCompanyId(company.getId());

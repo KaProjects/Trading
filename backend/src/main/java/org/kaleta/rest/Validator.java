@@ -1,11 +1,9 @@
 package org.kaleta.rest;
 
 import org.kaleta.Utils;
-import org.kaleta.dto.CompanyDto;
 import org.kaleta.dto.DividendCreateDto;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
-import org.kaleta.persistence.entity.Sort;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -46,16 +44,6 @@ public class Validator
         }
     }
 
-    public static void validateCompanyAggregateSort(String sort)
-    {
-        try {
-            if (sort == null || sort.isBlank()) throw new IllegalArgumentException("");
-            Sort.CompanyAggregate.valueOf(sort);
-        } catch (IllegalArgumentException e){
-            throw new ValidationFailedException("Invalid Company Aggregate Sort Parameter: '" + sort + "'");
-        }
-    }
-
     public static void validateSector(String sector)
     {
         try {
@@ -64,12 +52,6 @@ public class Validator
         } catch (IllegalArgumentException e){
             throw new ValidationFailedException("Invalid Sector Parameter: '" + sector + "'");
         }
-    }
-
-    public static void validateTicker(String ticker)
-    {
-        if (ticker == null || ticker.isBlank() || ticker.length() > 5 || !ticker.toUpperCase().equals(ticker))
-            throw new ValidationFailedException("Invalid Ticker Parameter: '" + ticker + "'");
     }
 
     public static void validateCreateDividendDto(DividendCreateDto dto)
@@ -84,22 +66,6 @@ public class Validator
             throw new ValidationFailedException("Invalid Tax: '" + dto.getTax() + "'");
 
         validateUuid(dto.getCompanyId());
-    }
-
-    public static void validateCreateEditCompanyDto(CompanyDto dto, boolean isCreate)
-    {
-        if (dto.getCurrency() == null)
-            throw new ValidationFailedException("Missing Currency Parameter");
-
-        if (dto.getWatching() == null)
-            throw new ValidationFailedException("Missing Watching Parameter");
-
-        if (dto.getSector() != null) Validator.validateSector(dto.getSector().getKey());
-
-        if (isCreate)
-            validateTicker(dto.getTicker());
-        else
-            validateUuid(dto.getId());
     }
 
     private static boolean isBigDecimal(String value, int lengthConstraint, int decimalConstraint){

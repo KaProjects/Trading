@@ -1,8 +1,8 @@
 package org.kaleta.rest.dto;
 
 import lombok.Data;
-import org.kaleta.dto.CompanyDto;
 import org.kaleta.model.Assets;
+import org.kaleta.model.Company;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
 import org.kaleta.model.Record;
@@ -14,7 +14,7 @@ import java.util.List;
 @Data
 public class ResearchDto
 {
-    private CompanyDto company;
+    private Company company;
     private Periods periods;
     private List<Record> records = new ArrayList<>();
     private Latest latest;

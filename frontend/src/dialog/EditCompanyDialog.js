@@ -26,7 +26,6 @@ const EditCompanyDialog = props => {
     const [currency, setCurrency] = useState("")
     const [watching, setWatching] = useState(true)
     const [sector, setSector] = useState("")
-    const [shares, setShares] = useState("")
 
     useEffect(() => {
         if (company) {
@@ -41,7 +40,6 @@ const EditCompanyDialog = props => {
             } else {
                 setSector("")
             }
-            setShares((company.id && company.shares) ? company.shares : "")
         }
         // eslint-disable-next-line
     }, [company])
@@ -49,7 +47,6 @@ const EditCompanyDialog = props => {
     function createEditCompany() {
         const companyData = {ticker: ticker, currency: currency, watching: watching}
         if (sector) companyData.sector = sector
-        if (shares) companyData.shares = shares
         if (company.id){
             companyData.id = company.id
             axios.put(backend + "/company", companyData)
@@ -104,13 +101,6 @@ const EditCompanyDialog = props => {
                         <MenuItem key={index} value={sector} >{sector.name}</MenuItem>
                     ))}
                 </Select>
-                <TextField margin="dense" fullWidth variant="standard" id="company-shares"
-                           value={shares}
-                           label="Shares"
-                           onChange={(e) => {setShares(e.target.value);setAlert(null);}}
-                           error={validateShares(shares) !== ""}
-                           helperText={validateShares(shares)}
-                />
                 <FormControlLabel
                     sx={{marginTop: "10px", marginLeft: "5px"}}
                     control={<Switch color="primary"

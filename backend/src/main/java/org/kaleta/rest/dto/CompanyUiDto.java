@@ -1,4 +1,4 @@
-package org.kaleta.dto;
+package org.kaleta.rest.dto;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -33,7 +33,7 @@ public class CompanyUiDto
     @Data
     @ToString(callSuper = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class Company extends CompanyDto
+    public static class Company extends org.kaleta.model.Company
     {
         private int totalTrades = 0;
         private int activeTrades = 0;
@@ -41,15 +41,14 @@ public class CompanyUiDto
         private int records = 0;
         private int financials = 0;
 
-        public static Company from(org.kaleta.persistence.entity.Company company)
+        public Company(){}
+        public Company(org.kaleta.model.Company company)
         {
-            Company dto = new Company();
-            dto.setId(company.getId());
-            dto.setTicker(company.getTicker());
-            dto.setCurrency(company.getCurrency());
-            dto.setWatching(company.isWatching());
-            dto.setSector(SectorDto.from(company.getSector()));
-            return dto;
+            this.setId(company.getId());
+            this.setTicker(company.getTicker());
+            this.setCurrency(company.getCurrency());
+            this.setWatching(company.getWatching());
+            this.setSector(company.getSector());
         }
     }
 }

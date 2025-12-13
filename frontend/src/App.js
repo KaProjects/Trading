@@ -145,12 +145,9 @@ class App extends Component {
     }
 
     componentDidMount() {
-        axios.get(backend + "/company")
-            .then((response) => {
-                this.setState({companies: response.data})
-            }).catch((error) => {handleError(error)})
         axios.get(backend + "/company/values")
             .then((response) => {
+                this.setState({companies: response.data.companies})
                 this.setState({currencies: response.data.currencies})
                 this.setState({sectors: response.data.sectors})
             }).catch((error) => {handleError(error)})

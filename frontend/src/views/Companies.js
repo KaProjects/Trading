@@ -28,7 +28,7 @@ function rowStyle(index){
 const Companies = props => {
     const [sort, setSort] = useState(null)
     const [refresh, setRefresh] = useState("")
-    const {data, loaded, error} = useData("/company/aggregate" + constructQueryParams())
+    const {data, loaded, error} = useData("/company" + constructQueryParams())
 
     function constructQueryParams(){
         return "?query"

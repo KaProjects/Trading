@@ -159,8 +159,8 @@ public class TradeServiceTest
         String validFees = "50";
 
         Company company =  Generator.generateCompany();
-        when(companyService.getCompany(company.getId())).thenReturn(company);
-        doThrow(new ServiceFailureException("")).when(companyService).getCompany("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+        doThrow(new ServiceFailureException("")).when(companyService).findEntity("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
 
         Trade validTrade = Generator.generateTrade(company, new BigDecimal(5), false);
         List<TradeSellDto.Trade> validDtoTrades =  new ArrayList<>(List.of(new TradeSellDto.Trade(validTrade.getId(), "5")));
@@ -242,7 +242,7 @@ public class TradeServiceTest
     private void createAndAssertTrade(String date, String price, String q, String fees, Class<? extends Exception> expectedException)
     {
         Company company = Generator.generateCompany();
-        when(companyService.getCompany(company.getId())).thenReturn(company);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
 
         TradeCreateDto dto = new TradeCreateDto();
         dto.setCompanyId(company.getId());
