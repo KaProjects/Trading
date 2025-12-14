@@ -1,10 +1,6 @@
-import React, {useState} from "react";
-import {backend} from "../properties";
-import axios from "axios";
+import React, {useEffect, useState} from "react";
 import {FormControl, FormHelperText, Input, InputLabel, Typography} from "@mui/material";
-import SnackbarErrorAlert from "./SnackbarErrorAlert";
-import {handleError} from "../service/utils";
-
+import "../style/Blinking.css";
 
 const EditableTypography = props => {
 
@@ -16,18 +12,39 @@ const EditableTypography = props => {
     const [showValue, setShowValue] = useState(value ? value : "")
     const [editValue, setEditValue] = useState(value ? value : "")
 
-    const [alert, setAlert] = useState(null)
+    const [error, setError] = useState(null)
+    const [disabled, setDisabled] = useState(false)
 
-    function handleUnFocus() {
-        setEditing(false)
-        axios.put(backend + "/record", props.updateObject(editValue))
-            .then((response) => {
-                setShowValue(editValue)
-                props.handleUpdate(editValue)
-            }).catch((error) => {
-                setAlert(handleError(error))
-                setEditValue(showValue)
-            })
+    useEffect(() => {
+        if (!editing) {
+            setDisabled(false)
+            setError(null)
+        }
+        // eslint-disable-next-line
+    }, [editing])
+
+    useEffect(() => {
+        setError(null)
+        // eslint-disable-next-line
+    }, [editValue])
+
+    async function handleUpdate(unfocused)
+    {
+        const error = await props.updateObject(editValue);
+
+        if (error) {
+            setError(error)
+            if (unfocused) {
+                setDisabled(true)
+                setTimeout(() => {
+                    setEditing(false)
+                    setEditValue(showValue)
+                }, 1000);
+            }
+        } else {
+            setEditing(false)
+            setShowValue(editValue)
+        }
     }
 
     return (
@@ -40,23 +57,27 @@ const EditableTypography = props => {
                 }
                 {editing &&
                     <FormControl fullWidth sx={{ m: 1 }} variant="standard"
-                                 error={props.validateInput(editValue) !== ""}
+                                 className={error ? "blinking" : ""}
+                                 error={props.validateInput(editValue) !== "" || error !== null}
                     >
                         <InputLabel htmlFor={"editable-" + label + "-" + index}>Title</InputLabel>
                         <Input
+                            disabled={disabled}
                             id={"editable-" + label + "-" + index}
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                             autoFocus
-                            onBlur={handleUnFocus}
-                            onKeyDown={e => {if(e.key === 'Enter') handleUnFocus()}}
+                            onBlur={() => handleUpdate(true)}
+                            onKeyDown={e => {
+                                if(e.key === 'Enter') handleUpdate(false)
+                                if(e.key === 'Escape') {setEditing(false);setEditValue(showValue);}
+                            }}
                         />
                         {props.validateInput(editValue) &&
                             <FormHelperText id={"editable-" + label + "-" + index}>{props.validateInput(editValue)}</FormHelperText>
                         }
                     </FormControl>
                 }
-                <SnackbarErrorAlert alert={alert} open={alert !== null} onClose={() => setAlert(null)}/>
             </>
         </div>
     )

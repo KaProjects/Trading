@@ -1,0 +1,25 @@
+.blinking .MuiInput-root.MuiInput-underline:hover::before,
+.blinking .MuiInput-root.MuiInput-underline::before,
+.blinking .MuiInput-root.MuiInput-underline::after {
+    animation-name: blinking;
+    animation-duration: 500ms;
+    animation-iteration-count: 3;
+
+    border-bottom-color: #ab0000;
+}
+
+.blinking .MuiInputLabel-root,
+.blinking .MuiFormHelperText-root {
+    animation-name: blinking;
+    animation-duration: 500ms;
+    animation-iteration-count: 3;
+
+    color: #ab0000;
+}
+
+@keyframes blinking {
+    50% {
+        border-bottom-color: #ffffff;
+        color: #ffffff;
+    }
+}

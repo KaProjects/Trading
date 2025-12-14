@@ -1,6 +1,7 @@
 import {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
+import {formatError} from "./FormattingService";
 
 export const useData = (path) => {
 
@@ -17,7 +18,7 @@ export const useData = (path) => {
                 setError(null)
                 setLoaded(true)
             }).catch((error) => {
-                setError(error)
+                setError(formatError(error))
                 setLoaded(false)
             })
         // eslint-disable-next-line

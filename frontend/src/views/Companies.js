@@ -1,4 +1,4 @@
-import {useData} from "../fetch";
+import {useData} from "../service/BackendService";
 import React, {useEffect, useState} from "react";
 import Loader from "../components/Loader";
 import {IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
@@ -6,7 +6,7 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import EditCompanyDialog from "../dialog/EditCompanyDialog";
-import {recordEvent} from "../utils";
+import {recordEvent} from "../service/utils";
 
 
 function headerStyle(index){
@@ -83,7 +83,7 @@ const Companies = props => {
     return (
         <>
             {!loaded &&
-                <Loader error ={error}/>
+                <Loader error={error}/>
             }
             {loaded &&
                 <>

@@ -1,24 +1,24 @@
-import {Alert, Snackbar} from "@mui/material";
+import {Alert, AlertTitle, Snackbar} from "@mui/material";
 import React from "react";
 
 
 const SnackbarErrorAlert = props => {
-    const {alert, open, onClose} = props
+    const {error, open, onClose} = props
 
     return (
         <Snackbar
             open={open}
-            autoHideDuration={6000}
-            onClose={onClose}
+            onClose={() => {
+                setTimeout(() => onClose(), 5000);
+            }}
             anchorOrigin={{ horizontal: 'center', vertical: 'bottom' }}
         >
-            <Alert
-                onClose={onClose}
-                severity="error"
-                variant="filled"
-            >
-                {alert}
-            </Alert>
+            {error &&
+                <Alert onClose={onClose} severity="error" variant="filled">
+                    <AlertTitle>{error.message}</AlertTitle>
+                    {error.details}
+                </Alert>
+            }
         </Snackbar>
     )
 }

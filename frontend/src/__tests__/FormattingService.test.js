@@ -1,9 +1,11 @@
 import {
     formatDate,
     formatDecimals,
+    formatError,
     formatMillions,
     formatPercent,
-    formatPeriodName, isNotAValue
+    formatPeriodName,
+    isNotAValue
 } from "../service/FormattingService";
 
 describe('FormattingService', () => {
@@ -114,5 +116,50 @@ describe('FormattingService', () => {
         expect(isNotAValue("abc")).toBe(false);
         expect(isNotAValue(123)).toBe(false);
         expect(isNotAValue([123])).toBe(false);
+    })
+
+    test("formatError", () => {
+        const expected = {message: "Unexpected Error:", details: ""}
+        expect(formatError(undefined)).toStrictEqual(expected);
+        expect(formatError(null)).toStrictEqual(expected);
+        expect(formatError("")).toStrictEqual(expected);
+        expect(formatError({})).toStrictEqual(expected);
+        expect(formatError([])).toStrictEqual(expected);
+
+        let error = "abcd"
+        expected.details = JSON.stringify(error)
+        expect(formatError(error)).toStrictEqual(expected);
+
+        error = {dunno: "abcdef"}
+        expected.details = JSON.stringify(error)
+        expect(formatError(error)).toStrictEqual(expected);
+
+        const expectedMessage = "ab asdaew dsad 4"
+        error = {name: "AxiosError", message: expectedMessage}
+        expected.message = expectedMessage
+        expected.details = ""
+        expect(formatError(error)).toStrictEqual(expected);
+
+        let expectedDetails = "nklaDe tails 55"
+        error.response = {data: expectedDetails}
+        expected.details = expectedDetails
+        expect(formatError(error)).toStrictEqual(expected);
+
+        error.response.data = 1234
+        expected.details =  JSON.stringify(error.response.data)
+        expect(formatError(error)).toStrictEqual(expected);
+
+        error.response.data = {aa: "abcd"}
+        expected.details =  JSON.stringify(error.response.data)
+        expect(formatError(error)).toStrictEqual(expected);
+
+        error.response.data = {details: expectedDetails}
+        expected.details =  expectedDetails
+        expect(formatError(error)).toStrictEqual(expected);
+
+        expectedDetails = "asdasd asd, asdasd asd "
+        error.response.data = {details: expectedDetails}
+        expected.details =  expectedDetails.split(', ')[1]
+        expect(formatError(error)).toStrictEqual(expected);
     })
 });

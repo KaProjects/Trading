@@ -100,6 +100,9 @@ public class RecordServiceTest
         dto.setId(record.getId());
         updateAndAssertRecord(dto, record, null);
 
+        dto.setTitle("");
+        updateAndAssertRecord(dto, record, ServiceFailureException.class);
+
         dto.setTitle("title");
         updateAndAssertRecord(dto, record, null);
 

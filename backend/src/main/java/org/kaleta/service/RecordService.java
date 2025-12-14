@@ -103,7 +103,11 @@ public class RecordService
             throw new ServiceFailureException("record with id '" + dto.getId() + "' not found");
         }
 
-        if (dto.getTitle() != null) record.setTitle(dto.getTitle());
+        if (dto.getTitle() != null) {
+            if (dto.getTitle().isBlank())
+                throw new ServiceFailureException("record title shouldn't be empty");
+            record.setTitle(dto.getTitle());
+        }
         if (dto.getContent() != null) record.setContent(dto.getContent());
         if (dto.getStrategy() != null) record.setStrategy(dto.getStrategy());
 

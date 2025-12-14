@@ -29,7 +29,15 @@ import Tooltip from "@mui/material/Tooltip";
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import CompanySelector from "../components/CompanySelector";
-import {formatDate, formatDecimals, formatMillions, formatPercent, formatPeriodName} from "../service/FormattingService";
+import {
+    formatDate,
+    formatDecimals,
+    formatError,
+    formatMillions,
+    formatPercent,
+    formatPeriodName
+} from "../service/FormattingService";
+import SnackbarErrorAlert from "../components/SnackbarErrorAlert";
 
 
 const Research = props => {
@@ -43,6 +51,7 @@ const Research = props => {
     const [data, setData] = useState(null)
     const [loaded, setLoaded] = useState(false)
     const [error, setError] = useState(null)
+    const [alert, setAlert] = useState(null)
     const [openAddRecordDialog, setOpenAddRecordDialog] = useState(false)
     const [openAddPeriodDialog, setOpenAddPeriodDialog] = useState(false)
     const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
@@ -81,6 +90,16 @@ const Research = props => {
 
     function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
+    }
+
+    async function updateRecordTitle(recordId, value) {
+        return axios.put(backend + "/record", {id: recordId, title: value})
+            .then((response) => triggerRefresh())
+            .catch((error) => {
+                const formatted = formatError(error)
+                setAlert(formatted)
+                return formatted
+            })
     }
 
     function updateRecordContent(recordId, content) {
@@ -333,10 +352,9 @@ const Research = props => {
                                         </Stack>
                                     }
 
-                                    <EditableTypography value={record.title} label={"Title"} style={{margin: "12px auto auto 5px"}}
-                                                        updateObject={(value) => {return {id: record.id, title: value}}}
+                                    <EditableTypography value={record.title} label={"Title"} style={{margin: "12px 15px 0 5px"}}
+                                                        updateObject={(value) => updateRecordTitle(record.id, value)}
                                                         validateInput={(value) => {if (value === "") return "not null"; return ""}}
-                                                        handleUpdate={triggerRefresh}
                                     />
                                     <div style={{margin: "15px 0 0 0"}}>
                                         <ContentEditor content={record.content} handleUpdate={(value) => updateRecordContent(record.id, value)}/>
@@ -349,6 +367,7 @@ const Research = props => {
 
                 </Grid>
             }
+            <SnackbarErrorAlert error={alert} open={alert !== null} onClose={() => setAlert(null)}/>
         </>
     )
 }
