@@ -92,7 +92,7 @@ const Research = props => {
         setRefresh(new Date().getTime().toString())
     }
 
-    async function updateRecordTitle(recordId, value) {
+    function updateRecordTitle(recordId, value) {
         return axios.put(backend + "/record", {id: recordId, title: value})
             .then((response) => triggerRefresh())
             .catch((error) => {
@@ -103,17 +103,23 @@ const Research = props => {
     }
 
     function updateRecordContent(recordId, content) {
-        axios.put(backend + "/record", {id: recordId, content: JSON.stringify(content)})
-            .then((response) => {
-                triggerRefresh()
-            }).catch((error) => {handleError(error)})
+        return axios.put(backend + "/record", {id: recordId, content: JSON.stringify(content)})
+            .then((response) => triggerRefresh())
+            .catch((error) => {
+                const formatted = formatError(error)
+                setAlert(formatted)
+                return formatted
+            })
     }
 
     function updatePeriodResearch(periodId, content) {
-        axios.put(backend + "/period", {id: periodId, research: JSON.stringify(content)})
-            .then((response) => {
-                triggerRefresh()
-            }).catch((error) => {handleError(error)})
+        return axios.put(backend + "/period", {id: periodId, research: JSON.stringify(content)})
+            .then((response) => triggerRefresh())
+            .catch((error) => {
+                const formatted = formatError(error)
+                setAlert(formatted)
+                return formatted
+            })
     }
 
     function handleConfirmWatch() {
@@ -121,9 +127,12 @@ const Research = props => {
         const companyData = {...data.company}
         companyData.watching = newWatching
         axios.put(backend + "/company", companyData)
-            .then(() => {
-                triggerRefresh()
-            }).catch((error) => {handleError(error)})
+            .then((response) => triggerRefresh())
+            .catch((error) => {
+                const formatted = formatError(error)
+                setAlert(formatted)
+                return formatted
+            })
         setOpenConfirmWatchDialog(false)
     }
 

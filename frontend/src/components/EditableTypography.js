@@ -3,7 +3,6 @@ import {FormControl, FormHelperText, Input, InputLabel, Typography} from "@mui/m
 import "../style/Blinking.css";
 
 const EditableTypography = props => {
-
     const {index, value, label} = props
 
     const style = {color: 'text.primary', fontWeight: 'medium', fontSize: 20, }
@@ -13,37 +12,24 @@ const EditableTypography = props => {
     const [editValue, setEditValue] = useState(value ? value : "")
 
     const [error, setError] = useState(null)
-    const [disabled, setDisabled] = useState(false)
-
-    useEffect(() => {
-        if (!editing) {
-            setDisabled(false)
-            setError(null)
-        }
-        // eslint-disable-next-line
-    }, [editing])
 
     useEffect(() => {
         setError(null)
         // eslint-disable-next-line
-    }, [editValue])
+    }, [editValue, editing])
 
-    async function handleUpdate(unfocused)
+    async function handleUpdate()
     {
-        const error = await props.updateObject(editValue);
-
-        if (error) {
-            setError(error)
-            if (unfocused) {
-                setDisabled(true)
-                setTimeout(() => {
-                    setEditing(false)
-                    setEditValue(showValue)
-                }, 1000);
+        if (showValue !== editValue) {
+            const error = await props.updateObject(editValue);
+            if (error) {
+                setError(error)
+            } else {
+                setShowValue(editValue)
+                setEditing(false)
             }
         } else {
             setEditing(false)
-            setShowValue(editValue)
         }
     }
 
@@ -62,15 +48,18 @@ const EditableTypography = props => {
                     >
                         <InputLabel htmlFor={"editable-" + label + "-" + index}>Title</InputLabel>
                         <Input
-                            disabled={disabled}
                             id={"editable-" + label + "-" + index}
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                             autoFocus
-                            onBlur={() => handleUpdate(true)}
+                            onBlur={handleUpdate}
                             onKeyDown={e => {
-                                if(e.key === 'Enter') handleUpdate(false)
-                                if(e.key === 'Escape') {setEditing(false);setEditValue(showValue);}
+                                if(e.key === 'Enter') handleUpdate()
+                                if(e.key === 'Escape') {
+                                    setEditValue(showValue);
+                                    const target = e.currentTarget;
+                                    setTimeout(() => target.blur(), 100);
+                                }
                             }}
                         />
                         {props.validateInput(editValue) &&

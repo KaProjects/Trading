@@ -1,5 +1,5 @@
-import React, {useCallback, useMemo, useState} from 'react'
-import {Editable, Slate, useSlate, withReact} from 'slate-react'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import {Editable, ReactEditor, Slate, useSlate, withReact} from 'slate-react'
 import {createEditor, Editor, Element as SlateElement, Transforms} from 'slate'
 import {withHistory} from 'slate-history'
 import {css, cx} from '@emotion/css'
@@ -7,7 +7,6 @@ import {css, cx} from '@emotion/css'
 const LIST_TYPES = ['numbered-list', 'bulleted-list']
 const TEXT_ALIGN_TYPES = ['left', 'center', 'right', 'justify']
 const DEFAULT_VALUE = [{type: 'paragraph', children: [{ text: '' }],}]
-
 
 const ContentEditor = (props) => {
     const {content} = props
@@ -17,14 +16,39 @@ const ContentEditor = (props) => {
 
     const [editing, setEditing] = useState(false)
     const [value, setValue] = useState(DEFAULT_VALUE)
+    const [error, setError] = useState(null)
+    const [savedContent, setSavedContent] = useState(content ? JSON.parse(content) : DEFAULT_VALUE)
 
-    function handleUnFocus() {
-        setEditing(false)
-        props.handleUpdate(value)
+    useEffect(() => {
+        setError(null)
+        // eslint-disable-next-line
+    }, [value, editing])
+
+    async function handleUnFocus()
+    {
+        if (value !== savedContent) {
+            const error = await props.handleUpdate(value)
+            if (error) {
+                setError(error)
+            } else {
+                setSavedContent(value)
+                setEditing(false)
+            }
+        } else {
+            setEditing(false)
+        }
+    }
+
+    function rollback() {
+        if (editor.history) {editor.history.undos = [];editor.history.redos = [];}
+        Transforms.select(editor, Editor.end(editor, []));
+        Transforms.delete(editor, {at: {anchor: Editor.start(editor, []), focus: Editor.end(editor, []),},});
+        editor.children = savedContent
+        Transforms.select(editor, Editor.start(editor, []));
     }
 
     return (
-        <Slate editor={editor} initialValue={content ? JSON.parse(content) : DEFAULT_VALUE}
+        <Slate editor={editor} initialValue={savedContent}
                onChange={value => {
                    const isAstChange = editor.operations.some(op => 'set_selection' !== op.type0)
                    if (isAstChange) setValue(value)
@@ -48,12 +72,19 @@ const ContentEditor = (props) => {
                 </Toolbar>
             }
             <Editable
+                className={error ? "blinking-outline" : ""}
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 placeholder="write a content"
                 style={{margin: "0 5px 0 5px", paddingBottom: editing ? "10px" : "0"}}
                 onFocus={() => setEditing(true)}
                 onBlur={handleUnFocus}
+                onKeyDown={e => {
+                    if(e.key === 'Escape') {
+                        rollback();
+                        setTimeout(() => ReactEditor.blur(editor), 100);
+                    }
+                }}
             />
         </Slate>
     )
