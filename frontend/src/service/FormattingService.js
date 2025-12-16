@@ -93,9 +93,8 @@ export function formatError(error) {
                     message = error.response.data.details;
                 }
             } else if (typeof error.response.data === 'object'
-                && error.response.data.violations && error.response.data.violations.length > 0) {
-                title = error.response.data.title;
-                message = error.response.data.violations[0].message;
+                && error.response.data.violations && error.response.data.title) {
+                message = error.response.data.title;
             }
             else {
                 message = JSON.stringify(error.response.data)

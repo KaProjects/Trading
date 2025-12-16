@@ -134,7 +134,7 @@ describe('FormattingService', () => {
         expected.message = JSON.stringify(error)
         expect(formatError(error)).toStrictEqual(expected);
 
-        let expectedTitle = "ab asdaew dsad 4"
+        const expectedTitle = "ab asdaew dsad 4"
         error = {name: "AxiosError", message: expectedTitle}
         expected.title = expectedTitle
         expected.message = JSON.stringify(error)
@@ -162,10 +162,8 @@ describe('FormattingService', () => {
         expected.message =  expectedMessage.split(', ')[1]
         expect(formatError(error)).toStrictEqual(expected);
 
-        expectedTitle = "axx x x x  "
         expectedMessage = "saeadgasrdas"
-        error.response.data = {title: expectedTitle, violations: [{message: expectedMessage}]}
-        expected.title = expectedTitle
+        error.response.data = {title: expectedMessage, violations: [{message: "sadgkhjkds asd "}]}
         expected.message =  expectedMessage
         expect(formatError(error)).toStrictEqual(expected);
     })

@@ -82,9 +82,7 @@ const Companies = props => {
 
     return (
         <>
-            {!loaded &&
-                <Loader error={error}/>
-            }
+            {!loaded && <Loader error={error}/>}
             {loaded &&
                 <>
                     <EditCompanyDialog triggerRefresh={triggerRefresh} {...props}/>

@@ -49,9 +49,7 @@ const Dividends = props => {
 
     return (
         <>
-            {!loaded &&
-                <Loader error ={error}/>
-            }
+            {!loaded && <Loader error ={error}/>}
             {loaded &&
                 <>
                 <AddDividendDialog triggerRefresh={triggerRefresh} {...props}/>

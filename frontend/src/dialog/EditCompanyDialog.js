@@ -48,7 +48,7 @@ const EditCompanyDialog = props => {
 
     function createEditCompany() {
         const companyData = {ticker: ticker, currency: currency, watching: watching}
-        if (sector) companyData.sector = sector
+        if (sector) companyData.sector = sector.key
         if (company.id){
             companyData.id = company.id
             axios.put(backend + "/company", companyData)
