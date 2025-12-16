@@ -119,7 +119,7 @@ describe('FormattingService', () => {
     })
 
     test("formatError", () => {
-        const expected = {message: "Unexpected Error:", details: ""}
+        const expected = {title: "Unexpected Error:", message: ""}
         expect(formatError(undefined)).toStrictEqual(expected);
         expect(formatError(null)).toStrictEqual(expected);
         expect(formatError("")).toStrictEqual(expected);
@@ -127,39 +127,46 @@ describe('FormattingService', () => {
         expect(formatError([])).toStrictEqual(expected);
 
         let error = "abcd"
-        expected.details = JSON.stringify(error)
+        expected.message = JSON.stringify(error)
         expect(formatError(error)).toStrictEqual(expected);
 
         error = {dunno: "abcdef"}
-        expected.details = JSON.stringify(error)
+        expected.message = JSON.stringify(error)
         expect(formatError(error)).toStrictEqual(expected);
 
-        const expectedMessage = "ab asdaew dsad 4"
-        error = {name: "AxiosError", message: expectedMessage}
+        let expectedTitle = "ab asdaew dsad 4"
+        error = {name: "AxiosError", message: expectedTitle}
+        expected.title = expectedTitle
+        expected.message = JSON.stringify(error)
+        expect(formatError(error)).toStrictEqual(expected);
+
+        let expectedMessage = "nklaDe tails 55"
+        error.response = {data: expectedMessage}
         expected.message = expectedMessage
-        expected.details = ""
-        expect(formatError(error)).toStrictEqual(expected);
-
-        let expectedDetails = "nklaDe tails 55"
-        error.response = {data: expectedDetails}
-        expected.details = expectedDetails
         expect(formatError(error)).toStrictEqual(expected);
 
         error.response.data = 1234
-        expected.details =  JSON.stringify(error.response.data)
+        expected.message =  JSON.stringify(error.response.data)
         expect(formatError(error)).toStrictEqual(expected);
 
         error.response.data = {aa: "abcd"}
-        expected.details =  JSON.stringify(error.response.data)
+        expected.message =  JSON.stringify(error.response.data)
         expect(formatError(error)).toStrictEqual(expected);
 
-        error.response.data = {details: expectedDetails}
-        expected.details =  expectedDetails
+        error.response.data = {details: expectedMessage}
+        expected.message =  expectedMessage
         expect(formatError(error)).toStrictEqual(expected);
 
-        expectedDetails = "asdasd asd, asdasd asd "
-        error.response.data = {details: expectedDetails}
-        expected.details =  expectedDetails.split(', ')[1]
+        expectedMessage = "asdasd asd, asdasd asd "
+        error.response.data = {details: expectedMessage}
+        expected.message =  expectedMessage.split(', ')[1]
+        expect(formatError(error)).toStrictEqual(expected);
+
+        expectedTitle = "axx x x x  "
+        expectedMessage = "saeadgasrdas"
+        error.response.data = {title: expectedTitle, violations: [{message: expectedMessage}]}
+        expected.title = expectedTitle
+        expected.message =  expectedMessage
         expect(formatError(error)).toStrictEqual(expected);
     })
 });

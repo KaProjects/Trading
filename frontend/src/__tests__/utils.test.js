@@ -1,24 +1,4 @@
-import {handleError, recordEvent} from "../service/utils";
-
-test("handleError", () => {
-    const aMessage = "message"
-    let error = {message: aMessage}
-
-    expect(handleError(error)).toBe(aMessage)
-
-    error.response = {}
-    expect(handleError(error)).toBe(aMessage)
-
-    error.response.data = {}
-    expect(handleError(error)).toBe(aMessage)
-
-    error.response.data = 11
-    expect(handleError(error)).toBe(aMessage)
-
-    const aData = "data"
-    error.response.data = aData
-    expect(handleError(error)).toBe(aData)
-})
+import {recordEvent} from "../service/utils";
 
 test("recordEvent", () => {
     const nameUsed = "nameUsed";

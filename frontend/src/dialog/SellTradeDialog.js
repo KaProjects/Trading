@@ -1,5 +1,6 @@
 import {
     Alert,
+    AlertTitle,
     Button,
     Dialog,
     DialogActions,
@@ -14,11 +15,11 @@ import {
     TableRow,
     TextField
 } from "@mui/material";
-import {handleError} from "../service/utils";
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
 import axios from "axios";
 import {validateNumber} from "../service/ValidationService";
+import {formatError} from "../service/FormattingService";
 
 
 const SellTradeDialog = props => {
@@ -60,7 +61,7 @@ const SellTradeDialog = props => {
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
-            }).catch((error) => {setAlert(handleError(error))})
+            }).catch((error) => {setAlert(formatError(error))})
     }
 
     function selectCompany(company) {
@@ -68,7 +69,7 @@ const SellTradeDialog = props => {
             axios.get(backend + "/trade?active=true&companyId=" + company.id)
                 .then((response) => {
                     setTrades(response.data.trades)
-                }).catch((error) => {setAlert(handleError(error))})
+                }).catch((error) => {setAlert(formatError(error))})
         }
         setCompany(company)
     }
@@ -155,7 +156,7 @@ const SellTradeDialog = props => {
             </DialogContent>
             {alert &&
                 <Alert severity="error" variant="filled">
-                    {alert}
+                    <AlertTitle>{alert.title}</AlertTitle>{alert.message}
                 </Alert>
             }
             <DialogActions>

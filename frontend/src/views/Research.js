@@ -21,7 +21,6 @@ import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import AddRecordDialog from "../dialog/AddRecordDialog";
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import {handleError} from "../service/utils";
 import PeriodFinancials from "../components/PeriodFinancials";
 import AddPeriodDialog from "../dialog/AddPeriodDialog";
 import AddPeriodFinancialDialog from "../dialog/AddPeriodFinancialDialog";
@@ -72,9 +71,9 @@ const Research = props => {
                     }
                     setLoaded(true)
                 }).catch((error) => {
-                setError(handleError(error))
-                setLoaded(false)
-            })
+                    setError(formatError(error))
+                    setLoaded(false)
+                })
         }
     }
 

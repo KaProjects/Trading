@@ -1,10 +1,19 @@
-import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography} from "@mui/material";
-import {handleError} from "../service/utils";
+import {
+    Alert,
+    AlertTitle,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    TextField,
+    Typography
+} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
 import {getFinancial, getQuote} from "../service/PolygonIoService";
-import {formatPeriodName} from "../service/FormattingService";
+import {formatError, formatPeriodName} from "../service/FormattingService";
 import {validateNumber} from "../service/ValidationService";
 
 const AddPeriodFinancialDialog = props => {
@@ -67,7 +76,7 @@ const AddPeriodFinancialDialog = props => {
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
-            }).catch((error) => {setAlert(handleError(error))})
+            }).catch((error) => {setAlert(formatError(error))})
     }
 
     async function retrieveFinancials() {
@@ -181,7 +190,7 @@ const AddPeriodFinancialDialog = props => {
             </DialogContent>
             {alert &&
                 <Alert severity="error" variant="filled">
-                    {alert}
+                    <AlertTitle>{alert.title}</AlertTitle>{alert.message}
                 </Alert>
             }
             <DialogActions>

@@ -1,9 +1,9 @@
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
-import {handleError} from "../service/utils";
 import {
     Alert,
+    AlertTitle,
     Button,
     Dialog,
     DialogActions,
@@ -14,6 +14,7 @@ import {
     TextField
 } from "@mui/material";
 import {validateNumber} from "../service/ValidationService";
+import {formatError} from "../service/FormattingService";
 
 
 const AddDividendDialog = props => {
@@ -43,7 +44,7 @@ const AddDividendDialog = props => {
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
-            }).catch((error) => {setAlert(handleError(error))})
+            }).catch((error) => {setAlert(formatError(error))})
     }
 
     return (
@@ -88,7 +89,7 @@ const AddDividendDialog = props => {
             </DialogContent>
             {alert &&
                 <Alert severity="error" variant="filled">
-                    {alert}
+                    <AlertTitle>{alert.title}</AlertTitle>{alert.message}
                 </Alert>
             }
             <DialogActions>

@@ -76,29 +76,31 @@ export function isNotAValue(value) {
 
 export function formatError(error) {
     console.error(error) // for debug purposes for now
-    let message = "Unexpected Error:"
-    let details = isNotAValue(error) ? "" : JSON.stringify(error)
+    let title = "Unexpected Error:"
+    let message = isNotAValue(error) ? "" : JSON.stringify(error)
 
     if (error && error.name === "AxiosError") {
-        message = error.message
+        title = error.message
 
         if (error.response && error.response.data) {
             if (typeof error.response.data === 'string') {
-                details = error.response.data;
+                message = error.response.data;
             }
             else if (typeof error.response.data === 'object' && error.response.data.details) {
                 if (error.response.data.details.split(', ').length === 2) {
-                    details = error.response.data.details.split(', ')[1];
+                    message = error.response.data.details.split(', ')[1];
                 } else {
-                    details = error.response.data.details;
+                    message = error.response.data.details;
                 }
+            } else if (typeof error.response.data === 'object'
+                && error.response.data.violations && error.response.data.violations.length > 0) {
+                title = error.response.data.title;
+                message = error.response.data.violations[0].message;
             }
             else {
-                details = JSON.stringify(error.response.data)
+                message = JSON.stringify(error.response.data)
             }
-        } else {
-            details = ""
         }
     }
-    return {message: message, details: details}
+    return {title: title, message: message}
 }

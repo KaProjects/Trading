@@ -7,7 +7,7 @@ const Loader = props => {
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh"}}>
             {error === null
                 ? <CircularProgress/>
-                : <Alert severity="error"><AlertTitle>{error.message}</AlertTitle>{error.details}</Alert> }
+                : <Alert severity="error"><AlertTitle>{error.title}</AlertTitle>{error.message}</Alert> }
         </div>
     )
 }

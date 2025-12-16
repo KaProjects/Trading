@@ -1,9 +1,9 @@
-import {Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
+import {Alert, AlertTitle, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
 import axios from "axios";
-import {handleError} from "../service/utils";
 import {validateNumber} from "../service/ValidationService";
+import {formatError} from "../service/FormattingService";
 
 
 const AddRecordDialog = props => {
@@ -68,7 +68,7 @@ const AddRecordDialog = props => {
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
-            }).catch((error) => {setAlert(handleError(error))})
+            }).catch((error) => {setAlert(formatError(error))})
     }
 
     return (
@@ -154,7 +154,7 @@ const AddRecordDialog = props => {
             </DialogContent>
             {alert &&
                 <Alert severity="error" variant="filled">
-                    {alert}
+                    <AlertTitle>{alert.title}</AlertTitle>{alert.message}
                 </Alert>
             }
             <DialogActions>

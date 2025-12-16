@@ -15,8 +15,8 @@ const SnackbarErrorAlert = props => {
         >
             {error &&
                 <Alert onClose={onClose} severity="error" variant="filled">
-                    <AlertTitle>{error.message}</AlertTitle>
-                    {error.details}
+                    <AlertTitle>{error.title}</AlertTitle>
+                    {error.message}
                 </Alert>
             }
         </Snackbar>
