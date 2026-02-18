@@ -27,9 +27,9 @@ class BtcFngDiscordRunner:
                 btc_data = self.cmc_request("/v2/cryptocurrency/quotes/latest", {'symbol': 'BTC'})
                 if btc_data and "data" in btc_data:
                     btc_price = btc_data["data"]["BTC"][0]["quote"]["USD"]["price"]
-                    message = "BTC=${:.0f} & {}: {} -> {}".format(btc_price, classification, self.last_value, new_value)
+                    message = "BTC=${:.0f} & {}: {}".format(btc_price, classification, new_value)
                     log(message)
-                    if new_value not in range(40, 60):
+                    if new_value not in range(30, 70):
                         self.discord_post({"content": message})
                 else:
                     log("Error: Invalid BTC data: {}".format(btc_data))
