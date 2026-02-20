@@ -6,7 +6,7 @@ import utils
 import asyncio
 
 alert_data_path = "alert/data/"
-company_path = "company/"
+company_path = "company-dep/"
 opportunity_path = "opportunity/"
 asset_path = "asset/"
 log_path = "log/"
@@ -174,7 +174,7 @@ async def run():
 
                 if logs is not None:
                     for event_log in logs:
-                        obj = db.reference(log_path).push(event_log.__repr__())
+                        # obj = db.reference(log_path).push(event_log.__repr__())
                         log("log {} type '{}' for {} created".format(obj.key, event_log.type, event_log.ticker))
 
                 if opportunity is not None and updated_opportunity is None:
