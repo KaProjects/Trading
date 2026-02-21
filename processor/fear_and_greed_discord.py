@@ -16,6 +16,11 @@ class BtcFngDiscordRunner:
         self.discord_webhook_key = discord_webhook_key
         self.cmc_api_key = cmc_api_key
         self.last_value = -1
+        self.classification_map = {"Extreme fear": [16711680, ":scream:", "... buy the dip? :bulb:"],
+                                   "Fear": [16747520, ":fearful:", ""],
+                                   "Neutral": [16776960, ":scales:", ""],
+                                   "Greed": [65280, ":money_mouth:", ""],
+                                   "Extreme greed": [32768, ":rocket:", "... take profits? :bulb:"]}
 
     def run(self):
         try:
@@ -27,10 +32,14 @@ class BtcFngDiscordRunner:
                 btc_data = self.cmc_request("/v2/cryptocurrency/quotes/latest", {'symbol': 'BTC'})
                 if btc_data and "data" in btc_data:
                     btc_price = btc_data["data"]["BTC"][0]["quote"]["USD"]["price"]
-                    message = "BTC=${:.0f} & {}: {}".format(btc_price, classification, new_value)
+                    message = "{} {}: {} ${:.0f}".format(self.classification_map[classification][1], classification, new_value, btc_price)
                     log(message)
                     if new_value not in range(30, 70):
-                        self.discord_post({"content": message})
+                        self.discord_post({"embeds": [{
+                            "color": self.classification_map[classification][0],
+                            "title": "{} {}: {}".format(self.classification_map[classification][1], classification, new_value),
+                            "description": ":coin: ${:.0f} {}".format(btc_price, self.classification_map[classification][2]),
+                        }]})
                 else:
                     log("Error: Invalid BTC data: {}".format(btc_data))
 
