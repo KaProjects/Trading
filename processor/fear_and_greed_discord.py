@@ -12,8 +12,8 @@ def log(message: str):
 
 
 class BtcFngDiscordRunner:
-    def __init__(self, discord_api_key, cmc_api_key):
-        self.discord_api_key = discord_api_key
+    def __init__(self, discord_webhook_key, cmc_api_key):
+        self.discord_webhook_key = discord_webhook_key
         self.cmc_api_key = cmc_api_key
         self.last_value = -1
 
@@ -61,7 +61,7 @@ class BtcFngDiscordRunner:
             log(e)
 
     def discord_post(self, payload: object):
-        url = "https://discord.com/api/webhooks/" + self.discord_api_key
+        url = "https://discord.com/api/webhooks/" + self.discord_webhook_key
         headers = {"Content-Type": "application/json"}
 
         session = Session()
