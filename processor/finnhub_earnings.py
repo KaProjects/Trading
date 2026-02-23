@@ -62,8 +62,8 @@ class FinnhubEarningsRunner:
 
                     time.sleep(5)
                 except Exception:
+                    log("Error while processing {}".format(company_id))
                     log(traceback.format_exc())
-                    log("^^^ exception occurred!")
         except Exception:
             log(traceback.format_exc())
             log("^^^ exception occurred!")
