@@ -46,8 +46,10 @@ class FinnhubEarningsRunner:
                         for quarter in quarters.__reversed__():
                             self.discord_post_earnings(company_id, quarter, dict(), quarters[quarter][today])
                     else:
+                        no_change = True
                         for quarter in quarters.__reversed__():
                             if quarter not in companies[company_id]["fhe"]:
+                                no_change = False
                                 log(company_id + " found new quarter: " + quarter)
                                 db.reference(company_path + "/" + company_id + "/fhe/" + quarter).set(quarters[quarter])
                                 self.discord_post_earnings(company_id, quarter, dict(), quarters[quarter][today])
@@ -56,9 +58,12 @@ class FinnhubEarningsRunner:
                                 now = quarters[quarter][today]
 
                                 if latest["epse"] != now["epse"] or latest["reve"] != now["reve"] or latest.get("epsa") != now["epsa"] or latest.get("reva") != now["reva"]:
+                                    no_change = False
                                     log(company_id + " change detected for quarter: " + quarter)
                                     db.reference(company_path + "/" + company_id + "/fhe/" + quarter + "/" + today).set(quarters[quarter][today])
                                     self.discord_post_earnings(company_id, quarter, latest, now)
+                        if no_change:
+                            log(company_id + " no change detected")
 
                     time.sleep(5)
                 except Exception:
