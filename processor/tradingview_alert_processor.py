@@ -172,10 +172,10 @@ async def run():
 
                 logs, updated_opportunity = resolve_alert(alert, opportunity)
 
-                if logs is not None:
-                    for event_log in logs:
-                        # obj = db.reference(log_path).push(event_log.__repr__())
-                        log("log {} type '{}' for {} created".format(obj.key, event_log.type, event_log.ticker))
+                # if logs is not None:
+                #     for event_log in logs:
+                #         obj = db.reference(log_path).push(event_log.__repr__())
+                #         log("log {} type '{}' for {} created".format(obj.key, event_log.type, event_log.ticker))
 
                 if opportunity is not None and updated_opportunity is None:
                     db.reference(opportunity_path + "/" + opportunity.ticker).delete()
