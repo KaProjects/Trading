@@ -50,6 +50,6 @@ if __name__ == "__main__":
         },
     )
 
-    recipe = Output.model_validate_json(response.text)
-    print(recipe.model_dump_json())
+    output = Output.model_validate_json(response.text)
+    print(output.model_dump_json())
 
