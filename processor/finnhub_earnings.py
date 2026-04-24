@@ -15,6 +15,7 @@ company_path = "company/"
 def log(message: str):
     utils.log("FHE", message)
 
+data_root = "fhe"
 
 class FinnhubEarningsRunner:
     def __init__(self, finnhub_api_key, discord_webhook_key):
@@ -32,35 +33,35 @@ class FinnhubEarningsRunner:
                     if len(response["earningsCalendar"]) == 0:
                         log(company_id + " found no earnings")
                         continue
+                    today = date.today().strftime('%Y%m%d')
                     for earnings in response["earningsCalendar"]:
                         quarter = str(earnings["year"])[2:] + "Q" + str(earnings["quarter"])
-                        today = date.today().strftime('%Y%m%d')
                         data = {"epse": earnings["epsEstimate"], "epsa": earnings["epsActual"],
                                 "reve": earnings["revenueEstimate"], "reva": earnings["revenueActual"],
                                 "report": earnings["date"] + "-" + earnings["hour"]}
                         quarters[quarter] = {today: data}
 
-                    if not isinstance(companies[company_id], dict):
+                    if not isinstance(companies[company_id], dict) or companies[company_id].get(data_root) is None:
+                        db.reference(company_path + "/" + company_id + "/" + data_root).set(quarters)
                         log(company_id + " initiated with " + str(len(quarters)) + " quarters")
-                        db.reference(company_path + "/" + company_id).set({"fhe": quarters})
                         for quarter in quarters.__reversed__():
                             self.discord_post_earnings(company_id, quarter, dict(), quarters[quarter][today])
                     else:
                         no_change = True
                         for quarter in quarters.__reversed__():
-                            if quarter not in companies[company_id]["fhe"]:
+                            if quarter not in companies[company_id][data_root]:
                                 no_change = False
+                                db.reference(company_path + "/" + company_id + "/" + data_root + "/" + quarter).set(quarters[quarter])
                                 log(company_id + " found new quarter: " + quarter)
-                                db.reference(company_path + "/" + company_id + "/fhe/" + quarter).set(quarters[quarter])
                                 self.discord_post_earnings(company_id, quarter, dict(), quarters[quarter][today])
                             else:
-                                latest = companies[company_id]["fhe"][quarter][max(companies[company_id]["fhe"][quarter])]
+                                latest = companies[company_id][data_root][quarter][max(companies[company_id][data_root][quarter])]
                                 now = quarters[quarter][today]
 
                                 if latest["epse"] != now["epse"] or latest["reve"] != now["reve"] or latest.get("epsa") != now["epsa"] or latest.get("reva") != now["reva"]:
                                     no_change = False
+                                    db.reference(company_path + "/" + company_id + "/" + data_root + "/" + quarter + "/" + today).set(quarters[quarter][today])
                                     log(company_id + " change detected for quarter: " + quarter)
-                                    db.reference(company_path + "/" + company_id + "/fhe/" + quarter + "/" + today).set(quarters[quarter][today])
                                     self.discord_post_earnings(company_id, quarter, latest, now)
                         if no_change:
                             log(company_id + " no change detected")
