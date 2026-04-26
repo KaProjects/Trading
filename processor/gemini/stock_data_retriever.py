@@ -58,7 +58,7 @@ class StockDataRetrieverRunner(BaseClass):
                     if report_date.report_date != new_report_date.report_date:
                         self.service.update_report_date(new_report_date)
 
-                    self.check_report_date_this_week(new_report_date)
+                self.check_report_dates_next_week(new_report_dates)
 
         except Exception:
             self.log(traceback.format_exc())
@@ -133,35 +133,43 @@ class StockDataRetrieverRunner(BaseClass):
 
         return Quarter(name=f"Q{next_q} 20{yy_str}", ending_month=f"{yy_str}-{mm_str}", id=f"{yy_str}Q{next_q}", report_date_previous_quarter=previous_quarter.report_date_this_quarter)
 
-    def check_report_date_this_week(self, report_date: ReportDate):
-        target_date = datetime.strptime(report_date.report_date, "%Y-%m-%d").date()
-        today = datetime.now().date()
-        seven_days_later = today + timedelta(days=7)
-        if today <= target_date <= seven_days_later:
-            self.discord.post(self.format_report_date_for_discord(report_date))
-
-    def format_report_date_for_discord(self, report_date):
-        return self.create_discord_post_payload([
+    def check_report_dates_next_week(self, report_dates: ReportDates):
+        tickers = ""
+        quarters = ""
+        dates = ""
+        report_dates.report_dates.sort(key=lambda x: x.report_date)
+        for index, report_date in enumerate(report_dates.report_dates):
+            target_date = datetime.strptime(report_date.report_date, "%Y-%m-%d").date()
+            today = datetime.now().date()
+            seven_days_later = today + timedelta(days=6)
+            if today <= target_date <= seven_days_later:
+                tickers += report_date.ticker + "\n"
+                quarters += report_date.quarter + "\n"
+                dates += report_date.report_date + "\n"
+        if tickers and quarters and dates:
+            self.discord.post(self.create_discord_post_payload([
                 {
-                    "title": "📅 Upcoming Earnings Report",
+                    "title": "📅 Upcoming Earnings Report(s)",
                     "color": 3447003,
                     "fields": [
                         {
                             "name": "Ticker",
-                            "value": f"**{report_date.ticker}**",
-                            "inline": True
-                        },
-                        {
-                            "name": "Quarter",
-                            "value": f"{report_date.quarter}",
+                            "value": f"**{tickers}**",
                             "inline": True
                         },
                         {
                             "name": "Report Date",
-                            "value": f"{report_date.report_date}",
+                            "value": f"{dates}",
+                            "inline": True
+                        },
+                        {
+                            "name": "Quarter",
+                            "value": f"{quarters}",
                             "inline": True
                         }
                     ]
                 }
-            ])
+            ]))
+
+
 
