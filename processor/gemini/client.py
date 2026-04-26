@@ -2,7 +2,7 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel
 
-from gemini.models import Company, ReportDates
+from gemini.models import Company, ReportDates, Quarter
 from utils import BaseClass
 
 
@@ -58,3 +58,22 @@ class GeminiClient(BaseClass):
         Do not change quarter or ticker values and do not reorder the list.
         """
         return self.__ask(prompt, ReportDates)
+
+    def get_quarter_report(self, company_id, current_quarter: Quarter):
+        data = current_quarter.model_dump()
+        prompt = f"""
+        For company {company_id} there should be quarter {current_quarter.id} report from {current_quarter.report_date_this_quarter}. 
+        Verify the date is really in the past, if not, don't change anything and return the same data.
+        Verify the data of the report are already available, if not, don't change anything and return the same data.
+        
+        Otherwise, collect the report data according to this template {data}, fill empty values, don't change anything else.
+        Specifically, we are looking for reported: revenues, gross profit, operating income, net income, number of shares of the company and dividends. 
+        
+        For price_min and price_max, I want you to create the interval between the dates (previous report date and current quarter report date)
+        and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
+
+        The data template should now have all the values set,no n/a or empty strings are allowed.
+        
+        Return the filled template.
+        """
+        return self.__ask(prompt, Quarter)
