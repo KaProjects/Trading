@@ -24,11 +24,14 @@ def parse(file: str):
         return json.load(content)
 
 
-def is_past_date(date_str: str, offset=0) -> bool:
-    input_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-    today = datetime.now().date()
-    threshold = today - timedelta(days=offset)
-    return input_date < threshold
+def is_past_date(date: str, offset=0) -> bool:
+    try:
+        input_date = datetime.strptime(date, "%Y-%m-%d").date()
+        today = datetime.now().date()
+        threshold = today - timedelta(days=offset)
+        return input_date < threshold
+    except ValueError:
+        return False
 
 
 def telemetry(func):
