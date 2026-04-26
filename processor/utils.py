@@ -1,6 +1,6 @@
 import functools
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import firebase_admin
 from firebase_admin import credentials
@@ -22,6 +22,13 @@ def log(process: str, message: str):
 def parse(file: str):
     with open(file) as content:
         return json.load(content)
+
+
+def is_past_date(date_str: str, offset=0) -> bool:
+    input_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    today = datetime.now().date()
+    threshold = today - timedelta(days=offset)
+    return input_date < threshold
 
 
 def telemetry(func):
