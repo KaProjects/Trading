@@ -1,9 +1,8 @@
 from google import genai
 from google.genai import types
-
 from pydantic import BaseModel
 
-from gemini.models import Company
+from gemini.models import Company, ReportDates
 from utils import BaseClass
 
 
@@ -13,17 +12,17 @@ class GeminiClient(BaseClass):
         self.model = model
         self.client = genai.Client(api_key=gemini_api_key)
 
-    def __ask(self, prompt: str, model: type[BaseModel]):
+    def __ask(self, prompt: str, response_model: type[BaseModel]):
         response = self.client.models.generate_content(
             model=self.model,
             contents=prompt,
             config={
                 "tools": [types.Tool(google_search=types.GoogleSearch())],
                 "response_mime_type": "application/json",
-                "response_json_schema": model.model_json_schema(),
+                "response_json_schema": response_model.model_json_schema(),
             },
         )
-        return model.model_validate_json(response.text)
+        return response_model.model_validate_json(response.text)
 
     def get_initial_stock_data(self, ticker: str) -> Company:
         prompt = f"""
@@ -46,3 +45,16 @@ class GeminiClient(BaseClass):
         Key of the quarter is its ID.
         """
         return self.__ask(prompt, Company)
+
+    def revalidate_report_dates(self, report_dates: ReportDates) -> ReportDates:
+        data = report_dates.model_dump()
+        prompt = f"""
+        I provide you the list of current quarter report dates for companies, here: {data} 
+        
+        For every report date of the particular quarter of a company, check whether the report date is still valid,
+        because sometimes the report date may change. 
+        
+        Update the dates in the list and send it back to me. 
+        Do not change quarter or ticker values and do not reorder the list.
+        """
+        return self.__ask(prompt, ReportDates)

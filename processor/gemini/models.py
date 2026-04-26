@@ -19,9 +19,17 @@ class Quarter(BaseModel):
     reported_net_income: str = Field(description="reported net income, in millions of USD")
     reported_div: str = Field(description="reported dividends, in millions of USD")
     reported_shares: str = Field(description="number of shares in reported period, in millions")
-    price_min: str = Field(description="minimum price in the period from previous quarter report date until this quarter report date, exluding those edge days")
-    price_max: str = Field(description="maximum price in the period from previous quarter report date until this quarter report date, exluding those edge days")
+    price_min: str = Field(description="minimum price in the period from previous quarter report date until this quarter report date, excluding those edge days")
+    price_max: str = Field(description="maximum price in the period from previous quarter report date until this quarter report date, excluding those edge days")
 
 class Company(BaseModel):
     info: Info
     quarters: dict[str, Quarter]
+
+class ReportDate(BaseModel):
+    ticker: str = Field(description="ticker of the company")
+    quarter: str = Field(description="if of the current quarter")
+    report_date: str = Field(description="date of the quarterly report in format YYYY-MM-DD")
+
+class ReportDates(BaseModel):
+    report_dates: list[ReportDate]
