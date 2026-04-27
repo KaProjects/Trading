@@ -5,7 +5,7 @@ import schedule
 import tradingview_alert_processor
 import utils
 from fear_and_greed_discord import BtcFngDiscordRunner
-from finnhub_earnings import FinnhubEarningsRunner
+from myfinnhub.earnings import FinnhubEarningsRunner
 from gemini.stock_data_retriever import StockDataRetrieverRunner
 
 

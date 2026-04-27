@@ -7,10 +7,10 @@ from utils import BaseClass
 
 
 class GeminiClient(BaseClass):
-    def __init__(self, gemini_api_key, model, **kwargs):
+    def __init__(self, api_key, model, **kwargs):
         super().__init__(**kwargs)
         self.model = model
-        self.client = genai.Client(api_key=gemini_api_key)
+        self.client = genai.Client(api_key=api_key)
 
     def __ask(self, prompt: str, response_model: type[BaseModel]):
         response = self.client.models.generate_content(
