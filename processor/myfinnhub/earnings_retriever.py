@@ -10,7 +10,7 @@ from myfinnhub.strings import ErrorMsg, LogMsg
 from utils import BaseClass
 
 
-class FinnhubEarningsRunner(BaseClass):
+class FinnhubEarningsRetrieverRunner(BaseClass):
     context = {
         "verbose": False,
         "identity": "FinnhubEarnings",

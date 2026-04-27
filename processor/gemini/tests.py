@@ -21,7 +21,7 @@ class TestStockDataRetriever:
     @patch("utils.is_past_date")
     @patch("gemini.stock_data_retriever.datetime")
     def test_init_new_company(self, mock_datetime, mock_is_past, runner):
-        """Test case: Company exists in list but data is None (needs init)."""
+        """Test Case: Company exists in list but data is None (needs init)."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)  # A Monday
         runner.service.get_companies.return_value = {"AAPL": None}
         mock_company = MagicMock()
@@ -35,7 +35,7 @@ class TestStockDataRetriever:
     @patch("utils.is_past_date")
     @patch("stock_data_retriever.datetime")
     def test_sunday_revalidation_updates_date(self, mock_datetime, mock_is_past, runner):
-        """Test case: It's Sunday and a report date has changed."""
+        """Test Case: It's Sunday and a report date has changed."""
         mock_datetime.now.return_value = datetime(2026, 4, 26)
         mock_is_past.return_value = False
         original_date = "2026-05-01"
@@ -53,7 +53,7 @@ class TestStockDataRetriever:
         runner.service.update_report_date.assert_called_once_with(new_report)
 
     def test_missing_quarter_raises_exception(self, runner):
-        """Test case: Company exists but the current_quarter_id is invalid."""
+        """Test Case: Company exists but the current_quarter_id is invalid."""
         mock_company = MagicMock()
         mock_company.info.current_quarter_id = "MISSING"
         mock_company.quarters = {"EXISTING": MagicMock()}
@@ -64,7 +64,7 @@ class TestStockDataRetriever:
     @patch("utils.is_past_date")
     @patch("stock_data_retriever.datetime")
     def test_reporting_success_flow(self, mock_datetime, mock_is_past, runner):
-        """Test Case 1: Date passed, new earnings found -> Update DB and Discord."""
+        """Test Case: Date passed, new earnings found -> Update DB and Discord."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)
         mock_is_past.return_value = True
         old_quarter = Quarter(id="25Q4", name="25Q4", report_date_this_quarter="2026-04-20", ending_month="26-03", report_date_previous_quarter="2026-01-20")
@@ -83,7 +83,7 @@ class TestStockDataRetriever:
 
     @patch("utils.is_past_date")
     def test_reporting_failed_idempotency(self, mock_is_past, runner):
-        """Test Case 2: Date passed, but API returns same data -> Log error, don't update."""
+        """Test Case: Date passed, but API returns same data -> Log error, don't update."""
         mock_is_past.return_value = True
         quarter_data = Quarter(id="25Q4", name="25Q4", report_date_this_quarter="2026-04-20", ending_month="26-03", report_date_previous_quarter="2026-01-20")
         mock_company = MagicMock()
@@ -98,7 +98,7 @@ class TestStockDataRetriever:
 
     @patch("stock_data_retriever.datetime")
     def test_revalidation_skipped_on_monday(self, mock_datetime, runner):
-        """Test Case 3: Revalidation should NOT run if it is not Sunday."""
+        """Test Case: Revalidation should NOT run if it is not Sunday."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)
         mock_company = MagicMock()
         mock_company.info.current_quarter_id = "Q1"
@@ -109,7 +109,7 @@ class TestStockDataRetriever:
 
     @patch("stock_data_retriever.datetime")
     def test_sunday_revalidation_no_change(self, mock_datetime, runner):
-        """Test Case 4: Sunday revalidation runs, but dates match -> No DB write."""
+        """Test Case: Sunday revalidation runs, but dates match -> No DB write."""
         mock_datetime.now.return_value = datetime(2026, 4, 26)  # Sunday
         date_str = "2026-05-01"
         mock_quarter = MagicMock(id="Q1", report_date_this_quarter=date_str)
@@ -125,7 +125,7 @@ class TestStockDataRetriever:
         runner.service.update_report_date.assert_not_called()
 
     def test_multi_company_mixed_state(self, runner):
-        """Test Case 5: Loop handles one new company and one existing company."""
+        """Test Case: Loop handles one new company and one existing company."""
         runner.service.get_companies.return_value = {"AAPL": None, "MSFT": MagicMock()}
         mock_aapl = MagicMock()
         runner.client.get_initial_stock_data.return_value = mock_aapl

@@ -62,8 +62,7 @@ class StockDataRetrieverRunner(BaseClass):
                 self.check_report_dates_next_week(new_report_dates)
 
         except Exception:
-            self.log(traceback.format_exc())
-            self.log("^^^ exception occurred!")
+            self.log(traceback.format_exc() + "\n^^^ exception occurred!")
 
     def create_discord_post_payload(self, embeds):
         return {
