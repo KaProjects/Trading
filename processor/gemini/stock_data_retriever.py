@@ -20,7 +20,7 @@ class StockDataRetrieverRunner(BaseClass):
 
     def __init__(self, gemini_api_key, discord_webhook_key):
         super().__init__(**self.context)
-        self.client = GeminiClient(gemini_api_key=gemini_api_key, **self.context)
+        self.client = GeminiClient(api_key=gemini_api_key, **self.context)
         self.service = FirebaseService(**self.context)
         self.discord = DiscordClient(webhook_key=discord_webhook_key, **self.context)
 
