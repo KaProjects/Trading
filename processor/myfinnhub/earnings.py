@@ -1,7 +1,7 @@
+import math
 import time
 import traceback
 
-import utils
 from discord.discord_client import DiscordClient
 from myfinnhub.client import FinnhubClient
 from myfinnhub.models import Company, Earnings
@@ -9,12 +9,6 @@ from myfinnhub.service import FirebaseService
 from myfinnhub.strings import ErrorMsg, LogMsg
 from utils import BaseClass
 
-company_path = "company/"
-
-def log(message: str):
-    utils.log("FHE", message)
-
-data_root = "fhe"
 
 class FinnhubEarningsRunner(BaseClass):
     context = {
@@ -50,11 +44,10 @@ class FinnhubEarningsRunner(BaseClass):
                                 latest = companies[company_id].root[quarter_id].root[max(companies[company_id].root[quarter_id].root)]
                                 now = earnings[quarter_id]
 
-                                if not self.strict_equals_earnings(latest, now):
+                                if not self.almost_equals_earnings(latest, now):
                                     no_change = False
                                     self.service.new_earnings(company_id, quarter_id, earnings[quarter_id])
-                                    if not self.almost_equals_earnings(latest, now):
-                                        self.discord_post_earnings(company_id, quarter_id, latest, now)
+                                    self.discord_post_earnings(company_id, quarter_id, latest, now)
                         if no_change:
                             self.log(LogMsg.NO_CHANGE.format(company_id=company_id))
 
@@ -66,35 +59,36 @@ class FinnhubEarningsRunner(BaseClass):
 
     def discord_post_earnings(self, ticker, quarter, latest: Earnings, now: Earnings):
         if latest is None:
-            latest = Earnings(epse=-1, reve=-1, report="")
-        # TODO improve design here
-        eps = self.format_eps(latest.epse)
-        if latest.epse != now.epse:
-            eps += " -> " + self.format_eps(now.epse)
+            latest = Earnings(epse=-1000, reve=-1, report="")
+        epse = self.format_eps(now.epse)
+        if not self.almost_equals(latest.epse, now.epse):
+            epse = self.format_eps(latest.epse) + " -> " + epse
 
-        revenue = self.format_revenue(latest.reve)
-        if latest.reve != now.reve:
-            revenue += " -> " + self.format_revenue(now.reve)
+        reve = self.format_revenue(now.reve)
+        if not self.almost_equals(latest.reve, now.reve):
+            reve = self.format_revenue(latest.reve) + " -> " + reve
 
-        reported = ["", "", ""]
+        fields = list()
+        fields.append({"name": "Estimates:", "value": f"earnings: \u200b {epse}\nrevenues: \u200b {reve}"})
+
+        now.epsa = 1
+        now.reva = 1000000
         if now.epsa and now.reva:
-            reported[0] = "\nreported:"
-            reported[1] = "\n" + self.format_eps(latest.epsa)
-            if latest.epsa != now.epsa:
-                reported[1] += " -> " + self.format_eps(now.epsa)
+            epsa = self.format_eps(now.epsa)
+            if not self.almost_equals(latest.epsa, now.epsa):
+                epsa = self.format_eps(latest.epsa) + " -> " + epsa
 
-            reported[2] = "\n" + self.format_revenue(latest.reva)
-            if latest.reva != now.reva:
-                reported[2] += " -> " + self.format_revenue(now.reva)
+            reva = self.format_revenue(now.reva)
+            if not self.almost_equals(latest.reva, now.reva):
+                reva = self.format_revenue(latest.reva) + " -> " + reva
 
-        self.discord.post({"embeds": [
-            {"fields": [
-                {"name": "[" + ticker + " | " + quarter + " | " + now.report + "]", "value": ""},
-                {"name": ".", "value": "estimate:" + reported[0], "inline": "true"},
-                {"name": "eps", "value": eps + reported[1], "inline": "true"},
-                {"name": "revenue", "value": revenue + reported[2], "inline": "true"},
-            ]}
-        ]})
+            fields.append({"name": "Reported:", "value": f"earnings: \u200b {epsa}\nrevenues: \u200b {reva}"})
+
+        self.discord.post(self.create_discord_post_payload([{
+            "title": f"📊 {ticker} | {quarter} | {now.report}",
+            "color": 0x3498db,
+            "fields": fields
+        }]))
 
     def format_revenue(self, original):
         if original is None: return ""
@@ -108,9 +102,17 @@ class FinnhubEarningsRunner(BaseClass):
         if original is None: return ""
         return str(round(original, 2))
 
-    def strict_equals_earnings(self, a: Earnings, b: Earnings):
-        return a.epse == b.epse and a.reve == b.reve and a.epsa == b.epsa and a.reva == b.reva
-
     def almost_equals_earnings(self, a: Earnings, b: Earnings):
-        # TODO compare rounded
-        return a.epse == b.epse and a.reve == b.reve and a.epsa == b.epsa and a.reva == b.reva
+        return self.almost_equals(a.epse, b.epse) and self.almost_equals(a.reve, b.reve) and self.almost_equals(a.epsa, b.epsa) and self.almost_equals(a.reva, b.reva)
+
+    def almost_equals(self, a, b):
+        if not isinstance(a, (int, float)): a = -1000
+        if not isinstance(b, (int, float)): b = -1000
+        return math.isclose(a, b, rel_tol=0.05)
+
+    def create_discord_post_payload(self, embeds):
+        return {
+            "username": "Earnings Estimates Reporter",
+            "avatar_url": "https://cdn-icons-png.flaticon.com/512/1353/1353566.png",  # Optional
+            "embeds": embeds
+        }
