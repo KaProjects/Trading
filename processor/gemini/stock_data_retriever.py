@@ -1,3 +1,4 @@
+import calendar
 import traceback
 from datetime import datetime, timedelta
 
@@ -134,42 +135,32 @@ class StockDataRetrieverRunner(BaseClass):
         return Quarter(name=f"Q{next_q} 20{yy_str}", ending_month=f"{yy_str}-{mm_str}", id=f"{yy_str}Q{next_q}", report_date_previous_quarter=previous_quarter.report_date_this_quarter)
 
     def check_report_dates_next_week(self, report_dates: ReportDates):
-        tickers = ""
-        quarters = ""
-        dates = ""
-        report_dates.report_dates.sort(key=lambda x: x.report_date)
-        for index, report_date in enumerate(report_dates.report_dates):
-            target_date = datetime.strptime(report_date.report_date, "%Y-%m-%d").date()
-            today = datetime.now().date()
-            seven_days_later = today + timedelta(days=6)
-            if today <= target_date <= seven_days_later:
-                tickers += report_date.ticker + "\n"
-                quarters += report_date.quarter + "\n"
-                dates += report_date.report_date + "\n"
-        if tickers and quarters and dates:
+        today = datetime.now().date()
+        if today.weekday() != 6:
+            self.log(ErrorMsg.SHOULD_RUN_ON_SUNDAY.format(today=calendar.day_name[today.weekday()]))
+        else:
+            report_map = {}
+            for i in range(1, 6):
+                weekday_date = (today + timedelta(days=i)).strftime("%Y-%m-%d")
+                report_map[weekday_date] = []
+
+            for report in report_dates.report_dates:
+                if report.report_date in report_map:
+                    info = f"{report.ticker} - {report.quarter}"
+                    report_map[report.report_date].append(info)
+
+            fields = list()
+            for day in sorted(report_map.keys()):
+                fields.append({
+                            "name": f"**{datetime.strptime(day, "%Y-%m-%d").strftime("%A")}** ({day})",
+                            "value": f"{"\n".join(report_map[day])}",
+                            "inline": False
+                        })
+
             self.discord.post(self.create_discord_post_payload([
                 {
-                    "title": "📅 Upcoming Earnings Report(s)",
+                    "title": "📅 Upcoming Earnings Reports",
                     "color": 3447003,
-                    "fields": [
-                        {
-                            "name": "Ticker",
-                            "value": f"**{tickers}**",
-                            "inline": True
-                        },
-                        {
-                            "name": "Report Date",
-                            "value": f"{dates}",
-                            "inline": True
-                        },
-                        {
-                            "name": "Quarter",
-                            "value": f"{quarters}",
-                            "inline": True
-                        }
-                    ]
+                    "fields": fields
                 }
             ]))
-
-
-
