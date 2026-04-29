@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 public class FirebaseService
 {
     private static FirebaseDatabase database;
+    private static List<FirebaseCompany> companies = new ArrayList<>();
 
     static {
         if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION"))
@@ -48,7 +49,7 @@ public class FirebaseService
                 app = FirebaseApp.getInstance();
             }
             database = FirebaseDatabase.getInstance(app);
-            database.getReference("company").addValueEventListener(new ValueEventListener() {
+            database.getReference("company-dep").addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                     companies.clear();
@@ -66,8 +67,6 @@ public class FirebaseService
             });
         }
     }
-
-    private static List<FirebaseCompany> companies = new ArrayList<>();
 
     public boolean hasCompany(String ticker)
     {
