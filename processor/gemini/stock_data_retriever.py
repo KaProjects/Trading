@@ -83,7 +83,7 @@ class StockDataRetrieverRunner(BaseClass):
                             "value": (
                                 f"**Revenues:** {self.format_financial(quarter.reported_revenues)}\n"
                                 f"**Gross Profit:** {self.format_financial(quarter.reported_gross_profit)}\n"
-                                f"**Oper. Income:** {self.format_financial(quarter.reported_gross_profit)}\n"
+                                f"**Oper. Income:** {self.format_financial(quarter.reported_operating_income)}\n"
                                 f"**Net Income:** {self.format_financial(quarter.reported_net_income)}\n"
                                 f"**Divs:** {self.format_financial(quarter.reported_div)}\n"
                                 f"**Shares:** {self.format_financial(quarter.reported_shares)}\n"
@@ -103,7 +103,7 @@ class StockDataRetrieverRunner(BaseClass):
     def format_financial(self, original: str):
         if original is None: return ""
         try:
-            result = int(original)
+            result = float(original)
             if result == 0: return "-"
             if result > 1000:
                 return str(round(result / 1000, 2)) + "B"
