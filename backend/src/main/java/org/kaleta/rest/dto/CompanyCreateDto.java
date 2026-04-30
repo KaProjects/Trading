@@ -21,7 +21,6 @@ public class CompanyCreateDto
     @NotNull
     @Pattern(regexp = "^true|false$", message = "must be 'true' or 'false'")
     private String watching;
-    @NotNull
     @ValueOfEnum(enumClass = Sector.class)
     private String sector;
 }

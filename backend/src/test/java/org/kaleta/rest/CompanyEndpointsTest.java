@@ -209,8 +209,6 @@ class CompanyEndpointsTest
         Assert.postValidationError(path, dto, "must be any of Currency");
         dto.setCurrency(validCurrency);
 
-        dto.setSector(null);
-        Assert.postValidationError(path, dto, "must not be null");
         dto.setSector("");
         Assert.postValidationError(path, dto, "must be any of Sector");
         dto.setSector("xyz");
