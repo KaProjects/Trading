@@ -47,7 +47,7 @@ const AddRecordDialog = props => {
                 }
             }
 
-            if (assets) {
+            if (assets.aggregate) {
                 setSumAssetQuantity(`${assets.aggregate.quantity}`)
                 setAvgAssetPrice(`${assets.aggregate.purchasePrice}`)
             } else {
