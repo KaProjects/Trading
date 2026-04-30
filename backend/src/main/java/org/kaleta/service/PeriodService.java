@@ -54,8 +54,8 @@ public class PeriodService
         if (dto.getPriceLow() != null) period.setPriceLow(new BigDecimal(dto.getPriceLow()));
         if (dto.getResearch() != null) period.setResearch(dto.getResearch());
         if (dto.getRevenue() != null) period.setRevenue(new BigDecimal(dto.getRevenue()));
-        if (dto.getCostGoodsSold() != null) period.setCostGoodsSold(new BigDecimal(dto.getCostGoodsSold()));
-        if (dto.getOperatingExpenses() != null) period.setOperatingExpenses(new BigDecimal(dto.getOperatingExpenses()));
+        if (dto.getGrossProfit() != null) period.setGrossProfit(new BigDecimal(dto.getGrossProfit()));
+        if (dto.getOperatingIncome() != null) period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
         if (dto.getNetIncome() != null) period.setNetIncome(new BigDecimal(dto.getNetIncome()));
         if (dto.getDividend() != null) period.setDividend(new BigDecimal(dto.getDividend()));
 
@@ -123,20 +123,14 @@ public class PeriodService
 
         financial.setPeriod(period.getName());
         financial.setRevenue(period.getRevenue());
-        financial.setCostGoodsSold(period.getCostGoodsSold());
-        financial.setOperatingExpenses(period.getOperatingExpenses());
+        financial.setGrossProfit(period.getGrossProfit());
+        financial.setOperatingIncome(period.getOperatingIncome());
         financial.setNetIncome(period.getNetIncome());
 
-        BigDecimal grossProfit = period.getRevenue().subtract(period.getCostGoodsSold());
-        financial.setGrossProfit(grossProfit);
-
-        BigDecimal grossMargin = grossProfit.multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
+        BigDecimal grossMargin = financial.getGrossProfit().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
         financial.setGrossMargin(grossMargin);
 
-        BigDecimal operatingIncome = grossProfit.subtract(period.getOperatingExpenses());
-        financial.setOperatingIncome(operatingIncome);
-
-        BigDecimal operatingMargin = operatingIncome.multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
+        BigDecimal operatingMargin = financial.getOperatingIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
         financial.setOperatingMargin(operatingMargin);
 
         BigDecimal netMargin = period.getNetIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
@@ -164,8 +158,8 @@ public class PeriodService
         for (int i=0; i<4; i++){
             if (quarters.size() > i){
                 revenue = revenue.add(quarters.get(i).getRevenue());
-                cogs = cogs.add(quarters.get(i).getCostGoodsSold());
-                opExpenses = opExpenses.add(quarters.get(i).getOperatingExpenses());
+                cogs = cogs.add(quarters.get(i).getGrossProfit());
+                opExpenses = opExpenses.add(quarters.get(i).getOperatingIncome());
                 netIncome = netIncome.add(quarters.get(i).getNetIncome());
                 dividend = dividend.add(quarters.get(i).getDividend());
             } else {
@@ -181,8 +175,8 @@ public class PeriodService
 
         Period ttm = new Period();
         ttm.setRevenue(revenue.setScale(0, RoundingMode.HALF_UP));
-        ttm.setCostGoodsSold(cogs.setScale(0, RoundingMode.HALF_UP));
-        ttm.setOperatingExpenses(opExpenses.setScale(0, RoundingMode.HALF_UP));
+        ttm.setGrossProfit(cogs.setScale(0, RoundingMode.HALF_UP));
+        ttm.setOperatingIncome(opExpenses.setScale(0, RoundingMode.HALF_UP));
         ttm.setNetIncome(netIncome.setScale(0, RoundingMode.HALF_UP));
         ttm.setDividend(dividend.setScale(0, RoundingMode.HALF_UP));
         ttm.setShares(quarters.get(0).getShares());
@@ -199,8 +193,8 @@ public class PeriodService
             switch (period.getName().getType()){
                 case FY:
                     quarter.setRevenue(period.getRevenue().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
-                    quarter.setCostGoodsSold(period.getCostGoodsSold().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
-                    quarter.setOperatingExpenses(period.getOperatingExpenses().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
+                    quarter.setGrossProfit(period.getGrossProfit().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
+                    quarter.setOperatingIncome(period.getOperatingIncome().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarter.setNetIncome(period.getNetIncome().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarter.setDividend(period.getDividend().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarter.setShares(period.getShares());
@@ -211,8 +205,8 @@ public class PeriodService
                     break;
                 case H1: case H2:
                     quarter.setRevenue(period.getRevenue().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
-                    quarter.setCostGoodsSold(period.getCostGoodsSold().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
-                    quarter.setOperatingExpenses(period.getOperatingExpenses().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
+                    quarter.setGrossProfit(period.getGrossProfit().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
+                    quarter.setOperatingIncome(period.getOperatingIncome().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarter.setNetIncome(period.getNetIncome().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarter.setDividend(period.getDividend().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarter.setShares(period.getShares());

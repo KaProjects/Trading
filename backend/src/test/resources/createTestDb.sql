@@ -56,9 +56,9 @@ INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('8f683c27-f334
 INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES ('719c545d-26d6-4437-8e1a-e1eea53b3967', '66c725b2-9987-4653-a49c-3a9906168d2a', '2020-12-01', '1000', '100');
 
 
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend) VALUES ('getPeriods1', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES ('getPeriods1', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES ('getPeriods2', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '25Q1', '2504');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend) VALUES ('getPeriods3', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES ('getPeriods3', 'adb89a0a-86bc-4854-8a55-058ad2e6308f', '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10');
 
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('9c3e92c2-2a66-46de-83f6-57eeb8a7b4b4', '0a16ba1d-99de-4306-8fc5-81ee11b60ea0', '22Q2', '2501', '2025-02-15');
 
@@ -89,9 +89,9 @@ INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES ('9c54a4c2-
 
 -- for ResearchEndpointsTest.get test
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('f47ac10b-58cc-4372-a567-0e02b2c3d479', 'RCH', '$', true);
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend, shares) VALUES ('9b37ef3c-3df6-4d1d-8c65-4a1e41a64b8f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20', '100');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares) VALUES ('9b37ef3c-3df6-4d1d-8c65-4a1e41a64b8f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20', '100');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES ('e0c17a5a-f27f-4b82-9a42-7d8e5b6c3a72', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '25Q1', '2504');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, cogs, op_exp, net_income, dividend, shares) VALUES ('3f9a40e1-6b0b-44c5-9db3-6c75c3a3d13f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10', '90');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares) VALUES ('3f9a40e1-6b0b-44c5-9db3-6c75c3a3d13f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10', '90');
 INSERT INTO Latest (id, companyId, datetime, price) VALUES ('9b3a4e42-84b3-4e3a-b60e-fb019b09b5ef', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '2025-10-27 14:35:00', '1234');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('cfa94677-53b1-4d4a-8c9e-0f4c9923280f', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '10', '2021-01-05', '90', '10');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('df602f02-0cf9-47f8-84a2-1f44ed46856c', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', '20', '2020-12-30', '180', '10');

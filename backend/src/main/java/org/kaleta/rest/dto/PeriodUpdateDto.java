@@ -29,9 +29,9 @@ public class PeriodUpdateDto
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String revenue;
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
-    private String costGoodsSold;
+    private String grossProfit;
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
-    private String operatingExpenses;
+    private String operatingIncome;
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String netIncome;
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)

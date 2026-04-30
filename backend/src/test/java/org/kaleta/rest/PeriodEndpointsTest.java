@@ -52,8 +52,8 @@ class PeriodEndpointsTest
         assertThat(period.getPriceLow(), is(nullValue()));
         assertThat(period.getResearch(), is(nullValue()));
         assertThat(period.getRevenue(), is(nullValue()));
-        assertThat(period.getCostGoodsSold(), is(nullValue()));
-        assertThat(period.getOperatingExpenses(), is(nullValue()));
+        assertThat(period.getGrossProfit(), is(nullValue()));
+        assertThat(period.getOperatingIncome(), is(nullValue()));
         assertThat(period.getNetIncome(), is(nullValue()));
         assertThat(period.getDividend(), is(nullValue()));
     }
@@ -138,8 +138,8 @@ class PeriodEndpointsTest
         dto.setPriceHigh(newPriceHigh);
         dto.setResearch(newResearch);
         dto.setRevenue(newRevenue);
-        dto.setCostGoodsSold(newCostGoodsSold);
-        dto.setOperatingExpenses(newOperatingExpenses);
+        dto.setGrossProfit(newCostGoodsSold);
+        dto.setOperatingIncome(newOperatingExpenses);
         dto.setNetIncome(newNetIncome);
         dto.setDividend(newDividends);
 
@@ -156,8 +156,8 @@ class PeriodEndpointsTest
         assertBigDecimals(period.getPriceLow(), new BigDecimal(dto.getPriceLow()));
         assertThat(period.getResearch(), is(dto.getResearch()));
         assertBigDecimals(period.getRevenue(), new BigDecimal(dto.getRevenue()));
-        assertBigDecimals(period.getCostGoodsSold(), new BigDecimal(dto.getCostGoodsSold()));
-        assertBigDecimals(period.getOperatingExpenses(), new BigDecimal(dto.getOperatingExpenses()));
+        assertBigDecimals(period.getGrossProfit(), new BigDecimal(dto.getGrossProfit()));
+        assertBigDecimals(period.getOperatingIncome(), new BigDecimal(dto.getOperatingIncome()));
         assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
         assertBigDecimals(period.getDividend(), new BigDecimal(dto.getDividend()));
     }
@@ -227,29 +227,29 @@ class PeriodEndpointsTest
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
         dto.setRevenue(null);
 
-        dto.setCostGoodsSold("x");
+        dto.setGrossProfit("x");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
-        dto.setCostGoodsSold(".1");
+        dto.setGrossProfit(".1");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
-        dto.setCostGoodsSold("1.");
+        dto.setGrossProfit("1.");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
-        dto.setCostGoodsSold("1234567");
+        dto.setGrossProfit("1234567");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
-        dto.setCostGoodsSold("10.123");
+        dto.setGrossProfit("10.123");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
-        dto.setCostGoodsSold(null);
+        dto.setGrossProfit(null);
 
-        dto.setOperatingExpenses("x");
+        dto.setOperatingIncome("x");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
-        dto.setOperatingExpenses(".1");
+        dto.setOperatingIncome(".1");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
-        dto.setOperatingExpenses("1.");
+        dto.setOperatingIncome("1.");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
-        dto.setOperatingExpenses("1234567");
+        dto.setOperatingIncome("1234567");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
-        dto.setOperatingExpenses("10.123");
+        dto.setOperatingIncome("10.123");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");
-        dto.setOperatingExpenses(null);
+        dto.setOperatingIncome(null);
 
         dto.setNetIncome("x");
         Assert.putValidationError(path, dto, "must be a valid BigDecimal");

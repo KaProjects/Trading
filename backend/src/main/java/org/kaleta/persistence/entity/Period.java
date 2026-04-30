@@ -45,11 +45,11 @@ public class Period extends AbstractEntityCompany
     @Column(name = "revenue")
     private BigDecimal revenue;
 
-    @Column(name = "cogs")
-    private BigDecimal costGoodsSold;
+    @Column(name = "gross_profit")
+    private BigDecimal grossProfit;
 
-    @Column(name = "op_exp")
-    private BigDecimal operatingExpenses;
+    @Column(name = "oper_income")
+    private BigDecimal operatingIncome;
 
     @Column(name = "net_income")
     private BigDecimal netIncome;

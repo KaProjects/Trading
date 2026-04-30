@@ -88,9 +88,9 @@ public class Generator
         if (reported) {
             period.setReportDate(Date.valueOf(randomDate(name.getYear().getValue())));
             period.setRevenue(randomBigDecimal(new BigDecimal(999999), 2));
-            period.setCostGoodsSold(randomBigDecimal(period.getRevenue(), 2));
-            period.setOperatingExpenses(randomBigDecimal(period.getCostGoodsSold(), 2));
-            period.setNetIncome(randomBigDecimal(period.getOperatingExpenses(), 2));
+            period.setGrossProfit(randomBigDecimal(period.getRevenue(), 2));
+            period.setOperatingIncome(randomBigDecimal(period.getGrossProfit(), 2));
+            period.setNetIncome(randomBigDecimal(period.getOperatingIncome(), 2));
             period.setDividend(randomBigDecimal(period.getNetIncome(), 2));
         }
         return period;
@@ -98,13 +98,13 @@ public class Generator
 
     public static Period generatePeriod(
             Company company, PeriodName name, YearMonth endingMonth,
-            String revenue, String costGoodsSold, String operatingExpense, String netIncome, String dividend
+            String revenue, String grossProfit, String operatingIncome, String netIncome, String dividend
     ) {
         Period period = generatePeriod(company, false, name, endingMonth);
         period.setReportDate(Date.valueOf(randomDate(name.getYear().getValue())));
         period.setRevenue(new BigDecimal(revenue));
-        period.setCostGoodsSold(new BigDecimal(costGoodsSold));
-        period.setOperatingExpenses(new BigDecimal(operatingExpense));
+        period.setGrossProfit(new BigDecimal(grossProfit));
+        period.setOperatingIncome(new BigDecimal(operatingIncome));
         period.setNetIncome(new BigDecimal(netIncome));
         period.setDividend(new BigDecimal(dividend));
         period.setShares(randomBigDecimal(new BigDecimal(999999), 2));
@@ -176,14 +176,12 @@ public class Generator
         financial.setPeriod(PeriodName.valueOf(String.format("%02d", RANDOM.nextInt(100))
                 + List.of("FY", "H1", "H2", "Q1", "Q2", "Q3", "Q4").get(RANDOM.nextInt(7))));
         financial.setRevenue(randomBigDecimal(new BigDecimal(999999), 2));
-        financial.setCostGoodsSold(randomBigDecimal(financial.getRevenue(), 2));
-        financial.setGrossProfit(financial.getRevenue().subtract(financial.getCostGoodsSold()));
-        financial.setGrossMargin(financial.getGrossProfit().divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
-        financial.setOperatingExpenses(randomBigDecimal(financial.getCostGoodsSold(), 2));
-        financial.setOperatingIncome(financial.getGrossProfit().subtract(financial.getOperatingExpenses()));
-        financial.setOperatingMargin(financial.getOperatingIncome().divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
-        financial.setNetIncome(randomBigDecimal(financial.getOperatingExpenses(), 2));
-        financial.setOperatingMargin(financial.getNetIncome().divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
+        financial.setGrossProfit(randomBigDecimal(financial.getRevenue(), 2));
+        financial.setGrossMargin(financial.getGrossProfit().multiply(new BigDecimal(100)).divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
+        financial.setOperatingIncome(randomBigDecimal(financial.getGrossProfit(), 2));
+        financial.setOperatingMargin(financial.getOperatingIncome().multiply(new BigDecimal(100)).divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
+        financial.setNetIncome(randomBigDecimal(financial.getOperatingIncome(), 2));
+        financial.setNetMargin(financial.getNetIncome().multiply(new BigDecimal(100)).divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
         financial.setDividend(randomBigDecimal(financial.getNetIncome(), 2));
         financial.setShares(randomBigDecimal(new BigDecimal(999999), 2));
         return financial;

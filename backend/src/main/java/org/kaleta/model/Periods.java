@@ -35,10 +35,8 @@ public class Periods
     {
         private PeriodName period;
         private BigDecimal revenue;
-        private BigDecimal costGoodsSold;
         private BigDecimal grossProfit;
         private BigDecimal grossMargin;
-        private BigDecimal operatingExpenses;
         private BigDecimal operatingIncome;
         private BigDecimal operatingMargin;
         private BigDecimal netIncome;

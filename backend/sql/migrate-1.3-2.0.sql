@@ -16,6 +16,8 @@ ALTER TABLE Record ADD COLUMN p_oper DECIMAL(6, 2);
 ALTER TABLE Record ADD COLUMN asset_quantity DECIMAL(8, 4);
 ALTER TABLE Record ADD COLUMN asset_price DECIMAL(10, 4);
 
-
-
+ALTER TABLE Period ADD COLUMN gross_profit DECIMAL(8, 2);
+ALTER TABLE Period ADD COLUMN oper_income DECIMAL(8, 2);
+ALTER TABLE Period DROP COLUMN cogs;
+ALTER TABLE Period DROP COLUMN op_exp;
 
