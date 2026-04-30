@@ -72,7 +72,7 @@ const AddPeriodFinancialDialog = props => {
     function createFinancial() {
         const financialData = {id: period.id, reportDate: reportDate, priceLow: priceL, priceHigh: priceH,
             shares: shares, revenue: revenue, grossProfit: grossProfit, operatingIncome: operIncome, netIncome: netIncome, dividend: dividend}
-        axios.put(backend + "/period", financialData)
+        axios.put(backend + "/period/financial", financialData)
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()

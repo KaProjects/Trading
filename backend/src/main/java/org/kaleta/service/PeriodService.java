@@ -10,6 +10,7 @@ import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
+import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -58,6 +59,29 @@ public class PeriodService
         if (dto.getOperatingIncome() != null) period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
         if (dto.getNetIncome() != null) period.setNetIncome(new BigDecimal(dto.getNetIncome()));
         if (dto.getDividend() != null) period.setDividend(new BigDecimal(dto.getDividend()));
+
+        periodDao.save(period);
+    }
+
+
+    public void updateFinancial(PeriodUpdateFinancialDto dto)
+    {
+        Period period;
+        try {
+            period = periodDao.get(dto.getId());
+        } catch (NoResultException e){
+            throw new ServiceFailureException("period with id '" + dto.getId() + "' not found");
+        }
+
+        period.setReportDate(Utils.nullableDateValueOf(dto.getReportDate()));
+        period.setShares(new BigDecimal(dto.getShares()));
+        period.setPriceHigh(new BigDecimal(dto.getPriceHigh()));
+        period.setPriceLow(new BigDecimal(dto.getPriceLow()));
+        period.setRevenue(new BigDecimal(dto.getRevenue()));
+        period.setGrossProfit(new BigDecimal(dto.getGrossProfit()));
+        period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
+        period.setNetIncome(new BigDecimal(dto.getNetIncome()));
+        period.setDividend(new BigDecimal(dto.getDividend()));
 
         periodDao.save(period);
     }

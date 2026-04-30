@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
+import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.kaleta.service.PeriodService;
 
 @Path("/period")
@@ -25,6 +26,15 @@ public class PeriodEndpoints
     public Response update(@Valid @NotNull PeriodUpdateDto periodDto)
     {
         periodService.update(periodDto);
+        return Response.noContent().build();
+    }
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/financial")
+    public Response update(@Valid @NotNull PeriodUpdateFinancialDto periodDto)
+    {
+        periodService.updateFinancial(periodDto);
         return Response.noContent().build();
     }
 

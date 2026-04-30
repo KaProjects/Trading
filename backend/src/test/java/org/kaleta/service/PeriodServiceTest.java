@@ -14,6 +14,7 @@ import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
+import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
@@ -178,6 +179,95 @@ public class PeriodServiceTest
         });
         dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
+    }
+
+    @Test
+    void updateFinancial()
+    {
+        Company company = Generator.generateCompany();
+        Period period = Generator.generatePeriod(company, true);
+
+        when(periodDao.get(period.getId())).thenReturn(period);
+        when(periodDao.get(null)).thenThrow(NoResultException.class);
+
+        PeriodUpdateFinancialDto dto = new PeriodUpdateFinancialDto();
+
+        updateFinancialAndAssertPeriod(dto, period, ServiceFailureException.class);
+
+        dto.setId(period.getId());
+        dto.setReportDate(Generator.randomDate(2025));
+        dto.setShares(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        dto.setPriceLow(String.valueOf(Generator.randomBigDecimal(999999, 4)));
+        dto.setPriceHigh(String.valueOf(Generator.randomBigDecimal(999999, 4)));
+        dto.setRevenue(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        dto.setGrossProfit(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        dto.setOperatingIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        dto.setNetIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        updateFinancialAndAssertPeriod(dto, period, null);
+
+        invalidDates().forEach(invalidDate -> {
+            dto.setReportDate(invalidDate);
+            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setReportDate(Generator.randomDate(2025));
+        updateFinancialAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setShares(invalidBigDecimal);
+            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setShares(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        updateFinancialAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setPriceLow(invalidBigDecimal);
+            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setPriceLow(String.valueOf(Generator.randomBigDecimal(999999, 4)));
+        updateFinancialAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setPriceHigh(invalidBigDecimal);
+            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setPriceHigh(String.valueOf(Generator.randomBigDecimal(999999, 4)));
+        updateFinancialAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setRevenue(invalidBigDecimal);
+            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setRevenue(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        updateFinancialAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setGrossProfit(invalidBigDecimal);
+            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setGrossProfit(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        updateFinancialAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setOperatingIncome(invalidBigDecimal);
+            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setOperatingIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        updateFinancialAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setNetIncome(invalidBigDecimal);
+            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setNetIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        updateFinancialAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setDividend(invalidBigDecimal);
+            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        updateFinancialAndAssertPeriod(dto, period, null);
     }
 
     @Test
@@ -567,6 +657,33 @@ public class PeriodServiceTest
             clearInvocations(periodDao);
         } else {
             assertThrows(expectedException, () -> periodService.update(dto));
+        }
+    }
+
+    private void updateFinancialAndAssertPeriod(PeriodUpdateFinancialDto dto, Period period, Class<? extends Exception> expectedException) {
+        if (expectedException == null) {
+            periodService.updateFinancial(dto);
+
+            ArgumentCaptor<Period> captor = ArgumentCaptor.forClass(Period.class);
+            verify(periodDao).save(captor.capture());
+
+            assertThat(captor.getValue().getCompany().getId(), is(period.getCompany().getId()));
+            assertThat(captor.getValue().getName(), is(period.getName()));
+            assertThat(captor.getValue().getEndingMonth(), is(period.getEndingMonth()));
+            assertThat(captor.getValue().getResearch(), is(period.getResearch()));
+            assertThat(captor.getValue().getReportDate(), is(Date.valueOf(dto.getReportDate())));
+            assertThat(captor.getValue().getShares(), is(new BigDecimal(dto.getShares())));
+            assertThat(captor.getValue().getPriceHigh(), is(new BigDecimal(dto.getPriceHigh())));
+            assertThat(captor.getValue().getPriceLow(), is(new BigDecimal(dto.getPriceLow())));
+            assertThat(captor.getValue().getRevenue(), is(new BigDecimal(dto.getRevenue())));
+            assertThat(captor.getValue().getGrossProfit(), is(new BigDecimal(dto.getGrossProfit())));
+            assertThat(captor.getValue().getOperatingIncome(), is(new BigDecimal(dto.getOperatingIncome())));
+            assertThat(captor.getValue().getNetIncome(), is(new BigDecimal(dto.getNetIncome())));
+            assertThat(captor.getValue().getDividend(), is(new BigDecimal(dto.getDividend())));
+
+            clearInvocations(periodDao);
+        } else {
+            assertThrows(expectedException, () -> periodService.updateFinancial(dto));
         }
     }
 }
