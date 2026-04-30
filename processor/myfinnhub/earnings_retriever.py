@@ -58,8 +58,7 @@ class FinnhubEarningsRetrieverRunner(BaseClass):
             self.log(traceback.format_exc() + "\n^^^ exception occurred!")
 
     def discord_post_earnings(self, ticker, quarter, latest: Earnings, now: Earnings):
-        if latest is None:
-            latest = Earnings(epse=-1000, reve=-1, report="")
+        if latest is None: latest = Earnings(epse=None, reve=None, report="")
         epse = self.format_eps(now.epse)
         if not self.almost_equals(latest.epse, now.epse):
             epse = self.format_eps(latest.epse) + " -> " + epse
@@ -71,8 +70,6 @@ class FinnhubEarningsRetrieverRunner(BaseClass):
         fields = list()
         fields.append({"name": "Estimates:", "value": f"earnings: \u200b {epse}\nrevenues: \u200b {reve}"})
 
-        now.epsa = 1
-        now.reva = 1000000
         if now.epsa and now.reva:
             epsa = self.format_eps(now.epsa)
             if not self.almost_equals(latest.epsa, now.epsa):
@@ -106,8 +103,8 @@ class FinnhubEarningsRetrieverRunner(BaseClass):
         return self.almost_equals(a.epse, b.epse) and self.almost_equals(a.reve, b.reve) and self.almost_equals(a.epsa, b.epsa) and self.almost_equals(a.reva, b.reva)
 
     def almost_equals(self, a, b):
-        if not isinstance(a, (int, float)): a = -1000
-        if not isinstance(b, (int, float)): b = -1000
+        if a is None or not isinstance(a, (int, float)): a = -1000
+        if b is None or not isinstance(b, (int, float)): b = -1000
         return math.isclose(a, b, rel_tol=0.05)
 
     def create_discord_post_payload(self, embeds):
