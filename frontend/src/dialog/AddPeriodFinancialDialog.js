@@ -6,7 +6,6 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    TextField,
     Typography
 } from "@mui/material";
 import React, {useEffect, useState} from "react";
@@ -15,6 +14,7 @@ import {backend} from "../properties";
 import {getFinancial, getQuote} from "../service/PolygonIoService";
 import {formatError, formatPeriodName} from "../service/FormattingService";
 import {validateNumber} from "../service/ValidationService";
+import {DialogTextField} from "./component/DialogTextField";
 
 const AddPeriodFinancialDialog = props => {
     const {handleClose, open, period} = props
@@ -124,68 +124,69 @@ const AddPeriodFinancialDialog = props => {
             <DialogTitle>Add Financial for {props.companySelectorValue.ticker} {period ? formatPeriodName(period.name) : ""}</DialogTitle>
             <DialogContent>
                 <Typography>{financialImportInfo}</Typography>
-                <TextField required margin="dense" fullWidth variant="standard" id="company-financial-shares"
-                           value={shares}
-                           label="Shares (in Millions)"
-                           onChange={(e) => {setShares(e.target.value);setAlert(null);}}
-                           error={validateNumber(shares, false, 8, 2) !== ""}
-                           helperText={validateNumber(shares, false, 8, 2)}
+                <DialogTextField
+                    id="company-financial-shares"
+                    value={shares}
+                    label="Shares (in Millions)"
+                    onChange={(e) => {setShares(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(shares, false, 8, 2)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="company-financial-revenue"
-                           value={revenue}
-                           label="Revenue (in Millions)"
-                           onChange={(e) => {setRevenue(e.target.value);setAlert(null);}}
-                           error={validateNumber(revenue, false, 8, 2) !== ""}
-                           helperText={validateNumber(revenue, false, 8, 2)}
+                <DialogTextField
+                    id="company-financial-revenue"
+                    value={revenue}
+                    label="Revenue (in Millions)"
+                    onChange={(e) => {setRevenue(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(revenue, false, 8, 2)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="company-financial-cogs"
-                           value={cogs}
-                           label="Cost of Goods Sold (in Millions)"
-                           onChange={(e) => {setCogs(e.target.value);setAlert(null);}}
-                           error={validateNumber(cogs, false, 8, 2) !== ""}
-                           helperText={validateNumber(cogs, false, 8, 2)}
+                <DialogTextField
+                    id="company-financial-cogs"
+                    value={cogs}
+                    label="Cost of Goods Sold (in Millions)"
+                    onChange={(e) => {setCogs(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(cogs, false, 8, 2)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="company-financial-op-exp"
-                           value={opExp}
-                           label="Operating Expenses (in Millions)"
-                           onChange={(e) => {setOpExp(e.target.value);setAlert(null);}}
-                           error={validateNumber(opExp, false, 8, 2) !== ""}
-                           helperText={validateNumber(opExp, false, 8, 2)}
+                <DialogTextField
+                    id="company-financial-op-exp"
+                    value={opExp}
+                    label="Operating Expenses (in Millions)"
+                    onChange={(e) => {setOpExp(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(opExp, false, 8, 2)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="company-financial-netIncome"
-                           value={netIncome}
-                           label="Net Income (in Millions)"
-                           onChange={(e) => {setNetIncome(e.target.value);setAlert(null);}}
-                           error={validateNumber(netIncome, false, 8, 2) !== ""}
-                           helperText={validateNumber(netIncome, false, 8, 2)}
+                <DialogTextField
+                    id="company-financial-netIncome"
+                    value={netIncome}
+                    label="Net Income (in Millions)"
+                    onChange={(e) => {setNetIncome(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(netIncome, false, 8, 2)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="company-financial-dividend"
-                           value={dividend}
-                           label="Dividend (in Millions)"
-                           onChange={(e) => {setDividend(e.target.value);setAlert(null);}}
-                           error={validateNumber(dividend, false, 8, 2) !== ""}
-                           helperText={validateNumber(dividend, false, 8, 2)}
+                <DialogTextField
+                    id="company-financial-dividend"
+                    value={dividend}
+                    label="Dividend (in Millions)"
+                    onChange={(e) => {setDividend(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(dividend, false, 8, 2)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-period-report-date"
-                           type="date"
-                           value={reportDate}
-                           onChange={(e) => {setReportDate(e.target.value);setAlert(null);}}
-                           error={reportDate === ""}
+                <DialogTextField
+                    id="trader-period-report-date"
+                    type="date"
+                    value={reportDate}
+                    onChange={(e) => {setReportDate(e.target.value);setAlert(null);}}
+                    validate={() => reportDate === "" ? "not blank" : ""}
                 />
                 <Typography>{priceImportInfo}</Typography>
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-period-price-h"
-                           value={priceH}
-                           label="Highest Price"
-                           onChange={(e) => {setPriceH(e.target.value);setAlert(null);}}
-                           error={validateNumber(priceH, false, 10, 4) !== ""}
-                           helperText={validateNumber(priceH, false, 10, 4)}
+                <DialogTextField
+                    id="trader-period-price-h"
+                    value={priceH}
+                    label="Highest Price"
+                    onChange={(e) => {setPriceH(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(priceH, false, 10, 4)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-period-price-l"
-                           value={priceL}
-                           label="Lowest Price"
-                           onChange={(e) => {setPriceL(e.target.value);setAlert(null);}}
-                           error={validateNumber(priceL, false, 10, 4) !== ""}
-                           helperText={validateNumber(priceL, false, 10, 4)}
+                <DialogTextField
+                    id="trader-period-price-l"
+                    value={priceL}
+                    label="Lowest Price"
+                    onChange={(e) => {setPriceL(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(priceL, false, 10, 4)}
                 />
             </DialogContent>
             {alert &&

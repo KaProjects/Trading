@@ -1,8 +1,9 @@
-import {Alert, AlertTitle, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
+import {Alert, AlertTitle, Button, Dialog, DialogActions, DialogContent, DialogTitle} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
 import axios from "axios";
 import {formatError} from "../service/FormattingService";
+import {DialogTextField} from "./component/DialogTextField";
 
 
 const AddPeriodDialog = props => {
@@ -36,19 +37,20 @@ const AddPeriodDialog = props => {
         >
             <DialogTitle>Add Period</DialogTitle>
             <DialogContent>
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-period-name"
-                           value={name}
-                           label="Name"
-                           onChange={(e) => {setName(e.target.value);setAlert(null);}}
-                           error={name.length !== 4}
-                           helperText={name.length !== 4 ? "exactly 4 symbols, e.g. 25FY, 25Q1, ..." : ""}
+                <DialogTextField
+                    id="trader-period-name"
+                    value={name}
+                    label="Name"
+                    onChange={(e) => {setName(e.target.value);setAlert(null);}}
+                    validate={() => name.length !== 4 ? "exactly 4 symbols, e.g. 25FY, 25Q1, ..." : ""}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-period-end-month"
-                           type="month"
-                           value={endingMonth}
-                           label="Ending Month"
-                           onChange={(e) => {setEndingMonth(e.target.value);setAlert(null);}}
-                           error={endingMonth === ""}
+                <DialogTextField
+                    id="trader-period-end-month"
+                    type="month"
+                    value={endingMonth}
+                    label="Ending Month"
+                    onChange={(e) => {setEndingMonth(e.target.value);setAlert(null);}}
+                    validate={() => endingMonth === "" ? "not blank" : ""}
                 />
             </DialogContent>
             {alert &&

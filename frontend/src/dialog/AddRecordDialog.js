@@ -1,9 +1,10 @@
-import {Alert, AlertTitle, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
+import {Alert, AlertTitle, Button, Dialog, DialogActions, DialogContent, DialogTitle} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
 import axios from "axios";
 import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
+import {DialogTextField} from "./component/DialogTextField";
 
 
 const AddRecordDialog = props => {
@@ -79,76 +80,78 @@ const AddRecordDialog = props => {
         >
             <DialogTitle>Add Record</DialogTitle>
             <DialogContent>
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-date"
-                           type="date"
-                           value={date}
-                           onChange={(e) => {setDate(e.target.value);setAlert(null);}}
-                           error={date === ""}
+                <DialogTextField
+                    id="trader-record-date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => {setDate(e.target.value);setAlert(null);}}
+                    validate={() => date === "" ? "not blank" : ""}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-title"
-                           value={title}
-                           label="Title"
-                           onChange={(e) => {setTitle(e.target.value);setAlert(null);}}
-                           error={title === ""}
+                <DialogTextField
+                    id="trader-record-title"
+                    value={title}
+                    label="Title"
+                    onChange={(e) => {setTitle(e.target.value);setAlert(null);}}
+                    validate={() => title === "" ? "not blank" : ""}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-price"
-                           value={price}
-                           label="Price"
-                           onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
-                           error={validateNumber(price, false, 10, 4) !== ""}
-                           helperText={validateNumber(price, false, 10, 4)}
-                />
-
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-ps"
-                           value={priceToRevenues}
-                           label="PS"
-                           onChange={(e) => {setPriceToRevenues(e.target.value);setAlert(null);}}
-                           error={validateNumber(priceToRevenues, true, 6, 2) !== ""}
-                           helperText={validateNumber(priceToRevenues, true, 6, 2)}
-                />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-pg"
-                           value={priceToGrossProfit}
-                           label="PG"
-                           onChange={(e) => {setPriceToGrossProfit(e.target.value);setAlert(null);}}
-                           error={validateNumber(priceToGrossProfit, true, 6, 2) !== ""}
-                           helperText={validateNumber(priceToGrossProfit, true, 6, 2)}
-                />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-po"
-                           value={priceToOperatingIncome}
-                           label="PO"
-                           onChange={(e) => {setPriceToOperatingIncome(e.target.value);setAlert(null);}}
-                           error={validateNumber(priceToOperatingIncome, true, 6, 2) !== ""}
-                           helperText={validateNumber(priceToOperatingIncome, true, 6, 2)}
-                />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-pe"
-                           value={priceToNetIncome}
-                           label="PE"
-                           onChange={(e) => {setPriceToNetIncome(e.target.value);setAlert(null);}}
-                           error={validateNumber(priceToNetIncome, true, 6, 2) !== ""}
-                           helperText={validateNumber(priceToNetIncome, true, 6, 2)}
+                <DialogTextField
+                    id="trader-record-price"
+                    value={price}
+                    label="Price"
+                    onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(price, false, 10, 4)}
                 />
 
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-dy"
-                           value={dividendYield}
-                           label="DY"
-                           onChange={(e) => {setDividendYield(e.target.value);setAlert(null);}}
-                           error={validateNumber(dividendYield, true, 5, 2) !== ""}
-                           helperText={validateNumber(dividendYield, true, 5, 2)}
+                <DialogTextField
+                    id="trader-record-ps"
+                    value={priceToRevenues}
+                    label="PS"
+                    onChange={(e) => {setPriceToRevenues(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(priceToRevenues, true, 6, 2)}
+                />
+                <DialogTextField
+                    id="trader-record-pg"
+                    value={priceToGrossProfit}
+                    label="PG"
+                    onChange={(e) => {setPriceToGrossProfit(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(priceToGrossProfit, true, 6, 2)}
+                />
+                <DialogTextField
+                    id="trader-record-po"
+                    value={priceToOperatingIncome}
+                    label="PO"
+                    onChange={(e) => {setPriceToOperatingIncome(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(priceToOperatingIncome, true, 6, 2)}
+                />
+                <DialogTextField
+                    id="trader-record-pe"
+                    value={priceToNetIncome}
+                    label="PE"
+                    onChange={(e) => {setPriceToNetIncome(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(priceToNetIncome, true, 6, 2)}
                 />
 
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-assets-quantity"
-                           value={sumAssetQuantity}
-                           label="assets quantity sum"
-                           onChange={(e) => {setSumAssetQuantity(e.target.value);setAlert(null);}}
-                           error={validateNumber(sumAssetQuantity, true, 8, 4) !== ""}
-                           helperText={validateNumber(sumAssetQuantity, true, 8, 4)}
+                <DialogTextField
+                    id="trader-record-dy"
+                    value={dividendYield}
+                    label="DY"
+                    onChange={(e) => {setDividendYield(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(dividendYield, true, 5, 2)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-record-assets-price"
-                           value={avgAssetPrice}
-                           label="assets avg purchase price"
-                           onChange={(e) => {setAvgAssetPrice(e.target.value);setAlert(null);}}
-                           error={validateNumber(avgAssetPrice, true, 10, 4) !== ""}
-                           helperText={validateNumber(avgAssetPrice, true, 10, 4)}
+
+                <DialogTextField
+                    id="trader-record-assets-quantity"
+                    value={sumAssetQuantity}
+                    label="assets quantity sum"
+                    onChange={(e) => {setSumAssetQuantity(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(sumAssetQuantity, true, 8, 4)}
+                />
+                <DialogTextField
+                    id="trader-record-assets-price"
+                    value={avgAssetPrice}
+                    label="assets avg purchase price"
+                    onChange={(e) => {setAvgAssetPrice(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(avgAssetPrice, true, 10, 4)}
                 />
 
             </DialogContent>

@@ -10,11 +10,11 @@ import {
     DialogContent,
     DialogTitle,
     MenuItem,
-    Select,
-    TextField
+    Select
 } from "@mui/material";
 import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
+import {DialogTextField} from "./component/DialogTextField";
 
 
 const AddDividendDialog = props => {
@@ -55,11 +55,12 @@ const AddDividendDialog = props => {
         >
             <DialogTitle>Add Dividend</DialogTitle>
             <DialogContent>
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-dividend-date"
-                           type="date"
-                           value={date}
-                           onChange={(e) => {setDate(e.target.value);setAlert(null);}}
-                           error={date === ""}
+                <DialogTextField
+                    id="trader-dividend-date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => {setDate(e.target.value);setAlert(null);}}
+                    validate={() => date === "" ? "not blank" : ""}
                 />
                 <Select required margin="dense" fullWidth variant="standard" displayEmpty
                         value={company}
@@ -72,19 +73,19 @@ const AddDividendDialog = props => {
                         <MenuItem key={index} value={company} >{(company.ticker === undefined) ? company : company.ticker}</MenuItem>
                     ))}
                 </Select>
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-dividend-dividend"
-                           value={dividend}
-                           label="Dividend"
-                           onChange={(e) => {setDividend(e.target.value);setAlert(null);}}
-                           error={validateNumber(dividend, false, 7, 2) !== ""}
-                           helperText={validateNumber(dividend, false, 7, 2)}
+                <DialogTextField
+                    id="trader-dividend-dividend"
+                    value={dividend}
+                    label="Dividend"
+                    onChange={(e) => {setDividend(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(dividend, false, 7, 2)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard" id="trader-dividend-tax"
-                           value={tax}
-                           label="Tax"
-                           onChange={(e) => {setTax(e.target.value);setAlert(null);}}
-                           error={validateNumber(tax, false, 6, 2) !== ""}
-                           helperText={validateNumber(tax, false, 6, 2) }
+                <DialogTextField
+                    id="trader-dividend-tax"
+                    value={tax}
+                    label="Tax"
+                    onChange={(e) => {setTax(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(tax, false, 6, 2)}
                 />
             </DialogContent>
             {alert &&

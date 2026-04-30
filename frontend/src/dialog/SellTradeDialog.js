@@ -12,14 +12,14 @@ import {
     TableBody,
     TableCell,
     TableHead,
-    TableRow,
-    TextField
+    TableRow
 } from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
 import axios from "axios";
 import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
+import {DialogTextField} from "./component/DialogTextField";
 
 
 const SellTradeDialog = props => {
@@ -91,25 +91,26 @@ const SellTradeDialog = props => {
         >
             <DialogTitle>Sell Trade</DialogTitle>
             <DialogContent>
-                <TextField required margin="dense" fullWidth variant="standard"id="trader-sell-trade-date"
-                           type="date"
-                           value={date}
-                           onChange={(e) => {setDate(e.target.value);setAlert(null);}}
-                           error={date === ""}
+                <DialogTextField
+                    id="trader-sell-trade-date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => {setDate(e.target.value);setAlert(null);}}
+                    validate={() => date === "" ? "not blank" : ""}
                 />
-                <TextField required margin="dense" fullWidth variant="standard"id="trader-sell-trade-price"
-                           value={price}
-                           label="Price"
-                           onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
-                           error={validateNumber(price, false, 10, 4) !== ""}
-                           helperText={validateNumber(price, false, 10, 4) }
+                <DialogTextField
+                    id="trader-sell-trade-price"
+                    value={price}
+                    label="Price"
+                    onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(price, false, 10, 4)}
                 />
-                <TextField required margin="dense" fullWidth variant="standard"id="trader-sell-trade-fees"
-                           value={fees}
-                           label="Fees"
-                           onChange={(e) => {setFees(e.target.value);setAlert(null);}}
-                           error={validateNumber(fees, false, 5, 2) !== ""}
-                           helperText={validateNumber(fees, false, 5, 2) }
+                <DialogTextField
+                    id="trader-sell-trade-fees"
+                    value={fees}
+                    label="Fees"
+                    onChange={(e) => {setFees(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(fees, false, 5, 2)}
                 />
                 <Select required margin="dense" fullWidth variant="standard" displayEmpty
                         value={company}
@@ -142,11 +143,12 @@ const SellTradeDialog = props => {
                                 <TableCell>{trade.purchaseFees}{trade.currency}</TableCell>
                                 <TableCell>{trade.purchaseTotal}{trade.currency}</TableCell>
                                 <TableCell>
-                                    <TextField margin="dense" fullWidth variant="standard" id="trader-sell-trade-quantity"
-                                               value={trade.sellQuantity ? trade.sellQuantity : ""}
-                                               onChange={(e) => {const newTrades = [...trades];newTrades[index].sellQuantity = e.target.value; setTrades([...newTrades]); setAlert(null);}}
-                                               error={validateQuantity(trade) !== ""}
-                                               helperText={validateQuantity(trade)}
+                                    <DialogTextField
+                                        required={false}
+                                        id="trader-sell-trade-quantity"
+                                        value={trade.sellQuantity ? trade.sellQuantity : ""}
+                                        onChange={(e) => {const newTrades = [...trades];newTrades[index].sellQuantity = e.target.value; setTrades([...newTrades]); setAlert(null);}}
+                                        validate={() => validateQuantity(trade)}
                                     />
                                 </TableCell>
                             </TableRow>

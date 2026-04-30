@@ -12,11 +12,11 @@ import {
     FormControlLabel,
     MenuItem,
     Select,
-    Switch,
-    TextField
+    Switch
 } from "@mui/material";
 import {validateTicker} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
+import {DialogTextField} from "./component/DialogTextField";
 
 
 const EditCompanyDialog = props => {
@@ -74,12 +74,12 @@ const EditCompanyDialog = props => {
             <DialogTitle>{(company && company.id) ? "Edit " + company.ticker : "Add Company"}</DialogTitle>
             <DialogContent>
                 {company && !company.id &&
-                    <TextField required margin="dense" fullWidth variant="standard" id="company-ticker"
-                               value={ticker}
-                               label="Ticker"
-                               onChange={(e) => {setTicker(e.target.value);setAlert(null);}}
-                               error={validateTicker(ticker) !== ""}
-                               helperText={validateTicker(ticker)}
+                    <DialogTextField
+                        id="company-ticker"
+                        value={ticker}
+                        label="Ticker"
+                        onChange={(e) => {setTicker(e.target.value);setAlert(null);}}
+                        validate={() => validateTicker(ticker)}
                     />
                 }
                 <Select required margin="dense" fullWidth variant="standard" displayEmpty
