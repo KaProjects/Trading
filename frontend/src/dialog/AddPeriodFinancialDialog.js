@@ -26,8 +26,8 @@ const AddPeriodFinancialDialog = props => {
     const [reportDate, setReportDate] = useState("")
     const [shares, setShares] = useState("")
     const [revenue, setRevenue] = useState("")
-    const [cogs, setCogs] = useState("")
-    const [opExp, setOpExp] = useState("")
+    const [grossProfit, setGrossProfit] = useState("")
+    const [operIncome, setOperIncome] = useState("")
     const [netIncome, setNetIncome] = useState("")
     const [dividend, setDividend] = useState("")
     const [priceH, setPriceH] = useState("")
@@ -41,8 +41,8 @@ const AddPeriodFinancialDialog = props => {
             setReportDate(period.reportDate ? period.reportDate : "")
             setShares("")
             setRevenue("")
-            setCogs("")
-            setOpExp("")
+            setGrossProfit("")
+            setOperIncome("")
             setNetIncome("")
             setDividend("")
             setPriceH("")
@@ -71,7 +71,7 @@ const AddPeriodFinancialDialog = props => {
 
     function createFinancial() {
         const financialData = {id: period.id, reportDate: reportDate, priceLow: priceL, priceHigh: priceH,
-            shares: shares, revenue: revenue, costGoodsSold: cogs, operatingExpenses: opExp, netIncome: netIncome, dividend: dividend}
+            shares: shares, revenue: revenue, grossProfit: grossProfit, operatingIncome: operIncome, netIncome: netIncome, dividend: dividend}
         axios.put(backend + "/period", financialData)
             .then((response) => {
                 props.triggerRefresh()
@@ -85,21 +85,21 @@ const AddPeriodFinancialDialog = props => {
         if (financial) {
             setFinancialImportInfo("found: " + financial.start_date + " => " + financial.end_date)
             const shares = financial.financials.income_statement.basic_average_shares.value.toString()
-            setShares(shares.substring(0, shares.length - 6))
+            setShares((Number(shares) / 1_000_000).toString())
             const revenues = financial.financials.income_statement.revenues.value.toString()
-            setRevenue(revenues.substring(0, revenues.length - 6))
-            const cogs = financial.financials.income_statement.cost_of_revenue.value.toString()
-            setCogs(cogs.substring(0, cogs.length - 6))
-            const opExp = financial.financials.income_statement.operating_expenses.value.toString()
-            setOpExp(opExp.substring(0, opExp.length - 6))
-            const ni = financial.financials.income_statement.net_income_loss.value.toString()
-            setNetIncome(ni.substring(0, ni.length - 6))
+            setRevenue((Number(revenues) / 1_000_000).toString())
+            const grossProfit = financial.financials.income_statement.gross_profit.value.toString()
+            setGrossProfit((Number(grossProfit) / 1_000_000).toString())
+            const operIncome = financial.financials.income_statement.operating_income_loss.value.toString()
+            setOperIncome((Number(operIncome) / 1_000_000).toString())
+            const netIncome = financial.financials.income_statement.net_income_loss.value.toString()
+            setNetIncome((Number(netIncome) / 1_000_000).toString())
         } else {
             setFinancialImportInfo("not found")
             setShares("")
             setRevenue("")
-            setCogs("")
-            setOpExp("")
+            setGrossProfit("")
+            setOperIncome("")
             setNetIncome("")
         }
     }
@@ -140,17 +140,17 @@ const AddPeriodFinancialDialog = props => {
                 />
                 <DialogTextField
                     id="company-financial-cogs"
-                    value={cogs}
+                    value={grossProfit}
                     label="Cost of Goods Sold (in Millions)"
-                    onChange={(e) => {setCogs(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(cogs, false, 8, 2)}
+                    onChange={(e) => {setGrossProfit(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(grossProfit, false, 8, 2)}
                 />
                 <DialogTextField
                     id="company-financial-op-exp"
-                    value={opExp}
+                    value={operIncome}
                     label="Operating Expenses (in Millions)"
-                    onChange={(e) => {setOpExp(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(opExp, false, 8, 2)}
+                    onChange={(e) => {setOperIncome(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(operIncome, false, 8, 2)}
                 />
                 <DialogTextField
                     id="company-financial-netIncome"

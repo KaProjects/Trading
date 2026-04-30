@@ -268,8 +268,8 @@ const Research = props => {
                                             </Typography>
                                             <Typography sx={{color: 'text.secondary', fontSize: 14}} >
                                                 {"Revenue: " + formatMillions(period.financial.revenue)
-                                                    + " | Costs of Goods: " + formatMillions(period.financial.costGoodsSold)
-                                                    + " | Op. Exp.: " + formatMillions(period.financial.operatingExpenses)
+                                                    + " | Gross P.: " + formatMillions(period.financial.grossProfit)
+                                                    + " | Op. Inc.: " + formatMillions(period.financial.operatingIncome)
                                                     + " | Net Income: " + formatMillions(period.financial.netIncome)}
                                             </Typography>
                                         </>
