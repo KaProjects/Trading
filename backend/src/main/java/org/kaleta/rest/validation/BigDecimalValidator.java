@@ -9,12 +9,14 @@ public class BigDecimalValidator implements ConstraintValidator<ValidBigDecimal,
 {
     private int integerConstraint;
     private int decimalConstraint;
+    private boolean allowNegativeConstraint;
 
     @Override
     public void initialize(ValidBigDecimal constraintAnnotation)
     {
         this.integerConstraint = constraintAnnotation.integerConstraint();
         this.decimalConstraint = constraintAnnotation.decimalConstraint();
+        this.allowNegativeConstraint = constraintAnnotation.allowNegative();
     }
 
     @Override
@@ -23,7 +25,8 @@ public class BigDecimalValidator implements ConstraintValidator<ValidBigDecimal,
         if (value == null) return true;
         if (value.isBlank()) return false;
         try {
-            new BigDecimal(value);
+            BigDecimal bigDecimal = new BigDecimal(value);
+            if (!allowNegativeConstraint && bigDecimal.compareTo(BigDecimal.ZERO) < 0) return false;
         } catch (NumberFormatException ex) {
             return false;
         }

@@ -19,6 +19,12 @@ import java.util.UUID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_2_false;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_2_true;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_4_false;
+import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
+import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 
 @QuarkusTest
@@ -66,7 +72,7 @@ class PeriodEndpointsTest
         String validEndingMonth = "2019-11";
         String validReportDate = "2020-01-01";
 
-        Assert.postValidationError(path, null, "must not be null");
+        Assert.postValidationError(path, null, NOT_NULL);
 
         PeriodCreateDto dto = new PeriodCreateDto();
         dto.setCompanyId(validCompanyId);
@@ -74,7 +80,7 @@ class PeriodEndpointsTest
         dto.setReportDate(validReportDate);
 
         dto.setName(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setName("");
         Assert.postValidationError(path, dto, "must be a valid PeriodName");
         dto.setName("2025FY");
@@ -86,7 +92,7 @@ class PeriodEndpointsTest
         dto.setName(validName);
 
         dto.setEndingMonth(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setEndingMonth("");
         Assert.postValidationError(path, dto, "must match YYYY-MM");
         dto.setEndingMonth("xyz6");
@@ -98,15 +104,15 @@ class PeriodEndpointsTest
         dto.setEndingMonth(validEndingMonth);
 
         dto.setReportDate("");
-        Assert.postValidationError(path, dto, "must match YYYY-MM-DD");
+        Assert.postValidationError(path, dto, MATCH_DATE_FORMAT);
         dto.setReportDate("1.1.2020");
-        Assert.postValidationError(path, dto, "must match YYYY-MM-DD");
+        Assert.postValidationError(path, dto, MATCH_DATE_FORMAT);
         dto.setReportDate(null);
 
         dto.setCompanyId(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setCompanyId("x");
-        Assert.postValidationError(path, dto, "must be a valid UUID");
+        Assert.postValidationError(path, dto, VALID_UUID);
 
         dto.setCompanyId(UUID.randomUUID().toString());
         Assert.post400(path, dto, "company with id '" + dto.getCompanyId() + "' not found");
@@ -165,13 +171,13 @@ class PeriodEndpointsTest
     @Test
     void update_invalidParameters()
     {
-        Assert.putValidationError(path, null, "must not be null");
+        Assert.putValidationError(path, null, NOT_NULL);
 
         PeriodUpdateDto dto =  new PeriodUpdateDto();
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
 
         dto.setId("x");
-        Assert.putValidationError(path, dto, "must be a valid UUID");
+        Assert.putValidationError(path, dto, VALID_UUID);
 
         dto.setId(UUID.randomUUID().toString());
         Assert.put400(path, dto, "period with id '" + dto.getId() + "' not found");
@@ -198,105 +204,115 @@ class PeriodEndpointsTest
         dto.setEndingMonth(null);
 
         dto.setReportDate("");
-        Assert.putValidationError(path, dto, "must match YYYY-MM-DD");
+        Assert.putValidationError(path, dto, MATCH_DATE_FORMAT);
         dto.setReportDate("1.1.2020");
-        Assert.putValidationError(path, dto, "must match YYYY-MM-DD");
+        Assert.putValidationError(path, dto, MATCH_DATE_FORMAT);
         dto.setReportDate(null);
 
         dto.setShares("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setShares(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setShares("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setShares("1234567");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setShares("10.123");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
+        dto.setShares("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setShares(null);
 
         dto.setRevenue("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setRevenue(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setRevenue("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setRevenue("1234567");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setRevenue("10.123");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
+        dto.setRevenue("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setRevenue(null);
 
         dto.setGrossProfit("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setGrossProfit(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setGrossProfit("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setGrossProfit("1234567");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setGrossProfit("10.123");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setGrossProfit(null);
 
         dto.setOperatingIncome("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setOperatingIncome(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setOperatingIncome("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setOperatingIncome("1234567");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setOperatingIncome("10.123");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setOperatingIncome(null);
 
         dto.setNetIncome("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setNetIncome(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setNetIncome("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setNetIncome("1234567");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setNetIncome("10.123");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
         dto.setNetIncome(null);
 
         dto.setDividend("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setDividend(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setDividend("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setDividend("1234567");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setDividend("10.123");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
+        dto.setDividend("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setDividend(null);
 
         dto.setPriceLow("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceLow(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceLow("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceLow("1234567");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceLow("10.12345");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceLow("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceLow(null);
 
         dto.setPriceHigh("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceHigh(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceHigh("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceHigh("1234567");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceHigh("10.12345");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceHigh("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceHigh(null);
     }
 }

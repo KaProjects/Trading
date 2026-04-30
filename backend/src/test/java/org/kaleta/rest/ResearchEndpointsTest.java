@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -127,7 +128,7 @@ public class ResearchEndpointsTest
     @Test
     void get_invalidParameters()
     {
-        Assert.getValidationError("/research/" + "AAAAAA", "must be a valid UUID");
+        Assert.getValidationError("/research/" + "AAAAAA", VALID_UUID);
 
         String randomUuid = UUID.randomUUID().toString();
         Assert.get400("/research/" + randomUuid, "company with id '" + randomUuid + "' not found");

@@ -15,6 +15,27 @@ import static org.hamcrest.Matchers.nullValue;
 
 public class Assert
 {
+    public static class ExpectedViolation
+    {
+        public static final String BIG_DECIMAL_6_2_false = constructBigDecimal(6,2, false);
+        public static final String BIG_DECIMAL_6_2_true = constructBigDecimal(6,2, true);
+        public static final String BIG_DECIMAL_6_4_false = constructBigDecimal(6,4, false);
+        public static final String BIG_DECIMAL_3_2_false = constructBigDecimal(3,2, false);
+        public static final String BIG_DECIMAL_4_4_false = constructBigDecimal(4,4, false);
+        public static final String BIG_DECIMAL_4_2_false = constructBigDecimal(4,2, false);
+        public static final String BIG_DECIMAL_4_2_true = constructBigDecimal(4,2, true);
+        public static final String NOT_NULL = "must not be null";
+        public static final String MATCH_DATE_FORMAT = "must match YYYY-MM-DD";
+        public static final String VALID_UUID = "must be a valid UUID";
+
+        private static String constructBigDecimal(int integer, int decimal, boolean negative) {
+            return String.format(
+                    "must be a valid BigDecimal (max %d integer digits, max %d decimal digits, allowNegative=%s)",
+                    integer, decimal, negative
+            );
+        }
+    }
+
     public static void post400(String uri, Object dto, String expectedMessage)
     {
         RequestSpecification rs = given().contentType(ContentType.JSON);

@@ -6,14 +6,14 @@ import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.kaleta.rest.dto.TradeCreateDto;
-import org.kaleta.rest.dto.TradeSellDto;
-import org.kaleta.rest.dto.TradesUiDto;
 import org.kaleta.framework.Assert;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
+import org.kaleta.rest.dto.TradeCreateDto;
+import org.kaleta.rest.dto.TradeSellDto;
+import org.kaleta.rest.dto.TradesUiDto;
 import org.kaleta.service.LatestService;
 
 import java.math.BigDecimal;
@@ -26,6 +26,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_3_2_false;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_4_false;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_4_false;
+import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
+import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -51,8 +57,8 @@ class TradeEndpointsTest
     @Test
     void getTrades_invalidParameters()
     {
-        Assert.getValidationError(path + "?companyId=AAAA", "must be a valid UUID");
-        Assert.getValidationError(path + "?companyId=", "must be a valid UUID");
+        Assert.getValidationError(path + "?companyId=AAAA", VALID_UUID);
+        Assert.getValidationError(path + "?companyId=", VALID_UUID);
 
         Assert.getValidationError(path + "?currency=X", "must be any of Currency");
         Assert.getValidationError(path + "?currency=", "must be any of Currency");
@@ -289,7 +295,7 @@ class TradeEndpointsTest
         String validQuantity = "10";
         String validFees = "15";
 
-        Assert.postValidationError(path, null, "must not be null");
+        Assert.postValidationError(path, null, NOT_NULL);
 
         TradeCreateDto dto = new TradeCreateDto();
         dto.setCompanyId(validCompanyId);
@@ -298,67 +304,73 @@ class TradeEndpointsTest
         dto.setQuantity(validQuantity);
 
         dto.setFees(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setFees("");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees("x");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees("1.");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees(".1");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees("1234");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees("1.123");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
+        dto.setFees("-1");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees(validFees);
 
         dto.setPrice(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setPrice("");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice("x");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice("1.");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice(".1");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice("1234567");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice("10.12345");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setPrice("-1");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice(validPrice);
 
         dto.setQuantity(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setQuantity("");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.setQuantity("x");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.setQuantity("1.");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.setQuantity(".1");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.setQuantity("12345");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.setQuantity("1.12345");
-        Assert.postValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setQuantity("-1");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.setQuantity(validQuantity);
 
         dto.setDate(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setDate("");
-        Assert.postValidationError(path, dto, "must match YYYY-MM-DD");
+        Assert.postValidationError(path, dto, MATCH_DATE_FORMAT);
         dto.setDate("01.01.2020");
-        Assert.postValidationError(path, dto, "must match YYYY-MM-DD");
+        Assert.postValidationError(path, dto, MATCH_DATE_FORMAT);
         dto.setDate("2020-1-1");
-        Assert.postValidationError(path, dto, "must match YYYY-MM-DD");
+        Assert.postValidationError(path, dto, MATCH_DATE_FORMAT);
         dto.setDate(validDate);
 
         dto.setCompanyId(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setCompanyId("x");
-        Assert.postValidationError(path, dto, "must be a valid UUID");
+        Assert.postValidationError(path, dto, VALID_UUID);
 
         dto.setCompanyId(UUID.randomUUID().toString());
         Assert.post400(path, dto, "company with id '" + dto.getCompanyId() + "' not found");
@@ -429,7 +441,7 @@ class TradeEndpointsTest
         String validTradeId = "91d9253e-aee5-4d86-9c3e-18102bff698d";
         String validQuantity = "8";
 
-        Assert.putValidationError(path, null, "must not be null");
+        Assert.putValidationError(path, null, NOT_NULL);
 
         TradeSellDto dto = new TradeSellDto();
         dto.setCompanyId(companyId);
@@ -442,78 +454,82 @@ class TradeEndpointsTest
         dto.setTrades(List.of(new TradeSellDto.Trade(validTradeId, validQuantity)));
 
         dto.setDate(null);
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
         dto.setDate("");
-        Assert.putValidationError(path, dto, "must match YYYY-MM-DD");
+        Assert.putValidationError(path, dto, MATCH_DATE_FORMAT);
         dto.setDate("01.01.2020");
-        Assert.putValidationError(path, dto, "must match YYYY-MM-DD");
+        Assert.putValidationError(path, dto, MATCH_DATE_FORMAT);
         dto.setDate("2020-1-1");
-        Assert.putValidationError(path, dto, "must match YYYY-MM-DD");
+        Assert.putValidationError(path, dto, MATCH_DATE_FORMAT);
         dto.setDate(validDate);
 
         dto.setPrice(null);
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
         dto.setPrice("");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice("1234567");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice("10.12345");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setPrice("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice(validPrice);
 
         dto.setFees(null);
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
         dto.setFees("");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees("1234");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees("1.123");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees(validFees);
 
         dto.getTrades().get(0).setQuantity(null);
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
         dto.getTrades().get(0).setQuantity("");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.getTrades().get(0).setQuantity("x");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.getTrades().get(0).setQuantity("1.");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.getTrades().get(0).setQuantity(".1");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.getTrades().get(0).setQuantity("12345");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.getTrades().get(0).setQuantity("1.12345");
-        Assert.putValidationError(path, dto, "must be a valid BigDecimal");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.getTrades().get(0).setQuantity("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
         dto.getTrades().get(0).setQuantity("5.5");
         Assert.put400("/trade", dto, "unable to sell more than owned for tradeId='" + dto.getTrades().get(0).getTradeId() + "'");
         dto.getTrades().get(0).setQuantity(validQuantity);
 
         dto.getTrades().get(0).setTradeId(null);
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
         dto.getTrades().get(0).setTradeId("x");
-        Assert.putValidationError(path, dto, "must be a valid UUID");
+        Assert.putValidationError(path, dto, VALID_UUID);
 
         dto.getTrades().get(0).setTradeId(UUID.randomUUID().toString());
         Assert.put400("/trade", dto, "trade with id '" + dto.getTrades().get(0).getTradeId() + "' not found");
         dto.getTrades().get(0).setTradeId(validTradeId);
 
         dto.setCompanyId(null);
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
         dto.setCompanyId("x");
-        Assert.putValidationError(path, dto, "must be a valid UUID");
+        Assert.putValidationError(path, dto, VALID_UUID);
 
         dto.setCompanyId(UUID.randomUUID().toString());
         Assert.put400(path, dto, "company with id '" + dto.getCompanyId() + "' not found");

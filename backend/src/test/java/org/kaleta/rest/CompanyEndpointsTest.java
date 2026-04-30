@@ -29,6 +29,8 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
 import static org.kaleta.framework.Matchers.hasTicker;
 
 @QuarkusTest
@@ -121,7 +123,7 @@ class CompanyEndpointsTest
         String validSector = Sector.SEMICONDUCTORS.toString();
         String validWatching = "false";
 
-        Assert.putValidationError(path, null, "must not be null");
+        Assert.putValidationError(path, null, NOT_NULL);
 
         CompanyUpdateDto dto =  new CompanyUpdateDto();
         dto.setId(validCompanyId);
@@ -130,7 +132,7 @@ class CompanyEndpointsTest
         dto.setWatching(validWatching);
 
         dto.setCurrency(null);
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
         dto.setCurrency("");
         Assert.putValidationError(path, dto, "must be any of Currency");
         dto.setCurrency("xyz");
@@ -138,7 +140,7 @@ class CompanyEndpointsTest
         dto.setCurrency(validCurrency);
 
         dto.setSector(null);
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
         dto.setSector("");
         Assert.putValidationError(path, dto, "must be any of Sector");
         dto.setSector("xyz");
@@ -146,7 +148,7 @@ class CompanyEndpointsTest
         dto.setSector(validSector);
 
         dto.setWatching(null);
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
         dto.setWatching("");
         Assert.putValidationError(path, dto, "must be 'true' or 'false'");
         dto.setWatching("xyz");
@@ -154,11 +156,11 @@ class CompanyEndpointsTest
         dto.setWatching(validWatching);
 
         dto.setId(null);
-        Assert.putValidationError(path, dto, "must not be null");
+        Assert.putValidationError(path, dto, NOT_NULL);
         dto.setId("");
-        Assert.putValidationError(path, dto, "must be a valid UUID");
+        Assert.putValidationError(path, dto, VALID_UUID);
         dto.setId("x");
-        Assert.putValidationError(path, dto, "must be a valid UUID");
+        Assert.putValidationError(path, dto, VALID_UUID);
 
         dto.setId(UUID.randomUUID().toString());
         Assert.put400(path, dto, "company with id '" + dto.getId() + "' not found");
@@ -193,7 +195,7 @@ class CompanyEndpointsTest
         String validSector = Sector.SEMICONDUCTORS.toString();
         String validWatching = "false";
 
-        Assert.postValidationError(path, null, "must not be null");
+        Assert.postValidationError(path, null, NOT_NULL);
 
         CompanyCreateDto dto =  new CompanyCreateDto();
         dto.setTicker(validTicker);
@@ -202,7 +204,7 @@ class CompanyEndpointsTest
         dto.setWatching(validWatching);
 
         dto.setCurrency(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setCurrency("");
         Assert.postValidationError(path, dto, "must be any of Currency");
         dto.setCurrency("xyz");
@@ -216,7 +218,7 @@ class CompanyEndpointsTest
         dto.setSector(validSector);
 
         dto.setWatching(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setWatching("");
         Assert.postValidationError(path, dto, "must be 'true' or 'false'");
         dto.setWatching("xyz");
@@ -224,7 +226,7 @@ class CompanyEndpointsTest
         dto.setWatching(validWatching);
 
         dto.setTicker(null);
-        Assert.postValidationError(path, dto, "must not be null");
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setTicker("");
         Assert.postValidationError(path, dto, "must be a valid Ticker");
         dto.setTicker("ABCDEF");

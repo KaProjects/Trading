@@ -15,10 +15,11 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidBigDecimal
 {
-    String message() default "must be a valid BigDecimal";
+    String message() default "must be a valid BigDecimal (max {integerConstraint} integer digits, max {decimalConstraint} decimal digits, allowNegative={allowNegative})";
 
     int integerConstraint() default Integer.MAX_VALUE;
     int decimalConstraint() default Integer.MAX_VALUE;
+    boolean allowNegative() default false;
 
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
