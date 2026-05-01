@@ -15,6 +15,7 @@ import {
 import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
+import {DialogDatePicker} from "./component/DialogDatePicker";
 
 
 const AddDividendDialog = props => {
@@ -55,12 +56,10 @@ const AddDividendDialog = props => {
         >
             <DialogTitle>Add Dividend</DialogTitle>
             <DialogContent>
-                <DialogTextField
+                <DialogDatePicker
                     id="trader-dividend-date"
-                    type="date"
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
-                    validate={() => date === "" ? "not blank" : ""}
                 />
                 <Select required margin="dense" fullWidth variant="standard" displayEmpty
                         value={company}
@@ -78,14 +77,14 @@ const AddDividendDialog = props => {
                     value={dividend}
                     label="Dividend"
                     onChange={(e) => {setDividend(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(dividend, false, 7, 2)}
+                    validate={() => validateNumber(dividend, false, 7, 2, false)}
                 />
                 <DialogTextField
                     id="trader-dividend-tax"
                     value={tax}
                     label="Tax"
                     onChange={(e) => {setTax(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(tax, false, 6, 2)}
+                    validate={() => validateNumber(tax, false, 6, 2, false)}
                 />
             </DialogContent>
             {alert &&

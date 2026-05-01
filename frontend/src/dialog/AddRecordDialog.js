@@ -5,6 +5,7 @@ import axios from "axios";
 import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
+import {DialogDatePicker} from "./component/DialogDatePicker";
 
 
 const AddRecordDialog = props => {
@@ -60,10 +61,15 @@ const AddRecordDialog = props => {
     }, [open])
 
     function createRecord() {
+        const nullIfBlank = (value) => value ? value : null
         const data = {companyId: companyId, title: title, date: date, price: price,
-            priceToRevenues: priceToRevenues, priceToGrossProfit: priceToGrossProfit,
-            priceToOperatingIncome: priceToOperatingIncome, priceToNetIncome: priceToNetIncome,
-            dividendYield: dividendYield, sumAssetQuantity: sumAssetQuantity, avgAssetPrice: avgAssetPrice}
+            priceToRevenues: nullIfBlank(priceToRevenues),
+            priceToGrossProfit: nullIfBlank(priceToGrossProfit),
+            priceToOperatingIncome: nullIfBlank(priceToOperatingIncome),
+            priceToNetIncome: nullIfBlank(priceToNetIncome),
+            dividendYield: nullIfBlank(dividendYield),
+            sumAssetQuantity: nullIfBlank(sumAssetQuantity),
+            avgAssetPrice: nullIfBlank(avgAssetPrice)}
 
         axios.post(backend + "/record", data)
             .then((response) => {
@@ -80,78 +86,83 @@ const AddRecordDialog = props => {
         >
             <DialogTitle>Add Record</DialogTitle>
             <DialogContent>
-                <DialogTextField
+                <DialogDatePicker
                     id="trader-record-date"
-                    type="date"
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
-                    validate={() => date === "" ? "not blank" : ""}
                 />
                 <DialogTextField
                     id="trader-record-title"
                     value={title}
                     label="Title"
                     onChange={(e) => {setTitle(e.target.value);setAlert(null);}}
-                    validate={() => title === "" ? "not blank" : ""}
+                    validate={() => title === "" ? "not filled" : ""}
                 />
                 <DialogTextField
                     id="trader-record-price"
                     value={price}
                     label="Price"
                     onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(price, false, 10, 4)}
+                    validate={() => validateNumber(price, false, 10, 4, false)}
                 />
 
                 <DialogTextField
                     id="trader-record-ps"
                     value={priceToRevenues}
+                    required={false}
                     label="PS"
                     onChange={(e) => {setPriceToRevenues(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(priceToRevenues, true, 6, 2)}
+                    validate={() => validateNumber(priceToRevenues, true, 6, 2, false)}
                 />
                 <DialogTextField
                     id="trader-record-pg"
                     value={priceToGrossProfit}
+                    required={false}
                     label="PG"
                     onChange={(e) => {setPriceToGrossProfit(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(priceToGrossProfit, true, 6, 2)}
+                    validate={() => validateNumber(priceToGrossProfit, true, 6, 2, true)}
                 />
                 <DialogTextField
                     id="trader-record-po"
                     value={priceToOperatingIncome}
+                    required={false}
                     label="PO"
                     onChange={(e) => {setPriceToOperatingIncome(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(priceToOperatingIncome, true, 6, 2)}
+                    validate={() => validateNumber(priceToOperatingIncome, true, 6, 2, true)}
                 />
                 <DialogTextField
                     id="trader-record-pe"
                     value={priceToNetIncome}
+                    required={false}
                     label="PE"
                     onChange={(e) => {setPriceToNetIncome(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(priceToNetIncome, true, 6, 2)}
+                    validate={() => validateNumber(priceToNetIncome, true, 6, 2, true)}
                 />
 
                 <DialogTextField
                     id="trader-record-dy"
                     value={dividendYield}
+                    required={false}
                     label="DY"
                     onChange={(e) => {setDividendYield(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(dividendYield, true, 5, 2)}
+                    validate={() => validateNumber(dividendYield, true, 5, 2, false)}
                 />
 
                 <DialogTextField
                     id="trader-record-assets-quantity"
                     value={sumAssetQuantity}
+                    required={false}
                     label="assets quantity sum"
                     onChange={(e) => {setSumAssetQuantity(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(sumAssetQuantity, true, 8, 4)}
+                    validate={() => validateNumber(sumAssetQuantity, true, 8, 4, false)}
                 />
                 <DialogTextField
                     id="trader-record-assets-price"
                     value={avgAssetPrice}
+                    required={false}
                     label="assets avg purchase price"
                     onChange={(e) => {setAvgAssetPrice(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(avgAssetPrice, true, 10, 4)}
+                    validate={() => validateNumber(avgAssetPrice, true, 10, 4, false)}
                 />
 
             </DialogContent>

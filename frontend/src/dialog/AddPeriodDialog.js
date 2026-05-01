@@ -4,6 +4,7 @@ import {backend} from "../properties";
 import axios from "axios";
 import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
+import {DialogDatePicker} from "./component/DialogDatePicker";
 
 
 const AddPeriodDialog = props => {
@@ -44,13 +45,12 @@ const AddPeriodDialog = props => {
                     onChange={(e) => {setName(e.target.value);setAlert(null);}}
                     validate={() => name.length !== 4 ? "exactly 4 symbols, e.g. 25FY, 25Q1, ..." : ""}
                 />
-                <DialogTextField
+                <DialogDatePicker
                     id="trader-period-end-month"
                     type="month"
                     value={endingMonth}
                     label="Ending Month"
                     onChange={(e) => {setEndingMonth(e.target.value);setAlert(null);}}
-                    validate={() => endingMonth === "" ? "not blank" : ""}
                 />
             </DialogContent>
             {alert &&

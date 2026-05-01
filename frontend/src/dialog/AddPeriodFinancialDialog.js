@@ -1,13 +1,4 @@
-import {
-    Alert,
-    AlertTitle,
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    Typography
-} from "@mui/material";
+import {Alert, AlertTitle, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
@@ -15,6 +6,7 @@ import {getFinancial, getQuote} from "../service/PolygonIoService";
 import {formatError, formatPeriodName} from "../service/FormattingService";
 import {validateNumber} from "../service/ValidationService";
 import {DialogTextField} from "./component/DialogTextField";
+import {DialogDatePicker} from "./component/DialogDatePicker";
 
 const AddPeriodFinancialDialog = props => {
     const {handleClose, open, period} = props
@@ -82,26 +74,17 @@ const AddPeriodFinancialDialog = props => {
     async function retrieveFinancials() {
         const financial = await getFinancial(props.companySelectorValue.ticker, period.name.year, period.name.type);
 
-        if (financial) {
-            setFinancialImportInfo("found: " + financial.start_date + " => " + financial.end_date)
-            const shares = financial.financials.income_statement.basic_average_shares.value.toString()
-            setShares((Number(shares) / 1_000_000).toString())
-            const revenues = financial.financials.income_statement.revenues.value.toString()
-            setRevenue((Number(revenues) / 1_000_000).toString())
-            const grossProfit = financial.financials.income_statement.gross_profit.value.toString()
-            setGrossProfit((Number(grossProfit) / 1_000_000).toString())
-            const operIncome = financial.financials.income_statement.operating_income_loss.value.toString()
-            setOperIncome((Number(operIncome) / 1_000_000).toString())
-            const netIncome = financial.financials.income_statement.net_income_loss.value.toString()
-            setNetIncome((Number(netIncome) / 1_000_000).toString())
-        } else {
-            setFinancialImportInfo("not found")
-            setShares("")
-            setRevenue("")
-            setGrossProfit("")
-            setOperIncome("")
-            setNetIncome("")
-        }
+        const format = (value) => value ? (Number(value) / 1_000_000).toString() : ""
+
+        setShares(format(financial?.financials?.income_statement?.basic_average_shares?.value?.toString()))
+        setRevenue(format(financial?.financials?.income_statement?.revenues?.value?.toString()))
+        setGrossProfit(format(financial?.financials?.income_statement?.gross_profit?.value?.toString()))
+        setOperIncome(format(financial?.financials?.income_statement?.operating_income_loss?.value?.toString()))
+        setNetIncome(format(financial?.financials?.income_statement?.net_income_loss?.value?.toString()))
+
+        financial
+            ? setFinancialImportInfo("found: " + financial.start_date + " => " + financial.end_date)
+            : setFinancialImportInfo("not found")
     }
 
     async function retrievePrices(ticker, from, to) {
@@ -129,49 +112,47 @@ const AddPeriodFinancialDialog = props => {
                     value={shares}
                     label="Shares (in Millions)"
                     onChange={(e) => {setShares(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(shares, false, 8, 2)}
+                    validate={() => validateNumber(shares, false, 8, 2, false)}
                 />
                 <DialogTextField
                     id="company-financial-revenue"
                     value={revenue}
                     label="Revenue (in Millions)"
                     onChange={(e) => {setRevenue(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(revenue, false, 8, 2)}
+                    validate={() => validateNumber(revenue, false, 8, 2, false)}
                 />
                 <DialogTextField
-                    id="company-financial-cogs"
+                    id="company-financial-gross-profit"
                     value={grossProfit}
-                    label="Cost of Goods Sold (in Millions)"
+                    label="Gross Profit (in Millions)"
                     onChange={(e) => {setGrossProfit(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(grossProfit, false, 8, 2)}
+                    validate={() => validateNumber(grossProfit, false, 8, 2, true)}
                 />
                 <DialogTextField
-                    id="company-financial-op-exp"
+                    id="company-financial-oper-income"
                     value={operIncome}
-                    label="Operating Expenses (in Millions)"
+                    label="Operating Income (in Millions)"
                     onChange={(e) => {setOperIncome(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(operIncome, false, 8, 2)}
+                    validate={() => validateNumber(operIncome, false, 8, 2, true)}
                 />
                 <DialogTextField
-                    id="company-financial-netIncome"
+                    id="company-financial-net-income"
                     value={netIncome}
                     label="Net Income (in Millions)"
                     onChange={(e) => {setNetIncome(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(netIncome, false, 8, 2)}
+                    validate={() => validateNumber(netIncome, false, 8, 2, true)}
                 />
                 <DialogTextField
                     id="company-financial-dividend"
                     value={dividend}
                     label="Dividend (in Millions)"
                     onChange={(e) => {setDividend(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(dividend, false, 8, 2)}
+                    validate={() => validateNumber(dividend, false, 8, 2, false)}
                 />
-                <DialogTextField
+                <DialogDatePicker
                     id="trader-period-report-date"
-                    type="date"
                     value={reportDate}
                     onChange={(e) => {setReportDate(e.target.value);setAlert(null);}}
-                    validate={() => reportDate === "" ? "not blank" : ""}
                 />
                 <Typography>{priceImportInfo}</Typography>
                 <DialogTextField
@@ -179,14 +160,14 @@ const AddPeriodFinancialDialog = props => {
                     value={priceH}
                     label="Highest Price"
                     onChange={(e) => {setPriceH(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(priceH, false, 10, 4)}
+                    validate={() => validateNumber(priceH, false, 10, 4, false)}
                 />
                 <DialogTextField
                     id="trader-period-price-l"
                     value={priceL}
                     label="Lowest Price"
                     onChange={(e) => {setPriceL(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(priceL, false, 10, 4)}
+                    validate={() => validateNumber(priceL, false, 10, 4, false)}
                 />
             </DialogContent>
             {alert &&

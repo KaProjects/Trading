@@ -15,6 +15,7 @@ import axios from "axios";
 import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
+import {DialogDatePicker} from "./component/DialogDatePicker";
 
 
 const AddTradeDialog = props => {
@@ -57,12 +58,10 @@ const AddTradeDialog = props => {
         >
             <DialogTitle>Add Trade</DialogTitle>
             <DialogContent>
-                <DialogTextField
+                <DialogDatePicker
                     id="trader-trade-date"
-                    type="date"
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
-                    validate={() => date === "" ? "not blank" : ""}
                 />
                 <Select required margin="dense" fullWidth variant="standard" displayEmpty
                         value={company}
@@ -80,21 +79,21 @@ const AddTradeDialog = props => {
                     value={quantity}
                     label="Quantity"
                     onChange={(e) => {setQuantity(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(quantity, false, 8, 4)}
+                    validate={() => validateNumber(quantity, false, 8, 4, false)}
                 />
                 <DialogTextField
                     id="trader-trade-price"
                     value={price}
                     label="Price"
                     onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(price, false, 10, 4)}
+                    validate={() => validateNumber(price, false, 10, 4, false)}
                 />
                 <DialogTextField
                     id="trader-trade-fees"
                     value={fees}
                     label="Fees"
                     onChange={(e) => {setFees(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(fees, false, 5, 2)}
+                    validate={() => validateNumber(fees, false, 5, 2, false)}
                 />
             </DialogContent>
             {alert &&

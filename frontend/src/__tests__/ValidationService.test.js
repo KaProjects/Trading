@@ -5,7 +5,7 @@ test("validateNumber", () => {
     expect(validateNumber(undefined)).toBe("not a string");
     expect(validateNumber(null)).toBe("not a string");
 
-    expect(validateNumber("", false)).toBe("non empty");
+    expect(validateNumber("", false)).toBe("not filled");
     expect(validateNumber("", true)).toBe("");
 
     expect(validateNumber("aa", false)).toBe("not a valid number");
@@ -17,7 +17,10 @@ test("validateNumber", () => {
     expect(validateNumber("12345.1", false, 6, 2)).toBe("max length 4");
     expect(validateNumber("1.123", false, 6, 2)).toBe("max decimal 2");
 
-    expect(validateNumber("1234.12", false, 6, 2)).toBe("");
+    expect(validateNumber("-1", false, 6, 2, false)).toBe("negative values not allowed");
+    expect(validateNumber("-1", false, 6, 2, true)).toBe("");
+
+    expect(validateNumber("1234.12", false, 6, 2, false)).toBe("");
 })
 
 test("validateQuarter", () => {
@@ -25,7 +28,7 @@ test("validateQuarter", () => {
     expect(validateQuarter(undefined)).toBe("not a string");
     expect(validateQuarter(null)).toBe("not a string");
 
-    expect(validateQuarter("")).toBe("non empty");
+    expect(validateQuarter("")).toBe("not filled");
 
     expect(validateQuarter("2025Q1")).toContain("invalid format");
 
@@ -47,7 +50,7 @@ test("validateTicker", () => {
     expect(validateTicker(undefined)).toBe("not a string");
     expect(validateTicker(null)).toBe("not a string");
 
-    expect(validateTicker("")).toBe("non empty");
+    expect(validateTicker("")).toBe("not filled");
 
     expect(validateTicker("ABCDEF")).toBe("max length 5");
 

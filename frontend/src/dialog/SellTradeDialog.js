@@ -20,6 +20,7 @@ import axios from "axios";
 import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
+import {DialogDatePicker} from "./component/DialogDatePicker";
 
 
 const SellTradeDialog = props => {
@@ -49,7 +50,7 @@ const SellTradeDialog = props => {
     function sellTrade() {
         const tradesToSell = []
         trades.forEach(trade => {
-            if (validateQuantity(trade) === "") {
+            if (validateSellQuantity(trade) === "") {
                 const quantity = Number(trade.sellQuantity)
                 if (quantity > 0) {
                     tradesToSell.push({tradeId: trade.id, quantity: quantity})
@@ -74,8 +75,8 @@ const SellTradeDialog = props => {
         setCompany(company)
     }
 
-    function validateQuantity(trade) {
-        const numberInvalid = validateNumber(trade.sellQuantity ? trade.sellQuantity : "", true, 8, 4)
+    function validateSellQuantity(trade) {
+        const numberInvalid = validateNumber(trade.sellQuantity ? trade.sellQuantity : "", true, 8, 4, false)
         if (numberInvalid){
             return numberInvalid
         } else {
@@ -91,26 +92,24 @@ const SellTradeDialog = props => {
         >
             <DialogTitle>Sell Trade</DialogTitle>
             <DialogContent>
-                <DialogTextField
+                <DialogDatePicker
                     id="trader-sell-trade-date"
-                    type="date"
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
-                    validate={() => date === "" ? "not blank" : ""}
                 />
                 <DialogTextField
                     id="trader-sell-trade-price"
                     value={price}
                     label="Price"
                     onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(price, false, 10, 4)}
+                    validate={() => validateNumber(price, false, 10, 4, false)}
                 />
                 <DialogTextField
                     id="trader-sell-trade-fees"
                     value={fees}
                     label="Fees"
                     onChange={(e) => {setFees(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(fees, false, 5, 2)}
+                    validate={() => validateNumber(fees, false, 5, 2, false)}
                 />
                 <Select required margin="dense" fullWidth variant="standard" displayEmpty
                         value={company}
@@ -148,7 +147,7 @@ const SellTradeDialog = props => {
                                         id="trader-sell-trade-quantity"
                                         value={trade.sellQuantity ? trade.sellQuantity : ""}
                                         onChange={(e) => {const newTrades = [...trades];newTrades[index].sellQuantity = e.target.value; setTrades([...newTrades]); setAlert(null);}}
-                                        validate={() => validateQuantity(trade)}
+                                        validate={() => validateSellQuantity(trade)}
                                     />
                                 </TableCell>
                             </TableRow>

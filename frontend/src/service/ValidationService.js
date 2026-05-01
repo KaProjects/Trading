@@ -1,8 +1,9 @@
 
-export function validateNumber(value, isNullable, lengthConstraint, decimalConstraint) {
+export function validateNumber(value, isNullable, lengthConstraint, decimalConstraint, canNegative) {
     if (typeof value != "string") return "not a string"
-    if (value === "") return isNullable ? "" : "non empty"
+    if (value === "") return isNullable ? "" : "not filled"
     if (isNaN(value) || isNaN(parseFloat(value)) || value.endsWith(".") || value.startsWith(".")) return "not a valid number"
+    if (!canNegative && Number(value) < 0) return "negative values not allowed"
     const split = value.split(".")
     if (split[0].length > lengthConstraint - decimalConstraint) return "max length " + (lengthConstraint - decimalConstraint)
     if (split.length > 1 && split[1].length > decimalConstraint) return "max decimal " + decimalConstraint
@@ -11,7 +12,7 @@ export function validateNumber(value, isNullable, lengthConstraint, decimalConst
 
 export function validateQuarter(value) {
     if (typeof value != "string") return "not a string"
-    if (!value) return "non empty"
+    if (!value) return "not filled"
     const invalidFormatMsg = "invalid format, not YYQQ (e.g. 24Q1, 25H2, 26FY, ...)"
     if (value.length !== 4) return invalidFormatMsg
     if (isNaN(value.substring(0, 2))) return invalidFormatMsg
@@ -21,7 +22,7 @@ export function validateQuarter(value) {
 
 export function validateTicker(value) {
     if (typeof value != "string") return "not a string"
-    if (!value) return "non empty"
+    if (!value) return "not filled"
     if (value.length > 5) return "max length 5"
     if (value.toUpperCase() !== value) return "only uppercase"
     return ""
