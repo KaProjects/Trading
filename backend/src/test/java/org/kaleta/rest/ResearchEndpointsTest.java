@@ -72,6 +72,7 @@ public class ResearchEndpointsTest
         assertThat(dto.getRecords().get(0).getPriceToOperatingIncome(), is(nullValue()));
         assertBigDecimals(dto.getRecords().get(0).getPriceToNetIncome(), new BigDecimal("10.1"));
         assertThat(dto.getRecords().get(0).getDividendYield(), is(nullValue()));
+        assertThat(dto.getRecords().get(0).getTargets(), is(nullValue()));
         assertThat(dto.getRecords().get(0).getAsset(), is(nullValue()));
 
         assertThat(dto.getRecords().get(1).getTitle(), is("xxx"));
@@ -82,6 +83,7 @@ public class ResearchEndpointsTest
         assertBigDecimals(dto.getRecords().get(1).getPriceToOperatingIncome(), new BigDecimal("100"));
         assertBigDecimals(dto.getRecords().get(1).getPriceToNetIncome(), new BigDecimal("123"));
         assertBigDecimals(dto.getRecords().get(1).getDividendYield(), new BigDecimal("10.12"));
+        assertThat(dto.getRecords().get(1).getTargets(), is(nullValue()));
         assertThat(dto.getRecords().get(1).getAsset(), is(notNullValue()));
         assertBigDecimals(dto.getRecords().get(1).getAsset().getQuantity(), new BigDecimal("456"));
         assertBigDecimals(dto.getRecords().get(1).getAsset().getPurchasePrice(), new BigDecimal("75"));

@@ -55,6 +55,8 @@ public class RecordService
         newRecord.setSumAssetQuantity(Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
         newRecord.setAvgAssetPrice(Utils.createNullableBigDecimal(dto.getAvgAssetPrice()));
 
+        newRecord.setTargets(dto.getTargets());
+
         recordDao.create(newRecord);
     }
 
@@ -110,6 +112,7 @@ public class RecordService
         }
         if (dto.getContent() != null) record.setContent(dto.getContent());
         if (dto.getStrategy() != null) record.setStrategy(dto.getStrategy());
+        if (dto.getTargets() != null) record.setTargets(dto.getTargets());
 
         recordDao.save(record);
     }

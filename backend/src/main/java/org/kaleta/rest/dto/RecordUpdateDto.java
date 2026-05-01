@@ -13,4 +13,5 @@ public class RecordUpdateDto
     private String title;
     private String content;
     private String strategy;
+    private String targets;
 }

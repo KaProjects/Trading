@@ -23,6 +23,7 @@ const AddRecordDialog = props => {
     const [dividendYield, setDividendYield] = useState("")
     const [sumAssetQuantity, setSumAssetQuantity] = useState("")
     const [avgAssetPrice, setAvgAssetPrice] = useState("")
+    const [targets, setTargets] = useState("");
 
     useEffect(() => {
         if (open) {
@@ -35,6 +36,7 @@ const AddRecordDialog = props => {
             setPriceToOperatingIncome("")
             setPriceToNetIncome("")
             setDividendYield("")
+            setTargets("")
 
             if (indicators) {
                 setDate(`${indicators.datetime}`.split("T")[0])
@@ -69,7 +71,8 @@ const AddRecordDialog = props => {
             priceToNetIncome: nullIfBlank(priceToNetIncome),
             dividendYield: nullIfBlank(dividendYield),
             sumAssetQuantity: nullIfBlank(sumAssetQuantity),
-            avgAssetPrice: nullIfBlank(avgAssetPrice)}
+            avgAssetPrice: nullIfBlank(avgAssetPrice),
+            targets: nullIfBlank(targets)}
 
         axios.post(backend + "/record", data)
             .then((response) => {
@@ -163,6 +166,14 @@ const AddRecordDialog = props => {
                     label="assets avg purchase price"
                     onChange={(e) => {setAvgAssetPrice(e.target.value);setAlert(null);}}
                     validate={() => validateNumber(avgAssetPrice, true, 10, 4, false)}
+                />
+                <DialogTextField
+                    id="trader-record-targets"
+                    value={targets}
+                    required={false}
+                    label="price targets"
+                    onChange={(e) => {setTargets(e.target.value);setAlert(null);}}
+                    validate={() => ""}
                 />
 
             </DialogContent>

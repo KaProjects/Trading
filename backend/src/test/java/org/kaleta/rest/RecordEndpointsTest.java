@@ -64,6 +64,7 @@ class RecordEndpointsTest
         dto.setDividendYield(Generator.randomBigDecimal(999,2).toString());
         dto.setSumAssetQuantity(Generator.randomBigDecimal(9999,4).toString());
         dto.setAvgAssetPrice(Generator.randomBigDecimal(999999,4).toString());
+        dto.setTargets("some targets");
 
         Assert.post201(path, dto);
 
@@ -82,7 +83,7 @@ class RecordEndpointsTest
         assertBigDecimals(records.get(0).getSumAssetQuantity(), new BigDecimal(dto.getSumAssetQuantity()));
         assertThat(records.get(0).getContent(), is(nullValue()));
         assertThat(records.get(0).getStrategy(), is(nullValue()));
-        assertThat(records.get(0).getTargets(), is(nullValue()));
+        assertThat(records.get(0).getTargets(), is(dto.getTargets()));
     }
 
     @Test
@@ -250,12 +251,14 @@ class RecordEndpointsTest
         String newTitle = "new title";
         String newContent = "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"saasdasdaa\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"as\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"das\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"s\"}]}]}]";
         String newStrategy = "buy as many as possible";
+        String newTargets = "10-5~7";
 
         RecordUpdateDto dto = new RecordUpdateDto();
         dto.setId("b5a8a2b3-08b7-4a71-9301-f57d44a0a9cb");
         dto.setTitle(newTitle);
         dto.setContent(newContent);
         dto.setStrategy(newStrategy);
+        dto.setTargets(newTargets);
 
         Assert.put204(path, dto);
 
@@ -266,6 +269,7 @@ class RecordEndpointsTest
         assertThat(records.get(0).getTitle(), is(newTitle));
         assertThat(records.get(0).getContent(), is(newContent));
         assertThat(records.get(0).getStrategy(), is(newStrategy));
+        assertThat(records.get(0).getTargets(), is(newTargets));
     }
 
     @Test

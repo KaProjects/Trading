@@ -44,4 +44,6 @@ public class RecordCreateDto
 
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String avgAssetPrice;
+
+    private String targets;
 }
