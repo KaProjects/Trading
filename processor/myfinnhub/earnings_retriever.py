@@ -1,26 +1,22 @@
 import math
 import time
-import traceback
 
 from discord.discord_client import DiscordClient
 from myfinnhub.client import FinnhubClient
 from myfinnhub.models import Company, Earnings
 from myfinnhub.service import FirebaseService
-from myfinnhub.strings import ErrorMsg, LogMsg
+from myfinnhub.strings import ErrMsg, LogMsg
 from utils import BaseClass
 
 
 class FinnhubEarningsRetrieverRunner(BaseClass):
-    context = {
-        "verbose": False,
-        "identity": "FinnhubEarnings",
-    }
+    name = "FinnhubEarnings"
 
-    def __init__(self, finnhub_api_key, discord_webhook_key):
-        super().__init__(**self.context)
-        self.client = FinnhubClient(api_key=finnhub_api_key, **self.context)
-        self.service = FirebaseService(**self.context)
-        self.discord = DiscordClient(webhook_key=discord_webhook_key, **self.context)
+    def __init__(self, finnhub_api_key, discord_webhook_key, **kwargs):
+        super().__init__(identity=self.name, **kwargs)
+        self.client = FinnhubClient(api_key=finnhub_api_key, parent=self.name, **kwargs)
+        self.service = FirebaseService(parent=self.name, **kwargs)
+        self.discord = DiscordClient(webhook_key=discord_webhook_key, parent=self.name, **kwargs)
 
     def run(self):
         try:
@@ -49,13 +45,14 @@ class FinnhubEarningsRetrieverRunner(BaseClass):
                                     self.service.new_earnings(company_id, quarter_id, earnings[quarter_id])
                                     self.discord_post_earnings(company_id, quarter_id, latest, now)
                         if no_change:
-                            self.log(LogMsg.NO_CHANGE.format(company_id=company_id))
+                            self.log.info(LogMsg.NO_CHANGE.format(company_id=company_id))
 
                     time.sleep(5)
-                except Exception:
-                    self.log(ErrorMsg.ERROR_PROCESSING_COMPANY.format(company_id=company_id, trace=traceback.format_exc()))
-        except Exception:
-            self.log(traceback.format_exc() + "\n^^^ exception occurred!")
+                except Exception as exception:
+                    self.log.error(ErrMsg.ERROR_PROCESSING_COMPANY.format(company_id=company_id))
+                    self.log.exception(exception)
+        except Exception as exception:
+            self.log.exception(exception)
 
     def discord_post_earnings(self, ticker, quarter, latest: Earnings, now: Earnings):
         if latest is None: latest = Earnings(epse=None, reve=None, report="")

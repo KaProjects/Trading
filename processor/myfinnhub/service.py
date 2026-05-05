@@ -13,8 +13,8 @@ def company_path(company_id: str) -> str:
     return companies_path + "/" + company_id + "/" + data_root
 
 class FirebaseService(BaseClass):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, parent, **kwargs):
+        super().__init__(identity=parent+".FirebaseService", **kwargs)
 
     def get_companies(self) -> dict[str, Company]:
         companies_data: dict = db.reference(companies_path).get()
@@ -35,14 +35,14 @@ class FirebaseService(BaseClass):
 
         company = Company.model_validate(quarters)
         db.reference(company_path(company_id)).set(company.model_dump())
-        self.log(LogMsg.COMPANY_INIT.format(company_id=company_id, n_quarters=str(len(quarters))))
+        self.log.info(LogMsg.COMPANY_INIT.format(company_id=company_id, n_quarters=str(len(quarters))))
 
     def init_quarter(self, company_id, quarter_id, earnings: Earnings):
         today = date.today().strftime('%Y%m%d')
         db.reference(company_path(company_id) + "/" + quarter_id).set({today: earnings.model_dump()})
-        self.log(LogMsg.QUARTER_INIT.format(company_id=company_id, quarter_id=quarter_id))
+        self.log.info(LogMsg.QUARTER_INIT.format(company_id=company_id, quarter_id=quarter_id))
 
     def new_earnings(self, company_id, quarter_id, earnings: Earnings):
         today = date.today().strftime('%Y%m%d')
         db.reference(company_path(company_id) + "/" + quarter_id + "/" + today).set(earnings.model_dump())
-        self.log(LogMsg.NEW_EARNINGS.format(company_id=company_id, quarter_id=quarter_id))
+        self.log.info(LogMsg.NEW_EARNINGS.format(company_id=company_id, quarter_id=quarter_id))

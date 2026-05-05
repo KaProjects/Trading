@@ -1,5 +1,4 @@
 import calendar
-import traceback
 from datetime import datetime, timedelta
 
 import utils
@@ -12,18 +11,15 @@ from utils import BaseClass
 
 
 class StockDataRetrieverRunner(BaseClass):
-    context = {
-        "verbose": False,
-        "identity": "StockDataRetriever",
-        # "model": "gemini-3-flash-preview",
-        "model":"gemini-3.1-pro-preview",
-    }
+    name = "StockDataRetriever"
+    # model = "gemini-3-flash-preview"
+    model = "gemini-3.1-pro-preview"
 
-    def __init__(self, gemini_api_key, discord_webhook_key):
-        super().__init__(**self.context)
-        self.client = GeminiClient(api_key=gemini_api_key, **self.context)
-        self.service = FirebaseService(**self.context)
-        self.discord = DiscordClient(webhook_key=discord_webhook_key, **self.context)
+    def __init__(self, gemini_api_key, discord_webhook_key, **kwargs):
+        super().__init__(identity=self.name, **kwargs)
+        self.client = GeminiClient(api_key=gemini_api_key, parent=self.name, model=self.model, **kwargs)
+        self.service = FirebaseService(parent=self.name, **kwargs)
+        self.discord = DiscordClient(webhook_key=discord_webhook_key, parent=self.name, **kwargs)
 
     def run(self):
         try:
@@ -37,14 +33,19 @@ class StockDataRetrieverRunner(BaseClass):
                     company = companies.get(company_id)
                     current_quarter: Quarter = company.quarters.get(company.info.current_quarter_id)
                     if current_quarter is None:
-                        self.log(ErrorMsg.QUARTER_NOT_FOUND.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
+                        self.log.error(ErrorMsg.QUARTER_NOT_FOUND.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
                     else:
                         if utils.is_past_date(date=current_quarter.report_date_this_quarter):
                             current_quarter_reported: Quarter = self.client.get_quarter_report(company_id, current_quarter)
                             if current_quarter == current_quarter_reported:
-                                self.log(ErrorMsg.QUARTER_REPORT_FAILED.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
+                                self.log.error(ErrorMsg.QUARTER_REPORT_FAILED.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
                                 # might be rescheduled
-                                report_dates.report_dates.append(ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter))
+                                report_date = ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter)
+                                if datetime.now().weekday() == 6:
+                                    report_dates.report_dates.append(report_date)
+                                else:
+                                    new_report_dates = self.client.revalidate_report_dates(ReportDates(report_dates=[report_date]))
+                                    self.service.update_report_date(new_report_dates.report_dates.pop())
                             else:
                                 self.service.report_quarter(company_id, current_quarter_reported)
                                 new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
@@ -63,8 +64,8 @@ class StockDataRetrieverRunner(BaseClass):
 
                 self.check_report_dates_next_week(new_report_dates)
 
-        except Exception:
-            self.log(traceback.format_exc() + "\n^^^ exception occurred!")
+        except Exception as exception:
+            self.log.exception(exception)
 
     def create_discord_post_payload(self, embeds):
         return {
@@ -138,7 +139,7 @@ class StockDataRetrieverRunner(BaseClass):
     def check_report_dates_next_week(self, report_dates: ReportDates):
         today = datetime.now().date()
         if today.weekday() != 6:
-            self.log(ErrorMsg.SHOULD_RUN_ON_SUNDAY.format(today=calendar.day_name[today.weekday()]))
+            self.log.error(ErrorMsg.SHOULD_RUN_ON_SUNDAY.format(today=calendar.day_name[today.weekday()]))
         else:
             report_map = {}
             for i in range(1, 6):

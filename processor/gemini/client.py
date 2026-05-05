@@ -7,8 +7,8 @@ from utils import BaseClass
 
 
 class GeminiClient(BaseClass):
-    def __init__(self, api_key, model, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, api_key, model, parent, **kwargs):
+        super().__init__(identity=parent+".GeminiClient", **kwargs)
         self.model = model
         self.client = genai.Client(api_key=api_key)
 

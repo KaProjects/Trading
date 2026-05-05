@@ -3,13 +3,13 @@ from datetime import date
 import finnhub
 
 from myfinnhub.models import Earnings
-from myfinnhub.strings import ErrorMsg
+from myfinnhub.strings import ErrMsg
 from utils import BaseClass
 
 
 class FinnhubClient(BaseClass):
-    def __init__(self, api_key, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, api_key, parent, **kwargs):
+        super().__init__(identity=parent+".FinnhubClient", **kwargs)
         self.client = finnhub.Client(api_key=api_key)
         self.client.DEFAULT_TIMEOUT = 30
 
@@ -25,7 +25,7 @@ class FinnhubClient(BaseClass):
         quarters: dict[str, Earnings] = dict()
 
         if len(response["earningsCalendar"]) == 0:
-            self.log(ErrorMsg.NO_EARNINGS_FOUND.format(company_id=company_id))
+            self.log.error(ErrMsg.NO_EARNINGS_FOUND.format(company_id=company_id))
         else:
             for earnings in response["earningsCalendar"]:
                 quarter = str(earnings["year"])[2:] + "Q" + str(earnings["quarter"])
