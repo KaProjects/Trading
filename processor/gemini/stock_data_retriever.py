@@ -43,6 +43,8 @@ class StockDataRetrieverRunner(BaseClass):
                             current_quarter_reported: Quarter = self.client.get_quarter_report(company_id, current_quarter)
                             if current_quarter == current_quarter_reported:
                                 self.log(ErrorMsg.QUARTER_REPORT_FAILED.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
+                                # might be rescheduled
+                                report_dates.report_dates.append(ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter))
                             else:
                                 self.service.report_quarter(company_id, current_quarter_reported)
                                 new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
