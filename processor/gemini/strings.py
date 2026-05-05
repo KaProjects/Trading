@@ -7,6 +7,6 @@ class LogMsg:
     QUARTER_CREATED = "{company_id} - quarter {quarter_id} created."
 
 class ErrorMsg:
-    QUARTER_NOT_FOUND = "[Err] quarter {quarter_id} not found for {company_id}"
-    QUARTER_REPORT_FAILED = "[Err] failed getting report for quarter {quarter_id} of {company_id}"
-    SHOULD_RUN_ON_SUNDAY = "[Err] should run on Sunday, but is {today}"
+    QUARTER_NOT_FOUND = "quarter {quarter_id} not found for {company_id}"
+    QUARTER_REPORT_FAILED = "failed getting report for quarter {quarter_id} of {company_id}"
+    SHOULD_RUN_ON_SUNDAY = "should run on Sunday, but is {today}"

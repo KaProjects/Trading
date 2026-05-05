@@ -1,5 +1,8 @@
 import functools
 import json
+import logging
+import sys
+import traceback
 from datetime import datetime, timedelta
 
 import firebase_admin
@@ -37,15 +40,16 @@ def is_past_date(date: str, offset=0) -> bool:
 def telemetry(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        if getattr(self, "verbose", True) and type(self).__name__ == func.__qualname__.split('.')[0]:
-            print("[{}.{}]<={}{}".format(type(self).__name__, func.__name__, str(args), str(kwargs)))
+        if type(self).__name__ == func.__qualname__.split('.')[0]:
+            self.log.debug("[{}.{}]<={}{}".format(type(self).__name__, func.__name__, str(args), str(kwargs)))
             result = func(self, *args, **kwargs)
-            print("[{}.{}]=>{}".format(type(self).__name__, func.__name__, str(result)))
+            self.log.debug("[{}.{}]=>{}".format(type(self).__name__, func.__name__, str(result)))
             return result
         else:
             return func(self, *args, **kwargs)
 
     return wrapper
+
 
 class WithTelemetry(type):
     def __new__(cls, name, bases, local):
@@ -54,21 +58,14 @@ class WithTelemetry(type):
                 local[attr_name] = telemetry(attr_value)
         return super().__new__(cls, name, bases, local)
 
+
 class BaseClass(metaclass=WithTelemetry):
-    def __init__(self, identity: str, verbose: bool = False, **kwargs):
-        self.logger = Logger(identity)
-        self.verbose = verbose
+    def __init__(self, identity: str = __name__, logger_level: int = logging.INFO):
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(logging.Formatter("[%(asctime)s][%(levelname)s][%(name)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+        self.log = logging.getLogger(identity)
+        self.log.setLevel(logger_level)
+        self.log.addHandler(handler)
+        self.log.setLevel(logger_level)
+        self.log.propagate = False
 
-    def log(self, message: str):
-        self.logger.log(message=message)
-
-class Logger:
-    def __init__(self, identity: str):
-        self.identity = identity
-
-    def log(self, message: str):
-        now = datetime.now().strftime("%y-%m-%d %H:%M:%S")
-        log_msg = "[{}][{}] {}".format(now, self.identity, message)
-        print(log_msg)
-        with open("log.log", "a") as log_file:
-            log_file.write(log_msg + "\n")

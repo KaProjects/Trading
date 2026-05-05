@@ -5,6 +5,6 @@ class LogMsg:
     NEW_EARNINGS = "{company_id} change in earnings detected for quarter {quarter_id}"
     NO_CHANGE = "{company_id} no change detected"
 
-class ErrorMsg:
-    NO_EARNINGS_FOUND = "[Err] no earnings found for {company_id}"
-    ERROR_PROCESSING_COMPANY = "[Err] error while processing {company_id}\n{trace}"
+class ErrMsg:
+    NO_EARNINGS_FOUND = "no earnings found for {company_id}"
+    ERROR_PROCESSING_COMPANY = "error while processing {company_id}"
