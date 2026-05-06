@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
 @QuarkusTest
 class TradeEndpointsTest
 {
-    private final String path = "/trade";
+    String path = "/trade";
 
     @Inject
     TradeDao tradeDao;

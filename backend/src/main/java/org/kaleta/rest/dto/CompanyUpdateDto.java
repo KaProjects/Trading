@@ -14,13 +14,15 @@ public class CompanyUpdateDto
     @NotNull
     @ValidUuid
     private String id;
+
     @NotNull
     @ValueOfEnum(enumClass = Currency.class)
     private String currency;
+
     @NotNull
     @Pattern(regexp = "^true|false$", message = "must be 'true' or 'false'")
     private String watching;
-    @NotNull
+
     @ValueOfEnum(enumClass = Sector.class)
     private String sector;
 }

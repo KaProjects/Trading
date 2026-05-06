@@ -99,7 +99,21 @@ export function formatError(error) {
             else {
                 message = JSON.stringify(error.response.data)
             }
+        } else {
+            message = ""
         }
     }
     return {title: title, message: message}
+}
+
+export function formatPolygonIoFinancial(financial) {
+    const format = (value) => value ? (Number(value) / 1_000_000).toString() : ""
+
+    const formatted = {}
+    formatted.shares = format(financial?.financials?.income_statement?.basic_average_shares?.value?.toString())
+    formatted.revenue = format(financial?.financials?.income_statement?.revenues?.value?.toString())
+    formatted.grossProfit = format(financial?.financials?.income_statement?.gross_profit?.value?.toString())
+    formatted.operatingIncome = format(financial?.financials?.income_statement?.operating_income_loss?.value?.toString())
+    formatted.netIncome = format(financial?.financials?.income_statement?.net_income_loss?.value?.toString())
+    return formatted
 }

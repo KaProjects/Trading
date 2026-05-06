@@ -5,6 +5,7 @@ import {
     formatMillions,
     formatPercent,
     formatPeriodName,
+    formatPolygonIoFinancial,
     isNotAValue
 } from "../service/FormattingService";
 
@@ -137,7 +138,7 @@ describe('FormattingService', () => {
         const expectedTitle = "ab asdaew dsad 4"
         error = {name: "AxiosError", message: expectedTitle}
         expected.title = expectedTitle
-        expected.message = JSON.stringify(error)
+        expected.message = ""
         expect(formatError(error)).toStrictEqual(expected);
 
         let expectedMessage = "nklaDe tails 55"
@@ -166,5 +167,31 @@ describe('FormattingService', () => {
         error.response.data = {title: expectedMessage, violations: [{message: "sadgkhjkds asd "}]}
         expected.message =  expectedMessage
         expect(formatError(error)).toStrictEqual(expected);
+    })
+
+    test("formatPolygonIoFinancial", () => {
+        const empty = {shares: "", revenue: "", grossProfit: "", operatingIncome: "", netIncome: ""}
+        expect(formatPolygonIoFinancial(undefined)).toStrictEqual(empty);
+        expect(formatPolygonIoFinancial(null)).toStrictEqual(empty);
+        expect(formatPolygonIoFinancial("")).toStrictEqual(empty);
+        expect(formatPolygonIoFinancial({})).toStrictEqual(empty);
+
+        expect(formatPolygonIoFinancial({
+            financials: {
+                income_statement: {
+                    basic_average_shares: {value: 123000000},
+                    revenues: {value: 456000000},
+                    gross_profit: {value: 789000000},
+                    operating_income_loss: {value: 12000000},
+                    net_income_loss: {value: 34000000}
+                }
+            }
+        })).toStrictEqual({
+            shares: "123",
+            revenue: "456",
+            grossProfit: "789",
+            operatingIncome: "12",
+            netIncome: "34"
+        });
     })
 });

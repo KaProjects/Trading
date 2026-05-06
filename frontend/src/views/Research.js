@@ -1,4 +1,5 @@
 import {
+    Badge,
     Box,
     Button,
     Card,
@@ -37,7 +38,11 @@ import {
     formatPeriodName
 } from "../service/FormattingService";
 import SnackbarErrorAlert from "../components/SnackbarErrorAlert";
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import {AssetBox} from "./component/AssetBox";
+import ImportPeriodDialog from "../dialog/ImportPeriodDialog";
 
+const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 
 const Research = props => {
     const [refresh, setRefresh] = useState("")
@@ -53,6 +58,7 @@ const Research = props => {
     const [alert, setAlert] = useState(null)
     const [openAddRecordDialog, setOpenAddRecordDialog] = useState(false)
     const [openAddPeriodDialog, setOpenAddPeriodDialog] = useState(false)
+    const [openImportPeriodDialog, setOpenImportPeriodDialog] = useState(false)
     const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
     const [expandFinancials, setExpandFinancials] = useState(false)
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
@@ -124,6 +130,7 @@ const Research = props => {
     function handleConfirmWatch() {
         const newWatching = !data.company.watching
         const companyData = {...data.company}
+        companyData.sector = companyData.sector.key
         companyData.watching = newWatching
         axios.put(backend + "/company", companyData)
             .then((response) => triggerRefresh())
@@ -165,35 +172,6 @@ const Research = props => {
         </Stack>
     }
 
-    const AssetBox = ({asset, currency}) => {
-        let profitColor = 'text.primary'
-        let profitPercent = null
-
-        if (!isNaN(Number(asset.profitPercent))) {
-
-            profitPercent = formatDecimals(asset.profitPercent, 0, 2)
-
-            if (asset.profitPercent > 0) {
-                profitPercent = "+" + profitPercent
-                profitColor = 'success.dark'
-            }
-            if (asset.profitPercent < 0){
-                profitColor = 'error.dark'
-            }
-        }
-
-        return <Box sx={{marginLeft: "10px"}}>
-            {profitPercent &&
-                <Box sx={{color: profitColor, fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
-                    {profitPercent}%
-                </Box>
-            }
-            <Box sx={{color: "text.secondary", fontSize: 16, fontFamily: "Roboto",}}>
-                {asset.quantity}@{asset.purchasePrice}{currency}
-            </Box>
-        </Box>
-    }
-
     return (
         <>
             <CompanySelector refresh={refresh} {...props}/>
@@ -230,22 +208,43 @@ const Research = props => {
                                     </DialogActions>
                                 </Dialog>
 
-                                <Button sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddPeriodDialog(true)}>
-                                    <ControlPointIcon sx={{color: 'lightgreen',}}/>
-                                </Button>
-                                <AddPeriodDialog open={openAddPeriodDialog}
-                                                 handleClose={() => setOpenAddPeriodDialog(false)}
-                                                 triggerRefresh={triggerRefresh}
-                                                 companyId={props.companySelectorValue.id}
-                                />
+                                <Box sx={{position: "absolute", top: "0", right: "0"}}>
+                                    {data.newerCachedPeriods.length > 0 &&
+                                        <>
+                                            <Button
+                                                onClick={() => setOpenImportPeriodDialog(true)}>
+                                                <Badge badgeContent={data.newerCachedPeriods.length} sx={badgeStyle}>
+                                                    <CloudDownloadIcon sx={{color: 'lightgreen'}}/>
+                                                </Badge>
+                                            </Button>
+                                            <ImportPeriodDialog
+                                                open={openImportPeriodDialog}
+                                                handleClose={() => setOpenImportPeriodDialog(false)}
+                                                company={props.companySelectorValue}
+                                                periods={data.newerCachedPeriods}
+                                                triggerRefresh={triggerRefresh}
+                                            />
+                                        </>
+                                    }
+                                    <Button
+                                        onClick={() => setOpenAddPeriodDialog(true)}>
+                                        <ControlPointIcon sx={{color: 'lightgreen',}}/>
+                                    </Button>
+                                    <AddPeriodDialog
+                                        open={openAddPeriodDialog}
+                                        handleClose={() => setOpenAddPeriodDialog(false)}
+                                        triggerRefresh={triggerRefresh}
+                                        companyId={props.companySelectorValue.id}
+                                    />
+                                </Box>
                             </Box>
 
-                            <AddPeriodFinancialDialog open={openAddFinancialDialog !== null}
-                                                      period={openAddFinancialDialog}
-                                                      triggerRefresh={triggerRefresh}
-                                                      handleClose={() => setOpenAddFinancialDialog(null)}
-                                                      companyId={props.companySelectorValue.id}
-                                                      {...props}
+                            <AddPeriodFinancialDialog
+                                open={openAddFinancialDialog !== null}
+                                period={openAddFinancialDialog}
+                                triggerRefresh={triggerRefresh}
+                                handleClose={() => setOpenAddFinancialDialog(null)}
+                                company={props.companySelectorValue}
                             />
 
                             {data.periods.periods.map((period, index) => (

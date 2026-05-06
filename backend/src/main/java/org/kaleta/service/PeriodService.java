@@ -9,6 +9,7 @@ import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.PeriodCreateDto;
+import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 
@@ -38,6 +39,25 @@ public class PeriodService
         periodDao.create(period);
     }
 
+    public void create(PeriodImportDto dto)
+    {
+        Period period = new Period();
+        period.setCompany(companyService.findEntity(dto.getCompanyId()));
+        period.setName(PeriodName.valueOf(dto.getName()));
+        period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
+        period.setReportDate(Utils.nullableDateValueOf(dto.getReportDate()));
+        period.setShares(Utils.createNullableBigDecimal(dto.getShares()));
+        period.setPriceLow(Utils.createNullableBigDecimal(dto.getPriceLow()));
+        period.setPriceHigh(Utils.createNullableBigDecimal(dto.getPriceHigh()));
+        period.setRevenue(Utils.createNullableBigDecimal(dto.getRevenue()));
+        period.setGrossProfit(Utils.createNullableBigDecimal(dto.getGrossProfit()));
+        period.setOperatingIncome(Utils.createNullableBigDecimal(dto.getOperatingIncome()));
+        period.setNetIncome(Utils.createNullableBigDecimal(dto.getNetIncome()));
+        period.setDividend(Utils.createNullableBigDecimal(dto.getDividend()));
+
+        periodDao.create(period);
+    }
+
     public void update(PeriodUpdateDto dto)
     {
         Period period;
@@ -64,7 +84,7 @@ public class PeriodService
     }
 
 
-    public void updateFinancial(PeriodUpdateFinancialDto dto)
+    public void update(PeriodUpdateFinancialDto dto)
     {
         Period period;
         try {

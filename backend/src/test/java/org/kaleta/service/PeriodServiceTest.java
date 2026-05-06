@@ -13,6 +13,7 @@ import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.PeriodCreateDto;
+import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.mockito.ArgumentCaptor;
@@ -72,6 +73,96 @@ public class PeriodServiceTest
         createAndAssertPeriod("2025FY", validEndingMonth, validReportDate, IllegalArgumentException.class);
         createAndAssertPeriod("a5FY", validEndingMonth, validReportDate, DateTimeParseException.class);
         createAndAssertPeriod("25FX", validEndingMonth, validReportDate, IllegalArgumentException.class);
+    }
+
+    @Test
+    void createImport()
+    {
+        String validName = "25FY";
+        String validEndingMonth = "2026-02";
+        String validReportDate = "2026-03-30";
+        String validShares = "123456.78";
+        String validPriceLow = "1234.5678";
+        String validPriceHigh = "2345.6789";
+        String validRevenue = "123456.78";
+        String validGrossProfit = "-23456.78";
+        String validOperatingIncome = "-12345.67";
+        String validNetIncome = "-3456.78";
+        String validDividend = "12.34";
+
+        createAndAssertImportedPeriod(validName, validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, null);
+        createAndAssertImportedPeriod(validName, validEndingMonth, null,
+                null, null, null, null,
+                null, null, null, null, null);
+        createAndAssertImportedPeriod(validName, validEndingMonth, "",
+                "", "", "", "",
+                "", "", "", "", IllegalArgumentException.class);
+
+        invalidDates().forEach(invalidDate -> createAndAssertImportedPeriod(validName, validEndingMonth, invalidDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, IllegalArgumentException.class));
+
+        createAndAssertImportedPeriod(validName, null, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, NullPointerException.class);
+        createAndAssertImportedPeriod(validName, "", validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, DateTimeParseException.class);
+        createAndAssertImportedPeriod(validName, "aaaa", validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, DateTimeParseException.class);
+        createAndAssertImportedPeriod(validName, "202510", validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, DateTimeParseException.class);
+        createAndAssertImportedPeriod(validName, "2510", validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, DateTimeParseException.class);
+        createAndAssertImportedPeriod(validName, "2025-10-10", validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, DateTimeParseException.class);
+
+        createAndAssertImportedPeriod(null, validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, IllegalArgumentException.class);
+        createAndAssertImportedPeriod("", validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, IllegalArgumentException.class);
+        createAndAssertImportedPeriod("2025FY", validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, IllegalArgumentException.class);
+        createAndAssertImportedPeriod("a5FY", validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, DateTimeParseException.class);
+        createAndAssertImportedPeriod("25FX", validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, IllegalArgumentException.class);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> createAndAssertImportedPeriod(validName, validEndingMonth, validReportDate,
+                invalidBigDecimal, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, NumberFormatException.class));
+        invalidBigDecimals().forEach(invalidBigDecimal -> createAndAssertImportedPeriod(validName, validEndingMonth, validReportDate,
+                validShares, invalidBigDecimal, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, NumberFormatException.class));
+        invalidBigDecimals().forEach(invalidBigDecimal -> createAndAssertImportedPeriod(validName, validEndingMonth, validReportDate,
+                validShares, validPriceLow, invalidBigDecimal, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, NumberFormatException.class));
+        invalidBigDecimals().forEach(invalidBigDecimal -> createAndAssertImportedPeriod(validName, validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, invalidBigDecimal,
+                validGrossProfit, validOperatingIncome, validNetIncome, validDividend, NumberFormatException.class));
+        invalidBigDecimals().forEach(invalidBigDecimal -> createAndAssertImportedPeriod(validName, validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                invalidBigDecimal, validOperatingIncome, validNetIncome, validDividend, NumberFormatException.class));
+        invalidBigDecimals().forEach(invalidBigDecimal -> createAndAssertImportedPeriod(validName, validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, invalidBigDecimal, validNetIncome, validDividend, NumberFormatException.class));
+        invalidBigDecimals().forEach(invalidBigDecimal -> createAndAssertImportedPeriod(validName, validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, invalidBigDecimal, validDividend, NumberFormatException.class));
+        invalidBigDecimals().forEach(invalidBigDecimal -> createAndAssertImportedPeriod(validName, validEndingMonth, validReportDate,
+                validShares, validPriceLow, validPriceHigh, validRevenue,
+                validGrossProfit, validOperatingIncome, validNetIncome, invalidBigDecimal, NumberFormatException.class));
     }
 
     @Test
@@ -192,7 +283,7 @@ public class PeriodServiceTest
 
         PeriodUpdateFinancialDto dto = new PeriodUpdateFinancialDto();
 
-        updateFinancialAndAssertPeriod(dto, period, ServiceFailureException.class);
+        updateAndAssertPeriod(dto, period, ServiceFailureException.class);
 
         dto.setId(period.getId());
         dto.setReportDate(Generator.randomDate(2025));
@@ -204,70 +295,70 @@ public class PeriodServiceTest
         dto.setOperatingIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         dto.setNetIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
-        updateFinancialAndAssertPeriod(dto, period, null);
+        updateAndAssertPeriod(dto, period, null);
 
         invalidDates().forEach(invalidDate -> {
             dto.setReportDate(invalidDate);
-            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
         dto.setReportDate(Generator.randomDate(2025));
-        updateFinancialAndAssertPeriod(dto, period, null);
+        updateAndAssertPeriod(dto, period, null);
 
         invalidBigDecimals().forEach(invalidBigDecimal -> {
             dto.setShares(invalidBigDecimal);
-            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
         dto.setShares(String.valueOf(Generator.randomBigDecimal(999999, 2)));
-        updateFinancialAndAssertPeriod(dto, period, null);
+        updateAndAssertPeriod(dto, period, null);
 
         invalidBigDecimals().forEach(invalidBigDecimal -> {
             dto.setPriceLow(invalidBigDecimal);
-            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
         dto.setPriceLow(String.valueOf(Generator.randomBigDecimal(999999, 4)));
-        updateFinancialAndAssertPeriod(dto, period, null);
+        updateAndAssertPeriod(dto, period, null);
 
         invalidBigDecimals().forEach(invalidBigDecimal -> {
             dto.setPriceHigh(invalidBigDecimal);
-            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
         dto.setPriceHigh(String.valueOf(Generator.randomBigDecimal(999999, 4)));
-        updateFinancialAndAssertPeriod(dto, period, null);
+        updateAndAssertPeriod(dto, period, null);
 
         invalidBigDecimals().forEach(invalidBigDecimal -> {
             dto.setRevenue(invalidBigDecimal);
-            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
         dto.setRevenue(String.valueOf(Generator.randomBigDecimal(999999, 2)));
-        updateFinancialAndAssertPeriod(dto, period, null);
+        updateAndAssertPeriod(dto, period, null);
 
         invalidBigDecimals().forEach(invalidBigDecimal -> {
             dto.setGrossProfit(invalidBigDecimal);
-            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
         dto.setGrossProfit(String.valueOf(Generator.randomBigDecimal(999999, 2)));
-        updateFinancialAndAssertPeriod(dto, period, null);
+        updateAndAssertPeriod(dto, period, null);
 
         invalidBigDecimals().forEach(invalidBigDecimal -> {
             dto.setOperatingIncome(invalidBigDecimal);
-            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
         dto.setOperatingIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
-        updateFinancialAndAssertPeriod(dto, period, null);
+        updateAndAssertPeriod(dto, period, null);
 
         invalidBigDecimals().forEach(invalidBigDecimal -> {
             dto.setNetIncome(invalidBigDecimal);
-            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
         dto.setNetIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
-        updateFinancialAndAssertPeriod(dto, period, null);
+        updateAndAssertPeriod(dto, period, null);
 
         invalidBigDecimals().forEach(invalidBigDecimal -> {
             dto.setDividend(invalidBigDecimal);
-            updateFinancialAndAssertPeriod(dto, period, IllegalArgumentException.class);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
         dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
-        updateFinancialAndAssertPeriod(dto, period, null);
+        updateAndAssertPeriod(dto, period, null);
     }
 
     @Test
@@ -620,6 +711,53 @@ public class PeriodServiceTest
         }
     }
 
+    private void createAndAssertImportedPeriod(String name, String endingMonth, String reportDate,
+                                              String shares, String priceLow, String priceHigh, String revenue,
+                                              String grossProfit, String operatingIncome, String netIncome, String dividend,
+                                              Class<? extends Exception> expectedException)
+    {
+        Company company = Generator.generateCompany();
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+
+        PeriodImportDto createDto = new PeriodImportDto();
+        createDto.setCompanyId(company.getId());
+        createDto.setName(name);
+        createDto.setEndingMonth(endingMonth);
+        createDto.setReportDate(reportDate);
+        createDto.setShares(shares);
+        createDto.setPriceLow(priceLow);
+        createDto.setPriceHigh(priceHigh);
+        createDto.setRevenue(revenue);
+        createDto.setGrossProfit(grossProfit);
+        createDto.setOperatingIncome(operatingIncome);
+        createDto.setNetIncome(netIncome);
+        createDto.setDividend(dividend);
+
+        if (expectedException == null) {
+            periodService.create(createDto);
+
+            ArgumentCaptor<Period> captor = ArgumentCaptor.forClass(Period.class);
+            verify(periodDao).create(captor.capture());
+
+            assertThat(captor.getValue().getCompany().getId(), is(company.getId()));
+            assertThat(captor.getValue().getName(), is(PeriodName.valueOf(name)));
+            assertThat(captor.getValue().getEndingMonth(), is(YearMonth.parse(endingMonth)));
+            assertThat(captor.getValue().getReportDate(), is(Utils.nullableDateValueOf(reportDate)));
+            assertBigDecimals(captor.getValue().getShares(), Utils.createNullableBigDecimal(shares));
+            assertBigDecimals(captor.getValue().getPriceLow(), Utils.createNullableBigDecimal(priceLow));
+            assertBigDecimals(captor.getValue().getPriceHigh(), Utils.createNullableBigDecimal(priceHigh));
+            assertBigDecimals(captor.getValue().getRevenue(), Utils.createNullableBigDecimal(revenue));
+            assertBigDecimals(captor.getValue().getGrossProfit(), Utils.createNullableBigDecimal(grossProfit));
+            assertBigDecimals(captor.getValue().getOperatingIncome(), Utils.createNullableBigDecimal(operatingIncome));
+            assertBigDecimals(captor.getValue().getNetIncome(), Utils.createNullableBigDecimal(netIncome));
+            assertBigDecimals(captor.getValue().getDividend(), Utils.createNullableBigDecimal(dividend));
+
+            clearInvocations(periodDao);
+        } else {
+            assertThrows(expectedException, () -> periodService.create(createDto));
+        }
+    }
+
     private void updateAndAssertPeriod(PeriodUpdateDto dto, Period period, Class<? extends Exception> expectedException) {
         if (expectedException == null) {
             periodService.update(dto);
@@ -660,9 +798,9 @@ public class PeriodServiceTest
         }
     }
 
-    private void updateFinancialAndAssertPeriod(PeriodUpdateFinancialDto dto, Period period, Class<? extends Exception> expectedException) {
+    private void updateAndAssertPeriod(PeriodUpdateFinancialDto dto, Period period, Class<? extends Exception> expectedException) {
         if (expectedException == null) {
-            periodService.updateFinancial(dto);
+            periodService.update(dto);
 
             ArgumentCaptor<Period> captor = ArgumentCaptor.forClass(Period.class);
             verify(periodDao).save(captor.capture());
@@ -683,7 +821,7 @@ public class PeriodServiceTest
 
             clearInvocations(periodDao);
         } else {
-            assertThrows(expectedException, () -> periodService.updateFinancial(dto));
+            assertThrows(expectedException, () -> periodService.update(dto));
         }
     }
 }

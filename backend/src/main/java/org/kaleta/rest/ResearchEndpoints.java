@@ -14,6 +14,7 @@ import org.kaleta.rest.dto.ResearchDto;
 import org.kaleta.rest.validation.ValidUuid;
 import org.kaleta.service.ArithmeticService;
 import org.kaleta.service.CompanyService;
+import org.kaleta.service.FirebaseService;
 import org.kaleta.service.LatestService;
 import org.kaleta.service.PeriodService;
 import org.kaleta.service.RecordService;
@@ -36,6 +37,8 @@ public class ResearchEndpoints
     ArithmeticService arithmeticService;
     @Inject
     TradeService tradeService;
+    @Inject
+    FirebaseService firebaseService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -72,6 +75,9 @@ public class ResearchEndpoints
         } else {
             dto.setAssets(tradeService.getAssets(companyId, null));
         }
+
+        String latestPeriodId = dto.getPeriods().getPeriods().stream().findFirst().map(p -> p.getName().toString()).orElse(null);
+        dto.setNewerCachedPeriods(firebaseService.getNewerPeriods(dto.getCompany().getTicker(), latestPeriodId));
 
         return Response.ok().entity(dto).build();
     }

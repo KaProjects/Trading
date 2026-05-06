@@ -65,6 +65,7 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES ('9c3
 
 -- for rest.*EndpointsTest.create tests
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('6877c555-1234-4af5-99ef-415980484d8c', 'CRE', '$', true);
+INSERT INTO Company (id, ticker, currency, watching) VALUES ('6877c555-1234-1111-99ef-415980484d8c', 'IMP', '$', true);
 
 -- for rest.*EndpointsTest.createInvalidValues tests
 INSERT INTO Company (id, ticker, currency, watching) VALUES ('f5b87b39-6b61-4c32-8c09-4f34e97c2d7d', 'CINV', '$', true);

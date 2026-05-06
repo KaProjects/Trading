@@ -11,21 +11,27 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.internal.NonNull;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.kaleta.persistence.entity.Trade;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
+import org.kaleta.model.FirebaseCompanyDep;
+import org.kaleta.persistence.entity.Trade;
+import org.kaleta.rest.dto.PeriodImportDto;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Singleton
 public class FirebaseService
 {
     private static FirebaseDatabase database;
-    private static List<FirebaseCompany> companies = new ArrayList<>();
+    private static final Map<String, FirebaseCompanyDep> companiesDep = new HashMap<>();
+    private static final Map<String, FirebaseCompany> companies = new HashMap<>();
 
     static {
         if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION"))
@@ -43,57 +49,68 @@ public class FirebaseService
             }
 
             FirebaseApp app;
-            if (FirebaseApp.getApps().size() == 0){
+            if (FirebaseApp.getApps().isEmpty()){
                 app = FirebaseApp.initializeApp(options);
             } else {
                 app = FirebaseApp.getInstance();
             }
             database = FirebaseDatabase.getInstance(app);
-            database.getReference("company-dep").addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    companies.clear();
-                    for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
-                        try {
-                            FirebaseCompany company = postSnapshot.getValue(FirebaseCompany.class);
-                            companies.add(company);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {}
-            });
+            database.getReference("company-dep").addValueEventListener(createListener(companiesDep, FirebaseCompanyDep.class));
+            database.getReference("company").addValueEventListener(createListener(companies, FirebaseCompany.class));
         }
     }
 
     public boolean hasCompany(String ticker)
     {
-        if (!ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION")) return false;
-
-        return companies.stream().filter(company -> company.getTicker().equals(ticker)).collect(Collectors.toSet()).size() > 0;
+        return companiesDep.get(ticker) != null;
     }
 
-    public FirebaseCompany getCompany(String ticker)
+    public FirebaseCompanyDep getCompanyDep(String ticker)
     {
-        if (!ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION")) return null;
-
-        return companies.stream()
-                .filter(company -> company.getTicker().equals(ticker))
-                .findFirst()
-                .orElseThrow(() -> new ServiceFailureException("company with ticker '" + ticker + "' not found"));
+        FirebaseCompanyDep  company = companiesDep.get(ticker);
+        if  (company == null) throw new ServiceFailureException("company with ticker '" + ticker + "' not found");
+        return company;
     }
 
     public void pushAssets(List<Trade> activeTrades)
     {
-        if (!ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION")) return;
-
-        DatabaseReference db = database.getReference("asset");
-        db.removeValueAsync();
-        for (Trade trade : activeTrades)
+        if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION"))
         {
-            db.push().setValue(FirebaseAsset.from(trade), (databaseError, databaseReference) -> {});
+            DatabaseReference db = database.getReference("asset");
+            db.removeValueAsync();
+            for (Trade trade : activeTrades)
+            {
+                db.push().setValue(FirebaseAsset.from(trade), (databaseError, databaseReference) -> {});
+            }
         }
+    }
+
+    public List<PeriodImportDto> getNewerPeriods(String ticker, String quarterId)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getGemini() == null) return new ArrayList<>();
+        return company.getGemini().getQuarters().values().stream()
+                .filter(quarter -> quarter.isInFutureOf(quarterId))
+                .sorted(Comparator.comparing(FirebaseCompany.Gemini.Quarter::getId).reversed())
+                .map(FirebaseCompany.Gemini.Quarter::toImportDto)
+                .collect(Collectors.toList());
+    }
+
+    private static <T> ValueEventListener createListener(Map<String, T> map, Class<T> clazz) {
+        return new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                map.clear();
+                for (DataSnapshot data : dataSnapshot.getChildren()) {
+                    try {
+                        map.put(data.getKey(), data.getValue(clazz));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        };
     }
 }

@@ -37,7 +37,7 @@ import static org.kaleta.framework.Matchers.hasTicker;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class CompanyEndpointsTest
 {
-    private final String path = "/company";
+    String path = "/company";
 
     @Inject
     CompanyDao companyDao;
@@ -53,7 +53,7 @@ class CompanyEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyValuesDto.class);
 
-        assertThat(dto.getCompanies().size(), is(25));
+        assertThat(dto.getCompanies().size(), is(26));
         assertThat(dto.getCompanies().get(0).getTicker(), is("ABCD"));
         assertThat(dto.getSectors().size(), is(Sector.values().length));
         assertThat(dto.getCurrencies().size(), is(Currency.values().length));
@@ -70,8 +70,8 @@ class CompanyEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", RecordsUiCompanyListsDto.class);
 
-        assertThat(dto.getWatchingOldestReview().size(), is(21));
-        assertThat(dto.getWatchingOldestReview().get(15).getTicker(), is("RR"));
+        assertThat(dto.getWatchingOldestReview().size(), is(22));
+        assertThat(dto.getWatchingOldestReview().get(16).getTicker(), is("RR"));
 
         assertThat(dto.getOwnedWithoutStrategy().size(), is(5));
         assertThat(dto.getOwnedWithoutStrategy(), hasItem(hasTicker("XRSB")));
@@ -139,8 +139,6 @@ class CompanyEndpointsTest
         Assert.putValidationError(path, dto, "must be any of Currency");
         dto.setCurrency(validCurrency);
 
-        dto.setSector(null);
-        Assert.putValidationError(path, dto, NOT_NULL);
         dto.setSector("");
         Assert.putValidationError(path, dto, "must be any of Sector");
         dto.setSector("xyz");
@@ -248,8 +246,8 @@ class CompanyEndpointsTest
 
         assertThat(dto.getColumns().size(), is(9));
         assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
-        assertThat(dto.getCompanies().size(), is(25));
-        CompanyUiDto.Company company = dto.getCompanies().get(6);
+        assertThat(dto.getCompanies().size(), is(26));
+        CompanyUiDto.Company company = dto.getCompanies().get(7);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getWatching(), is(true));
@@ -337,12 +335,12 @@ class CompanyEndpointsTest
                 .extract().response().jsonPath().getObject("", CompanyUiDto.class);
 
         int expectedColumns = 9;
-        int expectedCompanies = 25;
+        int expectedCompanies = 26;
 
         assertThat(dto.getColumns().size(), is(expectedColumns));
         assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
-        CompanyUiDto.Company company = dto.getCompanies().get(6);
+        CompanyUiDto.Company company = dto.getCompanies().get(7);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getWatching(), is(true));

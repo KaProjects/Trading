@@ -20,4 +20,5 @@ public class ResearchDto
     private Latest latest;
     private PriceIndicators indicators;
     private Assets assets;
+    private List<PeriodImportDto> newerCachedPeriods;
 }

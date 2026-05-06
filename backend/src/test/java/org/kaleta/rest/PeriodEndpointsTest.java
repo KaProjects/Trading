@@ -8,6 +8,7 @@ import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.PeriodCreateDto;
+import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 
@@ -32,7 +33,7 @@ import static org.kaleta.framework.Assert.assertBigDecimals;
 @QuarkusTest
 class PeriodEndpointsTest
 {
-    private final String path = "/period";
+    String path = "/period";
 
     @Inject
     PeriodDao periodDao;
@@ -118,6 +119,236 @@ class PeriodEndpointsTest
 
         dto.setCompanyId(UUID.randomUUID().toString());
         Assert.post400(path, dto, "company with id '" + dto.getCompanyId() + "' not found");
+    }
+
+    @Test
+    void createImport()
+    {
+        PeriodImportDto dto = new PeriodImportDto();
+        dto.setCompanyId("6877c555-1234-1111-99ef-415980484d8c");
+        dto.setName("15FY");
+        dto.setEndingMonth("2015-10");
+        dto.setReportDate("2015-11-11");
+        dto.setShares("12345.67");
+        dto.setPriceLow("20.1234");
+        dto.setPriceHigh("26.5678");
+        dto.setRevenue("22.5");
+        dto.setGrossProfit("-5");
+        dto.setOperatingIncome("-10");
+        dto.setNetIncome("-5");
+        dto.setDividend("2");
+
+        Assert.post201(path + "/import", dto);
+
+        List<Period> periods = periodDao.list(dto.getCompanyId());
+        assertThat(periods.size(), is(1));
+        Period period = periods.get(0);
+        assertThat(period.getCompany().getTicker(), is("IMP"));
+        assertThat(period.getName(), is(PeriodName.valueOf(dto.getName())));
+        assertThat(period.getEndingMonth(), is(YearMonth.parse(dto.getEndingMonth())));
+        assertThat(period.getReportDate(), is(Date.valueOf(dto.getReportDate())));
+        assertBigDecimals(period.getShares(), new BigDecimal(dto.getShares()));
+        assertBigDecimals(period.getPriceHigh(), new BigDecimal(dto.getPriceHigh()));
+        assertBigDecimals(period.getPriceLow(), new BigDecimal(dto.getPriceLow()));
+        assertThat(period.getResearch(), is(nullValue()));
+        assertBigDecimals(period.getRevenue(), new BigDecimal(dto.getRevenue()));
+        assertBigDecimals(period.getGrossProfit(), new BigDecimal(dto.getGrossProfit()));
+        assertBigDecimals(period.getOperatingIncome(), new BigDecimal(dto.getOperatingIncome()));
+        assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
+        assertBigDecimals(period.getDividend(), new BigDecimal(dto.getDividend()));
+    }
+
+    @Test
+    void createImport_invalidParameters()
+    {
+        String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
+        String validName = "19FY";
+        String validEndingMonth = "2019-11";
+        String validReportDate = "2020-01-01";
+        String validShares = "12345.67";
+        String validPriceLow = "20.1234";
+        String validPriceHigh = "26.5678";
+        String validRevenue = "22.5";
+        String validGrossProfit = "-5";
+        String validOperatingIncome = "-10";
+        String validNetIncome = "-5";
+        String validDividend = "2";
+
+        Assert.postValidationError(path + "/import", null, NOT_NULL);
+
+        PeriodImportDto dto = new PeriodImportDto();
+        dto.setCompanyId(validCompanyId);
+        dto.setName(validName);
+        dto.setEndingMonth(validEndingMonth);
+        dto.setReportDate(validReportDate);
+        dto.setShares(validShares);
+        dto.setPriceLow(validPriceLow);
+        dto.setPriceHigh(validPriceHigh);
+        dto.setRevenue(validRevenue);
+        dto.setGrossProfit(validGrossProfit);
+        dto.setOperatingIncome(validOperatingIncome);
+        dto.setNetIncome(validNetIncome);
+        dto.setDividend(validDividend);
+
+        dto.setCompanyId(null);
+        Assert.postValidationError(path + "/import", dto, NOT_NULL);
+        dto.setCompanyId("x");
+        Assert.postValidationError(path + "/import", dto, VALID_UUID);
+        dto.setCompanyId(UUID.randomUUID().toString());
+        Assert.post400(path + "/import", dto, "company with id '" + dto.getCompanyId() + "' not found");
+        dto.setCompanyId(validCompanyId);
+
+        dto.setName(null);
+        Assert.postValidationError(path + "/import", dto, NOT_NULL);
+        dto.setName("");
+        Assert.postValidationError(path + "/import", dto, "must be a valid PeriodName");
+        dto.setName("2025FY");
+        Assert.postValidationError(path + "/import", dto, "must be a valid PeriodName");
+        dto.setName("a5FY");
+        Assert.postValidationError(path + "/import", dto, "must be a valid PeriodName");
+        dto.setName("25FX");
+        Assert.postValidationError(path + "/import", dto, "must be a valid PeriodName");
+        dto.setName(validName);
+
+        dto.setEndingMonth(null);
+        Assert.postValidationError(path + "/import", dto, NOT_NULL);
+        dto.setEndingMonth("");
+        Assert.postValidationError(path + "/import", dto, "must match YYYY-MM");
+        dto.setEndingMonth("xyz6");
+        Assert.postValidationError(path + "/import", dto, "must match YYYY-MM");
+        dto.setEndingMonth("202510");
+        Assert.postValidationError(path + "/import", dto, "must match YYYY-MM");
+        dto.setEndingMonth("2025-10-06");
+        Assert.postValidationError(path + "/import", dto, "must match YYYY-MM");
+        dto.setEndingMonth(validEndingMonth);
+
+        dto.setReportDate("");
+        Assert.postValidationError(path + "/import", dto, MATCH_DATE_FORMAT);
+        dto.setReportDate("1.1.2020");
+        Assert.postValidationError(path + "/import", dto, MATCH_DATE_FORMAT);
+        dto.setReportDate(null);
+
+        dto.setShares("");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setShares("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setShares(".1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setShares("1.");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setShares("1234567");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setShares("10.123");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setShares("-1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setShares(null);
+
+        dto.setRevenue("");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setRevenue("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setRevenue(".1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setRevenue("1.");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setRevenue("1234567");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setRevenue("10.123");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setRevenue("-1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setRevenue(null);
+
+        dto.setGrossProfit("");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setGrossProfit("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setGrossProfit(".1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setGrossProfit("1.");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setGrossProfit("1234567");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setGrossProfit("10.123");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setGrossProfit(null);
+
+        dto.setOperatingIncome("");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setOperatingIncome("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setOperatingIncome(".1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setOperatingIncome("1.");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setOperatingIncome("1234567");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setOperatingIncome("10.123");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setOperatingIncome(null);
+
+        dto.setNetIncome("");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setNetIncome("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setNetIncome(".1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setNetIncome("1.");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setNetIncome("1234567");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setNetIncome("10.123");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setNetIncome(null);
+
+        dto.setDividend("");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setDividend("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setDividend(".1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setDividend("1.");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setDividend("1234567");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setDividend("10.123");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setDividend("-1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
+        dto.setDividend(null);
+
+        dto.setPriceLow("");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceLow("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceLow(".1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceLow("1.");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceLow("1234567");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceLow("10.12345");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceLow("-1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceLow(null);
+
+        dto.setPriceHigh("");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceHigh("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceHigh(".1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceHigh("1.");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceHigh("1234567");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceHigh("10.12345");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceHigh("-1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
+        dto.setPriceHigh(null);
     }
 
     @Test

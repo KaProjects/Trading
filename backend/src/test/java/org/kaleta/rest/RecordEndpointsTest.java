@@ -34,17 +34,7 @@ import static org.kaleta.framework.Assert.assertBigDecimals;
 @QuarkusTest
 class RecordEndpointsTest
 {
-    @Mock
-    @Singleton
-    public static class FirebaseServiceMock extends FirebaseService {
-        @Override
-        public boolean hasCompany(String ticker)
-        {
-            return false;
-        }
-    }
-
-    private final String path = "/record";
+    String path = "/record";
 
     @Inject
     RecordDao recordDao;
