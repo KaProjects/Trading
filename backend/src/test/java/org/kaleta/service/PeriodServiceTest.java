@@ -16,6 +16,7 @@ import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
+import org.kaleta.rest.error.InvalidInputException;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
@@ -176,7 +177,7 @@ public class PeriodServiceTest
 
         PeriodUpdateDto dto = new PeriodUpdateDto();
 
-        updateAndAssertPeriod(dto, period, ServiceFailureException.class);
+        updateAndAssertPeriod(dto, period, InvalidInputException.class);
 
         dto.setId(period.getId());
         updateAndAssertPeriod(dto, period, null);
@@ -283,7 +284,7 @@ public class PeriodServiceTest
 
         PeriodUpdateFinancialDto dto = new PeriodUpdateFinancialDto();
 
-        updateAndAssertPeriod(dto, period, ServiceFailureException.class);
+        updateAndAssertPeriod(dto, period, InvalidInputException.class);
 
         dto.setId(period.getId());
         dto.setReportDate(Generator.randomDate(2025));
@@ -359,6 +360,18 @@ public class PeriodServiceTest
         });
         dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
+    }
+
+    @Test
+    void get()
+    {
+        Company company = Generator.generateCompany();
+        Period period = Generator.generatePeriod(company, true);
+
+        when(periodDao.get(period.getId())).thenReturn(period);
+
+        assertThat(periodService.get(period.getId()), is(period));
+        verify(periodDao).get(period.getId());
     }
 
     @Test

@@ -12,6 +12,8 @@ import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Trade;
+import org.kaleta.rest.error.InvalidInputException;
+import org.kaleta.rest.error.ServiceFailureException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -100,17 +102,17 @@ public class TradeService
             try {
                 Trade trade = tradeDao.get(tradeDto.getTradeId());
                 if (!trade.getCompany().getId().equals(company.getId())) {
-                    throw new ServiceFailureException("provided companyId and trade='" + trade.getId() + "' companyId doesn't match");
+                    throw new InvalidInputException("provided companyId and trade='" + trade.getId() + "' companyId doesn't match");
                 }
                 BigDecimal sellQuantity = new BigDecimal(tradeDto.getQuantity());
                 if (trade.getQuantity().compareTo(sellQuantity) < 0){
-                    throw new ServiceFailureException("unable to sell more than owned for tradeId='" + tradeDto.getTradeId() + "'");
+                    throw new InvalidInputException("unable to sell more than owned for tradeId='" + tradeDto.getTradeId() + "'");
                 } else {
                     totalSellQuantity = totalSellQuantity.add(sellQuantity);
                 }
                 trades.add(trade);
             } catch (NoResultException e){
-                throw new ServiceFailureException("trade with id '" + tradeDto.getTradeId() + "' not found");
+                throw new InvalidInputException("trade with id '" + tradeDto.getTradeId() + "' not found");
             }
         }
 

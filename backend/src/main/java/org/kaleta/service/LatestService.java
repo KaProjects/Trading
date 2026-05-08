@@ -10,6 +10,7 @@ import org.kaleta.persistence.api.LatestDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
+import org.kaleta.rest.error.ServiceFailureException;
 
 import java.math.BigDecimal;
 import java.time.Instant;

@@ -17,6 +17,8 @@ import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Record;
 import org.kaleta.rest.dto.RecordCreateDto;
 import org.kaleta.rest.dto.RecordUpdateDto;
+import org.kaleta.rest.error.InvalidInputException;
+import org.kaleta.rest.error.ServiceFailureException;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
@@ -96,13 +98,13 @@ public class RecordServiceTest
 
         RecordUpdateDto dto = new RecordUpdateDto();
 
-        updateAndAssertRecord(dto, record, ServiceFailureException.class);
+        updateAndAssertRecord(dto, record, InvalidInputException.class);
 
         dto.setId(record.getId());
         updateAndAssertRecord(dto, record, null);
 
         dto.setTitle("");
-        updateAndAssertRecord(dto, record, ServiceFailureException.class);
+        updateAndAssertRecord(dto, record, InvalidInputException.class);
 
         dto.setTitle("title");
         updateAndAssertRecord(dto, record, null);
@@ -145,7 +147,7 @@ public class RecordServiceTest
         when(recordDao.get(record.getId())).thenReturn(record);
         when(recordDao.get(randomId)).thenThrow(NoResultException.class);
 
-        assertThrows(ServiceFailureException.class, () -> recordService.delete(randomId));
+        assertThrows(InvalidInputException.class, () -> recordService.delete(randomId));
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(recordDao, times(0)).delete(captor.capture());

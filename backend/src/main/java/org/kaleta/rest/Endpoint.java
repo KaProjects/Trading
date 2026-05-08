@@ -1,7 +1,8 @@
 package org.kaleta.rest;
 
 import jakarta.ws.rs.core.Response;
-import org.kaleta.service.ServiceFailureException;
+import org.kaleta.rest.error.InvalidInputException;
+import org.kaleta.rest.error.ServiceFailureException;
 
 import java.util.function.Supplier;
 import io.quarkus.logging.Log;
@@ -23,9 +24,11 @@ public class Endpoint
             } else {
                 return Response.ok().entity(content).build();
             }
-        } catch (ServiceFailureException e){
-            Log.error(e);
-            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+        } catch (ServiceFailureException exception){
+            Log.error(exception.getMessage(), exception);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(exception.getMessage()).build();
+        } catch (InvalidInputException exception) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(exception.getMessage()).build();
         }
     }
 }

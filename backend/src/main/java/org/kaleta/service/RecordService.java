@@ -13,6 +13,7 @@ import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Record;
 import org.kaleta.rest.dto.RecordCreateDto;
 import org.kaleta.rest.dto.RecordUpdateDto;
+import org.kaleta.rest.error.InvalidInputException;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -102,12 +103,12 @@ public class RecordService
         try {
             record = recordDao.get(dto.getId());
         } catch (NoResultException e){
-            throw new ServiceFailureException("record with id '" + dto.getId() + "' not found");
+            throw new InvalidInputException("record with id '" + dto.getId() + "' not found");
         }
 
         if (dto.getTitle() != null) {
             if (dto.getTitle().isBlank())
-                throw new ServiceFailureException("record title shouldn't be empty");
+                throw new InvalidInputException("record title shouldn't be empty");
             record.setTitle(dto.getTitle());
         }
         if (dto.getContent() != null) record.setContent(dto.getContent());
@@ -129,7 +130,7 @@ public class RecordService
         try {
             recordDao.get(recordId);
         } catch (NoResultException e){
-            throw new ServiceFailureException("record with id '" + recordId + "' not found");
+            throw new InvalidInputException("record with id '" + recordId + "' not found");
         }
         recordDao.delete(recordId);
     }

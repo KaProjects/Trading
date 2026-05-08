@@ -1,5 +1,6 @@
 package org.kaleta.service;
 
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
@@ -12,6 +13,8 @@ import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
+import org.kaleta.rest.error.InvalidInputException;
+import org.kaleta.rest.error.ServiceFailureException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,6 +31,8 @@ public class PeriodService
     PeriodDao periodDao;
     @Inject
     CompanyService companyService;
+    @Inject
+    FirebaseService firebaseService;
 
     public void create(PeriodCreateDto dto)
     {
@@ -56,6 +61,7 @@ public class PeriodService
         period.setDividend(Utils.createNullableBigDecimal(dto.getDividend()));
 
         periodDao.create(period);
+        pushFirebase(period);
     }
 
     public void update(PeriodUpdateDto dto)
@@ -64,7 +70,7 @@ public class PeriodService
         try {
             period = periodDao.get(dto.getId());
         } catch (NoResultException e){
-            throw new ServiceFailureException("period with id '" + dto.getId() + "' not found");
+            throw new InvalidInputException("period with id '" + dto.getId() + "' not found");
         }
 
         if (dto.getName() != null) period.setName(PeriodName.valueOf(dto.getName()));
@@ -90,7 +96,7 @@ public class PeriodService
         try {
             period = periodDao.get(dto.getId());
         } catch (NoResultException e){
-            throw new ServiceFailureException("period with id '" + dto.getId() + "' not found");
+            throw new InvalidInputException("period with id '" + dto.getId() + "' not found");
         }
 
         period.setReportDate(Utils.nullableDateValueOf(dto.getReportDate()));
@@ -104,6 +110,7 @@ public class PeriodService
         period.setDividend(new BigDecimal(dto.getDividend()));
 
         periodDao.save(period);
+        pushFirebase(period);
     }
 
     public Periods getBy(String companyId)
@@ -142,6 +149,10 @@ public class PeriodService
         return model;
     }
 
+    public Period get(String id) {
+        return periodDao.get(id);
+    }
+
     /**
      * @return aggregates map <companyId, [financials count]>
      */
@@ -154,6 +165,14 @@ public class PeriodService
                         p -> new int[]{1},
                         (a, b) -> {a[0] += b[0]; return a;}
                 ));
+    }
+
+    private void pushFirebase(Period period){
+        try {
+            firebaseService.updatePeriod(period);
+        } catch (RuntimeException exception) {
+            Log.error(exception.getMessage(), exception);
+        }
     }
 
     private Periods.Period from(Period entity)

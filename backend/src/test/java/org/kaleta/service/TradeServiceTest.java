@@ -5,13 +5,15 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.Test;
-import org.kaleta.rest.dto.TradeCreateDto;
-import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.Assets;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Trade;
+import org.kaleta.rest.dto.TradeCreateDto;
+import org.kaleta.rest.dto.TradeSellDto;
+import org.kaleta.rest.error.InvalidInputException;
+import org.kaleta.rest.error.ServiceFailureException;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
@@ -185,7 +187,7 @@ public class TradeServiceTest
 
         // higher than trade quantity
         validDtoTrades.get(0).setQuantity("7");
-        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), ServiceFailureException.class);
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), InvalidInputException.class);
 
         // lesser than trade quantity
         validDtoTrades.get(0).setQuantity("3");
@@ -207,12 +209,12 @@ public class TradeServiceTest
 
         // nonexistent trade
         validDtoTrades.get(0).setTradeId("d7f1c3c8-4d7e-4558-9b3e-0b1fc6df3a43");
-        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade), copy(validTrade2)), List.of(copy(expectedTrade)), ServiceFailureException.class);
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade), copy(validTrade2)), List.of(copy(expectedTrade)), InvalidInputException.class);
 
         // attempt to sell from different company
         Trade malformed = copy(validTrade);
         malformed.setId(UUID.randomUUID().toString());
-        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(malformed), List.of(copy(expectedTrade)), ServiceFailureException.class);
+        sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(malformed), List.of(copy(expectedTrade)), InvalidInputException.class);
     }
 
     private Trade copy(Trade origin)

@@ -9,13 +9,17 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.internal.NonNull;
+import io.quarkus.logging.Log;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.FirebaseCompanyDep;
+import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.PeriodImportDto;
+import org.kaleta.rest.error.InvalidInputException;
+import org.kaleta.rest.error.ServiceFailureException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,11 +34,16 @@ import java.util.stream.Collectors;
 public class FirebaseService
 {
     private static FirebaseDatabase database;
+    private static final class Path {
+        private static final String COMPANY_DEP = "company-dep";
+        private static final String COMPANY = "company";
+        private static final String ASSET = "asset";
+    }
     private static final Map<String, FirebaseCompanyDep> companiesDep = new HashMap<>();
     private static final Map<String, FirebaseCompany> companies = new HashMap<>();
 
     static {
-        if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION"))
+        if (checkAccess())
         {
             FirebaseOptions options;
             try {
@@ -55,8 +64,8 @@ public class FirebaseService
                 app = FirebaseApp.getInstance();
             }
             database = FirebaseDatabase.getInstance(app);
-            database.getReference("company-dep").addValueEventListener(createListener(companiesDep, FirebaseCompanyDep.class));
-            database.getReference("company").addValueEventListener(createListener(companies, FirebaseCompany.class));
+            database.getReference(Path.COMPANY_DEP).addValueEventListener(createListener(companiesDep, FirebaseCompanyDep.class));
+            database.getReference(Path.COMPANY).addValueEventListener(createListener(companies, FirebaseCompany.class));
         }
     }
 
@@ -68,15 +77,15 @@ public class FirebaseService
     public FirebaseCompanyDep getCompanyDep(String ticker)
     {
         FirebaseCompanyDep  company = companiesDep.get(ticker);
-        if  (company == null) throw new ServiceFailureException("company with ticker '" + ticker + "' not found");
+        if  (company == null) throw new InvalidInputException("company with ticker '" + ticker + "' not found");
         return company;
     }
 
     public void pushAssets(List<Trade> activeTrades)
     {
-        if (ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION"))
+        if (checkAccess())
         {
-            DatabaseReference db = database.getReference("asset");
+            DatabaseReference db = database.getReference(Path.ASSET);
             db.removeValueAsync();
             for (Trade trade : activeTrades)
             {
@@ -105,6 +114,37 @@ public class FirebaseService
         return quarter.toImportDto();
     }
 
+    public void updatePeriod(Period period)
+    {
+        if (checkAccess())
+        {
+            String ticker = period.getCompany().getTicker();
+            FirebaseCompany company = companies.get(ticker);
+            if (company == null || company.getGemini() == null) return;
+            String quarterId = period.getName().toString();
+            FirebaseCompany.Gemini.Quarter quarter = company.getGemini().getQuarters().get(quarterId);
+            if (quarter == null) return;
+
+            quarter.setReport_date_this_quarter(String.valueOf(period.getReportDate()));
+            quarter.setReported_shares(String.valueOf(period.getShares()));
+            quarter.setPrice_min(String.valueOf(period.getPriceLow()));
+            quarter.setPrice_max(String.valueOf(period.getPriceHigh()));
+            quarter.setReported_revenues(String.valueOf(period.getRevenue()));
+            quarter.setReported_gross_profit(String.valueOf(period.getGrossProfit()));
+            quarter.setReported_operating_income(String.valueOf(period.getOperatingIncome()));
+            quarter.setReported_net_income(String.valueOf(period.getNetIncome()));
+            quarter.setReported_div(String.valueOf(period.getDividend()));
+
+            database.getReference(Path.COMPANY)
+                    .child( ticker + "/gemini/quarters/" + quarterId)
+                    .setValue(quarter, (databaseError, databaseReference) -> {});
+        }
+    }
+
+    private static boolean checkAccess() {
+        return ConfigProvider.getConfig().getValue("environment", String.class).equals("PRODUCTION");
+    }
+
     private static <T> ValueEventListener createListener(Map<String, T> map, Class<T> clazz) {
         return new ValueEventListener() {
             @Override
@@ -113,8 +153,8 @@ public class FirebaseService
                 for (DataSnapshot data : dataSnapshot.getChildren()) {
                     try {
                         map.put(data.getKey(), data.getValue(clazz));
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    } catch (Exception exception) {
+                        Log.error(exception.getMessage(), exception);
                     }
                 }
             }

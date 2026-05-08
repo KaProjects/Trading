@@ -1,4 +1,4 @@
-package org.kaleta.service;
+package org.kaleta.rest.error;
 
 public class ServiceFailureException extends RuntimeException
 {

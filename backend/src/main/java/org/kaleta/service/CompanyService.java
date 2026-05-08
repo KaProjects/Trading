@@ -12,6 +12,7 @@ import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
+import org.kaleta.rest.error.InvalidInputException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +48,7 @@ public class CompanyService
         try {
             return companyDao.get(companyId);
         } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + companyId + "' not found");
+            throw new InvalidInputException("company with id '" + companyId + "' not found");
         }
     }
 
@@ -93,7 +94,7 @@ public class CompanyService
         try {
             company = companyDao.get(dto.getId());
         } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + dto.getId() + "' not found");
+            throw new InvalidInputException("company with id '" + dto.getId() + "' not found");
         }
 
         company.setCurrency(Currency.valueOf(dto.getCurrency()));
@@ -107,8 +108,8 @@ public class CompanyService
     {
         try {
             companyDao.getByTicker(dto.getTicker());
-            throw new ServiceFailureException("Company with ticker '" + dto.getTicker() + "' already exists!");
-        } catch (NoResultException ignored){}
+            throw new InvalidInputException("company with ticker '" + dto.getTicker() + "' already exists!");
+        } catch (NoResultException expected){}
 
         Company newCompany = new Company();
         newCompany.setTicker(dto.getTicker());
