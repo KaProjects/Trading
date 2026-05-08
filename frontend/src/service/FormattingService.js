@@ -117,3 +117,7 @@ export function formatPolygonIoFinancial(financial) {
     formatted.netIncome = format(financial?.financials?.income_statement?.net_income_loss?.value?.toString())
     return formatted
 }
+
+export function orBlank (value) {
+    return value ? value : ""
+}

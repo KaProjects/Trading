@@ -6,7 +6,8 @@ import {
     formatPercent,
     formatPeriodName,
     formatPolygonIoFinancial,
-    isNotAValue
+    isNotAValue,
+    orBlank
 } from "../service/FormattingService";
 
 describe('FormattingService', () => {
@@ -193,5 +194,17 @@ describe('FormattingService', () => {
             operatingIncome: "12",
             netIncome: "34"
         });
+    })
+
+    test("orBlank", () => {
+        expect(orBlank(undefined)).toBe("");
+        expect(orBlank(null)).toBe("");
+        expect(orBlank("")).toBe("");
+        expect(orBlank(0)).toBe("");
+        expect(orBlank(false)).toBe("");
+
+        expect(orBlank("abc")).toBe("abc");
+        expect(orBlank(123)).toBe(123);
+        expect(orBlank(true)).toBe(true);
     })
 });

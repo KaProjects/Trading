@@ -96,6 +96,15 @@ public class FirebaseService
                 .collect(Collectors.toList());
     }
 
+    public PeriodImportDto getPeriod(String ticker, String quarterId)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getGemini() == null) return null;
+        FirebaseCompany.Gemini.Quarter quarter = company.getGemini().getQuarters().get(quarterId);
+        if (quarter == null) return null;
+        return quarter.toImportDto();
+    }
+
     private static <T> ValueEventListener createListener(Map<String, T> map, Class<T> clazz) {
         return new ValueEventListener() {
             @Override

@@ -27,3 +27,13 @@ export function validateTicker(value) {
     if (value.toUpperCase() !== value) return "only uppercase"
     return ""
 }
+
+export function validateDate(date, canInFuture, canInPast) {
+    if (!date) return "should not be empty"
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "doesn't match YYYY-MM-DD"
+    let today = new Date();
+    today = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, "0"), String(today.getDate()).padStart(2, "0"),].join("-");
+    if (!canInFuture && date > today) return "should not be in the future"
+    if (!canInPast && date < today) return "should not be in the past"
+    return ""
+}

@@ -23,6 +23,7 @@ public class Periods
         private PeriodName name;
         private YearMonth endingMonth;
         private Date reportDate;
+        private Date previousReportDate;
         private BigDecimal shares;
         private BigDecimal priceLow;
         private BigDecimal priceHigh;

@@ -188,8 +188,8 @@ const Research = props => {
                                 {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
 
                                 <PeriodFinancials sx={{marginBottom: "20px", marginTop: "20px"}}
-                                                  financials={data.periods.financials}
-                                                  ttm={data.periods.ttm}
+                                                  financials={data.financials}
+                                                  ttm={data.ttm}
                                                   triggerRefresh={triggerRefresh}
                                                   expand={expandFinancials}
                                                   setExpand={setExpandFinancials}
@@ -247,7 +247,7 @@ const Research = props => {
                                 company={props.companySelectorValue}
                             />
 
-                            {data.periods.periods.map((period, index) => (
+                            {data.periods.map((period, index) => (
                                 <BorderedSection key={period.id}
                                                  title={formatPeriodName(period.name) + " - ending: " + formatEndingMonth(period.endingMonth) + " - report: " + formatDate(period.reportDate)}
                                                  style={{color: 'text.primary'}}>
@@ -275,14 +275,7 @@ const Research = props => {
                                     }
                                     {!period.financial &&
                                         <Tooltip title="Add Financials">
-                                            <Button sx={{height: "25px"}} onClick={() => {
-                                                if (data.periods.periods[index + 1] && data.periods.periods[index + 1].reportDate) {
-                                                    const date = new Date(data.periods.periods[index + 1].reportDate)
-                                                    date.setDate(date.getDate() + 1)
-                                                    period.quoteFirstAfterLastReportDate = date.toISOString().split("T")[0]
-                                                }
-                                                setOpenAddFinancialDialog(period)
-                                            }}>
+                                            <Button sx={{height: "25px"}} onClick={() => setOpenAddFinancialDialog(period)}>
                                                 <ControlPointIcon sx={{color: 'lightgreen'}}/>
                                             </Button>
                                         </Tooltip>

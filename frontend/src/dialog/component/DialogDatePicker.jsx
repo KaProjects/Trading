@@ -2,7 +2,7 @@ import {TextField} from "@mui/material";
 import React from "react";
 
 
-export const DialogDatePicker = ({value, ...props}) => {
+export const DialogDatePicker = ({value, validate, ...props}) => {
     return (
         <TextField
             required
@@ -12,7 +12,8 @@ export const DialogDatePicker = ({value, ...props}) => {
             type="date"
             value={value}
             {...props}
-            error={value === ""}
+            error={validate ? validate() !== "" : value === ""}
+            helperText={validate ? validate() : ""}
         />
     )
 }

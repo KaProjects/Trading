@@ -130,6 +130,15 @@ public class PeriodService
         if (ttm != null){
             model.setTtm(computeFinancial(ttm));
         }
+
+        for (int i = 0; i < model.getPeriods().size() - 1; i++) {
+            Periods.Period current = model.getPeriods().get(i);
+            Periods.Period previous = model.getPeriods().get(i + 1);
+            if (previous != null && previous.getReportDate() != null) {
+                current.setPreviousReportDate(previous.getReportDate());
+            }
+        }
+
         return model;
     }
 

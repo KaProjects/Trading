@@ -1,4 +1,4 @@
-import {validateNumber, validateQuarter, validateTicker} from "../service/ValidationService";
+import {validateDate, validateNumber, validateQuarter, validateTicker} from "../service/ValidationService";
 
 test("validateNumber", () => {
     expect(validateNumber(333)).toBe("not a string");
@@ -57,4 +57,30 @@ test("validateTicker", () => {
     expect(validateTicker("NvDA")).toBe("only uppercase");
 
     expect(validateTicker("NVDA")).toBe("");
+})
+
+test("validateDate", () => {
+    expect(validateDate()).toBe("should not be empty");
+    expect(validateDate("")).toBe("should not be empty");
+    expect(validateDate("2026-5-8")).toBe("doesn't match YYYY-MM-DD");
+    expect(validateDate("08-05-2026")).toBe("doesn't match YYYY-MM-DD");
+
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = [yesterdayDate.getFullYear(), String(yesterdayDate.getMonth() + 1).padStart(2, "0"), String(yesterdayDate.getDate()).padStart(2, "0")].join("-");
+
+    const todayDate = new Date();
+    const today = [todayDate.getFullYear(), String(todayDate.getMonth() + 1).padStart(2, "0"), String(todayDate.getDate()).padStart(2, "0")].join("-");
+
+    const tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrow = [tomorrowDate.getFullYear(), String(tomorrowDate.getMonth() + 1).padStart(2, "0"), String(tomorrowDate.getDate()).padStart(2, "0")].join("-");
+
+    expect(validateDate(today, false, false)).toBe("");
+
+    expect(validateDate(yesterday, true, false)).toBe("should not be in the past");
+    expect(validateDate(yesterday, true, true)).toBe("");
+
+    expect(validateDate(tomorrow, false, true)).toBe("should not be in the future");
+    expect(validateDate(tomorrow, true, true)).toBe("");
 })

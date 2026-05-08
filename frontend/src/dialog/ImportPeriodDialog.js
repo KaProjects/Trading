@@ -32,6 +32,7 @@ const ImportPeriodDialog = props => {
     useEffect(() => {
         if (open) {
             setPeriod(null)
+            setAlert(null)
         }
         // eslint-disable-next-line
     }, [open])
@@ -39,7 +40,6 @@ const ImportPeriodDialog = props => {
     function createPeriod() {
         const data = {...period}
         data.companyId = company.id
-        console.log(data)
         axios.post(backend + "/period/import", data)
             .then((response) => {
                 triggerRefresh()

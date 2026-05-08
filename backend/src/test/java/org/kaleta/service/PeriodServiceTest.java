@@ -374,9 +374,9 @@ public class PeriodServiceTest
         Periods periods = periodService.getBy(company.getId());
 
         assertThat(periods.getPeriods().size(), is(3));
-        assertPeriod(periods.getPeriods().get(0), period2);
-        assertPeriod(periods.getPeriods().get(1), period1);
-        assertPeriod(periods.getPeriods().get(2), period3);
+        assertPeriod(periods.getPeriods().get(0), period2, period1.getReportDate());
+        assertPeriod(periods.getPeriods().get(1), period1, period3.getReportDate());
+        assertPeriod(periods.getPeriods().get(2), period3, null);
 
         assertThat(periods.getFinancials().size(), is(2));
 
@@ -430,9 +430,9 @@ public class PeriodServiceTest
         Periods periods = periodService.getBy(company.getId());
 
         assertThat(periods.getPeriods().size(), is(3));
-        assertPeriod(periods.getPeriods().get(0), period2);
-        assertPeriod(periods.getPeriods().get(1), period3);
-        assertPeriod(periods.getPeriods().get(2), period1);
+        assertPeriod(periods.getPeriods().get(0), period2, period3.getReportDate());
+        assertPeriod(periods.getPeriods().get(1), period3, period1.getReportDate());
+        assertPeriod(periods.getPeriods().get(2), period1, null);
 
         assertThat(periods.getFinancials().size(), is(2));
 
@@ -486,9 +486,9 @@ public class PeriodServiceTest
         Periods periods = periodService.getBy(company.getId());
 
         assertThat(periods.getPeriods().size(), is(3));
-        assertPeriod(periods.getPeriods().get(0), period3);
-        assertPeriod(periods.getPeriods().get(1), period1);
-        assertPeriod(periods.getPeriods().get(2), period2);
+        assertPeriod(periods.getPeriods().get(0), period3, period1.getReportDate());
+        assertPeriod(periods.getPeriods().get(1), period1, period2.getReportDate());
+        assertPeriod(periods.getPeriods().get(2), period2, null);
 
         assertThat(periods.getFinancials().size(), is(2));
 
@@ -542,9 +542,9 @@ public class PeriodServiceTest
         Periods periods = periodService.getBy(company.getId());
 
         assertThat(periods.getPeriods().size(), is(3));
-        assertPeriod(periods.getPeriods().get(0), period3);
-        assertPeriod(periods.getPeriods().get(1), period2);
-        assertPeriod(periods.getPeriods().get(2), period1);
+        assertPeriod(periods.getPeriods().get(0), period3, period2.getReportDate());
+        assertPeriod(periods.getPeriods().get(1), period2, period1.getReportDate());
+        assertPeriod(periods.getPeriods().get(2), period1, null);
 
         assertThat(periods.getFinancials().size(), is(2));
 
@@ -598,9 +598,9 @@ public class PeriodServiceTest
         Periods periods = periodService.getBy(company.getId());
 
         assertThat(periods.getPeriods().size(), is(3));
-        assertPeriod(periods.getPeriods().get(0), period3);
-        assertPeriod(periods.getPeriods().get(1), period2);
-        assertPeriod(periods.getPeriods().get(2), period1);
+        assertPeriod(periods.getPeriods().get(0), period3, period2.getReportDate());
+        assertPeriod(periods.getPeriods().get(1), period2, period1.getReportDate());
+        assertPeriod(periods.getPeriods().get(2), period1, null);
 
         assertThat(periods.getFinancials().size(), is(0));
 
@@ -657,7 +657,7 @@ public class PeriodServiceTest
         assertThat(map.get(company4.getId()), is(nullValue()));
     }
 
-    private void assertPeriod(Periods.Period actual, Period expected)
+    private void assertPeriod(Periods.Period actual, Period expected, Date expectedPreviousReportDate)
     {
         assertThat(actual.getId(), is(expected.getId()));
         assertThat(actual.getName(), is(expected.getName()));
@@ -667,6 +667,7 @@ public class PeriodServiceTest
         assertThat(actual.getPriceLow(), is(expected.getPriceLow()));
         assertThat(actual.getEndingMonth(), is(expected.getEndingMonth()));
         assertThat(actual.getReportDate(), is(expected.getReportDate()));
+        assertThat(actual.getPreviousReportDate(), is(expectedPreviousReportDate));
         if (expected.getRevenue() != null) {
             assertThat(actual.getFinancial(), is(notNullValue()));
             assertThat(actual.getFinancial().getPeriod(), is(expected.getName()));

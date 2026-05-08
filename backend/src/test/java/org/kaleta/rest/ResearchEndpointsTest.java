@@ -54,14 +54,17 @@ public class ResearchEndpointsTest
         assertThat(dto.getCompany().getWatching(), is(true));
         assertThat(dto.getCompany().getCurrency(), is(Currency.$));
 
-        assertThat(dto.getPeriods().getPeriods().size(), is(3));
-        assertThat(dto.getPeriods().getPeriods().get(0).getName(), is(PeriodName.valueOf("25Q1")));
-        assertThat(dto.getPeriods().getPeriods().get(1).getName(), is(PeriodName.valueOf("24Q4")));
-        assertThat(dto.getPeriods().getPeriods().get(2).getName(), is(PeriodName.valueOf("24Q3")));
-        assertThat(dto.getPeriods().getFinancials().size(), is(2));
-        assertThat(dto.getPeriods().getFinancials().get(0).getPeriod(), is(PeriodName.valueOf("24Q4")));
-        assertThat(dto.getPeriods().getFinancials().get(1).getPeriod(), is(PeriodName.valueOf("24Q3")));
-        assertThat(dto.getPeriods().getTtm(), is(notNullValue()));
+        assertThat(dto.getPeriods().size(), is(3));
+        assertThat(dto.getPeriods().get(0).getName(), is(PeriodName.valueOf("25Q1")));
+        assertThat(dto.getPeriods().get(1).getName(), is(PeriodName.valueOf("24Q4")));
+        assertThat(dto.getPeriods().get(2).getName(), is(PeriodName.valueOf("24Q3")));
+        assertThat(dto.getPeriods().get(0).getCachedData(), is(nullValue()));
+        assertThat(dto.getPeriods().get(1).getCachedData(), is(nullValue()));
+        assertThat(dto.getPeriods().get(2).getCachedData(), is(nullValue()));
+        assertThat(dto.getFinancials().size(), is(2));
+        assertThat(dto.getFinancials().get(0).getPeriod(), is(PeriodName.valueOf("24Q4")));
+        assertThat(dto.getFinancials().get(1).getPeriod(), is(PeriodName.valueOf("24Q3")));
+        assertThat(dto.getTtm(), is(notNullValue()));
 
         assertThat(dto.getRecords().size(), is(2));
         assertThat(dto.getRecords().get(0).getTitle(), is("yyy"));
@@ -125,6 +128,9 @@ public class ResearchEndpointsTest
         assertBigDecimals(dto.getAssets().getAggregate().getPurchasePrice(), new BigDecimal("150"));
         assertBigDecimals(dto.getAssets().getAggregate().getProfitValue(), new BigDecimal("32520"));
         assertBigDecimals(dto.getAssets().getAggregate().getProfitPercent(), new BigDecimal("722.67"));
+
+        assertThat(dto.getNewerCachedPeriods(), is(notNullValue()));
+        assertThat(dto.getNewerCachedPeriods().size(), is(0));
     }
 
     @Test

@@ -8,8 +8,11 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.kaleta.model.Company;
+import org.kaleta.model.Periods;
 import org.kaleta.model.Record;
 import org.kaleta.persistence.entity.Latest;
+import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
 import org.kaleta.rest.validation.ValidUuid;
 import org.kaleta.service.ArithmeticService;
@@ -46,9 +49,16 @@ public class ResearchEndpoints
     public Response get(@NotNull @ValidUuid @PathParam("companyId") String companyId)
     {
         ResearchDto dto = new ResearchDto();
-        dto.setCompany(companyService.getCompany(companyId));
+        Company company = companyService.getCompany(companyId);
+        dto.setCompany(company);
 
-        dto.setPeriods(periodService.getBy(companyId));
+        Periods periodsModel = periodService.getBy(companyId);
+        dto.setFinancials(periodsModel.getFinancials());
+        dto.setTtm(periodsModel.getTtm());
+        periodsModel.getPeriods().forEach(period -> {
+            PeriodImportDto cachedData = firebaseService.getPeriod(company.getTicker(), period.getName().toString());
+            dto.addPeriod(period, cachedData);
+        });
 
         List<Record> records = recordService.getBy(companyId);
         dto.getRecords().addAll(records);
@@ -66,9 +76,9 @@ public class ResearchEndpoints
         {
             dto.setLatest(latest);
 
-            if (dto.getPeriods().getTtm() != null && dto.getPeriods().getTtm().getShares() != null)
+            if (dto.getTtm() != null && dto.getTtm().getShares() != null)
             {
-                dto.setIndicators(arithmeticService.computeIndicators(latest, dto.getPeriods().getTtm()));
+                dto.setIndicators(arithmeticService.computeIndicators(latest, dto.getTtm()));
             }
 
             dto.setAssets(tradeService.getAssets(companyId, latest.getPrice()));
@@ -76,7 +86,7 @@ public class ResearchEndpoints
             dto.setAssets(tradeService.getAssets(companyId, null));
         }
 
-        String latestPeriodId = dto.getPeriods().getPeriods().stream().findFirst().map(p -> p.getName().toString()).orElse(null);
+        String latestPeriodId = dto.getPeriods().stream().findFirst().map(p -> p.getName().toString()).orElse(null);
         dto.setNewerCachedPeriods(firebaseService.getNewerPeriods(dto.getCompany().getTicker(), latestPeriodId));
 
         return Response.ok().entity(dto).build();
