@@ -1,4 +1,4 @@
-import {recordEvent} from "../service/utils";
+import {recordEvent} from "../utils";
 
 test("recordEvent", () => {
     const nameUsed = "nameUsed";

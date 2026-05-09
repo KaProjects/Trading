@@ -1,4 +1,4 @@
-import {validateDate, validateNumber, validateQuarter, validateTicker} from "../service/ValidationService";
+import {validateDate, validateNumber, validateQuarter, validateTicker} from "../ValidationService";
 
 test("validateNumber", () => {
     expect(validateNumber(333)).toBe("not a string");

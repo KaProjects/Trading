@@ -8,7 +8,7 @@ import {
     formatPolygonIoFinancial,
     isNotAValue,
     orBlank
-} from "../service/FormattingService";
+} from "../FormattingService";
 
 describe('FormattingService', () => {
     beforeAll(() => {console.error = () => {};});
