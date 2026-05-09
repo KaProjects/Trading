@@ -43,6 +43,7 @@ public class CompanyService
         return from(findEntity(companyId));
     }
 
+    @Deprecated // should use model
     public Company findEntity(String companyId)
     {
         try {
@@ -120,7 +121,7 @@ public class CompanyService
         companyDao.create(newCompany);
     }
 
-    private org.kaleta.model.Company from(Company entity){
+    public org.kaleta.model.Company from(Company entity){
         org.kaleta.model.Company company = new org.kaleta.model.Company();
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());

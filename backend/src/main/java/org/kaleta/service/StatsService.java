@@ -4,11 +4,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.joda.time.DateTime;
 import org.kaleta.Utils;
-import org.kaleta.persistence.entity.Currency;
-import org.kaleta.persistence.entity.Dividend;
-import org.kaleta.persistence.entity.Trade;
 import org.kaleta.model.StatsByCompany;
 import org.kaleta.model.StatsByPeriod;
+import org.kaleta.model.Trades;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Dividend;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -33,8 +33,8 @@ public class StatsService
     public List<StatsByCompany> getByCompany(String year, String sector)
     {
         Map<String, StatsByCompany> companyMap = new HashMap<>();
-        List<Trade> trades = tradeService.getTrades(false, null, null, null, year, sector);
-        for (Trade trade : trades)
+        Trades trades = tradeService.getBy(false, null, null, null, year, sector);
+        for (Trades.Trade trade : trades.getTrades())
         {
             if (!companyMap.containsKey(trade.getTicker())) {
                 companyMap.put(trade.getTicker(), new StatsByCompany(trade.getTicker(), trade.getCurrency()));
@@ -78,8 +78,8 @@ public class StatsService
     public List<StatsByPeriod> getByPeriod(String companyId, boolean isMonthly, String sector)
     {
         Map<String, StatsByPeriod> map = new HashMap<>();
-        List<Trade> trades = tradeService.getTrades(false, companyId, null, null, null, sector);
-        for (Trade trade : trades)
+        Trades trades = tradeService.getBy(false, companyId, null, null, null, sector);
+        for (Trades.Trade trade : trades.getTrades())
         {
             String period = Utils.format(trade.getSellDate()).substring(isMonthly ? 3 : 6);
             if (!map.containsKey(period)) {

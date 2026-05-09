@@ -4,14 +4,15 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.Utils;
-import org.kaleta.rest.dto.TradeCreateDto;
-import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.model.Asset;
 import org.kaleta.model.Assets;
+import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Trade;
+import org.kaleta.rest.dto.TradeCreateDto;
+import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.kaleta.rest.error.ServiceFailureException;
 
@@ -24,8 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.kaleta.Utils.format;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class TradeService
@@ -37,45 +37,7 @@ public class TradeService
     @Inject
     ArithmeticService arithmeticService;
 
-    public List<Trade> getTrades(Boolean active, String company, String currency, String purchaseYear, String sellYear, String sector)
-    {
-        return tradeDao.list(active, company, currency, purchaseYear, sellYear, sector);
-    }
-
-    public String[] computeSums(List<Trade> trades)
-    {
-        Set<String> companies = new HashSet<>();
-        Set<Currency> currencies = new HashSet<>();
-        BigDecimal purchaseFeesSum = new BigDecimal("0.00");
-        BigDecimal purchaseTotalSum = new BigDecimal("0.00");
-        BigDecimal purchaseTotalSumSold = new BigDecimal("0.00");
-        BigDecimal sellFeesSum = new BigDecimal("0.00");
-        BigDecimal sellTotalSum = new BigDecimal("0.00");
-        for (Trade trade : trades)
-        {
-            companies.add(trade.getTicker());
-            currencies.add(trade.getCurrency());
-            purchaseFeesSum = purchaseFeesSum.add(trade.getPurchaseFees());
-            purchaseTotalSum = purchaseTotalSum.add(trade.getPurchaseTotal());
-            if (trade.getSellDate() != null)
-            {
-                purchaseTotalSumSold = purchaseTotalSumSold.add(trade.getPurchaseTotal());
-                sellFeesSum = sellFeesSum.add(trade.getSellFees());
-                sellTotalSum = sellTotalSum.add(trade.getSellTotal());
-            }
-        }
-        String profit = "";
-        String profitPercentage = "";
-        if (!purchaseTotalSumSold.equals(new BigDecimal("0.00"))){
-            profit = format(sellTotalSum.subtract(purchaseTotalSumSold));
-            profitPercentage = format(sellTotalSum.divide(purchaseTotalSumSold, 4, RoundingMode.HALF_UP).subtract(new BigDecimal(1)).multiply(new BigDecimal(100)));
-        }
-        return new String[]{String.valueOf(companies.size()), String.valueOf(currencies.size()), "", "", "",
-                format(purchaseFeesSum), format(purchaseTotalSum), "", "", "",
-                format(sellFeesSum), format(sellTotalSum), profit, profitPercentage};
-    }
-
-    public Trade createTrade(TradeCreateDto dto)
+    public void createTrade(TradeCreateDto dto)
     {
         Trade newTrade = new Trade();
 
@@ -86,8 +48,6 @@ public class TradeService
         newTrade.setPurchaseFees(new BigDecimal(dto.getFees()));
 
         tradeDao.create(newTrade);
-
-        return tradeDao.get(newTrade.getId());
     }
 
     public void sellTrade(TradeSellDto dto)
@@ -173,7 +133,7 @@ public class TradeService
     public Assets getAssets(String companyId, BigDecimal currentPrice)
     {
         List<Asset> assets = new ArrayList<>();
-        for (Trade trade : getTrades(true, companyId, null, null, null, null))
+        for (Trade trade : tradeDao.list(true, companyId, null, null, null, null))
         {
             assets.add(arithmeticService.computeAsset(currentPrice, trade.getQuantity(), trade.getPurchasePrice()));
         }
@@ -183,6 +143,98 @@ public class TradeService
         model.setAggregate(computeAssetAggregate(assets));
 
         return model;
+    }
+
+    public Trades getBy(Boolean active, String company, String currency, String purchaseYear, String sellYear, String sector){
+        List<Trade> trades = tradeDao.list(active, company, currency, purchaseYear, sellYear, sector);
+
+        Trades model = new Trades();
+
+        model.setTrades(trades.stream().map(this::from).sorted(Trades.Trade::compareTo).collect(Collectors.toList()));
+
+        model.setAggregates(computeAggregates(model.getTrades()));
+
+        return model;
+    }
+
+    private Trades.Trade from(Trade entity)
+    {
+        Trades.Trade trade = new Trades.Trade();
+        trade.setId(entity.getId());
+        trade.setCompany(companyService.from(entity.getCompany()));
+        trade.setPurchaseDate(entity.getPurchaseDate());
+        trade.setPurchaseQuantity(entity.getQuantity());
+        trade.setPurchasePrice(entity.getPurchasePrice());
+        trade.setPurchaseFees(entity.getPurchaseFees());
+
+        BigDecimal purchaseTotal = entity.getPurchasePrice()
+                .multiply(entity.getQuantity())
+                .setScale(2, RoundingMode.HALF_UP)
+                .add(entity.getPurchaseFees());
+        trade.setPurchaseTotal(purchaseTotal);
+
+        if (entity.getSellDate() != null){
+            trade.setSellDate(entity.getSellDate());
+            trade.setSellQuantity(entity.getQuantity());
+            trade.setSellPrice(entity.getSellPrice());
+            trade.setSellFees(entity.getSellFees());
+
+            BigDecimal sellTotal = entity.getSellPrice()
+                    .multiply(entity.getQuantity())
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .subtract(entity.getSellFees());
+            trade.setSellTotal(sellTotal);
+
+            trade.setProfit(sellTotal.subtract(purchaseTotal));
+
+            if (!entity.getPurchasePrice().equals(new BigDecimal("0.0000"))) {
+                trade.setProfitPercentage(sellTotal
+                        .divide(purchaseTotal, 4, RoundingMode.HALF_UP)
+                        .subtract(new BigDecimal(1))
+                        .multiply(new BigDecimal(100)));
+            }
+        }
+        return trade;
+    }
+
+    private Trades.Aggregates computeAggregates(List<Trades.Trade> trades)
+    {
+        Set<String> companies = new HashSet<>();
+        Set<Currency> currencies = new HashSet<>();
+        BigDecimal purchaseFeesSum = new BigDecimal("0.00");
+        BigDecimal purchaseTotalSum = new BigDecimal("0.00");
+        BigDecimal purchaseSoldTotalSum = new BigDecimal("0.00");
+        BigDecimal sellFeesSum = new BigDecimal("0.00");
+        BigDecimal sellTotalSum = new BigDecimal("0.00");
+        for (Trades.Trade trade : trades)
+        {
+            companies.add(trade.getTicker());
+            currencies.add(trade.getCurrency());
+            purchaseFeesSum = purchaseFeesSum.add(trade.getPurchaseFees());
+            purchaseTotalSum = purchaseTotalSum.add(trade.getPurchaseTotal());
+            if (trade.getSellDate() != null)
+            {
+                purchaseSoldTotalSum = purchaseSoldTotalSum.add(trade.getPurchaseTotal());
+                sellFeesSum = sellFeesSum.add(trade.getSellFees());
+                sellTotalSum = sellTotalSum.add(trade.getSellTotal());
+            }
+        }
+        Trades.Aggregates aggregates = new Trades.Aggregates();
+        aggregates.setCompanies(companies.size());
+        aggregates.setCurrencies(currencies.size());
+        aggregates.setPurchaseFees(purchaseFeesSum);
+        aggregates.setPurchaseTotal(purchaseTotalSum);
+        aggregates.setSellFees(sellFeesSum);
+        aggregates.setSellTotal(sellTotalSum);
+
+        if (!purchaseSoldTotalSum.equals(new BigDecimal("0.00"))){
+            aggregates.setProfit(sellTotalSum.subtract(purchaseSoldTotalSum));
+            aggregates.setProfitPercentage(sellTotalSum
+                    .divide(purchaseSoldTotalSum, 4, RoundingMode.HALF_UP)
+                    .subtract(new BigDecimal(1))
+                    .multiply(new BigDecimal(100)));
+        }
+        return aggregates;
     }
 
     private Asset computeAssetAggregate(List<Asset> assets)

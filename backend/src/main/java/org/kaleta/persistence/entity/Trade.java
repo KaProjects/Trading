@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Date;
 
 @Data
@@ -36,38 +35,4 @@ public class Trade extends AbstractEntityCompany
 
     @Column(name = "sell_fees")
     private BigDecimal sellFees;
-
-    public String getTicker()
-    {
-        return getCompany().getTicker();
-    }
-
-    public Currency getCurrency()
-    {
-        return getCompany().getCurrency();
-    }
-
-    public BigDecimal getPurchaseTotal()
-    {
-        return purchasePrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP).add(purchaseFees);
-    }
-
-    public BigDecimal getSellTotal()
-    {
-        if (sellPrice == null) return null;
-        return sellPrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP).subtract(sellFees);
-    }
-
-    public BigDecimal getProfit()
-    {
-        if (sellPrice == null) return null;
-        return getSellTotal().subtract(getPurchaseTotal());
-    }
-
-    public BigDecimal getProfitPercentage()
-    {
-        if (sellPrice == null) return null;
-        if (purchasePrice.equals(new BigDecimal("0.0000"))) return null;
-        return getSellTotal().divide(getPurchaseTotal(), 4, RoundingMode.HALF_UP).subtract(new BigDecimal(1)).multiply(new BigDecimal(100));
-    }
 }

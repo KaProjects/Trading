@@ -46,17 +46,6 @@ public class Utils
     }
 
     /**
-     * @return java.sql.Date from string format YYYY-MM-DD
-     */
-    @Deprecated
-    public static Date format(String dtoDate)
-    {
-        if (dtoDate == null) return null;
-        String[] split = dtoDate.split("\\.");
-        return Date.valueOf(split[2] + "-" + split[1] + "-" + split[0]);
-    }
-
-    /**
      * @return string date in format DD.MM.YYYY
      */
     @Deprecated

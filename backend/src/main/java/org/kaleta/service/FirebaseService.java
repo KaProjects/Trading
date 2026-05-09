@@ -15,8 +15,8 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.FirebaseCompanyDep;
+import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Period;
-import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.kaleta.rest.error.ServiceFailureException;
@@ -81,13 +81,13 @@ public class FirebaseService
         return company;
     }
 
-    public void pushAssets(List<Trade> activeTrades)
+    public void pushAssets(Trades activeTrades)
     {
         if (checkAccess())
         {
             DatabaseReference db = database.getReference(Path.ASSET);
             db.removeValueAsync();
-            for (Trade trade : activeTrades)
+            for (Trades.Trade trade : activeTrades.getTrades())
             {
                 db.push().setValue(FirebaseAsset.from(trade), (databaseError, databaseReference) -> {});
             }

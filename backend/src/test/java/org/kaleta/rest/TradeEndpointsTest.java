@@ -7,23 +7,24 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Assert;
+import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
-import org.kaleta.rest.dto.TradesUiDto;
 import org.kaleta.service.LatestService;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_3_2_false;
@@ -75,185 +76,254 @@ class TradeEndpointsTest
     @Test
     void getTradesFilterNone()
     {
-        TradesUiDto dto = given().when()
+        Trades dto = given().when()
                 .get("/trade")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+                .extract().response().jsonPath().getObject("", Trades.class);
 
-        assertThat(dto.getColumns().size(), is(6));
-        assertThat(dto.getColumns().get(1).getName(), is("#"));
-        assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
         assertThat(dto.getTrades().size(), is(14));
-        assertThat(dto.getTrades().get(0).getPurchaseDate(), is("11.11.2023"));
-        assertThat(dto.getTrades().get(1).getPurchaseDate(), is("05.04.2023"));
-        assertThat(dto.getTrades().get(2).getPurchaseDate(), is("01.11.2022"));
-        assertThat(dto.getTrades().get(3).getPurchaseDate(), is("10.05.2021"));
-        assertThat(dto.getSums(), is(new String[]{"10", "4", "", "", "", "427.62", "2595289.35", "", "", "", "100.5", "10039.5", "2331.17", "30.24"}));
+        assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-11-11"));
+        assertThat(dto.getTrades().get(1).getPurchaseDate().toString(), is("2023-04-05"));
+        assertThat(dto.getTrades().get(2).getPurchaseDate().toString(), is("2022-11-01"));
+        assertThat(dto.getTrades().get(3).getPurchaseDate().toString(), is("2021-05-10"));
+
+        assertThat(dto.getAggregates().getCompanies(), is(10));
+        assertThat(dto.getAggregates().getCurrencies(), is(4));
+        assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("427.62"));
+        assertBigDecimals(dto.getAggregates().getPurchaseTotal(), new BigDecimal("2595289.2"));
+        assertBigDecimals(dto.getAggregates().getSellFees(), new BigDecimal("100.50"));
+        assertBigDecimals(dto.getAggregates().getSellTotal(), new BigDecimal("10039.50"));
+        assertBigDecimals(dto.getAggregates().getProfit(), new BigDecimal("2331.17"));
+        assertBigDecimals(dto.getAggregates().getProfitPercentage(), new BigDecimal("30.24"));
     }
 
     @Test
     void getTradesFilterActive()
     {
-        TradesUiDto dto = given().when()
+        Trades dto = given().when()
                 .get("/trade?active=true")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", TradesUiDto.class);
-        assertThat(dto.getColumns().size(), is(6));
-        assertThat(dto.getColumns().get(1).getName(), is("#"));
-        assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
+                .extract().response().jsonPath().getObject("", Trades.class);
         assertThat(dto.getTrades().size(), is(9));
-        assertThat(dto.getTrades().get(0).getPurchaseDate(), is("05.04.2023"));
+        assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-04-05"));
         assertThat(dto.getTrades().get(0).getTicker(), is("CEZ"));
-        assertThat(dto.getTrades().get(0).getPurchaseTotal(), is("575599.35"));
-        assertThat(dto.getTrades().get(1).getPurchaseDate(), is("01.11.2022"));
+        assertBigDecimals(dto.getTrades().get(0).getPurchaseTotal(), new BigDecimal("575599.4"));
+        assertThat(dto.getTrades().get(1).getPurchaseDate().toString(), is("2022-11-01"));
         assertThat(dto.getTrades().get(1).getTicker(), is("RR"));
-        assertThat(dto.getTrades().get(1).getPurchaseTotal(), is("2000025"));
-        assertThat(dto.getSums(), is(new String[]{"7", "3", "", "", "", "346.79", "2588601.02", "", "", "", "0", "0", "", ""}));
+        assertBigDecimals(dto.getTrades().get(1).getPurchaseTotal(), new BigDecimal("2000025.00"));
+
+        assertThat(dto.getAggregates().getCompanies(), is(7));
+        assertThat(dto.getAggregates().getCurrencies(), is(3));
+        assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("346.79"));
+        assertBigDecimals(dto.getAggregates().getPurchaseTotal(), new BigDecimal("2588601.0"));
+        assertBigDecimals(dto.getAggregates().getSellFees(), new BigDecimal("0.00"));
+        assertBigDecimals(dto.getAggregates().getSellTotal(), new BigDecimal("0.00"));
+        assertThat(dto.getAggregates().getProfit(), is(nullValue()));
+        assertThat(dto.getAggregates().getProfitPercentage(), is(nullValue()));
+    }
+
+    @Test
+    void getTradesFilterActive_syncsLatestValues()
+    {
+        Latest latest = new Latest();
+        latest.setDatetime(LocalDateTime.of(2026, 5, 9, 14, 35));
+        latest.setPrice(new BigDecimal("321.45"));
+        when(latestService.getSyncedFor(any())).thenReturn(latest);
+
+        Trades dto = given().when()
+                .get("/trade?active=true")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", Trades.class);
+
+        assertThat(dto.getTrades().get(0).getSellDate().toString(), is("2026-05-09"));
+        assertBigDecimals(dto.getTrades().get(0).getSellPrice(), new BigDecimal("321.45"));
+        assertBigDecimals(dto.getTrades().get(0).getSellFees(), dto.getTrades().get(0).getPurchaseFees());
     }
 
     @Test
     void getTradesFilterCurrency()
     {
-        TradesUiDto dto = given().when()
+        Trades dto = given().when()
                 .get("/trade?currency=€")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+                .extract().response().jsonPath().getObject("", Trades.class);
 
-        assertThat(dto.getColumns().size(), is(6));
-        assertThat(dto.getColumns().get(1).getName(), is("#"));
-        assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
         assertThat(dto.getTrades().size(), is(1));
         assertThat(dto.getTrades().get(0).getTicker(), is("SHELL"));
-        assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "18", "2028", "", "", "", "30.5", "3009.5", "981.5", "48.4"}));
+        assertThat(dto.getAggregates().getCompanies(), is(1));
+        assertThat(dto.getAggregates().getCurrencies(), is(1));
+        assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("18.00"));
+        assertBigDecimals(dto.getAggregates().getPurchaseTotal(), new BigDecimal("2028.00"));
+        assertBigDecimals(dto.getAggregates().getSellFees(), new BigDecimal("30.50"));
+        assertBigDecimals(dto.getAggregates().getSellTotal(), new BigDecimal("3009.50"));
+        assertBigDecimals(dto.getAggregates().getProfit(), new BigDecimal("981.50"));
+        assertBigDecimals(dto.getAggregates().getProfitPercentage(), new BigDecimal("48.40"));
     }
 
     @Test
     void getTradesFilterSector()
     {
-        TradesUiDto dto = given().when()
+        Trades dto = given().when()
                 .get("/trade?sector=" + Sector.SEMICONDUCTORS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+                .extract().response().jsonPath().getObject("", Trades.class);
 
-        assertThat(dto.getColumns().size(), is(6));
-        assertThat(dto.getColumns().get(1).getName(), is("#"));
-        assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
         assertThat(dto.getTrades().size(), is(1));
         assertThat(dto.getTrades().get(0).getTicker(), is("NVDA"));
-        assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "14.5", "2017", "", "", "", "50", "2450", "433", "21.47"}));
+        assertThat(dto.getAggregates().getCompanies(), is(1));
+        assertThat(dto.getAggregates().getCurrencies(), is(1));
+        assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("14.50"));
+        assertBigDecimals(dto.getAggregates().getPurchaseTotal(), new BigDecimal("2017.00"));
+        assertBigDecimals(dto.getAggregates().getSellFees(), new BigDecimal("50.00"));
+        assertBigDecimals(dto.getAggregates().getSellTotal(), new BigDecimal("2450.00"));
+        assertBigDecimals(dto.getAggregates().getProfit(), new BigDecimal("433.00"));
+        assertBigDecimals(dto.getAggregates().getProfitPercentage(), new BigDecimal("21.47"));
     }
 
     @Test
     void getTradesFilterCompany()
     {
-        TradesUiDto dto = given().when()
+        Trades dto = given().when()
                 .get("/trade?companyId=adb89a0a-86bc-4854-8a55-058ad2e6308f")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+                .extract().response().jsonPath().getObject("", Trades.class);
 
-        assertThat(dto.getColumns().size(), is(6));
-        assertThat(dto.getColumns().get(1).getName(), is("#"));
-        assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
         assertThat(dto.getTrades().size(), is(1));
         assertThat(dto.getTrades().get(0).getTicker(), is("NVDA"));
-        assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "14.5", "2017", "", "", "", "50", "2450", "433", "21.47"}));
+        assertThat(dto.getAggregates().getCompanies(), is(1));
+        assertThat(dto.getAggregates().getCurrencies(), is(1));
+        assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("14.50"));
+        assertBigDecimals(dto.getAggregates().getPurchaseTotal(), new BigDecimal("2017.00"));
+        assertBigDecimals(dto.getAggregates().getSellFees(), new BigDecimal("50.00"));
+        assertBigDecimals(dto.getAggregates().getSellTotal(), new BigDecimal("2450.00"));
+        assertBigDecimals(dto.getAggregates().getProfit(), new BigDecimal("433.00"));
+        assertBigDecimals(dto.getAggregates().getProfitPercentage(), new BigDecimal("21.47"));
     }
 
     @Test
     void getTradesFilterNonExistentCompany()
     {
-        TradesUiDto dto = given().when()
+        Trades dto = given().when()
                 .get("/trade?companyId=2df6b65f-54fb-4381-9b38-8c25409fe168")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+                .extract().response().jsonPath().getObject("", Trades.class);
 
-        assertThat(dto.getColumns().size(), is(6));
-        assertThat(dto.getColumns().get(1).getName(), is("#"));
-        assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
         assertThat(dto.getTrades().size(), is(0));
+        assertThat(dto.getAggregates().getCompanies(), is(0));
+        assertThat(dto.getAggregates().getCurrencies(), is(0));
+        assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("0.00"));
+        assertBigDecimals(dto.getAggregates().getPurchaseTotal(), new BigDecimal("0.00"));
+        assertBigDecimals(dto.getAggregates().getSellFees(), new BigDecimal("0.00"));
+        assertBigDecimals(dto.getAggregates().getSellTotal(), new BigDecimal("0.00"));
+        assertThat(dto.getAggregates().getProfit(), is(nullValue()));
+        assertThat(dto.getAggregates().getProfitPercentage(), is(nullValue()));
     }
 
     @Test
     void getTradesFilterYear()
     {
-        TradesUiDto dto = given().when()
+        Trades dto = given().when()
                 .get("/trade?year=2023")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+                .extract().response().jsonPath().getObject("", Trades.class);
 
-        assertThat(dto.getColumns().size(), is(6));
-        assertThat(dto.getColumns().get(1).getName(), is("#"));
-        assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
         assertThat(dto.getTrades().size(), is(3));
         assertThat(dto.getTrades().get(0).getTicker(), is("NVDA"));
-        assertThat(dto.getTrades().get(0).getPurchaseDate(), endsWith("2023"));
+        assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-11-11"));
         assertThat(dto.getTrades().get(1).getTicker(), is("CEZ"));
-        assertThat(dto.getTrades().get(1).getPurchaseDate(), endsWith("2023"));
+        assertThat(dto.getTrades().get(1).getPurchaseDate().toString(), is("2023-04-05"));
         assertThat(dto.getTrades().get(2).getTicker(), is("SHELL"));
-        assertThat(dto.getTrades().get(2).getSellDate(), endsWith("2023"));
-        assertThat(dto.getSums(), is(new String[]{"3", "3", "", "", "", "282.62", "579644.35", "", "", "", "80.5", "5459.5", "1414.5", "34.97"}));
+        assertThat(dto.getTrades().get(2).getSellDate().toString(), is("2023-12-31"));
+        assertThat(dto.getAggregates().getCompanies(), is(3));
+        assertThat(dto.getAggregates().getCurrencies(), is(3));
+        assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("282.62"));
+        assertBigDecimals(dto.getAggregates().getPurchaseTotal(), new BigDecimal("579644.4"));
+        assertBigDecimals(dto.getAggregates().getSellFees(), new BigDecimal("80.50"));
+        assertBigDecimals(dto.getAggregates().getSellTotal(), new BigDecimal("5459.50"));
+        assertBigDecimals(dto.getAggregates().getProfit(), new BigDecimal("1414.50"));
+        assertBigDecimals(dto.getAggregates().getProfitPercentage(), new BigDecimal("34.97"));
 
     }
 
     @Test
     void getTradesFilterMultiple()
     {
-        TradesUiDto dto = given().when()
+        Trades dto = given().when()
                 .get("/trade?year=2023&companyId=61cc8096-87ac-4197-8b54-7c2595274bcc")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+                .extract().response().jsonPath().getObject("", Trades.class);
 
-        assertThat(dto.getColumns().size(), is(6));
-        assertThat(dto.getColumns().get(1).getName(), is("#"));
-        assertThat(dto.getColumns().get(2).getSubColumns().size(), is(5));
         assertThat(dto.getTrades().size(), is(1));
         assertThat(dto.getTrades().get(0).getTicker(), is("CEZ"));
-        assertThat(dto.getTrades().get(0).getPurchaseDate(), endsWith("2023"));
-        assertThat(dto.getSums(), is(new String[]{"1", "1", "", "", "", "250.12", "575599.35", "", "", "", "0", "0", "", ""}));
+        assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-04-05"));
+        assertThat(dto.getAggregates().getCompanies(), is(1));
+        assertThat(dto.getAggregates().getCurrencies(), is(1));
+        assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("250.12"));
+        assertBigDecimals(dto.getAggregates().getPurchaseTotal(), new BigDecimal("575599.4"));
+        assertBigDecimals(dto.getAggregates().getSellFees(), new BigDecimal("0.00"));
+        assertBigDecimals(dto.getAggregates().getSellTotal(), new BigDecimal("0.00"));
+        assertThat(dto.getAggregates().getProfit(), is(nullValue()));
+        assertThat(dto.getAggregates().getProfitPercentage(), is(nullValue()));
     }
 
     @Test
     void getTradesZeroTotals()
     {
-        TradesUiDto dtoZeroPurchase = given().when()
+        Trades dtoZeroPurchase = given().when()
                 .get("/trade?companyId=e7c49260-53da-42c1-80cf-eccf6ed928a7")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+                .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dtoZeroPurchase.getTrades().size(), is(1));
         assertThat(dtoZeroPurchase.getTrades().get(0).getTicker(), is("XXX"));
-        assertThat(dtoZeroPurchase.getTrades().get(0).getPurchaseTotal(), is("0"));
-        assertThat(dtoZeroPurchase.getSums(), is(new String[]{"1", "1", "", "", "", "0", "0", "", "", "", "5", "95", "", ""}));
+        assertBigDecimals(dtoZeroPurchase.getTrades().get(0).getPurchaseTotal(), new BigDecimal("0.00"));
+        assertThat(dtoZeroPurchase.getAggregates().getCompanies(), is(1));
+        assertThat(dtoZeroPurchase.getAggregates().getCurrencies(), is(1));
+        assertBigDecimals(dtoZeroPurchase.getAggregates().getPurchaseFees(), new BigDecimal("0.00"));
+        assertBigDecimals(dtoZeroPurchase.getAggregates().getPurchaseTotal(), new BigDecimal("0.00"));
+        assertBigDecimals(dtoZeroPurchase.getAggregates().getSellFees(), new BigDecimal("5.00"));
+        assertBigDecimals(dtoZeroPurchase.getAggregates().getSellTotal(), new BigDecimal("95.00"));
+        assertThat(dtoZeroPurchase.getAggregates().getProfit(), is(nullValue()));
+        assertThat(dtoZeroPurchase.getAggregates().getProfitPercentage(), is(nullValue()));
 
-        TradesUiDto dtoZeroSell = given().when()
+        Trades dtoZeroSell = given().when()
                 .get("/trade?companyId=0a16ba1d-99de-4306-8fc5-81ee11b60ea0")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", TradesUiDto.class);
+                .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dtoZeroSell.getTrades().size(), is(1));
         assertThat(dtoZeroSell.getTrades().get(0).getTicker(), is("YYY"));
-        assertThat(dtoZeroSell.getTrades().get(0).getSellTotal(), is("0"));
-        assertThat(dtoZeroSell.getSums(), is(new String[]{"1", "1", "", "", "", "50", "150", "", "", "", "0", "0", "-150", "-100"}));
+        assertBigDecimals(dtoZeroSell.getTrades().get(0).getSellTotal(), new BigDecimal("0.00"));
+        assertThat(dtoZeroSell.getAggregates().getCompanies(), is(1));
+        assertThat(dtoZeroSell.getAggregates().getCurrencies(), is(1));
+        assertBigDecimals(dtoZeroSell.getAggregates().getPurchaseFees(), new BigDecimal("50.00"));
+        assertBigDecimals(dtoZeroSell.getAggregates().getPurchaseTotal(), new BigDecimal("150.00"));
+        assertBigDecimals(dtoZeroSell.getAggregates().getSellFees(), new BigDecimal("0.00"));
+        assertBigDecimals(dtoZeroSell.getAggregates().getSellTotal(), new BigDecimal("0.00"));
+        assertBigDecimals(dtoZeroSell.getAggregates().getProfit(), new BigDecimal("-150.00"));
+        assertBigDecimals(dtoZeroSell.getAggregates().getProfitPercentage(), new BigDecimal("-100.00"));
     }
 
     @Test
@@ -271,19 +341,15 @@ class TradeEndpointsTest
         List<Trade> trades = tradeDao.list(dto.getCompanyId());
         assertThat(trades.size(), is(1));
         Trade trade = trades.get(0);
-        assertThat(trade.getTicker(), is("CRE"));
-        assertThat(trade.getCurrency(), is(Currency.$));
+        assertThat(trade.getCompany().getTicker(), is("CRE"));
+        assertThat(trade.getCompany().getCurrency(), is(Currency.$));
         assertThat(trade.getPurchaseDate(), is(Date.valueOf(dto.getDate())));
         assertBigDecimals(trade.getPurchasePrice(), new BigDecimal(dto.getPrice()));
         assertBigDecimals(trade.getQuantity(), new BigDecimal(dto.getQuantity()));
         assertBigDecimals(trade.getPurchaseFees(), new BigDecimal(dto.getFees()));
-        assertBigDecimals(trade.getPurchaseTotal(), new BigDecimal("1020"));
         assertThat(trade.getSellDate(), is(nullValue()));
         assertThat(trade.getSellPrice(), is(nullValue()));
         assertThat(trade.getSellFees(), is(nullValue()));
-        assertThat(trade.getSellTotal(), is(nullValue()));
-        assertThat(trade.getProfit(), is(nullValue()));
-        assertThat(trade.getProfitPercentage(), is(nullValue()));
     }
 
     @Test
@@ -392,7 +458,7 @@ class TradeEndpointsTest
         List<Trade> trades = tradeDao.list("287d3d0f-4e0c-4b5a-9f8e-2d1c3b0a5f47");
         assertThat(trades.size(), is(4));
 
-        assertThat(trades.get(0).getTicker(), is("SELL"));
+        assertThat(trades.get(0).getCompany().getTicker(), is("SELL"));
         assertBigDecimals(trades.get(0).getQuantity(), new BigDecimal("1"));
         assertThat(trades.get(0).getPurchaseDate(), is(Date.valueOf("2020-03-15")));
         assertBigDecimals(trades.get(0).getPurchasePrice(), new BigDecimal("400"));
@@ -402,7 +468,7 @@ class TradeEndpointsTest
         assertThat(trades.get(0).getSellFees(), is(nullValue()));
 
         assertThat(trades.get(1).getId(), is("91d9253e-aee5-4d86-9c3e-18102bff698d"));
-        assertThat(trades.get(1).getTicker(), is("SELL"));
+        assertThat(trades.get(1).getCompany().getTicker(), is("SELL"));
         assertBigDecimals(trades.get(1).getQuantity(), new BigDecimal("5"));
         assertThat(trades.get(1).getPurchaseDate(), is(Date.valueOf("2020-04-05")));
         assertBigDecimals(trades.get(1).getPurchasePrice(), new BigDecimal("450"));
@@ -412,7 +478,7 @@ class TradeEndpointsTest
         assertBigDecimals(trades.get(1).getSellFees(), new BigDecimal("10"));
 
         assertThat(trades.get(2).getId(), is("19993bde-6d06-4006-918f-77baa8062e42"));
-        assertThat(trades.get(2).getTicker(), is("SELL"));
+        assertThat(trades.get(2).getCompany().getTicker(), is("SELL"));
         assertBigDecimals(trades.get(2).getQuantity(), new BigDecimal("2.5"));
         assertThat(trades.get(2).getPurchaseDate(), is(Date.valueOf("2020-05-01")));
         assertBigDecimals(trades.get(2).getPurchasePrice(), new BigDecimal("500"));
@@ -421,7 +487,7 @@ class TradeEndpointsTest
         assertBigDecimals(trades.get(2).getSellPrice(), new BigDecimal(dto.getPrice()));
         assertBigDecimals(trades.get(2).getSellFees(), new BigDecimal("5"));
 
-        assertThat(trades.get(3).getTicker(), is("SELL"));
+        assertThat(trades.get(3).getCompany().getTicker(), is("SELL"));
         assertBigDecimals(trades.get(3).getQuantity(), new BigDecimal("5"));
         assertThat(trades.get(3).getPurchaseDate(), is(Date.valueOf("2020-05-01")));
         assertBigDecimals(trades.get(3).getPurchasePrice(), new BigDecimal("500"));

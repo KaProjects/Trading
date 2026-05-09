@@ -7,8 +7,10 @@ import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.Assets;
+import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
@@ -128,6 +130,135 @@ public class TradeServiceTest
         assertThat(assets.getAggregate().getCurrentPrice(), is(nullValue()));
         assertThat(assets.getAggregate().getProfitValue(), is(nullValue()));
         assertThat(assets.getAggregate().getProfitPercent(), is(nullValue()));
+    }
+
+    @Test
+    void getBy()
+    {
+        Company soldCompany = Generator.generateCompany();
+        soldCompany.setTicker("NVDA");
+        soldCompany.setCurrency(Currency.$);
+        org.kaleta.model.Company soldModelCompany = new org.kaleta.model.Company();
+        soldModelCompany.setId(soldCompany.getId());
+        soldModelCompany.setTicker(soldCompany.getTicker());
+        soldModelCompany.setCurrency(soldCompany.getCurrency());
+        soldModelCompany.setWatching(soldCompany.isWatching());
+
+        Company activeCompany = Generator.generateCompany();
+        activeCompany.setTicker("SHELL");
+        activeCompany.setCurrency(Currency.€);
+        org.kaleta.model.Company activeModelCompany = new org.kaleta.model.Company();
+        activeModelCompany.setId(activeCompany.getId());
+        activeModelCompany.setTicker(activeCompany.getTicker());
+        activeModelCompany.setCurrency(activeCompany.getCurrency());
+        activeModelCompany.setWatching(activeCompany.isWatching());
+
+        Trade soldTrade = new Trade();
+        soldTrade.setId("sold-trade");
+        soldTrade.setCompany(soldCompany);
+        soldTrade.setQuantity(new BigDecimal("5"));
+        soldTrade.setPurchaseDate(Date.valueOf("2024-01-10"));
+        soldTrade.setPurchasePrice(new BigDecimal("10.00"));
+        soldTrade.setPurchaseFees(new BigDecimal("2.00"));
+        soldTrade.setSellDate(Date.valueOf("2024-02-15"));
+        soldTrade.setSellPrice(new BigDecimal("12.00"));
+        soldTrade.setSellFees(new BigDecimal("1.00"));
+
+        Trade activeTrade = new Trade();
+        activeTrade.setId("active-trade");
+        activeTrade.setCompany(activeCompany);
+        activeTrade.setQuantity(new BigDecimal("3"));
+        activeTrade.setPurchaseDate(Date.valueOf("2025-03-20"));
+        activeTrade.setPurchasePrice(new BigDecimal("20.00"));
+        activeTrade.setPurchaseFees(new BigDecimal("3.00"));
+
+        when(tradeDao.list(null, null, null, null, null, null)).thenReturn(List.of(soldTrade, activeTrade));
+        when(companyService.from(soldCompany)).thenReturn(soldModelCompany);
+        when(companyService.from(activeCompany)).thenReturn(activeModelCompany);
+
+        Trades trades = tradeService.getBy(null, null, null, null, null, null);
+
+        assertThat(trades.getTrades().size(), is(2));
+
+        assertThat(trades.getTrades().get(0).getId(), is("active-trade"));
+        assertThat(trades.getTrades().get(0).getTicker(), is("SHELL"));
+        assertThat(trades.getTrades().get(0).getCurrency(), is(Currency.€));
+        assertThat(trades.getTrades().get(0).getPurchaseDate().toString(), is("2025-03-20"));
+        assertBigDecimals(trades.getTrades().get(0).getPurchaseQuantity(), new BigDecimal("3"));
+        assertBigDecimals(trades.getTrades().get(0).getPurchasePrice(), new BigDecimal("20.00"));
+        assertBigDecimals(trades.getTrades().get(0).getPurchaseFees(), new BigDecimal("3.00"));
+        assertBigDecimals(trades.getTrades().get(0).getPurchaseTotal(), new BigDecimal("63.00"));
+        assertThat(trades.getTrades().get(0).getSellDate(), is(nullValue()));
+        assertThat(trades.getTrades().get(0).getSellQuantity(), is(nullValue()));
+        assertThat(trades.getTrades().get(0).getSellPrice(), is(nullValue()));
+        assertThat(trades.getTrades().get(0).getSellFees(), is(nullValue()));
+        assertThat(trades.getTrades().get(0).getSellTotal(), is(nullValue()));
+        assertThat(trades.getTrades().get(0).getProfit(), is(nullValue()));
+        assertThat(trades.getTrades().get(0).getProfitPercentage(), is(nullValue()));
+
+        assertThat(trades.getTrades().get(1).getId(), is("sold-trade"));
+        assertThat(trades.getTrades().get(1).getTicker(), is("NVDA"));
+        assertThat(trades.getTrades().get(1).getCurrency(), is(Currency.$));
+        assertThat(trades.getTrades().get(1).getPurchaseDate().toString(), is("2024-01-10"));
+        assertBigDecimals(trades.getTrades().get(1).getPurchaseQuantity(), new BigDecimal("5"));
+        assertBigDecimals(trades.getTrades().get(1).getPurchasePrice(), new BigDecimal("10.00"));
+        assertBigDecimals(trades.getTrades().get(1).getPurchaseFees(), new BigDecimal("2.00"));
+        assertBigDecimals(trades.getTrades().get(1).getPurchaseTotal(), new BigDecimal("52.00"));
+        assertThat(trades.getTrades().get(1).getSellDate().toString(), is("2024-02-15"));
+        assertBigDecimals(trades.getTrades().get(1).getSellQuantity(), new BigDecimal("5"));
+        assertBigDecimals(trades.getTrades().get(1).getSellPrice(), new BigDecimal("12.00"));
+        assertBigDecimals(trades.getTrades().get(1).getSellFees(), new BigDecimal("1.00"));
+        assertBigDecimals(trades.getTrades().get(1).getSellTotal(), new BigDecimal("59.00"));
+        assertBigDecimals(trades.getTrades().get(1).getProfit(), new BigDecimal("7.00"));
+        assertBigDecimals(trades.getTrades().get(1).getProfitPercentage(), new BigDecimal("13.46"));
+
+        assertThat(trades.getAggregates().getCompanies(), is(2));
+        assertThat(trades.getAggregates().getCurrencies(), is(2));
+        assertBigDecimals(trades.getAggregates().getPurchaseFees(), new BigDecimal("5.00"));
+        assertBigDecimals(trades.getAggregates().getPurchaseTotal(), new BigDecimal("115.00"));
+        assertBigDecimals(trades.getAggregates().getSellFees(), new BigDecimal("1.00"));
+        assertBigDecimals(trades.getAggregates().getSellTotal(), new BigDecimal("59.00"));
+        assertBigDecimals(trades.getAggregates().getProfit(), new BigDecimal("7.00"));
+        assertBigDecimals(trades.getAggregates().getProfitPercentage(), new BigDecimal("13.46"));
+    }
+
+    @Test
+    void getBy_activeTradesOnly()
+    {
+        Company company = Generator.generateCompany();
+        company.setTicker("CEZ");
+        company.setCurrency(Currency.K);
+        org.kaleta.model.Company modelCompany = new org.kaleta.model.Company();
+        modelCompany.setId(company.getId());
+        modelCompany.setTicker(company.getTicker());
+        modelCompany.setCurrency(company.getCurrency());
+        modelCompany.setWatching(company.isWatching());
+
+        Trade trade = new Trade();
+        trade.setId("active-trade");
+        trade.setCompany(company);
+        trade.setQuantity(new BigDecimal("4"));
+        trade.setPurchaseDate(Date.valueOf("2025-05-10"));
+        trade.setPurchasePrice(new BigDecimal("15.00"));
+        trade.setPurchaseFees(new BigDecimal("1.50"));
+
+        when(tradeDao.list(true, company.getId(), company.getCurrency().name(), "2025", null, null)).thenReturn(List.of(trade));
+        when(companyService.from(company)).thenReturn(modelCompany);
+
+        Trades trades = tradeService.getBy(true, company.getId(), company.getCurrency().name(), "2025", null, null);
+
+        assertThat(trades.getTrades().size(), is(1));
+        assertThat(trades.getTrades().get(0).getTicker(), is("CEZ"));
+        assertBigDecimals(trades.getTrades().get(0).getPurchaseTotal(), new BigDecimal("61.50"));
+
+        assertThat(trades.getAggregates().getCompanies(), is(1));
+        assertThat(trades.getAggregates().getCurrencies(), is(1));
+        assertBigDecimals(trades.getAggregates().getPurchaseFees(), new BigDecimal("1.50"));
+        assertBigDecimals(trades.getAggregates().getPurchaseTotal(), new BigDecimal("61.50"));
+        assertBigDecimals(trades.getAggregates().getSellFees(), new BigDecimal("0.00"));
+        assertBigDecimals(trades.getAggregates().getSellTotal(), new BigDecimal("0.00"));
+        assertThat(trades.getAggregates().getProfit(), is(nullValue()));
+        assertThat(trades.getAggregates().getProfitPercentage(), is(nullValue()));
     }
 
     @Test
