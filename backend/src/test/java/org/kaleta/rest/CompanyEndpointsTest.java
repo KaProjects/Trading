@@ -231,6 +231,8 @@ class CompanyEndpointsTest
         Assert.postValidationError(path, dto, "must be a valid Ticker");
         dto.setTicker("abcd");
         Assert.postValidationError(path, dto, "must be a valid Ticker");
+        dto.setTicker("NVDA");
+        Assert.post400(path, dto, "company with ticker '" + dto.getTicker() + "' already exists!");
     }
 
     @Test

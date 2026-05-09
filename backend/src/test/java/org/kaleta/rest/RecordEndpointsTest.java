@@ -273,6 +273,10 @@ class RecordEndpointsTest
         dto.setId("x");
         Assert.putValidationError(path, dto, VALID_UUID);
 
+        dto.setId("3b1e7f0f-f263-4a8e-86a7-1b6c4c9e3ad2");
+        dto.setTitle("   ");
+        Assert.put400(path, dto, "record title shouldn't be empty");
+
         dto.setId(UUID.randomUUID().toString());
         Assert.put400(path, dto, "record with id '" + dto.getId() + "' not found");
     }
