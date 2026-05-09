@@ -146,6 +146,34 @@ class StatsServiceTest
         assertBigDecimals(stats.getAggregates().getDividendSum(), new BigDecimal("5"));
     }
 
+    @Test
+    void getByCompany_onlyDividends_keepsProfitPercentagesNull()
+    {
+        org.kaleta.model.Company company1 = company("company-1", "NVDA", Currency.$);
+        org.kaleta.model.Company company2 = company("company-2", "SHELL", Currency.€);
+
+        when(tradeService.getByCompany(null, null, null, null)).thenReturn(Map.of());
+        when(dividendService.getByCompany(null, null, null)).thenReturn(Map.of(
+                company1, List.of(dividend(company1, "2022-06-01", "10")),
+                company2, List.of(dividend(company2, "2021-03-01", "90"))
+        ));
+
+        CompanyStats stats = statsService.getByCompany(null, null);
+
+        CompanyStats.Company nvda = findCompany(stats, "NVDA");
+        assertThat(nvda.getProfitPercentage(), is(nullValue()));
+
+        CompanyStats.Company shell = findCompany(stats, "SHELL");
+        assertThat(shell.getProfitPercentage(), is(nullValue()));
+
+        assertBigDecimals(stats.getAggregates().getPurchaseSum(), BigDecimal.ZERO);
+        assertBigDecimals(stats.getAggregates().getSellSum(), BigDecimal.ZERO);
+        assertBigDecimals(stats.getAggregates().getDividendSum(), new BigDecimal("100"));
+        assertBigDecimals(stats.getAggregates().getProfitSum(), new BigDecimal("100"));
+        assertBigDecimals(stats.getAggregates().getProfitSumUsd(), new BigDecimal("109.00"));
+        assertThat(stats.getAggregates().getProfitPercentage(), is(nullValue()));
+    }
+
     private static org.kaleta.model.Company company(String id, String ticker, Currency currency)
     {
         org.kaleta.model.Company company = new org.kaleta.model.Company();

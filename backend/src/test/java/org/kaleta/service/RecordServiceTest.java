@@ -107,6 +107,9 @@ public class RecordServiceTest
         dto.setTitle("");
         updateAndAssertRecord(dto, record, InvalidInputException.class);
 
+        dto.setTitle("   ");
+        updateAndAssertRecord(dto, record, InvalidInputException.class);
+
         dto.setTitle("title");
         updateAndAssertRecord(dto, record, null);
 

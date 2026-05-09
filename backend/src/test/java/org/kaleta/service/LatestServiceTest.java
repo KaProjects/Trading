@@ -141,6 +141,28 @@ public class LatestServiceTest
     }
 
     @Test
+    void getSyncedFor_nullQuote_retrieveStoredLatest() throws RequestFailureException
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
+        Latest latest = Generator.generateLatest(company);
+
+        when(finnhubClient.quote(company.getTicker())).thenReturn(null);
+        when(latestDao.list(company.getId())).thenReturn(List.of(latest));
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+
+        Latest actual = latestService.getSyncedFor(company.getId());
+
+        assertThat(actual, is(latest));
+
+        ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
+        verify(latestDao, times(0)).create(captorCreate.capture());
+
+        ArgumentCaptor<Latest> captorSave = ArgumentCaptor.forClass(Latest.class);
+        verify(latestDao, times(0)).save(captorSave.capture());
+    }
+
+    @Test
     void getSyncedFor_notSynced_non$() throws RequestFailureException
     {
         Company company = Generator.generateCompany();

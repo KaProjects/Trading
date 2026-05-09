@@ -87,6 +87,21 @@ class DividendServiceTest
     }
 
     @Test
+    void getBy_empty()
+    {
+        when(dividendDao.list(null, null, null, null)).thenReturn(List.of());
+
+        Dividends dividends = dividendService.getBy(null, null, null, null);
+
+        assertThat(dividends.getDividends().size(), is(0));
+        assertThat(dividends.getAggregates().getCompanies(), is(0));
+        assertThat(dividends.getAggregates().getCurrencies(), is(0));
+        assertBigDecimals(dividends.getAggregates().getDividendSum(), BigDecimal.ZERO);
+        assertBigDecimals(dividends.getAggregates().getTaxSum(), BigDecimal.ZERO);
+        assertBigDecimals(dividends.getAggregates().getNetSum(), BigDecimal.ZERO);
+    }
+
+    @Test
     void getByCompany()
     {
         Company company1 = entityCompany("company-1", "NVDA", Currency.$);

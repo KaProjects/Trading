@@ -49,6 +49,7 @@ public class ArithmeticServiceTest
     @Test
     void computeFinancialRatios_invalidMarketCap()
     {
+        assertThrows(IllegalArgumentException.class, () -> arithmeticService.computeFinancialRatios(null, new Periods.Financial()));
         assertThrows(IllegalArgumentException.class, () -> arithmeticService.computeFinancialRatios(new BigDecimal("0"), new Periods.Financial()));
         assertThrows(IllegalArgumentException.class, () -> arithmeticService.computeFinancialRatios(new BigDecimal("-1"), new Periods.Financial()));
     }
