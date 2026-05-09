@@ -16,7 +16,6 @@ import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.rest.error.InvalidInputException;
-import org.kaleta.rest.error.ServiceFailureException;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
@@ -378,7 +377,7 @@ public class TradeServiceTest
 
         Company company =  Generator.generateCompany();
         when(companyService.findEntity(company.getId())).thenReturn(company);
-        doThrow(new ServiceFailureException("")).when(companyService).findEntity("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+        doThrow(new InvalidInputException("")).when(companyService).findEntity("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
 
         Trade validTrade = Generator.generateTrade(company, new BigDecimal(5), false);
         List<TradeSellDto.Trade> validDtoTrades =  new ArrayList<>(List.of(new TradeSellDto.Trade(validTrade.getId(), "5")));
@@ -386,7 +385,7 @@ public class TradeServiceTest
 
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, new ArrayList<>(), List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
 
-        sellAndAssertTrade("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43", validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), ServiceFailureException.class);
+        sellAndAssertTrade("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43", validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), InvalidInputException.class);
 
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), null);
 

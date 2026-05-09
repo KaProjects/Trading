@@ -14,7 +14,6 @@ import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.rest.error.InvalidInputException;
-import org.kaleta.rest.error.ServiceFailureException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -275,7 +274,7 @@ public class TradeService
         for (Asset asset : assets)
         {
             if (!arithmeticService.equalsBigDecimal(asset.getCurrentPrice(), currentPrice))
-                throw new ServiceFailureException("Corrupt data - all current prices should be the same: " + asset.getCurrentPrice() + " != " + currentPrice);
+                throw new IllegalArgumentException("Corrupt data - all current prices should be the same: " + asset.getCurrentPrice() + " != " + currentPrice);
 
             sumQuantity = sumQuantity.add(asset.getQuantity());
             purchaseCosts = purchaseCosts.add(asset.getPurchasePrice().multiply(asset.getQuantity()));

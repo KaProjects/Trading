@@ -19,7 +19,6 @@ import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.error.InvalidInputException;
-import org.kaleta.rest.error.ServiceFailureException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,7 +53,7 @@ public class FirebaseService
                         .setDatabaseUrl(ConfigProvider.getConfig().getValue("firebase.db.url", String.class))
                         .build();
             } catch (IOException e) {
-                throw new ServiceFailureException(e);
+                throw new IllegalStateException(e);
             }
 
             FirebaseApp app;

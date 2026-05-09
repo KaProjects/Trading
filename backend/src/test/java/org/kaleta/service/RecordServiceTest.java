@@ -19,7 +19,6 @@ import org.kaleta.persistence.entity.Record;
 import org.kaleta.rest.dto.RecordCreateDto;
 import org.kaleta.rest.dto.RecordUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
-import org.kaleta.rest.error.ServiceFailureException;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
@@ -164,7 +163,7 @@ public class RecordServiceTest
     void createCurrent() {
         Company company = Generator.generateCompany();
         when(companyService.findEntity(company.getId())).thenReturn(company);
-        doThrow(new ServiceFailureException("")).when(companyService).findEntity("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+        doThrow(new InvalidInputException("")).when(companyService).findEntity("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
 
         Periods periods = new Periods();
         periods.setTtm(Generator.generatePeriodsFinancial());
@@ -182,7 +181,7 @@ public class RecordServiceTest
 
         createCurrentAndAssertRecord(company.getId(), validT, validD, validP, expectedRatios, null);
 
-        createCurrentAndAssertRecord("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43", validT, validD, validP, expectedRatios, ServiceFailureException.class);
+        createCurrentAndAssertRecord("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43", validT, validD, validP, expectedRatios, InvalidInputException.class);
 
         createCurrentAndAssertRecord(company.getId(), null, validD, validP, expectedRatios, null);
 

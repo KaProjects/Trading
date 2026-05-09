@@ -14,7 +14,6 @@ import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.kaleta.rest.error.InvalidInputException;
-import org.kaleta.rest.error.ServiceFailureException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -260,7 +259,7 @@ public class PeriodService
         List<Period> quarters = new ArrayList<>();
         for (Period period : periods){
             if (period.getRevenue() == null)
-                throw new ServiceFailureException("not reported period provided for ttm computation!");
+                throw new IllegalArgumentException("not reported period provided for ttm computation!");
             Period quarter = new Period();
             switch (period.getName().getType()){
                 case FY:
@@ -288,7 +287,7 @@ public class PeriodService
                 case Q1: case Q2: case Q3: case Q4:
                     quarters.add(period);
                     break;
-                default: throw new ServiceFailureException("Invalid period type: '" + period.getName().getType() + "'");
+                default: throw new IllegalArgumentException("Invalid period type: '" + period.getName().getType() + "'");
             }
         }
         return quarters;

@@ -12,7 +12,6 @@ import org.kaleta.persistence.api.LatestDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
-import org.kaleta.rest.error.ServiceFailureException;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
@@ -205,7 +204,7 @@ public class LatestServiceTest
         when(latestDao.list(company.getId())).thenReturn(List.of(latest1, latest2));
         when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        assertThrows(ServiceFailureException.class, () -> latestService.getSyncedFor(company.getId()));
+        assertThrows(IllegalStateException.class, () -> latestService.getSyncedFor(company.getId()));
 
         ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
         verify(latestDao, times(0)).create(captorCreate.capture());

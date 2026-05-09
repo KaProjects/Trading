@@ -10,7 +10,6 @@ import org.kaleta.persistence.api.LatestDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
-import org.kaleta.rest.error.ServiceFailureException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -46,7 +45,7 @@ public class LatestService
 
         List<Latest> latests = latestDao.list(company.getId());
         if (latests.size() > 1) {
-            throw new ServiceFailureException("More than one latest found for the company with id: " + company.getId());
+            throw new IllegalStateException("More than one latest found for the company with id: " + company.getId());
         }
 
         if (finnhubQuote != null) {
