@@ -6,7 +6,6 @@ import Home from "./views/Home";
 import {backend} from "./properties";
 import axios from "axios";
 import Dividends from "./views/Dividends";
-import Stats from "./views/Stats";
 import Companies from "./views/Companies";
 import {wait} from "@testing-library/user-event/dist/utils";
 import Analytics from "./views/Analytics";
@@ -14,6 +13,7 @@ import {formatError} from "./service/FormattingService";
 import Loader from "./components/Loader";
 import {Research} from "./views/Research";
 import {Trades} from "./views/Trades";
+import {Stats} from "./views/Stats";
 
 class App extends Component {
     constructor(props) {

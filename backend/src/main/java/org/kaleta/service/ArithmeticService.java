@@ -74,8 +74,14 @@ public class ArithmeticService
         return indicators;
     }
 
+    public boolean equalsBigDecimal(BigDecimal a, BigDecimal b)
+    {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return a.compareTo(b) == 0;
+    }
+
     private BigDecimal limit(BigDecimal max, BigDecimal value){
         return (value.compareTo(max) > 0) ? max : value;
     }
-
 }

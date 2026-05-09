@@ -15,6 +15,9 @@ INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purch
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('f79bcb2f-cf21-4cf4-9d0c-5d1af1b863e1', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '400', '2022-11-01', '1000', '25');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES ('a1a16af8-7be8-48e3-9f67-c9d4ea0d624c', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '1150.1234', '2023-04-05', '300.25', '250.12');
 
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES ('c8c01111-3c95-4d29-9f3f-4f6d8b8f3d47', 'c9b68d4f-2d1a-4f5e-b8c7-9e0a1b2f3d4c', '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
+
+
 INSERT INTO Record (id, companyId, date, title, price,
                     strategy,targets, p_rev,p_gross,p_oper,p_net,dy,asset_quantity,asset_price) VALUES ('a1c7a08a-d94a-4b48-b7cf-8a3c10c29146', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '2023-12-11', 'bought 5@400.5$', '400.5',
                     'aaa', '~100', '1', '2', '3', '4', '5', '10', '20');

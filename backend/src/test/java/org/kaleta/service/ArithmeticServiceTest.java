@@ -183,4 +183,14 @@ public class ArithmeticServiceTest
         assertBigDecimals(indicators.getTtm().getMarketCapToNetIncome(), new BigDecimal("9999.99"));
         assertBigDecimals(indicators.getTtm().getDividendYield(), new BigDecimal("999.99"));
     }
+
+    @Test
+    void equalsBigDecimal()
+    {
+        assertThat(arithmeticService.equalsBigDecimal(new BigDecimal("1.0"), new BigDecimal("1.00")), is(true));
+        assertThat(arithmeticService.equalsBigDecimal(new BigDecimal("1.0"), new BigDecimal("2.0")), is(false));
+        assertThat(arithmeticService.equalsBigDecimal(null, new BigDecimal("1.0")), is(false));
+        assertThat(arithmeticService.equalsBigDecimal(new BigDecimal("1.0"), null), is(false));
+        assertThat(arithmeticService.equalsBigDecimal(null, null), is(true));
+    }
 }

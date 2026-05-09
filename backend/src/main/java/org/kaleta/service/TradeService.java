@@ -3,9 +3,9 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.Utils;
 import org.kaleta.model.Asset;
 import org.kaleta.model.Assets;
+import org.kaleta.model.PeriodFrequency;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
@@ -157,6 +157,33 @@ public class TradeService
         return model;
     }
 
+    public Map<org.kaleta.model.Company, List<Trades.Trade>> getByCompany(String currency, String purchaseYear, String sellYear, String sector) {
+        Trades trades = getBy(false, null, currency, purchaseYear, sellYear, sector);
+        Map<org.kaleta.model.Company, List<Trades.Trade>> map = new HashMap<>();
+        for (Trades.Trade trade : trades.getTrades()) {
+            if (!map.containsKey(trade.getCompany())) {
+                map.put(trade.getCompany(), new ArrayList<>());
+            }
+            map.get(trade.getCompany()).add(trade);
+        }
+        return map;
+    }
+
+    public Map<String, List<Trades.Trade>> getByPeriod(PeriodFrequency frequency, String companyId, String currency, String sector) {
+        Trades trades = getBy(false, companyId, currency, null, null, sector);
+        Map<String, List<Trades.Trade>> map = new HashMap<>();
+        for (Trades.Trade trade : trades.getTrades()) {
+            String period = frequency.parseDate(trade.getSellDate().toString());
+            if (!map.containsKey(period)) {
+                for (String key : frequency.getAllYearKeys(trade.getSellDate().toString())) {
+                    map.put(key, new ArrayList<>());
+                }
+            }
+            map.get(period).add(trade);
+        }
+        return map;
+    }
+
     private Trades.Trade from(Trade entity)
     {
         Trades.Trade trade = new Trades.Trade();
@@ -187,7 +214,7 @@ public class TradeService
 
             trade.setProfit(sellTotal.subtract(purchaseTotal));
 
-            if (!entity.getPurchasePrice().equals(new BigDecimal("0.0000"))) {
+            if (!arithmeticService.equalsBigDecimal(purchaseTotal, BigDecimal.ZERO)) {
                 trade.setProfitPercentage(sellTotal
                         .divide(purchaseTotal, 4, RoundingMode.HALF_UP)
                         .subtract(new BigDecimal(1))
@@ -201,11 +228,11 @@ public class TradeService
     {
         Set<String> companies = new HashSet<>();
         Set<Currency> currencies = new HashSet<>();
-        BigDecimal purchaseFeesSum = new BigDecimal("0.00");
-        BigDecimal purchaseTotalSum = new BigDecimal("0.00");
-        BigDecimal purchaseSoldTotalSum = new BigDecimal("0.00");
-        BigDecimal sellFeesSum = new BigDecimal("0.00");
-        BigDecimal sellTotalSum = new BigDecimal("0.00");
+        BigDecimal purchaseFeesSum = BigDecimal.ZERO;
+        BigDecimal purchaseTotalSum = BigDecimal.ZERO;
+        BigDecimal purchaseSoldTotalSum = BigDecimal.ZERO;
+        BigDecimal sellFeesSum = BigDecimal.ZERO;
+        BigDecimal sellTotalSum = BigDecimal.ZERO;
         for (Trades.Trade trade : trades)
         {
             companies.add(trade.getTicker());
@@ -227,7 +254,7 @@ public class TradeService
         aggregates.setSellFees(sellFeesSum);
         aggregates.setSellTotal(sellTotalSum);
 
-        if (!purchaseSoldTotalSum.equals(new BigDecimal("0.00"))){
+        if (!arithmeticService.equalsBigDecimal(purchaseSoldTotalSum, BigDecimal.ZERO)){
             aggregates.setProfit(sellTotalSum.subtract(purchaseSoldTotalSum));
             aggregates.setProfitPercentage(sellTotalSum
                     .divide(purchaseSoldTotalSum, 4, RoundingMode.HALF_UP)
@@ -247,7 +274,7 @@ public class TradeService
 
         for (Asset asset : assets)
         {
-            if (!Utils.equalsNullableBigDecimal(asset.getCurrentPrice(), currentPrice))
+            if (!arithmeticService.equalsBigDecimal(asset.getCurrentPrice(), currentPrice))
                 throw new ServiceFailureException("Corrupt data - all current prices should be the same: " + asset.getCurrentPrice() + " != " + currentPrice);
 
             sumQuantity = sumQuantity.add(asset.getQuantity());

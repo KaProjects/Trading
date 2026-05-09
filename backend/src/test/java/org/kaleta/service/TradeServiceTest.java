@@ -7,6 +7,7 @@ import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.Assets;
+import org.kaleta.model.PeriodFrequency;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
@@ -23,9 +24,12 @@ import java.math.RoundingMode;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -130,6 +134,29 @@ public class TradeServiceTest
         assertThat(assets.getAggregate().getCurrentPrice(), is(nullValue()));
         assertThat(assets.getAggregate().getProfitValue(), is(nullValue()));
         assertThat(assets.getAggregate().getProfitPercent(), is(nullValue()));
+    }
+
+    @Test
+    void getCompanyAggregates()
+    {
+        Company company1 = Generator.generateCompany("company-1");
+        Company company2 = Generator.generateCompany("company-2");
+
+        Trade activeTrade = Generator.generateTrade(company1, new BigDecimal("2"), false);
+        Trade closedTrade = Generator.generateTrade(company1, new BigDecimal("1"), true);
+        Trade secondCompanyTrade = Generator.generateTrade(company2, new BigDecimal("3"), false);
+
+        when(tradeDao.list(null, null, null, null, null, null)).thenReturn(List.of(activeTrade, closedTrade, secondCompanyTrade));
+
+        Map<String, int[]> aggregates = tradeService.getCompanyAggregates();
+
+        assertThat(aggregates.size(), is(2));
+        assertThat(aggregates.get(company1.getId())[0], is(2));
+        assertThat(aggregates.get(company1.getId())[1], is(1));
+        assertThat(aggregates.get(company1.getId())[2], is(1));
+        assertThat(aggregates.get(company2.getId())[0], is(1));
+        assertThat(aggregates.get(company2.getId())[1], is(1));
+        assertThat(aggregates.get(company2.getId())[2], is(0));
     }
 
     @Test
@@ -259,6 +286,64 @@ public class TradeServiceTest
         assertBigDecimals(trades.getAggregates().getSellTotal(), new BigDecimal("0.00"));
         assertThat(trades.getAggregates().getProfit(), is(nullValue()));
         assertThat(trades.getAggregates().getProfitPercentage(), is(nullValue()));
+    }
+
+    @Test
+    void getByCompany()
+    {
+        Company company1 = Generator.generateCompany("company-1");
+        company1.setTicker("NVDA");
+        company1.setCurrency(Currency.$);
+        org.kaleta.model.Company modelCompany1 = toModelCompany(company1);
+
+        Company company2 = Generator.generateCompany("company-2");
+        company2.setTicker("SHELL");
+        company2.setCurrency(Currency.€);
+        org.kaleta.model.Company modelCompany2 = toModelCompany(company2);
+
+        Trade trade1 = soldTrade("trade-1", company1, "2024-01-10", "10", "1", "2024-02-15", "12", "1", "5");
+        Trade trade2 = soldTrade("trade-2", company1, "2023-11-10", "20", "2", "2024-01-15", "22", "2", "3");
+        Trade trade3 = soldTrade("trade-3", company2, "2024-03-01", "30", "3", "2024-03-20", "40", "4", "2");
+
+        when(tradeDao.list(false, null, null, null, null, null)).thenReturn(List.of(trade1, trade2, trade3));
+        when(companyService.from(company1)).thenReturn(modelCompany1);
+        when(companyService.from(company2)).thenReturn(modelCompany2);
+
+        Map<org.kaleta.model.Company, List<Trades.Trade>> byCompany = tradeService.getByCompany(null, null, null, null);
+
+        assertThat(byCompany.size(), is(2));
+        assertThat(byCompany.get(modelCompany1).size(), is(2));
+        assertThat(byCompany.get(modelCompany1).get(0).getId(), is("trade-1"));
+        assertThat(byCompany.get(modelCompany1).get(1).getId(), is("trade-2"));
+        assertThat(byCompany.get(modelCompany2).size(), is(1));
+        assertThat(byCompany.get(modelCompany2).get(0).getId(), is("trade-3"));
+    }
+
+    @Test
+    void getByPeriod()
+    {
+        Company company = Generator.generateCompany("company-1");
+        company.setTicker("NVDA");
+        company.setCurrency(Currency.$);
+        org.kaleta.model.Company modelCompany = toModelCompany(company);
+
+        Trade trade1 = soldTrade("trade-1", company, "2023-12-10", "10", "1", "2024-01-15", "12", "1", "5");
+        Trade trade2 = soldTrade("trade-2", company, "2024-02-01", "20", "2", "2024-03-20", "25", "2", "3");
+
+        when(tradeDao.list(false, company.getId(), null, null, null, null)).thenReturn(List.of(trade1, trade2));
+        when(companyService.from(company)).thenReturn(modelCompany);
+
+        Map<String, List<Trades.Trade>> byPeriod = tradeService.getByPeriod(PeriodFrequency.QUARTERLY, company.getId(), null, null);
+
+        assertThat(byPeriod.size(), is(4));
+        assertThat(byPeriod.get("2024-Q1").size(), is(2));
+        assertThat(byPeriod.get("2024-Q2").isEmpty(), is(true));
+        assertThat(byPeriod.get("2024-Q3").isEmpty(), is(true));
+        assertThat(byPeriod.get("2024-Q4").isEmpty(), is(true));
+        assertThat(
+                byPeriod.get("2024-Q1").stream().map(Trades.Trade::getId).collect(Collectors.toList()),
+                containsInAnyOrder("trade-1", "trade-2")
+        );
     }
 
     @Test
@@ -452,5 +537,33 @@ public class TradeServiceTest
         assertThat(actual.getSellDate(), is(expected.getSellDate()));
         assertBigDecimals(actual.getSellPrice(), expected.getSellPrice());
         assertBigDecimals(actual.getSellFees(), expected.getSellFees());
+    }
+
+    private static org.kaleta.model.Company toModelCompany(Company entity)
+    {
+        org.kaleta.model.Company company = new org.kaleta.model.Company();
+        company.setId(entity.getId());
+        company.setTicker(entity.getTicker());
+        company.setCurrency(entity.getCurrency());
+        company.setWatching(entity.isWatching());
+        return company;
+    }
+
+    private static Trade soldTrade(String id, Company company,
+                                   String purchaseDate, String purchasePrice, String purchaseFees,
+                                   String sellDate, String sellPrice, String sellFees,
+                                   String quantity)
+    {
+        Trade trade = new Trade();
+        trade.setId(id);
+        trade.setCompany(company);
+        trade.setPurchaseDate(Date.valueOf(purchaseDate));
+        trade.setPurchasePrice(new BigDecimal(purchasePrice));
+        trade.setPurchaseFees(new BigDecimal(purchaseFees));
+        trade.setSellDate(Date.valueOf(sellDate));
+        trade.setSellPrice(new BigDecimal(sellPrice));
+        trade.setSellFees(new BigDecimal(sellFees));
+        trade.setQuantity(new BigDecimal(quantity));
+        return trade;
     }
 }

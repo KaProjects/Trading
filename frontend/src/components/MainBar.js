@@ -29,6 +29,7 @@ const MainBar = props => {
                             >
                                 <Tab label="Companies"/>
                                 <Tab label="Monthly"/>
+                                <Tab label="Quarterly"/>
                                 <Tab label="Yearly"/>
                             </Tabs>
                         }

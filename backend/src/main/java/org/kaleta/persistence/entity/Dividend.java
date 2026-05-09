@@ -23,19 +23,4 @@ public class Dividend extends AbstractEntityCompany
 
     @Column(name = "tax", nullable = false)
     private BigDecimal tax;
-
-    public Currency getCurrency()
-    {
-        return getCompany().getCurrency();
-    }
-
-    public String getTicker()
-    {
-        return getCompany().getTicker();
-    }
-
-    public BigDecimal getTotal()
-    {
-        return dividend.subtract(tax);
-    }
 }

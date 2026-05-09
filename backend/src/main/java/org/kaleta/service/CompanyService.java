@@ -43,7 +43,6 @@ public class CompanyService
         return from(findEntity(companyId));
     }
 
-    @Deprecated // should use model
     public Company findEntity(String companyId)
     {
         try {

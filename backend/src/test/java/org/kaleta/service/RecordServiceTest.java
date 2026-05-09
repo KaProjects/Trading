@@ -13,6 +13,7 @@ import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Record;
 import org.kaleta.rest.dto.RecordCreateDto;
@@ -26,6 +27,7 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -189,6 +191,55 @@ public class RecordServiceTest
 
         createCurrentAndAssertRecord(company.getId(), validT, validD, null, expectedRatios, NullPointerException.class);
         invalidBigDecimals().forEach(p -> createCurrentAndAssertRecord(company.getId(), validT, validD, p, expectedRatios, IllegalArgumentException.class));
+    }
+
+    @Test
+    void createCurrent_withoutFinancialsOrAssets()
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+
+        Periods periods = new Periods();
+        when(periodService.getBy(company.getId())).thenReturn(periods);
+
+        Assets assets = new Assets();
+        when(tradeService.getAssets(company.getId(), new BigDecimal("123"))).thenReturn(assets);
+
+        recordService.createCurrent(company.getId(), "snapshot", "2030-01-01", "123");
+
+        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+        verify(recordDao).create(captor.capture());
+
+        assertThat(captor.getValue().getTitle(), is("snapshot@123$"));
+        assertThat(captor.getValue().getDate(), is(Date.valueOf("2030-01-01")));
+        assertBigDecimals(captor.getValue().getPrice(), new BigDecimal("123"));
+        assertThat(captor.getValue().getPriceToRevenues(), is(Matchers.nullValue()));
+        assertThat(captor.getValue().getPriceToGrossProfit(), is(Matchers.nullValue()));
+        assertThat(captor.getValue().getPriceToOperatingIncome(), is(Matchers.nullValue()));
+        assertThat(captor.getValue().getPriceToNetIncome(), is(Matchers.nullValue()));
+        assertThat(captor.getValue().getDividendYield(), is(Matchers.nullValue()));
+        assertThat(captor.getValue().getSumAssetQuantity(), is(Matchers.nullValue()));
+        assertThat(captor.getValue().getAvgAssetPrice(), is(Matchers.nullValue()));
+    }
+
+    @Test
+    void getCompanyAggregates()
+    {
+        Company company1 = Generator.generateCompany("company-1");
+        Company company2 = Generator.generateCompany("company-2");
+
+        when(recordDao.list()).thenReturn(List.of(
+                Generator.generateRecord(company1, "2024-01-01"),
+                Generator.generateRecord(company1, "2024-02-01"),
+                Generator.generateRecord(company2, "2024-03-01")
+        ));
+
+        Map<String, int[]> aggregates = recordService.getCompanyAggregates();
+
+        assertThat(aggregates.size(), is(2));
+        assertThat(aggregates.get(company1.getId())[0], is(2));
+        assertThat(aggregates.get(company2.getId())[0], is(1));
     }
 
     private void createCurrentAndAssertRecord(String cid, String t, String d, String p,
