@@ -8,8 +8,8 @@ const LIST_TYPES = ['numbered-list', 'bulleted-list']
 const TEXT_ALIGN_TYPES = ['left', 'center', 'right', 'justify']
 const DEFAULT_VALUE = [{type: 'paragraph', children: [{ text: '' }],}]
 
-const ContentEditor = (props) => {
-    const {content} = props
+export const ContentEditor = ({content, update, style}) => {
+
     const renderElement = useCallback(props => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const editor = useMemo(() => withHistory(withReact(createEditor())), [])
@@ -27,7 +27,7 @@ const ContentEditor = (props) => {
     async function handleUnFocus()
     {
         if (value !== savedContent) {
-            const error = await props.handleUpdate(value)
+            const error = await update(value)
             if (error) {
                 setError(error)
             } else {
@@ -48,8 +48,9 @@ const ContentEditor = (props) => {
     }
 
     return (
-        <Slate editor={editor} initialValue={savedContent}
+        <Slate editor={editor} initialValue={savedContent} style={style}
                onChange={value => {
+                   setError(null)
                    const isAstChange = editor.operations.some(op => 'set_selection' !== op.type0)
                    if (isAstChange) setValue(value)
                }}
@@ -89,7 +90,6 @@ const ContentEditor = (props) => {
         </Slate>
     )
 }
-export default ContentEditor
 
 const toggleBlock = (editor, format) => {
     const isActive = isBlockActive(

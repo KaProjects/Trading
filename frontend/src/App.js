@@ -4,7 +4,6 @@ import {BrowserRouter, Route, Routes} from "react-router-dom";
 import MainBar from "./components/MainBar";
 import Home from "./views/Home";
 import Trades from "./views/Trades";
-import Research from "./views/Research";
 import {backend} from "./properties";
 import axios from "axios";
 import Dividends from "./views/Dividends";
@@ -14,6 +13,7 @@ import {wait} from "@testing-library/user-event/dist/utils";
 import Analytics from "./views/Analytics";
 import {formatError} from "./service/FormattingService";
 import Loader from "./components/Loader";
+import {Research} from "./views/Research";
 
 class App extends Component {
     constructor(props) {

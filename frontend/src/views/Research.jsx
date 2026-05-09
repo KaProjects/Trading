@@ -1,23 +1,8 @@
-import {
-    Badge,
-    Box,
-    Button,
-    Card,
-    CardContent,
-    Dialog,
-    DialogActions,
-    DialogTitle,
-    Grid,
-    Stack,
-    Typography
-} from "@mui/material";
+import {Badge, Box, Button, Card, CardContent, Dialog, DialogActions, DialogTitle, Grid, Stack} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import Loader from "../components/Loader";
-import BorderedSection from "../components/BorderedSection";
 import {backend} from "../properties";
 import axios from "axios";
-import ContentEditor from "../components/ContentEditor";
-import EditableTypography from "../components/EditableTypography";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import AddRecordDialog from "../dialog/AddRecordDialog";
 import StarIcon from '@mui/icons-material/Star';
@@ -25,26 +10,19 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import PeriodFinancials from "../components/PeriodFinancials";
 import AddPeriodDialog from "../dialog/AddPeriodDialog";
 import AddPeriodFinancialDialog from "../dialog/AddPeriodFinancialDialog";
-import Tooltip from "@mui/material/Tooltip";
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import CompanySelector from "../components/CompanySelector";
-import {
-    formatDate,
-    formatDecimals,
-    formatError,
-    formatMillions,
-    formatPercent,
-    formatPeriodName
-} from "../service/FormattingService";
+import {formatDecimals, formatError, formatMillions, formatPercent} from "../service/FormattingService";
 import SnackbarErrorAlert from "../components/SnackbarErrorAlert";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import {AssetBox} from "./component/AssetBox";
 import ImportPeriodDialog from "../dialog/ImportPeriodDialog";
+import {DateTime} from "./component/DateTime";
+import {Record} from "./component/Record";
+import {Period} from "./component/Period";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 
-const Research = props => {
+export const Research = props => {
     const [refresh, setRefresh] = useState("")
 
     useEffect(() => {
@@ -76,7 +54,8 @@ const Research = props => {
                         sessionStorage.removeItem('showFinancials')
                     }
                     setLoaded(true)
-                }).catch((error) => {
+                })
+                .catch((error) => {
                     setError(formatError(error))
                     setLoaded(false)
                 })
@@ -97,79 +76,21 @@ const Research = props => {
         setRefresh(new Date().getTime().toString())
     }
 
-    function updateRecordTitle(recordId, value) {
-        return axios.put(backend + "/record", {id: recordId, title: value})
-            .then((response) => triggerRefresh())
-            .catch((error) => {
-                const formatted = formatError(error)
-                setAlert(formatted)
-                return formatted
-            })
-    }
-
-    function updateRecordContent(recordId, content) {
-        return axios.put(backend + "/record", {id: recordId, content: JSON.stringify(content)})
-            .then((response) => triggerRefresh())
-            .catch((error) => {
-                const formatted = formatError(error)
-                setAlert(formatted)
-                return formatted
-            })
-    }
-
-    function updatePeriodResearch(periodId, content) {
-        return axios.put(backend + "/period", {id: periodId, research: JSON.stringify(content)})
-            .then((response) => triggerRefresh())
-            .catch((error) => {
-                const formatted = formatError(error)
-                setAlert(formatted)
-                return formatted
-            })
-    }
-
     function handleConfirmWatch() {
         const newWatching = !data.company.watching
         const companyData = {...data.company}
         companyData.sector = companyData.sector.key
         companyData.watching = newWatching
         axios.put(backend + "/company", companyData)
-            .then((response) => triggerRefresh())
+            .then((response) => {
+                setData(prev => ({...prev, company: {...prev.company, watching: newWatching}}))
+            })
             .catch((error) => {
                 const formatted = formatError(error)
                 setAlert(formatted)
                 return formatted
             })
         setOpenConfirmWatchDialog(false)
-    }
-
-    function formatEndingMonth(endingMonth) {
-        if (endingMonth === null || endingMonth === undefined) return "";
-        return endingMonth.substring(5, 7) + "/" + endingMonth.substring(2, 4);
-    }
-
-    function formatPrice(price, currency) {
-        if (price === null || price === undefined) return "";
-        return price + currency;
-    }
-
-    const DateTime = ({value, sx, iconMarginTop = '0'}) => {
-        if (value === null || value === undefined) return null;
-
-        let [date, time] = value.split("T")
-        let [year, month, day] = date.split("-")
-
-        const typoSx = {fontSize: sx.fontSize, align: 'center', noWrap: true, variant: 'string'}
-
-        return <Stack sx={sx} direction="row" alignItems={"stretch"}>
-            <CalendarTodayIcon sx={{fontSize: sx.fontSize, marginTop: iconMarginTop, marginRight: '0'}}/>
-            <Typography sx={typoSx}>
-                {day}.{month}.{year}
-            </Typography>
-            <AccessTimeIcon sx={{fontSize: sx.fontSize + 1, marginTop: iconMarginTop, marginRight: '1px'}}/>
-            <Typography sx={typoSx}>
-                {time}
-            </Typography>
-        </Stack>
     }
 
     return (
@@ -190,7 +111,6 @@ const Research = props => {
                                 <PeriodFinancials sx={{marginBottom: "20px", marginTop: "20px"}}
                                                   financials={data.financials}
                                                   ttm={data.ttm}
-                                                  triggerRefresh={triggerRefresh}
                                                   expand={expandFinancials}
                                                   setExpand={setExpandFinancials}
                                                   {...props}
@@ -226,8 +146,7 @@ const Research = props => {
                                             />
                                         </>
                                     }
-                                    <Button
-                                        onClick={() => setOpenAddPeriodDialog(true)}>
+                                    <Button onClick={() => setOpenAddPeriodDialog(true)}>
                                         <ControlPointIcon sx={{color: 'lightgreen',}}/>
                                     </Button>
                                     <AddPeriodDialog
@@ -248,40 +167,13 @@ const Research = props => {
                             />
 
                             {data.periods.map((period, index) => (
-                                <BorderedSection key={period.id}
-                                                 title={formatPeriodName(period.name) + " - ending: " + formatEndingMonth(period.endingMonth) + " - report: " + formatDate(period.reportDate)}
-                                                 style={{color: 'text.primary'}}>
-
-
-                                    <div style={{margin: "15px 0 0 0"}}>
-                                        <ContentEditor content={period.research} handleUpdate={(value) => updatePeriodResearch(period.id, value)}/>
-                                    </div>
-
-                                    {period.financial &&
-                                        <>
-                                            <Typography sx={{color: 'text.secondary', fontSize: 14}}>
-                                                {"Shares: " + formatMillions(period.shares)
-                                                    + " | H: " + formatPrice(period.priceHigh, data.company.currency)
-                                                    + " | L: " + formatPrice(period.priceLow, data.company.currency)
-                                                    + " | Dividend: " + formatMillions(period.financial.dividend)}
-                                            </Typography>
-                                            <Typography sx={{color: 'text.secondary', fontSize: 14}} >
-                                                {"Revenue: " + formatMillions(period.financial.revenue)
-                                                    + " | Gross P.: " + formatMillions(period.financial.grossProfit)
-                                                    + " | Op. Inc.: " + formatMillions(period.financial.operatingIncome)
-                                                    + " | Net Income: " + formatMillions(period.financial.netIncome)}
-                                            </Typography>
-                                        </>
-                                    }
-                                    {!period.financial &&
-                                        <Tooltip title="Add Financials">
-                                            <Button sx={{height: "25px"}} onClick={() => setOpenAddFinancialDialog(period)}>
-                                                <ControlPointIcon sx={{color: 'lightgreen'}}/>
-                                            </Button>
-                                        </Tooltip>
-                                    }
-
-                                </BorderedSection>
+                                <Period
+                                    key={index}
+                                    period={period}
+                                    currency={data.company.currency}
+                                    setAlert={setAlert}
+                                    openDialog={() => setOpenAddFinancialDialog(period)}
+                                />
                             ))}
                         </CardContent>
                     </Card>
@@ -334,33 +226,12 @@ const Research = props => {
                             }
 
                             {data.records.map((record, index) => (
-                                <BorderedSection key={record.id} title={formatDate(record.date)} style={{color: 'text.primary'}}>
-                                    <Stack direction="row" justifyContent="flex-start" alignItems="stretch" spacing={2}>
-                                        <Box>{data.company.currency}{record.price}</Box>
-                                        <Box>PS:{record.priceToRevenues}</Box>
-                                        <Box>PG:{record.priceToGrossProfit}</Box>
-                                        <Box>PO:{record.priceToOperatingIncome}</Box>
-                                        <Box>PE:{record.priceToNetIncome}</Box>
-                                        <Box>DY:{record.dividendYield}</Box>
-                                        <Box>t:{record.targets}</Box>
-                                        <Box>s:{record.strategy}</Box>
-                                    </Stack>
-
-                                    {record.asset &&
-                                        <Stack direction="row" justifyContent="flex-start" alignItems="stretch" spacing={2}>
-                                            <AssetBox key={index} asset={record.asset} currency={data.company.currency}/>
-                                        </Stack>
-                                    }
-
-                                    <EditableTypography value={record.title} label={"Title"} style={{margin: "12px 15px 0 5px"}}
-                                                        updateObject={(value) => updateRecordTitle(record.id, value)}
-                                                        validateInput={(value) => {if (value === "") return "not null"; return ""}}
-                                    />
-                                    <div style={{margin: "15px 0 0 0"}}>
-                                        <ContentEditor content={record.content} handleUpdate={(value) => updateRecordContent(record.id, value)}/>
-                                    </div>
-
-                                </BorderedSection>
+                                <Record
+                                    key={index}
+                                    record={record}
+                                    currency={data.company.currency}
+                                    setAlert={setAlert}
+                                />
                             ))}
                         </CardContent>
                     </Card>
@@ -371,4 +242,3 @@ const Research = props => {
         </>
     )
 }
-export default Research

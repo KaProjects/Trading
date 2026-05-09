@@ -1,8 +1,8 @@
 import React from "react";
 import SvgIcon from "@mui/material/SvgIcon";
-import "../style/BorderedSection.css";
+import "../../style/BorderedSection.css";
 
-function BorderedSection({ icon, title, children }) {
+export function BorderedSection({ icon, title, children }) {
     return (
         <div className={"mainContainer"}>
             <div className={"header"}>
@@ -19,4 +19,3 @@ function BorderedSection({ icon, title, children }) {
         </div>
     )
 }
-export default BorderedSection
