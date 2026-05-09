@@ -49,6 +49,10 @@ function createData(overrides = {}) {
                 id: "trade-1",
                 ticker: "NVDA",
                 currency: "$",
+                company: {
+                    ticker: "NVDA",
+                    currency: "$",
+                },
                 purchaseDate: "10.01.2024",
                 purchaseQuantity: "5",
                 purchasePrice: "400.5",
@@ -66,6 +70,10 @@ function createData(overrides = {}) {
                 id: "trade-2",
                 ticker: "SHELL",
                 currency: "€",
+                company: {
+                    ticker: "SHELL",
+                    currency: "€",
+                },
                 purchaseDate: "15.03.2023",
                 purchaseQuantity: "8",
                 purchasePrice: "28.0",
@@ -133,6 +141,7 @@ describe("Trades", () => {
         expect(screen.getByText("SHELL")).toBeInTheDocument();
         expect(mockFormatDate).toHaveBeenCalledWith("10.01.2024");
         expect(mockFormatDate).toHaveBeenCalledWith("05.01.2025");
+        expect(mockFormatDate).toHaveBeenCalledWith(null);
         expect(screen.getAllByText("468.5")).toHaveLength(2);
         expect(screen.getAllByText("23.23")).toHaveLength(2);
         expect(screen.getByText("2251.0")).toBeInTheDocument();
@@ -147,6 +156,10 @@ describe("Trades", () => {
                         id: "trade-1",
                         ticker: "NVDA",
                         currency: "$",
+                        company: {
+                            ticker: "NVDA",
+                            currency: "$",
+                        },
                         purchaseDate: "10.01.2024",
                         purchaseQuantity: "5",
                         purchasePrice: "400.5",
@@ -164,6 +177,10 @@ describe("Trades", () => {
                         id: "trade-2",
                         ticker: "SHELL",
                         currency: "€",
+                        company: {
+                            ticker: "SHELL",
+                            currency: "€",
+                        },
                         purchaseDate: "15.03.2023",
                         purchaseQuantity: "8",
                         purchasePrice: "28.0",
@@ -181,6 +198,10 @@ describe("Trades", () => {
                         id: "trade-3",
                         ticker: "CEZ",
                         currency: "K",
+                        company: {
+                            ticker: "CEZ",
+                            currency: "K",
+                        },
                         purchaseDate: "01.11.2025",
                         purchaseQuantity: "2",
                         purchasePrice: "30.0",

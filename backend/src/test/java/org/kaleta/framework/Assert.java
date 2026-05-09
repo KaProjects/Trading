@@ -24,6 +24,7 @@ public class Assert
         public static final String BIG_DECIMAL_4_4_false = constructBigDecimal(4,4, false);
         public static final String BIG_DECIMAL_4_2_false = constructBigDecimal(4,2, false);
         public static final String BIG_DECIMAL_4_2_true = constructBigDecimal(4,2, true);
+        public static final String BIG_DECIMAL_5_2_false = constructBigDecimal(5,2, false);
         public static final String NOT_NULL = "must not be null";
         public static final String MATCH_DATE_FORMAT = "must match YYYY-MM-DD";
         public static final String VALID_UUID = "must be a valid UUID";

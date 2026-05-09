@@ -89,7 +89,6 @@ public class TradeEndpoints
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
     public Response createTrade(@Valid @NotNull TradeCreateDto tradeCreateDto)
     {
@@ -104,7 +103,6 @@ public class TradeEndpoints
 
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
     public Response sellTrade(@Valid @NotNull TradeSellDto tradeSellDto)
     {

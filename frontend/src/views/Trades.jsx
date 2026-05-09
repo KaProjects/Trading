@@ -100,12 +100,12 @@ export const Trades = props => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {data.trades.map((trade) => (
-                            <TableRow key={trade.id} hover>
-                                <TableCell style={rowStyle(0)} onDoubleClick={() => selectCompany(trade.ticker)}>
-                                    {trade.ticker}
+                        {data.trades.map((trade, index) => (
+                            <TableRow key={index} hover>
+                                <TableCell style={rowStyle(0)} onDoubleClick={() => selectCompany(trade.company.ticker)}>
+                                    {trade.company.ticker}
                                 </TableCell>
-                                <TableCell style={rowStyle(1)}>{trade.currency}</TableCell>
+                                <TableCell style={rowStyle(1)}>{trade.company.currency}</TableCell>
                                 <TableCell style={rowStyle(2)}>{formatDate(trade.purchaseDate)}</TableCell>
                                 <TableCell style={rowStyle(3)}>{trade.purchaseQuantity}</TableCell>
                                 <TableCell style={rowStyle(4)}>{trade.purchasePrice}</TableCell>

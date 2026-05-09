@@ -14,7 +14,7 @@ public class FirebaseAsset
     public static FirebaseAsset from(Trades.Trade trade)
     {
         FirebaseAsset asset = new FirebaseAsset();
-        asset.setTicker(trade.getTicker());
+        asset.setTicker(trade.getCompany().getTicker());
         asset.setQuantity(trade.getPurchaseQuantity().stripTrailingZeros().toPlainString());
         asset.setPrice(trade.getPurchasePrice().stripTrailingZeros().toPlainString());
         return asset;

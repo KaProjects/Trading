@@ -208,8 +208,8 @@ public class TradeServiceTest
         assertThat(trades.getTrades().size(), is(2));
 
         assertThat(trades.getTrades().get(0).getId(), is("active-trade"));
-        assertThat(trades.getTrades().get(0).getTicker(), is("SHELL"));
-        assertThat(trades.getTrades().get(0).getCurrency(), is(Currency.€));
+        assertThat(trades.getTrades().get(0).getCompany().getTicker(), is("SHELL"));
+        assertThat(trades.getTrades().get(0).getCompany().getCurrency(), is(Currency.€));
         assertThat(trades.getTrades().get(0).getPurchaseDate().toString(), is("2025-03-20"));
         assertBigDecimals(trades.getTrades().get(0).getPurchaseQuantity(), new BigDecimal("3"));
         assertBigDecimals(trades.getTrades().get(0).getPurchasePrice(), new BigDecimal("20.00"));
@@ -224,8 +224,8 @@ public class TradeServiceTest
         assertThat(trades.getTrades().get(0).getProfitPercentage(), is(nullValue()));
 
         assertThat(trades.getTrades().get(1).getId(), is("sold-trade"));
-        assertThat(trades.getTrades().get(1).getTicker(), is("NVDA"));
-        assertThat(trades.getTrades().get(1).getCurrency(), is(Currency.$));
+        assertThat(trades.getTrades().get(1).getCompany().getTicker(), is("NVDA"));
+        assertThat(trades.getTrades().get(1).getCompany().getCurrency(), is(Currency.$));
         assertThat(trades.getTrades().get(1).getPurchaseDate().toString(), is("2024-01-10"));
         assertBigDecimals(trades.getTrades().get(1).getPurchaseQuantity(), new BigDecimal("5"));
         assertBigDecimals(trades.getTrades().get(1).getPurchasePrice(), new BigDecimal("10.00"));
@@ -275,7 +275,7 @@ public class TradeServiceTest
         Trades trades = tradeService.getBy(true, company.getId(), company.getCurrency().name(), "2025", null, null);
 
         assertThat(trades.getTrades().size(), is(1));
-        assertThat(trades.getTrades().get(0).getTicker(), is("CEZ"));
+        assertThat(trades.getTrades().get(0).getCompany().getTicker(), is("CEZ"));
         assertBigDecimals(trades.getTrades().get(0).getPurchaseTotal(), new BigDecimal("61.50"));
 
         assertThat(trades.getAggregates().getCompanies(), is(1));

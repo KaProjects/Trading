@@ -5,7 +5,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.kaleta.dto.DividendCreateDto;
+import org.kaleta.rest.dto.DividendCreateDto;
 import org.kaleta.model.Dividends;
 import org.kaleta.model.PeriodFrequency;
 import org.kaleta.persistence.api.DividendDao;
@@ -66,17 +66,17 @@ class DividendServiceTest
         assertThat(dividends.getDividends().size(), is(3));
 
         assertThat(dividends.getDividends().get(0).getId(), is("dividend-1"));
-        assertThat(dividends.getDividends().get(0).getTicker(), is("NVDA"));
-        assertThat(dividends.getDividends().get(0).getCurrency(), is(Currency.$));
+        assertThat(dividends.getDividends().get(0).getCompany().getTicker(), is("NVDA"));
+        assertThat(dividends.getDividends().get(0).getCompany().getCurrency(), is(Currency.$));
         assertBigDecimals(dividends.getDividends().get(0).getNet(), new BigDecimal("85"));
 
         assertThat(dividends.getDividends().get(1).getId(), is("dividend-2"));
-        assertThat(dividends.getDividends().get(1).getTicker(), is("SHELL"));
-        assertThat(dividends.getDividends().get(1).getCurrency(), is(Currency.€));
+        assertThat(dividends.getDividends().get(1).getCompany().getTicker(), is("SHELL"));
+        assertThat(dividends.getDividends().get(1).getCompany().getCurrency(), is(Currency.€));
         assertBigDecimals(dividends.getDividends().get(1).getNet(), new BigDecimal("45"));
 
         assertThat(dividends.getDividends().get(2).getId(), is("dividend-3"));
-        assertThat(dividends.getDividends().get(2).getTicker(), is("NVDA"));
+        assertThat(dividends.getDividends().get(2).getCompany().getTicker(), is("NVDA"));
         assertBigDecimals(dividends.getDividends().get(2).getNet(), new BigDecimal("72"));
 
         assertThat(dividends.getAggregates().getCompanies(), is(2));
@@ -154,7 +154,7 @@ class DividendServiceTest
         }).when(dividendDao).create(any(Dividend.class));
         when(dividendDao.get("created-dividend")).thenReturn(stored);
 
-        Dividend created = dividendService.createDividend(dto);
+        dividendService.createDividend(dto);
 
         ArgumentCaptor<Dividend> captor = ArgumentCaptor.forClass(Dividend.class);
         verify(dividendDao).create(captor.capture());
@@ -163,9 +163,6 @@ class DividendServiceTest
         assertThat(captor.getValue().getDate(), is(Date.valueOf("2024-02-10")));
         assertBigDecimals(captor.getValue().getDividend(), new BigDecimal("100"));
         assertBigDecimals(captor.getValue().getTax(), new BigDecimal("15"));
-
-        assertThat(created.getId(), is("created-dividend"));
-        assertThat(created.getCompany().getId(), is(company.getId()));
     }
 
     @Test

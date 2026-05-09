@@ -110,10 +110,10 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
         assertThat(dto.getTrades().size(), is(9));
         assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-04-05"));
-        assertThat(dto.getTrades().get(0).getTicker(), is("CEZ"));
+        assertThat(dto.getTrades().get(0).getCompany().getTicker(), is("CEZ"));
         assertBigDecimals(dto.getTrades().get(0).getPurchaseTotal(), new BigDecimal("575599.4"));
         assertThat(dto.getTrades().get(1).getPurchaseDate().toString(), is("2022-11-01"));
-        assertThat(dto.getTrades().get(1).getTicker(), is("RR"));
+        assertThat(dto.getTrades().get(1).getCompany().getTicker(), is("RR"));
         assertBigDecimals(dto.getTrades().get(1).getPurchaseTotal(), new BigDecimal("2000025.00"));
 
         assertThat(dto.getAggregates().getCompanies(), is(7));
@@ -157,7 +157,7 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dto.getTrades().size(), is(1));
-        assertThat(dto.getTrades().get(0).getTicker(), is("SHELL"));
+        assertThat(dto.getTrades().get(0).getCompany().getTicker(), is("SHELL"));
         assertThat(dto.getAggregates().getCompanies(), is(1));
         assertThat(dto.getAggregates().getCurrencies(), is(1));
         assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("18.00"));
@@ -179,7 +179,7 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dto.getTrades().size(), is(1));
-        assertThat(dto.getTrades().get(0).getTicker(), is("NVDA"));
+        assertThat(dto.getTrades().get(0).getCompany().getTicker(), is("NVDA"));
         assertThat(dto.getAggregates().getCompanies(), is(1));
         assertThat(dto.getAggregates().getCurrencies(), is(1));
         assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("14.50"));
@@ -201,7 +201,7 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dto.getTrades().size(), is(1));
-        assertThat(dto.getTrades().get(0).getTicker(), is("NVDA"));
+        assertThat(dto.getTrades().get(0).getCompany().getTicker(), is("NVDA"));
         assertThat(dto.getAggregates().getCompanies(), is(1));
         assertThat(dto.getAggregates().getCurrencies(), is(1));
         assertBigDecimals(dto.getAggregates().getPurchaseFees(), new BigDecimal("14.50"));
@@ -244,11 +244,11 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dto.getTrades().size(), is(3));
-        assertThat(dto.getTrades().get(0).getTicker(), is("NVDA"));
+        assertThat(dto.getTrades().get(0).getCompany().getTicker(), is("NVDA"));
         assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-11-11"));
-        assertThat(dto.getTrades().get(1).getTicker(), is("CEZ"));
+        assertThat(dto.getTrades().get(1).getCompany().getTicker(), is("CEZ"));
         assertThat(dto.getTrades().get(1).getPurchaseDate().toString(), is("2023-04-05"));
-        assertThat(dto.getTrades().get(2).getTicker(), is("SHELL"));
+        assertThat(dto.getTrades().get(2).getCompany().getTicker(), is("SHELL"));
         assertThat(dto.getTrades().get(2).getSellDate().toString(), is("2023-12-31"));
         assertThat(dto.getAggregates().getCompanies(), is(3));
         assertThat(dto.getAggregates().getCurrencies(), is(3));
@@ -272,7 +272,7 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dto.getTrades().size(), is(1));
-        assertThat(dto.getTrades().get(0).getTicker(), is("CEZ"));
+        assertThat(dto.getTrades().get(0).getCompany().getTicker(), is("CEZ"));
         assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-04-05"));
         assertThat(dto.getAggregates().getCompanies(), is(1));
         assertThat(dto.getAggregates().getCurrencies(), is(1));
@@ -295,7 +295,7 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dtoZeroPurchase.getTrades().size(), is(1));
-        assertThat(dtoZeroPurchase.getTrades().get(0).getTicker(), is("XXX"));
+        assertThat(dtoZeroPurchase.getTrades().get(0).getCompany().getTicker(), is("XXX"));
         assertBigDecimals(dtoZeroPurchase.getTrades().get(0).getPurchaseTotal(), new BigDecimal("0.00"));
         assertThat(dtoZeroPurchase.getAggregates().getCompanies(), is(1));
         assertThat(dtoZeroPurchase.getAggregates().getCurrencies(), is(1));
@@ -314,7 +314,7 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dtoZeroSell.getTrades().size(), is(1));
-        assertThat(dtoZeroSell.getTrades().get(0).getTicker(), is("YYY"));
+        assertThat(dtoZeroSell.getTrades().get(0).getCompany().getTicker(), is("YYY"));
         assertBigDecimals(dtoZeroSell.getTrades().get(0).getSellTotal(), new BigDecimal("0.00"));
         assertThat(dtoZeroSell.getAggregates().getCompanies(), is(1));
         assertThat(dtoZeroSell.getAggregates().getCurrencies(), is(1));

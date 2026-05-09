@@ -1,8 +1,6 @@
 package org.kaleta.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
-import org.kaleta.persistence.entity.Currency;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -16,7 +14,6 @@ public class Trades
     private Aggregates aggregates;
 
     @Data
-    @JsonIgnoreProperties(value = {"ticker", "currency"}, allowGetters = true)
     public static class Trade implements Comparable<Trade>{
         private String id;
         private Company company;
@@ -35,15 +32,6 @@ public class Trades
 
         private BigDecimal profit;
         private BigDecimal profitPercentage;
-
-        public String getTicker() {
-            return company.getTicker();
-        }
-
-        public Currency getCurrency()
-        {
-            return company.getCurrency();
-        }
 
         @Override
         public int compareTo(Trade other)

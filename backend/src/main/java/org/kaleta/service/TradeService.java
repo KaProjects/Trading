@@ -235,8 +235,8 @@ public class TradeService
         BigDecimal sellTotalSum = BigDecimal.ZERO;
         for (Trades.Trade trade : trades)
         {
-            companies.add(trade.getTicker());
-            currencies.add(trade.getCurrency());
+            companies.add(trade.getCompany().getTicker());
+            currencies.add(trade.getCompany().getCurrency());
             purchaseFeesSum = purchaseFeesSum.add(trade.getPurchaseFees());
             purchaseTotalSum = purchaseTotalSum.add(trade.getPurchaseTotal());
             if (trade.getSellDate() != null)

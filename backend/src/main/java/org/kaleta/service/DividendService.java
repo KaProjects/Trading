@@ -2,7 +2,7 @@ package org.kaleta.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.kaleta.dto.DividendCreateDto;
+import org.kaleta.rest.dto.DividendCreateDto;
 import org.kaleta.model.Company;
 import org.kaleta.model.Dividends;
 import org.kaleta.model.PeriodFrequency;
@@ -74,7 +74,7 @@ public class DividendService
         return map;
     }
 
-    public Dividend createDividend(DividendCreateDto dto)
+    public void createDividend(DividendCreateDto dto)
     {
         Dividend newDividend = new Dividend();
 
@@ -84,8 +84,6 @@ public class DividendService
         newDividend.setTax(new BigDecimal(dto.getTax()));
 
         dividendDao.create(newDividend);
-
-        return dividendDao.get(newDividend.getId());
     }
 
     /**
