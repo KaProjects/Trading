@@ -13,9 +13,8 @@ import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
-import org.kaleta.persistence.entity.Sort;
+import org.kaleta.model.CompanyAggregates;
 import org.kaleta.rest.dto.CompanyCreateDto;
-import org.kaleta.rest.dto.CompanyUiDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.dto.CompanyValuesDto;
 
@@ -239,17 +238,16 @@ class CompanyEndpointsTest
     @Order(1)
     void getCompaniesWithAggregates()
     {
-        CompanyUiDto dto = given().when()
+        CompanyAggregates dto = given().when()
                 .get(path)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(9));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(26));
-        CompanyUiDto.Company company = dto.getCompanies().get(7);
+        CompanyAggregates.Company company = dto.getCompanies().get(7);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getWatching(), is(true));
@@ -258,15 +256,15 @@ class CompanyEndpointsTest
         assertThat(company.getActiveTrades(), is(0));
         assertThat(company.getDividends(), is(2));
         assertThat(company.getRecords(), is(2));
-        assertThat(company.getFinancials(), is(2));
+        assertThat(company.getPeriods(), is(3));
     }
 
     @Test
     @Order(1)
     void getCompaniesWithAggregates_invalidParameters()
     {
-        Assert.getValidationError(path + "?sort=" ,"must be any of CompanyAggregate");
-        Assert.getValidationError(path + "?sort=X" ,"must be any of CompanyAggregate");
+        Assert.getValidationError(path + "?sort=" ,"must be any of Sort");
+        Assert.getValidationError(path + "?sort=X" ,"must be any of Sort");
 
         Assert.getValidationError(path + "?currency=" + "X", "must be any of Currency");
         Assert.getValidationError(path + "?currency=", "must be any of Currency");
@@ -279,15 +277,14 @@ class CompanyEndpointsTest
     @Order(1)
     void getCompaniesWithAggregates_filterCurrency()
     {
-        CompanyUiDto dto = given().when()
+        CompanyAggregates dto = given().when()
                 .get(path + "?currency=" + Currency.€)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(9));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(1));
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
@@ -297,22 +294,21 @@ class CompanyEndpointsTest
         assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(0).getDividends(), is(0));
         assertThat(dto.getCompanies().get(0).getRecords(), is(2));
-        assertThat(dto.getCompanies().get(0).getFinancials(), is(0));
+        assertThat(dto.getCompanies().get(0).getPeriods(), is(0));
     }
 
     @Test
     @Order(1)
     void getCompaniesWithAggregates_filterSector()
     {
-        CompanyUiDto dto = given().when()
+        CompanyAggregates dto = given().when()
                 .get(path + "?sector=" + Sector.ENERGY_MINERALS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(9));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(1));
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
@@ -322,27 +318,25 @@ class CompanyEndpointsTest
         assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(0).getDividends(), is(0));
         assertThat(dto.getCompanies().get(0).getRecords(), is(2));
-        assertThat(dto.getCompanies().get(0).getFinancials(), is(0));
+        assertThat(dto.getCompanies().get(0).getPeriods(), is(0));
     }
 
     @Test
     @Order(1)
     void getCompaniesWithAggregates_sorts()
     {
-        CompanyUiDto dto = given().when()
-                .get(path + "?sort=" + Sort.CompanyAggregate.COMPANY)
+        CompanyAggregates dto = given().when()
+                .get(path + "?sort=" + CompanyAggregates.Sort.TICKER)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        int expectedColumns = 9;
         int expectedCompanies = 26;
 
-        assertThat(dto.getColumns().size(), is(expectedColumns));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
-        CompanyUiDto.Company company = dto.getCompanies().get(7);
+        CompanyAggregates.Company company = dto.getCompanies().get(7);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getWatching(), is(true));
@@ -351,45 +345,42 @@ class CompanyEndpointsTest
         assertThat(company.getActiveTrades(), is(0));
         assertThat(company.getDividends(), is(2));
         assertThat(company.getRecords(), is(2));
-        assertThat(company.getFinancials(), is(2));
+        assertThat(company.getPeriods(), is(3));
 
         dto = given().when()
-                .get(path + "?sort=" + Sort.CompanyAggregate.CURRENCY)
+                .get(path + "?sort=" + CompanyAggregates.Sort.CURRENCY)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(expectedColumns));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getCurrency().compareTo(dto.getCompanies().get(i).getCurrency()), lessThanOrEqualTo(0));
         }
 
         dto = given().when()
-                .get(path + "?sort=" + Sort.CompanyAggregate.WATCHING)
+                .get(path + "?sort=" + CompanyAggregates.Sort.WATCHING)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(expectedColumns));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getWatching().compareTo(dto.getCompanies().get(i).getWatching()), greaterThanOrEqualTo(0));
         }
 
         dto = given().when()
-                .get(path + "?sort=" + Sort.CompanyAggregate.SECTOR)
+                .get(path + "?sort=" + CompanyAggregates.Sort.SECTOR)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(expectedColumns));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         assertThat(dto.getCompanies().get(0).getSector(), is(not(nullValue())));
         for (int i=0; i<dto.getCompanies().size() - 1; i++){
@@ -401,73 +392,68 @@ class CompanyEndpointsTest
         }
 
         dto = given().when()
-                .get(path + "?sort=" + Sort.CompanyAggregate.ALL_TRADES)
+                .get(path + "?sort=" + CompanyAggregates.Sort.ALL_TRADES)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(expectedColumns));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getTotalTrades(), greaterThanOrEqualTo(dto.getCompanies().get(i).getTotalTrades()));
         }
 
         dto = given().when()
-                .get(path + "?sort=" + Sort.CompanyAggregate.ACTIVE_TRADES)
+                .get(path + "?sort=" + CompanyAggregates.Sort.ACTIVE_TRADES)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(expectedColumns));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getActiveTrades(), greaterThanOrEqualTo(dto.getCompanies().get(i).getActiveTrades()));
         }
 
         dto = given().when()
-                .get(path + "?sort=" + Sort.CompanyAggregate.DIVIDENDS)
+                .get(path + "?sort=" + CompanyAggregates.Sort.DIVIDENDS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(expectedColumns));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getDividends(), greaterThanOrEqualTo(dto.getCompanies().get(i).getDividends()));
         }
 
         dto = given().when()
-                .get(path + "?sort=" + Sort.CompanyAggregate.RECORDS)
+                .get(path + "?sort=" + CompanyAggregates.Sort.RECORDS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(expectedColumns));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getRecords(), greaterThanOrEqualTo(dto.getCompanies().get(i).getRecords()));
         }
 
         dto = given().when()
-                .get(path + "?sort=" + Sort.CompanyAggregate.FINANCIALS)
+                .get(path + "?sort=" + CompanyAggregates.Sort.PERIODS)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyUiDto.class);
+                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        assertThat(dto.getColumns().size(), is(expectedColumns));
-        assertThat(dto.getSorts().size(), is(Sort.CompanyAggregate.values().length));
+        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
-            assertThat(dto.getCompanies().get(i-1).getFinancials(), greaterThanOrEqualTo(dto.getCompanies().get(i).getFinancials()));
+            assertThat(dto.getCompanies().get(i-1).getPeriods(), greaterThanOrEqualTo(dto.getCompanies().get(i).getPeriods()));
         }
     }
 }

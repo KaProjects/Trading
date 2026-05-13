@@ -7,11 +7,13 @@ import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
+import org.kaleta.model.CompanyAggregates;
 import org.kaleta.model.CompanyInfo;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
@@ -94,6 +96,67 @@ public class CompanyServiceTest
         assertThat(companies.size(), is(2));
         assertThat(companies.get(0).getId(), is(company2.getId()));
         assertThat(companies.get(1).getId(), is(company1.getId()));
+    }
+
+    @Test
+    void getCompaniesWithAggregates()
+    {
+        CompanyWithAggregates company1 = new CompanyWithAggregates();
+        company1.setId("company-1");
+        company1.setTicker("ZZZZ");
+        company1.setCurrency(Currency.$);
+        company1.setWatching(true);
+        company1.setSector(Sector.SEMICONDUCTORS);
+        company1.setTotalTrades(5);
+        company1.setActiveTrades(2);
+        company1.setDividends(3);
+        company1.setRecords(4);
+        company1.setPeriods(1);
+
+        CompanyWithAggregates company2 = new CompanyWithAggregates();
+        company2.setId("company-2");
+        company2.setTicker("AAAA");
+        company2.setCurrency(Currency.€);
+        company2.setWatching(false);
+        company2.setSector(null);
+        company2.setTotalTrades(0);
+        company2.setActiveTrades(0);
+        company2.setDividends(1);
+        company2.setRecords(2);
+        company2.setPeriods(3);
+
+        when(companyDao.listWithAggregates(Currency.$.name(), Sector.SEMICONDUCTORS.toString()))
+                .thenReturn(List.of(company1, company2));
+
+        CompanyAggregates companies = companyService.getCompaniesWithAggregates(Currency.$.name(), Sector.SEMICONDUCTORS.toString());
+
+        assertThat(companies.getSorts().size(), is(CompanyAggregates.Sort.values().length));
+        assertThat(companies.getCompanies().size(), is(2));
+
+        CompanyAggregates.Company first = companies.getCompanies().get(0);
+        assertThat(first.getId(), is("company-1"));
+        assertThat(first.getTicker(), is("ZZZZ"));
+        assertThat(first.getCurrency(), is(Currency.$));
+        assertThat(first.getWatching(), is(true));
+        assertThat(first.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
+        assertThat(first.getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
+        assertThat(first.getTotalTrades(), is(5));
+        assertThat(first.getActiveTrades(), is(2));
+        assertThat(first.getDividends(), is(3));
+        assertThat(first.getRecords(), is(4));
+        assertThat(first.getPeriods(), is(1));
+
+        CompanyAggregates.Company second = companies.getCompanies().get(1);
+        assertThat(second.getId(), is("company-2"));
+        assertThat(second.getTicker(), is("AAAA"));
+        assertThat(second.getCurrency(), is(Currency.€));
+        assertThat(second.getWatching(), is(false));
+        assertThat(second.getSector(), is(nullValue()));
+        assertThat(second.getTotalTrades(), is(0));
+        assertThat(second.getActiveTrades(), is(0));
+        assertThat(second.getDividends(), is(1));
+        assertThat(second.getRecords(), is(2));
+        assertThat(second.getPeriods(), is(3));
     }
 
     @Test

@@ -1,6 +1,5 @@
 package org.kaleta.model;
 
-import jakarta.annotation.Nullable;
 import lombok.Data;
 import org.kaleta.persistence.entity.Currency;
 

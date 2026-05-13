@@ -80,6 +80,13 @@ const Companies = props => {
         window.location.href=href
     }
 
+    function HeaderCell({index, value}) {
+        return <TableCell key={index} style={headerStyle(index)} onClick={() => setSort(data.sorts[index])}>
+            {value}
+            {sort === data.sorts[index] && <ArrowDropDownIcon sx={{ height: "18px", marginRight: "-15px", marginBottom: "-5px"}}/>}
+        </TableCell>
+    }
+
     return (
         <>
             {!loaded && <Loader error={error}/>}
@@ -90,14 +97,15 @@ const Companies = props => {
                         <Table size="small" aria-label="a dense table" stickyHeader>
                             <TableHead>
                                 <TableRow>
-                                    {data.columns.map((column, index) => (
-                                        <TableCell key={index} style={headerStyle(index)}
-                                                   onClick={() => setSort(data.sorts[index])}
-                                        >
-                                            {column}
-                                            {data && data.sorts.indexOf(sort) === index && <ArrowDropDownIcon sx={{ height: "18px", marginRight: "-15px", marginBottom: "-5px"}}/>}
-                                        </TableCell>
-                                    ))}
+                                    <HeaderCell index={0} value={"Ticker"}/>
+                                    <HeaderCell index={1} value={"#"}/>
+                                    <HeaderCell index={2} value={"*"}/>
+                                    <HeaderCell index={3} value={"Sector"}/>
+                                    <HeaderCell index={4} value={"Total Trades"}/>
+                                    <HeaderCell index={5} value={"Active Trades"}/>
+                                    <HeaderCell index={6} value={"Dividends"}/>
+                                    <HeaderCell index={7} value={"Records"}/>
+                                    <HeaderCell index={8} value={"Periods"}/>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -111,7 +119,7 @@ const Companies = props => {
                                         <TableCellWithAction index={5} action={() => redirect(company.id, '/trades', props.activeStates[0])}>{company.activeTrades}</TableCellWithAction>
                                         <TableCellWithAction index={6} action={() => redirect(company.id, '/dividends')}>{company.dividends}</TableCellWithAction>
                                         <TableCellWithAction index={7} action={() => redirect(company.id, '/research')}>{company.records}</TableCellWithAction>
-                                        <TableCellWithAction index={8} action={() => redirect(company.id, '/research', null, true)}>{company.financials}</TableCellWithAction>
+                                        <TableCellWithAction index={8} action={() => redirect(company.id, '/research', null, true)}>{company.periods}</TableCellWithAction>
                                     </TableRow>
                                 ))}
                             </TableBody>

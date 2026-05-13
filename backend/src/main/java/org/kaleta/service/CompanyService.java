@@ -4,10 +4,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.model.CompanyInfo;
+import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
@@ -36,6 +38,15 @@ public class CompanyService
     public List<org.kaleta.model.Company> getCompanies(String currency, String sector)
     {
         return companyDao.list(currency, sector).stream().map(this::from).sorted(org.kaleta.model.Company::compareTo).collect(Collectors.toList());
+    }
+
+    public CompanyAggregates getCompaniesWithAggregates(String currency, String sector)
+    {
+        CompanyAggregates aggregates = new CompanyAggregates();
+        aggregates.setCompanies(companyDao.listWithAggregates(currency, sector).stream()
+                .map(this::from)
+                .collect(Collectors.toList()));
+        return aggregates;
     }
 
     public org.kaleta.model.Company getCompany(String companyId)
@@ -129,6 +140,24 @@ public class CompanyService
         if (entity.getSector() != null) {
             company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));
         }
+        return company;
+    }
+
+    private CompanyAggregates.Company from(CompanyWithAggregates entity)
+    {
+        CompanyAggregates.Company company = new CompanyAggregates.Company();
+        company.setId(entity.getId());
+        company.setTicker(entity.getTicker());
+        company.setCurrency(entity.getCurrency());
+        company.setWatching(entity.getWatching());
+        if (entity.getSector() != null) {
+            company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));
+        }
+        company.setTotalTrades(entity.getTotalTrades());
+        company.setActiveTrades(entity.getActiveTrades());
+        company.setDividends(entity.getDividends());
+        company.setRecords(entity.getRecords());
+        company.setPeriods(entity.getPeriods());
         return company;
     }
 }
