@@ -9,23 +9,7 @@ import EditCompanyDialog from "../dialog/EditCompanyDialog";
 import {recordEvent} from "../service/utils";
 
 
-function headerStyle(index){
-    const border = "1px solid lightgrey"
-    const borderRight = (index === 9) ? border : "0px"
-    return {textAlign: "center", borderLeft: border, borderRight: borderRight, borderBottom: border, borderTop: border}
-}
-
-function rowStyle(index){
-    const fontWeight = ([].includes(index)) ? "bold" : "normal"
-    const textAlign = ([0, 1, 2, 3].includes(index)) ? "left" : "right"
-    const borderLeft = "1px solid lightgrey"
-    const borderRight = ([9].includes(index)) ? "1px solid lightgrey" : "0px"
-    const fontFamily = "Roboto"
-    let color = "primary"
-    return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily, color: color}
-}
-
-const Companies = props => {
+export const Companies = props => {
     const [sort, setSort] = useState(null)
     const [refresh, setRefresh] = useState("")
     const {data, loaded, error} = useData("/company" + constructQueryParams())
@@ -49,27 +33,20 @@ const Companies = props => {
         setRefresh(new Date().getTime().toString())
     }
 
-    function TableCellWithAction(props) {
-        const {index, action} = props
-        const [showAction, setShowAction] = useState(false)
-        return(
-            <TableCell style={rowStyle(index)}
-                       onMouseEnter={() => setShowAction(true)}
-                       onMouseLeave={() => setShowAction(false)}
-            >
-                {index > 3 && showAction &&
-                    <IconButton style={{height: "18px", width: "18px", marginRight: "1px"}} onClick={action}>
-                        <OpenInNewIcon sx={{width: 16}}/>
-                    </IconButton>
-                }
-                {props.children}
-                {index === 0 && showAction &&
-                    <IconButton style={{height: "18px", width: "18px", marginRight: "-10px"}} onClick={action}>
-                        <EditNoteIcon sx={{width: 16}}/>
-                    </IconButton>
-                }
-            </TableCell>
-        )
+    function headerStyle(index){
+        const border = "1px solid lightgrey"
+        const borderRight = (index === 9) ? border : "0px"
+        return {textAlign: "center", borderLeft: border, borderRight: borderRight, borderBottom: border, borderTop: border}
+    }
+
+    function rowStyle(index){
+        const fontWeight = ([].includes(index)) ? "bold" : "normal"
+        const textAlign = ([0, 1, 2, 3].includes(index)) ? "left" : "right"
+        const borderLeft = "1px solid lightgrey"
+        const borderRight = ([9].includes(index)) ? "1px solid lightgrey" : "0px"
+        const fontFamily = "Roboto"
+        let color = "primary"
+        return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily, color: color}
     }
 
     function redirect(companyId, href, tradeState, showFinancials) {
@@ -78,6 +55,28 @@ const Companies = props => {
         if (showFinancials) sessionStorage.setItem('showFinancials', showFinancials);
         recordEvent(window.location.pathname + "#redirect:" + href);
         window.location.href=href
+    }
+
+    function TableCellWithAction({index, value, action}) {
+        const [showAction, setShowAction] = useState(false)
+        return(
+            <TableCell style={rowStyle(index)}
+                       onMouseEnter={() => {if (action) setShowAction(true)}}
+                       onMouseLeave={() => {if (action) setShowAction(false)}}
+            >
+                {index > 3 && showAction &&
+                    <IconButton style={{height: "18px", width: "18px", marginRight: "1px"}} onClick={action}>
+                        <OpenInNewIcon sx={{width: 16}}/>
+                    </IconButton>
+                }
+                {value}
+                {index === 0 && showAction &&
+                    <IconButton style={{height: "18px", width: "18px", marginRight: "-10px"}} onClick={action}>
+                        <EditNoteIcon sx={{width: 16}}/>
+                    </IconButton>
+                }
+            </TableCell>
+        )
     }
 
     function HeaderCell({index, value}) {
@@ -111,15 +110,15 @@ const Companies = props => {
                             <TableBody>
                                 {data.companies.map((company, index) => (
                                     <TableRow key={company.id} hover>
-                                        <TableCellWithAction index={0} action={() => props.setOpenEditCompany(company)}>{company.ticker}</TableCellWithAction>
-                                        <TableCell style={rowStyle(1)}>{company.currency}</TableCell>
-                                        <TableCell style={rowStyle(2)}>{company.watching ? '*' : ''}</TableCell>
-                                        <TableCell style={rowStyle(3)}>{company.sector ? company.sector.name : ''}</TableCell>
-                                        <TableCellWithAction index={4} action={() => redirect(company.id, '/trades')}>{company.totalTrades}</TableCellWithAction>
-                                        <TableCellWithAction index={5} action={() => redirect(company.id, '/trades', props.activeStates[0])}>{company.activeTrades}</TableCellWithAction>
-                                        <TableCellWithAction index={6} action={() => redirect(company.id, '/dividends')}>{company.dividends}</TableCellWithAction>
-                                        <TableCellWithAction index={7} action={() => redirect(company.id, '/research')}>{company.records}</TableCellWithAction>
-                                        <TableCellWithAction index={8} action={() => redirect(company.id, '/research', null, true)}>{company.periods}</TableCellWithAction>
+                                        <TableCellWithAction index={0} action={() => props.setOpenEditCompany(company)} value={company.ticker}/>
+                                        <TableCellWithAction index={1} value={company.currency}/>
+                                        <TableCellWithAction index={2} value={company.watching ? '*' : ''}/>
+                                        <TableCellWithAction index={3} value={company.sector ? company.sector.name : ''}/>
+                                        <TableCellWithAction index={4} value={company.totalTrades} action={() => redirect(company.id, '/trades')}/>
+                                        <TableCellWithAction index={5} value={company.activeTrades} action={() => redirect(company.id, '/trades', props.activeStates[0])}/>
+                                        <TableCellWithAction index={6} value={company.dividends} action={() => redirect(company.id, '/dividends')}/>
+                                        <TableCellWithAction index={7} value={company.records} action={() => redirect(company.id, '/research')}/>
+                                        <TableCellWithAction index={8} value={company.periods} action={() => redirect(company.id, '/research', null, true)}/>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -130,4 +129,3 @@ const Companies = props => {
         </>
     )
 }
-export default Companies
