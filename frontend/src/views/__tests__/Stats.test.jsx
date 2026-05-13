@@ -28,6 +28,7 @@ function createProps(overrides = {}) {
 
 function createCompanyData(overrides = {}) {
     return {
+        sorts: ["TICKER", "CURRENCY", "PURCHASES", "SELLS", "DIVIDENDS", "PROFIT", "PROFIT_USD", "PROFIT_PERCENT"],
         companies: [
             {
                 ticker: "NVDA",
@@ -211,7 +212,7 @@ describe("Stats", () => {
 
         fireEvent.click(screen.getByText("Profit %"));
 
-        await waitFor(() => expect(mockUseData).toHaveBeenLastCalledWith("/stats/company?query&sort=7"));
+        await waitFor(() => expect(mockUseData).toHaveBeenLastCalledWith("/stats/company?query&sort=PROFIT_PERCENT"));
     });
 
     test("re-queries company stats when profit usd header is clicked", async () => {
@@ -225,7 +226,7 @@ describe("Stats", () => {
 
         fireEvent.click(screen.getByText("Profit $"));
 
-        await waitFor(() => expect(mockUseData).toHaveBeenLastCalledWith("/stats/company?query&sort=6"));
+        await waitFor(() => expect(mockUseData).toHaveBeenLastCalledWith("/stats/company?query&sort=PROFIT_USD"));
     });
 
     test("renders quarterly period stats and enables company selector when hidden", async () => {

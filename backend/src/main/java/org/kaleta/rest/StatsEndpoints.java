@@ -31,16 +31,15 @@ public class StatsEndpoints
             @Pattern(regexp = "^\\d\\d\\d\\d$", message = "must match YYYY")
             @QueryParam("year")
             String year,
-            @Min(0)
-            @Max(7)
+            @ValueOfEnum(enumClass = CompanyStats.Sort.class)
             @QueryParam("sort")
-            Integer sort,
+            String sort,
             @ValueOfEnum(enumClass = Sector.class)
             @QueryParam("sector")
             String sector
     ) {
         CompanyStats model = statsService.getByCompany(year, sector);
-        model.sort(sort);
+        model.sort(sort == null ? CompanyStats.Sort.PROFIT_USD : CompanyStats.Sort.valueOf(sort));
         return Response.ok(model).build();
     }
 

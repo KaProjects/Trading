@@ -1,5 +1,6 @@
 package org.kaleta.model;
 
+import jakarta.annotation.Nullable;
 import lombok.Data;
 import org.kaleta.persistence.entity.Currency;
 
@@ -16,6 +17,7 @@ public class CompanyStats
     private List<Company> companies = new ArrayList<>();
     private Aggregates aggregates;
     private Set<String> years = new HashSet<>();
+    private List<Sort> sorts = List.of(Sort.values());
 
     @Data
     public static class Company
@@ -43,11 +45,36 @@ public class CompanyStats
         private BigDecimal profitPercentage;
     }
 
-    public void sort(Integer index) {
-        if (Integer.valueOf(7).equals(index)) {
-            companies.sort(Comparator.comparing(Company::getProfitPercentage, Comparator.nullsLast(Comparator.reverseOrder())));
-        } else {
-            companies.sort(Comparator.comparing(Company::getProfitSum).reversed());
+    public enum Sort {
+        TICKER,	CURRENCY, PURCHASES, SELLS, DIVIDENDS, PROFIT, PROFIT_USD, PROFIT_PERCENT
+    }
+
+    public void sort(Sort sort) {
+        switch (sort) {
+            case TICKER:
+                companies.sort(Comparator.comparing(Company::getTicker));
+                break;
+            case CURRENCY:
+                companies.sort(Comparator.comparing(Company::getCurrency));
+                break;
+            case PURCHASES:
+                companies.sort(Comparator.comparing(Company::getPurchaseSum, Comparator.nullsLast(Comparator.reverseOrder())));
+                break;
+            case SELLS:
+                companies.sort(Comparator.comparing(Company::getSellSum, Comparator.nullsLast(Comparator.reverseOrder())));
+                break;
+            case DIVIDENDS:
+                companies.sort(Comparator.comparing(Company::getDividendSum, Comparator.nullsLast(Comparator.reverseOrder())));
+                break;
+            case PROFIT:
+                companies.sort(Comparator.comparing(Company::getProfitSum, Comparator.nullsLast(Comparator.reverseOrder())));
+                break;
+            case PROFIT_USD:
+                companies.sort(Comparator.comparing(Company::getProfitUsdSum, Comparator.nullsLast(Comparator.reverseOrder())));
+                break;
+            case PROFIT_PERCENT:
+                companies.sort(Comparator.comparing(Company::getProfitPercentage, Comparator.nullsLast(Comparator.reverseOrder())));
+                break;
         }
     }
 }

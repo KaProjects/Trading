@@ -47,13 +47,9 @@ export const Stats = props => {
         }
 
         function HeaderCell({index, value}) {
-            return <TableCell key={index} style={headerStyle}
-                              onClick={() => {
-                                  if ([6,7].includes(index)) setSort(index)
-                              }}
-            >
+            return <TableCell key={index} style={headerStyle} onClick={() => setSort(data.sorts[index])}>
                 {value}
-                {sort === index && <ArrowDropDownIcon sx={{ height: "18px", marginRight: "-15px", marginBottom: "-5px"}}/>}
+                {sort === data.sorts[index] && <ArrowDropDownIcon sx={{ height: "18px", marginRight: "-15px", marginBottom: "-5px"}}/>}
             </TableCell>
         }
 

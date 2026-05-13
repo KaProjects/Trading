@@ -72,8 +72,10 @@ class AStatsEndpointsTest
         Assert.getValidationError(path + "/company?year=20222", "must match YYYY");
         Assert.getValidationError(path + "/company?year=202", "must match YYYY");
         Assert.getValidationError(path + "/company?year=", "must match YYYY");
-        Assert.getValidationError(path + "/company?sort=-1", "must be greater than or equal to 0");
-        Assert.getValidationError(path + "/company?sort=8", "must be less than or equal to 7");
+        Assert.getValidationError(path + "/company?sort=-1", "must be any of Sort");
+        Assert.getValidationError(path + "/company?sort=8", "must be any of Sort");
+        Assert.getValidationError(path + "/company?sort=", "must be any of Sort");
+        Assert.getValidationError(path + "/company?sort=X", "must be any of Sort");
         Assert.getValidationError(path + "/company?sector=X", "must be any of Sector");
         Assert.getValidationError(path + "/company?sector=", "must be any of Sector");
     }
