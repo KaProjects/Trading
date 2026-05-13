@@ -152,20 +152,6 @@ public class PeriodService
         return periodDao.get(id);
     }
 
-    /**
-     * @return aggregates map <companyId, [financials count]>
-     */
-    public Map<String, int[]> getCompanyAggregates()
-    {
-        return periodDao.list().stream()
-                .filter(p -> p.getRevenue() != null)
-                .collect(Collectors.toMap(
-                        p -> p.getCompany().getId(),
-                        p -> new int[]{1},
-                        (a, b) -> {a[0] += b[0]; return a;}
-                ));
-    }
-
     private void pushFirebase(Period period){
         try {
             firebaseService.updatePeriod(period);

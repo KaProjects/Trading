@@ -86,22 +86,6 @@ public class DividendService
         dividendDao.create(newDividend);
     }
 
-    /**
-     * @return aggregates map <companyId, [dividends count]>
-     */
-    public Map<String, int[]> getCompanyAggregates()
-    {
-        Map<String, int[]> map = new HashMap<>();
-        for (Dividend dividend : dividendDao.list(null, null, null, null))
-        {
-            String companyId = dividend.getCompany().getId();
-            int[] aggregates = map.containsKey(companyId) ? map.get(companyId) : new int[]{0};
-            aggregates[0] = aggregates[0] + 1;
-            map.put(companyId, aggregates);
-        }
-        return map;
-    }
-
     private Dividends.Aggregates computeAggregates(List<Dividends.Dividend> dividends)
     {
         Set<String> companies = new HashSet<>();

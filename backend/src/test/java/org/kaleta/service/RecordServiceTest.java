@@ -225,25 +225,6 @@ public class RecordServiceTest
         assertThat(captor.getValue().getAvgAssetPrice(), is(Matchers.nullValue()));
     }
 
-    @Test
-    void getCompanyAggregates()
-    {
-        Company company1 = Generator.generateCompany("company-1");
-        Company company2 = Generator.generateCompany("company-2");
-
-        when(recordDao.list()).thenReturn(List.of(
-                Generator.generateRecord(company1, "2024-01-01"),
-                Generator.generateRecord(company1, "2024-02-01"),
-                Generator.generateRecord(company2, "2024-03-01")
-        ));
-
-        Map<String, int[]> aggregates = recordService.getCompanyAggregates();
-
-        assertThat(aggregates.size(), is(2));
-        assertThat(aggregates.get(company1.getId())[0], is(2));
-        assertThat(aggregates.get(company2.getId())[0], is(1));
-    }
-
     private void createCurrentAndAssertRecord(String cid, String t, String d, String p,
                                               PriceIndicators expectedRatios,
                                               Class<? extends Exception> expectedException)

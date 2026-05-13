@@ -135,22 +135,6 @@ public class RecordService
         recordDao.delete(recordId);
     }
 
-    /**
-     * @return aggregates map <companyId, [records count]>
-     */
-    public Map<String, int[]> getCompanyAggregates()
-    {
-        Map<String, int[]> map = new HashMap<>();
-        for (Record record : recordDao.list())
-        {
-            String companyId = record.getCompany().getId();
-            int[] aggregates = map.containsKey(companyId) ? map.get(companyId) : new int[]{0};
-            aggregates[0] = aggregates[0] + 1;
-            map.put(companyId, aggregates);
-        }
-        return map;
-    }
-
     private org.kaleta.model.Record from(Record recordEntity)
     {
         org.kaleta.model.Record  record = new org.kaleta.model.Record();

@@ -136,29 +136,6 @@ public class TradeServiceTest
     }
 
     @Test
-    void getCompanyAggregates()
-    {
-        Company company1 = Generator.generateCompany("company-1");
-        Company company2 = Generator.generateCompany("company-2");
-
-        Trade activeTrade = Generator.generateTrade(company1, new BigDecimal("2"), false);
-        Trade closedTrade = Generator.generateTrade(company1, new BigDecimal("1"), true);
-        Trade secondCompanyTrade = Generator.generateTrade(company2, new BigDecimal("3"), false);
-
-        when(tradeDao.list(null, null, null, null, null, null)).thenReturn(List.of(activeTrade, closedTrade, secondCompanyTrade));
-
-        Map<String, int[]> aggregates = tradeService.getCompanyAggregates();
-
-        assertThat(aggregates.size(), is(2));
-        assertThat(aggregates.get(company1.getId())[0], is(2));
-        assertThat(aggregates.get(company1.getId())[1], is(1));
-        assertThat(aggregates.get(company1.getId())[2], is(1));
-        assertThat(aggregates.get(company2.getId())[0], is(1));
-        assertThat(aggregates.get(company2.getId())[1], is(1));
-        assertThat(aggregates.get(company2.getId())[2], is(0));
-    }
-
-    @Test
     void getBy()
     {
         Company soldCompany = Generator.generateCompany();

@@ -180,25 +180,6 @@ class DividendServiceTest
         assertBigDecimals(captor.getValue().getTax(), new BigDecimal("15"));
     }
 
-    @Test
-    void getCompanyAggregates()
-    {
-        Company company1 = entityCompany("company-1", "NVDA", Currency.$);
-        Company company2 = entityCompany("company-2", "SHELL", Currency.€);
-
-        when(dividendDao.list(null, null, null, null)).thenReturn(List.of(
-                dividend("dividend-1", company1, "2024-02-10", "100", "15"),
-                dividend("dividend-2", company1, "2024-01-01", "50", "5"),
-                dividend("dividend-3", company2, "2023-12-31", "80", "8")
-        ));
-
-        Map<String, int[]> aggregates = dividendService.getCompanyAggregates();
-
-        assertThat(aggregates.size(), is(2));
-        assertThat(aggregates.get(company1.getId())[0], is(2));
-        assertThat(aggregates.get(company2.getId())[0], is(1));
-    }
-
     private static Company entityCompany(String id, String ticker, Currency currency)
     {
         Company company = new Company();
