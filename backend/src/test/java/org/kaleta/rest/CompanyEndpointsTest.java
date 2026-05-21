@@ -7,30 +7,34 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.kaleta.dto.RecordsUiCompanyListsDto;
 import org.kaleta.framework.Assert;
+import org.kaleta.model.CompanyAggregates;
+import org.kaleta.model.CompanyGroups;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
-import org.kaleta.model.CompanyAggregates;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.dto.CompanyValuesDto;
 
+import java.sql.Date;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
 import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
-import static org.kaleta.framework.Matchers.hasTicker;
 
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -62,24 +66,48 @@ class CompanyEndpointsTest
     @Order(1)
     void getCompanyLists()
     {
-        RecordsUiCompanyListsDto dto = given().when()
+        CompanyGroups dto = given().when()
                 .get(path + "/lists")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", RecordsUiCompanyListsDto.class);
+                .extract().response().jsonPath().getObject("", CompanyGroups.class);
 
-        assertThat(dto.getWatchingOldestReview().size(), is(22));
-        assertThat(dto.getWatchingOldestReview().get(16).getTicker(), is("RR"));
+        assertThat(dto.getWatching().size(), is(22));
+        assertThat(dto.getWatching().get(0).getTicker(), is("ABCD"));
+        assertThat(dto.getWatching().get(dto.getWatching().size() - 1).getTicker(), is("ZZZ"));
+        for (int i = 1; i < dto.getWatching().size(); i++) {
+            assertThat(dto.getWatching().get(i - 1).getTicker().compareTo(dto.getWatching().get(i).getTicker()), lessThanOrEqualTo(0));
+        }
 
-        assertThat(dto.getOwnedWithoutStrategy().size(), is(5));
-        assertThat(dto.getOwnedWithoutStrategy(), hasItem(hasTicker("XRSB")));
-        assertThat(dto.getOwnedWithoutStrategy(), not(hasItem(hasTicker("XRSA"))));
+        assertThat(dto.getDeprecated().size(), is(4));
+        assertThat(dto.getDeprecated().get(0).getTicker(), is("UPD"));
+        assertThat(dto.getDeprecated().get(1).getTicker(), is("XCW"));
+        assertThat(dto.getDeprecated().get(2).getTicker(), is("XXX"));
+        assertThat(dto.getDeprecated().get(3).getTicker(), is("YYY"));
 
-        assertThat(dto.getNotWatching().size(), is(4));
-        assertThat(dto.getNotWatching(), hasItem(hasTicker("XCW")));
-        assertThat(dto.getNotWatching(), hasItem(hasTicker("XXX")));
-        assertThat(dto.getNotWatching(), hasItem(hasTicker("YYY")));
+        assertThat(dto.getOwned().size(), is(6));
+        assertThat(dto.getOwned().get(0).getTicker(), is("CEZ"));
+        assertThat(dto.getOwned().get(1).getTicker(), is("RR"));
+        assertThat(dto.getOwned().get(dto.getOwned().size() - 1).getTicker(), is("SELL"));
+        for (int i = 1; i < dto.getOwned().size(); i++) {
+            Date previous = dto.getOwned().get(i - 1).getLatestPurchaseDate();
+            Date current = dto.getOwned().get(i).getLatestPurchaseDate();
+            assertThat(previous, is(not(nullValue())));
+            assertThat(current, is(not(nullValue())));
+            assertThat(previous.compareTo(current), greaterThanOrEqualTo(0));
+        }
+        assertThat(tickers(dto.getOwned()), hasItems("RCH", "XRSA", "XRSB"));
+
+        assertThat(dto.getUnreported().size(), is(5));
+        assertThat(dto.getUnreported().get(0).getLatestUnreportedPeriodEndingMonth().toString(), is("2025-01"));
+        assertThat(dto.getUnreported().get(1).getLatestUnreportedPeriodEndingMonth().toString(), is("2025-01"));
+        assertThat(dto.getUnreported().get(2).getLatestUnreportedPeriodEndingMonth().toString(), is("2025-03"));
+        assertThat(tickers(dto.getUnreported()), hasItems("YYY", "UINV", "UPD", "NVDA", "RCH"));
+        for (int i = 1; i < dto.getUnreported().size(); i++) {
+            assertThat(dto.getUnreported().get(i - 1).getLatestUnreportedPeriodEndingMonth()
+                    .compareTo(dto.getUnreported().get(i).getLatestUnreportedPeriodEndingMonth()), lessThanOrEqualTo(0));
+        }
 
         assertThat(dto.getSectors().size(), is(3));
         assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()), is(not(nullValue())));
@@ -87,7 +115,7 @@ class CompanyEndpointsTest
         assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()).get(0).getTicker(), is("NVDA"));
         assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()), is(not(nullValue())));
         assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).size(), is(2));
-        assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).get(0).getTicker(), is("XCW"));
+        assertThat(tickers(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName())), hasItems("UPD", "XCW"));
         assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()), is(not(nullValue())));
         assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()).size(), is(1));
         assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()).get(0).getTicker(), is("SHELL"));
@@ -455,5 +483,10 @@ class CompanyEndpointsTest
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getPeriods(), greaterThanOrEqualTo(dto.getCompanies().get(i).getPeriods()));
         }
+    }
+
+    private List<String> tickers(List<CompanyWithStats> companies)
+    {
+        return companies.stream().map(CompanyWithStats::getTicker).collect(Collectors.toList());
     }
 }

@@ -8,7 +8,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.CompanyAggregates;
-import org.kaleta.model.CompanyInfo;
+import org.kaleta.model.CompanyGroups;
+import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.api.TradeDao;
@@ -22,6 +23,7 @@ import org.kaleta.rest.error.InvalidInputException;
 import org.mockito.ArgumentCaptor;
 
 import java.sql.Date;
+import java.time.YearMonth;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -195,58 +197,65 @@ public class CompanyServiceTest
     }
 
     @Test
-    void getCompaniesInfo()
+    void getCompanyGroups()
     {
-        Company company1 = Generator.generateCompany("company-1");
+        CompanyWithStats company1 = new CompanyWithStats();
+        company1.setId("company-1");
         company1.setTicker("NVDA");
+        company1.setCurrency(Currency.$);
         company1.setWatching(true);
         company1.setSector(Sector.SEMICONDUCTORS);
+        company1.setLatestPurchaseDate(Date.valueOf("2024-07-10"));
+        company1.setLatestRecordDate(Date.valueOf("2024-06-15"));
+        company1.setLatestUnreportedPeriodEndingMonth(YearMonth.of(2025, 4));
 
-        Company company2 = Generator.generateCompany("company-2");
-        company2.setTicker("AAPL");
+        CompanyWithStats company2 = new CompanyWithStats();
+        company2.setId("company-2");
+        company2.setTicker("XCW");
+        company2.setCurrency(Currency.$);
         company2.setWatching(false);
-        company2.setSector(Sector.SOFTWARE);
+        company2.setSector(Sector.ELECTRIC_VEHICLES);
 
-        CompanyInfo latestRecord = new CompanyInfo();
-        latestRecord.setId(company1.getId());
-        latestRecord.setLatestReviewDate(Date.valueOf("2024-05-20"));
+        CompanyWithStats company3 = new CompanyWithStats();
+        company3.setId("company-3");
+        company3.setTicker("TSLA");
+        company3.setCurrency(Currency.$);
+        company3.setWatching(true);
+        company3.setSector(Sector.ELECTRIC_VEHICLES);
+        company3.setLatestPurchaseDate(Date.valueOf("2024-01-01"));
 
-        CompanyInfo latestStrategy = new CompanyInfo();
-        latestStrategy.setId(company2.getId());
-        latestStrategy.setLatestStrategyDate(Date.valueOf("2024-06-15"));
+        CompanyWithStats company4 = new CompanyWithStats();
+        company4.setId("company-4");
+        company4.setTicker("RR");
+        company4.setCurrency(Currency.£);
+        company4.setWatching(true);
+        company4.setSector(null);
 
-        CompanyInfo latestPurchase = new CompanyInfo();
-        latestPurchase.setId(company1.getId());
-        latestPurchase.setLatestPurchaseDate(Date.valueOf("2024-07-10"));
+        when(companyDao.listWithStats()).thenReturn(List.of(company1, company2, company3, company4));
 
-        CompanyInfo unmatched = new CompanyInfo();
-        unmatched.setId("company-999");
-        unmatched.setLatestReviewDate(Date.valueOf("2020-01-01"));
+        CompanyGroups companyGroups = companyService.getCompanyGroups();
 
-        when(companyDao.list()).thenReturn(List.of(company1, company2));
-        when(recordDao.latestRecords()).thenReturn(List.of(latestRecord, unmatched));
-        when(recordDao.latestStrategy()).thenReturn(List.of(latestStrategy));
-        when(tradeDao.latestPurchase()).thenReturn(List.of(latestPurchase));
+        assertThat(companyGroups.getWatching().size(), is(3));
+        assertThat(companyGroups.getWatching().get(0), is(company1));
+        assertThat(companyGroups.getWatching().get(1), is(company3));
+        assertThat(companyGroups.getWatching().get(2), is(company4));
 
-        List<CompanyInfo> companiesInfo = companyService.getCompaniesInfo();
+        assertThat(companyGroups.getDeprecated().size(), is(1));
+        assertThat(companyGroups.getDeprecated().get(0), is(company2));
 
-        assertThat(companiesInfo.size(), is(2));
+        assertThat(companyGroups.getOwned().size(), is(2));
+        assertThat(companyGroups.getOwned().get(0), is(company1));
+        assertThat(companyGroups.getOwned().get(1), is(company3));
 
-        assertThat(companiesInfo.get(0).getId(), is(company1.getId()));
-        assertThat(companiesInfo.get(0).getTicker(), is(company1.getTicker()));
-        assertThat(companiesInfo.get(0).isWatching(), is(company1.isWatching()));
-        assertThat(companiesInfo.get(0).getSector(), is(company1.getSector()));
-        assertThat(companiesInfo.get(0).getLatestReviewDate(), is(Date.valueOf("2024-05-20")));
-        assertThat(companiesInfo.get(0).getLatestPurchaseDate(), is(Date.valueOf("2024-07-10")));
-        assertThat(companiesInfo.get(0).getLatestStrategyDate(), is(nullValue()));
+        assertThat(companyGroups.getUnreported().size(), is(1));
+        assertThat(companyGroups.getUnreported().get(0), is(company1));
 
-        assertThat(companiesInfo.get(1).getId(), is(company2.getId()));
-        assertThat(companiesInfo.get(1).getTicker(), is(company2.getTicker()));
-        assertThat(companiesInfo.get(1).isWatching(), is(company2.isWatching()));
-        assertThat(companiesInfo.get(1).getSector(), is(company2.getSector()));
-        assertThat(companiesInfo.get(1).getLatestReviewDate(), is(nullValue()));
-        assertThat(companiesInfo.get(1).getLatestPurchaseDate(), is(nullValue()));
-        assertThat(companiesInfo.get(1).getLatestStrategyDate(), is(Date.valueOf("2024-06-15")));
+        assertThat(companyGroups.getSectors().size(), is(2));
+        assertThat(companyGroups.getSectors().get(Sector.SEMICONDUCTORS.getName()).size(), is(1));
+        assertThat(companyGroups.getSectors().get(Sector.SEMICONDUCTORS.getName()).get(0), is(company1));
+        assertThat(companyGroups.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).size(), is(2));
+        assertThat(companyGroups.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).get(0), is(company2));
+        assertThat(companyGroups.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).get(1), is(company3));
     }
 
     @Test

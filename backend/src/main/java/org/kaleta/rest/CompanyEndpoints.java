@@ -12,9 +12,9 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.kaleta.dto.RecordsUiCompanyListsDto;
 import org.kaleta.model.CompanyAggregates;
-import org.kaleta.model.CompanyInfo;
+import org.kaleta.model.CompanyGroups;
+import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
@@ -23,7 +23,7 @@ import org.kaleta.rest.dto.CompanyValuesDto;
 import org.kaleta.rest.validation.ValueOfEnum;
 import org.kaleta.service.CompanyService;
 
-import java.util.List;
+import java.util.Comparator;
 
 @Path("/company")
 public class CompanyEndpoints
@@ -63,12 +63,13 @@ public class CompanyEndpoints
     @Path("/lists")
     public Response getCompanyLists()
     {
-        List<CompanyInfo> infos = companyService.getCompaniesInfo();
-        RecordsUiCompanyListsDto dto = new RecordsUiCompanyListsDto();
-        dto.addWatchingOldestReview(infos);
-        dto.addOwnedWithoutStrategy(infos);
-        dto.addNotWatching(infos);
-        dto.addSectors(infos);
+        CompanyGroups dto = companyService.getCompanyGroups();
+
+        dto.getWatching().sort(Comparator.comparing(CompanyWithStats::getTicker));
+        dto.getDeprecated().sort(Comparator.comparing(CompanyWithStats::getTicker));
+        dto.getOwned().sort(Comparator.comparing(CompanyWithStats::getLatestPurchaseDate, Comparator.nullsLast(Comparator.reverseOrder())));
+        dto.getUnreported().sort(Comparator.comparing(CompanyWithStats::getLatestUnreportedPeriodEndingMonth));
+
         return Response.ok(dto).build();
     }
 

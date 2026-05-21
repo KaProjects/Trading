@@ -1,15 +1,12 @@
 package org.kaleta.persistence.entity;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class CompanyWithAggregates
+@EqualsAndHashCode(callSuper = true)
+public class CompanyWithAggregates extends Company
 {
-    private String id;
-    private String ticker;
-    private Currency currency;
-    private Boolean watching;
-    private Sector sector;
     private Integer totalTrades;
     private Integer activeTrades;
     private Integer dividends;

@@ -10,9 +10,11 @@ jest.mock("../../properties", () => ({
 jest.mock("../../components/Loader", () => (props) => (
     <div data-testid="loader">{props.error ? JSON.stringify(props.error) : "loading"}</div>
 ));
-jest.mock("../../components/CompanySelector", () => (props) => (
-    <div data-testid="company-selector">company-selector:{props.refresh}</div>
-));
+jest.mock("../../components/CompanySelector", () => ({
+    CompanySelector: (props) => (
+        <div data-testid="company-selector">company-selector:{props.refresh}</div>
+    ),
+}));
 jest.mock("../../components/PeriodFinancials", () => (props) => (
     <div data-testid="period-financials">expand:{String(props.expand)} financials:{props.financials.length}</div>
 ));

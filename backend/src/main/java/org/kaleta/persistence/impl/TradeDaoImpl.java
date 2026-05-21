@@ -2,14 +2,11 @@ package org.kaleta.persistence.impl;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.TypedQuery;
-import org.kaleta.model.CompanyInfo;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
 
-import java.sql.Date;
-import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
@@ -80,19 +77,5 @@ public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDa
         if (sellYear != null ) query.setParameter("sellYear", sellYear);
 
         return query.getResultList();
-    }
-
-    @Override
-    public List<CompanyInfo> latestPurchase()
-    {
-        List<Object[]> objs = entityManager.createNativeQuery("SELECT companyId, MAX(purchase_date) FROM Trade WHERE sell_date IS NULL GROUP BY companyId").getResultList();
-        List<CompanyInfo> infos = new ArrayList<>();
-        for (Object[] values : objs){
-            CompanyInfo info = new CompanyInfo();
-            info.setId((String) values[0]);
-            info.setLatestPurchaseDate((Date) values[1]);
-            infos.add(info);
-        }
-        return infos;
     }
 }

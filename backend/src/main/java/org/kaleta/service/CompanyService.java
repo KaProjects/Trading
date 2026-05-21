@@ -3,7 +3,8 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.model.CompanyInfo;
+import org.kaleta.model.CompanyGroups;
+import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.api.RecordDao;
@@ -63,40 +64,29 @@ public class CompanyService
         }
     }
 
-    public List<CompanyInfo> getCompaniesInfo()
+    public CompanyGroups getCompanyGroups()
     {
-        List<CompanyInfo> companiesInfo = new ArrayList<>();
-        for (Company company : companyDao.list())
+        CompanyGroups companyGroups = new CompanyGroups();
+        for (CompanyWithStats companyWithStats : companyDao.listWithStats())
         {
-            CompanyInfo info = new CompanyInfo();
-            info.setId(company.getId());
-            info.setTicker(company.getTicker());
-            info.setWatching(company.isWatching());
-            info.setSector(company.getSector());
-            companiesInfo.add(info);
-        }
-        for (CompanyInfo record : recordDao.latestRecords()) {
-            for (CompanyInfo info : companiesInfo) {
-                if (info.getId().equals(record.getId())){
-                    info.setLatestReviewDate(record.getLatestReviewDate());
-                }
+            if (companyWithStats.isWatching()) {
+                companyGroups.getWatching().add(companyWithStats);
+            } else {
+                companyGroups.getDeprecated().add(companyWithStats);
+            }
+            if (companyWithStats.getLatestPurchaseDate() != null) {
+                companyGroups.getOwned().add(companyWithStats);
+            }
+            if (companyWithStats.getLatestUnreportedPeriodEndingMonth() != null ) {
+                companyGroups.getUnreported().add(companyWithStats);
+            }
+            if (companyWithStats.getSector() != null) {
+                companyGroups.getSectors()
+                        .computeIfAbsent(companyWithStats.getSector().getName(), key -> new ArrayList<>())
+                        .add(companyWithStats);
             }
         }
-        for (CompanyInfo record : recordDao.latestStrategy()) {
-            for (CompanyInfo info : companiesInfo) {
-                if (info.getId().equals(record.getId())){
-                    info.setLatestStrategyDate(record.getLatestStrategyDate());
-                }
-            }
-        }
-        for (CompanyInfo trade : tradeDao.latestPurchase()) {
-            for (CompanyInfo info : companiesInfo) {
-                if (info.getId().equals(trade.getId())){
-                    info.setLatestPurchaseDate(trade.getLatestPurchaseDate());
-                }
-            }
-        }
-        return companiesInfo;
+        return companyGroups;
     }
 
     public void update(CompanyUpdateDto dto)
@@ -149,7 +139,7 @@ public class CompanyService
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setCurrency(entity.getCurrency());
-        company.setWatching(entity.getWatching());
+        company.setWatching(entity.isWatching());
         if (entity.getSector() != null) {
             company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));
         }

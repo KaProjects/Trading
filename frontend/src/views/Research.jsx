@@ -10,7 +10,6 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import PeriodFinancials from "../components/PeriodFinancials";
 import AddPeriodDialog from "../dialog/AddPeriodDialog";
 import AddPeriodFinancialDialog from "../dialog/AddPeriodFinancialDialog";
-import CompanySelector from "../components/CompanySelector";
 import {formatDecimals, formatError, formatMillions, formatPercent} from "../service/FormattingService";
 import SnackbarErrorAlert from "../components/SnackbarErrorAlert";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
@@ -19,6 +18,7 @@ import ImportPeriodDialog from "../dialog/ImportPeriodDialog";
 import {DateTime} from "./component/DateTime";
 import {Record} from "./component/Record";
 import {Period} from "./component/Period";
+import {CompanySelector} from "../components/CompanySelector";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 
