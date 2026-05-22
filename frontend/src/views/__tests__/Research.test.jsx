@@ -15,9 +15,11 @@ jest.mock("../component/CompanySelector", () => ({
         <div data-testid="company-selector">company-selector:{props.refresh}</div>
     ),
 }));
-jest.mock("../../components/PeriodFinancials", () => (props) => (
-    <div data-testid="period-financials">expand:{String(props.expand)} financials:{props.financials.length}</div>
-));
+jest.mock("../component/PeriodFinancials", () => ({
+    PeriodFinancials: (props) => (
+        <div data-testid="period-financials">expand:{String(props.expand)} financials:{props.financials.length}</div>
+    ),
+}));
 jest.mock("../../dialog/AddRecordDialog", () => (props) => props.open ? <div>add-record-dialog</div> : null);
 jest.mock("../../dialog/AddPeriodDialog", () => (props) => props.open ? <div>add-period-dialog</div> : null);
 jest.mock("../../dialog/AddPeriodFinancialDialog", () => (props) => props.open ? <div>add-period-financial-dialog</div> : null);

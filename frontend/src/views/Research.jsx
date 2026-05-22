@@ -7,7 +7,6 @@ import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import AddRecordDialog from "../dialog/AddRecordDialog";
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import PeriodFinancials from "../components/PeriodFinancials";
 import AddPeriodDialog from "../dialog/AddPeriodDialog";
 import AddPeriodFinancialDialog from "../dialog/AddPeriodFinancialDialog";
 import {formatDecimals, formatError, formatMillions, formatPercent} from "../service/FormattingService";
@@ -19,6 +18,7 @@ import {DateTime} from "./component/DateTime";
 import {Record} from "./component/Record";
 import {Period} from "./component/Period";
 import {CompanySelector} from "./component/CompanySelector";
+import {PeriodFinancials} from "./component/PeriodFinancials";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 
