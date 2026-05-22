@@ -4,15 +4,15 @@ import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 const mockUseData = jest.fn();
 const mockRecordEvent = jest.fn();
 
-jest.mock("../../service/BackendService", () => ({
+jest.mock("../../../service/BackendService", () => ({
     useData: (...args) => mockUseData(...args),
 }));
 
-jest.mock("../../service/utils", () => ({
+jest.mock("../../../service/utils", () => ({
     recordEvent: (...args) => mockRecordEvent(...args),
 }));
 
-jest.mock("../Loader", () => (props) => (
+jest.mock("../../../components/Loader", () => (props) => (
     <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
 ));
 
@@ -150,6 +150,37 @@ describe("CompanySelector", () => {
         expect(screen.getByRole("combobox")).toHaveTextContent("Energy");
         expect(screen.getByText("XOM")).toBeInTheDocument();
         expect(screen.queryAllByText("NVDA")).toHaveLength(1);
+    });
+
+    test("resets to the first sector when refreshed data arrives", async () => {
+        const useDataResponse = {
+            data: createData(),
+            loaded: true,
+            error: null,
+        };
+
+        mockUseData.mockImplementation(() => useDataResponse);
+
+        const {rerender} = render(<CompanySelector {...createProps()}/>);
+
+        fireEvent.mouseDown(await screen.findByRole("combobox"));
+        fireEvent.click(screen.getByRole("option", {name: "Energy"}));
+
+        expect(screen.getByRole("combobox")).toHaveTextContent("Energy");
+        expect(screen.getByText("XOM")).toBeInTheDocument();
+
+        useDataResponse.data = createData({
+            watching: [
+                {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-05-01"},
+                {id: "company-2", ticker: "SHELL", latestRecordDate: "2024-02-01"},
+            ],
+        });
+
+        rerender(<CompanySelector {...createProps()}/>);
+
+        await waitFor(() => expect(screen.getByRole("combobox")).toHaveTextContent("Semiconductors"));
+        expect(screen.getAllByText("NVDA")).toHaveLength(2);
+        expect(screen.queryByText("XOM")).not.toBeInTheDocument();
     });
 
     test("hides lists while a company is selected and shows them again after clearing selection", async () => {

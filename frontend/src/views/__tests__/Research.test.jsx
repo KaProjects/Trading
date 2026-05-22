@@ -10,7 +10,7 @@ jest.mock("../../properties", () => ({
 jest.mock("../../components/Loader", () => (props) => (
     <div data-testid="loader">{props.error ? JSON.stringify(props.error) : "loading"}</div>
 ));
-jest.mock("../../components/CompanySelector", () => ({
+jest.mock("../component/CompanySelector", () => ({
     CompanySelector: (props) => (
         <div data-testid="company-selector">company-selector:{props.refresh}</div>
     ),

@@ -18,7 +18,7 @@ import ImportPeriodDialog from "../dialog/ImportPeriodDialog";
 import {DateTime} from "./component/DateTime";
 import {Record} from "./component/Record";
 import {Period} from "./component/Period";
-import {CompanySelector} from "../components/CompanySelector";
+import {CompanySelector} from "./component/CompanySelector";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 
@@ -59,6 +59,8 @@ export const Research = props => {
                     setError(formatError(error))
                     setLoaded(false)
                 })
+        } else {
+            setLoaded(false)
         }
     }
 
