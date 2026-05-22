@@ -12,9 +12,11 @@ jest.mock("../../service/FormattingService", () => ({
     formatDate: (...args) => mockFormatDate(...args),
 }));
 
-jest.mock("../../components/Loader", () => (props) => (
-    <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
-));
+jest.mock("../component/Loader", () => ({
+    Loader: (props) => (
+        <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
+    ),
+}));
 
 jest.mock("../../dialog/AddTradeDialog", () => (props) => (
     <button onClick={props.triggerRefresh}>add-trade-dialog</button>
@@ -53,12 +55,12 @@ function createData(overrides = {}) {
                     ticker: "NVDA",
                     currency: "$",
                 },
-                purchaseDate: "10.01.2024",
+                purchaseDate: "2024-01-10",
                 purchaseQuantity: "5",
                 purchasePrice: "400.5",
                 purchaseFees: "14.5",
                 purchaseTotal: "2017.0",
-                sellDate: "05.01.2025",
+                sellDate: "2025-01-05",
                 sellQuantity: "5",
                 sellPrice: "500.0",
                 sellFees: "14.5",
@@ -74,7 +76,7 @@ function createData(overrides = {}) {
                     ticker: "SHELL",
                     currency: "€",
                 },
-                purchaseDate: "15.03.2023",
+                purchaseDate: "2023-03-15",
                 purchaseQuantity: "8",
                 purchasePrice: "28.0",
                 purchaseFees: "10.0",
@@ -139,8 +141,8 @@ describe("Trades", () => {
         expect(mockUseData).toHaveBeenCalledWith("/trade?filter&active=false&companyId=company-1&currency=$&year=2024&sector=SEMICONDUCTORS");
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("SHELL")).toBeInTheDocument();
-        expect(mockFormatDate).toHaveBeenCalledWith("10.01.2024");
-        expect(mockFormatDate).toHaveBeenCalledWith("05.01.2025");
+        expect(mockFormatDate).toHaveBeenCalledWith("2024-01-10");
+        expect(mockFormatDate).toHaveBeenCalledWith("2025-01-05");
         expect(mockFormatDate).toHaveBeenCalledWith(null);
         expect(screen.getAllByText("468.5")).toHaveLength(2);
         expect(screen.getAllByText("23.23")).toHaveLength(2);
@@ -160,12 +162,12 @@ describe("Trades", () => {
                             ticker: "NVDA",
                             currency: "$",
                         },
-                        purchaseDate: "10.01.2024",
+                        purchaseDate: "2024-01-10",
                         purchaseQuantity: "5",
                         purchasePrice: "400.5",
                         purchaseFees: "14.5",
                         purchaseTotal: "2017.0",
-                        sellDate: "05.01.2025",
+                        sellDate: "2025-01-05",
                         sellQuantity: "5",
                         sellPrice: "500.0",
                         sellFees: "14.5",
@@ -181,7 +183,7 @@ describe("Trades", () => {
                             ticker: "SHELL",
                             currency: "€",
                         },
-                        purchaseDate: "15.03.2023",
+                        purchaseDate: "2023-03-15",
                         purchaseQuantity: "8",
                         purchasePrice: "28.0",
                         purchaseFees: "10.0",
@@ -202,12 +204,12 @@ describe("Trades", () => {
                             ticker: "CEZ",
                             currency: "K",
                         },
-                        purchaseDate: "01.11.2025",
+                        purchaseDate: "2025-11-01",
                         purchaseQuantity: "2",
                         purchasePrice: "30.0",
                         purchaseFees: "2.0",
                         purchaseTotal: "62.0",
-                        sellDate: "10.12.2025",
+                        sellDate: "2025-12-10",
                         sellQuantity: "2",
                         sellPrice: "40.0",
                         sellFees: "1.0",

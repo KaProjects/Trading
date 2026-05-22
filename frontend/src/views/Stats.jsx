@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {useData} from "../service/BackendService";
-import Loader from "../components/Loader";
+import {Loader} from "./component/Loader";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 

@@ -1,6 +1,6 @@
 import {useData} from "../service/BackendService";
 import React, {useEffect, useState} from "react";
-import Loader from "../components/Loader";
+import {Loader} from "./component/Loader";
 import {IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';

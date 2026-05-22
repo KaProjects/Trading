@@ -1,19 +1,19 @@
 import './style/App.css';
 import React, {Component} from "react";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
-import MainBar from "./components/MainBar";
 import Home from "./views/Home";
 import {backend} from "./properties";
 import axios from "axios";
 import {wait} from "@testing-library/user-event/dist/utils";
 import Analytics from "./views/Analytics";
 import {formatError} from "./service/FormattingService";
-import Loader from "./components/Loader";
+import {Loader} from "./views/component/Loader";
 import {Research} from "./views/Research";
 import {Trades} from "./views/Trades";
 import {Stats} from "./views/Stats";
 import {Dividends} from "./views/Dividends";
 import {Companies} from "./views/Companies";
+import {MainBar} from "./views/component/MainBar";
 
 class App extends Component {
     constructor(props) {
@@ -171,24 +171,22 @@ class App extends Component {
 
     render() {
         return (
-            <div>
+            <BrowserRouter>
                 <MainBar {...this.state} />
                 {!this.state.loaded && <Loader error={this.state.error}/>}
                 {this.state.loaded &&
-                    <BrowserRouter>
-                        <Routes>
-                            <Route exact path="/" element={<Home {...this.state}/>}/>
-                            <Route exact path="/trades" element={<Trades {...this.state}/>}/>
-                            <Route exact path="/research" element={<Research {...this.state}/>}/>
-                            <Route exact path="/dividends" element={<Dividends {...this.state}/>}/>
-                            <Route exact path="/stats" element={<Stats {...this.state}/>}/>
-                            <Route exact path="/companies" element={<Companies {...this.state}/>}/>
-                            <Route exact path="/analytics" element={<Analytics {...this.state}/>}/>
-                            <Route path="*" element={this.PageNotFound()}/>
-                        </Routes>
-                    </BrowserRouter>
+                    <Routes>
+                        <Route exact path="/" element={<Home {...this.state}/>}/>
+                        <Route exact path="/trades" element={<Trades {...this.state}/>}/>
+                        <Route exact path="/research" element={<Research {...this.state}/>}/>
+                        <Route exact path="/dividends" element={<Dividends {...this.state}/>}/>
+                        <Route exact path="/stats" element={<Stats {...this.state}/>}/>
+                        <Route exact path="/companies" element={<Companies {...this.state}/>}/>
+                        <Route exact path="/analytics" element={<Analytics {...this.state}/>}/>
+                        <Route path="*" element={this.PageNotFound()}/>
+                    </Routes>
                 }
-            </div>
+            </BrowserRouter>
         )
     }
 }

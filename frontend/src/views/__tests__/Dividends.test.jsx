@@ -7,9 +7,11 @@ jest.mock("../../service/BackendService", () => ({
     useData: (...args) => mockUseData(...args),
 }));
 
-jest.mock("../../components/Loader", () => (props) => (
-    <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
-));
+jest.mock("../component/Loader", () => ({
+    Loader: (props) => (
+        <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
+    ),
+}));
 
 jest.mock("../../dialog/AddDividendDialog", () => (props) => (
     <button onClick={props.triggerRefresh}>add-dividend-dialog</button>
@@ -42,7 +44,7 @@ function createData(overrides = {}) {
                     ticker: "NVDA",
                     currency: "$",
                 },
-                date: "01.12.2022",
+                date: "2022-12-01",
                 dividend: "80",
                 tax: "8",
                 net: "72",
@@ -55,7 +57,7 @@ function createData(overrides = {}) {
                     ticker: "CEZ",
                     currency: "K",
                 },
-                date: "01.12.2021",
+                date: "2021-12-01",
                 dividend: "1000",
                 tax: "100",
                 net: "900",
@@ -107,7 +109,7 @@ describe("Dividends", () => {
         expect(mockUseData).toHaveBeenCalledWith("/dividend?filter&companyId=company-1&currency=$&year=2024&sector=SEMICONDUCTORS");
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("CEZ")).toBeInTheDocument();
-        expect(screen.getByText("01.12.2022")).toBeInTheDocument();
+        expect(screen.getByText("2022-12-01")).toBeInTheDocument();
         expect(screen.getByText("72")).toBeInTheDocument();
         expect(screen.getByText("972")).toBeInTheDocument();
     });
@@ -124,7 +126,7 @@ describe("Dividends", () => {
                             ticker: "NVDA",
                             currency: "$",
                         },
-                        date: "01.06.2021",
+                        date: "2021-06-01",
                         dividend: "70",
                         tax: "7",
                         net: "63",
@@ -137,7 +139,7 @@ describe("Dividends", () => {
                             ticker: "CEZ",
                             currency: "K",
                         },
-                        date: "01.12.2021",
+                        date: "2021-12-01",
                         dividend: "1000",
                         tax: "100",
                         net: "900",
@@ -150,7 +152,7 @@ describe("Dividends", () => {
                             ticker: "ABCD",
                             currency: "$",
                         },
-                        date: "10.01.2025",
+                        date: "2025-01-10",
                         dividend: "10",
                         tax: "1",
                         net: "9",

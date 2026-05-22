@@ -12,9 +12,11 @@ jest.mock("../../../service/utils", () => ({
     recordEvent: (...args) => mockRecordEvent(...args),
 }));
 
-jest.mock("../../../components/Loader", () => (props) => (
-    <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
-));
+jest.mock("../Loader", () => ({
+    Loader: (props) => (
+        <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
+    ),
+}));
 
 import {CompanySelector} from "../CompanySelector";
 

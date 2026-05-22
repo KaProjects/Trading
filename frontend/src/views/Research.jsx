@@ -1,6 +1,6 @@
 import {Badge, Box, Button, Card, CardContent, Dialog, DialogActions, DialogTitle, Grid, Stack} from "@mui/material";
 import React, {useEffect, useState} from "react";
-import Loader from "../components/Loader";
+import {Loader} from "./component/Loader";
 import {backend} from "../properties";
 import axios from "axios";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
@@ -110,12 +110,13 @@ export const Research = props => {
                                 </Box>
                                 {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
 
-                                <PeriodFinancials sx={{marginBottom: "20px", marginTop: "20px"}}
-                                                  financials={data.financials}
-                                                  ttm={data.ttm}
-                                                  expand={expandFinancials}
-                                                  setExpand={setExpandFinancials}
-                                                  {...props}
+                                <PeriodFinancials
+                                    sx={{marginBottom: "20px", marginTop: "20px"}}
+                                    financials={data.financials}
+                                    ttm={data.ttm}
+                                    expand={expandFinancials}
+                                    setExpand={setExpandFinancials}
+                                    {...props}
                                 />
 
                                 <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
@@ -196,12 +197,13 @@ export const Research = props => {
                                 <Button sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddRecordDialog(true)}>
                                     <ControlPointIcon sx={{color: 'lightgreen',}}/>
                                 </Button>
-                                <AddRecordDialog open={openAddRecordDialog}
-                                                 handleClose={() => setOpenAddRecordDialog(false)}
-                                                 triggerRefresh={triggerRefresh}
-                                                 companyId={props.companySelectorValue.id}
-                                                 indicators={data.indicators}
-                                                 assets={data.assets}
+                                <AddRecordDialog
+                                    open={openAddRecordDialog}
+                                    handleClose={() => setOpenAddRecordDialog(false)}
+                                    triggerRefresh={triggerRefresh}
+                                    companyId={props.companySelectorValue.id}
+                                    indicators={data.indicators}
+                                    assets={data.assets}
                                 />
                             </Box>
 

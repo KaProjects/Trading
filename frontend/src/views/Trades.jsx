@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {useData} from "../service/BackendService";
-import Loader from "../components/Loader";
+import {Loader} from "./component/Loader";
 import AddTradeDialog from "../dialog/AddTradeDialog";
 import SellTradeDialog from "../dialog/SellTradeDialog";
 import {formatDate} from "../service/FormattingService";
@@ -24,8 +24,8 @@ export const Trades = props => {
         if (data && !props.showYearSelector) {
             const years = new Set([])
             data.trades.forEach((trade) => {
-                years.add(trade.purchaseDate.split(".")[2])
-                if (trade.sellDate) years.add(trade.sellDate.split(".")[2])
+                years.add(trade.purchaseDate.substring(0, 4))
+                if (trade.sellDate) years.add(trade.sellDate.substring(0, 4))
             })
             props.toggleTradesSelectors([...years].sort().reverse())
         }

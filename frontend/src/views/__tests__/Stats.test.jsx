@@ -7,9 +7,11 @@ jest.mock("../../service/BackendService", () => ({
     useData: (...args) => mockUseData(...args),
 }));
 
-jest.mock("../../components/Loader", () => (props) => (
-    <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
-));
+jest.mock("../component/Loader", () => ({
+    Loader: (props) => (
+        <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
+    ),
+}));
 
 import {Stats} from "../Stats";
 

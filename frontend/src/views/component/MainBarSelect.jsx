@@ -1,8 +1,8 @@
 import {MenuItem, Select} from "@mui/material";
-import {recordEvent} from "../service/utils";
+import {recordEvent} from "../../service/utils";
 
 
-const MainBarSelect = props => {
+export const MainBarSelect = props => {
     const {values, value, setValue, label, valueKey} = props
     return (
         <Select
@@ -16,10 +16,15 @@ const MainBarSelect = props => {
             displayEmpty
         >
             <MenuItem value="">{label}</MenuItem>
-            {values.map((value, index) => (
-                <MenuItem key={index} value={value} >{(valueKey) ? value[valueKey] : value}</MenuItem>
-            ))}
+            {values.map((option, index) => {
+                const optionLabel = valueKey ? option[valueKey] : option
+
+                return (
+                    <MenuItem key={`${label}-${optionLabel}-${index}`} value={option}>
+                        {optionLabel}
+                    </MenuItem>
+                )
+            })}
         </Select>
     )
 }
-export default MainBarSelect

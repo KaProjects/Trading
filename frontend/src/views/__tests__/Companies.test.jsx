@@ -12,9 +12,11 @@ jest.mock("../../service/utils", () => ({
     recordEvent: (...args) => mockRecordEvent(...args),
 }));
 
-jest.mock("../../components/Loader", () => (props) => (
-    <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
-));
+jest.mock("../component/Loader", () => ({
+    Loader: (props) => (
+        <div data-testid="loader">{props.error ? props.error.message : "loading"}</div>
+    ),
+}));
 
 jest.mock("../../dialog/EditCompanyDialog", () => (props) => (
     <button onClick={props.triggerRefresh}>edit-company-dialog</button>

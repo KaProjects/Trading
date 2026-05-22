@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {useData} from "../../service/BackendService";
-import Loader from "../../components/Loader";
+import {Loader} from "./Loader";
 import {Grid, List, ListItem, ListItemButton, ListItemText, ListSubheader, MenuItem, Select} from "@mui/material";
 import {recordEvent} from "../../service/utils";
 

@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {useData} from "../service/BackendService";
-import Loader from "../components/Loader";
+import {Loader} from "./component/Loader";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import AddDividendDialog from "../dialog/AddDividendDialog";
 
@@ -21,7 +21,7 @@ export const Dividends = props => {
         if (data && !props.showYearSelector) {
             const years = new Set([])
             data.dividends.forEach((dividend) => {
-                years.add(dividend.date.split(".")[2])
+                years.add(dividend.date.substring(0, 4))
             })
             props.toggleDividendsSelectors([...years].sort().reverse())
         }
