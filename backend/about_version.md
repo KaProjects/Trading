@@ -5,6 +5,16 @@
      bump pom.xml version
      bump build_deploy.sh versions 
 
+## 2.0
+Released: 15.6.2026
+
+    periods derived from financials + research from records
+    records changes
+    exception mappers
+    jakarta validation
+    unit testing 
+    services + rest refactoring and improvements
+
 ## 1.3
 Released: 15.2.2024
 

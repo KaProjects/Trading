@@ -3,129 +3,151 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.Utils;
-import org.kaleta.dao.CompanyDao;
-import org.kaleta.dao.RecordDao;
-import org.kaleta.dao.TradeDao;
-import org.kaleta.dto.CompanyDto;
-import org.kaleta.entity.Company;
-import org.kaleta.entity.Sector;
-import org.kaleta.model.CompanyInfo;
+import org.kaleta.model.CompanyGroups;
+import org.kaleta.persistence.entity.CompanyWithStats;
+import org.kaleta.model.CompanyAggregates;
+import org.kaleta.persistence.api.CompanyDao;
+import org.kaleta.persistence.api.RecordDao;
+import org.kaleta.persistence.api.TradeDao;
+import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.CompanyWithAggregates;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Sector;
+import org.kaleta.rest.dto.CompanyCreateDto;
+import org.kaleta.rest.dto.CompanyUpdateDto;
+import org.kaleta.rest.error.InvalidInputException;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class CompanyService
 {
     @Inject
     CompanyDao companyDao;
-
     @Inject
     RecordDao recordDao;
-
     @Inject
     TradeDao tradeDao;
 
-    public List<Company> getCompanies()
+    public List<org.kaleta.model.Company> getCompanies()
     {
-        return companyDao.list();
+        return companyDao.list().stream().map(this::from).collect(Collectors.toList());
     }
 
-    public List<Company> getCompanies(String currency, String sector)
+    public List<org.kaleta.model.Company> getCompanies(String currency, String sector)
     {
-        return companyDao.list(currency, sector);
+        return companyDao.list(currency, sector).stream().map(this::from).sorted(org.kaleta.model.Company::compareTo).collect(Collectors.toList());
     }
 
-    public List<CompanyInfo> getCompaniesInfo()
+    public CompanyAggregates getCompaniesWithAggregates(String currency, String sector)
     {
-        List<CompanyInfo> companiesInfo = new ArrayList<>();
-        for (Company company : companyDao.list())
-        {
-            CompanyInfo info = new CompanyInfo();
-            info.setId(company.getId());
-            info.setTicker(company.getTicker());
-            info.setWatching(company.isWatching());
-            info.setSector(company.getSector());
-            companiesInfo.add(info);
-        }
-        for (CompanyInfo record : recordDao.latestRecords()) {
-            for (CompanyInfo info : companiesInfo) {
-                if (info.getId().equals(record.getId())){
-                    info.setLatestReviewDate(record.getLatestReviewDate());
-                }
-            }
-        }
-        for (CompanyInfo record : recordDao.latestStrategy()) {
-            for (CompanyInfo info : companiesInfo) {
-                if (info.getId().equals(record.getId())){
-                    info.setLatestStrategyDate(record.getLatestStrategyDate());
-                }
-            }
-        }
-        for (CompanyInfo trade : tradeDao.latestPurchase()) {
-            for (CompanyInfo info : companiesInfo) {
-                if (info.getId().equals(trade.getId())){
-                    info.setLatestPurchaseDate(trade.getLatestPurchaseDate());
-                }
-            }
-        }
-        return companiesInfo;
+        CompanyAggregates aggregates = new CompanyAggregates();
+        aggregates.setCompanies(companyDao.listWithAggregates(currency, sector).stream()
+                .map(this::from)
+                .collect(Collectors.toList()));
+        return aggregates;
     }
 
-    public void updateCompany(CompanyDto companyDto)
+    public org.kaleta.model.Company getCompany(String companyId)
     {
-        Company company = getCompany(companyDto.getId());
-
-        company.setCurrency(companyDto.getCurrency());
-        company.setSector((companyDto.getSector() == null) ? null : Sector.valueOf(companyDto.getSector().getKey()));
-        company.setWatching(companyDto.getWatching());
-        company.setSharesFloat(companyDto.getSharesFloat());
-
-        companyDao.save(company);
+        return from(findEntity(companyId));
     }
 
-    public Company getCompany(String companyId)
+    public Company findEntity(String companyId)
     {
         try {
             return companyDao.get(companyId);
         } catch (NoResultException e){
-            throw new ServiceFailureException("company with id '" + companyId + "' not found");
+            throw new InvalidInputException("company with id '" + companyId + "' not found");
         }
     }
 
-    public String computeMarketCap(String price, String sharesFloat)
+    public CompanyGroups getCompanyGroups()
     {
-        String suffix = sharesFloat.substring(sharesFloat.length() - 1);
-        BigDecimal shares = new BigDecimal(sharesFloat.substring(0, sharesFloat.length() - 1));
-        BigDecimal marketCap = shares.multiply(new BigDecimal(price));
-        if (marketCap.compareTo(new BigDecimal(1000)) > 0){
-            marketCap = marketCap.divide(new BigDecimal(1000), 2, RoundingMode.HALF_UP);
-            switch (suffix){
-                case "B": return Utils.format(marketCap) + "T";
-                case "M": return Utils.format(marketCap) + "B";
-                default: throw new IllegalStateException("invalid shares float suffix: '" + suffix + "'");
+        CompanyGroups companyGroups = new CompanyGroups();
+        for (CompanyWithStats companyWithStats : companyDao.listWithStats())
+        {
+            if (companyWithStats.isWatching()) {
+                companyGroups.getWatching().add(companyWithStats);
+            } else {
+                companyGroups.getDeprecated().add(companyWithStats);
             }
-        } else {
-            return Utils.format(marketCap) + suffix;
+            if (companyWithStats.getLatestPurchaseDate() != null) {
+                companyGroups.getOwned().add(companyWithStats);
+            }
+            if (companyWithStats.getLatestUnreportedPeriodEndingMonth() != null ) {
+                companyGroups.getUnreported().add(companyWithStats);
+            }
+            if (companyWithStats.getSector() != null) {
+                companyGroups.getSectors()
+                        .computeIfAbsent(companyWithStats.getSector().getName(), key -> new ArrayList<>())
+                        .add(companyWithStats);
+            }
         }
+        return companyGroups;
     }
 
-    public void createCompany(CompanyDto companyDto)
+    public void update(CompanyUpdateDto dto)
+    {
+        Company company;
+        try {
+            company = companyDao.get(dto.getId());
+        } catch (NoResultException e){
+            throw new InvalidInputException("company with id '" + dto.getId() + "' not found");
+        }
+
+        company.setCurrency(Currency.valueOf(dto.getCurrency()));
+        company.setWatching(Boolean.parseBoolean(dto.getWatching()));
+        company.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
+
+        companyDao.save(company);
+    }
+
+    public void create(CompanyCreateDto dto)
     {
         try {
-            companyDao.getByTicker(companyDto.getTicker());
-            throw new ServiceFailureException("Company with ticker '" + companyDto.getTicker() + "' already exists!");
-        } catch (jakarta.persistence.NoResultException ignored){}
+            companyDao.getByTicker(dto.getTicker());
+            throw new InvalidInputException("company with ticker '" + dto.getTicker() + "' already exists!");
+        } catch (NoResultException expected){}
 
         Company newCompany = new Company();
-        newCompany.setTicker(companyDto.getTicker());
-        newCompany.setCurrency(companyDto.getCurrency());
-        newCompany.setSector((companyDto.getSector() == null) ? null : Sector.valueOf(companyDto.getSector().getKey()));
-        newCompany.setWatching(companyDto.getWatching());
-        newCompany.setSharesFloat(companyDto.getSharesFloat());
+        newCompany.setTicker(dto.getTicker());
+        newCompany.setCurrency(Currency.valueOf(dto.getCurrency()));
+        newCompany.setWatching(Boolean.parseBoolean(dto.getWatching()));
+        newCompany.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
+
         companyDao.create(newCompany);
+    }
+
+    public org.kaleta.model.Company from(Company entity){
+        org.kaleta.model.Company company = new org.kaleta.model.Company();
+        company.setId(entity.getId());
+        company.setTicker(entity.getTicker());
+        company.setCurrency(entity.getCurrency());
+        company.setWatching(entity.isWatching());
+        if (entity.getSector() != null) {
+            company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));
+        }
+        return company;
+    }
+
+    private CompanyAggregates.Company from(CompanyWithAggregates entity)
+    {
+        CompanyAggregates.Company company = new CompanyAggregates.Company();
+        company.setId(entity.getId());
+        company.setTicker(entity.getTicker());
+        company.setCurrency(entity.getCurrency());
+        company.setWatching(entity.isWatching());
+        if (entity.getSector() != null) {
+            company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));
+        }
+        company.setTotalTrades(entity.getTotalTrades());
+        company.setActiveTrades(entity.getActiveTrades());
+        company.setDividends(entity.getDividends());
+        company.setRecords(entity.getRecords());
+        company.setPeriods(entity.getPeriods());
+        return company;
     }
 }

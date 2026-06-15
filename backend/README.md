@@ -1,3 +1,10 @@
+./mvnw compile quarkus:dev -Ddebug
+
+
+
+
+
+
 # trader-researcher
 
 This project uses Quarkus, the Supersonic Subatomic Java Framework.

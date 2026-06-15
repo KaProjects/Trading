@@ -1,6 +1,6 @@
 {
   "name": "trader-researcher",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "private": true,
   "dependencies": {
     "@emotion/css": "^11.11.2",
@@ -9,6 +9,7 @@
     "@mui/icons-material": "^5.10.15",
     "@mui/material": "^5.10.14",
     "@mui/x-tree-view": "^6.17.0",
+    "@polygon.io/client-js": "^7.4.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -25,10 +26,10 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "node_modules/.bin/react-scripts start",
-    "build": "node_modules/.bin/react-scripts build",
-    "test": "node_modules/.bin/react-scripts test",
-    "eject": "node_modules/.bin/react-scripts eject"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --watchAll --coverage",
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -47,5 +48,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^axios$": "axios/dist/node/axios.cjs"
+    }
   }
 }

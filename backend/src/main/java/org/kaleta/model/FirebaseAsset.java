@@ -2,7 +2,7 @@ package org.kaleta.model;
 
 import lombok.Data;
 import org.kaleta.Utils;
-import org.kaleta.entity.Trade;
+import org.kaleta.persistence.entity.Trade;
 
 @Data
 public class FirebaseAsset
@@ -11,12 +11,12 @@ public class FirebaseAsset
     private String price;
     private String quantity;
 
-    public static FirebaseAsset from(Trade trade)
+    public static FirebaseAsset from(Trades.Trade trade)
     {
         FirebaseAsset asset = new FirebaseAsset();
-        asset.setTicker(trade.getTicker());
-        asset.setQuantity(Utils.format(trade.getQuantity()));
-        asset.setPrice(Utils.format(trade.getPurchasePrice()));
+        asset.setTicker(trade.getCompany().getTicker());
+        asset.setQuantity(trade.getPurchaseQuantity().stripTrailingZeros().toPlainString());
+        asset.setPrice(trade.getPurchasePrice().stripTrailingZeros().toPlainString());
         return asset;
     }
 }

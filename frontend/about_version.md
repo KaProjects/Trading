@@ -5,6 +5,14 @@
      bump package.json version +(npm i --package-lock-only)
      bump build_deploy.sh versions 
 
+## 2.0
+Released: 15.6.2026
+
+    completly reworked UI for research
+    dialogs utilize data imports from various external sources
+    unit/component testing
+    bug fixes and refactoring
+
 ## 1.3
 Released: 15.2.2024
 

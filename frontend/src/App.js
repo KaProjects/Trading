@@ -1,24 +1,27 @@
 import './style/App.css';
-import {Component} from "react";
+import React, {Component} from "react";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
-import MainBar from "./components/MainBar";
-import Home from "./views/Home";
-import Trades from "./views/Trades";
-import Records from "./views/Records";
-import {domain} from "./properties";
+import {backend} from "./properties";
 import axios from "axios";
-import {handleError} from "./utils";
-import Dividends from "./views/Dividends";
-import Stats from "./views/Stats";
-import Companies from "./views/Companies";
 import {wait} from "@testing-library/user-event/dist/utils";
-import Analytics from "./views/Analytics";
+import {formatError} from "./service/FormattingService";
+import {Loader} from "./views/component/Loader";
+import {Research} from "./views/Research";
+import {Trades} from "./views/Trades";
+import {Stats} from "./views/Stats";
+import {Dividends} from "./views/Dividends";
+import {Companies} from "./views/Companies";
+import {MainBar} from "./views/component/MainBar";
+import {Analytics} from "./views/Analytics";
+import {Home} from "./views/Home";
 
 class App extends Component {
     constructor(props) {
         super(props)
 
         this.state = {
+            loaded: false,
+            error: null,
             companies: [],
             activeStates: ["only active", "only closed"],
             currencies: [],
@@ -145,15 +148,17 @@ class App extends Component {
     }
 
     componentDidMount() {
-        axios.get(domain + "/company")
+        axios.get(backend + "/company/values")
             .then((response) => {
-                this.setState({companies: response.data})
-            }).catch((error) => {handleError(error)})
-        axios.get(domain + "/company/values")
-            .then((response) => {
+                this.setState({companies: response.data.companies})
                 this.setState({currencies: response.data.currencies})
                 this.setState({sectors: response.data.sectors})
-            }).catch((error) => {handleError(error)})
+                this.setState({error: null})
+                this.setState({loaded: true})
+            }).catch((error) => {
+                this.setState({error: formatError(error)})
+                this.setState({loaded: false})
+            })
     }
 
     PageNotFound() {
@@ -166,21 +171,22 @@ class App extends Component {
 
     render() {
         return (
-            <div>
+            <BrowserRouter>
                 <MainBar {...this.state} />
-                <BrowserRouter>
+                {!this.state.loaded && <Loader error={this.state.error}/>}
+                {this.state.loaded &&
                     <Routes>
                         <Route exact path="/" element={<Home {...this.state}/>}/>
                         <Route exact path="/trades" element={<Trades {...this.state}/>}/>
-                        <Route exact path="/records" element={<Records {...this.state}/>}/>
+                        <Route exact path="/research" element={<Research {...this.state}/>}/>
                         <Route exact path="/dividends" element={<Dividends {...this.state}/>}/>
                         <Route exact path="/stats" element={<Stats {...this.state}/>}/>
                         <Route exact path="/companies" element={<Companies {...this.state}/>}/>
                         <Route exact path="/analytics" element={<Analytics {...this.state}/>}/>
                         <Route path="*" element={this.PageNotFound()}/>
                     </Routes>
-                </BrowserRouter>
-            </div>
+                }
+            </BrowserRouter>
         )
     }
 }

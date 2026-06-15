@@ -1,0 +1,123 @@
+
+export function formatPeriodName(period) {
+    if (isNotAValue(period)) return "";
+    if (typeof period !== 'object'
+        || (!('year' in period) || !('type' in period))
+        || (typeof period.year !== 'string' || typeof period.type !== 'string')
+        || (period.year.length  !== 4 || period.type.length !== 2)
+    ) {
+        console.error(`'${period}' is not a valid period object`)
+        return ""
+    }
+    return period.year.substring(2, 4) + period.type;
+}
+
+export function formatMillions(millions) {
+    if (isNotAValue(millions)) return "";
+    if (typeof millions !== 'number') {
+        console.error(`'${millions}' is not a valid number`)
+        return ""
+    }
+
+    const num = Number(millions);
+
+    if (num >= 1000) {
+        return formatDecimals(num / 1000, 0, 2) + "B";
+    } else {
+        return formatDecimals(num, 0, 2) + "M";
+    }
+}
+
+export function formatDecimals(number, min= 0, max = 0) {
+    if (isNotAValue(number)) return "";
+    if (typeof number !== 'number') {
+        console.error(`'${number}' is not a valid number`)
+        return ""
+    }
+    if (isNotAValue(min) || typeof min !== 'number') {
+        console.error(`'${min}' is not a valid number`)
+        return ""
+    }
+    if (isNotAValue(max) || typeof max !== 'number') {
+        console.error(`'${max}' is not a valid number`)
+        return ""
+    }
+    if (min > max) {
+        console.error(`'${min}' > '${max}'`)
+        return ""
+    }
+    return Number(number).toLocaleString("en-US", {
+        minimumFractionDigits: min,
+        maximumFractionDigits: max,
+    });
+}
+
+export function formatDate(date) {
+    if (isNotAValue(date)) return "";
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        console.error(`'${date}' is not a valid date`)
+        return ""
+    }
+    const [year, month, day] = date.split("-");
+    return `${day}.${month}.${year}`;
+}
+
+export function formatPercent(value) {
+    if (isNotAValue(value)) return "";
+    value = formatDecimals(value, 0, 2)
+    return value ? value + "%" : "";
+}
+
+export function isNotAValue(value) {
+    return (value === null || value === undefined || value === ""
+        || (typeof value === 'object' && Object.keys(value).length === 0)
+    )
+}
+
+export function formatError(error) {
+    console.error(error) // for debug purposes for now
+    let title = "Unexpected Error:"
+    let message = isNotAValue(error) ? "" : JSON.stringify(error)
+
+    if (error && error.name === "AxiosError") {
+        title = error.message
+
+        if (error.response && error.response.data) {
+            if (typeof error.response.data === 'string') {
+                message = error.response.data;
+            }
+            else if (typeof error.response.data === 'object' && error.response.data.details) {
+                if (error.response.data.details.split(', ').length === 2) {
+                    message = error.response.data.details.split(', ')[1];
+                } else {
+                    message = error.response.data.details;
+                }
+            } else if (typeof error.response.data === 'object'
+                && error.response.data.violations && error.response.data.title) {
+                message = error.response.data.title;
+            }
+            else {
+                message = JSON.stringify(error.response.data)
+            }
+        } else {
+            message = ""
+        }
+    }
+    return {title: title, message: message}
+}
+
+export function formatPolygonIoFinancial(financial) {
+    const format = (value) => value ? (Number(value) / 1_000_000).toString() : ""
+
+    const formatted = {}
+    formatted.shares = format(financial?.financials?.income_statement?.basic_average_shares?.value?.toString())
+    formatted.revenue = format(financial?.financials?.income_statement?.revenues?.value?.toString())
+    formatted.grossProfit = format(financial?.financials?.income_statement?.gross_profit?.value?.toString())
+    formatted.operatingIncome = format(financial?.financials?.income_statement?.operating_income_loss?.value?.toString())
+    formatted.netIncome = format(financial?.financials?.income_statement?.net_income_loss?.value?.toString())
+    return formatted
+}
+
+export function orBlank (value) {
+    return value ? value : ""
+}

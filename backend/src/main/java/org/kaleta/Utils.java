@@ -1,7 +1,6 @@
 package org.kaleta;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Date;
 
 
@@ -38,19 +37,6 @@ public class Utils
         return 0;
     }
 
-    public static int compareSharesFloat(String sharesA, String sharesB)
-    {
-        if (sharesA == null) sharesA = "0M";
-        if (sharesB == null) sharesB = "0M";
-        String sharesApower = sharesA.substring(sharesA.length() - 1);
-        String sharesBpower = sharesB.substring(sharesB.length() - 1);
-        if (sharesApower.equals("B") && sharesBpower.equals("M")) return -1;
-        if (sharesApower.equals("M") && sharesBpower.equals("B")) return 1;
-        BigDecimal sharesAvalue = new BigDecimal(sharesA.substring(0, sharesA.length() - 1));
-        BigDecimal sharesBvalue = new BigDecimal(sharesB.substring(0, sharesB.length() - 1));
-        return -sharesAvalue.compareTo(sharesBvalue);
-    }
-
     /**
      * @return true if string date in format YYYY-MM-DD, false otherwise
      */
@@ -60,18 +46,9 @@ public class Utils
     }
 
     /**
-     * @return java.sql.Date from string format YYYY-MM-DD
-     */
-    public static Date format(String dtoDate)
-    {
-        if (dtoDate == null) return null;
-        String[] split = dtoDate.split("\\.");
-        return Date.valueOf(split[2] + "-" + split[1] + "-" + split[0]);
-    }
-
-    /**
      * @return string date in format DD.MM.YYYY
      */
+    @Deprecated
     public static String format(Date dbDate)
     {
         if (dbDate == null) return null;
@@ -79,6 +56,7 @@ public class Utils
         return split[2] + "." + split[1] + "." + split[0];
     }
 
+    @Deprecated
     public static String format(BigDecimal value)
     {
         if (value == null){
@@ -88,28 +66,14 @@ public class Utils
         }
     }
 
-    /**
-     * @return formula: (now/before - 1) * 100
-     */
-    public static BigDecimal computeProfit(BigDecimal before, BigDecimal now)
-    {
-        if (format(before).equals("0")) return null;
-        return now.divide(before, 4, RoundingMode.HALF_UP).subtract(new BigDecimal(1)).multiply(new BigDecimal(100));
+    public static Date nullableDateValueOf(String date) {
+        if  (date == null) return null;
+        return Date.valueOf(date);
     }
 
-    /**
-     * Examples:
-     * 100 -> 100M
-     * 1100 -> 1.10B
-     *
-     * @return formatted value of millions
-     */
-    public static String formatMillions(BigDecimal value)
+    public static BigDecimal createNullableBigDecimal(String bigDecimal)
     {
-        if (value.compareTo(new BigDecimal(1000)) > 0) {
-            return format(value.divide(new BigDecimal(1000), 2, RoundingMode.HALF_UP)) + "B";
-        } else {
-            return format(value) + "M";
-        }
+        if (bigDecimal == null) return null;
+        return new BigDecimal(bigDecimal);
     }
 }

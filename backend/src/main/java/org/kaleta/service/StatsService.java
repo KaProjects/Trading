@@ -2,25 +2,23 @@ package org.kaleta.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.joda.time.DateTime;
-import org.kaleta.Utils;
-import org.kaleta.entity.Currency;
-import org.kaleta.entity.Dividend;
-import org.kaleta.entity.Trade;
-import org.kaleta.model.StatsByCompany;
-import org.kaleta.model.StatsByPeriod;
+import org.kaleta.model.Company;
+import org.kaleta.model.CompanyStats;
+import org.kaleta.model.Dividends;
+import org.kaleta.model.PeriodFrequency;
+import org.kaleta.model.PeriodStats;
+import org.kaleta.model.Trades;
+import org.kaleta.persistence.entity.Currency;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static org.kaleta.Utils.format;
+import java.util.stream.Stream;
 
 @ApplicationScoped
 public class StatsService
@@ -29,104 +27,192 @@ public class StatsService
     TradeService tradeService;
     @Inject
     DividendService dividendService;
+    @Inject
+    ArithmeticService arithmeticService;
 
-    public List<StatsByCompany> getByCompany(String year, String sector)
+    public CompanyStats getByCompany(String year, String sector)
     {
-        Map<String, StatsByCompany> companyMap = new HashMap<>();
-        List<Trade> trades = tradeService.getTrades(false, null, null, null, year, sector);
-        for (Trade trade : trades)
-        {
-            if (!companyMap.containsKey(trade.getTicker())) {
-                companyMap.put(trade.getTicker(), new StatsByCompany(trade.getTicker(), trade.getCurrency()));
+        Map<Company, List<Trades.Trade>> tradesByCompany = tradeService.getByCompany(null, null, year, sector);
+        Map<Company, List<Dividends.Dividend>> dividendsByCompany = dividendService.getByCompany(null, year, sector);
+
+        CompanyStats model = new CompanyStats();
+
+        List<Company> companies = Stream
+                .concat(tradesByCompany.keySet().stream(), dividendsByCompany.keySet().stream())
+                .distinct()
+                .collect(Collectors.toList());
+
+        for (Company company : companies){
+            CompanyStats.Company companyStats = new CompanyStats.Company();
+            companyStats.setTicker(company.getTicker());
+            companyStats.setCurrency(company.getCurrency());
+
+            BigDecimal purchaseSum = BigDecimal.ZERO;
+            BigDecimal sellSum = BigDecimal.ZERO;
+
+            for (Trades.Trade trade : tradesByCompany.getOrDefault(company, List.of())){
+                purchaseSum = purchaseSum.add(trade.getPurchaseTotal());
+                sellSum = sellSum.add(trade.getSellTotal());
+                model.getYears().add(trade.getSellDate().toString().split("-")[0]);
             }
-            companyMap.get(trade.getTicker()).addPurchase(trade.getPurchaseTotal());
-            companyMap.get(trade.getTicker()).addSell(trade.getSellTotal());
-            companyMap.get(trade.getTicker()).addYear(format(trade.getSellDate()).split("\\.")[2]);
-        }
-        List<Dividend> dividends = dividendService.getDividends(null , null, year, sector);
-        for (Dividend dividend : dividends)
-        {
-            if (!companyMap.containsKey(dividend.getTicker())) {
-                companyMap.put(dividend.getTicker(), new StatsByCompany(dividend.getTicker(), dividend.getCurrency()));
+
+            BigDecimal dividendSum = BigDecimal.ZERO;
+
+            for (Dividends.Dividend dividend : dividendsByCompany.getOrDefault(company, List.of())) {
+                dividendSum = dividendSum.add(dividend.getNet());
+                model.getYears().add(dividend.getDate().toString().split("-")[0]);
             }
-            companyMap.get(dividend.getTicker()).addDividend(dividend.getTotal());
-            companyMap.get(dividend.getTicker()).addYear(format(dividend.getDate()).split("\\.")[2]);
+
+            companyStats.setPurchaseSum(purchaseSum);
+            companyStats.setSellSum(sellSum);
+            companyStats.setDividendSum(dividendSum);
+            companyStats.setProfitSum(sellSum.subtract(purchaseSum).add(dividendSum));
+            companyStats.setProfitUsdSum(
+                    companyStats.getProfitSum()
+                            .multiply(companyStats.getCurrency().toUsd())
+                            .setScale(2, RoundingMode.HALF_UP));
+
+            if (!arithmeticService.equalsBigDecimal(purchaseSum, BigDecimal.ZERO)) {
+                companyStats.setProfitPercentage(
+                        sellSum.add(dividendSum)
+                                .divide(purchaseSum, 4, RoundingMode.HALF_UP)
+                                .subtract(new BigDecimal(1))
+                                .multiply(new BigDecimal(100)));
+            }
+
+            model.getCompanies().add(companyStats);
         }
-        return new ArrayList<>(companyMap.values());
+
+        model.setAggregates(computeCompanyAggregates(model.getCompanies()));
+
+        return model;
     }
 
-    public String[] computeCompanySums(List<StatsByCompany> companyStats)
+    public PeriodStats getByPeriod(PeriodFrequency frequency, String companyId, String sector)
+    {
+        Map<String, List<Trades.Trade>> tradesByPeriod = tradeService.getByPeriod(frequency, companyId, null, sector);
+        Map<String, List<Dividends.Dividend>> dividendsByPeriod = dividendService.getByPeriod(frequency, companyId , null, sector);
+
+        PeriodStats model = new PeriodStats();
+
+        List<String> periods = Stream
+                .concat(tradesByPeriod.keySet().stream(), dividendsByPeriod.keySet().stream())
+                .distinct()
+                .collect(Collectors.toList());
+
+        for (String period : periods){
+            PeriodStats.Period periodStats = new PeriodStats.Period();
+            periodStats.setPeriod(period);
+
+            periodStats.setTradesCount(tradesByPeriod.getOrDefault(period, List.of()).size());
+
+            BigDecimal purchaseSum = BigDecimal.ZERO;
+            BigDecimal sellSum = BigDecimal.ZERO;
+
+            for (Trades.Trade trade : tradesByPeriod.getOrDefault(period, List.of())){
+                purchaseSum = purchaseSum.add(trade.getPurchaseTotal());
+                sellSum = sellSum.add(trade.getSellTotal());
+            }
+
+            periodStats.setTradesPurchaseSum(purchaseSum);
+            periodStats.setTradesSellSum(sellSum);
+            periodStats.setTradesProfitSum(sellSum.subtract(purchaseSum));
+
+            if (!arithmeticService.equalsBigDecimal(purchaseSum, BigDecimal.ZERO)) {
+                periodStats.setTradesProfitPercentage(
+                        sellSum.divide(purchaseSum, 4, RoundingMode.HALF_UP)
+                                .subtract(new BigDecimal(1))
+                                .multiply(new BigDecimal(100)));
+            }
+
+            BigDecimal dividendSum = BigDecimal.ZERO;
+
+            for (Dividends.Dividend dividend : dividendsByPeriod.getOrDefault(period, List.of())) {
+                dividendSum = dividendSum.add(dividend.getNet());
+            }
+
+            periodStats.setDividendSum(dividendSum);
+
+            model.getPeriods().add(periodStats);
+        }
+
+        model.getPeriods().sort(Comparator.comparing(PeriodStats.Period::getPeriod).reversed());
+
+        model.setAggregates(computePeriodAggregates(model.getPeriods()));
+
+        return model;
+    }
+
+    private PeriodStats.Aggregates computePeriodAggregates(List<PeriodStats.Period> periodStats)
+    {
+        Integer tradesSum = 0;
+        BigDecimal purchaseSum = BigDecimal.ZERO;
+        BigDecimal sellSum = BigDecimal.ZERO;
+        BigDecimal dividendSum = BigDecimal.ZERO;
+        BigDecimal profitSum = BigDecimal.ZERO;
+
+        for (PeriodStats.Period stats : periodStats)
+        {
+            tradesSum += stats.getTradesCount();
+            purchaseSum = purchaseSum.add(stats.getTradesPurchaseSum());
+            sellSum = sellSum.add(stats.getTradesSellSum());
+            dividendSum = dividendSum.add(stats.getDividendSum());
+            profitSum = profitSum.add(stats.getTradesProfitSum());
+        }
+
+        PeriodStats.Aggregates  aggregates = new PeriodStats.Aggregates();
+        aggregates.setPeriods(periodStats.size());
+        aggregates.setTradesCount(tradesSum);
+        aggregates.setTradesProfitSum(profitSum);
+        aggregates.setDividendSum(dividendSum);
+
+        if (!arithmeticService.equalsBigDecimal(purchaseSum, BigDecimal.ZERO)){
+            aggregates.setTradesProfitPercentage(
+                    sellSum.divide(purchaseSum, 4, RoundingMode.HALF_UP)
+                            .subtract(new BigDecimal(1))
+                            .multiply(new BigDecimal(100)));
+        }
+
+        return aggregates;
+    }
+
+    private CompanyStats.Aggregates computeCompanyAggregates(List<CompanyStats.Company> companyStats)
     {
         Set<String> companies = new HashSet<>();
         Set<Currency> currencies = new HashSet<>();
-        StatsByCompany sumStats = new StatsByCompany();
-        BigDecimal profitUsdSum = new BigDecimal(0);
-        for (StatsByCompany stats : companyStats)
+        BigDecimal purchaseSum = BigDecimal.ZERO;
+        BigDecimal sellSum = BigDecimal.ZERO;
+        BigDecimal dividendSum = BigDecimal.ZERO;
+        BigDecimal profitSum = BigDecimal.ZERO;
+        BigDecimal profitUsdSum = BigDecimal.ZERO;
+
+        for (CompanyStats.Company stats : companyStats)
         {
             companies.add(stats.getTicker());
             currencies.add(stats.getCurrency());
-            sumStats.addPurchase(stats.getPurchaseSum());
-            sumStats.addSell(stats.getSellSum());
-            sumStats.addDividend(stats.getDividendSum());
-            profitUsdSum = profitUsdSum.add(stats.getProfitUsd());
+            purchaseSum = purchaseSum.add(stats.getPurchaseSum());
+            sellSum = sellSum.add(stats.getSellSum());
+            dividendSum = dividendSum.add(stats.getDividendSum());
+            profitSum = profitSum.add(stats.getProfitSum());
+            profitUsdSum = profitUsdSum.add(stats.getProfitUsdSum());
         }
-        return new String[]{String.valueOf(companies.size()), String.valueOf(currencies.size()),
-                format(sumStats.getPurchaseSum()), format(sumStats.getSellSum()), format(sumStats.getDividendSum()),
-                format(sumStats.getProfit()), format(profitUsdSum), format(sumStats.getProfitPercentage())};
-    }
+        CompanyStats.Aggregates aggregates = new CompanyStats.Aggregates();
+        aggregates.setCompanies(companies.size());
+        aggregates.setCurrencies(currencies.size());
+        aggregates.setPurchaseSum(purchaseSum);
+        aggregates.setSellSum(sellSum);
+        aggregates.setDividendSum(dividendSum);
+        aggregates.setProfitSum(profitSum);
+        aggregates.setProfitSumUsd(profitUsdSum);
 
-    public List<StatsByPeriod> getByPeriod(String companyId, boolean isMonthly, String sector)
-    {
-        Map<String, StatsByPeriod> map = new HashMap<>();
-        List<Trade> trades = tradeService.getTrades(false, companyId, null, null, null, sector);
-        for (Trade trade : trades)
-        {
-            String period = Utils.format(trade.getSellDate()).substring(isMonthly ? 3 : 6);
-            if (!map.containsKey(period)) {
-                map.put(period, new StatsByPeriod(period));
-            }
-            map.get(period).addPurchase(trade.getPurchaseTotal().multiply(trade.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
-            map.get(period).addSell(trade.getSellTotal().multiply(trade.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
-            map.get(period).increaseTrade();
+        if (!arithmeticService.equalsBigDecimal(purchaseSum, BigDecimal.ZERO)){
+            aggregates.setProfitPercentage(
+                    sellSum.add(dividendSum)
+                            .divide(purchaseSum, 4, RoundingMode.HALF_UP)
+                            .subtract(new BigDecimal(1))
+                            .multiply(new BigDecimal(100)));
         }
-        List<Dividend> dividends = dividendService.getDividends(companyId , null, null, sector);
-        for (Dividend dividend : dividends)
-        {
-            String period = Utils.format(dividend.getDate()).substring(isMonthly ? 3 : 6);
-            if (!map.containsKey(period)) {
-                map.put(period, new StatsByPeriod(period));
-            }
-            map.get(period).addDividend(dividend.getTotal().multiply(dividend.getCurrency().toUsd()).setScale(2, RoundingMode.HALF_UP));
-        }
-        if (isMonthly){
-            Set<String> years = map.values().stream().map(stat -> stat.getPeriod().substring(3)).collect(Collectors.toSet());
-            for (String year : years) {
-                for (int i=1; i<=12; i++) {
-                    String month = String.format("%02d", i) + "." + year;
-                    if (!map.containsKey(month) && (Integer.parseInt(year) < DateTime.now().getYear() || i <= DateTime.now().getMonthOfYear())){
-                        map.put(month, new StatsByPeriod(month));
-                    }
-                }
-            }
-        }
-        List<StatsByPeriod> monthlyStats = new ArrayList<>(map.values());
-        monthlyStats.sort(isMonthly ? StatsByPeriod::compareMonthTo : StatsByPeriod::compareYearTo);
-        return monthlyStats;
-    }
 
-    public String[] computePeriodSums(List<StatsByPeriod> periodStats)
-    {
-        StatsByPeriod sumStats = new StatsByPeriod();
-        int tradesSum = 0;
-        for (StatsByPeriod stats : periodStats)
-        {
-            tradesSum += stats.getTradesCount();
-            sumStats.addPurchase(stats.getPurchaseSum());
-            sumStats.addSell(stats.getSellSum());
-            sumStats.addDividend(stats.getDividendSum());
-        }
-        return new String[]{String.valueOf(periodStats.size()),
-                String.valueOf(tradesSum), format(sumStats.getTradesProfit()), format(sumStats.getTradesProfitPercentage()),
-                format(sumStats.getDividendSum())};
+        return aggregates;
     }
 }

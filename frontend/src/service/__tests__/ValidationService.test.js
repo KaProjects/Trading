@@ -1,0 +1,86 @@
+import {validateDate, validateNumber, validateQuarter, validateTicker} from "../ValidationService";
+
+test("validateNumber", () => {
+    expect(validateNumber(333)).toBe("not a string");
+    expect(validateNumber(undefined)).toBe("not a string");
+    expect(validateNumber(null)).toBe("not a string");
+
+    expect(validateNumber("", false)).toBe("not filled");
+    expect(validateNumber("", true)).toBe("");
+
+    expect(validateNumber("aa", false)).toBe("not a valid number");
+    expect(validateNumber("10a0", false)).toBe("not a valid number");
+    expect(validateNumber("10.0.0", false)).toBe("not a valid number");
+    expect(validateNumber("10.", false)).toBe("not a valid number");
+    expect(validateNumber(".1", false)).toBe("not a valid number");
+
+    expect(validateNumber("12345.1", false, 6, 2)).toBe("max length 4");
+    expect(validateNumber("1.123", false, 6, 2)).toBe("max decimal 2");
+
+    expect(validateNumber("-1", false, 6, 2, false)).toBe("negative values not allowed");
+    expect(validateNumber("-1", false, 6, 2, true)).toBe("");
+
+    expect(validateNumber("1234.12", false, 6, 2, false)).toBe("");
+})
+
+test("validateQuarter", () => {
+    expect(validateQuarter(333)).toBe("not a string");
+    expect(validateQuarter(undefined)).toBe("not a string");
+    expect(validateQuarter(null)).toBe("not a string");
+
+    expect(validateQuarter("")).toBe("not filled");
+
+    expect(validateQuarter("2025Q1")).toContain("invalid format");
+
+    expect(validateQuarter("A5Q1")).toContain("invalid format");
+
+    expect(validateQuarter("25Q5")).toContain("invalid format");
+    expect(validateQuarter("25H3")).toContain("invalid format");
+    expect(validateQuarter("25Y1")).toContain("invalid format");
+
+    expect(validateQuarter("20Q1")).toBe("");
+    expect(validateQuarter("21Q4")).toBe("");
+    expect(validateQuarter("22H1")).toBe("");
+    expect(validateQuarter("23H2")).toBe("");
+    expect(validateQuarter("24FY")).toBe("");
+})
+
+test("validateTicker", () => {
+    expect(validateTicker(333)).toBe("not a string");
+    expect(validateTicker(undefined)).toBe("not a string");
+    expect(validateTicker(null)).toBe("not a string");
+
+    expect(validateTicker("")).toBe("not filled");
+
+    expect(validateTicker("ABCDEF")).toBe("max length 5");
+
+    expect(validateTicker("NvDA")).toBe("only uppercase");
+
+    expect(validateTicker("NVDA")).toBe("");
+})
+
+test("validateDate", () => {
+    expect(validateDate()).toBe("should not be empty");
+    expect(validateDate("")).toBe("should not be empty");
+    expect(validateDate("2026-5-8")).toBe("doesn't match YYYY-MM-DD");
+    expect(validateDate("08-05-2026")).toBe("doesn't match YYYY-MM-DD");
+
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = [yesterdayDate.getFullYear(), String(yesterdayDate.getMonth() + 1).padStart(2, "0"), String(yesterdayDate.getDate()).padStart(2, "0")].join("-");
+
+    const todayDate = new Date();
+    const today = [todayDate.getFullYear(), String(todayDate.getMonth() + 1).padStart(2, "0"), String(todayDate.getDate()).padStart(2, "0")].join("-");
+
+    const tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrow = [tomorrowDate.getFullYear(), String(tomorrowDate.getMonth() + 1).padStart(2, "0"), String(tomorrowDate.getDate()).padStart(2, "0")].join("-");
+
+    expect(validateDate(today, false, false)).toBe("");
+
+    expect(validateDate(yesterday, true, false)).toBe("should not be in the past");
+    expect(validateDate(yesterday, true, true)).toBe("");
+
+    expect(validateDate(tomorrow, false, true)).toBe("should not be in the future");
+    expect(validateDate(tomorrow, true, true)).toBe("");
+})

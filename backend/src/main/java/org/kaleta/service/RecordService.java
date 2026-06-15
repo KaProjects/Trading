@@ -3,15 +3,25 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.dao.RecordDao;
-import org.kaleta.dto.RecordCreateDto;
-import org.kaleta.dto.RecordDto;
-import org.kaleta.entity.Record;
-import org.kaleta.model.RecordsModel;
+import org.kaleta.Utils;
+import org.kaleta.model.Assets;
+import org.kaleta.model.Periods;
+import org.kaleta.model.PriceIndicators;
+import org.kaleta.persistence.api.RecordDao;
+import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Latest;
+import org.kaleta.persistence.entity.Record;
+import org.kaleta.rest.dto.RecordCreateDto;
+import org.kaleta.rest.dto.RecordUpdateDto;
+import org.kaleta.rest.error.InvalidInputException;
 
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class RecordService
@@ -21,62 +31,133 @@ public class RecordService
     @Inject
     CompanyService companyService;
     @Inject
-    CommonService commonService;
+    ArithmeticService arithmeticService;
+    @Inject
+    PeriodService periodService;
+    @Inject
+    TradeService tradeService;
 
-    public void updateRecord(RecordDto dto)
+    public void create(RecordCreateDto dto)
+    {
+        Record newRecord = new Record();
+
+        newRecord.setCompany(companyService.findEntity(dto.getCompanyId()));
+        newRecord.setDate(Date.valueOf(dto.getDate()));
+        newRecord.setPrice(new BigDecimal(dto.getPrice()));
+        newRecord.setTitle(dto.getTitle());
+
+        newRecord.setPriceToRevenues(Utils.createNullableBigDecimal(dto.getPriceToRevenues()));
+        newRecord.setPriceToGrossProfit(Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
+        newRecord.setPriceToOperatingIncome(Utils.createNullableBigDecimal(dto.getPriceToOperatingIncome()));
+        newRecord.setPriceToNetIncome(Utils.createNullableBigDecimal(dto.getPriceToNetIncome()));
+
+        newRecord.setDividendYield(Utils.createNullableBigDecimal(dto.getDividendYield()));
+
+        newRecord.setSumAssetQuantity(Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
+        newRecord.setAvgAssetPrice(Utils.createNullableBigDecimal(dto.getAvgAssetPrice()));
+
+        newRecord.setTargets(dto.getTargets());
+
+        recordDao.create(newRecord);
+    }
+
+    public void createCurrent(String companyId, String titlePrefix, String date, String price)
+    {
+        Company company = companyService.findEntity(companyId);
+        Periods periods = periodService.getBy(companyId);
+
+        Record newRecord = new Record();
+
+        newRecord.setCompany(company);
+        newRecord.setTitle(titlePrefix + "@" + price + company.getCurrency());
+
+        newRecord.setDate(Date.valueOf(date));
+        newRecord.setPrice(new BigDecimal(price));
+
+        Latest latest = new Latest(company, LocalDate.parse(date).atStartOfDay(), new BigDecimal(price));
+
+        if (periods.getTtm() != null && periods.getTtm().getShares() != null) {
+            PriceIndicators indicators = arithmeticService.computeIndicators(latest, periods.getTtm());
+
+            newRecord.setPriceToRevenues(indicators.getTtm().getMarketCapToRevenues());
+            newRecord.setPriceToGrossProfit(indicators.getTtm().getMarketCapToGrossProfit());
+            newRecord.setPriceToOperatingIncome(indicators.getTtm().getMarketCapToOperatingIncome());
+            newRecord.setPriceToNetIncome(indicators.getTtm().getMarketCapToNetIncome());
+
+            newRecord.setDividendYield(indicators.getTtm().getDividendYield());
+        }
+
+        Assets assets = tradeService.getAssets(companyId, latest.getPrice());
+
+        if (assets.getAggregate() != null) {
+            newRecord.setSumAssetQuantity(assets.getAggregate().getQuantity());
+            newRecord.setAvgAssetPrice(assets.getAggregate().getPurchasePrice());
+        }
+
+        recordDao.create(newRecord);
+    }
+
+    public void update(RecordUpdateDto dto)
     {
         Record record;
         try {
             record = recordDao.get(dto.getId());
         } catch (NoResultException e){
-            throw new ServiceFailureException("record with id '" + dto.getId() + "' not found");
+            throw new InvalidInputException("record with id '" + dto.getId() + "' not found");
         }
 
-        if (dto.getDate() != null) record.setDate(commonService.getDbDate(dto.getDate()));
-        if (dto.getTitle() != null) record.setTitle(dto.getTitle());
-        if (dto.getPrice() != null) record.setPrice(new BigDecimal(dto.getPrice()));
-        if (dto.getPe() != null) record.setPe(dto.getPe().isBlank() ? null : new BigDecimal(dto.getPe()));
-        if (dto.getPs() != null) record.setPs(dto.getPs().isBlank() ? null : new BigDecimal(dto.getPs()));
-        if (dto.getDy() != null) record.setDy(dto.getDy().isBlank() ? null : new BigDecimal(dto.getDy()));
-        if (dto.getTargets() != null) record.setTargets(dto.getTargets());
+        if (dto.getTitle() != null) {
+            if (dto.getTitle().isBlank())
+                throw new InvalidInputException("record title shouldn't be empty");
+            record.setTitle(dto.getTitle());
+        }
         if (dto.getContent() != null) record.setContent(dto.getContent());
         if (dto.getStrategy() != null) record.setStrategy(dto.getStrategy());
+        if (dto.getTargets() != null) record.setTargets(dto.getTargets());
 
         recordDao.save(record);
     }
 
-    public Record createRecord(RecordCreateDto dto)
+    public List<org.kaleta.model.Record> getBy(String companyId)
     {
-        Record newRecord = new Record();
-
-        newRecord.setCompany(companyService.getCompany(dto.getCompanyId()));
-        newRecord.setDate(commonService.getDbDate(dto.getDate()));
-        newRecord.setPrice(new BigDecimal(dto.getPrice()));
-        newRecord.setTitle(dto.getTitle());
-
-        recordDao.create(newRecord);
-
-        return recordDao.get(newRecord.getId());
+        List<org.kaleta.model.Record> records = recordDao.list(companyId).stream()
+                .map(recordEntity -> from(recordEntity)).collect(Collectors.toList());
+        records.sort((a, b) -> -Utils.compareDbDates(a.getDate(), b.getDate()));
+        return records;
     }
 
-    public RecordsModel getRecordsModel(String companyId)
-    {
-        return new RecordsModel(recordDao.list(companyId));
-    }
-
-    /**
-     * @return aggregates map <companyId, [records count]>
-     */
-    public Map<String, int[]> getCompanyAggregates()
-    {
-        Map<String, int[]> map = new HashMap<>();
-        for (Record record : recordDao.list())
-        {
-            String companyId = record.getCompany().getId();
-            int[] aggregates = map.containsKey(companyId) ? map.get(companyId) : new int[]{0};
-            aggregates[0] = aggregates[0] + 1;
-            map.put(companyId, aggregates);
+    public void delete(String recordId){
+        try {
+            recordDao.get(recordId);
+        } catch (NoResultException e){
+            throw new InvalidInputException("record with id '" + recordId + "' not found");
         }
-        return map;
+        recordDao.delete(recordId);
+    }
+
+    private org.kaleta.model.Record from(Record recordEntity)
+    {
+        org.kaleta.model.Record  record = new org.kaleta.model.Record();
+
+        record.setId(recordEntity.getId());
+        record.setDate(recordEntity.getDate());
+        record.setTitle(recordEntity.getTitle());
+        record.setContent(recordEntity.getContent());
+
+        record.setPrice(recordEntity.getPrice());
+
+        record.setPriceToRevenues(recordEntity.getPriceToRevenues());
+        record.setPriceToGrossProfit(recordEntity.getPriceToGrossProfit());
+        record.setPriceToOperatingIncome(recordEntity.getPriceToOperatingIncome());
+        record.setPriceToNetIncome(recordEntity.getPriceToNetIncome());
+
+        record.setDividendYield(recordEntity.getDividendYield());
+
+        record.setStrategy(recordEntity.getStrategy());
+        record.setTargets(recordEntity.getTargets());
+
+        record.setAsset(arithmeticService.computeAsset(recordEntity.getPrice(), recordEntity.getSumAssetQuantity(), recordEntity.getAvgAssetPrice()));
+
+        return record;
     }
 }

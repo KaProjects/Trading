@@ -3,15 +3,41 @@ package org.kaleta.framework;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import jakarta.ws.rs.core.Response;
-import org.kaleta.dto.CompanyDto;
+
+import java.math.BigDecimal;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class Assert
 {
-    public static void post400(String uri, Object dto, String expectedError)
+    public static class ExpectedViolation
+    {
+        public static final String BIG_DECIMAL_6_2_false = constructBigDecimal(6,2, false);
+        public static final String BIG_DECIMAL_6_2_true = constructBigDecimal(6,2, true);
+        public static final String BIG_DECIMAL_6_4_false = constructBigDecimal(6,4, false);
+        public static final String BIG_DECIMAL_3_2_false = constructBigDecimal(3,2, false);
+        public static final String BIG_DECIMAL_4_4_false = constructBigDecimal(4,4, false);
+        public static final String BIG_DECIMAL_4_2_false = constructBigDecimal(4,2, false);
+        public static final String BIG_DECIMAL_4_2_true = constructBigDecimal(4,2, true);
+        public static final String BIG_DECIMAL_5_2_false = constructBigDecimal(5,2, false);
+        public static final String NOT_NULL = "must not be null";
+        public static final String MATCH_DATE_FORMAT = "must match YYYY-MM-DD";
+        public static final String VALID_UUID = "must be a valid UUID";
+
+        private static String constructBigDecimal(int integer, int decimal, boolean negative) {
+            return String.format(
+                    "must be a valid BigDecimal (max %d integer digits, max %d decimal digits, allowNegative=%s)",
+                    integer, decimal, negative
+            );
+        }
+    }
+
+    public static void post400(String uri, Object dto, String expectedMessage)
     {
         RequestSpecification rs = given().contentType(ContentType.JSON);
         if (dto != null) rs = rs.body(dto);
@@ -20,13 +46,22 @@ public class Assert
                 .then()
                 .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
                 .extract().body().asString();
-        assertThat(responseBody, containsString(expectedError));
+        assertThat(responseBody, containsString(expectedMessage));
     }
 
     public static void get400(String uri, String expectedError)
     {
         assertThat(given().when()
                 .get(uri)
+                .then()
+                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().body().asString(), containsString(expectedError));
+    }
+
+    public static void delete400(String uri, String expectedError)
+    {
+        assertThat(given().when()
+                .delete(uri)
                 .then()
                 .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
                 .extract().body().asString(), containsString(expectedError));
@@ -49,7 +84,8 @@ public class Assert
         given().contentType(ContentType.JSON)
                 .body(dto)
                 .when().put(uri)
-                .then().statusCode(Response.Status.NO_CONTENT.getStatusCode());
+                .then().log().ifError()
+                .statusCode(Response.Status.NO_CONTENT.getStatusCode());
     }
 
     public static void post201(String uri, Object dto)
@@ -57,6 +93,62 @@ public class Assert
         given().contentType(ContentType.JSON)
                 .body(dto)
                 .when().post(uri)
-                .then().statusCode(Response.Status.CREATED.getStatusCode());
+                .then().log().ifError()
+                .statusCode(Response.Status.CREATED.getStatusCode());
+    }
+
+    public static void delete200(String uri)
+    {
+        given().when().delete(uri)
+                .then().log().ifError()
+                .statusCode(Response.Status.OK.getStatusCode());
+    }
+
+    public static void postValidationError(String uri, Object dto, String... expectedViolations)
+    {
+        RequestSpecification rs = given().contentType(ContentType.JSON);
+        if (dto != null) rs = rs.body(dto);
+        assertValidationErrorResponse(rs.when().post(uri), expectedViolations);
+    }
+
+    public static void putValidationError(String uri, Object dto, String... expectedViolations)
+    {
+        RequestSpecification rs = given().contentType(ContentType.JSON);
+        if (dto != null) rs = rs.body(dto);
+        assertValidationErrorResponse(rs.when().put(uri), expectedViolations);
+    }
+
+    public static void getValidationError(String uri, String... expectedViolations)
+    {
+        RequestSpecification rs = given().contentType(ContentType.JSON);
+        assertValidationErrorResponse(rs.when().get(uri), expectedViolations);
+    }
+
+    public static void deleteValidationError(String uri, String... expectedViolations)
+    {
+        RequestSpecification rs = given().contentType(ContentType.JSON);
+        assertValidationErrorResponse(rs.when().delete(uri), expectedViolations);
+    }
+
+    public static void assertBigDecimals(BigDecimal actual, BigDecimal expected)
+    {
+        if (expected == null){
+            assertThat(actual, is(nullValue()));
+        } else {
+            assertThat(actual, comparesEqualTo(expected));
+        }
+    }
+
+    private static void assertValidationErrorResponse(io.restassured.response.Response response, String... expectedViolations)
+    {
+        ValidationErrorResponse validationErrorResponse = response.then()
+                .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
+                .extract().as(ValidationErrorResponse.class);
+        assertThat(validationErrorResponse.getTitle(), is("Constraint Violation"));
+        assertThat(validationErrorResponse.getStatus(), is(400));
+        assertThat(validationErrorResponse.getViolations().toString(),validationErrorResponse.getViolations().size(), is(expectedViolations.length));
+        for (int i = 0; i < expectedViolations.length; i++) {
+            assertThat(validationErrorResponse.getViolations().get(i).getMessage(), is(expectedViolations[i]));
+        }
     }
 }
