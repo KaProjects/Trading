@@ -4,21 +4,21 @@ import {Loader} from "./component/Loader";
 import {backend} from "../properties";
 import axios from "axios";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
-import AddRecordDialog from "../dialog/AddRecordDialog";
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import AddPeriodDialog from "../dialog/AddPeriodDialog";
-import AddPeriodFinancialDialog from "../dialog/AddPeriodFinancialDialog";
 import {formatDecimals, formatError, formatMillions, formatPercent} from "../service/FormattingService";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import {AssetBox} from "./component/AssetBox";
-import ImportPeriodDialog from "../dialog/ImportPeriodDialog";
 import {DateTime} from "./component/DateTime";
 import {Record} from "./component/Record";
 import {Period} from "./component/Period";
 import {CompanySelector} from "./component/CompanySelector";
 import {PeriodFinancials} from "./component/PeriodFinancials";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
+import {AddPeriodDialog} from "../dialog/AddPeriodDialog";
+import {AddPeriodFinancialDialog} from "../dialog/AddPeriodFinancialDialog";
+import {AddRecordDialog} from "../dialog/AddRecordDialog";
+import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 

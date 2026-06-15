@@ -18,13 +18,17 @@ jest.mock("../component/Loader", () => ({
     ),
 }));
 
-jest.mock("../../dialog/AddTradeDialog", () => (props) => (
-    <button onClick={props.triggerRefresh}>add-trade-dialog</button>
-));
+jest.mock("../../dialog/AddTradeDialog", () => ({
+    AddTradeDialog: (props) => (
+        <button onClick={props.triggerRefresh}>add-trade-dialog</button>
+    )
+}));
 
-jest.mock("../../dialog/SellTradeDialog", () => (props) => (
-    <button onClick={props.triggerRefresh}>sell-trade-dialog</button>
-));
+jest.mock("../../dialog/SellTradeDialog", () => ({
+    SellTradeDialog: (props) => (
+        <button onClick={props.triggerRefresh}>sell-trade-dialog</button>
+    )
+}));
 
 import {Trades} from "../Trades";
 

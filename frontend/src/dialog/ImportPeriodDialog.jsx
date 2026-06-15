@@ -20,7 +20,7 @@ import {backend} from "../properties";
 import axios from "axios";
 
 
-const ImportPeriodDialog = props => {
+export const ImportPeriodDialog = props => {
     const {company, periods, open, handleClose, triggerRefresh} = props
 
     const [period, setPeriod] = useState(null)
@@ -286,4 +286,3 @@ const ImportPeriodDialog = props => {
         </Dialog>
     )
 }
-export default ImportPeriodDialog

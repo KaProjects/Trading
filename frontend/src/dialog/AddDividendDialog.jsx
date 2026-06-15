@@ -1,3 +1,6 @@
+import React, {useEffect, useState} from "react";
+import axios from "axios";
+import {backend} from "../properties";
 import {
     Alert,
     AlertTitle,
@@ -9,41 +12,36 @@ import {
     MenuItem,
     Select
 } from "@mui/material";
-import React, {useEffect, useState} from "react";
-import {backend} from "../properties";
-import axios from "axios";
 import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
 
 
-const AddTradeDialog = props => {
-    const open = props.openAddTrade
-    const handleClose = () => props.setOpenAddTrade(false)
+export const AddDividendDialog = props => {
+    const open = props.openAddDividend
+    const handleClose = () => props.setOpenAddDividend(false)
 
     const [alert, setAlert] = useState(null)
     const [date, setDate] = useState("")
-    const [price, setPrice] = useState("")
-    const [quantity, setQuantity] = useState("")
-    const [fees, setFees] = useState("")
+    const [dividend, setDividend] = useState("")
+    const [tax, setTax] = useState("")
     const [company, setCompany] = useState("")
 
     useEffect(() => {
         if (open) {
             setAlert(null)
             setDate("")
-            setPrice("")
-            setQuantity("")
-            setFees("")
+            setDividend("")
+            setTax("")
             setCompany(props.companySelectorValue)
         }
         // eslint-disable-next-line
     }, [open])
 
-    function createTrade() {
-        const tradeData = {companyId: company.id, date: date, price: price, quantity: quantity, fees: fees}
-        axios.post(backend + "/trade", tradeData)
+    function createDividend() {
+        const dividendData = {companyId: company.id, date: date, dividend: dividend, tax: tax}
+        axios.post(backend + "/dividend", dividendData)
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
@@ -54,12 +52,12 @@ const AddTradeDialog = props => {
         <Dialog
             open={open}
             onClose={handleClose}
-            PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createTrade()},}}
+            PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createDividend()},}}
         >
-            <DialogTitle>Add Trade</DialogTitle>
+            <DialogTitle>Add Dividend</DialogTitle>
             <DialogContent>
                 <DialogDatePicker
-                    id="trader-trade-date"
+                    id="trader-dividend-date"
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                 />
@@ -75,25 +73,18 @@ const AddTradeDialog = props => {
                     ))}
                 </Select>
                 <DialogTextField
-                    id="trader-trade-quantity"
-                    value={quantity}
-                    label="Quantity"
-                    onChange={(e) => {setQuantity(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(quantity, false, 8, 4, false)}
+                    id="trader-dividend-dividend"
+                    value={dividend}
+                    label="Dividend"
+                    onChange={(e) => {setDividend(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(dividend, false, 7, 2, false)}
                 />
                 <DialogTextField
-                    id="trader-trade-price"
-                    value={price}
-                    label="Price"
-                    onChange={(e) => {setPrice(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(price, false, 10, 4, false)}
-                />
-                <DialogTextField
-                    id="trader-trade-fees"
-                    value={fees}
-                    label="Fees"
-                    onChange={(e) => {setFees(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(fees, false, 5, 2, false)}
+                    id="trader-dividend-tax"
+                    value={tax}
+                    label="Tax"
+                    onChange={(e) => {setTax(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(tax, false, 6, 2, false)}
                 />
             </DialogContent>
             {alert &&
@@ -108,4 +99,3 @@ const AddTradeDialog = props => {
         </Dialog>
     )
 }
-export default AddTradeDialog

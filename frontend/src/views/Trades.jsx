@@ -2,9 +2,9 @@ import React, {useEffect, useState} from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {useData} from "../service/BackendService";
 import {Loader} from "./component/Loader";
-import AddTradeDialog from "../dialog/AddTradeDialog";
-import SellTradeDialog from "../dialog/SellTradeDialog";
 import {formatDate} from "../service/FormattingService";
+import {AddTradeDialog} from "../dialog/AddTradeDialog";
+import {SellTradeDialog} from "../dialog/SellTradeDialog";
 
 
 export const Trades = props => {

@@ -18,9 +18,11 @@ jest.mock("../component/Loader", () => ({
     ),
 }));
 
-jest.mock("../../dialog/EditCompanyDialog", () => (props) => (
-    <button onClick={props.triggerRefresh}>edit-company-dialog</button>
-));
+jest.mock("../../dialog/EditCompanyDialog", () => ({
+    EditCompanyDialog: (props) => (
+        <button onClick={props.triggerRefresh}>edit-company-dialog</button>
+    )
+}));
 
 import {Companies} from "../Companies";
 

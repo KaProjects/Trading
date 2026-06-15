@@ -22,10 +22,18 @@ jest.mock("../component/PeriodFinancials", () => ({
         <div data-testid="period-financials">expand:{String(props.expand)} financials:{props.financials.length}</div>
     ),
 }));
-jest.mock("../../dialog/AddRecordDialog", () => (props) => props.open ? <div>add-record-dialog</div> : null);
-jest.mock("../../dialog/AddPeriodDialog", () => (props) => props.open ? <div>add-period-dialog</div> : null);
-jest.mock("../../dialog/AddPeriodFinancialDialog", () => (props) => props.open ? <div>add-period-financial-dialog</div> : null);
-jest.mock("../../dialog/ImportPeriodDialog", () => (props) => props.open ? <div>import-period-dialog</div> : null);
+jest.mock("../../dialog/AddRecordDialog", () => ({
+    AddRecordDialog: (props) => props.open ? <div>add-record-dialog</div> : null
+}));
+jest.mock("../../dialog/AddPeriodDialog", () => ({
+    AddPeriodDialog: (props) => props.open ? <div>add-period-dialog</div> : null
+}));
+jest.mock("../../dialog/AddPeriodFinancialDialog", () => ({
+    AddPeriodFinancialDialog: (props) => props.open ? <div>add-period-financial-dialog</div> : null
+}));
+jest.mock("../../dialog/ImportPeriodDialog", () => ({
+    ImportPeriodDialog: (props) => props.open ? <div>import-period-dialog</div> : null
+}));
 jest.mock("../component/SnackbarErrorAlert", () => ({
     SnackbarErrorAlert: (props) => (
         <div data-testid="snackbar">{props.error ? JSON.stringify(props.error) : "null"}|{String(props.open)}</div>

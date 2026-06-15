@@ -57,7 +57,7 @@ jest.mock("../../service/FormattingService", () => ({
 jest.mock("../component/DialogTextField", () => dialogTextFieldModule);
 jest.mock("../component/DialogDatePicker", () => dialogDatePickerModule);
 
-import SellTradeDialog from "../SellTradeDialog";
+import {SellTradeDialog} from "../SellTradeDialog";
 
 function createProps(overrides = {}) {
     const company = {id: "company-1", ticker: "NVDA"};

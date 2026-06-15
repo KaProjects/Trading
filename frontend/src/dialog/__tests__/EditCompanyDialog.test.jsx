@@ -34,7 +34,7 @@ jest.mock("../../service/FormattingService", () => ({
 }));
 jest.mock("../component/DialogTextField", () => dialogTextFieldModule);
 
-import EditCompanyDialog from "../EditCompanyDialog";
+import {EditCompanyDialog} from "../EditCompanyDialog";
 
 function selectOption(index, optionText) {
     fireEvent.mouseDown(screen.getAllByRole("combobox")[index]);

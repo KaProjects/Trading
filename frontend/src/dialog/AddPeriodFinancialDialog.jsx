@@ -8,7 +8,7 @@ import {validateDate, validateNumber} from "../service/ValidationService";
 import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
 
-const AddPeriodFinancialDialog = props => {
+export const AddPeriodFinancialDialog = props => {
     const {handleClose, open, period, company, triggerRefresh} = props
 
     const [alert, setAlert] = useState(null)
@@ -297,4 +297,3 @@ const AddPeriodFinancialDialog = props => {
         </Dialog>
     )
 }
-export default AddPeriodFinancialDialog

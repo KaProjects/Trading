@@ -57,7 +57,7 @@ jest.mock("../../service/FormattingService", () => ({
 jest.mock("../component/DialogTextField", () => dialogTextFieldModule);
 jest.mock("../component/DialogDatePicker", () => dialogDatePickerModule);
 
-import AddRecordDialog from "../AddRecordDialog";
+import {AddRecordDialog} from "../AddRecordDialog";
 
 function createProps(overrides = {}) {
     return {

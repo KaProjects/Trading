@@ -19,7 +19,7 @@ import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
 
 
-const EditCompanyDialog = props => {
+export const EditCompanyDialog = props => {
     const company = props.openEditCompany
     const handleClose = () => props.setOpenEditCompany(null)
 
@@ -125,4 +125,3 @@ const EditCompanyDialog = props => {
         </Dialog>
     )
 }
-export default EditCompanyDialog

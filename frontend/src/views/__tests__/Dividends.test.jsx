@@ -13,9 +13,11 @@ jest.mock("../component/Loader", () => ({
     ),
 }));
 
-jest.mock("../../dialog/AddDividendDialog", () => (props) => (
-    <button onClick={props.triggerRefresh}>add-dividend-dialog</button>
-));
+jest.mock("../../dialog/AddDividendDialog", () => ({
+    AddDividendDialog: (props) => (
+        <button onClick={props.triggerRefresh}>add-dividend-dialog</button>
+    )
+}));
 
 import {Dividends} from "../Dividends";
 

@@ -5,8 +5,8 @@ import {IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHea
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import EditNoteIcon from '@mui/icons-material/EditNote';
-import EditCompanyDialog from "../dialog/EditCompanyDialog";
 import {recordEvent} from "../service/utils";
+import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
 
 
 export const Companies = props => {

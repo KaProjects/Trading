@@ -23,7 +23,7 @@ import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
 
 
-const SellTradeDialog = props => {
+export const SellTradeDialog = props => {
     const open = props.openSellTrade
     const handleClose = () => props.setOpenSellTrade(false)
 
@@ -167,4 +167,3 @@ const SellTradeDialog = props => {
         </Dialog>
     )
 }
-export default SellTradeDialog

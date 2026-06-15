@@ -7,7 +7,7 @@ import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
 
 
-const AddPeriodDialog = props => {
+export const AddPeriodDialog = props => {
     const {companyId, open, handleClose} = props
     const [alert, setAlert] = useState(null)
     const [name, setName] = useState("")
@@ -65,4 +65,3 @@ const AddPeriodDialog = props => {
         </Dialog>
     )
 }
-export default AddPeriodDialog

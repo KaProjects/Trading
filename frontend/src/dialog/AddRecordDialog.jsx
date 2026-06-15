@@ -8,7 +8,7 @@ import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
 
 
-const AddRecordDialog = props => {
+export const AddRecordDialog = props => {
     const {companyId, open, handleClose, indicators, assets} = props
     const [alert, setAlert] = useState(null)
 
@@ -189,4 +189,3 @@ const AddRecordDialog = props => {
         </Dialog>
     )
 }
-export default AddRecordDialog

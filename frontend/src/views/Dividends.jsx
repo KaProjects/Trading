@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import {useData} from "../service/BackendService";
 import {Loader} from "./component/Loader";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-import AddDividendDialog from "../dialog/AddDividendDialog";
+import {AddDividendDialog} from "../dialog/AddDividendDialog";
 
 
 export const Dividends = props => {

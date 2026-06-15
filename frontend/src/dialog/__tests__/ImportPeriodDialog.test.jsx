@@ -64,7 +64,7 @@ jest.mock("../../service/PolygonIoService", () => ({
 jest.mock("../component/DialogTextField", () => dialogTextFieldModule);
 jest.mock("../component/DialogDatePicker", () => dialogDatePickerModule);
 
-import ImportPeriodDialog from "../ImportPeriodDialog";
+import {ImportPeriodDialog} from "../ImportPeriodDialog";
 
 const polygonFinancial = {
     financials: {
