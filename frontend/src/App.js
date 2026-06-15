@@ -1,11 +1,9 @@
 import './style/App.css';
 import React, {Component} from "react";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
-import Home from "./views/Home";
 import {backend} from "./properties";
 import axios from "axios";
 import {wait} from "@testing-library/user-event/dist/utils";
-import Analytics from "./views/Analytics";
 import {formatError} from "./service/FormattingService";
 import {Loader} from "./views/component/Loader";
 import {Research} from "./views/Research";
@@ -14,6 +12,8 @@ import {Stats} from "./views/Stats";
 import {Dividends} from "./views/Dividends";
 import {Companies} from "./views/Companies";
 import {MainBar} from "./views/component/MainBar";
+import {Analytics} from "./views/Analytics";
+import {Home} from "./views/Home";
 
 class App extends Component {
     constructor(props) {

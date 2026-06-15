@@ -4,8 +4,8 @@ import React, {useState} from "react";
 import Tooltip from "@mui/material/Tooltip";
 import {backend} from "../properties";
 import axios from "axios";
-import SnackbarErrorAlert from "./SnackbarErrorAlert";
 import {formatError} from "../service/FormattingService";
+import {SnackbarErrorAlert} from "../views/component/SnackbarErrorAlert";
 
 const EditableValueBox = props => {
 

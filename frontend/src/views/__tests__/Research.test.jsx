@@ -26,9 +26,11 @@ jest.mock("../../dialog/AddRecordDialog", () => (props) => props.open ? <div>add
 jest.mock("../../dialog/AddPeriodDialog", () => (props) => props.open ? <div>add-period-dialog</div> : null);
 jest.mock("../../dialog/AddPeriodFinancialDialog", () => (props) => props.open ? <div>add-period-financial-dialog</div> : null);
 jest.mock("../../dialog/ImportPeriodDialog", () => (props) => props.open ? <div>import-period-dialog</div> : null);
-jest.mock("../../components/SnackbarErrorAlert", () => (props) => (
-    <div data-testid="snackbar">{props.error ? JSON.stringify(props.error) : "null"}|{String(props.open)}</div>
-));
+jest.mock("../component/SnackbarErrorAlert", () => ({
+    SnackbarErrorAlert: (props) => (
+        <div data-testid="snackbar">{props.error ? JSON.stringify(props.error) : "null"}|{String(props.open)}</div>
+    )
+}));
 jest.mock("../component/AssetBox", () => ({
     AssetBox: ({asset, currency}) => <div>asset:{asset.quantity}@{asset.purchasePrice}{currency}</div>
 }));

@@ -2,7 +2,7 @@ import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow}
 import React from "react";
 
 
-const Analytics = props => {
+export const Analytics = props => {
     return (
         <TableContainer component={Paper} sx={{ width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)"}}>
             <Table size="small" aria-label="a dense table" stickyHeader>
@@ -24,4 +24,3 @@ const Analytics = props => {
         </TableContainer>
     )
 }
-export default Analytics

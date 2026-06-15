@@ -10,7 +10,7 @@ import StoreIcon from '@mui/icons-material/Store';
 import DonutSmallIcon from '@mui/icons-material/DonutSmall';
 
 
-const Home = props => {
+export const Home = props => {
 
     function ClickableCard(props) {
         const {action, title, icon, description} = props
@@ -81,4 +81,3 @@ const Home = props => {
         </Paper>
     )
 }
-export default Home
