@@ -3,6 +3,7 @@ import {useData} from "../service/BackendService";
 import {Loader} from "./component/Loader";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {AddDividendDialog} from "../dialog/AddDividendDialog";
+import {formatDate} from "../service/FormattingService";
 
 
 export const Dividends = props => {
@@ -75,7 +76,7 @@ export const Dividends = props => {
                                     {dividend.company.ticker}
                                 </TableCell>
                                 <TableCell style={rowStyle(1)}>{dividend.company.currency}</TableCell>
-                                <TableCell style={rowStyle(2)}>{dividend.date}</TableCell>
+                                <TableCell style={rowStyle(2)}>{formatDate(dividend.date)}</TableCell>
                                 <TableCell style={rowStyle(3)}>{dividend.dividend}</TableCell>
                                 <TableCell style={rowStyle(4)}>{dividend.tax}</TableCell>
                                 <TableCell style={rowStyle(5)}>{dividend.net}</TableCell>

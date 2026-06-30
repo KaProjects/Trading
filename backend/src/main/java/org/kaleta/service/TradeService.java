@@ -172,10 +172,7 @@ public class TradeService
         trade.setPurchasePrice(entity.getPurchasePrice());
         trade.setPurchaseFees(entity.getPurchaseFees());
 
-        BigDecimal purchaseTotal = entity.getPurchasePrice()
-                .multiply(entity.getQuantity())
-                .setScale(2, RoundingMode.HALF_UP)
-                .add(entity.getPurchaseFees());
+        BigDecimal purchaseTotal = arithmeticService.purchaseTotal(entity.getPurchasePrice(), entity.getQuantity(), entity.getPurchaseFees());
         trade.setPurchaseTotal(purchaseTotal);
 
         if (entity.getSellDate() != null){
@@ -184,20 +181,11 @@ public class TradeService
             trade.setSellPrice(entity.getSellPrice());
             trade.setSellFees(entity.getSellFees());
 
-            BigDecimal sellTotal = entity.getSellPrice()
-                    .multiply(entity.getQuantity())
-                    .setScale(2, RoundingMode.HALF_UP)
-                    .subtract(entity.getSellFees());
+            BigDecimal sellTotal = arithmeticService.sellTotal(entity.getSellPrice(), entity.getQuantity(), entity.getSellFees());
             trade.setSellTotal(sellTotal);
 
             trade.setProfit(sellTotal.subtract(purchaseTotal));
-
-            if (!arithmeticService.equalsBigDecimal(purchaseTotal, BigDecimal.ZERO)) {
-                trade.setProfitPercentage(sellTotal
-                        .divide(purchaseTotal, 4, RoundingMode.HALF_UP)
-                        .subtract(new BigDecimal(1))
-                        .multiply(new BigDecimal(100)));
-            }
+            trade.setProfitPercentage(arithmeticService.profitPercentage(purchaseTotal, sellTotal));
         }
         return trade;
     }

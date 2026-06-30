@@ -26,6 +26,31 @@ public class ArithmeticServiceTest
     ArithmeticService arithmeticService;
 
     @Test
+    void purchaseTotal()
+    {
+        BigDecimal total = arithmeticService.purchaseTotal(new BigDecimal("12.345"), new BigDecimal("2.1"), new BigDecimal("1.23"));
+
+        assertBigDecimals(total, new BigDecimal("27.15"));
+    }
+
+    @Test
+    void sellTotal()
+    {
+        BigDecimal total = arithmeticService.sellTotal(new BigDecimal("12.345"), new BigDecimal("2.1"), new BigDecimal("1.23"));
+
+        assertBigDecimals(total, new BigDecimal("24.69"));
+    }
+
+    @Test
+    void profitPercentage()
+    {
+        assertBigDecimals(arithmeticService.profitPercentage(new BigDecimal("200"), new BigDecimal("250")), new BigDecimal("25.00"));
+        assertBigDecimals(arithmeticService.profitPercentage(new BigDecimal("200"), new BigDecimal("150")), new BigDecimal("-25.00"));
+        assertThat(arithmeticService.profitPercentage(BigDecimal.ZERO, new BigDecimal("150")), is(nullValue()));
+        assertThat(arithmeticService.profitPercentage(new BigDecimal("0.00"), new BigDecimal("150")), is(nullValue()));
+    }
+
+    @Test
     void computeFinancialRatios()
     {
         BigDecimal marketCap = new BigDecimal("1000000");

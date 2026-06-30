@@ -12,6 +12,25 @@ import java.math.RoundingMode;
 @ApplicationScoped
 public class ArithmeticService
 {
+    public BigDecimal purchaseTotal(BigDecimal price, BigDecimal quantity, BigDecimal fees) {
+        return price.multiply(quantity).setScale(2, RoundingMode.HALF_UP).add(fees);
+    }
+
+    public BigDecimal sellTotal(BigDecimal price, BigDecimal quantity, BigDecimal fees) {
+        return price.multiply(quantity).setScale(2, RoundingMode.HALF_UP).subtract(fees);
+    }
+
+    public BigDecimal profitPercentage(BigDecimal purchaseTotal, BigDecimal sellTotal) {
+        if (equalsBigDecimal(purchaseTotal, BigDecimal.ZERO)) {
+            return null;
+        } else {
+           return sellTotal
+                   .divide(purchaseTotal, 4, RoundingMode.HALF_UP)
+                   .subtract(new BigDecimal(1))
+                   .multiply(new BigDecimal(100));
+        }
+    }
+
     public PriceIndicators.Financial computeFinancialRatios(BigDecimal marketCap, Periods.Financial financial)
     {
         if (marketCap == null || marketCap.compareTo(BigDecimal.ZERO) <= 0)

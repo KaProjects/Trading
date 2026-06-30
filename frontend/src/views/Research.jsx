@@ -169,9 +169,9 @@ export const Research = props => {
                                 company={props.companySelectorValue}
                             />
 
-                            {data.periods.map((period, index) => (
+                            {data.periods.map((period) => (
                                 <Period
-                                    key={index}
+                                    key={period.id}
                                     period={period}
                                     currency={data.company.currency}
                                     setAlert={setAlert}
@@ -229,9 +229,9 @@ export const Research = props => {
                                 </Grid>
                             }
 
-                            {data.records.map((record, index) => (
+                            {data.records.map((record) => (
                                 <Record
-                                    key={index}
+                                    key={record.id}
                                     record={record}
                                     currency={data.company.currency}
                                     setAlert={setAlert}

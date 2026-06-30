@@ -124,20 +124,24 @@ public class FirebaseService
             FirebaseCompany.Gemini.Quarter quarter = company.getGemini().getQuarters().get(quarterId);
             if (quarter == null) return;
 
-            quarter.setReport_date_this_quarter(String.valueOf(period.getReportDate()));
-            quarter.setReported_shares(String.valueOf(period.getShares()));
-            quarter.setPrice_min(String.valueOf(period.getPriceLow()));
-            quarter.setPrice_max(String.valueOf(period.getPriceHigh()));
-            quarter.setReported_revenues(String.valueOf(period.getRevenue()));
-            quarter.setReported_gross_profit(String.valueOf(period.getGrossProfit()));
-            quarter.setReported_operating_income(String.valueOf(period.getOperatingIncome()));
-            quarter.setReported_net_income(String.valueOf(period.getNetIncome()));
-            quarter.setReported_div(String.valueOf(period.getDividend()));
+            quarter.setReport_date_this_quarter(toString(period.getReportDate()));
+            quarter.setReported_shares(toString(period.getShares()));
+            quarter.setPrice_min(toString(period.getPriceLow()));
+            quarter.setPrice_max(toString(period.getPriceHigh()));
+            quarter.setReported_revenues(toString(period.getRevenue()));
+            quarter.setReported_gross_profit(toString(period.getGrossProfit()));
+            quarter.setReported_operating_income(toString(period.getOperatingIncome()));
+            quarter.setReported_net_income(toString(period.getNetIncome()));
+            quarter.setReported_div(toString(period.getDividend()));
 
             database.getReference(Path.COMPANY)
                     .child( ticker + "/gemini/quarters/" + quarterId)
                     .setValue(quarter, (databaseError, databaseReference) -> {});
         }
+    }
+
+    private String toString(Object object) {
+        return object == null ? "" : String.valueOf(object);
     }
 
     private static boolean checkAccess() {

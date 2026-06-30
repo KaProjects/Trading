@@ -144,6 +144,9 @@ class TradeEndpointsTest
         assertThat(dto.getTrades().get(0).getSellDate().toString(), is("2026-05-09"));
         assertBigDecimals(dto.getTrades().get(0).getSellPrice(), new BigDecimal("321.45"));
         assertBigDecimals(dto.getTrades().get(0).getSellFees(), dto.getTrades().get(0).getPurchaseFees());
+        assertBigDecimals(dto.getTrades().get(0).getSellTotal(), new BigDecimal("369457.06"));
+        assertBigDecimals(dto.getTrades().get(0).getProfit(), new BigDecimal("-206142.3"));
+        assertBigDecimals(dto.getTrades().get(0).getProfitPercentage(), new BigDecimal("-35.8100"));
     }
 
     @Test

@@ -59,6 +59,8 @@ public class FirebaseCompany
 
             public boolean isInFutureOf(String quarterId)
             {
+                if (quarterId == null) return true;
+
                 PeriodName marginPeriodName = PeriodName.valueOf(quarterId);
                 PeriodName thisPeriodName = PeriodName.valueOf(id);
 

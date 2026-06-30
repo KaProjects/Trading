@@ -2,9 +2,14 @@ import React from "react";
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 
 const mockUseData = jest.fn();
+const mockFormatDate = jest.fn((value) => `formatted:${value ?? ""}`);
 
 jest.mock("../../service/BackendService", () => ({
     useData: (...args) => mockUseData(...args),
+}));
+
+jest.mock("../../service/FormattingService", () => ({
+    formatDate: (...args) => mockFormatDate(...args),
 }));
 
 jest.mock("../component/Loader", () => ({
@@ -79,6 +84,7 @@ function createData(overrides = {}) {
 describe("Dividends", () => {
     beforeEach(() => {
         mockUseData.mockReset();
+        mockFormatDate.mockClear();
     });
 
     test("shows loader while data is loading", () => {
@@ -111,7 +117,8 @@ describe("Dividends", () => {
         expect(mockUseData).toHaveBeenCalledWith("/dividend?filter&companyId=company-1&currency=$&year=2024&sector=SEMICONDUCTORS");
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("CEZ")).toBeInTheDocument();
-        expect(screen.getByText("2022-12-01")).toBeInTheDocument();
+        expect(mockFormatDate).toHaveBeenCalledWith("2022-12-01");
+        expect(mockFormatDate).toHaveBeenCalledWith("2021-12-01");
         expect(screen.getByText("72")).toBeInTheDocument();
         expect(screen.getByText("972")).toBeInTheDocument();
     });
