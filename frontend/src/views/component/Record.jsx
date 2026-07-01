@@ -1,5 +1,5 @@
 import {formatDate, formatError} from "../../service/FormattingService";
-import {Box, Button, Stack, Tooltip} from "@mui/material";
+import {Box, Button, Dialog, DialogActions, DialogTitle, Stack, Tooltip} from "@mui/material";
 import {AssetBox} from "./AssetBox";
 import React, {useState} from "react";
 import axios from "axios";
@@ -12,14 +12,16 @@ import {ReactComponent as ContentPlusIcon} from "../../assets/icons/content-plus
 import {ReactComponent as ReviewPlusIcon} from "../../assets/icons/review-plus.svg";
 import {ReactComponent as StrategyPlusIcon} from "../../assets/icons/strategy-plus.svg";
 import {ReactComponent as RetroPlusIcon} from "../../assets/icons/retro-plus.svg";
+import {ReactComponent as DeleteIcon} from "../../assets/icons/delete.svg";
 
 
-export const Record = ({record, currency, setAlert}) => {
+export const Record = ({record, currency, setAlert, deleteRecord}) => {
 
     const [reviewSectionAdded, setReviewSectionAdded] = useState(false);
     const [strategySectionAdded, setStrategySectionAdded] = useState(false);
     const [retroSectionAdded, setRetroSectionAdded] = useState(false);
     const [contentSectionAdded, setContentSectionAdded] = useState(false);
+    const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
     function updateTitle(id, value) {
         return axios.put(backend + "/record", {id: id, title: value})
@@ -50,7 +52,6 @@ export const Record = ({record, currency, setAlert}) => {
     }
 
     function updateStrategy(value) {
-        console.log(value);
         updateRecord({id: record.id, strategy: JSON.stringify(value)})
     }
 
@@ -75,7 +76,7 @@ export const Record = ({record, currency, setAlert}) => {
     }
 
     return (
-        <BorderedSection title={formatDate(record.date)} style={{color: 'text.primary', minHeight: "132px"}}>
+        <BorderedSection title={formatDate(record.date)} style={{color: 'text.primary'}}>
 
             <Stack direction="row" justifyContent="flex-start" alignItems="stretch" spacing={2}>
                 <Box>{currency}{record.price}</Box>
@@ -133,6 +134,8 @@ export const Record = ({record, currency, setAlert}) => {
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
                        position: "absolute", top: "6px", right: "8px", zIndex: 1, opacity: 0, pointerEvents: "none",
+                       maxHeight: "calc(100% - 12px)", overflowY: "auto", overflowX: "hidden",
+                       paddingRight: "8px", marginRight: "-8px",
                        transition: "opacity 120ms ease-in-out",
                        ".mainContainer:hover &": {opacity: 1, pointerEvents: "auto",},
                        "& .MuiButton-root": {minWidth: 0, padding: "2px", lineHeight: 0,},
@@ -167,7 +170,25 @@ export const Record = ({record, currency, setAlert}) => {
                         </Button>
                     </Tooltip>
                 }
+                <Tooltip title="Delete record" placement="left">
+                    <Button onClick={() => setOpenDeleteDialog(true)}>
+                        <DeleteIcon/>
+                    </Button>
+                </Tooltip>
             </Stack>
+            <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+                <DialogTitle>Delete record?</DialogTitle>
+                <DialogActions>
+                    <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
+                    <Button
+                        color="error"
+                        onClick={() => {setOpenDeleteDialog(false);deleteRecord(record.id);}}
+                        autoFocus
+                    >
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </BorderedSection>
     )
 }

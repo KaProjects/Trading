@@ -46,7 +46,12 @@ jest.mock("../component/DateTime", () => ({
     DateTime: ({value}) => <div>datetime:{value}</div>
 }));
 jest.mock("../component/Record", () => ({
-    Record: ({record}) => <div>record:{record.id}</div>
+    Record: ({record, deleteRecord}) => (
+        <div>
+            <span>record:{record.id}</span>
+            <button onClick={() => deleteRecord(record.id)}>delete:{record.id}</button>
+        </div>
+    )
 }));
 jest.mock("../component/Period", () => ({
     Period: ({period, openDialog}) => (
@@ -116,6 +121,7 @@ describe("Research", () => {
     beforeEach(() => {
         axios.get.mockReset();
         axios.put.mockReset();
+        axios.delete.mockReset();
         mockFormatError.mockReset();
         sessionStorage.clear();
     });
@@ -207,5 +213,51 @@ describe("Research", () => {
 
         await waitFor(() => expect(mockFormatError).toHaveBeenCalledWith(error));
         expect(screen.getByTestId("loader")).toHaveTextContent(JSON.stringify(formatted));
+    });
+
+    test("deletes record and removes it from the current view", async () => {
+        axios.get.mockResolvedValue({data: createResearchData({
+            records: [{id: "record-1"}, {id: "record-2"}],
+        })});
+        axios.delete.mockResolvedValue({});
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+                toggleRecordsSelectors={jest.fn()}
+            />
+        );
+
+        await waitFor(() => expect(screen.getByText("record:record-1")).toBeInTheDocument());
+        expect(screen.getByText("record:record-2")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText("delete:record-1"));
+
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("http://backend/record/record-1"));
+        await waitFor(() => expect(screen.queryByText("record:record-1")).not.toBeInTheDocument());
+        expect(screen.getByText("record:record-2")).toBeInTheDocument();
+    });
+
+    test("shows formatted error when record delete fails", async () => {
+        const formatted = {title: "Delete failed", message: "record could not be deleted"};
+        const error = {name: "AxiosError", message: "boom"};
+        axios.get.mockResolvedValue({data: createResearchData()});
+        axios.delete.mockRejectedValue(error);
+        mockFormatError.mockReturnValue(formatted);
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+                toggleRecordsSelectors={jest.fn()}
+            />
+        );
+
+        await waitFor(() => expect(screen.getByText("record:record-1")).toBeInTheDocument());
+
+        fireEvent.click(screen.getByText("delete:record-1"));
+
+        await waitFor(() => expect(mockFormatError).toHaveBeenCalledWith(error));
+        expect(screen.getByTestId("snackbar")).toHaveTextContent(JSON.stringify(formatted));
+        expect(screen.getByText("record:record-1")).toBeInTheDocument();
     });
 });

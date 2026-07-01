@@ -78,6 +78,16 @@ export const Research = props => {
         setRefresh(new Date().getTime().toString())
     }
 
+    function deleteRecord(recordId) {
+        axios.delete(backend + "/record/" + recordId)
+            .then(() => {
+                setData(prev => ({...prev, records: prev.records.filter(record => record.id !== recordId)}))
+            })
+            .catch((error) => {
+                setAlert(formatError(error))
+            })
+    }
+
     function handleConfirmWatch() {
         const newWatching = !data.company.watching
         const companyData = {...data.company}
@@ -235,6 +245,7 @@ export const Research = props => {
                                     record={record}
                                     currency={data.company.currency}
                                     setAlert={setAlert}
+                                    deleteRecord={deleteRecord}
                                 />
                             ))}
                         </CardContent>

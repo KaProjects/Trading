@@ -234,4 +234,38 @@ describe("Record", () => {
             {id: "record-1", content: updatedContent}
         ));
     });
+
+    test("confirms record deletion", () => {
+        const deleteRecord = jest.fn();
+
+        render(
+            <Record
+                record={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    priceToRevenues: 1,
+                    priceToGrossProfit: 2,
+                    priceToOperatingIncome: 3,
+                    priceToNetIncome: 4,
+                    dividendYield: 5,
+                    targets: "T",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                deleteRecord={deleteRecord}
+            />
+        );
+
+        fireEvent.click(screen.getByLabelText("Delete record"));
+        expect(screen.getByText("Delete record?")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText("Cancel"));
+        expect(deleteRecord).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByLabelText("Delete record"));
+        fireEvent.click(screen.getByText("Delete"));
+
+        expect(deleteRecord).toHaveBeenCalledWith("record-1");
+    });
 });
