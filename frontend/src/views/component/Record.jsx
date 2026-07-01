@@ -64,6 +64,14 @@ export const Record = ({record, currency, setAlert, deleteRecord}) => {
         updateRecord({id: record.id, targets: value})
     }
 
+    function updateAsset(quantity, purchasePrice) {
+        return updateRecord({
+            id: record.id,
+            sumAssetQuantity: quantity,
+            avgAssetPrice: purchasePrice,
+        })
+    }
+
     function showReviewSection() {
         return (record.review && record.review !== JSON.stringify(defaultContent())) || reviewSectionAdded
     }
@@ -102,7 +110,12 @@ export const Record = ({record, currency, setAlert, deleteRecord}) => {
 
             {record.asset &&
                 <Stack direction="row" justifyContent="flex-start" alignItems="stretch" spacing={2}>
-                    <AssetBox asset={record.asset} currency={currency}/>
+                    <AssetBox
+                        asset={record.asset}
+                        currency={currency}
+                        style={{marginLeft: "10px"}}
+                        update={(quantity, purchasePrice) => updateAsset(quantity, purchasePrice)}
+                    />
                 </Stack>
             }
             {record.title &&

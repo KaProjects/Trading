@@ -1,8 +1,14 @@
-import {fireEvent, render, screen, waitFor} from "@testing-library/react";
+import {act, fireEvent, render, screen, waitFor} from "@testing-library/react";
 import {InputAdornment} from "@mui/material";
 import {Editable} from "../Editable";
 
 describe("Editable", () => {
+    async function submitWithEnter(input) {
+        await act(async () => {
+            fireEvent.keyDown(input, {key: "Enter"});
+        });
+    }
+
     test("renders view content and applies top level style", () => {
         const {container} = render(
             <Editable
@@ -68,6 +74,32 @@ describe("Editable", () => {
         fireEvent.change(input, {target: {value: ""}});
 
         expect(screen.getByText("required")).toBeInTheDocument();
+    });
+
+    test("updates invalid value so backend can return error", async () => {
+        const update = jest.fn().mockResolvedValue({title: "Backend error"});
+
+        render(
+            <Editable
+                value={"Initial Value"}
+                label={"Value"}
+                validate={(value) => value === "" ? "required" : ""}
+                update={update}
+            >
+                {({showValue, setEditing}) =>
+                    <button onClick={() => setEditing(true)}>{showValue}</button>
+                }
+            </Editable>
+        );
+
+        fireEvent.click(screen.getByRole("button", {name: "Initial Value"}));
+
+        const input = screen.getByRole("textbox");
+        fireEvent.change(input, {target: {value: ""}});
+        await submitWithEnter(input);
+
+        await waitFor(() => expect(update).toHaveBeenCalledWith(""));
+        await waitFor(() => expect(screen.getByRole("textbox")).toBeInTheDocument());
     });
 
     test("keeps editing and renders adornment when update fails", async () => {

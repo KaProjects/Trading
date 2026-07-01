@@ -111,6 +111,8 @@ public class RecordService
         if (dto.getStrategy() != null) record.setStrategy(dto.getStrategy());
         if (dto.getRetro() != null) record.setRetro(dto.getRetro());
         if (dto.getTargets() != null) record.setTargets(dto.getTargets());
+        if (dto.getSumAssetQuantity() != null) record.setSumAssetQuantity(Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
+        if (dto.getAvgAssetPrice() != null) record.setAvgAssetPrice(Utils.createNullableBigDecimal(dto.getAvgAssetPrice()));
 
         recordDao.save(record);
     }

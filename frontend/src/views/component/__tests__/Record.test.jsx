@@ -21,8 +21,10 @@ jest.mock("../ContentEditor", () => ({
     defaultContent: () => [{type: "paragraph", children: [{text: ""}]}]
 }));
 jest.mock("../AssetBox", () => ({
-    AssetBox: ({asset, currency}) => (
-        <div>{asset.quantity}@{asset.purchasePrice}{currency}</div>
+    AssetBox: ({asset, currency, update}) => (
+        <button onClick={() => update && update("5.5", "110.25")}>
+            {asset.quantity}@{asset.purchasePrice}{currency}
+        </button>
     )
 }));
 
@@ -237,6 +239,38 @@ describe("Record", () => {
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
             expect.stringContaining("/record"),
             {id: "record-1", content: updatedContent}
+        ));
+    });
+
+    test("updates asset through axios", async () => {
+        render(
+            <Record
+                record={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    priceToRevenues: 1,
+                    priceToGrossProfit: 2,
+                    priceToOperatingIncome: 3,
+                    priceToNetIncome: 4,
+                    dividendYield: 5,
+                    targets: "T",
+                    asset: {quantity: 3, purchasePrice: 100},
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        fireEvent.click(screen.getByText("3@100$"));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
+            expect.stringContaining("/record"),
+            {
+                id: "record-1",
+                sumAssetQuantity: "5.5",
+                avgAssetPrice: "110.25",
+            }
         ));
     });
 

@@ -237,6 +237,8 @@ class RecordEndpointsTest
         String newStrategy = "buy as many as possible";
         String newRetro = "retro notes";
         String newTargets = "10-5~7";
+        String newSumAssetQuantity = "12.5";
+        String newAvgAssetPrice = "123.45";
 
         RecordUpdateDto dto = new RecordUpdateDto();
         dto.setId("b5a8a2b3-08b7-4a71-9301-f57d44a0a9cb");
@@ -246,6 +248,8 @@ class RecordEndpointsTest
         dto.setStrategy(newStrategy);
         dto.setRetro(newRetro);
         dto.setTargets(newTargets);
+        dto.setSumAssetQuantity(newSumAssetQuantity);
+        dto.setAvgAssetPrice(newAvgAssetPrice);
 
         Assert.put204(path, dto);
 
@@ -259,6 +263,8 @@ class RecordEndpointsTest
         assertThat(records.get(0).getStrategy(), is(newStrategy));
         assertThat(records.get(0).getRetro(), is(newRetro));
         assertThat(records.get(0).getTargets(), is(newTargets));
+        assertBigDecimals(records.get(0).getSumAssetQuantity(), new BigDecimal(newSumAssetQuantity));
+        assertBigDecimals(records.get(0).getAvgAssetPrice(), new BigDecimal(newAvgAssetPrice));
 
     }
 
@@ -275,6 +281,35 @@ class RecordEndpointsTest
 
         dto.setId(UUID.randomUUID().toString());
         Assert.put400(path, dto, "record with id '" + dto.getId() + "' not found");
+
+        dto.setId("b5a8a2b3-08b7-4a71-9301-f57d44a0a9cb");
+
+        dto.setSumAssetQuantity("x");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity(".1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity("1.");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity("12345");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity("10.12345");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity("12.5");
+
+        dto.setAvgAssetPrice("x");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setAvgAssetPrice(".1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setAvgAssetPrice("1.");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setAvgAssetPrice("1234567");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setAvgAssetPrice("10.12345");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setAvgAssetPrice("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
     }
 
     @Test

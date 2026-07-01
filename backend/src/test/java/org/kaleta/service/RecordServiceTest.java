@@ -127,6 +127,12 @@ public class RecordServiceTest
 
         dto.setTargets("targets");
         updateAndAssertRecord(dto, record, null);
+
+        dto.setSumAssetQuantity("12.5");
+        updateAndAssertRecord(dto, record, null);
+
+        dto.setAvgAssetPrice("123.45");
+        updateAndAssertRecord(dto, record, null);
     }
 
     @Test
@@ -282,6 +288,8 @@ public class RecordServiceTest
             assertThat(captor.getValue().getStrategy(), (dto.getStrategy() == null) ? is(record.getStrategy()) : is(dto.getStrategy()));
             assertThat(captor.getValue().getRetro(), (dto.getRetro() == null) ? is(record.getRetro()) : is(dto.getRetro()));
             assertThat(captor.getValue().getTargets(), (dto.getTargets() == null) ? is(record.getTargets()) : is(dto.getTargets()));
+            assertBigDecimals(captor.getValue().getSumAssetQuantity(), (dto.getSumAssetQuantity() == null) ? record.getSumAssetQuantity() : Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
+            assertBigDecimals(captor.getValue().getAvgAssetPrice(), (dto.getAvgAssetPrice() == null) ? record.getAvgAssetPrice() : Utils.createNullableBigDecimal(dto.getAvgAssetPrice()));
 
             clearInvocations(recordDao);
         } else {
