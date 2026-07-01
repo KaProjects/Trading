@@ -1,7 +1,7 @@
 import {formatDate, formatError} from "../../service/FormattingService";
 import {Box, Button, Dialog, DialogActions, DialogTitle, Stack, Tooltip} from "@mui/material";
 import {AssetBox} from "./AssetBox";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../../properties";
 import {EditableTypography} from "./EditableTypography";
@@ -61,7 +61,7 @@ export const Record = ({record, currency, setAlert, deleteRecord}) => {
     }
 
     function updateTargets(value) {
-        updateRecord({id: record.id, targets: JSON.stringify(value)})
+        updateRecord({id: record.id, targets: value})
     }
 
     function showReviewSection() {
