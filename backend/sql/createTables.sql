@@ -37,21 +37,23 @@ CREATE TABLE Trade
 );
 CREATE TABLE Record
 (
-    id        VARCHAR(36)    NOT NULL PRIMARY KEY,
-    date      DATE           NOT NULL,
-    title     TINYTEXT       NOT NULL,
-    content   TEXT,
-    strategy  TINYTEXT,
-    targets   TINYTEXT,
-    price     DECIMAL(10, 4) NOT NULL,
-    p_rev       DECIMAL(6, 2),
-    p_gross     DECIMAL(6, 2),
-    p_oper      DECIMAL(6, 2),
-    p_net       DECIMAL(6, 2),
-    dy          DECIMAL(5, 2),
+    id              VARCHAR(36)    NOT NULL PRIMARY KEY,
+    date            DATE           NOT NULL,
+    title           TINYTEXT,
+    content         TEXT,
+    review          TEXT,
+    strategy        TEXT,
+    retro           TEXT,
+    targets         TINYTEXT,
+    price           DECIMAL(10, 4) NOT NULL,
+    p_rev           DECIMAL(6, 2),
+    p_gross         DECIMAL(6, 2),
+    p_oper          DECIMAL(6, 2),
+    p_net           DECIMAL(6, 2),
+    dy              DECIMAL(5, 2),
     asset_quantity  DECIMAL(8, 4),
     asset_price     DECIMAL(10, 4),
-    companyId VARCHAR(36)    NOT NULL,
+    companyId       VARCHAR(36)    NOT NULL,
     CONSTRAINT `fk_recordCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Period

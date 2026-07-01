@@ -2,9 +2,9 @@ import React from "react";
 import SvgIcon from "@mui/material/SvgIcon";
 import "../../style/BorderedSection.css";
 
-export function BorderedSection({ icon, title, children }) {
+export function BorderedSection({ icon, title, children, style }) {
     return (
-        <div className={"mainContainer"}>
+        <div className={"mainContainer"} style={style}>
             <div className={"header"}>
                 <div className={"headerBorderBefore"}></div>
                 {(icon || title) && (

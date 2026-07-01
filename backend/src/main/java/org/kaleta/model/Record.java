@@ -12,6 +12,7 @@ public class Record
     private Date date;
     private String title;
     private String content;
+    private String review;
 
     private BigDecimal price;
 
@@ -22,6 +23,7 @@ public class Record
     private BigDecimal dividendYield;
 
     private String strategy;
+    private String retro;
     private String targets;
 
     private Asset asset;

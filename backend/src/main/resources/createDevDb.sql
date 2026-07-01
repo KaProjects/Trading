@@ -22,8 +22,8 @@ INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purch
 
 INSERT INTO Record (id, companyId, date, title, price, strategy,targets, p_rev,p_gross,p_oper,p_net,dy,asset_quantity,asset_price) VALUES ('a1c7a08a-d94a-4b48-b7cf-8a3c10c29146', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '2023-12-11', 'bought 5@400.5$', '400.5','aaa', '~100', '1', '2', '3', '4', '5', '10', '20');
 INSERT INTO Record (id, companyId, date, title, price) VALUES ('c8afcd7d-7f3d-41a0-8d6f-0ebf21a77377', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '2023-11-11', 'bought 5@400.5$', '400.5');
-INSERT INTO Record (id, companyId, date, title, price, content) VALUES ('e9cf62c8-76e3-4b93-88b3-09a473f54f38', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '2023-10-11', 'bought 5@400.5$', '400.5', '[{"type": "paragrap", "children": [{ "text": "XXXXX" }]}]');
-INSERT INTO Record (id, companyId, date, title, price, content) VALUES ('xxcf62c8-76e3-4b93-88b3-09a473f54f38', 'e7c49260-53da-42c1-0123-eccf6ed928a7', '2025-05-11', 'x', '400.5', '[{"type": "paragrap", "children": [{ "text": "XXXXX" }]}]');
+INSERT INTO Record (id, companyId, date, title, price, content) VALUES ('e9cf62c8-76e3-4b93-88b3-09a473f54f38', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '2023-10-11', 'bought 5@400.5$', '400.5', '[{"type": "paragraph", "children": [{ "text": "XXXXX" }]}]');
+INSERT INTO Record (id, companyId, date, title, price, content) VALUES ('xxcf62c8-76e3-4b93-88b3-09a473f54f38', 'e7c49260-53da-42c1-0123-eccf6ed928a7', '2025-05-11', 'x', '400.5', '[{"type": "paragraph", "children": [{ "text": "XXXXX" }]}]');
 
 
 INSERT INTO Period (id, companyId, name, ending_month, price_high, price_low) VALUES ('01596f61-19f6-409e-87b9-2bbc6b9b59a6', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '24Q4', '2501', '120', '80');

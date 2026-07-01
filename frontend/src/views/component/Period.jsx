@@ -38,7 +38,7 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
             <ContentEditor
                 content={period.research}
                 update={(value) => updateResearch(period.id, value)}
-                style={{margin: "15px 0 0 0"}}
+                style={{margin: "5px 5px 10px 5px"}}
             />
 
             {period.financial &&

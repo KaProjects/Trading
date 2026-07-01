@@ -12,6 +12,8 @@ public class RecordUpdateDto
     private String id;
     private String title;
     private String content;
+    private String review;
     private String strategy;
+    private String retro;
     private String targets;
 }

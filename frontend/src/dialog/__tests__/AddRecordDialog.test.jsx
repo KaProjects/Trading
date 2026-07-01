@@ -104,7 +104,6 @@ describe("AddRecordDialog", () => {
         expect(screen.getByLabelText("PS")).toHaveValue("6.7");
         expect(screen.getByLabelText("assets quantity sum")).toHaveValue("4");
 
-        fireEvent.change(screen.getByLabelText("Title"), {target: {value: "Quarter update"}});
         fireEvent.change(screen.getByLabelText("PS"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("PG"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("PO"), {target: {value: ""}});
@@ -117,7 +116,6 @@ describe("AddRecordDialog", () => {
 
         await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/record", {
             companyId: "company-1",
-            title: "Quarter update",
             date: "2024-03-15",
             price: "120.5",
             priceToRevenues: null,
@@ -144,7 +142,6 @@ describe("AddRecordDialog", () => {
         render(<AddRecordDialog {...props}/>);
 
         fireEvent.change(screen.getByTestId("trader-record-date"), {target: {value: "2024-04-01"}});
-        fireEvent.change(screen.getByLabelText("Title"), {target: {value: "Snapshot"}});
         fireEvent.change(screen.getByLabelText("Price"), {target: {value: "99.9"}});
         fireEvent.click(screen.getByText("Create"));
 

@@ -12,7 +12,6 @@ export const AddRecordDialog = props => {
     const {companyId, open, handleClose, indicators, assets} = props
     const [alert, setAlert] = useState(null)
 
-    const [title, setTitle] = useState("")
     const [date, setDate] = useState("")
     const [price, setPrice] = useState("")
 
@@ -27,8 +26,6 @@ export const AddRecordDialog = props => {
 
     useEffect(() => {
         if (open) {
-            setTitle("")
-
             setDate("")
             setPrice("")
             setPriceToRevenues("")
@@ -64,7 +61,7 @@ export const AddRecordDialog = props => {
 
     function createRecord() {
         const nullIfBlank = (value) => value ? value : null
-        const data = {companyId: companyId, title: title, date: date, price: price,
+        const data = {companyId: companyId, date: date, price: price,
             priceToRevenues: nullIfBlank(priceToRevenues),
             priceToGrossProfit: nullIfBlank(priceToGrossProfit),
             priceToOperatingIncome: nullIfBlank(priceToOperatingIncome),
@@ -93,13 +90,6 @@ export const AddRecordDialog = props => {
                     id="trader-record-date"
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
-                />
-                <DialogTextField
-                    id="trader-record-title"
-                    value={title}
-                    label="Title"
-                    onChange={(e) => {setTitle(e.target.value);setAlert(null);}}
-                    validate={() => title === "" ? "not filled" : ""}
                 />
                 <DialogTextField
                     id="trader-record-price"

@@ -21,9 +21,6 @@ public class RecordCreateDto
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String price;
 
-    @NotNull
-    private String title;
-
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2)
     private String priceToRevenues;
 

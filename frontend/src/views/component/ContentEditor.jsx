@@ -8,6 +8,8 @@ const LIST_TYPES = ['numbered-list', 'bulleted-list']
 const TEXT_ALIGN_TYPES = ['left', 'center', 'right', 'justify']
 const DEFAULT_VALUE = [{type: 'paragraph', children: [{ text: '' }],}]
 
+export const defaultContent = () => structuredClone(DEFAULT_VALUE);
+
 export const ContentEditor = ({content, update, style}) => {
 
     const renderElement = useCallback(props => <Element {...props} />, [])
@@ -15,9 +17,9 @@ export const ContentEditor = ({content, update, style}) => {
     const editor = useMemo(() => withHistory(withReact(createEditor())), [])
 
     const [editing, setEditing] = useState(false)
-    const [value, setValue] = useState(DEFAULT_VALUE)
+    const [value, setValue] = useState(defaultContent())
     const [error, setError] = useState(null)
-    const [savedContent, setSavedContent] = useState(content ? JSON.parse(content) : DEFAULT_VALUE)
+    const [savedContent, setSavedContent] = useState(toValidContent(content))
 
     useEffect(() => {
         setError(null)
@@ -45,6 +47,20 @@ export const ContentEditor = ({content, update, style}) => {
         Transforms.delete(editor, {at: {anchor: Editor.start(editor, []), focus: Editor.end(editor, []),},});
         editor.children = savedContent
         Transforms.select(editor, Editor.start(editor, []));
+    }
+
+    function toValidContent(content) {
+        if (content) {
+            try {
+                return JSON.parse(content)
+            } catch {
+                const validContent = defaultContent()
+                validContent[0].children[0].text = content
+                return validContent
+            }
+        } else {
+            return defaultContent()
+        }
     }
 
     return (
@@ -77,7 +93,7 @@ export const ContentEditor = ({content, update, style}) => {
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 placeholder="write a content"
-                style={{margin: "0 5px 0 5px", paddingBottom: editing ? "10px" : "0"}}
+                style={{...style, paddingBottom: editing ? "10px" : "0"}}
                 onFocus={() => setEditing(true)}
                 onBlur={handleUnFocus}
                 onKeyDown={e => {
@@ -155,7 +171,7 @@ const isMarkActive = (editor, format) => {
 }
 
 const Element = ({ attributes, children, element }) => {
-    const style = { textAlign: element.align }
+    const style = { textAlign: element.align, margin: 0}
     switch (element.type) {
         case 'block-quote':
             return (<blockquote style={style} {...attributes}>{children}</blockquote>)

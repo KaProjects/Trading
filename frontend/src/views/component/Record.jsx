@@ -1,14 +1,25 @@
 import {formatDate, formatError} from "../../service/FormattingService";
-import {Box, Stack} from "@mui/material";
+import {Box, Button, Stack, Tooltip} from "@mui/material";
 import {AssetBox} from "./AssetBox";
-import React from "react";
+import React, {useState} from "react";
 import axios from "axios";
 import {backend} from "../../properties";
 import {EditableTypography} from "./EditableTypography";
 import {BorderedSection} from "./BorderedSection";
-import {ContentEditor} from "./ContentEditor";
+import {defaultContent} from "./ContentEditor";
+import {RecordEditorSection} from "./RecordEditorSection";
+import {ReactComponent as ContentPlusIcon} from "../../assets/icons/content-plus.svg";
+import {ReactComponent as ReviewPlusIcon} from "../../assets/icons/review-plus.svg";
+import {ReactComponent as StrategyPlusIcon} from "../../assets/icons/strategy-plus.svg";
+import {ReactComponent as RetroPlusIcon} from "../../assets/icons/retro-plus.svg";
+
 
 export const Record = ({record, currency, setAlert}) => {
+
+    const [reviewSectionAdded, setReviewSectionAdded] = useState(false);
+    const [strategySectionAdded, setStrategySectionAdded] = useState(false);
+    const [retroSectionAdded, setRetroSectionAdded] = useState(false);
+    const [contentSectionAdded, setContentSectionAdded] = useState(false);
 
     function updateTitle(id, value) {
         return axios.put(backend + "/record", {id: id, title: value})
@@ -20,8 +31,8 @@ export const Record = ({record, currency, setAlert}) => {
             })
     }
 
-    function updateContent(id, content) {
-        return axios.put(backend + "/record", {id: id, content: JSON.stringify(content)})
+    function updateRecord(data) {
+        return axios.put(backend + "/record", data)
             .then(response => {})
             .catch((error) => {
                 const formatted = formatError(error)
@@ -30,8 +41,42 @@ export const Record = ({record, currency, setAlert}) => {
             })
     }
 
+    function updateContent(value) {
+        updateRecord({id: record.id, content: JSON.stringify(value)})
+    }
+
+    function updateReview(value) {
+        updateRecord({id: record.id, review: JSON.stringify(value)})
+    }
+
+    function updateStrategy(value) {
+        console.log(value);
+        updateRecord({id: record.id, strategy: JSON.stringify(value)})
+    }
+
+    function updateRetro(value) {
+        updateRecord({id: record.id, retro: JSON.stringify(value)})
+    }
+
+    function showReviewSection() {
+        return (record.review && record.review !== JSON.stringify(defaultContent())) || reviewSectionAdded
+    }
+
+    function showStrategySection() {
+        return (record.strategy && record.strategy !== JSON.stringify(defaultContent())) || strategySectionAdded
+    }
+
+    function showRetroSection() {
+        return (record.retro && record.retro !== JSON.stringify(defaultContent())) || retroSectionAdded
+    }
+
+    function showContentSection() {
+        return (record.content && record.content !== JSON.stringify(defaultContent())) || contentSectionAdded
+    }
+
     return (
-        <BorderedSection title={formatDate(record.date)} style={{color: 'text.primary'}}>
+        <BorderedSection title={formatDate(record.date)} style={{color: 'text.primary', minHeight: "132px"}}>
+
             <Stack direction="row" justifyContent="flex-start" alignItems="stretch" spacing={2}>
                 <Box>{currency}{record.price}</Box>
                 <Box>PS:{record.priceToRevenues}</Box>
@@ -40,7 +85,6 @@ export const Record = ({record, currency, setAlert}) => {
                 <Box>PE:{record.priceToNetIncome}</Box>
                 <Box>DY:{record.dividendYield}</Box>
                 <Box>t:{record.targets}</Box>
-                <Box>s:{record.strategy}</Box>
             </Stack>
 
             {record.asset &&
@@ -48,21 +92,82 @@ export const Record = ({record, currency, setAlert}) => {
                     <AssetBox asset={record.asset} currency={currency}/>
                 </Stack>
             }
+            {record.title &&
+                <EditableTypography
+                    value={record.title}
+                    label={"Title"}
+                    update={(value) => updateTitle(record.id, value)}
+                    validate={() => ""}
+                    style={{margin: "12px 15px 0 5px"}}
+                />
+            }
+            {showReviewSection() &&
+                <RecordEditorSection
+                    label={"Review"}
+                    content={record.review}
+                    update={(value) => updateReview(value)}
+                />
+            }
+            {showStrategySection() &&
+                <RecordEditorSection
+                    label={"Strategy"}
+                    content={record.strategy}
+                    update={(value) => updateStrategy(value)}
+                />
+            }
+            {showRetroSection() &&
+                <RecordEditorSection
+                    label={"Retrospective"}
+                    content={record.retro}
+                    update={(value) => updateRetro(value)}
+                />
+            }
+            {showContentSection() &&
+                <RecordEditorSection
+                    label={"Content"}
+                    content={record.content}
+                    update={(value) => updateContent(value)}
+                />
+            }
 
-            <EditableTypography
-                value={record.title}
-                label={"Title"}
-                update={(value) => updateTitle(record.id, value)}
-                validate={(value) => {if (value === "") return "not null"; return ""}}
-                style={{margin: "12px 15px 0 5px"}}
-            />
-
-            <ContentEditor
-                content={record.content}
-                update={(value) => updateContent(record.id, value)}
-                style={{margin: "15px 0 0 0"}}
-            />
-
+            <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
+                   sx={{
+                       position: "absolute", top: "6px", right: "8px", zIndex: 1, opacity: 0, pointerEvents: "none",
+                       transition: "opacity 120ms ease-in-out",
+                       ".mainContainer:hover &": {opacity: 1, pointerEvents: "auto",},
+                       "& .MuiButton-root": {minWidth: 0, padding: "2px", lineHeight: 0,},
+                       "& svg": {width: "20px", height: "20px", display: "block",},
+                   }}
+            >
+                {!showReviewSection() &&
+                    <Tooltip title="Add review section" placement="left">
+                        <Button onClick={() => setReviewSectionAdded(true)}>
+                            <ReviewPlusIcon/>
+                        </Button>
+                    </Tooltip>
+                }
+                {!showStrategySection() &&
+                    <Tooltip title="Add strategy section" placement="left">
+                        <Button onClick={() => setStrategySectionAdded(true)}>
+                            <StrategyPlusIcon/>
+                        </Button>
+                    </Tooltip>
+                }
+                {!showRetroSection() &&
+                    <Tooltip title="Add retro section" placement="left">
+                        <Button onClick={() => setRetroSectionAdded(true)}>
+                            <RetroPlusIcon/>
+                        </Button>
+                    </Tooltip>
+                }
+                {!showContentSection() &&
+                    <Tooltip title="Add content section" placement="left">
+                        <Button onClick={() => setContentSectionAdded(true)}>
+                            <ContentPlusIcon/>
+                        </Button>
+                    </Tooltip>
+                }
+            </Stack>
         </BorderedSection>
     )
 }

@@ -46,7 +46,6 @@ class RecordEndpointsTest
         dto.setCompanyId("6877c555-1234-4af5-99ef-415980484d8c");
         dto.setPrice(Generator.randomBigDecimal(999999,4).toString());
         dto.setDate("2020-01-01");
-        dto.setTitle("a title");
         dto.setPriceToRevenues(Generator.randomBigDecimal(9999,2).toString());
         dto.setPriceToGrossProfit(Generator.randomBigDecimal(9999,2).toString());
         dto.setPriceToOperatingIncome(Generator.randomBigDecimal(9999,2).toString());
@@ -62,7 +61,7 @@ class RecordEndpointsTest
         assertThat(records.size(), is(1));
         assertThat(records.get(0).getCompany().getTicker(), is("CRE"));
         assertThat(records.get(0).getDate(), is(Utils.nullableDateValueOf(dto.getDate())));
-        assertThat(records.get(0).getTitle(), is(dto.getTitle()));
+        assertThat(records.get(0).getTitle(), is(nullValue()));
         assertThat(records.get(0).getPrice(), is(new BigDecimal(dto.getPrice())));
         assertBigDecimals(records.get(0).getPriceToRevenues(), new BigDecimal(dto.getPriceToRevenues()));
         assertBigDecimals(records.get(0).getPriceToGrossProfit(), new BigDecimal(dto.getPriceToGrossProfit()));
@@ -82,7 +81,6 @@ class RecordEndpointsTest
         String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
         String validPrice = Generator.randomBigDecimal(999999,4).toString();
         String validDate = "2020-01-01";
-        String validTitle = "a title";
         String validPs = Generator.randomBigDecimal(9999,2).toString();
         String validPg = Generator.randomBigDecimal(9999,2).toString();
         String validPo = Generator.randomBigDecimal(9999,2).toString();
@@ -97,7 +95,6 @@ class RecordEndpointsTest
         dto.setCompanyId(validCompanyId);
         dto.setDate(validDate);
         dto.setPrice(validPrice);
-        dto.setTitle(validTitle);
         dto.setPriceToRevenues(validPs);
         dto.setPriceToGrossProfit(validPg);
         dto.setPriceToOperatingIncome(validPo);
@@ -137,10 +134,6 @@ class RecordEndpointsTest
         dto.setPrice("-1");
         Assert.postValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice(validPrice);
-
-        dto.setTitle(null);
-        Assert.postValidationError(path, dto, NOT_NULL);
-        dto.setTitle(validTitle);
 
         dto.setPriceToRevenues("x");
         Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_false);
@@ -238,16 +231,20 @@ class RecordEndpointsTest
     @Test
     void update()
     {
-        String newTitle = "new title";
+        String newTitle = "   ";
         String newContent = "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"saasdasdaa\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"as\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"das\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"s\"}]}]}]";
+        String newReview = "review notes";
         String newStrategy = "buy as many as possible";
+        String newRetro = "retro notes";
         String newTargets = "10-5~7";
 
         RecordUpdateDto dto = new RecordUpdateDto();
         dto.setId("b5a8a2b3-08b7-4a71-9301-f57d44a0a9cb");
         dto.setTitle(newTitle);
         dto.setContent(newContent);
+        dto.setReview(newReview);
         dto.setStrategy(newStrategy);
+        dto.setRetro(newRetro);
         dto.setTargets(newTargets);
 
         Assert.put204(path, dto);
@@ -258,8 +255,11 @@ class RecordEndpointsTest
         assertThat(records.get(0).getCompany().getTicker(), is("UPD"));
         assertThat(records.get(0).getTitle(), is(newTitle));
         assertThat(records.get(0).getContent(), is(newContent));
+        assertThat(records.get(0).getReview(), is(newReview));
         assertThat(records.get(0).getStrategy(), is(newStrategy));
+        assertThat(records.get(0).getRetro(), is(newRetro));
         assertThat(records.get(0).getTargets(), is(newTargets));
+
     }
 
     @Test
@@ -272,10 +272,6 @@ class RecordEndpointsTest
 
         dto.setId("x");
         Assert.putValidationError(path, dto, VALID_UUID);
-
-        dto.setId("3b1e7f0f-f263-4a8e-86a7-1b6c4c9e3ad2");
-        dto.setTitle("   ");
-        Assert.put400(path, dto, "record title shouldn't be empty");
 
         dto.setId(UUID.randomUUID().toString());
         Assert.put400(path, dto, "record with id '" + dto.getId() + "' not found");
