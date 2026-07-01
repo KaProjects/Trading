@@ -13,6 +13,7 @@ import {ReactComponent as ReviewPlusIcon} from "../../assets/icons/review-plus.s
 import {ReactComponent as StrategyPlusIcon} from "../../assets/icons/strategy-plus.svg";
 import {ReactComponent as RetroPlusIcon} from "../../assets/icons/retro-plus.svg";
 import {ReactComponent as DeleteIcon} from "../../assets/icons/delete.svg";
+import {EditableValueBox} from "./EditableValueBox";
 
 
 export const Record = ({record, currency, setAlert, deleteRecord}) => {
@@ -59,6 +60,10 @@ export const Record = ({record, currency, setAlert, deleteRecord}) => {
         updateRecord({id: record.id, retro: JSON.stringify(value)})
     }
 
+    function updateTargets(value) {
+        updateRecord({id: record.id, targets: JSON.stringify(value)})
+    }
+
     function showReviewSection() {
         return (record.review && record.review !== JSON.stringify(defaultContent())) || reviewSectionAdded
     }
@@ -85,7 +90,14 @@ export const Record = ({record, currency, setAlert, deleteRecord}) => {
                 <Box>PO:{record.priceToOperatingIncome}</Box>
                 <Box>PE:{record.priceToNetIncome}</Box>
                 <Box>DY:{record.dividendYield}</Box>
-                <Box>t:{record.targets}</Box>
+                <EditableValueBox
+                    value={record.targets}
+                    suffix={currency}
+                    label={"Targets"}
+                    style={{marginTop: "-4px"}}
+                    validate={() => ""}
+                    update={(value) => updateTargets(value)}
+                />
             </Stack>
 
             {record.asset &&

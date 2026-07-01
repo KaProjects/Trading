@@ -1,8 +1,9 @@
+import {Button, FormControl, FormHelperText, Input, InputAdornment, InputLabel, Typography} from "@mui/material";
+import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import React, {useEffect, useState} from "react";
-import {FormControl, FormHelperText, Input, InputLabel, Typography} from "@mui/material";
-import "../../style/Blinking.css";
+import Tooltip from "@mui/material/Tooltip";
 
-export const EditableTypography = ({value, label, validate, update, style}) => {
+export const EditableValueBox = ({value, suffix, label, style, validate, update}) => {
 
     const [editing, setEditing] = useState(false)
     const [showValue, setShowValue] = useState(value ? value : "")
@@ -15,8 +16,7 @@ export const EditableTypography = ({value, label, validate, update, style}) => {
         // eslint-disable-next-line
     }, [editValue, editing])
 
-    async function handleUpdate()
-    {
+    async function handleUpdate() {
         if (showValue !== editValue) {
             const error = await update(editValue);
             if (error) {
@@ -33,12 +33,18 @@ export const EditableTypography = ({value, label, validate, update, style}) => {
     return (
         <div style={style}>
             {!editing &&
-                <Typography
-                    sx={{color: 'text.primary', fontWeight: 'medium', fontSize: 20, }}
-                    onClick={() => setEditing(true)}
+                <Tooltip
+                    title={label}
+                    placement="top"
+                    slotProps={{popper: {modifiers: [{name: 'offset', options: {offset: [0, -13],},},],},}}
                 >
-                    {showValue}
-                </Typography>
+                    <Button sx={{color: 'text.primary', borderRadius: 2, boxShadow: "1px 1px 1px lightgrey", border: "1px solid lightgrey", height: "25px", textTransform: 'none'}}
+                            onClick={() => setEditing(true)}
+                    >
+                        {showValue && <Typography sx={{fontFamily: "Roboto",}}>{showValue}{suffix}</Typography>}
+                        {!showValue && <ControlPointIcon sx={{color: 'lightgrey',}}/>}
+                    </Button>
+                </Tooltip>
             }
             {editing &&
                 <FormControl
@@ -50,6 +56,7 @@ export const EditableTypography = ({value, label, validate, update, style}) => {
                     <InputLabel htmlFor={"editable-" + label}>{label}</InputLabel>
                     <Input
                         id={"editable-" + label}
+                        startAdornment={<InputAdornment position="start">{suffix}</InputAdornment>}
                         value={editValue}
                         onChange={(e) => {setEditValue(e.target.value);setError(null);}}
                         autoFocus

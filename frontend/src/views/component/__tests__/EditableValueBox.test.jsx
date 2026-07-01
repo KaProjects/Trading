@@ -1,0 +1,100 @@
+import {fireEvent, render, screen, waitFor} from "@testing-library/react";
+import {EditableValueBox} from "../EditableValueBox";
+
+describe("EditableValueBox", () => {
+    test("renders initial value with suffix and applies top level style", () => {
+        const {container} = render(
+            <EditableValueBox
+                value={"123"}
+                suffix={"$"}
+                label={"Targets"}
+                validate={() => ""}
+                update={jest.fn()}
+                style={{marginTop: "-4px"}}
+            />
+        );
+
+        expect(screen.getByText("123$")).toBeInTheDocument();
+        expect(container.firstChild).toHaveStyle("margin-top: -4px");
+    });
+
+    test("renders add icon when value is empty", () => {
+        render(
+            <EditableValueBox
+                value={null}
+                suffix={"$"}
+                label={"Targets"}
+                validate={() => ""}
+                update={jest.fn()}
+            />
+        );
+
+        expect(screen.getByRole("button")).toBeInTheDocument();
+        expect(screen.queryByText("$")).not.toBeInTheDocument();
+    });
+
+    test("updates value on enter", async () => {
+        const update = jest.fn().mockResolvedValue(null);
+
+        render(
+            <EditableValueBox
+                value={"123"}
+                suffix={"$"}
+                label={"Targets"}
+                validate={() => ""}
+                update={update}
+            />
+        );
+
+        fireEvent.click(screen.getByRole("button"));
+
+        const input = screen.getByRole("textbox");
+        fireEvent.change(input, {target: {value: "150"}});
+        fireEvent.keyDown(input, {key: "Enter"});
+
+        await waitFor(() => expect(update).toHaveBeenCalledWith("150"));
+        await waitFor(() => expect(screen.getByText("150$")).toBeInTheDocument());
+    });
+
+    test("shows validation message while editing invalid value", () => {
+        render(
+            <EditableValueBox
+                value={"123"}
+                suffix={"$"}
+                label={"Targets"}
+                validate={(value) => value === "" ? "required" : ""}
+                update={jest.fn()}
+            />
+        );
+
+        fireEvent.click(screen.getByRole("button"));
+
+        const input = screen.getByRole("textbox");
+        fireEvent.change(input, {target: {value: ""}});
+
+        expect(screen.getByText("required")).toBeInTheDocument();
+    });
+
+    test("keeps editing when update fails", async () => {
+        const update = jest.fn().mockResolvedValue({title: "Update failed", message: "Could not save"});
+
+        render(
+            <EditableValueBox
+                value={"123"}
+                suffix={"$"}
+                label={"Targets"}
+                validate={() => ""}
+                update={update}
+            />
+        );
+
+        fireEvent.click(screen.getByRole("button"));
+
+        const input = screen.getByRole("textbox");
+        fireEvent.change(input, {target: {value: "150"}});
+        fireEvent.keyDown(input, {key: "Enter"});
+
+        await waitFor(() => expect(update).toHaveBeenCalledWith("150"));
+        await waitFor(() => expect(screen.getByRole("textbox")).toBeInTheDocument());
+    });
+});

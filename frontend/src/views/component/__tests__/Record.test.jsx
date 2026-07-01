@@ -7,6 +7,11 @@ jest.mock("../EditableTypography", () => ({
         <button onClick={() => update("Updated title")}>{value}</button>
     )
 }));
+jest.mock("../EditableValueBox", () => ({
+    EditableValueBox: ({value, suffix, label}) => (
+        <button>{label}:{value}{suffix}</button>
+    )
+}));
 jest.mock("../ContentEditor", () => ({
     ContentEditor: ({content, update}) => (
         <button onClick={() => update([{type: "paragraph", children: [{text: "Updated content"}]}])}>
@@ -61,7 +66,7 @@ describe("Record", () => {
         expect(screen.getByText("PO:3")).toBeInTheDocument();
         expect(screen.getByText("PE:4")).toBeInTheDocument();
         expect(screen.getByText("DY:5")).toBeInTheDocument();
-        expect(screen.getByText("t:T")).toBeInTheDocument();
+        expect(screen.getByText("Targets:T$")).toBeInTheDocument();
         expect(screen.getByText("Strategy:")).toBeInTheDocument();
         expect(screen.getByText("Content:")).toBeInTheDocument();
         expect(screen.getByText("3@100$")).toBeInTheDocument();
