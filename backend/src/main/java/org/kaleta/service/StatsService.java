@@ -12,6 +12,7 @@ import org.kaleta.persistence.entity.Currency;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -92,12 +93,14 @@ public class StatsService
     {
         Map<String, List<Trades.Trade>> tradesByPeriod = tradeService.getByPeriod(frequency, companyId, null, sector);
         Map<String, List<Dividends.Dividend>> dividendsByPeriod = dividendService.getByPeriod(frequency, companyId , null, sector);
+        LocalDate today = LocalDate.now();
 
         PeriodStats model = new PeriodStats();
 
         List<String> periods = Stream
                 .concat(tradesByPeriod.keySet().stream(), dividendsByPeriod.keySet().stream())
                 .distinct()
+                .filter(period -> !isFuturePeriod(frequency, period, today))
                 .collect(Collectors.toList());
 
         for (String period : periods){
@@ -141,6 +144,36 @@ public class StatsService
         model.setAggregates(computePeriodAggregates(model.getPeriods()));
 
         return model;
+    }
+
+    private boolean isFuturePeriod(PeriodFrequency frequency, String period, LocalDate today)
+    {
+        switch (frequency) {
+            case MONTHLY:
+                return isFutureMonth(period, today);
+            case QUARTERLY:
+                return isFutureQuarter(period, today);
+            case YEARLY:
+                return false;
+            default:
+                throw new IllegalArgumentException("unexpected frequency " + frequency);
+        }
+    }
+
+    private boolean isFutureMonth(String period, LocalDate today)
+    {
+        String currentMonth = String.format("%04d-%02d", today.getYear(), today.getMonthValue());
+        return period.compareTo(currentMonth) > 0;
+    }
+
+    private boolean isFutureQuarter(String period, LocalDate today)
+    {
+        int year = Integer.parseInt(period.substring(0, 4));
+        int quarter = Integer.parseInt(period.substring(6, 7));
+        int currentQuarter = ((today.getMonthValue() - 1) / 3) + 1;
+
+        return year > today.getYear()
+                || (year == today.getYear() && quarter > currentQuarter);
     }
 
     private PeriodStats.Aggregates computePeriodAggregates(List<PeriodStats.Period> periodStats)

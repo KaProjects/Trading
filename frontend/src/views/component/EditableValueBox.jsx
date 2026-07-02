@@ -21,11 +21,11 @@ export const EditableValueBox = ({value, suffix, label, style, validate, update}
                     placement="top"
                     slotProps={{popper: {modifiers: [{name: 'offset', options: {offset: [0, -13],},},],},}}
                 >
-                    <Button sx={{color: 'text.primary', borderRadius: 2, boxShadow: "1px 1px 1px lightgrey", border: "1px solid lightgrey", height: "25px", textTransform: 'none'}}
+                    <Button sx={{color: 'text.primary', borderRadius: 2, boxShadow: "1px 1px 1px #eeeeee", border: "1px solid #eeeeee", height: "25px", textTransform: 'none'}}
                             onClick={() => setEditing(true)}
                     >
                         {showValue && <Typography sx={{fontFamily: "Roboto",}}>{showValue}{suffix}</Typography>}
-                        {!showValue && <ControlPointIcon sx={{color: 'lightgrey',}}/>}
+                        {!showValue && <ControlPointIcon sx={{color: '#eeeeee',}}/>}
                     </Button>
                 </Tooltip>
             }
