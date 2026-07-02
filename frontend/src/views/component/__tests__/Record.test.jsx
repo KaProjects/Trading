@@ -8,8 +8,14 @@ jest.mock("../EditableTypography", () => ({
     )
 }));
 jest.mock("../EditableValueBox", () => ({
-    EditableValueBox: ({value, suffix, label}) => (
-        <button>{label}:{value}{suffix}</button>
+    EditableValueBox: ({value, suffix, label, style, update}) => (
+        <button
+            data-testid={"editable-value-" + label}
+            style={{opacity: style?.opacity, pointerEvents: style?.pointerEvents}}
+            onClick={() => update && update("Updated target")}
+        >
+            {label}:{value}{suffix}
+        </button>
     )
 }));
 jest.mock("../ContentEditor", () => ({
@@ -41,7 +47,7 @@ describe("Record", () => {
     test("renders date, summary values and asset", () => {
         render(
             <Record
-                record={{
+                data={{
                     id: "record-1",
                     date: "2026-05-09",
                     price: 123,
@@ -74,10 +80,56 @@ describe("Record", () => {
         expect(screen.getByText("3@100$")).toBeInTheDocument();
     });
 
+    test("hides empty targets until record hover", () => {
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    priceToRevenues: 1,
+                    priceToGrossProfit: 2,
+                    priceToOperatingIncome: 3,
+                    priceToNetIncome: 4,
+                    dividendYield: 5,
+                    targets: "",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("editable-value-Targets")).toHaveStyle("opacity: 0");
+        expect(screen.getByTestId("editable-value-Targets")).toHaveStyle("pointer-events: none");
+    });
+
+    test("keeps targets visible when they are set", () => {
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    priceToRevenues: 1,
+                    priceToGrossProfit: 2,
+                    priceToOperatingIncome: 3,
+                    priceToNetIncome: 4,
+                    dividendYield: 5,
+                    targets: "T",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("editable-value-Targets")).not.toHaveStyle("opacity: 0");
+        expect(screen.getByTestId("editable-value-Targets")).not.toHaveStyle("pointer-events: none");
+    });
+
     test("updates title and content through axios", async () => {
         render(
             <Record
-                record={{
+                data={{
                     id: "record-1",
                     date: "2026-05-09",
                     price: 123,
@@ -112,10 +164,38 @@ describe("Record", () => {
         ));
     });
 
+    test("updates targets through axios and refreshes local record state", async () => {
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    priceToRevenues: 1,
+                    priceToGrossProfit: 2,
+                    priceToOperatingIncome: 3,
+                    priceToNetIncome: 4,
+                    dividendYield: 5,
+                    targets: "T",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        fireEvent.click(screen.getByText("Targets:T$"));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
+            expect.stringContaining("/record"),
+            {id: "record-1", targets: "Updated target"}
+        ));
+        await waitFor(() => expect(screen.getByText("Targets:Updated target$")).toBeInTheDocument());
+    });
+
     test("does not render asset when record has no asset", () => {
         render(
             <Record
-                record={{
+                data={{
                     id: "record-1",
                     date: "2026-05-09",
                     price: 123,
@@ -140,7 +220,7 @@ describe("Record", () => {
     test("does not render editor sections with default content", () => {
         render(
             <Record
-                record={{
+                data={{
                     id: "record-1",
                     date: "2026-05-09",
                     price: 123,
@@ -173,7 +253,7 @@ describe("Record", () => {
     test("renders empty editor section after clicking add button", () => {
         render(
             <Record
-                record={{
+                data={{
                     id: "record-1",
                     date: "2026-05-09",
                     price: 123,
@@ -198,7 +278,7 @@ describe("Record", () => {
     test("updates review, strategy, retro and content through axios", async () => {
         render(
             <Record
-                record={{
+                data={{
                     id: "record-1",
                     date: "2026-05-09",
                     price: 123,
@@ -245,7 +325,7 @@ describe("Record", () => {
     test("updates asset through axios", async () => {
         render(
             <Record
-                record={{
+                data={{
                     id: "record-1",
                     date: "2026-05-09",
                     price: 123,
@@ -279,7 +359,7 @@ describe("Record", () => {
 
         render(
             <Record
-                record={{
+                data={{
                     id: "record-1",
                     date: "2026-05-09",
                     price: 123,

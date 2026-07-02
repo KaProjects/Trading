@@ -234,7 +234,7 @@ export const Research = props => {
                             {data.assets.assets.length > 0 &&
                                 <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
                                     {data.assets.assets.map((asset, index) => (
-                                        <AssetBox key={index} asset={asset} currency={data.company.currency}/>
+                                        <AssetBox key={index} asset={asset} currency={data.company.currency} immutable={true}/>
                                     ))}
                                 </Grid>
                             }
@@ -242,7 +242,7 @@ export const Research = props => {
                             {data.records.map((record) => (
                                 <Record
                                     key={record.id}
-                                    record={record}
+                                    data={record}
                                     currency={data.company.currency}
                                     setAlert={setAlert}
                                     deleteRecord={deleteRecord}

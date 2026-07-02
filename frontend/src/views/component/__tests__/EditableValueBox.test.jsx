@@ -18,6 +18,28 @@ describe("EditableValueBox", () => {
         expect(container.firstChild).toHaveStyle("margin-top: -4px");
     });
 
+    test("accepts mui sx selectors through style prop", () => {
+        const {container} = render(
+            <EditableValueBox
+                value={"123"}
+                suffix={"$"}
+                label={"Targets"}
+                validate={() => ""}
+                update={jest.fn()}
+                style={{
+                    opacity: 0,
+                    ".mainContainer:hover &": {
+                        opacity: 1,
+                        pointerEvents: "auto",
+                    },
+                }}
+            />
+        );
+
+        expect(screen.getByText("123$")).toBeInTheDocument();
+        expect(container.firstChild).toHaveStyle("opacity: 0");
+    });
+
     test("renders add icon when value is empty", () => {
         render(
             <EditableValueBox

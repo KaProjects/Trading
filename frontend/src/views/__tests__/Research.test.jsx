@@ -46,10 +46,10 @@ jest.mock("../component/DateTime", () => ({
     DateTime: ({value}) => <div>datetime:{value}</div>
 }));
 jest.mock("../component/Record", () => ({
-    Record: ({record, deleteRecord}) => (
+    Record: ({data, deleteRecord}) => (
         <div>
-            <span>record:{record.id}</span>
-            <button onClick={() => deleteRecord(record.id)}>delete:{record.id}</button>
+            <span>record:{data.id}</span>
+            <button onClick={() => deleteRecord(data.id)}>delete:{data.id}</button>
         </div>
     )
 }));

@@ -20,7 +20,7 @@ function validateAssetValue(value) {
         || validateAssetNumber("Purchase price", values[1], 10, 4);
 }
 
-export const AssetBox = ({asset, currency, update, style}) => {
+export const AssetBox = ({asset, currency, update, style, immutable = false}) => {
     const [assetEdited, setAssetEdited] = useState(false);
     let profitColor = 'text.primary'
     let profitPercent = null
@@ -68,7 +68,7 @@ export const AssetBox = ({asset, currency, update, style}) => {
                         </Box>
                     }
                     <Box sx={{color: "text.secondary", fontSize: 16, fontFamily: "Roboto", cursor: "pointer"}}
-                         onClick={() => setEditing(true)}
+                         onClick={() => {if (!immutable) {setEditing(true);}}}
                     >
                         {showValue}{currency}
                     </Box>

@@ -68,6 +68,24 @@ describe("AssetBox", () => {
         await waitFor(() => expect(screen.getByText("3.5@120.25$")).toBeInTheDocument());
     });
 
+    test("does not edit asset when immutable", () => {
+        const update = jest.fn();
+
+        render(
+            <AssetBox
+                asset={{quantity: 3, purchasePrice: 120, profitPercent: null}}
+                currency={"$"}
+                update={update}
+                immutable={true}
+            />
+        );
+
+        fireEvent.click(screen.getByText("3@120$"));
+
+        expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+        expect(update).not.toHaveBeenCalled();
+    });
+
     test("replaces profit percent after confirmed asset update", async () => {
         const update = jest.fn().mockResolvedValue(null);
 

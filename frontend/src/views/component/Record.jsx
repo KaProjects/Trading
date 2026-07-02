@@ -16,7 +16,9 @@ import {ReactComponent as DeleteIcon} from "../../assets/icons/delete.svg";
 import {EditableValueBox} from "./EditableValueBox";
 
 
-export const Record = ({record, currency, setAlert, deleteRecord}) => {
+export const Record = ({data, currency, setAlert, deleteRecord}) => {
+
+    const [record, setRecord] = useState(data);
 
     const [reviewSectionAdded, setReviewSectionAdded] = useState(false);
     const [strategySectionAdded, setStrategySectionAdded] = useState(false);
@@ -36,7 +38,9 @@ export const Record = ({record, currency, setAlert, deleteRecord}) => {
 
     function updateRecord(data) {
         return axios.put(backend + "/record", data)
-            .then(response => {})
+            .then(response => {
+                setRecord(prev => ({...prev, ...data}));
+            })
             .catch((error) => {
                 const formatted = formatError(error)
                 setAlert(formatted)
@@ -102,7 +106,20 @@ export const Record = ({record, currency, setAlert, deleteRecord}) => {
                     value={record.targets}
                     suffix={currency}
                     label={"Targets"}
-                    style={{marginTop: "-4px"}}
+                    style={
+                        !record.targets
+                        ? {
+                            transform: "translateY(-4px)",
+                            opacity: 0,
+                            pointerEvents: "none",
+                            transition: "opacity 120ms ease-in-out",
+                            ".mainContainer:hover &": {
+                                opacity: 1,
+                                pointerEvents: "auto",
+                            },
+                        }
+                        : {transform: "translateY(-4px)",}
+                    }
                     validate={() => ""}
                     update={(value) => updateTargets(value)}
                 />

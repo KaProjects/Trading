@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {FormControl, FormHelperText, Input, InputLabel} from "@mui/material";
+import {Box, FormControl, FormHelperText, Input, InputLabel} from "@mui/material";
 import "../../style/Blinking.css";
 
 export const Editable = ({value, label, validate, update, style, startAdornment, children}) => {
@@ -30,7 +30,7 @@ export const Editable = ({value, label, validate, update, style, startAdornment,
     }
 
     return (
-        <div style={style}>
+        <Box sx={style}>
             {!editing && children({showValue, setEditing})}
             {editing &&
                 <FormControl
@@ -61,6 +61,6 @@ export const Editable = ({value, label, validate, update, style, startAdornment,
                     }
                 </FormControl>
             }
-        </div>
+        </Box>
     )
 }
