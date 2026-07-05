@@ -1,5 +1,5 @@
 import './style/App.css';
-import React, {Component} from "react";
+import React, {useEffect, useState} from "react";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
 import {backend} from "./properties";
 import axios from "axios";
@@ -15,73 +15,84 @@ import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
 import {Home} from "./views/Home";
 
-export class App extends Component {
-    constructor(props) {
-        super(props)
+const ACTIVE_STATES = ["only active", "only closed"];
 
-        this.state = {
-            loaded: false,
-            error: null,
-            companies: [],
-            activeStates: ["only active", "only closed"],
-            currencies: [],
-            sectors: [],
-            showCompanySelector: false,
-            showActiveSelector: false,
-            showCurrencySelector: false,
-            showYearSelector: null,      // null = false, true otherwise
-            showSectorSelector: false,
-            showAddTradeButton: false,
-            showSellTradeButton: false,
-            showAddDividendButton: false,
-            showAddCompanyButton: false,
-            showStatsTabs: null,         // null = false, true otherwise
-            toggleTradesSelectors: this.toggleTradesSelectors.bind(this),
-            toggleRecordsSelectors: this.toggleRecordsSelectors.bind(this),
-            toggleDividendsSelectors: this.toggleDividendsSelectors.bind(this),
-            toggleStatsSelectors: this.toggleStatsSelectors.bind(this),
-            toggleCompaniesSelectors: this.toggleCompaniesSelectors.bind(this),
-            activeSelectorValue: "",
-            setActiveSelectorValue: this.setActiveSelectorValue.bind(this),
-            companySelectorValue: "",
-            setCompanySelectorValue: this.setCompanySelectorValue.bind(this),
-            currencySelectorValue: "",
-            setCurrencySelectorValue: this.setCurrencySelectorValue.bind(this),
-            yearSelectorValue: "",
-            setYearSelectorValue: this.setYearSelectorValue.bind(this),
-            sectorSelectorValue: "",
-            setSectorSelectorValue: this.setSectorSelectorValue.bind(this),
-            openAddTrade: false,
-            setOpenAddTrade: this.setOpenAddTrade.bind(this),
-            openSellTrade: false,
-            setOpenSellTrade: this.setOpenSellTrade.bind(this),
-            openAddDividend: false,
-            setOpenAddDividend: this.setOpenAddDividend.bind(this),
-            openEditCompany: null,
-            setOpenEditCompany: this.setOpenEditCompany.bind(this),
-            statsTabsIndex: 0,
-            setStatsTabsIndex: this.setStatsTabsIndex.bind(this),
+const PageNotFound = () => (
+    <div style={{position: "absolute", top: "25%", left: "50%", transform: "translate(-50%, -50%)"}}>
+        <h2>404 Page not found</h2>
+    </div>
+);
+
+export const App = () => {
+    const [state, setState] = useState({
+        loaded: false,
+        error: null,
+        companies: [],
+        activeStates: ACTIVE_STATES,
+        currencies: [],
+        sectors: [],
+        showCompanySelector: false,
+        showActiveSelector: false,
+        showCurrencySelector: false,
+        showYearSelector: null,      // null = false, true otherwise
+        showSectorSelector: false,
+        showAddTradeButton: false,
+        showSellTradeButton: false,
+        showAddDividendButton: false,
+        showAddCompanyButton: false,
+        showStatsTabs: null,         // null = false, true otherwise
+        activeSelectorValue: "",
+        companySelectorValue: "",
+        currencySelectorValue: "",
+        yearSelectorValue: "",
+        sectorSelectorValue: "",
+        openAddTrade: false,
+        openSellTrade: false,
+        openAddDividend: false,
+        openEditCompany: null,
+        statsTabsIndex: 0,
+    });
+
+    useEffect(() => {
+        axios.get(backend + "/company/values")
+            .then((response) => {
+                setState((prev) => ({
+                    ...prev,
+                    companies: response.data.companies,
+                    currencies: response.data.currencies,
+                    sectors: response.data.sectors,
+                    error: null,
+                    loaded: true,
+                }));
+            }).catch((error) => {
+                setState((prev) => ({
+                    ...prev,
+                    error: formatError(error),
+                    loaded: false,
+                }));
+            });
+    }, []);
+
+    function loadStorageStates() {
+        if (sessionStorage.getItem('companyId')){
+            wait(100).then(() => {
+                state.companies.forEach(company => {
+                    if (company.id === sessionStorage.getItem('companyId')) {
+                        setCompanySelectorValue(company);
+                    }
+                });
+                sessionStorage.removeItem('companyId');
+            });
         }
-
-        this.toggleTradesSelectors = this.toggleTradesSelectors.bind(this)
-        this.toggleRecordsSelectors = this.toggleRecordsSelectors.bind(this)
-        this.toggleDividendsSelectors = this.toggleDividendsSelectors.bind(this)
-        this.toggleStatsSelectors = this.toggleStatsSelectors.bind(this)
-        this.toggleCompaniesSelectors = this.toggleCompaniesSelectors.bind(this)
-        this.setActiveSelectorValue = this.setActiveSelectorValue.bind(this)
-        this.setCompanySelectorValue = this.setCompanySelectorValue.bind(this)
-        this.setCurrencySelectorValue = this.setCurrencySelectorValue.bind(this)
-        this.setYearSelectorValue = this.setYearSelectorValue.bind(this)
-        this.setSectorSelectorValue = this.setSectorSelectorValue.bind(this)
-        this.setOpenAddTrade = this.setOpenAddTrade.bind(this)
-        this.setOpenSellTrade = this.setOpenSellTrade.bind(this)
-        this.setOpenAddDividend = this.setOpenAddDividend.bind(this)
-        this.setOpenEditCompany = this.setOpenEditCompany.bind(this)
-        this.setStatsTabsIndex = this.setStatsTabsIndex.bind(this)
+        if (sessionStorage.getItem('tradeState')){
+            setActiveSelectorValue(sessionStorage.getItem('tradeState'));
+            sessionStorage.removeItem('tradeState');
+        }
     }
 
-    toggleTradesSelectors(years) {
-        this.setState((prev) => ({
+    function toggleTradesSelectors(years) {
+        setState((prev) => ({
+            ...prev,
             showActiveSelector: true,
             showCompanySelector: true,
             showCurrencySelector: true,
@@ -90,28 +101,34 @@ export class App extends Component {
             showSectorSelector: true,
             showAddTradeButton: true,
             showSellTradeButton: true,
-        }), () => this.loadStorageStates())
+        }));
+        loadStorageStates();
     }
 
-    toggleRecordsSelectors() {
-        this.setState({
+    function toggleRecordsSelectors() {
+        setState((prev) => ({
+            ...prev,
             showCompanySelector: true,
-        }, () => this.loadStorageStates())
+        }));
+        loadStorageStates();
     }
 
-    toggleDividendsSelectors(years) {
-        this.setState((prev) => ({
+    function toggleDividendsSelectors(years) {
+        setState((prev) => ({
+            ...prev,
             showCompanySelector: true,
             showCurrencySelector: true,
             showYearSelector: years,
             yearSelectorValue: years.includes(prev.yearSelectorValue) ? prev.yearSelectorValue : "",
             showSectorSelector: true,
             showAddDividendButton: true,
-        }), () => this.loadStorageStates())
+        }));
+        loadStorageStates();
     }
 
-    toggleStatsSelectors(years, companySelector, sectorSelector){
-        this.setState((prev) => ({
+    function toggleStatsSelectors(years, companySelector, sectorSelector){
+        setState((prev) => ({
+            ...prev,
             showStatsTabs: [0,1,2],
             showCompanySelector: companySelector,
             companySelectorValue: companySelector ? prev.companySelectorValue : "",
@@ -119,86 +136,64 @@ export class App extends Component {
             yearSelectorValue: years && years.includes(prev.yearSelectorValue) ? prev.yearSelectorValue : "",
             showSectorSelector: sectorSelector,
             sectorSelectorValue: sectorSelector ? prev.sectorSelectorValue : "",
-        }))
+        }));
     }
 
-    toggleCompaniesSelectors() {
-        this.setState({
+    function toggleCompaniesSelectors() {
+        setState((prev) => ({
+            ...prev,
             showCurrencySelector: true,
             showSectorSelector: true,
             showAddCompanyButton: true,
-        })
+        }));
     }
 
-    setActiveSelectorValue(value) {this.setState({activeSelectorValue: value})}
-    setCompanySelectorValue(value) {this.setState({companySelectorValue: value})}
-    setCurrencySelectorValue(value) {this.setState({currencySelectorValue: value})}
-    setYearSelectorValue(value) {this.setState({yearSelectorValue: value})}
-    setSectorSelectorValue(value) {this.setState({sectorSelectorValue: value})}
-    setOpenAddTrade(value) {this.setState({openAddTrade: value})}
-    setOpenSellTrade(value) {this.setState({openSellTrade: value})}
-    setOpenAddDividend(value) {this.setState({openAddDividend: value})}
-    setOpenEditCompany(value) {this.setState({openEditCompany: value})}
-    setStatsTabsIndex(index) {this.setState({statsTabsIndex: index})}
+    function setActiveSelectorValue(value) {setState((prev) => ({...prev, activeSelectorValue: value}))}
+    function setCompanySelectorValue(value) {setState((prev) => ({...prev, companySelectorValue: value}))}
+    function setCurrencySelectorValue(value) {setState((prev) => ({...prev, currencySelectorValue: value}))}
+    function setYearSelectorValue(value) {setState((prev) => ({...prev, yearSelectorValue: value}))}
+    function setSectorSelectorValue(value) {setState((prev) => ({...prev, sectorSelectorValue: value}))}
+    function setOpenAddTrade(value) {setState((prev) => ({...prev, openAddTrade: value}))}
+    function setOpenSellTrade(value) {setState((prev) => ({...prev, openSellTrade: value}))}
+    function setOpenAddDividend(value) {setState((prev) => ({...prev, openAddDividend: value}))}
+    function setOpenEditCompany(value) {setState((prev) => ({...prev, openEditCompany: value}))}
+    function setStatsTabsIndex(index) {setState((prev) => ({...prev, statsTabsIndex: index}))}
 
-    loadStorageStates() {
-        if (sessionStorage.getItem('companyId')){
-            wait(100).then(() => {
-                this.state.companies.forEach(company => {if (company.id === sessionStorage.getItem('companyId')) this.setState({companySelectorValue: company})})
-                sessionStorage.removeItem('companyId')
-            })
-        }
-        if (sessionStorage.getItem('tradeState')){
-            this.setActiveSelectorValue(sessionStorage.getItem('tradeState'))
-            sessionStorage.removeItem('tradeState')
-        }
-    }
+    const appProps = {
+        ...state,
+        toggleTradesSelectors,
+        toggleRecordsSelectors,
+        toggleDividendsSelectors,
+        toggleStatsSelectors,
+        toggleCompaniesSelectors,
+        setActiveSelectorValue,
+        setCompanySelectorValue,
+        setCurrencySelectorValue,
+        setYearSelectorValue,
+        setSectorSelectorValue,
+        setOpenAddTrade,
+        setOpenSellTrade,
+        setOpenAddDividend,
+        setOpenEditCompany,
+        setStatsTabsIndex,
+    };
 
-    componentDidMount() {
-        axios.get(backend + "/company/values")
-            .then((response) => {
-                this.setState({
-                    companies: response.data.companies,
-                    currencies: response.data.currencies,
-                    sectors: response.data.sectors,
-                    error: null,
-                    loaded: true,
-                })
-            }).catch((error) => {
-                this.setState({
-                    error: formatError(error),
-                    loaded: false,
-                })
-            })
-    }
-
-    PageNotFound() {
-        return (
-            <div style={{position: "absolute", top: "25%", left: "50%", transform: "translate(-50%, -50%)"}}>
-                <h2>404 Page not found</h2>
-            </div>
-        )
-    }
-
-    render() {
-        return (
-            <BrowserRouter>
-                <MainBar {...this.state} />
-                {!this.state.loaded && <Loader error={this.state.error}/>}
-                {this.state.loaded &&
-                    <Routes>
-                        <Route exact path="/" element={<Home {...this.state}/>}/>
-                        <Route exact path="/trades" element={<Trades {...this.state}/>}/>
-                        <Route exact path="/research" element={<Research {...this.state}/>}/>
-                        <Route exact path="/dividends" element={<Dividends {...this.state}/>}/>
-                        <Route exact path="/stats" element={<Stats {...this.state}/>}/>
-                        <Route exact path="/companies" element={<Companies {...this.state}/>}/>
-                        <Route exact path="/analytics" element={<Analytics {...this.state}/>}/>
-                        <Route path="*" element={this.PageNotFound()}/>
-                    </Routes>
-                }
-            </BrowserRouter>
-        )
-    }
+    return (
+        <BrowserRouter>
+            <MainBar {...appProps} />
+            {!state.loaded && <Loader error={state.error}/>}
+            {state.loaded &&
+                <Routes>
+                    <Route exact path="/" element={<Home {...appProps}/>}/>
+                    <Route exact path="/trades" element={<Trades {...appProps}/>}/>
+                    <Route exact path="/research" element={<Research {...appProps}/>}/>
+                    <Route exact path="/dividends" element={<Dividends {...appProps}/>}/>
+                    <Route exact path="/stats" element={<Stats {...appProps}/>}/>
+                    <Route exact path="/companies" element={<Companies {...appProps}/>}/>
+                    <Route exact path="/analytics" element={<Analytics {...appProps}/>}/>
+                    <Route path="*" element={<PageNotFound/>}/>
+                </Routes>
+            }
+        </BrowserRouter>
+    );
 }
-
