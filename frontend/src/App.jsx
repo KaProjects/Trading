@@ -15,7 +15,7 @@ import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
 import {Home} from "./views/Home";
 
-class App extends Component {
+export class App extends Component {
     constructor(props) {
         super(props)
 
@@ -81,46 +81,53 @@ class App extends Component {
     }
 
     toggleTradesSelectors(years) {
-        this.setState({showActiveSelector: true})
-        this.setState({showCompanySelector: true})
-        this.setState({showCurrencySelector: true})
-        this.setState({showYearSelector: years})
-        if (!years.includes(this.state.yearSelectorValue)) this.setState({yearSelectorValue: ""})
-        this.setState({showSectorSelector: true})
-        this.setState({showAddTradeButton: true})
-        this.setState({showSellTradeButton: true})
-        this.loadStorageStates()
+        this.setState((prev) => ({
+            showActiveSelector: true,
+            showCompanySelector: true,
+            showCurrencySelector: true,
+            showYearSelector: years,
+            yearSelectorValue: years.includes(prev.yearSelectorValue) ? prev.yearSelectorValue : "",
+            showSectorSelector: true,
+            showAddTradeButton: true,
+            showSellTradeButton: true,
+        }), () => this.loadStorageStates())
     }
 
     toggleRecordsSelectors() {
-        this.setState({showCompanySelector: true})
-        this.loadStorageStates()
+        this.setState({
+            showCompanySelector: true,
+        }, () => this.loadStorageStates())
     }
 
     toggleDividendsSelectors(years) {
-        this.setState({showCompanySelector: true})
-        this.setState({showCurrencySelector: true})
-        this.setState({showYearSelector: years})
-        if (!years.includes(this.state.yearSelectorValue)) this.setState({yearSelectorValue: ""})
-        this.setState({showSectorSelector: true})
-        this.setState({showAddDividendButton: true})
-        this.loadStorageStates()
+        this.setState((prev) => ({
+            showCompanySelector: true,
+            showCurrencySelector: true,
+            showYearSelector: years,
+            yearSelectorValue: years.includes(prev.yearSelectorValue) ? prev.yearSelectorValue : "",
+            showSectorSelector: true,
+            showAddDividendButton: true,
+        }), () => this.loadStorageStates())
     }
 
     toggleStatsSelectors(years, companySelector, sectorSelector){
-        this.setState({showStatsTabs: [0,1,2]})
-        this.setState({showCompanySelector: companySelector})
-        if (!companySelector) this.setState({companySelectorValue: ""})
-        this.setState({showYearSelector: years})
-        if (!years || !years.includes(this.state.yearSelectorValue)) this.setState({yearSelectorValue: ""})
-        this.setState({showSectorSelector: sectorSelector})
-        if (!sectorSelector) this.setState({sectorSelectorValue: ""})
+        this.setState((prev) => ({
+            showStatsTabs: [0,1,2],
+            showCompanySelector: companySelector,
+            companySelectorValue: companySelector ? prev.companySelectorValue : "",
+            showYearSelector: years,
+            yearSelectorValue: years && years.includes(prev.yearSelectorValue) ? prev.yearSelectorValue : "",
+            showSectorSelector: sectorSelector,
+            sectorSelectorValue: sectorSelector ? prev.sectorSelectorValue : "",
+        }))
     }
 
     toggleCompaniesSelectors() {
-        this.setState({showCurrencySelector: true})
-        this.setState({showSectorSelector: true})
-        this.setState({showAddCompanyButton: true})
+        this.setState({
+            showCurrencySelector: true,
+            showSectorSelector: true,
+            showAddCompanyButton: true,
+        })
     }
 
     setActiveSelectorValue(value) {this.setState({activeSelectorValue: value})}
@@ -150,14 +157,18 @@ class App extends Component {
     componentDidMount() {
         axios.get(backend + "/company/values")
             .then((response) => {
-                this.setState({companies: response.data.companies})
-                this.setState({currencies: response.data.currencies})
-                this.setState({sectors: response.data.sectors})
-                this.setState({error: null})
-                this.setState({loaded: true})
+                this.setState({
+                    companies: response.data.companies,
+                    currencies: response.data.currencies,
+                    sectors: response.data.sectors,
+                    error: null,
+                    loaded: true,
+                })
             }).catch((error) => {
-                this.setState({error: formatError(error)})
-                this.setState({loaded: false})
+                this.setState({
+                    error: formatError(error),
+                    loaded: false,
+                })
             })
     }
 
@@ -190,4 +201,4 @@ class App extends Component {
         )
     }
 }
-export default App
+

@@ -232,11 +232,11 @@ export const Research = props => {
                             }
 
                             {data.assets.assets.length > 0 &&
-                                <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{marginBottom: "20px", marginTop: "10px"}}>
+                                <Stack direction="row" spacing={1} sx={{margin: "10px 10px 20px 10px"}}>
                                     {data.assets.assets.map((asset, index) => (
                                         <AssetBox key={index} asset={asset} currency={data.company.currency} immutable={true}/>
                                     ))}
-                                </Grid>
+                                </Stack>
                             }
 
                             {data.records.map((record) => (
