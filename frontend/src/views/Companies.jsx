@@ -1,5 +1,5 @@
 import {useData} from "../service/BackendService";
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import {Loader} from "./component/Loader";
 import {IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
@@ -7,6 +7,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import {recordEvent} from "../service/utils";
 import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
+import {ACTIVE_STATES} from "./component/MainBar";
 
 
 export const Companies = props => {
@@ -21,13 +22,6 @@ export const Companies = props => {
             + (sort ? "&sort=" + sort : "")
             + (refresh ? "&refresh" + refresh : "")
     }
-
-    useEffect(() => {
-        if (data) {
-            props.toggleCompaniesSelectors()
-        }
-        // eslint-disable-next-line
-    }, [data])
 
     function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
@@ -115,7 +109,7 @@ export const Companies = props => {
                                         <TableCellWithAction index={2} value={company.watching ? '*' : ''}/>
                                         <TableCellWithAction index={3} value={company.sector ? company.sector.name : ''}/>
                                         <TableCellWithAction index={4} value={company.totalTrades} action={() => redirect(company.id, '/trades')}/>
-                                        <TableCellWithAction index={5} value={company.activeTrades} action={() => redirect(company.id, '/trades', props.activeStates[0])}/>
+                                        <TableCellWithAction index={5} value={company.activeTrades} action={() => redirect(company.id, '/trades', ACTIVE_STATES[0])}/>
                                         <TableCellWithAction index={6} value={company.dividends} action={() => redirect(company.id, '/dividends')}/>
                                         <TableCellWithAction index={7} value={company.records} action={() => redirect(company.id, '/research')}/>
                                         <TableCellWithAction index={8} value={company.periods} action={() => redirect(company.id, '/research', null, true)}/>

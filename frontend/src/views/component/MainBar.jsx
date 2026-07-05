@@ -1,18 +1,98 @@
-import React from "react";
+import React, {useEffect} from "react";
 import {AppBar, Box, Button, IconButton, Tab, Tabs, Toolbar, Typography} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import {MainBarSelect} from "./MainBarSelect";
-import {useNavigate} from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
 
+export const ACTIVE_STATES = ["only active", "only closed"];
+const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly"];
+
+const DEFAULT_MAIN_BAR_CONFIG = {
+    showCompanySelector: false,
+    showActiveSelector: false,
+    showCurrencySelector: false,
+    showYearSelector: false,
+    showSectorSelector: false,
+    showAddTradeButton: false,
+    showSellTradeButton: false,
+    showAddDividendButton: false,
+    showAddCompanyButton: false,
+    showStatsTabs: false,
+};
+
+const MAIN_BAR_CONFIG = {
+    "/trades": {
+        showActiveSelector: true,
+        showCompanySelector: true,
+        showCurrencySelector: true,
+        showYearSelector: true,
+        showSectorSelector: true,
+        showAddTradeButton: true,
+        showSellTradeButton: true,
+    },
+    "/research": {
+        showCompanySelector: true,
+    },
+    "/dividends": {
+        showCompanySelector: true,
+        showCurrencySelector: true,
+        showYearSelector: true,
+        showSectorSelector: true,
+        showAddDividendButton: true,
+    },
+    "/companies": {
+        showCurrencySelector: true,
+        showSectorSelector: true,
+        showAddCompanyButton: true,
+    },
+    "/stats": {
+        showStatsTabs: true,
+        showSectorSelector: true,
+    },
+};
 
 export const MainBar = props => {
     const navigate = useNavigate()
+    const location = useLocation()
+    const config = {
+        ...DEFAULT_MAIN_BAR_CONFIG,
+        ...(MAIN_BAR_CONFIG[location.pathname] ?? {}),
+    }
+
+    if (location.pathname === "/stats") {
+        config.showCompanySelector = props.statsTabsIndex !== 0
+        config.showYearSelector = props.statsTabsIndex === 0
+    }
+
+    function loadStorageStates() {
+        const companyId = sessionStorage.getItem('companyId')
+        if (companyId) {
+            const company = props.companies.find(company => company.id === companyId)
+            if (company) {
+                props.setCompanySelectorValue(company);
+                sessionStorage.removeItem('companyId');
+            }
+        }
+        if (sessionStorage.getItem('tradeState')){
+            props.setActiveSelectorValue(sessionStorage.getItem('tradeState'));
+            sessionStorage.removeItem('tradeState');
+        }
+    }
+
+    useEffect(() => {
+        props.setYears([]);
+        if (["/trades", "/research", "/dividends"].includes(location.pathname)) {
+            loadStorageStates();
+        }
+        // eslint-disable-next-line
+    }, [location.pathname, props.companies]);
+
     const actionButtons = [
         {
             key: "sell-trade",
-            visible: props.showSellTradeButton,
+            visible: config.showSellTradeButton,
             onClick: () => props.setOpenSellTrade(true),
             ariaLabel: "sell trade",
             sx: {},
@@ -20,7 +100,7 @@ export const MainBar = props => {
         },
         {
             key: "add-trade",
-            visible: props.showAddTradeButton,
+            visible: config.showAddTradeButton,
             onClick: () => props.setOpenAddTrade(true),
             ariaLabel: "add trade",
             sx: {marginRight: "25px"},
@@ -28,7 +108,7 @@ export const MainBar = props => {
         },
         {
             key: "add-dividend",
-            visible: props.showAddDividendButton,
+            visible: config.showAddDividendButton,
             onClick: () => props.setOpenAddDividend(true),
             ariaLabel: "add dividend",
             sx: {marginRight: "25px"},
@@ -36,7 +116,7 @@ export const MainBar = props => {
         },
         {
             key: "add-company",
-            visible: props.showAddCompanyButton,
+            visible: config.showAddCompanyButton,
             onClick: () => props.setOpenEditCompany({}),
             ariaLabel: "add company",
             sx: {marginRight: "25px"},
@@ -47,15 +127,15 @@ export const MainBar = props => {
     const selectors = [
         {
             key: "active",
-            visible: props.showActiveSelector,
-            values: props.activeStates,
+            visible: config.showActiveSelector,
+            values: ACTIVE_STATES,
             value: props.activeSelectorValue,
             setValue: props.setActiveSelectorValue,
             label: "all",
         },
         {
             key: "company",
-            visible: props.showCompanySelector,
+            visible: config.showCompanySelector,
             values: props.companies,
             value: props.companySelectorValue,
             setValue: props.setCompanySelectorValue,
@@ -64,7 +144,7 @@ export const MainBar = props => {
         },
         {
             key: "currency",
-            visible: props.showCurrencySelector,
+            visible: config.showCurrencySelector,
             values: props.currencies,
             value: props.currencySelectorValue,
             setValue: props.setCurrencySelectorValue,
@@ -72,15 +152,15 @@ export const MainBar = props => {
         },
         {
             key: "year",
-            visible: props.showYearSelector !== null,
-            values: props.showYearSelector,
+            visible: config.showYearSelector,
+            values: props.years,
             value: props.yearSelectorValue,
             setValue: props.setYearSelectorValue,
             label: "years",
         },
         {
             key: "sector",
-            visible: props.showSectorSelector,
+            visible: config.showSectorSelector,
             values: props.sectors,
             value: props.sectorSelectorValue,
             setValue: props.setSectorSelectorValue,
@@ -102,16 +182,15 @@ export const MainBar = props => {
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
                     <Box sx={{ display: { xs: 'block', md: 'flex' } }}>
-                        {props.showStatsTabs &&
+                        {config.showStatsTabs &&
                             <Tabs value={props.statsTabsIndex}
                                   onChange={(event, value) => props.setStatsTabsIndex(value)}
                                   TabIndicatorProps={{style: {backgroundColor: "white"}}}
                                   textColor="inherit"
                             >
-                                <Tab label="Companies"/>
-                                <Tab label="Monthly"/>
-                                <Tab label="Quarterly"/>
-                                <Tab label="Yearly"/>
+                                {STATS_TABS.map((tab) => (
+                                    <Tab key={tab} label={tab}/>
+                                ))}
                             </Tabs>
                         }
                         {actionButtons

@@ -4,9 +4,11 @@ import {recordEvent} from "../../service/utils";
 
 export const MainBarSelect = props => {
     const {values, value, setValue, label, valueKey} = props
+    const selectedValue = getSelectedValue(values, value, valueKey)
+
     return (
         <Select
-            value={value}
+            value={selectedValue}
             variant="standard"
             sx={{marginLeft: "15px", textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
                 ':not(.Mui-disabled):hover::before': { borderBottomColor: '#1976d2' },
@@ -27,4 +29,25 @@ export const MainBarSelect = props => {
             })}
         </Select>
     )
+}
+
+function getSelectedValue(values, value, valueKey) {
+    if (!value || !valueKey) {
+        return value
+    }
+
+    return values.find(option => isSameOption(option, value, valueKey)) ?? ""
+}
+
+function isSameOption(option, value, valueKey) {
+    if (option === value) {
+        return true
+    }
+    if (option.id && value.id) {
+        return option.id === value.id
+    }
+    if (option.key && value.key) {
+        return option.key === value.key
+    }
+    return option[valueKey] === value[valueKey]
 }

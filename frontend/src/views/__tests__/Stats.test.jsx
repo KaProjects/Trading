@@ -21,9 +21,7 @@ function createProps(overrides = {}) {
         yearSelectorValue: "",
         sectorSelectorValue: null,
         companySelectorValue: null,
-        showYearSelector: true,
-        showCompanySelector: true,
-        toggleStatsSelectors: jest.fn(),
+        setYears: jest.fn(),
         ...overrides,
     };
 }
@@ -184,23 +182,21 @@ describe("Stats", () => {
         expect(screen.getByText("1647.65")).toBeInTheDocument();
     });
 
-    test("updates available years when company stats load and year selector is hidden", async () => {
+    test("publishes available years when company stats load", async () => {
         mockUseData.mockReturnValue({
             data: createCompanyData(),
             loaded: true,
             error: null,
         });
 
-        const toggleStatsSelectors = jest.fn();
+        const setYears = jest.fn();
 
         render(<Stats {...createProps({
             statsTabsIndex: 0,
-            showYearSelector: false,
-            toggleStatsSelectors,
+            setYears,
         })}/>);
 
-        await waitFor(() => expect(toggleStatsSelectors).toHaveBeenCalledWith(["2024", "2023", "2022"], false, true));
-        expect(toggleStatsSelectors).toHaveBeenCalledWith(null, false, false);
+        await waitFor(() => expect(setYears).toHaveBeenCalledWith(["2024", "2023", "2022"]));
     });
 
     test("re-queries company stats when sortable header is clicked", async () => {
@@ -231,21 +227,17 @@ describe("Stats", () => {
         await waitFor(() => expect(mockUseData).toHaveBeenLastCalledWith("/stats/company?query&sort=PROFIT_USD"));
     });
 
-    test("renders quarterly period stats and enables company selector when hidden", async () => {
+    test("renders quarterly period stats", () => {
         mockUseData.mockReturnValue({
             data: createPeriodData(),
             loaded: true,
             error: null,
         });
 
-        const toggleStatsSelectors = jest.fn();
-
         render(<Stats {...createProps({
             statsTabsIndex: 2,
             companySelectorValue: {id: "company-1"},
             sectorSelectorValue: {key: "ENERGY_MINERALS"},
-            showCompanySelector: false,
-            toggleStatsSelectors,
         })}/>);
 
         expect(mockUseData).toHaveBeenCalledWith("/stats/quarterly?filter&companyId=company-1&sector=ENERGY_MINERALS");
@@ -253,9 +245,6 @@ describe("Stats", () => {
         expect(screen.getByText("2024/Q1")).toBeInTheDocument();
         expect(screen.getByText("2024/Q2")).toBeInTheDocument();
         expect(screen.getAllByText("433")).toHaveLength(2);
-
-        await waitFor(() => expect(toggleStatsSelectors).toHaveBeenCalledWith(null, true, true));
-        expect(toggleStatsSelectors).toHaveBeenCalledWith(null, false, false);
     });
 
     test("renders quarterly separator styling on the last quarter row", () => {

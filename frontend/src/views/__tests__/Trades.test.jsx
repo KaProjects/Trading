@@ -35,13 +35,11 @@ import {Trades} from "../Trades";
 function createProps(overrides = {}) {
     return {
         activeSelectorValue: "",
-        activeStates: ["Active", "Closed"],
         companySelectorValue: null,
         currencySelectorValue: "",
         yearSelectorValue: "",
         sectorSelectorValue: null,
-        showYearSelector: true,
-        toggleTradesSelectors: jest.fn(),
+        setYears: jest.fn(),
         companies: [],
         setCompanySelectorValue: jest.fn(),
         ...overrides,
@@ -154,7 +152,7 @@ describe("Trades", () => {
         expect(screen.getAllByText("2485.5")).toHaveLength(2);
     });
 
-    test("collects years from trade dates when year selector is hidden", async () => {
+    test("publishes years from trade dates", async () => {
         mockUseData.mockReturnValue({
             data: createData({
                 trades: [
@@ -227,14 +225,13 @@ describe("Trades", () => {
             error: null,
         });
 
-        const toggleTradesSelectors = jest.fn();
+        const setYears = jest.fn();
 
         render(<Trades {...createProps({
-            showYearSelector: false,
-            toggleTradesSelectors,
+            setYears,
         })}/>);
 
-        await waitFor(() => expect(toggleTradesSelectors).toHaveBeenCalledWith(["2025", "2024", "2023"]));
+        await waitFor(() => expect(setYears).toHaveBeenCalledWith(["2025", "2024", "2023"]));
     });
 
     test("selects company on ticker double click", () => {

@@ -129,16 +129,12 @@ describe("Research", () => {
     test("fetches data and renders the research view", async () => {
         axios.get.mockResolvedValue({data: createResearchData()});
 
-        const toggleRecordsSelectors = jest.fn();
-
         render(
             <Research
                 companySelectorValue={companySelectorValue}
-                toggleRecordsSelectors={toggleRecordsSelectors}
             />
         );
 
-        expect(toggleRecordsSelectors).toHaveBeenCalled();
         expect(screen.getByTestId("loader")).toBeInTheDocument();
 
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith("http://backend/research/company-1"));
@@ -162,7 +158,6 @@ describe("Research", () => {
         render(
             <Research
                 companySelectorValue={companySelectorValue}
-                toggleRecordsSelectors={jest.fn()}
             />
         );
 
@@ -177,7 +172,6 @@ describe("Research", () => {
         render(
             <Research
                 companySelectorValue={companySelectorValue}
-                toggleRecordsSelectors={jest.fn()}
             />
         );
 
@@ -207,7 +201,6 @@ describe("Research", () => {
         render(
             <Research
                 companySelectorValue={companySelectorValue}
-                toggleRecordsSelectors={jest.fn()}
             />
         );
 
@@ -224,7 +217,6 @@ describe("Research", () => {
         render(
             <Research
                 companySelectorValue={companySelectorValue}
-                toggleRecordsSelectors={jest.fn()}
             />
         );
 
@@ -248,7 +240,6 @@ describe("Research", () => {
         render(
             <Research
                 companySelectorValue={companySelectorValue}
-                toggleRecordsSelectors={jest.fn()}
             />
         );
 

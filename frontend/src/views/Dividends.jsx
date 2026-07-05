@@ -19,12 +19,12 @@ export const Dividends = props => {
     }
 
     useEffect(() => {
-        if (data && !props.showYearSelector) {
+        if (data) {
             const years = new Set([])
             data.dividends.forEach((dividend) => {
                 years.add(dividend.date.substring(0, 4))
             })
-            props.toggleDividendsSelectors([...years].sort().reverse())
+            props.setYears([...years].sort().reverse())
         }
         // eslint-disable-next-line
     }, [data])

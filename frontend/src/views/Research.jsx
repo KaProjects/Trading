@@ -25,11 +25,6 @@ const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", mi
 export const Research = props => {
     const [refresh, setRefresh] = useState("")
 
-    useEffect(() => {
-        props.toggleRecordsSelectors()
-        // eslint-disable-next-line
-    }, [])
-
     const [data, setData] = useState(null)
     const [loaded, setLoaded] = useState(false)
     const [error, setError] = useState(null)

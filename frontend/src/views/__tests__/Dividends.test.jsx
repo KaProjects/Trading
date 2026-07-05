@@ -32,8 +32,7 @@ function createProps(overrides = {}) {
         currencySelectorValue: "",
         yearSelectorValue: "",
         sectorSelectorValue: null,
-        showYearSelector: true,
-        toggleDividendsSelectors: jest.fn(),
+        setYears: jest.fn(),
         companies: [],
         setCompanySelectorValue: jest.fn(),
         ...overrides,
@@ -123,7 +122,7 @@ describe("Dividends", () => {
         expect(screen.getByText("972")).toBeInTheDocument();
     });
 
-    test("collects years from dividends when year selector is hidden", async () => {
+    test("publishes years from dividends", async () => {
         mockUseData.mockReturnValue({
             data: createData({
                 dividends: [
@@ -172,14 +171,13 @@ describe("Dividends", () => {
             error: null,
         });
 
-        const toggleDividendsSelectors = jest.fn();
+        const setYears = jest.fn();
 
         render(<Dividends {...createProps({
-            showYearSelector: false,
-            toggleDividendsSelectors,
+            setYears,
         })}/>);
 
-        await waitFor(() => expect(toggleDividendsSelectors).toHaveBeenCalledWith(["2025", "2021"]));
+        await waitFor(() => expect(setYears).toHaveBeenCalledWith(["2025", "2021"]));
     });
 
     test("selects company on ticker double click", () => {

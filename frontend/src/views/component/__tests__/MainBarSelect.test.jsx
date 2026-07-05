@@ -82,6 +82,40 @@ describe("MainBarSelect", () => {
         expect(screen.getByRole("option", {name: "AAPL"})).toBeInTheDocument();
     });
 
+    test("matches selected object by id when value is a different object instance", () => {
+        render(
+            <MainBarSelect
+                values={[
+                    {id: "company-1", ticker: "NVDA"},
+                    {id: "company-2", ticker: "AAPL"},
+                ]}
+                value={{id: "company-1", ticker: "NVDA"}}
+                setValue={jest.fn()}
+                label="companies"
+                valueKey="ticker"
+            />
+        );
+
+        expect(screen.getByRole("combobox")).toHaveTextContent("NVDA");
+    });
+
+    test("matches selected object by key when value is a different object instance", () => {
+        render(
+            <MainBarSelect
+                values={[
+                    {key: "TECH", name: "Technology"},
+                    {key: "ENERGY", name: "Energy"},
+                ]}
+                value={{key: "TECH", name: "Technology"}}
+                setValue={jest.fn()}
+                label="sectors"
+                valueKey="name"
+            />
+        );
+
+        expect(screen.getByRole("combobox")).toHaveTextContent("Technology");
+    });
+
     test("renders duplicate option labels without collapsing items", () => {
         render(
             <MainBarSelect

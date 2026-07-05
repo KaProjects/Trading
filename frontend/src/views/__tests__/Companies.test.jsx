@@ -30,9 +30,7 @@ function createProps(overrides = {}) {
     return {
         currencySelectorValue: "",
         sectorSelectorValue: null,
-        toggleCompaniesSelectors: jest.fn(),
         setOpenEditCompany: jest.fn(),
-        activeStates: ["ACTIVE", "CLOSED"],
         ...overrides,
     };
 }
@@ -101,19 +99,16 @@ describe("Companies", () => {
         expect(screen.queryByText("Ticker")).not.toBeInTheDocument();
     });
 
-    test("renders companies table and passes filters to useData", async () => {
+    test("renders companies table and passes filters to useData", () => {
         mockUseData.mockReturnValue({
             data: createData(),
             loaded: true,
             error: null,
         });
 
-        const toggleCompaniesSelectors = jest.fn();
-
         render(<Companies {...createProps({
             currencySelectorValue: "$",
             sectorSelectorValue: {key: "SEMICONDUCTORS"},
-            toggleCompaniesSelectors,
         })}/>);
 
         expect(mockUseData).toHaveBeenCalledWith("/company?query&currency=$&sector=SEMICONDUCTORS");
@@ -122,8 +117,6 @@ describe("Companies", () => {
         expect(screen.getByText("SHELL")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.getByText("Energy Minerals")).toBeInTheDocument();
-
-        await waitFor(() => expect(toggleCompaniesSelectors).toHaveBeenCalled());
     });
 
     test("re-queries companies when sortable header is clicked", async () => {

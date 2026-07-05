@@ -9,11 +9,6 @@ export const Stats = props => {
     const types = {company: "company", monthly: "monthly", quarterly: "quarterly", yearly: "yearly"}
     const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
 
-    useEffect(() => {
-        props.toggleStatsSelectors(null, false, false)
-        // eslint-disable-next-line
-    }, [])
-
     function CompanyStats(props) {
         const {type} = props
         const [sort, setSort] = useState(null)
@@ -27,8 +22,8 @@ export const Stats = props => {
         }
 
         useEffect(() => {
-            if (data && !props.showYearSelector){
-                props.toggleStatsSelectors([...data.years].sort().reverse(), false, true)
+            if (data){
+                props.setYears([...data.years].sort().reverse())
             }
             // eslint-disable-next-line
         }, [data])
@@ -115,13 +110,6 @@ export const Stats = props => {
             return "?filter" + (props.companySelectorValue ? "&companyId=" + props.companySelectorValue.id : "")
                 + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue.key : "")
         }
-
-        useEffect(() => {
-            if (data && !props.showCompanySelector){
-                props.toggleStatsSelectors(null, true, true)
-            }
-            // eslint-disable-next-line
-        }, [data])
 
         function rowStyle(index, rIndex){
             const fontWeight = ([].includes(index)) ? "bold" : "normal"

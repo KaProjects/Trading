@@ -2,6 +2,7 @@ import React from "react";
 import {fireEvent, render, screen} from "@testing-library/react";
 
 const mockNavigate = jest.fn();
+const mockUseLocation = jest.fn();
 
 jest.mock("../MainBarSelect", () => ({
     MainBarSelect: ({label}) => <div>selector:{label}</div>,
@@ -12,6 +13,7 @@ jest.mock("react-router-dom", () => {
     return {
         ...actual,
         useNavigate: () => mockNavigate,
+        useLocation: () => mockUseLocation(),
     };
 });
 
@@ -19,33 +21,25 @@ import {MainBar} from "../MainBar";
 
 function createProps(overrides = {}) {
     return {
-        showStatsTabs: false,
+        loaded: false,
         statsTabsIndex: 0,
         setStatsTabsIndex: jest.fn(),
-        showSellTradeButton: false,
+        setYears: jest.fn(),
         setOpenSellTrade: jest.fn(),
-        showAddTradeButton: false,
         setOpenAddTrade: jest.fn(),
-        showAddDividendButton: false,
         setOpenAddDividend: jest.fn(),
-        showAddCompanyButton: false,
         setOpenEditCompany: jest.fn(),
-        showActiveSelector: false,
-        activeStates: ["all", "only active"],
         activeSelectorValue: "",
         setActiveSelectorValue: jest.fn(),
-        showCompanySelector: false,
         companies: [{id: "company-1", ticker: "NVDA"}],
         companySelectorValue: "",
         setCompanySelectorValue: jest.fn(),
-        showCurrencySelector: false,
         currencies: ["$", "EUR"],
         currencySelectorValue: "",
         setCurrencySelectorValue: jest.fn(),
-        showYearSelector: null,
+        years: ["2024", "2025"],
         yearSelectorValue: "",
         setYearSelectorValue: jest.fn(),
-        showSectorSelector: false,
         sectors: [{name: "Technology"}],
         sectorSelectorValue: "",
         setSectorSelectorValue: jest.fn(),
@@ -56,18 +50,30 @@ function createProps(overrides = {}) {
 describe("MainBar", () => {
     beforeEach(() => {
         mockNavigate.mockReset();
+        mockUseLocation.mockReturnValue({pathname: "/"});
     });
 
-    test("renders enabled selectors and tabs", () => {
+    test("renders trade selectors and action buttons on trades route", () => {
+        mockUseLocation.mockReturnValue({pathname: "/trades"});
+
+        render(<MainBar {...createProps()} />);
+
+        expect(screen.getByText("selector:all")).toBeInTheDocument();
+        expect(screen.getByText("selector:companies")).toBeInTheDocument();
+        expect(screen.getByText("selector:currencies")).toBeInTheDocument();
+        expect(screen.getByText("selector:years")).toBeInTheDocument();
+        expect(screen.getByText("selector:sectors")).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "sell trade"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "add trade"})).toBeInTheDocument();
+    });
+
+    test("renders stats tabs and company stats selectors on stats route", () => {
+        mockUseLocation.mockReturnValue({pathname: "/stats"});
+
         render(
             <MainBar
                 {...createProps({
-                    showStatsTabs: true,
-                    showActiveSelector: true,
-                    showCompanySelector: true,
-                    showCurrencySelector: true,
-                    showYearSelector: ["2024", "2025"],
-                    showSectorSelector: true,
+                    statsTabsIndex: 0,
                 })}
             />
         );
@@ -76,33 +82,24 @@ describe("MainBar", () => {
         expect(screen.getByRole("tab", {name: "Monthly"})).toBeInTheDocument();
         expect(screen.getByRole("tab", {name: "Quarterly"})).toBeInTheDocument();
         expect(screen.getByRole("tab", {name: "Yearly"})).toBeInTheDocument();
-        expect(screen.getByText("selector:all")).toBeInTheDocument();
-        expect(screen.getByText("selector:companies")).toBeInTheDocument();
-        expect(screen.getByText("selector:currencies")).toBeInTheDocument();
         expect(screen.getByText("selector:years")).toBeInTheDocument();
         expect(screen.getByText("selector:sectors")).toBeInTheDocument();
+        expect(screen.queryByText("selector:companies")).not.toBeInTheDocument();
     });
 
     test("handles navigation, tab change and action buttons", () => {
+        mockUseLocation.mockReturnValue({pathname: "/trades"});
+
         const setStatsTabsIndex = jest.fn();
         const setOpenSellTrade = jest.fn();
         const setOpenAddTrade = jest.fn();
-        const setOpenAddDividend = jest.fn();
-        const setOpenEditCompany = jest.fn();
 
         render(
             <MainBar
                 {...createProps({
-                    showStatsTabs: true,
                     setStatsTabsIndex,
-                    showSellTradeButton: true,
                     setOpenSellTrade,
-                    showAddTradeButton: true,
                     setOpenAddTrade,
-                    showAddDividendButton: true,
-                    setOpenAddDividend,
-                    showAddCompanyButton: true,
-                    setOpenEditCompany,
                 })}
             />
         );
@@ -110,17 +107,23 @@ describe("MainBar", () => {
         fireEvent.click(screen.getByLabelText("open drawer"));
         expect(mockNavigate).toHaveBeenCalledWith("/");
 
-        fireEvent.click(screen.getByRole("tab", {name: "Quarterly"}));
-        expect(setStatsTabsIndex).toHaveBeenCalledWith(2);
-
         fireEvent.click(screen.getByRole("button", {name: "sell trade"}));
         fireEvent.click(screen.getByRole("button", {name: "add trade"}));
-        fireEvent.click(screen.getByRole("button", {name: "add dividend"}));
-        fireEvent.click(screen.getByRole("button", {name: "add company"}));
 
         expect(setOpenSellTrade).toHaveBeenCalledWith(true);
         expect(setOpenAddTrade).toHaveBeenCalledWith(true);
-        expect(setOpenAddDividend).toHaveBeenCalledWith(true);
-        expect(setOpenEditCompany).toHaveBeenCalledWith({});
+        expect(setStatsTabsIndex).not.toHaveBeenCalled();
+    });
+
+    test("handles stats tab change on stats route", () => {
+        mockUseLocation.mockReturnValue({pathname: "/stats"});
+
+        const setStatsTabsIndex = jest.fn();
+
+        render(<MainBar {...createProps({setStatsTabsIndex})} />);
+
+        fireEvent.click(screen.getByRole("tab", {name: "Quarterly"}));
+
+        expect(setStatsTabsIndex).toHaveBeenCalledWith(2);
     });
 });

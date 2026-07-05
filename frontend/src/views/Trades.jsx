@@ -5,6 +5,7 @@ import {Loader} from "./component/Loader";
 import {formatDate} from "../service/FormattingService";
 import {AddTradeDialog} from "../dialog/AddTradeDialog";
 import {SellTradeDialog} from "../dialog/SellTradeDialog";
+import {ACTIVE_STATES} from "./component/MainBar";
 
 
 export const Trades = props => {
@@ -12,7 +13,7 @@ export const Trades = props => {
     const {data, loaded, error} = useData("/trade" + constructQueryParams())
 
     function constructQueryParams(){
-        return "?filter" + (props.activeSelectorValue ? "&active=" + (props.activeSelectorValue === props.activeStates[0]) : "")
+        return "?filter" + (props.activeSelectorValue ? "&active=" + (props.activeSelectorValue === ACTIVE_STATES[0]) : "")
             + (props.companySelectorValue ? "&companyId=" + props.companySelectorValue.id : "")
             + (props.currencySelectorValue ? "&currency=" + props.currencySelectorValue : "")
             + (props.yearSelectorValue ? "&year=" + props.yearSelectorValue : "")
@@ -21,13 +22,13 @@ export const Trades = props => {
     }
 
     useEffect(() => {
-        if (data && !props.showYearSelector) {
+        if (data) {
             const years = new Set([])
             data.trades.forEach((trade) => {
                 years.add(trade.purchaseDate.substring(0, 4))
                 if (trade.sellDate) years.add(trade.sellDate.substring(0, 4))
             })
-            props.toggleTradesSelectors([...years].sort().reverse())
+            props.setYears([...years].sort().reverse())
         }
         // eslint-disable-next-line
     }, [data])
@@ -48,7 +49,7 @@ export const Trades = props => {
         const borderRight = ([0, 1, 6, 11, 12, 13].includes(index)) ? "1px solid lightgrey" : "0px"
         const fontFamily = "Roboto"
         let color = "primary"
-        if (props.activeSelectorValue === props.activeStates[0]){
+        if (props.activeSelectorValue === ACTIVE_STATES[0]){
             color = (index > 6) ? "#adadad" : color
             if (isProfit !== undefined) color = isProfit ? "#99bb99" : "#d99595"
         }
