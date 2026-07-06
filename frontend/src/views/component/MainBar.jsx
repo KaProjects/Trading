@@ -88,6 +88,11 @@ export const MainBar = props => {
         config.showYearSelector = props.statsTabsIndex === 0
     }
 
+    if (props.companySelectorValue) {
+        config.showCurrencySelector = false
+        config.showSectorSelector = false
+    }
+
     function loadNavigationState() {
         if (!location.state) {
             return

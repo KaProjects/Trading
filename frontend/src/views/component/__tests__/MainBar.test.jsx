@@ -70,6 +70,22 @@ describe("MainBar", () => {
         expect(screen.getByRole("button", {name: "go to research"})).toBeInTheDocument();
     });
 
+    test("hides currency and sector selectors when company is selected", () => {
+        mockUseLocation.mockReturnValue({pathname: "/trades"});
+
+        render(<MainBar {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+            currencySelectorValue: "$",
+            sectorSelectorValue: {key: "TECH", name: "Technology"},
+        })} />);
+
+        expect(screen.getByText("selector:all")).toBeInTheDocument();
+        expect(screen.getByText("selector:companies")).toBeInTheDocument();
+        expect(screen.getByText("selector:years")).toBeInTheDocument();
+        expect(screen.queryByText("selector:currencies")).not.toBeInTheDocument();
+        expect(screen.queryByText("selector:sectors")).not.toBeInTheDocument();
+    });
+
     test("renders stats tabs and company stats selectors on stats route", () => {
         mockUseLocation.mockReturnValue({pathname: "/stats"});
 

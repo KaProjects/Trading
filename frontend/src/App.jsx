@@ -28,7 +28,7 @@ export const App = () => {
     const [sectors, setSectors] = useState([]);
     const [years, setYears] = useState([]);
     const [activeSelectorValue, setActiveSelectorValue] = useState("");
-    const [companySelectorValue, setCompanySelectorValue] = useState("");
+    const [companySelectorValue, setCompanySelectorStateValue] = useState("");
     const [currencySelectorValue, setCurrencySelectorValue] = useState("");
     const [yearSelectorValue, setYearSelectorValue] = useState("");
     const [sectorSelectorValue, setSectorSelectorValue] = useState("");
@@ -51,6 +51,14 @@ export const App = () => {
                 setLoaded(false);
             });
     }, []);
+
+    function setCompanySelectorValue(company) {
+        setCompanySelectorStateValue(company);
+        if (company?.id) {
+            setCurrencySelectorValue("");
+            setSectorSelectorValue("");
+        }
+    }
 
     const props = {
         companies,
