@@ -1,5 +1,5 @@
 import React, {useEffect} from "react";
-import {AppBar, Box, Button, IconButton, Tab, Tabs, Toolbar, Typography} from "@mui/material";
+import {AppBar, Box, Button, IconButton, Tab, Tabs, Toolbar, Tooltip, Typography} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -25,6 +25,24 @@ const DEFAULT_MAIN_BAR_CONFIG = {
     showAddCompanyButton: false,
     showStatsTabs: false,
 };
+
+const researchExternalLinks = (ticker) => [
+    {
+        label: "TradingView financials",
+        icon: "https://www.google.com/s2/favicons?domain=tradingview.com&sz=32",
+        url: `https://www.tradingview.com/symbols/NASDAQ-${ticker}/financials-income-statement/?statements-period=FQ`,
+    },
+    {
+        label: "MarketBeat ratings",
+        icon: "https://www.google.com/s2/favicons?domain=marketbeat.com&sz=32",
+        url: `https://www.marketbeat.com/stocks/NASDAQ/${ticker}/forecast/#ratings-table`,
+    },
+    {
+        label: "Zacks earnings estimates",
+        icon: "https://www.google.com/s2/favicons?domain=zacks.com&sz=32",
+        url: `https://www.zacks.com/stock/quote/${ticker}/detailed-earning-estimates#detailed_earnings_estimates`,
+    },
+]
 
 const MAIN_BAR_CONFIG = {
     "/trades": {
@@ -218,23 +236,27 @@ export const MainBar = props => {
             visible: location.pathname !== "/trades" && DATA_ROUTES.includes(location.pathname),
             onClick: () => redirectTo("/trades"),
             ariaLabel: "go to trades",
-            icon: <TradesRedirectIcon style={{color: "white", width: 24, height: 24}}/>,
+            tooltip: "Go to trades",
+            icon: TradesRedirectIcon,
         },
         {
             key: "go-dividends",
             visible: location.pathname !== "/dividends" && DATA_ROUTES.includes(location.pathname),
             onClick: () => redirectTo("/dividends"),
             ariaLabel: "go to dividends",
-            icon: <DividendsRedirectIcon style={{color: "white", width: 24, height: 24}}/>,
+            tooltip: "Go to dividends",
+            icon: DividendsRedirectIcon,
         },
         {
             key: "go-research",
             visible: location.pathname !== "/research" && DATA_ROUTES.includes(location.pathname),
             onClick: () => redirectTo("/research"),
             ariaLabel: "go to research",
-            icon: <ResearchRedirectIcon style={{color: "white", width: 24, height: 24}}/>,
+            tooltip: "Go to research",
+            icon: ResearchRedirectIcon,
         },
     ]
+    const showResearchExternalLinks = location.pathname === "/research" && props.companySelectorValue?.ticker
 
     return (
         <Box sx={{ flexGrow: 1 }}>
@@ -267,6 +289,29 @@ export const MainBar = props => {
                                     {button.icon}
                                 </Button>
                             ))}
+                        {showResearchExternalLinks &&
+                            <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
+                                {researchExternalLinks(props.companySelectorValue.ticker).map((link) => (
+                                    <Tooltip key={link.label} title={link.label}>
+                                        <IconButton
+                                            component="a"
+                                            href={link.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            size="small"
+                                            sx={{width: 45, height: 30}}
+                                        >
+                                            <Box
+                                                component="img"
+                                                src={link.icon}
+                                                alt={link.label}
+                                                sx={{width: 21, height: 21}}
+                                            />
+                                        </IconButton>
+                                    </Tooltip>
+                                ))}
+                            </Box>
+                        }
                         {selectors
                             .filter((selector) => selector.visible)
                             .map((selector) => (
@@ -279,13 +324,23 @@ export const MainBar = props => {
                                     label={selector.label}
                                 />
                             ))}
-                        {pageNavigationButtons
-                            .filter((button) => button.visible)
-                            .map((button) => (
-                                <Button key={button.key} onClick={button.onClick} aria-label={button.ariaLabel}>
-                                    {button.icon}
-                                </Button>
-                            ))}
+                        <Box sx={{display: "flex", alignItems: "center", marginLeft: "8px"}}>
+                            {pageNavigationButtons
+                                .filter((button) => button.visible)
+                                .map((button) => {
+                                    const NavigationIcon = button.icon
+                                    return (
+                                        <Tooltip key={button.key} title={button.tooltip}>
+                                            <IconButton onClick={button.onClick} aria-label={button.ariaLabel} size="small" sx={{width: 50, height: 30}}>
+                                                <Box
+                                                    component={NavigationIcon}
+                                                    sx={{color: "white", width: 23, height: 23}}
+                                                />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )
+                                })}
+                        </Box>
                     </Box>
                     <Box sx={{ flexGrow: 1 }} />
                 </Toolbar>
