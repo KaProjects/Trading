@@ -22,7 +22,7 @@ function mockMatchMedia(maxWidth) {
 
 describe("PeriodFinancials", () => {
     const ttm = {
-        revenue: {value: 1500},
+        revenue: {value: 1500, margin: 100},
         grossProfit: {value: 600, margin: 40},
         operatingIncome: {value: 300, margin: 20},
         netIncome: {value: 150, margin: 10},
@@ -31,10 +31,10 @@ describe("PeriodFinancials", () => {
     const financials = [
         {
             period: {year: "2025", type: "FY"},
-            revenue: {value: 1500},
-            grossProfit: {value: 600, margin: 40},
-            operatingIncome: {value: 300, margin: 20},
-            netIncome: {value: 150, margin: 10},
+            revenue: {value: 1500, yoy: 25},
+            grossProfit: {value: 600, margin: 40, yoy: 50, qoq: 20},
+            operatingIncome: {value: 300, margin: 20, yoy: -10},
+            netIncome: {value: 150, margin: 10, qoq: 0},
             dividend: 25,
         },
         {
@@ -42,7 +42,7 @@ describe("PeriodFinancials", () => {
             revenue: {value: 1200},
             grossProfit: {value: 420, margin: 35},
             operatingIncome: {value: 180, margin: 15},
-            netIncome: {value: 120, margin: 10},
+            netIncome: {value: 0, margin: 0},
             dividend: 20,
         },
     ];
@@ -132,5 +132,9 @@ describe("PeriodFinancials", () => {
         expect(screen.getAllByText("20M")).toHaveLength(1);
         expect(screen.getAllByText("(35%)")).toHaveLength(1);
         expect(screen.getAllByText("(15%)")).toHaveLength(1);
+        expect(screen.getByText("(0%)")).toBeInTheDocument();
+        expect(screen.getByText("+50% / +20%")).toBeInTheDocument();
+        expect(screen.getByText("-10%")).toBeInTheDocument();
+        expect(screen.getByText("0%")).toBeInTheDocument();
     });
 });

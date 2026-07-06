@@ -431,6 +431,102 @@ public class PeriodServiceTest
     }
 
     @Test
+    void getBy_financialGrowth()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25Q2"), YearMonth.of(2025, 6), "150", "90", "60", "30", "5");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("25Q1"), YearMonth.of(2025, 3), "100", "60", "40", "20", "4");
+        Period period3 = Generator.generatePeriod(company, PeriodName.valueOf("24Q4"), YearMonth.of(2024, 12), "80", "40", "20", "10", "3");
+        Period period4 = Generator.generatePeriod(company, PeriodName.valueOf("24Q3"), YearMonth.of(2024, 9), "70", "35", "14", "7", "2");
+        Period period5 = Generator.generatePeriod(company, PeriodName.valueOf("24Q2"), YearMonth.of(2024, 6), "75", "45", "30", "15", "1");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3, period4, period5)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getFinancials().size(), is(5));
+
+        Periods.Financial current = periods.getFinancials().get(0);
+        assertThat(current.getPeriod(), is(period1.getName()));
+        assertMetricGrowth(current.getRevenue(), new BigDecimal("50"), new BigDecimal("100"));
+        assertMetricGrowth(current.getGrossProfit(), new BigDecimal("50"), new BigDecimal("100"));
+        assertMetricGrowth(current.getOperatingIncome(), new BigDecimal("50"), new BigDecimal("100"));
+        assertMetricGrowth(current.getNetIncome(), new BigDecimal("50"), new BigDecimal("100"));
+
+        Periods.Financial previousQuarter = periods.getFinancials().get(1);
+        assertThat(previousQuarter.getPeriod(), is(period2.getName()));
+        assertMetricGrowth(previousQuarter.getRevenue(), new BigDecimal("25"), null);
+        assertMetricGrowth(previousQuarter.getGrossProfit(), new BigDecimal("50"), null);
+        assertMetricGrowth(previousQuarter.getOperatingIncome(), new BigDecimal("100"), null);
+        assertMetricGrowth(previousQuarter.getNetIncome(), new BigDecimal("100"), null);
+
+        Periods.Financial oldest = periods.getFinancials().get(4);
+        assertThat(oldest.getPeriod(), is(period5.getName()));
+        assertMetricGrowth(oldest.getRevenue(), null, null);
+        assertMetricGrowth(oldest.getGrossProfit(), null, null);
+        assertMetricGrowth(oldest.getOperatingIncome(), null, null);
+        assertMetricGrowth(oldest.getNetIncome(), null, null);
+    }
+
+    @Test
+    void getBy_financialGrowth_halves()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25H2"), YearMonth.of(2025, 12), "200", "100", "80", "40", "8");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("25H1"), YearMonth.of(2025, 6), "160", "80", "40", "20", "6");
+        Period period3 = Generator.generatePeriod(company, PeriodName.valueOf("24H2"), YearMonth.of(2024, 12), "100", "50", "40", "10", "4");
+        Period period4 = Generator.generatePeriod(company, PeriodName.valueOf("24H1"), YearMonth.of(2024, 6), "80", "40", "20", "10", "2");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3, period4)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getFinancials().size(), is(4));
+
+        Periods.Financial current = periods.getFinancials().get(0);
+        assertThat(current.getPeriod(), is(period1.getName()));
+        assertMetricGrowth(current.getRevenue(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getGrossProfit(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getOperatingIncome(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getNetIncome(), null, new BigDecimal("300"));
+
+        Periods.Financial previousHalf = periods.getFinancials().get(1);
+        assertThat(previousHalf.getPeriod(), is(period2.getName()));
+        assertMetricGrowth(previousHalf.getRevenue(), null, new BigDecimal("100"));
+        assertMetricGrowth(previousHalf.getGrossProfit(), null, new BigDecimal("100"));
+        assertMetricGrowth(previousHalf.getOperatingIncome(), null, new BigDecimal("100"));
+        assertMetricGrowth(previousHalf.getNetIncome(), null, new BigDecimal("100"));
+    }
+
+    @Test
+    void getBy_financialGrowth_years()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25FY"), YearMonth.of(2025, 12), "1500", "900", "600", "300", "30");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("24FY"), YearMonth.of(2024, 12), "1000", "600", "300", "100", "20");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getFinancials().size(), is(2));
+
+        Periods.Financial current = periods.getFinancials().get(0);
+        assertThat(current.getPeriod(), is(period1.getName()));
+        assertMetricGrowth(current.getRevenue(), null, new BigDecimal("50"));
+        assertMetricGrowth(current.getGrossProfit(), null, new BigDecimal("50"));
+        assertMetricGrowth(current.getOperatingIncome(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getNetIncome(), null, new BigDecimal("200"));
+
+        Periods.Financial previousYear = periods.getFinancials().get(1);
+        assertThat(previousYear.getPeriod(), is(period2.getName()));
+        assertMetricGrowth(previousYear.getRevenue(), null, null);
+        assertMetricGrowth(previousYear.getGrossProfit(), null, null);
+        assertMetricGrowth(previousYear.getOperatingIncome(), null, null);
+        assertMetricGrowth(previousYear.getNetIncome(), null, null);
+    }
+
+    @Test
     void getBy_halves()
     {
         Company company = Generator.generateCompany();
@@ -570,6 +666,10 @@ public class PeriodServiceTest
         assertBigDecimals(periods.getFinancials().get(0).getNetIncome(), period2.getNetIncome());
         assertBigDecimals(periods.getFinancials().get(0).getNetIncome().getMargin(), new BigDecimal("20"));
         assertBigDecimals(periods.getFinancials().get(0).getDividend(), period2.getDividend());
+        assertMetricGrowth(periods.getFinancials().get(0).getRevenue(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(0).getGrossProfit(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(0).getOperatingIncome(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(0).getNetIncome(), null, null);
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period1.getName()));
         assertBigDecimals(periods.getFinancials().get(1).getRevenue(), period1.getRevenue());
@@ -580,6 +680,10 @@ public class PeriodServiceTest
         assertBigDecimals(periods.getFinancials().get(1).getNetIncome(), period1.getNetIncome());
         assertBigDecimals(periods.getFinancials().get(1).getNetIncome().getMargin(), new BigDecimal("10"));
         assertBigDecimals(periods.getFinancials().get(1).getDividend(), period1.getDividend());
+        assertMetricGrowth(periods.getFinancials().get(1).getRevenue(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(1).getGrossProfit(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(1).getOperatingIncome(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(1).getNetIncome(), null, null);
 
         assertThat(periods.getTtm(), is(notNullValue()));
 
@@ -666,6 +770,12 @@ public class PeriodServiceTest
     private void assertBigDecimals(Periods.Financial.Metric actual, BigDecimal expected)
     {
         assertBigDecimals(actual.getValue(), expected);
+    }
+
+    private void assertMetricGrowth(Periods.Financial.Metric actual, BigDecimal expectedQoq, BigDecimal expectedYoy)
+    {
+        assertBigDecimals(actual.getQoq(), expectedQoq);
+        assertBigDecimals(actual.getYoy(), expectedYoy);
     }
 
     private void assertBigDecimals(BigDecimal actual, BigDecimal expected)

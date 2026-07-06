@@ -14,7 +14,13 @@ import {
 import React, {useState} from "react";
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
-import {formatDecimals, formatMillions, formatPeriodName} from "../../service/FormattingService";
+import {
+    formatDecimals,
+    formatMillions,
+    formatPercent,
+    formatPeriodName,
+    isNotAValue
+} from "../../service/FormattingService";
 
 
 export const PeriodFinancials = props => {
@@ -32,21 +38,32 @@ export const PeriodFinancials = props => {
         </Box>
     }
 
-    function FinancialTableCell({value, margin, align, format}) {
+    function FinancialTableCell({value, margin, yoy, qoq}) {
+        yoy = formatPercent(yoy, true, 0)
+        qoq = formatPercent(qoq, true, 0)
+        let changesValue = ""
+        if (yoy || qoq) {
+            changesValue = (yoy ? yoy : "") + ((yoy && qoq) ? " / " : "") + (qoq ? qoq + "" : "");
+        }
         return (
-            <TableCell sx={{textAlign: align}}>
-                {margin === undefined || margin === null ? (
-                    format(value)
-                ) : (
-                    <Box sx={{display: 'flex', flexWrap: 'nowrap', justifyContent: 'flex-end', alignItems: 'flex-end'}}>
-                        <Box sx={{fontSize: 14, textAlign: "right", marginRight: "3px"}}>
-                            {format(value)}
+            <TableCell sx={{textAlign: "center"}}>
+                {!isNotAValue(margin) ?
+                    <Box sx={{display: "flex", flexDirection: "column"}}>
+                        <Box sx={{fontSize: 9, marginBottom: "-3px", color: "grey"}}>
+                            ({formatPercent(margin, false, 0)})
                         </Box>
-                        <Box sx={{fontSize: 12, textAlign: "right", marginBottom: "0px"}}>
-                            ({formatDecimals(margin, 0, 0)}%)
+                        <Box sx={{fontSize: 14}}>
+                            {value}
+                        </Box>
+                        <Box sx={{fontSize: 9, marginTop: "-3px", color: "grey"}}>
+                            {changesValue}
                         </Box>
                     </Box>
-                )}
+                    :
+                    <Box sx={{fontSize: 14}}>
+                        {value}
+                    </Box>
+                }
             </TableCell>
         )
     }
@@ -83,12 +100,12 @@ export const PeriodFinancials = props => {
                 <TableBody>
                     {financials.map((financial) => (
                         <TableRow key={formatPeriodName(financial.period)}>
-                            <FinancialTableCell value={financial.period} align="center" format={formatPeriodName}/>
-                            <FinancialTableCell value={financial.revenue.value} align="right" format={formatMillions}/>
-                            <FinancialTableCell value={financial.grossProfit.value} margin={financial.grossProfit.margin} align="right" format={formatMillions}/>
-                            <FinancialTableCell value={financial.operatingIncome.value} margin={financial.operatingIncome.margin} align="right" format={formatMillions}/>
-                            <FinancialTableCell value={financial.netIncome.value} margin={financial.netIncome.margin} align="right" format={formatMillions}/>
-                            <FinancialTableCell value={financial.dividend} align="right" format={formatMillions}/>
+                            <FinancialTableCell value={formatPeriodName(financial.period)}/>
+                            <FinancialTableCell value={formatMillions(financial.revenue.value)} yoy={financial.revenue.yoy} qoq={financial.revenue.qoq}/>
+                            <FinancialTableCell value={formatMillions(financial.grossProfit.value)} margin={financial.grossProfit.margin} yoy={financial.grossProfit.yoy} qoq={financial.grossProfit.qoq}/>
+                            <FinancialTableCell value={formatMillions(financial.operatingIncome.value)} margin={financial.operatingIncome.margin} yoy={financial.operatingIncome.yoy} qoq={financial.operatingIncome.qoq}/>
+                            <FinancialTableCell value={formatMillions(financial.netIncome.value)} margin={financial.netIncome.margin} yoy={financial.netIncome.yoy} qoq={financial.netIncome.qoq}/>
+                            <FinancialTableCell value={formatMillions(financial.dividend)}/>
                         </TableRow>
                     ))}
                 </TableBody>

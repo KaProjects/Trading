@@ -9,6 +9,7 @@ import org.kaleta.model.Periods;
 import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
+import org.kaleta.persistence.entity.PeriodType;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
@@ -32,6 +33,8 @@ public class PeriodService
     CompanyService companyService;
     @Inject
     FirebaseService firebaseService;
+    @Inject
+    ArithmeticService arithmeticService;
 
     public void create(PeriodCreateDto dto)
     {
@@ -129,7 +132,7 @@ public class PeriodService
             model.getPeriods().add(periodModel);
         }
 
-
+        computeFinancialGrowth(model.getFinancials());
 
         Period ttm = computeTtm(
                 periods.stream()
@@ -187,6 +190,8 @@ public class PeriodService
         financial.getOperatingIncome().setValue(period.getOperatingIncome());
         financial.getNetIncome().setValue(period.getNetIncome());
 
+        financial.getRevenue().setMargin(new BigDecimal(100));
+
         BigDecimal grossMargin = period.getGrossProfit().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
         financial.getGrossProfit().setMargin(grossMargin);
 
@@ -201,6 +206,76 @@ public class PeriodService
         financial.setShares(period.getShares());
 
         return financial;
+    }
+
+    private void computeFinancialGrowth(List<Periods.Financial> financials)
+    {
+        if (financials.isEmpty()) {
+            return;
+        }
+
+        if (allOfType(financials, PeriodType.Q1, PeriodType.Q2, PeriodType.Q3, PeriodType.Q4)) {
+            computeFinancialGrowth(financials, 1, 4);
+            return;
+        }
+
+        if (allOfType(financials, PeriodType.H1, PeriodType.H2)) {
+            computeFinancialGrowth(financials, null, 2);
+            return;
+        }
+
+        if (allOfType(financials, PeriodType.FY)) {
+            computeFinancialGrowth(financials, null, 1);
+        }
+    }
+
+    private void computeFinancialGrowth(List<Periods.Financial> financials, Integer qoqOffset, int yoyOffset)
+    {
+        for (int i = 0; i < financials.size(); i++) {
+            Periods.Financial current = financials.get(i);
+            Periods.Financial previousPeriod = qoqOffset == null || financials.size() <= i + qoqOffset ? null : financials.get(i + qoqOffset);
+            Periods.Financial previousYear = financials.size() <= i + yoyOffset ? null : financials.get(i + yoyOffset);
+
+            computeMetricGrowth(
+                    current.getRevenue(),
+                    previousPeriod == null ? null : previousPeriod.getRevenue(),
+                    previousYear == null ? null : previousYear.getRevenue());
+            computeMetricGrowth(
+                    current.getGrossProfit(),
+                    previousPeriod == null ? null : previousPeriod.getGrossProfit(),
+                    previousYear == null ? null : previousYear.getGrossProfit());
+            computeMetricGrowth(
+                    current.getOperatingIncome(),
+                    previousPeriod == null ? null : previousPeriod.getOperatingIncome(),
+                    previousYear == null ? null : previousYear.getOperatingIncome());
+            computeMetricGrowth(
+                    current.getNetIncome(),
+                    previousPeriod == null ? null : previousPeriod.getNetIncome(),
+                    previousYear == null ? null : previousYear.getNetIncome());
+        }
+    }
+
+    private boolean allOfType(List<Periods.Financial> financials, PeriodType... types)
+    {
+        List<PeriodType> expectedTypes = List.of(types);
+        return financials.stream()
+                .map(financial -> financial.getPeriod().getType())
+                .allMatch(expectedTypes::contains);
+    }
+
+    private void computeMetricGrowth(Periods.Financial.Metric current,
+                                     Periods.Financial.Metric previousQuarter,
+                                     Periods.Financial.Metric previousYear)
+    {
+        if (current.getValue() == null) {
+            return;
+        }
+        if (previousQuarter != null && previousQuarter.getValue() != null) {
+            current.setQoq(arithmeticService.profitPercentage(previousQuarter.getValue(), current.getValue()));
+        }
+        if (previousYear != null && previousYear.getValue() != null) {
+            current.setYoy(arithmeticService.profitPercentage(previousYear.getValue(), current.getValue()));
+        }
     }
 
     private Period computeTtm(List<Period> periods)

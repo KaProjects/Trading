@@ -26,10 +26,11 @@ INSERT INTO Record (id, companyId, date, title, price, content) VALUES ('e9cf62c
 INSERT INTO Record (id, companyId, date, title, price, content) VALUES ('xxcf62c8-76e3-4b93-88b3-09a473f54f38', 'e7c49260-53da-42c1-0123-eccf6ed928a7', '2025-05-11', 'x', '400.5', '[{"type": "paragraph", "children": [{ "text": "XXXXX" }]}]');
 
 
-INSERT INTO Period (id, companyId, name, ending_month, price_high, price_low) VALUES ('01596f61-19f6-409e-87b9-2bbc6b9b59a6', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '24Q4', '2501', '120', '80');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES ('01596f61-19f6-409e-87b9-2bbc6b9b59a6', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '24Q4', '2501', '2025-02-15', '1200', '720', '480', '240', '30', '1000', '120', '80');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares) VALUES ('4e3d8f8a-276f-46d6-b7d7-f5f13cfd7810', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '24Q3', '2410', '2024-11-15', '1000', '500', '300', '80', '20', '1000');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES ('f3ddc6a0-86c0-40f2-b0c7-0b74a1cf1b9a', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '24Q2', '2407', '2024-08-15', '800', '400', '200', '0', '10');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES ('f9a26de4-6c9c-4f6b-8b79-0f4d6a58e671', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '24Q1', '2404', '2024-02-15', '1234', '456', '123', '11', '7');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES ('8a30c65d-56d2-4a0a-a462-d833fbd2f990', 'e7c49260-53da-42c1-80cf-eccf6ed928a7', '23Q4', '2401', '2024-02-01', '900', '450', '240', '120', '15');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES ('xx596f61-19f6-409e-87b9-2bbc6b9b59a6', 'e7c49260-53da-42c1-0123-eccf6ed928a7', '25Q3', '2508');
 
 
