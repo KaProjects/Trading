@@ -22,36 +22,27 @@ function mockMatchMedia(maxWidth) {
 
 describe("PeriodFinancials", () => {
     const ttm = {
-        revenue: 1500,
-        grossProfit: 600,
-        grossMargin: 40,
-        operatingIncome: 300,
-        operatingMargin: 20,
-        netIncome: 150,
-        netMargin: 10,
+        revenue: {value: 1500},
+        grossProfit: {value: 600, margin: 40},
+        operatingIncome: {value: 300, margin: 20},
+        netIncome: {value: 150, margin: 10},
     };
 
     const financials = [
         {
             period: {year: "2025", type: "FY"},
-            revenue: 1500,
-            grossProfit: 600,
-            grossMargin: 40,
-            operatingIncome: 300,
-            operatingMargin: 20,
-            netIncome: 150,
-            netMargin: 10,
+            revenue: {value: 1500},
+            grossProfit: {value: 600, margin: 40},
+            operatingIncome: {value: 300, margin: 20},
+            netIncome: {value: 150, margin: 10},
             dividend: 25,
         },
         {
             period: {year: "2024", type: "FY"},
-            revenue: 1200,
-            grossProfit: 420,
-            grossMargin: 35,
-            operatingIncome: 180,
-            operatingMargin: 15,
-            netIncome: 120,
-            netMargin: 10,
+            revenue: {value: 1200},
+            grossProfit: {value: 420, margin: 35},
+            operatingIncome: {value: 180, margin: 15},
+            netIncome: {value: 120, margin: 10},
             dividend: 20,
         },
     ];

@@ -32,10 +32,10 @@ describe("Period", () => {
                     priceLow: 10,
                     financial: {
                         dividend: 12,
-                        revenue: 300,
-                        grossProfit: 200,
-                        operatingIncome: 100,
-                        netIncome: 50,
+                        revenue: {value: 300},
+                        grossProfit: {value: 200},
+                        operatingIncome: {value: 100},
+                        netIncome: {value: 50},
                     },
                 }}
                 currency={"$"}

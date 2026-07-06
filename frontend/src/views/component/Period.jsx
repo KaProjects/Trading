@@ -50,10 +50,10 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
                             + " | Dividend: " + formatMillions(period.financial.dividend)}
                     </Typography>
                     <Typography sx={{color: 'text.secondary', fontSize: 14}} >
-                        {"Revenue: " + formatMillions(period.financial.revenue)
-                            + " | Gross P.: " + formatMillions(period.financial.grossProfit)
-                            + " | Op. Inc.: " + formatMillions(period.financial.operatingIncome)
-                            + " | Net Income: " + formatMillions(period.financial.netIncome)}
+                        {"Revenue: " + formatMillions(period.financial.revenue.value)
+                            + " | Gross P.: " + formatMillions(period.financial.grossProfit.value)
+                            + " | Op. Inc.: " + formatMillions(period.financial.operatingIncome.value)
+                            + " | Net Income: " + formatMillions(period.financial.netIncome.value)}
                     </Typography>
                 </>
             }

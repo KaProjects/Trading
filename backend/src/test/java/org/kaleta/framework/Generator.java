@@ -175,14 +175,14 @@ public class Generator
         Periods.Financial financial = new Periods.Financial();
         financial.setPeriod(PeriodName.valueOf(String.format("%02d", RANDOM.nextInt(100))
                 + List.of("FY", "H1", "H2", "Q1", "Q2", "Q3", "Q4").get(RANDOM.nextInt(7))));
-        financial.setRevenue(randomBigDecimal(new BigDecimal(999999), 2));
-        financial.setGrossProfit(randomBigDecimal(financial.getRevenue(), 2));
-        financial.setGrossMargin(financial.getGrossProfit().multiply(new BigDecimal(100)).divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
-        financial.setOperatingIncome(randomBigDecimal(financial.getGrossProfit(), 2));
-        financial.setOperatingMargin(financial.getOperatingIncome().multiply(new BigDecimal(100)).divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
-        financial.setNetIncome(randomBigDecimal(financial.getOperatingIncome(), 2));
-        financial.setNetMargin(financial.getNetIncome().multiply(new BigDecimal(100)).divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
-        financial.setDividend(randomBigDecimal(financial.getNetIncome(), 2));
+        financial.getRevenue().setValue(randomBigDecimal(new BigDecimal(999999), 2));
+        financial.getGrossProfit().setValue(randomBigDecimal(financial.getRevenue().getValue(), 2));
+        financial.getGrossProfit().setMargin(financial.getGrossProfit().getValue().multiply(new BigDecimal(100)).divide(financial.getRevenue().getValue(), 2, RoundingMode.HALF_UP));
+        financial.getOperatingIncome().setValue(randomBigDecimal(financial.getGrossProfit().getValue(), 2));
+        financial.getOperatingIncome().setMargin(financial.getOperatingIncome().getValue().multiply(new BigDecimal(100)).divide(financial.getRevenue().getValue(), 2, RoundingMode.HALF_UP));
+        financial.getNetIncome().setValue(randomBigDecimal(financial.getOperatingIncome().getValue(), 2));
+        financial.getNetIncome().setMargin(financial.getNetIncome().getValue().multiply(new BigDecimal(100)).divide(financial.getRevenue().getValue(), 2, RoundingMode.HALF_UP));
+        financial.setDividend(randomBigDecimal(financial.getNetIncome().getValue(), 2));
         financial.setShares(randomBigDecimal(new BigDecimal(999999), 2));
         return financial;
     }

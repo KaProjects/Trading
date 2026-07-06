@@ -128,6 +128,9 @@ public class PeriodService
             }
             model.getPeriods().add(periodModel);
         }
+
+
+
         Period ttm = computeTtm(
                 periods.stream()
                         .filter(p -> p.getRevenue() != null)
@@ -179,19 +182,19 @@ public class PeriodService
         Periods.Financial financial = new Periods.Financial();
 
         financial.setPeriod(period.getName());
-        financial.setRevenue(period.getRevenue());
-        financial.setGrossProfit(period.getGrossProfit());
-        financial.setOperatingIncome(period.getOperatingIncome());
-        financial.setNetIncome(period.getNetIncome());
+        financial.getRevenue().setValue(period.getRevenue());
+        financial.getGrossProfit().setValue(period.getGrossProfit());
+        financial.getOperatingIncome().setValue(period.getOperatingIncome());
+        financial.getNetIncome().setValue(period.getNetIncome());
 
-        BigDecimal grossMargin = financial.getGrossProfit().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        financial.setGrossMargin(grossMargin);
+        BigDecimal grossMargin = period.getGrossProfit().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
+        financial.getGrossProfit().setMargin(grossMargin);
 
-        BigDecimal operatingMargin = financial.getOperatingIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        financial.setOperatingMargin(operatingMargin);
+        BigDecimal operatingMargin = period.getOperatingIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
+        financial.getOperatingIncome().setMargin(operatingMargin);
 
         BigDecimal netMargin = period.getNetIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        financial.setNetMargin(netMargin);
+        financial.getNetIncome().setMargin(netMargin);
 
         financial.setDividend(period.getDividend());
 

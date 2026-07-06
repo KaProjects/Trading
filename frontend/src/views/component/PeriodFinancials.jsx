@@ -57,10 +57,10 @@ export const PeriodFinancials = props => {
         <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
             {ttm && (
                 <>
-                    <FinancialSummaryItem value={ttm.revenue} label="revenue" margin={100}/>
-                    <FinancialSummaryItem value={ttm.grossProfit} label="gross profit" margin={ttm.grossMargin}/>
-                    <FinancialSummaryItem value={ttm.operatingIncome} label="operating income" margin={ttm.operatingMargin}/>
-                    <FinancialSummaryItem value={ttm.netIncome} label="net income" margin={ttm.netMargin}/>
+                    <FinancialSummaryItem value={ttm.revenue.value} label="revenue" margin={ttm.revenue.margin}/>
+                    <FinancialSummaryItem value={ttm.grossProfit.value} label="gross profit" margin={ttm.grossProfit.margin}/>
+                    <FinancialSummaryItem value={ttm.operatingIncome.value} label="operating income" margin={ttm.operatingIncome.margin}/>
+                    <FinancialSummaryItem value={ttm.netIncome.value} label="net income" margin={ttm.netIncome.margin}/>
                     {(isNarrowScreen || showExpand || expand) &&
                         <Button sx={{height: "25px"}} onClick={() => setExpand(!expand)}>
                             <>{!expand && <ArrowDropDownIcon/>}{expand && <ArrowDropUpIcon/>}</>
@@ -84,10 +84,10 @@ export const PeriodFinancials = props => {
                     {financials.map((financial) => (
                         <TableRow key={formatPeriodName(financial.period)}>
                             <FinancialTableCell value={financial.period} align="center" format={formatPeriodName}/>
-                            <FinancialTableCell value={financial.revenue} align="right" format={formatMillions}/>
-                            <FinancialTableCell value={financial.grossProfit} margin={financial.grossMargin} align="right" format={formatMillions}/>
-                            <FinancialTableCell value={financial.operatingIncome} margin={financial.operatingMargin} align="right" format={formatMillions}/>
-                            <FinancialTableCell value={financial.netIncome} margin={financial.netMargin} align="right" format={formatMillions}/>
+                            <FinancialTableCell value={financial.revenue.value} align="right" format={formatMillions}/>
+                            <FinancialTableCell value={financial.grossProfit.value} margin={financial.grossProfit.margin} align="right" format={formatMillions}/>
+                            <FinancialTableCell value={financial.operatingIncome.value} margin={financial.operatingIncome.margin} align="right" format={formatMillions}/>
+                            <FinancialTableCell value={financial.netIncome.value} margin={financial.netIncome.margin} align="right" format={formatMillions}/>
                             <FinancialTableCell value={financial.dividend} align="right" format={formatMillions}/>
                         </TableRow>
                     ))}

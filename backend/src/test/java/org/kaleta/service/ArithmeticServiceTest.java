@@ -56,10 +56,10 @@ public class ArithmeticServiceTest
         BigDecimal marketCap = new BigDecimal("1000000");
 
         Periods.Financial financial = new Periods.Financial();
-        financial.setRevenue(new BigDecimal("10000"));
-        financial.setGrossProfit(new BigDecimal("5000"));
-        financial.setOperatingIncome(new BigDecimal("2000"));
-        financial.setNetIncome(new BigDecimal("1000"));
+        financial.getRevenue().setValue(new BigDecimal("10000"));
+        financial.getGrossProfit().setValue(new BigDecimal("5000"));
+        financial.getOperatingIncome().setValue(new BigDecimal("2000"));
+        financial.getNetIncome().setValue(new BigDecimal("1000"));
         financial.setDividend(new BigDecimal("100"));
 
         PriceIndicators.Financial ttmRatios = arithmeticService.computeFinancialRatios(marketCap, financial);
@@ -85,10 +85,10 @@ public class ArithmeticServiceTest
         BigDecimal marketCap = new BigDecimal("1000000");
 
         Periods.Financial financial = new Periods.Financial();
-        financial.setRevenue(new BigDecimal("-10000"));
-        financial.setGrossProfit(new BigDecimal("-5000"));
-        financial.setOperatingIncome(new BigDecimal("-2000"));
-        financial.setNetIncome(new BigDecimal("-1000"));
+        financial.getRevenue().setValue(new BigDecimal("-10000"));
+        financial.getGrossProfit().setValue(new BigDecimal("-5000"));
+        financial.getOperatingIncome().setValue(new BigDecimal("-2000"));
+        financial.getNetIncome().setValue(new BigDecimal("-1000"));
         financial.setDividend(new BigDecimal("-100"));
 
         PriceIndicators.Financial ttmRatios = arithmeticService.computeFinancialRatios(marketCap, financial);
@@ -159,10 +159,10 @@ public class ArithmeticServiceTest
         Company company = Generator.generateCompany();
         Latest latest = Generator.generateLatest(company);
         Periods.Financial ttm = Generator.generatePeriodsFinancial();
-        ttm.setRevenue(new BigDecimal("-10000"));
-        ttm.setGrossProfit(new BigDecimal("-5000"));
-        ttm.setOperatingIncome(new BigDecimal("-2000"));
-        ttm.setNetIncome(new BigDecimal("-1000"));
+        ttm.getRevenue().setValue(new BigDecimal("-10000"));
+        ttm.getGrossProfit().setValue(new BigDecimal("-5000"));
+        ttm.getOperatingIncome().setValue(new BigDecimal("-2000"));
+        ttm.getNetIncome().setValue(new BigDecimal("-1000"));
         ttm.setDividend(new BigDecimal("-100"));
 
         PriceIndicators indicators = arithmeticService.computeIndicators(latest, ttm);
@@ -189,10 +189,10 @@ public class ArithmeticServiceTest
 
         latest.setPrice(new BigDecimal("10000"));
         ttm.setShares(new BigDecimal("10000"));
-        ttm.setRevenue(new BigDecimal("100"));
-        ttm.setGrossProfit(new BigDecimal("80"));
-        ttm.setOperatingIncome(new BigDecimal("60"));
-        ttm.setNetIncome(new BigDecimal("40"));
+        ttm.getRevenue().setValue(new BigDecimal("100"));
+        ttm.getGrossProfit().setValue(new BigDecimal("80"));
+        ttm.getOperatingIncome().setValue(new BigDecimal("60"));
+        ttm.getNetIncome().setValue(new BigDecimal("40"));
         ttm.setDividend(new BigDecimal("2000000000"));
 
         PriceIndicators indicators = arithmeticService.computeIndicators(latest, ttm);
