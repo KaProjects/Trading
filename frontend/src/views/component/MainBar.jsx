@@ -161,32 +161,36 @@ export const MainBar = props => {
             visible: config.showSellTradeButton,
             onClick: () => props.setOpenSellTrade(true),
             ariaLabel: "sell trade",
-            sx: {},
-            icon: <RemoveCircleOutlineIcon sx={{color: '#ff9f9f'}}/>,
+            tooltip: "Sell trade",
+            color: "#ff9f9f",
+            icon: RemoveCircleOutlineIcon,
         },
         {
             key: "add-trade",
             visible: config.showAddTradeButton,
             onClick: () => props.setOpenAddTrade(true),
             ariaLabel: "add trade",
-            sx: {marginRight: "25px"},
-            icon: <ControlPointIcon sx={{color: 'lightgreen'}}/>,
+            tooltip: "Add trade",
+            color: "lightgreen",
+            icon: ControlPointIcon,
         },
         {
             key: "add-dividend",
             visible: config.showAddDividendButton,
             onClick: () => props.setOpenAddDividend(true),
             ariaLabel: "add dividend",
-            sx: {marginRight: "25px"},
-            icon: <ControlPointIcon sx={{color: 'lightgreen'}}/>,
+            tooltip: "Add dividend",
+            color: "lightgreen",
+            icon: ControlPointIcon,
         },
         {
             key: "add-company",
             visible: config.showAddCompanyButton,
             onClick: () => props.setOpenEditCompany({}),
             ariaLabel: "add company",
-            sx: {marginRight: "25px"},
-            icon: <ControlPointIcon sx={{color: 'lightgreen'}}/>,
+            tooltip: "Add company",
+            color: "lightgreen",
+            icon: ControlPointIcon,
         },
     ]
 
@@ -262,6 +266,8 @@ export const MainBar = props => {
         },
     ]
     const showResearchExternalLinks = location.pathname === "/research" && props.companySelectorValue?.ticker
+    const visibleActionButtons = actionButtons.filter((button) => button.visible)
+    const visiblePageNavigationButtons = pageNavigationButtons.filter((button) => button.visible)
 
     return (
         <Box sx={{ flexGrow: 1 }}>
@@ -287,13 +293,23 @@ export const MainBar = props => {
                                 ))}
                             </Tabs>
                         }
-                        {actionButtons
-                            .filter((button) => button.visible)
-                            .map((button) => (
-                                <Button key={button.key} onClick={button.onClick} aria-label={button.ariaLabel} sx={button.sx}>
-                                    {button.icon}
-                                </Button>
-                            ))}
+                        {visibleActionButtons.length > 0 &&
+                            <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
+                                {visibleActionButtons.map((button) => {
+                                    const ActionIcon = button.icon
+                                    return (
+                                        <Tooltip key={button.key} title={button.tooltip}>
+                                            <IconButton onClick={button.onClick} aria-label={button.ariaLabel} size="small" sx={{width: 45, height: 30}}>
+                                                <Box
+                                                    component={ActionIcon}
+                                                    sx={{color: button.color, width: 23, height: 23}}
+                                                />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )
+                                })}
+                            </Box>
+                        }
                         {showResearchExternalLinks &&
                             <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
                                 {researchExternalLinks(props.companySelectorValue.ticker).map((link) => (
@@ -329,10 +345,9 @@ export const MainBar = props => {
                                     label={selector.label}
                                 />
                             ))}
-                        <Box sx={{display: "flex", alignItems: "center", marginLeft: "8px"}}>
-                            {pageNavigationButtons
-                                .filter((button) => button.visible)
-                                .map((button) => {
+                        {visiblePageNavigationButtons.length > 0 &&
+                            <Box sx={{display: "flex", alignItems: "center", marginLeft: "8px"}}>
+                                {visiblePageNavigationButtons.map((button) => {
                                     const NavigationIcon = button.icon
                                     return (
                                         <Tooltip key={button.key} title={button.tooltip}>
@@ -345,7 +360,8 @@ export const MainBar = props => {
                                         </Tooltip>
                                     )
                                 })}
-                        </Box>
+                            </Box>
+                        }
                     </Box>
                     <Box sx={{ flexGrow: 1 }} />
                 </Toolbar>
