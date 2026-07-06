@@ -1,9 +1,10 @@
 import React, {useEffect} from "react";
-import {AppBar, Box, Button, IconButton, Tab, Tabs, Toolbar, Tooltip, Typography} from "@mui/material";
+import {AppBar, Box, Button, IconButton, Tab, Tabs, Toolbar, Typography} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import {MainBarSelect} from "./MainBarSelect";
+import {MainBarIconButton} from "./MainBarIconButton";
 import {useLocation, useNavigate} from "react-router-dom";
 import {ReactComponent as TradesRedirectIcon} from "../../assets/icons/trades-redirect.svg";
 import {ReactComponent as DividendsRedirectIcon} from "../../assets/icons/dividends-redirect.svg";
@@ -295,41 +296,32 @@ export const MainBar = props => {
                         }
                         {visibleActionButtons.length > 0 &&
                             <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
-                                {visibleActionButtons.map((button) => {
-                                    const ActionIcon = button.icon
-                                    return (
-                                        <Tooltip key={button.key} title={button.tooltip}>
-                                            <IconButton onClick={button.onClick} aria-label={button.ariaLabel} size="small" sx={{width: 45, height: 30}}>
-                                                <Box
-                                                    component={ActionIcon}
-                                                    sx={{color: button.color, width: 23, height: 23}}
-                                                />
-                                            </IconButton>
-                                        </Tooltip>
-                                    )
-                                })}
+                                {visibleActionButtons.map((button) => (
+                                    <MainBarIconButton
+                                        key={button.key}
+                                        tooltip={button.tooltip}
+                                        ariaLabel={button.ariaLabel}
+                                        onClick={button.onClick}
+                                        icon={button.icon}
+                                        color={button.color}
+                                        buttonSx={{width: 45, height: 30}}
+                                        iconSx={{width: 23, height: 23}}
+                                    />
+                                ))}
                             </Box>
                         }
                         {showResearchExternalLinks &&
                             <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
                                 {researchExternalLinks(props.companySelectorValue.ticker).map((link) => (
-                                    <Tooltip key={link.label} title={link.label}>
-                                        <IconButton
-                                            component="a"
-                                            href={link.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            size="small"
-                                            sx={{width: 45, height: 30}}
-                                        >
-                                            <Box
-                                                component="img"
-                                                src={link.icon}
-                                                alt={link.label}
-                                                sx={{width: 21, height: 21}}
-                                            />
-                                        </IconButton>
-                                    </Tooltip>
+                                    <MainBarIconButton
+                                        key={link.label}
+                                        tooltip={link.label}
+                                        href={link.url}
+                                        image={link.icon}
+                                        alt={link.label}
+                                        buttonSx={{width: 45, height: 30}}
+                                        iconSx={{width: 21, height: 21}}
+                                    />
                                 ))}
                             </Box>
                         }
@@ -347,19 +339,18 @@ export const MainBar = props => {
                             ))}
                         {visiblePageNavigationButtons.length > 0 &&
                             <Box sx={{display: "flex", alignItems: "center", marginLeft: "8px"}}>
-                                {visiblePageNavigationButtons.map((button) => {
-                                    const NavigationIcon = button.icon
-                                    return (
-                                        <Tooltip key={button.key} title={button.tooltip}>
-                                            <IconButton onClick={button.onClick} aria-label={button.ariaLabel} size="small" sx={{width: 50, height: 30}}>
-                                                <Box
-                                                    component={NavigationIcon}
-                                                    sx={{color: "white", width: 23, height: 23}}
-                                                />
-                                            </IconButton>
-                                        </Tooltip>
-                                    )
-                                })}
+                                {visiblePageNavigationButtons.map((button) => (
+                                    <MainBarIconButton
+                                        key={button.key}
+                                        tooltip={button.tooltip}
+                                        ariaLabel={button.ariaLabel}
+                                        onClick={button.onClick}
+                                        icon={button.icon}
+                                        color="white"
+                                        buttonSx={{width: 50, height: 30}}
+                                        iconSx={{width: 23, height: 23}}
+                                    />
+                                ))}
                             </Box>
                         }
                     </Box>

@@ -221,6 +221,31 @@ describe("MainBar", () => {
         expect(screen.queryByRole("button", {name: "go to research"})).not.toBeInTheDocument();
     });
 
+    test("renders research external links when company is selected on research route", () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+
+        render(<MainBar {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+        })} />);
+
+        expect(screen.getByRole("link", {name: "TradingView financials"}))
+            .toHaveAttribute("href", "https://www.tradingview.com/symbols/NASDAQ-NVDA/financials-income-statement/?statements-period=FQ");
+        expect(screen.getByRole("link", {name: "MarketBeat ratings"}))
+            .toHaveAttribute("href", "https://www.marketbeat.com/stocks/NASDAQ/NVDA/forecast/#ratings-table");
+        expect(screen.getByRole("link", {name: "Zacks earnings estimates"}))
+            .toHaveAttribute("href", "https://www.zacks.com/stock/quote/NVDA/detailed-earning-estimates#detailed_earnings_estimates");
+    });
+
+    test("does not render research external links without selected company", () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+
+        render(<MainBar {...createProps()} />);
+
+        expect(screen.queryByRole("link", {name: "TradingView financials"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", {name: "MarketBeat ratings"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", {name: "Zacks earnings estimates"})).not.toBeInTheDocument();
+    });
+
     test("navigates between data routes with current selector state", () => {
         mockUseLocation.mockReturnValue({pathname: "/research", state: null});
 
