@@ -69,7 +69,10 @@ export const SellTradeDialog = props => {
         if (company){
             axios.get(backend + "/trade?active=true&companyId=" + company.id)
                 .then((response) => {
-                    setTrades(response.data.trades)
+                    setTrades(response.data.trades.map(trade => ({
+                        ...trade,
+                        sellQuantity: trade.sellQuantity == null ? "" : String(trade.sellQuantity),
+                    })))
                 }).catch((error) => {setAlert(formatError(error))})
         }
         setCompany(company)
@@ -146,7 +149,12 @@ export const SellTradeDialog = props => {
                                         required={false}
                                         id="trader-sell-trade-quantity"
                                         value={trade.sellQuantity ? trade.sellQuantity : ""}
-                                        onChange={(e) => {const newTrades = [...trades];newTrades[index].sellQuantity = e.target.value; setTrades([...newTrades]); setAlert(null);}}
+                                        onChange={(e) => {
+                                            setTrades(prev => prev.map((trade, i) =>
+                                                i === index ? {...trade, sellQuantity: e.target.value} : trade
+                                            ));
+                                            setAlert(null);
+                                        }}
                                         validate={() => validateSellQuantity(trade)}
                                     />
                                 </TableCell>

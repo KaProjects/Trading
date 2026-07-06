@@ -87,6 +87,7 @@ describe("SellTradeDialog", () => {
                         id: "trade-1",
                         purchaseDate: "2024-01-01",
                         purchaseQuantity: 5,
+                        sellQuantity: 5,
                         purchasePrice: 100,
                         purchaseFees: 1,
                         purchaseTotal: 501,
@@ -112,6 +113,7 @@ describe("SellTradeDialog", () => {
 
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith("http://backend/trade?active=true&companyId=company-1"));
         expect(await screen.findByText("2024-01-01")).toBeInTheDocument();
+        expect(screen.queryByText("not a string")).not.toBeInTheDocument();
 
         fireEvent.change(screen.getByTestId("trader-sell-trade-date"), {target: {value: "2024-04-15"}});
         fireEvent.change(screen.getByLabelText("Price"), {target: {value: "140"}});
