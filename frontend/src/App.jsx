@@ -52,47 +52,51 @@ export const App = () => {
             });
     }, []);
 
-    const appProps = {
+    const props = {
         companies,
         currencies,
         sectors,
+
         years,
-        activeSelectorValue,
-        companySelectorValue,
-        currencySelectorValue,
-        yearSelectorValue,
-        sectorSelectorValue,
-        openAddTrade,
-        openSellTrade,
-        openAddDividend,
-        openEditCompany,
-        statsTabsIndex,
         setYears,
+
+        activeSelectorValue,
         setActiveSelectorValue,
+        companySelectorValue,
         setCompanySelectorValue,
+        currencySelectorValue,
         setCurrencySelectorValue,
+        yearSelectorValue,
         setYearSelectorValue,
+        sectorSelectorValue,
         setSectorSelectorValue,
+
+        openAddTrade,
         setOpenAddTrade,
+        openSellTrade,
         setOpenSellTrade,
+        openAddDividend,
         setOpenAddDividend,
+        openEditCompany,
         setOpenEditCompany,
+
+        statsTabsIndex,
         setStatsTabsIndex,
     };
 
     return (
         <BrowserRouter>
-            <MainBar {...appProps} />
+            <MainBar {...props} />
             {!loaded && <Loader error={error}/>}
             {loaded &&
                 <Routes>
-                    <Route exact path="/" element={<Home {...appProps}/>}/>
-                    <Route exact path="/trades" element={<Trades {...appProps}/>}/>
-                    <Route exact path="/research" element={<Research {...appProps}/>}/>
-                    <Route exact path="/dividends" element={<Dividends {...appProps}/>}/>
-                    <Route exact path="/stats" element={<Stats {...appProps}/>}/>
-                    <Route exact path="/companies" element={<Companies {...appProps}/>}/>
-                    <Route exact path="/analytics" element={<Analytics {...appProps}/>}/>
+                    <Route exact path="/" element={<Home {...props}/>}/>
+                    <Route exact path="/trades" element={<Trades {...props}/>}/>
+                    <Route exact path="/research" element={<Research {...props}/>}/>
+                    <Route exact path="/dividends" element={<Dividends {...props}/>}/>
+                    <Route exact path="/stats" element={<Stats {...props}/>}/>
+                    <Route exact path="/companies" element={<Companies {...props}/>}/>
+                    <Route exact path="/analytics" element={<Analytics {...props}/>}/>
                     <Route path="*" element={<PageNotFound/>}/>
                 </Routes>
             }

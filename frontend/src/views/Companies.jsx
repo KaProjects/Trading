@@ -8,9 +8,11 @@ import EditNoteIcon from '@mui/icons-material/EditNote';
 import {recordEvent} from "../service/utils";
 import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
 import {ACTIVE_STATES} from "./component/MainBar";
+import {useNavigate} from "react-router-dom";
 
 
 export const Companies = props => {
+    const navigate = useNavigate()
     const [sort, setSort] = useState(null)
     const [refresh, setRefresh] = useState("")
     const {data, loaded, error} = useData("/company" + constructQueryParams())
@@ -44,11 +46,14 @@ export const Companies = props => {
     }
 
     function redirect(companyId, href, tradeState, showFinancials) {
-        sessionStorage.setItem('companyId', companyId);
-        if (tradeState) sessionStorage.setItem('tradeState', tradeState);
-        if (showFinancials) sessionStorage.setItem('showFinancials', showFinancials);
         recordEvent(window.location.pathname + "#redirect:" + href);
-        window.location.href=href
+        navigate(href, {
+            state: {
+                companyId: companyId,
+                tradeState: tradeState,
+                showFinancials: showFinancials,
+            },
+        })
     }
 
     function TableCellWithAction({index, value, action}) {

@@ -66,28 +66,38 @@ export const MainBar = props => {
         config.showYearSelector = props.statsTabsIndex === 0
     }
 
-    function loadStorageStates() {
-        const companyId = sessionStorage.getItem('companyId')
-        if (companyId) {
-            const company = props.companies.find(company => company.id === companyId)
+    function loadNavigationState() {
+        if (!location.state) {
+            return
+        }
+        const remainingState = {...location.state}
+        let consumed = false
+
+        if (location.state.companyId) {
+            const company = props.companies.find(company => company.id === location.state.companyId)
             if (company) {
                 props.setCompanySelectorValue(company);
-                sessionStorage.removeItem('companyId');
+                delete remainingState.companyId
+                consumed = true
             }
         }
-        if (sessionStorage.getItem('tradeState')){
-            props.setActiveSelectorValue(sessionStorage.getItem('tradeState'));
-            sessionStorage.removeItem('tradeState');
+        if (location.state.tradeState){
+            props.setActiveSelectorValue(location.state.tradeState);
+            delete remainingState.tradeState
+            consumed = true
+        }
+        if (consumed) {
+            navigate(location.pathname, {replace: true, state: remainingState})
         }
     }
 
     useEffect(() => {
         props.setYears([]);
         if (["/trades", "/research", "/dividends"].includes(location.pathname)) {
-            loadStorageStates();
+            loadNavigationState();
         }
         // eslint-disable-next-line
-    }, [location.pathname, props.companies]);
+    }, [location.pathname, location.state, props.companies]);
 
     const actionButtons = [
         {

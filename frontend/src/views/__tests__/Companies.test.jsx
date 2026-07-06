@@ -3,6 +3,7 @@ import {fireEvent, render, screen, waitFor, within} from "@testing-library/react
 
 const mockUseData = jest.fn();
 const mockRecordEvent = jest.fn();
+const mockNavigate = jest.fn();
 
 jest.mock("../../service/BackendService", () => ({
     useData: (...args) => mockUseData(...args),
@@ -10,6 +11,10 @@ jest.mock("../../service/BackendService", () => ({
 
 jest.mock("../../service/utils", () => ({
     recordEvent: (...args) => mockRecordEvent(...args),
+}));
+
+jest.mock("react-router-dom", () => ({
+    useNavigate: () => mockNavigate,
 }));
 
 jest.mock("../component/Loader", () => ({
@@ -83,7 +88,7 @@ describe("Companies", () => {
     beforeEach(() => {
         mockUseData.mockReset();
         mockRecordEvent.mockReset();
-        sessionStorage.clear();
+        mockNavigate.mockReset();
     });
 
     test("shows loader while company data is loading", () => {
@@ -151,7 +156,7 @@ describe("Companies", () => {
         getTimeSpy.mockRestore();
     });
 
-    test("redirects from trade aggregates and stores company context", async () => {
+    test("redirects from trade aggregates with company navigation state", async () => {
         const data = createData();
 
         mockUseData.mockReturnValue({
@@ -167,11 +172,14 @@ describe("Companies", () => {
         fireEvent.mouseEnter(totalTradesCell);
         fireEvent.click(within(totalTradesCell).getByRole("button"));
 
-        expect(sessionStorage.getItem("companyId")).toBe("company-1");
-        expect(sessionStorage.getItem("tradeState")).toBeNull();
-        expect(sessionStorage.getItem("showFinancials")).toBeNull();
         expect(mockRecordEvent).toHaveBeenCalledWith("/companies#redirect:/trades");
-        expect(window.location.href).toBe("/trades");
+        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+            state: {
+                companyId: "company-1",
+                tradeState: undefined,
+                showFinancials: undefined,
+            },
+        });
     });
 
     test("opens company edit action from ticker cell", () => {

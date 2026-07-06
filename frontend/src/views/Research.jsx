@@ -19,10 +19,13 @@ import {AddPeriodDialog} from "../dialog/AddPeriodDialog";
 import {AddPeriodFinancialDialog} from "../dialog/AddPeriodFinancialDialog";
 import {AddRecordDialog} from "../dialog/AddRecordDialog";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
+import {useLocation, useNavigate} from "react-router-dom";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 
 export const Research = props => {
+    const location = useLocation()
+    const navigate = useNavigate()
     const [refresh, setRefresh] = useState("")
 
     const [data, setData] = useState(null)
@@ -44,9 +47,10 @@ export const Research = props => {
                     setError(null)
 
                     if (companyChanged) setExpandFinancials(false)
-                    if (sessionStorage.getItem('showFinancials')){
+                    if (location.state?.showFinancials){
                         setExpandFinancials(true)
-                        sessionStorage.removeItem('showFinancials')
+                        const {showFinancials, ...remainingState} = location.state
+                        navigate(location.pathname, {replace: true, state: remainingState})
                     }
                     setLoaded(true)
                 })

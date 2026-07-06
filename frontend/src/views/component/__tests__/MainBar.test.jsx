@@ -1,5 +1,5 @@
 import React from "react";
-import {fireEvent, render, screen} from "@testing-library/react";
+import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 
 const mockNavigate = jest.fn();
 const mockUseLocation = jest.fn();
@@ -50,7 +50,7 @@ function createProps(overrides = {}) {
 describe("MainBar", () => {
     beforeEach(() => {
         mockNavigate.mockReset();
-        mockUseLocation.mockReturnValue({pathname: "/"});
+        mockUseLocation.mockReturnValue({pathname: "/", state: null});
     });
 
     test("renders trade selectors and action buttons on trades route", () => {
@@ -125,5 +125,56 @@ describe("MainBar", () => {
         fireEvent.click(screen.getByRole("tab", {name: "Quarterly"}));
 
         expect(setStatsTabsIndex).toHaveBeenCalledWith(2);
+    });
+
+    test("restores selector values from navigation state", async () => {
+        mockUseLocation.mockReturnValue({
+            pathname: "/trades",
+            state: {
+                companyId: "company-1",
+                tradeState: "only active",
+            },
+        });
+
+        const company = {id: "company-1", ticker: "NVDA"};
+        const setCompanySelectorValue = jest.fn();
+        const setActiveSelectorValue = jest.fn();
+
+        render(<MainBar {...createProps({
+            companies: [company],
+            setCompanySelectorValue,
+            setActiveSelectorValue,
+        })} />);
+
+        await waitFor(() => expect(setCompanySelectorValue).toHaveBeenCalledWith(company));
+        expect(setActiveSelectorValue).toHaveBeenCalledWith("only active");
+        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+            replace: true,
+            state: {},
+        });
+    });
+
+    test("preserves unconsumed navigation state for target page", async () => {
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            state: {
+                companyId: "company-1",
+                showFinancials: true,
+            },
+        });
+
+        const company = {id: "company-1", ticker: "NVDA"};
+        const setCompanySelectorValue = jest.fn();
+
+        render(<MainBar {...createProps({
+            companies: [company],
+            setCompanySelectorValue,
+        })} />);
+
+        await waitFor(() => expect(setCompanySelectorValue).toHaveBeenCalledWith(company));
+        expect(mockNavigate).toHaveBeenCalledWith("/research", {
+            replace: true,
+            state: {showFinancials: true},
+        });
     });
 });

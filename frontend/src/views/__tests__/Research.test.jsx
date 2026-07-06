@@ -63,6 +63,8 @@ jest.mock("../component/Period", () => ({
 }));
 
 const mockFormatError = jest.fn();
+const mockUseLocation = jest.fn();
+const mockNavigate = jest.fn();
 
 jest.mock("../../service/FormattingService", () => {
     const actual = jest.requireActual("../../service/FormattingService");
@@ -71,6 +73,11 @@ jest.mock("../../service/FormattingService", () => {
         formatError: (...args) => mockFormatError(...args),
     };
 });
+
+jest.mock("react-router-dom", () => ({
+    useLocation: () => mockUseLocation(),
+    useNavigate: () => mockNavigate,
+}));
 
 import {Research} from "../Research";
 
@@ -123,7 +130,9 @@ describe("Research", () => {
         axios.put.mockReset();
         axios.delete.mockReset();
         mockFormatError.mockReset();
-        sessionStorage.clear();
+        mockUseLocation.mockReset();
+        mockNavigate.mockReset();
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
     });
 
     test("fetches data and renders the research view", async () => {
@@ -151,8 +160,8 @@ describe("Research", () => {
         expect(screen.getByText("record:record-1")).toBeInTheDocument();
     });
 
-    test("expands financials when session storage requests it", async () => {
-        sessionStorage.setItem("showFinancials", "true");
+    test("expands financials when navigation state requests it", async () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: {companyId: "company-1", showFinancials: true}});
         axios.get.mockResolvedValue({data: createResearchData()});
 
         render(
@@ -162,7 +171,10 @@ describe("Research", () => {
         );
 
         await waitFor(() => expect(screen.getByTestId("period-financials")).toHaveTextContent("expand:true financials:1"));
-        expect(sessionStorage.getItem("showFinancials")).toBeNull();
+        expect(mockNavigate).toHaveBeenCalledWith("/research", {
+            replace: true,
+            state: {companyId: "company-1"},
+        });
     });
 
     test("updates watching status after confirm", async () => {
