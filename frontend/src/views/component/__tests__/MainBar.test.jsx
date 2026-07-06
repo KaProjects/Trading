@@ -65,6 +65,9 @@ describe("MainBar", () => {
         expect(screen.getByText("selector:sectors")).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "sell trade"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "add trade"})).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "go to trades"})).not.toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "go to dividends"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "go to research"})).toBeInTheDocument();
     });
 
     test("renders stats tabs and company stats selectors on stats route", () => {
@@ -133,21 +136,35 @@ describe("MainBar", () => {
             state: {
                 companyId: "company-1",
                 tradeState: "only active",
+                currency: "$",
+                year: "2024",
+                sector: "TECH",
             },
         });
 
         const company = {id: "company-1", ticker: "NVDA"};
+        const sector = {key: "TECH", name: "Technology"};
         const setCompanySelectorValue = jest.fn();
         const setActiveSelectorValue = jest.fn();
+        const setCurrencySelectorValue = jest.fn();
+        const setYearSelectorValue = jest.fn();
+        const setSectorSelectorValue = jest.fn();
 
         render(<MainBar {...createProps({
             companies: [company],
+            sectors: [sector],
             setCompanySelectorValue,
             setActiveSelectorValue,
+            setCurrencySelectorValue,
+            setYearSelectorValue,
+            setSectorSelectorValue,
         })} />);
 
         await waitFor(() => expect(setCompanySelectorValue).toHaveBeenCalledWith(company));
         expect(setActiveSelectorValue).toHaveBeenCalledWith("only active");
+        expect(setCurrencySelectorValue).toHaveBeenCalledWith("$");
+        expect(setYearSelectorValue).toHaveBeenCalledWith("2024");
+        expect(setSectorSelectorValue).toHaveBeenCalledWith(sector);
         expect(mockNavigate).toHaveBeenCalledWith("/trades", {
             replace: true,
             state: {},
@@ -175,6 +192,38 @@ describe("MainBar", () => {
         expect(mockNavigate).toHaveBeenCalledWith("/research", {
             replace: true,
             state: {showFinancials: true},
+        });
+    });
+
+    test("renders route navigation buttons after selectors on data routes", () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+
+        render(<MainBar {...createProps()} />);
+
+        expect(screen.getByRole("button", {name: "go to trades"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "go to dividends"})).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "go to research"})).not.toBeInTheDocument();
+    });
+
+    test("navigates between data routes with current selector state", () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+
+        render(<MainBar {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+            currencySelectorValue: "$",
+            yearSelectorValue: "2024",
+            sectorSelectorValue: {key: "TECH", name: "Technology"},
+        })} />);
+
+        fireEvent.click(screen.getByRole("button", {name: "go to trades"}));
+
+        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+            state: {
+                companyId: "company-1",
+                currency: "$",
+                year: "2024",
+                sector: "TECH",
+            },
         });
     });
 });

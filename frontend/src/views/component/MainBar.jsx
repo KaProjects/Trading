@@ -5,9 +5,13 @@ import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import {MainBarSelect} from "./MainBarSelect";
 import {useLocation, useNavigate} from "react-router-dom";
+import {ReactComponent as TradesRedirectIcon} from "../../assets/icons/trades-redirect.svg";
+import {ReactComponent as DividendsRedirectIcon} from "../../assets/icons/dividends-redirect.svg";
+import {ReactComponent as ResearchRedirectIcon} from "../../assets/icons/research-redirect.svg";
 
 export const ACTIVE_STATES = ["only active", "only closed"];
 const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly"];
+const DATA_ROUTES = ["/trades", "/dividends", "/research"];
 
 const DEFAULT_MAIN_BAR_CONFIG = {
     showCompanySelector: false,
@@ -86,6 +90,24 @@ export const MainBar = props => {
             delete remainingState.tradeState
             consumed = true
         }
+        if (location.state.currency){
+            props.setCurrencySelectorValue(location.state.currency);
+            delete remainingState.currency
+            consumed = true
+        }
+        if (location.state.year){
+            props.setYearSelectorValue(location.state.year);
+            delete remainingState.year
+            consumed = true
+        }
+        if (location.state.sector) {
+            const sector = props.sectors.find(sector => sector.key === location.state.sector)
+            if (sector) {
+                props.setSectorSelectorValue(sector);
+                delete remainingState.sector
+                consumed = true
+            }
+        }
         if (consumed) {
             navigate(location.pathname, {replace: true, state: remainingState})
         }
@@ -97,7 +119,18 @@ export const MainBar = props => {
             loadNavigationState();
         }
         // eslint-disable-next-line
-    }, [location.pathname, location.state, props.companies]);
+    }, [location.pathname, location.state, props.companies, props.sectors]);
+
+    function redirectTo(path) {
+        navigate(path, {
+            state: {
+                companyId: props.companySelectorValue?.id,
+                currency: props.currencySelectorValue,
+                year: props.yearSelectorValue,
+                sector: props.sectorSelectorValue?.key,
+            }
+        });
+    }
 
     const actionButtons = [
         {
@@ -179,6 +212,30 @@ export const MainBar = props => {
         },
     ]
 
+    const pageNavigationButtons = [
+        {
+            key: "go-trades",
+            visible: location.pathname !== "/trades" && DATA_ROUTES.includes(location.pathname),
+            onClick: () => redirectTo("/trades"),
+            ariaLabel: "go to trades",
+            icon: <TradesRedirectIcon style={{color: "white", width: 24, height: 24}}/>,
+        },
+        {
+            key: "go-dividends",
+            visible: location.pathname !== "/dividends" && DATA_ROUTES.includes(location.pathname),
+            onClick: () => redirectTo("/dividends"),
+            ariaLabel: "go to dividends",
+            icon: <DividendsRedirectIcon style={{color: "white", width: 24, height: 24}}/>,
+        },
+        {
+            key: "go-research",
+            visible: location.pathname !== "/research" && DATA_ROUTES.includes(location.pathname),
+            onClick: () => redirectTo("/research"),
+            ariaLabel: "go to research",
+            icon: <ResearchRedirectIcon style={{color: "white", width: 24, height: 24}}/>,
+        },
+    ]
+
     return (
         <Box sx={{ flexGrow: 1 }}>
             <AppBar position="static">
@@ -221,6 +278,13 @@ export const MainBar = props => {
                                     valueKey={selector.valueKey}
                                     label={selector.label}
                                 />
+                            ))}
+                        {pageNavigationButtons
+                            .filter((button) => button.visible)
+                            .map((button) => (
+                                <Button key={button.key} onClick={button.onClick} aria-label={button.ariaLabel}>
+                                    {button.icon}
+                                </Button>
                             ))}
                     </Box>
                     <Box sx={{ flexGrow: 1 }} />
