@@ -3,6 +3,7 @@ import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow}
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import {useData} from "../../service/BackendService";
 import {Loader} from "./Loader";
+import {formatDecimals} from "../../service/FormattingService";
 
 const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
 
@@ -73,23 +74,23 @@ export const CompanyStats = props => {
                             <TableRow key={index} hover>
                                 <BodyCell index={0} value={row.ticker}/>
                                 <BodyCell index={1} value={row.currency}/>
-                                <BodyCell index={2} value={row.purchaseSum}/>
-                                <BodyCell index={3} value={row.sellSum}/>
-                                <BodyCell index={4} value={row.dividendSum}/>
-                                <BodyCell index={5} value={row.profitSum}/>
-                                <BodyCell index={6} value={row.profitUsdSum}/>
-                                <BodyCell index={7} value={row.profitPercentage}/>
+                                <BodyCell index={2} value={formatDecimals(row.purchaseSum)}/>
+                                <BodyCell index={3} value={formatDecimals(row.sellSum)}/>
+                                <BodyCell index={4} value={formatDecimals(row.dividendSum, 2, 2)}/>
+                                <BodyCell index={5} value={formatDecimals(row.profitSum)}/>
+                                <BodyCell index={6} value={formatDecimals(row.profitUsdSum)}/>
+                                <BodyCell index={7} value={formatDecimals(row.profitPercentage, 2, 2)}/>
                             </TableRow>
                         ))}
                         <TableRow key={-1}>
                             <SumCell index={0} value={data.aggregates.companies}/>
                             <SumCell index={1} value={data.aggregates.currencies}/>
-                            <SumCell index={2} value={data.aggregates.purchaseSum}/>
-                            <SumCell index={3} value={data.aggregates.sellSum}/>
-                            <SumCell index={4} value={data.aggregates.dividendSum}/>
-                            <SumCell index={5} value={data.aggregates.profitSum}/>
-                            <SumCell index={6} value={data.aggregates.profitSumUsd}/>
-                            <SumCell index={7} value={data.aggregates.profitPercentage}/>
+                            <SumCell index={2} value={formatDecimals(data.aggregates.purchaseSum)}/>
+                            <SumCell index={3} value={formatDecimals(data.aggregates.sellSum)}/>
+                            <SumCell index={4} value={formatDecimals(data.aggregates.dividendSum, 2, 2)}/>
+                            <SumCell index={5} value={formatDecimals(data.aggregates.profitSum)}/>
+                            <SumCell index={6} value={formatDecimals(data.aggregates.profitSumUsd)}/>
+                            <SumCell index={7} value={formatDecimals(data.aggregates.profitPercentage, 2, 2)}/>
                         </TableRow>
                     </TableBody>
                 </Table>

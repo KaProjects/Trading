@@ -233,7 +233,7 @@ export const Research = props => {
                             {data.assets.assets.length > 0 &&
                                 <Stack direction="row" spacing={1} sx={{margin: "10px 10px 20px 10px"}}>
                                     {data.assets.assets.map((asset, index) => (
-                                        <AssetBox key={index} asset={asset} currency={data.company.currency} immutable={true}/>
+                                        <AssetBox key={`${data.company.id}-${index}`} asset={asset} currency={data.company.currency} immutable={true}/>
                                     ))}
                                 </Stack>
                             }

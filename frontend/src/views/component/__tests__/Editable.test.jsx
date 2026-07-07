@@ -54,6 +54,37 @@ describe("Editable", () => {
         await waitFor(() => expect(screen.getByRole("button", {name: "Updated Value"})).toBeInTheDocument());
     });
 
+    test("syncs rendered value when value prop changes", () => {
+        const {rerender} = render(
+            <Editable
+                value={"Initial Value"}
+                label={"Value"}
+                validate={() => ""}
+                update={jest.fn()}
+            >
+                {({showValue, setEditing}) =>
+                    <button onClick={() => setEditing(true)}>{showValue}</button>
+                }
+            </Editable>
+        );
+
+        rerender(
+            <Editable
+                value={"Changed Value"}
+                label={"Value"}
+                validate={() => ""}
+                update={jest.fn()}
+            >
+                {({showValue, setEditing}) =>
+                    <button onClick={() => setEditing(true)}>{showValue}</button>
+                }
+            </Editable>
+        );
+
+        expect(screen.getByRole("button", {name: "Changed Value"})).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Initial Value"})).not.toBeInTheDocument();
+    });
+
     test("shows validation message while editing invalid value", () => {
         render(
             <Editable

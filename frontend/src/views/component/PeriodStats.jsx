@@ -2,6 +2,7 @@ import React from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {useData} from "../../service/BackendService";
 import {Loader} from "./Loader";
+import {formatDecimals} from "../../service/FormattingService";
 
 const STATS_TYPES = {monthly: "monthly", quarterly: "quarterly", yearly: "yearly"}
 const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
@@ -88,17 +89,17 @@ export const PeriodStats = props => {
                             <TableRow key={index} hover>
                                 <BodyCell index={0} row={index} value={formatPeriod(row.period)}/>
                                 <BodyCell index={1} row={index} value={row.tradesCount}/>
-                                <BodyCell index={2} row={index} value={row.tradesProfitSum}/>
-                                <BodyCell index={3} row={index} value={row.tradesProfitPercentage}/>
-                                <BodyCell index={4} row={index} value={row.dividendSum}/>
+                                <BodyCell index={2} row={index} value={formatDecimals(row.tradesProfitSum)}/>
+                                <BodyCell index={3} row={index} value={formatDecimals(row.tradesProfitPercentage, 2, 2)}/>
+                                <BodyCell index={4} row={index} value={formatDecimals(row.dividendSum, 2, 2)}/>
                             </TableRow>
                         ))}
                         <TableRow key={-1} >
                             <SumCell index={0} value={data.aggregates.periods}/>
                             <SumCell index={1} value={data.aggregates.tradesCount}/>
-                            <SumCell index={2} value={data.aggregates.tradesProfitSum}/>
-                            <SumCell index={3} value={data.aggregates.tradesProfitPercentage}/>
-                            <SumCell index={4} value={data.aggregates.dividendSum}/>
+                            <SumCell index={2} value={formatDecimals(data.aggregates.tradesProfitSum)}/>
+                            <SumCell index={3} value={formatDecimals(data.aggregates.tradesProfitPercentage, 2, 2)}/>
+                            <SumCell index={4} value={formatDecimals(data.aggregates.dividendSum, 2, 2)}/>
                         </TableRow>
                     </TableBody>
                 </Table>

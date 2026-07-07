@@ -30,24 +30,24 @@ function createPeriodData(overrides = {}) {
             {
                 period: "2024-Q2",
                 tradesCount: 0,
-                tradesProfitSum: "0",
+                tradesProfitSum: 0,
                 tradesProfitPercentage: null,
-                dividendSum: "0",
+                dividendSum: 0,
             },
             {
                 period: "2024-Q1",
                 tradesCount: 1,
-                tradesProfitSum: "433",
-                tradesProfitPercentage: "21.47",
-                dividendSum: "0",
+                tradesProfitSum: 433,
+                tradesProfitPercentage: 21.47,
+                dividendSum: 0,
             },
         ],
         aggregates: {
             periods: 2,
             tradesCount: 1,
-            tradesProfitSum: "433",
-            tradesProfitPercentage: "21.47",
-            dividendSum: "0",
+            tradesProfitSum: 433,
+            tradesProfitPercentage: 21.47,
+            dividendSum: 0,
         },
         ...overrides,
     };
@@ -58,16 +58,16 @@ function createMonthlyPeriodData() {
         periods: Array.from({length: 12}, (_, index) => ({
             period: `2024-${String(index + 1).padStart(2, "0")}`,
             tradesCount: index === 11 ? 2 : 0,
-            tradesProfitSum: index === 11 ? "123" : "0",
-            tradesProfitPercentage: index === 11 ? "12.3" : null,
-            dividendSum: index === 11 ? "10" : "0",
+            tradesProfitSum: index === 11 ? 123 : 0,
+            tradesProfitPercentage: index === 11 ? 12.3 : null,
+            dividendSum: index === 11 ? 10 : 0,
         })),
         aggregates: {
             periods: 12,
             tradesCount: 2,
-            tradesProfitSum: "123",
-            tradesProfitPercentage: "12.3",
-            dividendSum: "10",
+            tradesProfitSum: 123,
+            tradesProfitPercentage: 12.3,
+            dividendSum: 10,
         },
     };
 }
@@ -78,24 +78,24 @@ function createYearlyPeriodData() {
             {
                 period: "2025",
                 tradesCount: 2,
-                tradesProfitSum: "600",
-                tradesProfitPercentage: "20",
-                dividendSum: "15",
+                tradesProfitSum: 600,
+                tradesProfitPercentage: 20,
+                dividendSum: 15,
             },
             {
                 period: "2024",
                 tradesCount: 1,
-                tradesProfitSum: "433",
-                tradesProfitPercentage: "21.47",
-                dividendSum: "0",
+                tradesProfitSum: 433,
+                tradesProfitPercentage: 21.47,
+                dividendSum: 0,
             },
         ],
         aggregates: {
             periods: 2,
             tradesCount: 3,
-            tradesProfitSum: "1033",
-            tradesProfitPercentage: "20.49",
-            dividendSum: "15",
+            tradesProfitSum: 1033,
+            tradesProfitPercentage: 20.49,
+            dividendSum: 15,
         },
     };
 }
@@ -144,38 +144,38 @@ describe("PeriodStats", () => {
                     {
                         period: "2024-Q4",
                         tradesCount: 0,
-                        tradesProfitSum: "0",
+                        tradesProfitSum: 0,
                         tradesProfitPercentage: null,
-                        dividendSum: "0",
+                        dividendSum: 0,
                     },
                     {
                         period: "2024-Q3",
                         tradesCount: 0,
-                        tradesProfitSum: "0",
+                        tradesProfitSum: 0,
                         tradesProfitPercentage: null,
-                        dividendSum: "0",
+                        dividendSum: 0,
                     },
                     {
                         period: "2024-Q2",
                         tradesCount: 0,
-                        tradesProfitSum: "0",
+                        tradesProfitSum: 0,
                         tradesProfitPercentage: null,
-                        dividendSum: "0",
+                        dividendSum: 0,
                     },
                     {
                         period: "2024-Q1",
                         tradesCount: 1,
-                        tradesProfitSum: "433",
-                        tradesProfitPercentage: "21.47",
-                        dividendSum: "0",
+                        tradesProfitSum: 433,
+                        tradesProfitPercentage: 21.47,
+                        dividendSum: 0,
                     },
                 ],
                 aggregates: {
                     periods: 4,
                     tradesCount: 1,
-                    tradesProfitSum: "433",
-                    tradesProfitPercentage: "21.47",
-                    dividendSum: "0",
+                    tradesProfitSum: 433,
+                    tradesProfitPercentage: 21.47,
+                    dividendSum: 0,
                 },
             }),
             loaded: true,
@@ -226,7 +226,7 @@ describe("PeriodStats", () => {
         expect(screen.getByText("Year")).toBeInTheDocument();
         expect(screen.getByText("2025")).toBeInTheDocument();
         expect(screen.getByText("2024")).toBeInTheDocument();
-        expect(screen.getByText("1033")).toBeInTheDocument();
+        expect(screen.getByText("1,033")).toBeInTheDocument();
         expect(screen.getByText("20.49")).toBeInTheDocument();
     });
 });

@@ -32,33 +32,33 @@ function createCompanyData(overrides = {}) {
             {
                 ticker: "NVDA",
                 currency: "$",
-                purchaseSum: "2017",
-                sellSum: "2450",
-                dividendSum: "135",
-                profitSum: "568",
-                profitUsdSum: "568",
-                profitPercentage: "28.16",
+                purchaseSum: 2017,
+                sellSum: 2450,
+                dividendSum: 135,
+                profitSum: 568,
+                profitUsdSum: 568,
+                profitPercentage: 28.16,
             },
             {
                 ticker: "SHELL",
                 currency: "€",
-                purchaseSum: "2028",
-                sellSum: "3009.5",
-                dividendSum: "0",
-                profitSum: "981.5",
-                profitUsdSum: "1079.65",
-                profitPercentage: "48.4",
+                purchaseSum: 2028,
+                sellSum: 3009.5,
+                dividendSum: 0,
+                profitSum: 981.5,
+                profitUsdSum: 1079.65,
+                profitPercentage: 48.4,
             },
         ],
         aggregates: {
             companies: 2,
             currencies: 2,
-            purchaseSum: "4045",
-            sellSum: "5459.5",
-            dividendSum: "135",
-            profitSum: "1549.5",
-            profitSumUsd: "1647.65",
-            profitPercentage: "38.31",
+            purchaseSum: 4045,
+            sellSum: 5459.5,
+            dividendSum: 135,
+            profitSum: 1549.5,
+            profitSumUsd: 1647.65,
+            profitPercentage: 38.31,
         },
         years: ["2022", "2024", "2023"],
         ...overrides,
@@ -100,8 +100,8 @@ describe("CompanyStats", () => {
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("SHELL")).toBeInTheDocument();
         expect(screen.getAllByText("568")).toHaveLength(2);
-        expect(screen.getByText("981.5")).toBeInTheDocument();
-        expect(screen.getByText("1647.65")).toBeInTheDocument();
+        expect(screen.getByText("982")).toBeInTheDocument();
+        expect(screen.getByText("1,648")).toBeInTheDocument();
     });
 
     test("publishes available years when company stats load", async () => {

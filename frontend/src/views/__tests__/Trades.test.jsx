@@ -9,6 +9,7 @@ jest.mock("../../service/BackendService", () => ({
 }));
 
 jest.mock("../../service/FormattingService", () => ({
+    ...jest.requireActual("../../service/FormattingService"),
     formatDate: (...args) => mockFormatDate(...args),
 }));
 
@@ -61,14 +62,14 @@ function createData(overrides = {}) {
                 purchaseQuantity: "5",
                 purchasePrice: "400.5",
                 purchaseFees: "14.5",
-                purchaseTotal: "2017.0",
+                purchaseTotal: 2017.0,
                 sellDate: "2025-01-05",
                 sellQuantity: "5",
                 sellPrice: "500.0",
                 sellFees: "14.5",
-                sellTotal: "2485.5",
-                profit: "468.5",
-                profitPercentage: "23.23",
+                sellTotal: 2485.5,
+                profit: 468.5,
+                profitPercentage: 23.23,
             },
             {
                 id: "trade-2",
@@ -82,7 +83,7 @@ function createData(overrides = {}) {
                 purchaseQuantity: "8",
                 purchasePrice: "28.0",
                 purchaseFees: "10.0",
-                purchaseTotal: "234.0",
+                purchaseTotal: 234.0,
                 sellDate: null,
                 sellQuantity: null,
                 sellPrice: null,
@@ -96,11 +97,11 @@ function createData(overrides = {}) {
             companies: 2,
             currencies: 2,
             purchaseFees: "24.5",
-            purchaseTotal: "2251.0",
+            purchaseTotal: 2251.0,
             sellFees: "14.5",
-            sellTotal: "2485.5",
-            profit: "468.5",
-            profitPercentage: "23.23",
+            sellTotal: 2485.5,
+            profit: 468.5,
+            profitPercentage: 23.23,
         },
         ...overrides,
     };
@@ -148,8 +149,8 @@ describe("Trades", () => {
         expect(mockFormatDate).toHaveBeenCalledWith(null);
         expect(screen.getAllByText("468.5")).toHaveLength(2);
         expect(screen.getAllByText("23.23")).toHaveLength(2);
-        expect(screen.getByText("2251.0")).toBeInTheDocument();
-        expect(screen.getAllByText("2485.5")).toHaveLength(2);
+        expect(screen.getByText("2,251")).toBeInTheDocument();
+        expect(screen.getAllByText("2,485.5")).toHaveLength(2);
     });
 
     test("publishes years from trade dates", async () => {
@@ -168,14 +169,14 @@ describe("Trades", () => {
                         purchaseQuantity: "5",
                         purchasePrice: "400.5",
                         purchaseFees: "14.5",
-                        purchaseTotal: "2017.0",
+                        purchaseTotal: 2017.0,
                         sellDate: "2025-01-05",
                         sellQuantity: "5",
                         sellPrice: "500.0",
                         sellFees: "14.5",
-                        sellTotal: "2485.5",
-                        profit: "468.5",
-                        profitPercentage: "23.23",
+                        sellTotal: 2485.5,
+                        profit: 468.5,
+                        profitPercentage: 23.23,
                     },
                     {
                         id: "trade-2",
@@ -189,7 +190,7 @@ describe("Trades", () => {
                         purchaseQuantity: "8",
                         purchasePrice: "28.0",
                         purchaseFees: "10.0",
-                        purchaseTotal: "234.0",
+                        purchaseTotal: 234.0,
                         sellDate: null,
                         sellQuantity: null,
                         sellPrice: null,
@@ -210,14 +211,14 @@ describe("Trades", () => {
                         purchaseQuantity: "2",
                         purchasePrice: "30.0",
                         purchaseFees: "2.0",
-                        purchaseTotal: "62.0",
+                        purchaseTotal: 62.0,
                         sellDate: "2025-12-10",
                         sellQuantity: "2",
                         sellPrice: "40.0",
                         sellFees: "1.0",
-                        sellTotal: "79.0",
-                        profit: "17.0",
-                        profitPercentage: "27.42",
+                        sellTotal: 79.0,
+                        profit: 17.0,
+                        profitPercentage: 27.42,
                     },
                 ],
             }),

@@ -14,6 +14,14 @@ export const Editable = ({value, label, validate, update, style, startAdornment,
         setError(null)
     }, [editValue, editing])
 
+    useEffect(() => {
+        const newValue = value ?? "";
+        setShowValue(newValue);
+        setEditValue(newValue);
+        setEditing(false);
+        setError(null);
+    }, [value])
+
     async function handleUpdate()
     {
         if (showValue !== editValue) {

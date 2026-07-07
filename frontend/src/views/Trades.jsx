@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {useData} from "../service/BackendService";
 import {Loader} from "./component/Loader";
-import {formatDate} from "../service/FormattingService";
+import {formatDate, formatDecimals} from "../service/FormattingService";
 import {AddTradeDialog} from "../dialog/AddTradeDialog";
 import {SellTradeDialog} from "../dialog/SellTradeDialog";
 import {ACTIVE_STATES} from "./component/MainBar";
@@ -109,16 +109,16 @@ export const Trades = props => {
                                 <TableCell style={rowStyle(1)}>{trade.company.currency}</TableCell>
                                 <TableCell style={rowStyle(2)}>{formatDate(trade.purchaseDate)}</TableCell>
                                 <TableCell style={rowStyle(3)}>{trade.purchaseQuantity}</TableCell>
-                                <TableCell style={rowStyle(4)}>{trade.purchasePrice}</TableCell>
-                                <TableCell style={rowStyle(5)}>{trade.purchaseFees}</TableCell>
-                                <TableCell style={rowStyle(6)}>{trade.purchaseTotal}</TableCell>
+                                <TableCell style={rowStyle(4)}>{formatDecimals(trade.purchasePrice, 0, 4)}</TableCell>
+                                <TableCell style={rowStyle(5)}>{formatDecimals(trade.purchaseFees, 0, 2)}</TableCell>
+                                <TableCell style={rowStyle(6)}>{formatDecimals(trade.purchaseTotal, 0, 2)}</TableCell>
                                 <TableCell style={rowStyle(7)}>{formatDate(trade.sellDate)}</TableCell>
                                 <TableCell style={rowStyle(8)}>{trade.sellQuantity}</TableCell>
-                                <TableCell style={rowStyle(9)}>{trade.sellPrice}</TableCell>
-                                <TableCell style={rowStyle(10)}>{trade.sellFees}</TableCell>
-                                <TableCell style={rowStyle(11)}>{trade.sellTotal}</TableCell>
-                                <TableCell style={rowStyle(12, Number(trade.profit) > 0)}>{trade.profit}</TableCell>
-                                <TableCell style={rowStyle(13, Number(trade.profitPercentage) > 0)}>{trade.profitPercentage}</TableCell>
+                                <TableCell style={rowStyle(9)}>{formatDecimals(trade.sellPrice, 0, 4)}</TableCell>
+                                <TableCell style={rowStyle(10)}>{formatDecimals(trade.sellFees, 0, 2)}</TableCell>
+                                <TableCell style={rowStyle(11)}>{formatDecimals(trade.sellTotal, 0, 2)}</TableCell>
+                                <TableCell style={rowStyle(12, Number(trade.profit) > 0)}>{formatDecimals(trade.profit, 0, 2)}</TableCell>
+                                <TableCell style={rowStyle(13, Number(trade.profitPercentage) > 0)}>{formatDecimals(trade.profitPercentage, 0, 2)}</TableCell>
                             </TableRow>
                         ))}
                         <TableRow key={-1} >
@@ -127,15 +127,15 @@ export const Trades = props => {
                             <TableCell key={2} style={sumRowStyle(2)}></TableCell>
                             <TableCell key={3} style={sumRowStyle(3)}></TableCell>
                             <TableCell key={4} style={sumRowStyle(4)}></TableCell>
-                            <TableCell key={5} style={sumRowStyle(5)}>{data.aggregates.purchaseFees}</TableCell>
-                            <TableCell key={6} style={sumRowStyle(6)}>{data.aggregates.purchaseTotal}</TableCell>
+                            <TableCell key={5} style={sumRowStyle(5)}>{formatDecimals(data.aggregates.purchaseFees, 0, 2)}</TableCell>
+                            <TableCell key={6} style={sumRowStyle(6)}>{formatDecimals(data.aggregates.purchaseTotal, 0, 2)}</TableCell>
                             <TableCell key={7} style={sumRowStyle(7)}></TableCell>
                             <TableCell key={8} style={sumRowStyle(8)}></TableCell>
                             <TableCell key={9} style={sumRowStyle(9)}></TableCell>
-                            <TableCell key={10} style={sumRowStyle(10)}>{data.aggregates.sellFees}</TableCell>
-                            <TableCell key={11} style={sumRowStyle(11)}>{data.aggregates.sellTotal}</TableCell>
-                            <TableCell key={12} style={sumRowStyle(12)}>{data.aggregates.profit}</TableCell>
-                            <TableCell key={13} style={sumRowStyle(13)}>{data.aggregates.profitPercentage}</TableCell>
+                            <TableCell key={10} style={sumRowStyle(10)}>{formatDecimals(data.aggregates.sellFees, 0, 2)}</TableCell>
+                            <TableCell key={11} style={sumRowStyle(11)}>{formatDecimals(data.aggregates.sellTotal, 0, 2)}</TableCell>
+                            <TableCell key={12} style={sumRowStyle(12)}>{formatDecimals(data.aggregates.profit, 0, 2)}</TableCell>
+                            <TableCell key={13} style={sumRowStyle(13)}>{formatDecimals(data.aggregates.profitPercentage, 0, 2)}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
