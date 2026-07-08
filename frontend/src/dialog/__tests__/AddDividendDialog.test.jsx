@@ -68,6 +68,7 @@ function createProps(overrides = {}) {
         triggerRefresh: jest.fn(),
         companySelectorValue: company,
         companies: [company],
+        recentCompanies: [company],
         ...overrides,
     };
 }
@@ -115,5 +116,20 @@ describe("AddDividendDialog", () => {
         await waitFor(() => expect(mockFormatError).toHaveBeenCalled());
         expect(props.triggerRefresh).not.toHaveBeenCalled();
         expect(props.setOpenAddDividend).not.toHaveBeenCalled();
+    });
+
+    test("uses recent companies for company options", () => {
+        const props = createProps({
+            companySelectorValue: "",
+            companies: [{id: "company-1", ticker: "NVDA"}],
+            recentCompanies: [{id: "company-2", ticker: "CEZ"}],
+        });
+
+        render(<AddDividendDialog {...props}/>);
+
+        fireEvent.mouseDown(screen.getByRole("combobox"));
+
+        expect(screen.getByRole("option", {name: "CEZ"})).toBeInTheDocument();
+        expect(screen.queryByRole("option", {name: "NVDA"})).not.toBeInTheDocument();
     });
 });

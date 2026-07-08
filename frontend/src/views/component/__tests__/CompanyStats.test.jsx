@@ -20,7 +20,6 @@ function createProps(overrides = {}) {
         type: "company",
         yearSelectorValue: "",
         sectorSelectorValue: null,
-        setYears: jest.fn(),
         ...overrides,
     };
 }
@@ -102,39 +101,6 @@ describe("CompanyStats", () => {
         expect(screen.getAllByText("568")).toHaveLength(2);
         expect(screen.getByText("982")).toBeInTheDocument();
         expect(screen.getByText("1,648")).toBeInTheDocument();
-    });
-
-    test("publishes available years when company stats load", async () => {
-        mockUseData.mockReturnValue({
-            data: createCompanyData(),
-            loaded: true,
-            error: null,
-        });
-
-        const setYears = jest.fn();
-
-        render(<CompanyStats {...createProps({setYears})}/>);
-
-        await waitFor(() => expect(setYears).toHaveBeenCalledWith(["2024", "2023", "2022"]));
-    });
-
-    test("keeps component mounted when parent rerenders after years are published", async () => {
-        mockUseData.mockReturnValue({
-            data: createCompanyData(),
-            loaded: true,
-            error: null,
-        });
-
-        const setYears = jest.fn();
-        const {rerender} = render(<CompanyStats {...createProps({setYears})}/>);
-
-        await waitFor(() => expect(setYears).toHaveBeenCalledWith(["2024", "2023", "2022"]));
-
-        fireEvent.click(screen.getByText("Profit %"));
-
-        rerender(<CompanyStats {...createProps({setYears})}/>);
-
-        expect(mockUseData).toHaveBeenLastCalledWith("/stats/company?query&sort=PROFIT_PERCENT");
     });
 
     test("re-queries company stats when sortable header is clicked", async () => {

@@ -138,7 +138,6 @@ export const MainBar = props => {
     }
 
     useEffect(() => {
-        props.setYears([]);
         if (["/trades", "/research", "/dividends"].includes(location.pathname)) {
             loadNavigationState();
         }

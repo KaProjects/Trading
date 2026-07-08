@@ -13,6 +13,7 @@ import org.kaleta.persistence.entity.Dividend;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -57,6 +58,15 @@ public class DividendService
             map.get(dividend.getCompany()).add(dividend);
         }
         return map;
+    }
+
+    public List<String> getYears()
+    {
+        return dividendDao.list().stream()
+                .map(dividend -> dividend.getDate().toString().substring(0, 4))
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
     }
 
     public Map<String, List<Dividends.Dividend>> getByPeriod(PeriodFrequency frequency, String companyId, String currency, String sector) {

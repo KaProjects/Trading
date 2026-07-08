@@ -12,6 +12,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.kaleta.model.Company;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.model.CompanyGroups;
 import org.kaleta.persistence.entity.CompanyWithStats;
@@ -22,21 +23,48 @@ import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.dto.CompanyValuesDto;
 import org.kaleta.rest.validation.ValueOfEnum;
 import org.kaleta.service.CompanyService;
+import org.kaleta.service.DividendService;
+import org.kaleta.service.TradeService;
 
 import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 @Path("/company")
 public class CompanyEndpoints
 {
     @Inject
     CompanyService companyService;
+    @Inject
+    TradeService tradeService;
+    @Inject
+    DividendService dividendService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/values")
     public Response getCompanyValues()
     {
-        return Response.ok(new CompanyValuesDto(companyService.getCompanies())).build();
+        CompanyValuesDto dto = new CompanyValuesDto();
+
+        dto.setCurrencies(List.of(Currency.values()));
+
+        List.of(Sector.values()).forEach(sector -> dto.getSectors().add(new Company.Sector(sector)));
+        dto.getSectors().sort(Company.Sector::compareTo);
+
+        dto.setCompanies(companyService.getCompanies());
+        dto.getCompanies().sort(Comparator.comparing(Company::getTicker));
+
+        dto.setRecentCompanies(companyService.getRecentCompanies());
+        dto.getRecentCompanies().sort(Comparator.comparing(Company::getTicker));
+
+        Set<String> years = new TreeSet<>(Comparator.reverseOrder());
+        years.addAll(tradeService.getYears());
+        years.addAll(dividendService.getYears());
+        dto.setYears(List.copyOf(years));
+
+        return Response.ok(dto).build();
     }
 
     @GET

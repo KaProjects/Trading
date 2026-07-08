@@ -21,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -262,6 +263,63 @@ public class TradeServiceTest
         assertBigDecimals(trades.getAggregates().getSellTotal(), new BigDecimal("0.00"));
         assertThat(trades.getAggregates().getProfit(), is(nullValue()));
         assertThat(trades.getAggregates().getProfitPercentage(), is(nullValue()));
+    }
+
+    @Test
+    void getRecentTrades()
+    {
+        Company company = Generator.generateCompany("company-1");
+        company.setTicker("NVDA");
+        company.setCurrency(Currency.$);
+        org.kaleta.model.Company modelCompany = toModelCompany(company);
+
+        Trade activeTrade = new Trade();
+        activeTrade.setId("active-trade");
+        activeTrade.setCompany(company);
+        activeTrade.setQuantity(new BigDecimal("2"));
+        activeTrade.setPurchaseDate(Date.valueOf(LocalDate.now().minusYears(2)));
+        activeTrade.setPurchasePrice(new BigDecimal("10"));
+        activeTrade.setPurchaseFees(new BigDecimal("1"));
+
+        Trade recentSoldTrade = soldTrade("recent-sold-trade", company,
+                LocalDate.now().minusMonths(7).toString(), "20", "2",
+                LocalDate.now().minusMonths(6).toString(), "25", "1", "3");
+        Trade oldSoldTrade = soldTrade("old-sold-trade", company,
+                LocalDate.now().minusYears(2).toString(), "30", "3",
+                LocalDate.now().minusMonths(6).minusDays(1).toString(), "35", "1", "4");
+
+        when(tradeDao.list()).thenReturn(List.of(activeTrade, recentSoldTrade, oldSoldTrade));
+        when(companyService.from(company)).thenReturn(modelCompany);
+
+        List<Trades.Trade> recentTrades = tradeService.getRecentTrades();
+
+        assertThat(recentTrades.size(), is(2));
+        assertThat(
+                recentTrades.stream().map(Trades.Trade::getId).collect(Collectors.toList()),
+                containsInAnyOrder("active-trade", "recent-sold-trade")
+        );
+    }
+
+    @Test
+    void getYears()
+    {
+        Company company = Generator.generateCompany("company-1");
+
+        Trade trade1 = soldTrade("trade-1", company, "2024-01-10", "10", "1", "2025-02-15", "12", "1", "5");
+        Trade trade2 = soldTrade("trade-2", company, "2023-03-10", "10", "1", "2024-04-15", "12", "1", "5");
+        Trade trade3 = new Trade();
+        trade3.setId("trade-3");
+        trade3.setCompany(company);
+        trade3.setQuantity(new BigDecimal("1"));
+        trade3.setPurchaseDate(Date.valueOf("2021-05-10"));
+        trade3.setPurchasePrice(new BigDecimal("10"));
+        trade3.setPurchaseFees(new BigDecimal("1"));
+
+        when(tradeDao.list()).thenReturn(List.of(trade1, trade2, trade3));
+
+        List<String> years = tradeService.getYears();
+
+        assertThat(years, is(List.of("2025", "2024", "2023", "2021")));
     }
 
     @Test

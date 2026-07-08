@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.model.CompanyGroups;
+import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.api.RecordDao;
@@ -44,6 +45,8 @@ public class CompanyServiceTest
     RecordDao recordDao;
     @InjectMock
     TradeDao tradeDao;
+    @InjectMock
+    TradeService tradeService;
 
     @Inject
     CompanyService companyService;
@@ -51,7 +54,7 @@ public class CompanyServiceTest
     @BeforeEach
     void beforeEach()
     {
-        reset(companyDao, recordDao, tradeDao);
+        reset(companyDao, recordDao, tradeService);
     }
 
     @Test
@@ -256,6 +259,38 @@ public class CompanyServiceTest
         assertThat(companyGroups.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).size(), is(2));
         assertThat(companyGroups.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).get(0), is(company2));
         assertThat(companyGroups.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).get(1), is(company3));
+    }
+
+    @Test
+    void getRecentCompanies()
+    {
+        org.kaleta.model.Company company1 = new org.kaleta.model.Company();
+        company1.setId("company-1");
+        company1.setTicker("NVDA");
+
+        org.kaleta.model.Company company2 = new org.kaleta.model.Company();
+        company2.setId("company-2");
+        company2.setTicker("SHELL");
+
+        Trades.Trade trade1 = new Trades.Trade();
+        trade1.setId("trade-1");
+        trade1.setCompany(company1);
+
+        Trades.Trade trade2 = new Trades.Trade();
+        trade2.setId("trade-2");
+        trade2.setCompany(company2);
+
+        Trades.Trade trade3 = new Trades.Trade();
+        trade3.setId("trade-3");
+        trade3.setCompany(company1);
+
+        when(tradeService.getRecentTrades()).thenReturn(List.of(trade1, trade2, trade3));
+
+        List<org.kaleta.model.Company> recentCompanies = companyService.getRecentCompanies();
+
+        assertThat(recentCompanies.size(), is(2));
+        assertThat(recentCompanies.get(0), is(company1));
+        assertThat(recentCompanies.get(1), is(company2));
     }
 
     @Test

@@ -40,7 +40,6 @@ function createProps(overrides = {}) {
         currencySelectorValue: "",
         yearSelectorValue: "",
         sectorSelectorValue: null,
-        setYears: jest.fn(),
         companies: [],
         setCompanySelectorValue: jest.fn(),
         ...overrides,
@@ -151,88 +150,6 @@ describe("Trades", () => {
         expect(screen.getAllByText("23.23")).toHaveLength(2);
         expect(screen.getByText("2,251")).toBeInTheDocument();
         expect(screen.getAllByText("2,485.5")).toHaveLength(2);
-    });
-
-    test("publishes years from trade dates", async () => {
-        mockUseData.mockReturnValue({
-            data: createData({
-                trades: [
-                    {
-                        id: "trade-1",
-                        ticker: "NVDA",
-                        currency: "$",
-                        company: {
-                            ticker: "NVDA",
-                            currency: "$",
-                        },
-                        purchaseDate: "2024-01-10",
-                        purchaseQuantity: "5",
-                        purchasePrice: "400.5",
-                        purchaseFees: "14.5",
-                        purchaseTotal: 2017.0,
-                        sellDate: "2025-01-05",
-                        sellQuantity: "5",
-                        sellPrice: "500.0",
-                        sellFees: "14.5",
-                        sellTotal: 2485.5,
-                        profit: 468.5,
-                        profitPercentage: 23.23,
-                    },
-                    {
-                        id: "trade-2",
-                        ticker: "SHELL",
-                        currency: "€",
-                        company: {
-                            ticker: "SHELL",
-                            currency: "€",
-                        },
-                        purchaseDate: "2023-03-15",
-                        purchaseQuantity: "8",
-                        purchasePrice: "28.0",
-                        purchaseFees: "10.0",
-                        purchaseTotal: 234.0,
-                        sellDate: null,
-                        sellQuantity: null,
-                        sellPrice: null,
-                        sellFees: null,
-                        sellTotal: null,
-                        profit: null,
-                        profitPercentage: null,
-                    },
-                    {
-                        id: "trade-3",
-                        ticker: "CEZ",
-                        currency: "K",
-                        company: {
-                            ticker: "CEZ",
-                            currency: "K",
-                        },
-                        purchaseDate: "2025-11-01",
-                        purchaseQuantity: "2",
-                        purchasePrice: "30.0",
-                        purchaseFees: "2.0",
-                        purchaseTotal: 62.0,
-                        sellDate: "2025-12-10",
-                        sellQuantity: "2",
-                        sellPrice: "40.0",
-                        sellFees: "1.0",
-                        sellTotal: 79.0,
-                        profit: 17.0,
-                        profitPercentage: 27.42,
-                    },
-                ],
-            }),
-            loaded: true,
-            error: null,
-        });
-
-        const setYears = jest.fn();
-
-        render(<Trades {...createProps({
-            setYears,
-        })}/>);
-
-        await waitFor(() => expect(setYears).toHaveBeenCalledWith(["2025", "2024", "2023"]));
     });
 
     test("selects company on ticker double click", () => {

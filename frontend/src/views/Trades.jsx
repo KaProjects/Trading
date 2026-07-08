@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {useData} from "../service/BackendService";
 import {Loader} from "./component/Loader";
@@ -20,18 +20,6 @@ export const Trades = props => {
             + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue.key : "")
             + (refresh ? "&refresh" + refresh : "")
     }
-
-    useEffect(() => {
-        if (data) {
-            const years = new Set([])
-            data.trades.forEach((trade) => {
-                years.add(trade.purchaseDate.substring(0, 4))
-                if (trade.sellDate) years.add(trade.sellDate.substring(0, 4))
-            })
-            props.setYears([...years].sort().reverse())
-        }
-        // eslint-disable-next-line
-    }, [data])
 
     function headerStyle(main, index){
         if (main){

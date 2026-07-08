@@ -13,7 +13,9 @@ jest.mock("../views/component/MainBar", () => ({
     MainBar: (props) => (
         <div>
             <div>company:{props.companySelectorValue?.ticker || ""}</div>
+            <div>recentCompanies:{props.recentCompanies.map(company => company.ticker).join(",")}</div>
             <div>currency:{props.currencySelectorValue || ""}</div>
+            <div>years:{props.years.join(",")}</div>
             <div>sector:{props.sectorSelectorValue?.name || ""}</div>
             <button onClick={() => props.setCurrencySelectorValue("$")}>set currency</button>
             <button onClick={() => props.setSectorSelectorValue({key: "TECH", name: "Technology"})}>set sector</button>
@@ -56,8 +58,10 @@ describe("App", () => {
         axios.get.mockResolvedValue({
             data: {
                 companies: [{id: "company-1", ticker: "NVDA"}],
+                recentCompanies: [{id: "company-2", ticker: "CEZ"}],
                 currencies: ["$"],
                 sectors: [{key: "TECH", name: "Technology"}],
+                years: ["2024", "2023"],
             },
         });
     });
@@ -66,6 +70,8 @@ describe("App", () => {
         render(<App/>);
 
         await waitFor(() => expect(screen.getByText("home")).toBeInTheDocument());
+        expect(screen.getByText("recentCompanies:CEZ")).toBeInTheDocument();
+        expect(screen.getByText("years:2024,2023")).toBeInTheDocument();
 
         fireEvent.click(screen.getByText("set currency"));
         fireEvent.click(screen.getByText("set sector"));

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import {useData} from "../service/BackendService";
 import {Loader} from "./component/Loader";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
@@ -17,17 +17,6 @@ export const Dividends = props => {
             + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue.key : "")
             + (refresh ? "&refresh" + refresh : "")
     }
-
-    useEffect(() => {
-        if (data) {
-            const years = new Set([])
-            data.dividends.forEach((dividend) => {
-                years.add(dividend.date.substring(0, 4))
-            })
-            props.setYears([...years].sort().reverse())
-        }
-        // eslint-disable-next-line
-    }, [data])
 
     function selectCompany(ticker) {
         props.companies.forEach((company) => {if (company.ticker === ticker) {props.setCompanySelectorValue(company)}})

@@ -32,7 +32,6 @@ function createProps(overrides = {}) {
         currencySelectorValue: "",
         yearSelectorValue: "",
         sectorSelectorValue: null,
-        setYears: jest.fn(),
         companies: [],
         setCompanySelectorValue: jest.fn(),
         ...overrides,
@@ -120,64 +119,6 @@ describe("Dividends", () => {
         expect(mockFormatDate).toHaveBeenCalledWith("2021-12-01");
         expect(screen.getByText("72")).toBeInTheDocument();
         expect(screen.getByText("972")).toBeInTheDocument();
-    });
-
-    test("publishes years from dividends", async () => {
-        mockUseData.mockReturnValue({
-            data: createData({
-                dividends: [
-                    {
-                        id: "dividend-1",
-                        ticker: "NVDA",
-                        currency: "$",
-                        company: {
-                            ticker: "NVDA",
-                            currency: "$",
-                        },
-                        date: "2021-06-01",
-                        dividend: "70",
-                        tax: "7",
-                        net: "63",
-                    },
-                    {
-                        id: "dividend-2",
-                        ticker: "CEZ",
-                        currency: "K",
-                        company: {
-                            ticker: "CEZ",
-                            currency: "K",
-                        },
-                        date: "2021-12-01",
-                        dividend: "1000",
-                        tax: "100",
-                        net: "900",
-                    },
-                    {
-                        id: "dividend-3",
-                        ticker: "ABCD",
-                        currency: "$",
-                        company: {
-                            ticker: "ABCD",
-                            currency: "$",
-                        },
-                        date: "2025-01-10",
-                        dividend: "10",
-                        tax: "1",
-                        net: "9",
-                    },
-                ],
-            }),
-            loaded: true,
-            error: null,
-        });
-
-        const setYears = jest.fn();
-
-        render(<Dividends {...createProps({
-            setYears,
-        })}/>);
-
-        await waitFor(() => expect(setYears).toHaveBeenCalledWith(["2025", "2021"]));
     });
 
     test("selects company on ticker double click", () => {

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import {useData} from "../../service/BackendService";
@@ -18,13 +18,6 @@ export const CompanyStats = props => {
             + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue.key : "")
             + (sort ? "&sort=" + sort : "")
     }
-
-    useEffect(() => {
-        if (data){
-            props.setYears([...data.years].sort().reverse())
-        }
-        // eslint-disable-next-line
-    }, [data])
 
     function rowStyle(index) {
         const fontWeight = ([6, 7].includes(index)) ? "bold" : "normal"

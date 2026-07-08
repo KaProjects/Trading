@@ -60,6 +60,9 @@ class CompanyEndpointsTest
         assertThat(dto.getCompanies().get(0).getTicker(), is("ABCD"));
         assertThat(dto.getSectors().size(), is(Sector.values().length));
         assertThat(dto.getCurrencies().size(), is(Currency.values().length));
+        assertThat(dto.getRecentCompanies().size(), is(6));
+        assertThat(tickersFromCompanies(dto.getRecentCompanies()), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
+        assertThat(dto.getYears(), is(List.of("2024", "2023", "2022", "2021", "2020", "2018")));
     }
 
     @Test
@@ -488,5 +491,10 @@ class CompanyEndpointsTest
     private List<String> tickers(List<CompanyWithStats> companies)
     {
         return companies.stream().map(CompanyWithStats::getTicker).collect(Collectors.toList());
+    }
+
+    private List<String> tickersFromCompanies(List<org.kaleta.model.Company> companies)
+    {
+        return companies.stream().map(org.kaleta.model.Company::getTicker).collect(Collectors.toList());
     }
 }

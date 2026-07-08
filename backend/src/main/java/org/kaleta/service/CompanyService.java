@@ -4,11 +4,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.model.CompanyGroups;
+import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
-import org.kaleta.persistence.api.RecordDao;
-import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
@@ -18,7 +17,9 @@ import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -27,9 +28,7 @@ public class CompanyService
     @Inject
     CompanyDao companyDao;
     @Inject
-    RecordDao recordDao;
-    @Inject
-    TradeDao tradeDao;
+    TradeService tradeService;
 
     public List<org.kaleta.model.Company> getCompanies()
     {
@@ -87,6 +86,16 @@ public class CompanyService
             }
         }
         return companyGroups;
+    }
+
+    public List<org.kaleta.model.Company> getRecentCompanies()
+    {
+        Map<String, org.kaleta.model.Company> recentCompanies = new LinkedHashMap<>();
+        for (Trades.Trade trade : tradeService.getRecentTrades()) {
+            org.kaleta.model.Company company = trade.getCompany();
+            recentCompanies.putIfAbsent(company.getId(), company);
+        }
+        return new ArrayList<>(recentCompanies.values());
     }
 
     public void update(CompanyUpdateDto dto)

@@ -24,7 +24,6 @@ function createProps(overrides = {}) {
         loaded: false,
         statsTabsIndex: 0,
         setStatsTabsIndex: jest.fn(),
-        setYears: jest.fn(),
         setOpenSellTrade: jest.fn(),
         setOpenAddTrade: jest.fn(),
         setOpenAddDividend: jest.fn(),

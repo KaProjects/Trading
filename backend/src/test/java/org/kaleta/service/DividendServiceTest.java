@@ -150,6 +150,21 @@ class DividendServiceTest
     }
 
     @Test
+    void getYears()
+    {
+        Company company = entityCompany("company-1", "NVDA", Currency.$);
+        Dividend dividend1 = dividend("dividend-1", company, "2024-02-10", "100", "15");
+        Dividend dividend2 = dividend("dividend-2", company, "2023-04-05", "80", "8");
+        Dividend dividend3 = dividend("dividend-3", company, "2024-06-01", "90", "9");
+
+        when(dividendDao.list()).thenReturn(List.of(dividend1, dividend2, dividend3));
+
+        List<String> years = dividendService.getYears();
+
+        assertThat(years, is(List.of("2024", "2023")));
+    }
+
+    @Test
     void createDividend()
     {
         Company company = entityCompany("company-1", "NVDA", Currency.$);
