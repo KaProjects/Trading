@@ -48,8 +48,8 @@ export const CompanyStats = props => {
         <>
         {!loaded && <Loader error ={error}/>}
         {loaded &&
-            <TableContainer component={Paper} sx={{ width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)"}}>
-                <Table size="small" aria-label="a dense table" stickyHeader>
+            <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto 10px auto", maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
+                <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 760, sm: "unset"}}}>
                     <TableHead>
                         <TableRow>
                             <HeaderCell index={0} value={"Ticker"}/>

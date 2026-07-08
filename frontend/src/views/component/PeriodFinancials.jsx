@@ -88,8 +88,8 @@ export const PeriodFinancials = props => {
         </Grid>
 
         {expand && ttm &&
-            <TableContainer sx={{ width: "max-content", maxHeight: "200px"}}>
-            <Table size="small" aria-label="a dense table" stickyHeader>
+            <TableContainer sx={{width: "100%", maxWidth: "100%", maxHeight: "200px", overflowX: "auto"}}>
+            <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: 650}}>
                 <TableHead>
                     <TableRow>
                         {headers.map((column) => (

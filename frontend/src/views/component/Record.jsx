@@ -95,7 +95,13 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
     return (
         <BorderedSection title={formatDate(record.date)} style={{color: 'text.primary'}}>
 
-            <Stack direction="row" justifyContent="flex-start" alignItems="stretch" spacing={2}>
+            <Stack
+                direction="row"
+                justifyContent="flex-start"
+                alignItems="stretch"
+                spacing={2}
+                sx={{flexWrap: {xs: "wrap", sm: "nowrap"}, rowGap: {xs: 1, sm: 0}}}
+            >
                 <Box>{currency}{record.price}</Box>
                 <Box>PS:{record.priceToRevenues}</Box>
                 <Box>PG:{record.priceToGrossProfit}</Box>

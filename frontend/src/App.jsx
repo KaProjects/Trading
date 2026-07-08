@@ -13,6 +13,7 @@ import {Companies} from "./views/Companies";
 import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
 import {Home} from "./views/Home";
+import {Box} from "@mui/material";
 
 const PageNotFound = () => (
     <div style={{position: "absolute", top: "25%", left: "50%", transform: "translate(-50%, -50%)"}}>
@@ -38,6 +39,7 @@ export const App = () => {
     const [openAddDividend, setOpenAddDividend] = useState(false);
     const [openEditCompany, setOpenEditCompany] = useState(null);
     const [statsTabsIndex, setStatsTabsIndex] = useState(0);
+    const [researchTabsIndex, setResearchTabsIndex] = useState(0);
 
     useEffect(() => {
         axios.get(backend + "/company/values")
@@ -93,24 +95,32 @@ export const App = () => {
 
         statsTabsIndex,
         setStatsTabsIndex,
+        researchTabsIndex,
+        setResearchTabsIndex,
     };
 
     return (
         <BrowserRouter>
             <MainBar {...props} />
-            {!loaded && <Loader error={error}/>}
-            {loaded &&
-                <Routes>
-                    <Route exact path="/" element={<Home {...props}/>}/>
-                    <Route exact path="/trades" element={<Trades {...props}/>}/>
-                    <Route exact path="/research" element={<Research {...props}/>}/>
-                    <Route exact path="/dividends" element={<Dividends {...props}/>}/>
-                    <Route exact path="/stats" element={<Stats {...props}/>}/>
-                    <Route exact path="/companies" element={<Companies {...props}/>}/>
-                    <Route exact path="/analytics" element={<Analytics {...props}/>}/>
-                    <Route path="*" element={<PageNotFound/>}/>
-                </Routes>
-            }
+            <Box sx={{
+                pt: "var(--main-bar-height, 48px)",
+                px: {xs: 1, sm: 2},
+                pb: {xs: 1, sm: 2},
+            }}>
+                {!loaded && <Loader error={error}/>}
+                {loaded &&
+                    <Routes>
+                        <Route exact path="/" element={<Home {...props}/>}/>
+                        <Route exact path="/trades" element={<Trades {...props}/>}/>
+                        <Route exact path="/research" element={<Research {...props}/>}/>
+                        <Route exact path="/dividends" element={<Dividends {...props}/>}/>
+                        <Route exact path="/stats" element={<Stats {...props}/>}/>
+                        <Route exact path="/companies" element={<Companies {...props}/>}/>
+                        <Route exact path="/analytics" element={<Analytics {...props}/>}/>
+                        <Route path="*" element={<PageNotFound/>}/>
+                    </Routes>
+                }
+            </Box>
         </BrowserRouter>
     );
 }

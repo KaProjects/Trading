@@ -22,6 +22,19 @@ import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 import {useLocation, useNavigate} from "react-router-dom";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
+const RESEARCH_TAB = {
+    research: 0,
+    records: 1,
+}
+const researchCardStyle = {
+    bgcolor: 'background.paper',
+    boxShadow: 1,
+    borderRadius: 2,
+    minWidth: {xs: 0, sm: 700},
+    width: {xs: "100%", sm: 800},
+    maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)",
+    overflowY: "auto",
+}
 
 export const Research = props => {
     const location = useLocation()
@@ -38,6 +51,7 @@ export const Research = props => {
     const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
     const [expandFinancials, setExpandFinancials] = useState(false)
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
+    const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
 
     function fetchData(companyChanged) {
         if (props.companySelectorValue) {
@@ -110,7 +124,10 @@ export const Research = props => {
             {props.companySelectorValue && !loaded && <Loader error={error}/>}
             {props.companySelectorValue && loaded && data.company.ticker !== undefined &&
                 <Grid container direction="row" sx={{justifyContent: "center", alignItems: "flex-start"}}>
-                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 800, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
+                    <Card sx={{
+                        ...researchCardStyle,
+                        display: {xs: researchTabsIndex === RESEARCH_TAB.research ? "block" : "none", sm: "block"},
+                    }}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
                                 <Box sx={{color: 'text.secondary'}}>Research</Box>
@@ -189,7 +206,10 @@ export const Research = props => {
                             ))}
                         </CardContent>
                     </Card>
-                    <Card sx={{bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2, minWidth: 700, width: 800, maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
+                    <Card sx={{
+                        ...researchCardStyle,
+                        display: {xs: researchTabsIndex === RESEARCH_TAB.records ? "block" : "none", sm: "block"},
+                    }}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
                                 <Box sx={{color: 'text.secondary'}}>Records</Box>
@@ -231,7 +251,18 @@ export const Research = props => {
                             }
 
                             {data.assets.assets.length > 0 &&
-                                <Stack direction="row" spacing={1} sx={{margin: "10px 10px 20px 10px"}}>
+                                <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    sx={{
+                                        margin: "10px 10px 20px 10px",
+                                        maxWidth: "100%",
+                                        overflowX: "auto",
+                                        overflowY: "hidden",
+                                        pb: {xs: 1, sm: 0},
+                                        "& > *": {flexShrink: 0},
+                                    }}
+                                >
                                     {data.assets.assets.map((asset, index) => (
                                         <AssetBox key={`${data.company.id}-${index}`} asset={asset} currency={data.company.currency} immutable={true}/>
                                     ))}
@@ -249,7 +280,6 @@ export const Research = props => {
                             ))}
                         </CardContent>
                     </Card>
-
                 </Grid>
             }
             <SnackbarErrorAlert error={alert} open={alert !== null} onClose={() => setAlert(null)}/>

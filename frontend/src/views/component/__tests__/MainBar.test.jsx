@@ -24,6 +24,8 @@ function createProps(overrides = {}) {
         loaded: false,
         statsTabsIndex: 0,
         setStatsTabsIndex: jest.fn(),
+        researchTabsIndex: 0,
+        setResearchTabsIndex: jest.fn(),
         setOpenSellTrade: jest.fn(),
         setOpenAddTrade: jest.fn(),
         setOpenAddDividend: jest.fn(),
@@ -143,6 +145,33 @@ describe("MainBar", () => {
         fireEvent.click(screen.getByRole("tab", {name: "Quarterly"}));
 
         expect(setStatsTabsIndex).toHaveBeenCalledWith(2);
+    });
+
+    test("handles research tab change on research route", () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+
+        const setResearchTabsIndex = jest.fn();
+
+        render(<MainBar {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+            setResearchTabsIndex,
+        })} />);
+
+        expect(screen.getByRole("tab", {name: "Research"})).toBeInTheDocument();
+        expect(screen.getByRole("tab", {name: "Records"})).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("tab", {name: "Records"}));
+
+        expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
+    });
+
+    test("hides research tabs until company is selected", () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+
+        render(<MainBar {...createProps()} />);
+
+        expect(screen.queryByRole("tab", {name: "Research"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("tab", {name: "Records"})).not.toBeInTheDocument();
     });
 
     test("restores selector values from navigation state", async () => {

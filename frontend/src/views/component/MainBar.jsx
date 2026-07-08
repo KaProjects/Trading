@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useLayoutEffect, useRef} from "react";
 import {AppBar, Box, Button, IconButton, Tab, Tabs, Toolbar, Typography} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
@@ -12,6 +12,7 @@ import {ReactComponent as ResearchRedirectIcon} from "../../assets/icons/researc
 
 export const ACTIVE_STATES = ["only active", "only closed"];
 const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly"];
+const RESEARCH_TABS = ["Research", "Records"];
 const DATA_ROUTES = ["/trades", "/dividends", "/research"];
 
 const DEFAULT_MAIN_BAR_CONFIG = {
@@ -25,6 +26,7 @@ const DEFAULT_MAIN_BAR_CONFIG = {
     showAddDividendButton: false,
     showAddCompanyButton: false,
     showStatsTabs: false,
+    showResearchTabs: false,
 };
 
 const researchExternalLinks = (ticker) => [
@@ -57,6 +59,7 @@ const MAIN_BAR_CONFIG = {
     },
     "/research": {
         showCompanySelector: true,
+        showResearchTabs: true,
     },
     "/dividends": {
         showCompanySelector: true,
@@ -79,6 +82,7 @@ const MAIN_BAR_CONFIG = {
 export const MainBar = props => {
     const navigate = useNavigate()
     const location = useLocation()
+    const mainBarRef = useRef(null)
     const config = {
         ...DEFAULT_MAIN_BAR_CONFIG,
         ...(MAIN_BAR_CONFIG[location.pathname] ?? {}),
@@ -143,6 +147,30 @@ export const MainBar = props => {
         }
         // eslint-disable-next-line
     }, [location.pathname, location.state, props.companies, props.sectors]);
+
+    useLayoutEffect(() => {
+        function updateMainBarHeight() {
+            if (mainBarRef.current) {
+                document.documentElement.style.setProperty("--main-bar-height", `${mainBarRef.current.offsetHeight}px`)
+            }
+        }
+
+        updateMainBarHeight()
+        window.addEventListener("resize", updateMainBarHeight)
+
+        let resizeObserver
+        if (typeof ResizeObserver !== "undefined" && mainBarRef.current) {
+            resizeObserver = new ResizeObserver(updateMainBarHeight)
+            resizeObserver.observe(mainBarRef.current)
+        }
+
+        return () => {
+            window.removeEventListener("resize", updateMainBarHeight)
+            if (resizeObserver) {
+                resizeObserver.disconnect()
+            }
+        }
+    }, [])
 
     function redirectTo(path) {
         navigate(path, {
@@ -270,8 +298,8 @@ export const MainBar = props => {
     const visiblePageNavigationButtons = pageNavigationButtons.filter((button) => button.visible)
 
     return (
-        <Box sx={{ flexGrow: 1 }}>
-            <AppBar position="static">
+        <Box sx={{flexGrow: 1}}>
+            <AppBar ref={mainBarRef} position="fixed" sx={{top: 0, zIndex: (theme) => theme.zIndex.drawer + 1}}>
                 <Toolbar variant="dense">
                     <IconButton size="large" edge="start" color="inherit" aria-label="open drawer" sx={{ mr: 2 }}
                                 onClick={() => navigate("/")}>
@@ -287,8 +315,24 @@ export const MainBar = props => {
                                   onChange={(event, value) => props.setStatsTabsIndex(value)}
                                   TabIndicatorProps={{style: {backgroundColor: "white"}}}
                                   textColor="inherit"
+                                  sx={{
+                                      "& .MuiTabs-flexContainer": {flexWrap: {xs: "wrap", sm: "nowrap"}},
+                                      "& .MuiTab-root": {minWidth: {xs: "50%", sm: 90}},
+                                  }}
                             >
                                 {STATS_TABS.map((tab) => (
+                                    <Tab key={tab} label={tab}/>
+                                ))}
+                            </Tabs>
+                        }
+                        {config.showResearchTabs && props.companySelectorValue &&
+                            <Tabs value={props.researchTabsIndex}
+                                  onChange={(event, value) => props.setResearchTabsIndex(value)}
+                                  TabIndicatorProps={{style: {backgroundColor: "white"}}}
+                                  textColor="inherit"
+                                  sx={{display: {xs: "flex", sm: "none"}}}
+                            >
+                                {RESEARCH_TABS.map((tab) => (
                                     <Tab key={tab} label={tab}/>
                                 ))}
                             </Tabs>

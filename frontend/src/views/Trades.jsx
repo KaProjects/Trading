@@ -62,10 +62,10 @@ export const Trades = props => {
             <Loader error ={error}/>
         }
         {loaded &&
-            <TableContainer component={Paper} sx={{ width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)"}}>
+            <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto 10px auto", maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
                 <AddTradeDialog triggerRefresh={triggerRefresh} {...props}/>
                 <SellTradeDialog triggerRefresh={triggerRefresh} {...props}/>
-                <Table size="small" aria-label="a dense table" stickyHeader>
+                <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 1100, sm: "unset"}}}>
                     <TableHead>
                         <TableRow>
                             <TableCell key={0} colSpan={1} rowSpan={2} style={headerStyle(true)}>Ticker</TableCell>

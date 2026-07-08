@@ -34,7 +34,7 @@ export const Home = props => {
     }
 
     return (
-        <Paper elevation={0} sx={{maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
+        <Paper elevation={0}>
             <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="center" alignItems={{ xs: 'middle', md: 'flex-start' }} spacing={2} sx={{marginTop: "20px"}}>
                 <ClickableCard action={() => window.location.href='/trades'}
                                title={"Trades"}
@@ -74,10 +74,10 @@ export const Home = props => {
                 />
             </Stack>
 
-            <Typography style={{width: '100%', position: 'fixed', bottom: 0}} component="footer" align={"center"}>
+            <Typography sx={{width: '100%', position: 'fixed', bottom: 0, display: {xs: "none", md: "block"},}} component="footer" align={"center"}>
                 Copyright © {new Date().getFullYear()} Stanislav Kaleta
             </Typography>
-            <DonutSmallIcon style={{position: "fixed", bottom: 0, right: 0}} onClick={() => window.location.href='/analytics'}/>
+            <DonutSmallIcon sx={{position: "fixed", bottom: 0, right: 0, display: {xs: "none", md: "block"}}} onClick={() => window.location.href='/analytics'}/>
         </Paper>
     )
 }

@@ -47,7 +47,7 @@ export const CompanySelector = (props) => {
         recordEvent(window.location.pathname + "#selector:companies:" + selectorState)
     }
 
-    const listStyle = {minWidth: "200px", maxHeight: "calc(100vh - 70px)", marginTop: "2px", overflowY: "scroll", bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2}
+    const listStyle = {minWidth: "200px", marginTop: "2px", bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2}
     const listHeaderStyle = {textAlign: "center", boxShadow: 1, borderRadius: 2, fontSize: "16px", color: "grey"}
     const sidebarSx = {maxWidth: "200px", position: "absolute", display: "block", "@media (max-width:1999px)": {display: "none"}}
 
