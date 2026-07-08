@@ -49,7 +49,7 @@ export const CompanySelector = (props) => {
 
     const listStyle = {minWidth: "200px", marginTop: "2px", bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2}
     const listHeaderStyle = {textAlign: "center", boxShadow: 1, borderRadius: 2, fontSize: "16px", color: "grey"}
-    const sidebarSx = {maxWidth: "200px", position: "absolute", display: "block", "@media (max-width:1999px)": {display: "none"}}
+    const sidebarSx = {maxWidth: "200px", position: "absolute", display: "block", "@media (max-width:2030px)": {display: "none"}}
 
     function renderCompanyList({title, companies, selectorState, secondary, subheader}) {
         if (!(state === SELECTOR_STATES.ALL || state === selectorState)) {

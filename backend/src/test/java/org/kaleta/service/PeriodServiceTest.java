@@ -469,6 +469,35 @@ public class PeriodServiceTest
     }
 
     @Test
+    void getBy_financialGrowth_negativeValues()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25Q2"), YearMonth.of(2025, 6), "150", "-90", "60", "30", "5");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("25Q1"), YearMonth.of(2025, 3), "-100", "60", "-40", "20", "4");
+        Period period3 = Generator.generatePeriod(company, PeriodName.valueOf("24Q4"), YearMonth.of(2024, 12), "80", "40", "20", "-10", "3");
+        Period period4 = Generator.generatePeriod(company, PeriodName.valueOf("24Q3"), YearMonth.of(2024, 9), "70", "35", "14", "7", "2");
+        Period period5 = Generator.generatePeriod(company, PeriodName.valueOf("24Q2"), YearMonth.of(2024, 6), "75", "45", "30", "15", "1");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3, period4, period5)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        Periods.Financial current = periods.getFinancials().get(0);
+        assertThat(current.getPeriod(), is(period1.getName()));
+        assertMetricGrowth(current.getRevenue(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getGrossProfit(), null, null);
+        assertMetricGrowth(current.getOperatingIncome(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getNetIncome(), new BigDecimal("50"), new BigDecimal("100"));
+
+        Periods.Financial previousQuarter = periods.getFinancials().get(1);
+        assertThat(previousQuarter.getPeriod(), is(period2.getName()));
+        assertMetricGrowth(previousQuarter.getRevenue(), null, null);
+        assertMetricGrowth(previousQuarter.getGrossProfit(), new BigDecimal("50"), null);
+        assertMetricGrowth(previousQuarter.getOperatingIncome(), null, null);
+        assertMetricGrowth(previousQuarter.getNetIncome(), null, null);
+    }
+
+    @Test
     void getBy_financialGrowth_halves()
     {
         Company company = Generator.generateCompany();

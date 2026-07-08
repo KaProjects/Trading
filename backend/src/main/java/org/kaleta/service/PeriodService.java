@@ -270,12 +270,19 @@ public class PeriodService
         if (current.getValue() == null) {
             return;
         }
-        if (previousQuarter != null && previousQuarter.getValue() != null) {
+        if (previousQuarter != null && canComputeGrowth(current.getValue(), previousQuarter.getValue())) {
             current.setQoq(arithmeticService.profitPercentage(previousQuarter.getValue(), current.getValue()));
         }
-        if (previousYear != null && previousYear.getValue() != null) {
+        if (previousYear != null && canComputeGrowth(current.getValue(), previousYear.getValue())) {
             current.setYoy(arithmeticService.profitPercentage(previousYear.getValue(), current.getValue()));
         }
+    }
+
+    private boolean canComputeGrowth(BigDecimal current, BigDecimal previous)
+    {
+        return previous != null
+                && current.compareTo(BigDecimal.ZERO) >= 0
+                && previous.compareTo(BigDecimal.ZERO) >= 0;
     }
 
     private Period computeTtm(List<Period> periods)

@@ -31,7 +31,7 @@ describe("PeriodFinancials", () => {
     const financials = [
         {
             period: {year: "2025", type: "FY"},
-            revenue: {value: 1500, yoy: 25},
+            revenue: {value: 1500, margin: 100, yoy: 25},
             grossProfit: {value: 600, margin: 40, yoy: 50, qoq: 20},
             operatingIncome: {value: 300, margin: 20, yoy: -10},
             netIncome: {value: 150, margin: 10, qoq: 0},
@@ -39,7 +39,7 @@ describe("PeriodFinancials", () => {
         },
         {
             period: {year: "2024", type: "FY"},
-            revenue: {value: 1200},
+            revenue: {value: 1200, margin: 100},
             grossProfit: {value: 420, margin: 35},
             operatingIncome: {value: 180, margin: 15},
             netIncome: {value: 0, margin: 0},
@@ -133,6 +133,7 @@ describe("PeriodFinancials", () => {
         expect(screen.getAllByText("(35%)")).toHaveLength(1);
         expect(screen.getAllByText("(15%)")).toHaveLength(1);
         expect(screen.getByText("(0%)")).toBeInTheDocument();
+        expect(screen.getByText("+25%")).toBeInTheDocument();
         expect(screen.getByText("+50% / +20%")).toBeInTheDocument();
         expect(screen.getByText("-10%")).toBeInTheDocument();
         expect(screen.getByText("0%")).toBeInTheDocument();

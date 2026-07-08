@@ -101,7 +101,7 @@ export const PeriodFinancials = props => {
                     {financials.map((financial) => (
                         <TableRow key={formatPeriodName(financial.period)}>
                             <FinancialTableCell value={formatPeriodName(financial.period)}/>
-                            <FinancialTableCell value={formatMillions(financial.revenue.value)} yoy={financial.revenue.yoy} qoq={financial.revenue.qoq}/>
+                            <FinancialTableCell value={formatMillions(financial.revenue.value)} margin={financial.revenue.margin} yoy={financial.revenue.yoy} qoq={financial.revenue.qoq}/>
                             <FinancialTableCell value={formatMillions(financial.grossProfit.value)} margin={financial.grossProfit.margin} yoy={financial.grossProfit.yoy} qoq={financial.grossProfit.qoq}/>
                             <FinancialTableCell value={formatMillions(financial.operatingIncome.value)} margin={financial.operatingIncome.margin} yoy={financial.operatingIncome.yoy} qoq={financial.operatingIncome.qoq}/>
                             <FinancialTableCell value={formatMillions(financial.netIncome.value)} margin={financial.netIncome.margin} yoy={financial.netIncome.yoy} qoq={financial.netIncome.qoq}/>
