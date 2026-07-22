@@ -16,6 +16,16 @@ done
 docker build --tag "${image}" "${project_dir}"
 
 docker run --detach \
-    --mount "type=bind,source=${env_file},target=/workdir/envs.json,readonly" \
-    --mount "type=bind,source=${cert_file},target=/workdir/cert.json,readonly" \
+    --mount "type=bind,source=${env_file},target=/src/envs.json,readonly" \
+    --mount "type=bind,source=${cert_file},target=/src/cert.json,readonly" \
     "${image}"
+
+
+
+#fly
+# fly secrets set \
+#   ENVS_JSON_FILE="$(base64 < envs.json)" \
+#   CERT_JSON_FILE="$(base64 < cert.json)" \
+#   --stage
+
+# fly deploy

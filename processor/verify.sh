@@ -12,7 +12,7 @@ else
     python_bin="python3"
 fi
 
-if "${python_bin}" -m pytest test "$@"; then
+if "${python_bin}" -m pytest --runxfail test "$@"; then
     printf '\nAll tests passed.\n'
 else
     status=$?

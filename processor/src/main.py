@@ -13,7 +13,7 @@ from myfinnhub.earnings_retriever import FinnhubEarningsRetrieverRunner
 async def gather():
     await asyncio.gather(
         cron(),
-        tradingview_alert_processor.run()
+        # tradingview_alert_processor.run()
     )
 
 async def cron():
