@@ -1,16 +1,21 @@
 .git
 .idea
 .pytest_cache
+.github
 **/__pycache__
 *.log
 *.py[cod]
 .env
 .env.*
+build_deploy.sh
 cert.json
+dev.sh
 envs.json
+functions
+pytest.ini
+requirements-dev.txt
+test
 venv
+verify.sh
 
-# flyctl launch added from functions/.gitignore
-functions/**/node_modules
-functions/**/*.local
 fly.toml

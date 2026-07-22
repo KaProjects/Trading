@@ -1,25 +1,55 @@
+import logging
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import create_autospec, patch
 
 import pytest
 
-from gemini.models import ReportDate, Quarter, ReportDates
+from discord.discord_client import DiscordClient
+from gemini.client import GeminiClient
+from gemini.models import Company, Info, Quarter, ReportDate, ReportDates
+from gemini.service import FirebaseService
 from gemini.stock_data_retriever import StockDataRetrieverRunner
+
+
+def make_quarter(
+    quarter_id="25Q4",
+    report_date="2026-05-01",
+    name=None,
+    ending_month="26-03",
+    previous_report_date="2026-01-20",
+    **overrides,
+):
+    data = {
+        "id": quarter_id,
+        "name": name or quarter_id,
+        "ending_month": ending_month,
+        "report_date_previous_quarter": previous_report_date,
+        "report_date_this_quarter": report_date,
+    }
+    data.update(overrides)
+    return Quarter(**data)
+
+
+def make_company(ticker, current_quarter_id, quarters):
+    return Company(
+        info=Info(
+            ticker=ticker,
+            last_update="2026-04-01",
+            current_quarter_id=current_quarter_id,
+        ),
+        quarters=quarters,
+    )
 
 
 class TestStockDataRetriever:
     @pytest.fixture
     def runner(self):
-        """This defines the 'runner' argument used in your tests."""
-        with patch('gemini.stock_data_retriever.GeminiClient') as mock_client, \
-                patch('gemini.stock_data_retriever.FirebaseService') as mock_service, \
-                patch('gemini.stock_data_retriever.DiscordClient') as mock_discord:
-            instance = StockDataRetrieverRunner(gemini_api_key="fake-key", discord_webhook_key="fake-webhook-key")
-            instance.client = mock_client.return_value
-            instance.service = mock_service.return_value
-            instance.discord = mock_discord.return_value
-            instance.log = MagicMock()
-            return instance
+        instance = object.__new__(StockDataRetrieverRunner)
+        instance.client = create_autospec(GeminiClient, instance=True)
+        instance.service = create_autospec(FirebaseService, instance=True)
+        instance.discord = create_autospec(DiscordClient, instance=True)
+        instance.log = create_autospec(logging.Logger, instance=True)
+        yield instance
 
     @patch("utils.is_past_date")
     @patch("gemini.stock_data_retriever.datetime")
@@ -27,13 +57,12 @@ class TestStockDataRetriever:
         """Test Case: Company exists in list but data is None (needs init)."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)  # A Monday
         runner.service.get_companies.return_value = {"AAPL": None}
-        mock_company = MagicMock()
-        mock_company.info.current_quarter_id = "Q1-2026"
-        mock_company.quarters = ["Q1"]
+        quarter = make_quarter(quarter_id="26Q1")
+        mock_company = make_company("AAPL", "26Q1", {"26Q1": quarter})
         runner.client.get_initial_stock_data.return_value = mock_company
         runner.run()
-        runner.client.get_initial_stock_data.assert_called_with("AAPL")
-        runner.service.init_company.assert_called_once()
+        runner.client.get_initial_stock_data.assert_called_once_with("AAPL")
+        runner.service.init_company.assert_called_once_with(id="AAPL", data=mock_company)
 
     @patch("utils.is_past_date")
     @patch("gemini.stock_data_retriever.datetime")
@@ -42,24 +71,19 @@ class TestStockDataRetriever:
         mock_datetime.now.return_value = datetime(2026, 4, 26)
         mock_is_past.return_value = False
         original_date = "2026-05-01"
-        mock_quarter = MagicMock(id="Q1", report_date_this_quarter=original_date)
-        mock_company = MagicMock()
-        mock_company.info.current_quarter_id = "Q1"
-        mock_company.quarters = {"Q1": mock_quarter}
+        mock_quarter = make_quarter(quarter_id="Q1", report_date=original_date)
+        mock_company = make_company("TSLA", "Q1", {"Q1": mock_quarter})
         runner.service.get_companies.return_value = {"TSLA": mock_company}
         new_date = "2026-05-05"
         new_report = ReportDate(ticker="TSLA", quarter="Q1", report_date=new_date)
-        mock_revalidated = MagicMock()
-        mock_revalidated.report_dates = [new_report]
-        runner.client.revalidate_report_dates.return_value = mock_revalidated
+        runner.client.revalidate_report_dates.return_value = ReportDates(report_dates=[new_report])
         runner.run()
         runner.service.update_report_date.assert_called_once_with(new_report)
 
     def test_missing_quarter_raises_exception(self, runner):
         """Test Case: Company exists but the current_quarter_id is invalid."""
-        mock_company = MagicMock()
-        mock_company.info.current_quarter_id = "MISSING"
-        mock_company.quarters = {"EXISTING": MagicMock()}
+        existing_quarter = make_quarter(quarter_id="EXISTING")
+        mock_company = make_company("NVDA", "MISSING", {"EXISTING": existing_quarter})
         runner.service.get_companies.return_value = {"NVDA": mock_company}
         runner.run()
         runner.log.error.assert_called_once()
@@ -71,15 +95,18 @@ class TestStockDataRetriever:
         """Test Case: Date passed, new earnings found -> Update DB and Discord."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)
         mock_is_past.return_value = True
-        old_quarter = Quarter(id="25Q4", name="25Q4", report_date_this_quarter="2026-04-20", ending_month="26-03", report_date_previous_quarter="2026-01-20")
-        mock_company = MagicMock()
-        mock_company.info.current_quarter_id = "25Q4"
-        mock_company.quarters = {"25Q4": old_quarter}
+        old_quarter = make_quarter(report_date="2026-04-20")
+        mock_company = make_company("NVDA", "25Q4", {"25Q4": old_quarter})
         runner.service.get_companies.return_value = {"NVDA": mock_company}
-        new_reported_quarter = Quarter(id="25Q4", name="25Q4", report_date_this_quarter="2026-04-20", ending_month="26-03", reported_eps="5.00", report_date_previous_quarter="2026-01-20")
+        new_reported_quarter = make_quarter(report_date="2026-04-20", reported_eps="5.00")
         runner.client.get_quarter_report.return_value = new_reported_quarter
-        next_quarter = Quarter(id="26Q1", name="26Q1", ending_month="26-06", report_date_previous_quarter="2026-04-20")
-        runner.compose_new_quarter = MagicMock(return_value=next_quarter)
+        next_quarter = make_quarter(
+            quarter_id="26Q1",
+            report_date="",
+            ending_month="26-06",
+            previous_report_date="2026-04-20",
+        )
+        runner.compose_new_quarter = create_autospec(runner.compose_new_quarter, return_value=next_quarter)
         runner.run()
         runner.service.report_quarter.assert_called_once_with("NVDA", new_reported_quarter)
         runner.service.create_quarter.assert_called_once_with("NVDA", next_quarter)
@@ -91,10 +118,8 @@ class TestStockDataRetriever:
         """Test Case: Date passed, but API returns same data -> Log error, don't update."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)
         mock_is_past.return_value = True
-        quarter_data = Quarter(id="25Q4", name="25Q4", report_date_this_quarter="2026-04-20", ending_month="26-03", report_date_previous_quarter="2026-01-20")
-        mock_company = MagicMock()
-        mock_company.info.current_quarter_id = "25Q4"
-        mock_company.quarters = {"25Q4": quarter_data}
+        quarter_data = make_quarter(report_date="2026-04-20")
+        mock_company = make_company("NVDA", "25Q4", {"25Q4": quarter_data})
         runner.service.get_companies.return_value = {"NVDA": mock_company}
         runner.client.get_quarter_report.return_value = quarter_data
         runner.run()
@@ -109,9 +134,8 @@ class TestStockDataRetriever:
         """Test Case: Revalidation should NOT run if it is not Sunday."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)
         mock_is_past.return_value = False
-        mock_company = MagicMock()
-        mock_company.info.current_quarter_id = "Q1"
-        mock_company.quarters = {"Q1": MagicMock(id="Q1", report_date_this_quarter="2026-05-01")}
+        quarter = make_quarter(quarter_id="Q1", report_date="2026-05-01")
+        mock_company = make_company("TSLA", "Q1", {"Q1": quarter})
         runner.service.get_companies.return_value = {"TSLA": mock_company}
         runner.run()
         runner.client.revalidate_report_dates.assert_not_called()
@@ -123,14 +147,11 @@ class TestStockDataRetriever:
         mock_datetime.now.return_value = datetime(2026, 4, 26)  # Sunday
         mock_is_past.return_value = False
         date_str = "2026-05-01"
-        mock_quarter = MagicMock(id="Q1", report_date_this_quarter=date_str)
-        mock_company = MagicMock()
-        mock_company.info.current_quarter_id = "Q1"
-        mock_company.quarters = {"Q1": mock_quarter}
+        mock_quarter = make_quarter(quarter_id="Q1", report_date=date_str)
+        mock_company = make_company("TSLA", "Q1", {"Q1": mock_quarter})
         runner.service.get_companies.return_value = {"TSLA": mock_company}
         same_report = ReportDate(ticker="TSLA", quarter="Q1", report_date=date_str)
-        mock_revalidated = MagicMock(report_dates=[same_report])
-        runner.client.revalidate_report_dates.return_value = mock_revalidated
+        runner.client.revalidate_report_dates.return_value = ReportDates(report_dates=[same_report])
         runner.run()
         runner.client.revalidate_report_dates.assert_called_once()
         runner.service.update_report_date.assert_not_called()
@@ -141,12 +162,11 @@ class TestStockDataRetriever:
         """Test Case: Loop handles one new company and one existing company."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)
         mock_is_past.return_value = False
-        existing_quarter = MagicMock(id="Q1", report_date_this_quarter="2026-05-01")
-        existing_company = MagicMock()
-        existing_company.info.current_quarter_id = "Q1"
-        existing_company.quarters = {"Q1": existing_quarter}
+        existing_quarter = make_quarter(quarter_id="Q1", report_date="2026-05-01")
+        existing_company = make_company("MSFT", "Q1", {"Q1": existing_quarter})
         runner.service.get_companies.return_value = {"AAPL": None, "MSFT": existing_company}
-        mock_aapl = MagicMock()
+        aapl_quarter = make_quarter(quarter_id="Q1")
+        mock_aapl = make_company("AAPL", "Q1", {"Q1": aapl_quarter})
         runner.client.get_initial_stock_data.return_value = mock_aapl
         runner.run()
         runner.client.get_initial_stock_data.assert_called_once_with("AAPL")
@@ -162,22 +182,69 @@ class TestStockDataRetriever:
         runner.client.get_initial_stock_data.assert_not_called()
         runner.client.get_quarter_report.assert_not_called()
 
+    def test_company_processing_failure_is_fatal_for_stock_run(self, runner):
+        error = RuntimeError("Gemini unavailable")
+        runner.service.get_companies.return_value = {"FAIL": None, "SKIPPED": None}
+        runner.client.get_initial_stock_data.side_effect = error
+
+        runner.run()
+
+        runner.client.get_initial_stock_data.assert_called_once_with("FAIL")
+        runner.service.init_company.assert_not_called()
+        runner.log.exception.assert_called_once_with(error)
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.stock_data_retriever.datetime")
+    def test_shorter_revalidation_response_is_logged(self, mock_datetime, mock_is_past, runner):
+        mock_datetime.now.return_value = datetime(2026, 4, 26)
+        first = make_quarter(quarter_id="26Q1", report_date="2026-05-01")
+        second = make_quarter(quarter_id="26Q2", report_date="2026-05-02")
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company("AAPL", "26Q1", {"26Q1": first}),
+            "MSFT": make_company("MSFT", "26Q2", {"26Q2": second}),
+        }
+        runner.client.revalidate_report_dates.return_value = ReportDates(report_dates=[
+            ReportDate(ticker="AAPL", quarter="26Q1", report_date="2026-05-01")
+        ])
+
+        runner.run()
+
+        error = runner.log.exception.call_args.args[0]
+        assert isinstance(error, IndexError)
+        runner.discord.post.assert_not_called()
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="Revalidation matches responses by list position without checking ticker and quarter",
+    )
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.stock_data_retriever.datetime")
+    def test_reordered_revalidation_response_is_rejected(self, mock_datetime, mock_is_past, runner):
+        mock_datetime.now.return_value = datetime(2026, 4, 26)
+        first = make_quarter(quarter_id="26Q1", report_date="2026-05-01")
+        second = make_quarter(quarter_id="26Q2", report_date="2026-05-02")
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company("AAPL", "26Q1", {"26Q1": first}),
+            "MSFT": make_company("MSFT", "26Q2", {"26Q2": second}),
+        }
+        runner.client.revalidate_report_dates.return_value = ReportDates(report_dates=[
+            ReportDate(ticker="MSFT", quarter="26Q2", report_date="2026-05-03"),
+            ReportDate(ticker="AAPL", quarter="26Q1", report_date="2026-05-04"),
+        ])
+
+        runner.run()
+
+        runner.service.update_report_date.assert_not_called()
+        runner.log.exception.assert_called_once()
+
     @patch("utils.is_past_date")
     @patch("gemini.stock_data_retriever.datetime")
     def test_reporting_failed_on_sunday_revalidates_report_date(self, mock_datetime, mock_is_past, runner):
         """Test Case: Failed report retrieval on Sunday should enqueue the report date for Sunday revalidation."""
         mock_datetime.now.return_value = datetime(2026, 4, 26)  # Sunday
         mock_is_past.return_value = True
-        quarter_data = Quarter(
-            id="25Q4",
-            name="25Q4",
-            report_date_this_quarter="2026-04-20",
-            ending_month="26-03",
-            report_date_previous_quarter="2026-01-20"
-        )
-        mock_company = MagicMock()
-        mock_company.info.current_quarter_id = "25Q4"
-        mock_company.quarters = {"25Q4": quarter_data}
+        quarter_data = make_quarter(report_date="2026-04-20")
+        mock_company = make_company("NVDA", "25Q4", {"25Q4": quarter_data})
         runner.service.get_companies.return_value = {"NVDA": mock_company}
         runner.client.get_quarter_report.return_value = quarter_data
         updated_report = ReportDate(ticker="NVDA", quarter="25Q4", report_date="2026-04-28")
@@ -196,41 +263,23 @@ class TestStockDataRetriever:
         """Test Case: Successful reporting on Sunday should still revalidate queued future report dates at the end of the run."""
         mock_datetime.now.return_value = datetime(2026, 4, 26)  # Sunday
         mock_is_past.side_effect = [True, False]
-        reported_company = MagicMock()
-        reported_company.info.current_quarter_id = "25Q4"
-        reported_company.quarters = {
-            "25Q4": Quarter(
-                id="25Q4",
-                name="25Q4",
-                report_date_this_quarter="2026-04-20",
-                ending_month="26-03",
-                report_date_previous_quarter="2026-01-20"
-            )
-        }
-        future_quarter = MagicMock(id="26Q1", report_date_this_quarter="2026-05-01")
-        future_company = MagicMock()
-        future_company.info.current_quarter_id = "26Q1"
-        future_company.quarters = {"26Q1": future_quarter}
+        reported_quarter_data = make_quarter(report_date="2026-04-20")
+        reported_company = make_company("NVDA", "25Q4", {"25Q4": reported_quarter_data})
+        future_quarter = make_quarter(quarter_id="26Q1", report_date="2026-05-01")
+        future_company = make_company("TSLA", "26Q1", {"26Q1": future_quarter})
         runner.service.get_companies.return_value = {
             "NVDA": reported_company,
             "TSLA": future_company
         }
-        reported_quarter = Quarter(
-            id="25Q4",
-            name="25Q4",
-            report_date_this_quarter="2026-04-20",
-            ending_month="26-03",
-            report_date_previous_quarter="2026-01-20",
-            reported_eps="5.00"
-        )
-        next_quarter = Quarter(
-            id="26Q1",
-            name="26Q1",
+        reported_quarter = make_quarter(report_date="2026-04-20", reported_eps="5.00")
+        next_quarter = make_quarter(
+            quarter_id="26Q1",
+            report_date="",
             ending_month="26-06",
-            report_date_previous_quarter="2026-04-20"
+            previous_report_date="2026-04-20",
         )
         runner.client.get_quarter_report.return_value = reported_quarter
-        runner.compose_new_quarter = MagicMock(return_value=next_quarter)
+        runner.compose_new_quarter = create_autospec(runner.compose_new_quarter, return_value=next_quarter)
         revalidated_report = ReportDate(ticker="TSLA", quarter="26Q1", report_date="2026-05-02")
         runner.client.revalidate_report_dates.return_value = ReportDates(report_dates=[revalidated_report])
         runner.run()
@@ -244,12 +293,11 @@ class TestStockDataRetriever:
 
     def test_compose_new_quarter_rolls_q4_into_next_year(self, runner):
         """Test Case: compose_new_quarter should roll Q4 into Q1 of the next year with the correct ending month."""
-        previous_quarter = Quarter(
-            id="25Q4",
+        previous_quarter = make_quarter(
             name="Q4 2025",
             ending_month="25-12",
-            report_date_previous_quarter="2025-07-20",
-            report_date_this_quarter="2025-10-20"
+            previous_report_date="2025-07-20",
+            report_date="2025-10-20",
         )
         new_quarter = runner.compose_new_quarter(previous_quarter)
         assert new_quarter.id == "26Q1"
