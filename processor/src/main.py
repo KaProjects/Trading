@@ -3,9 +3,8 @@ import logging
 
 import schedule
 
-import tradingview_alert_processor
 import utils
-from fear_and_greed_discord import BtcFngDiscordRunner
+from btc_fear_and_greed import BtcFngDiscordRunner
 from gemini.stock_data_retriever import StockDataRetrieverRunner
 from myfinnhub.earnings_retriever import FinnhubEarningsRetrieverRunner
 
@@ -13,7 +12,7 @@ from myfinnhub.earnings_retriever import FinnhubEarningsRetrieverRunner
 async def gather():
     await asyncio.gather(
         cron(),
-        # tradingview_alert_processor.run()
+
     )
 
 async def cron():
@@ -33,4 +32,3 @@ if __name__ == '__main__':
     finnhub_earnings_runner = FinnhubEarningsRetrieverRunner(envs["finnhub_api_key"], envs["discord_eventlog_webhook_key"], logger_level=logger_level)
     stock_data_retriever_runner = StockDataRetrieverRunner(envs["gemini_api_key"], envs["discord_earnings_webhook_key"], logger_level=logger_level)
     asyncio.run(gather())
-
