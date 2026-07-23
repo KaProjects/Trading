@@ -189,20 +189,32 @@ class TestStockDataRetriever:
         runner.client.get_initial_stock_data.assert_not_called()
         runner.client.get_quarter_report.assert_not_called()
 
-    def test_company_processing_failure_is_fatal_for_stock_run(self, runner):
+    def test_company_processing_failure_does_not_stop_stock_run(self, runner):
         error = RuntimeError("Gemini unavailable")
         runner.service.get_companies.return_value = {"FAIL": None, "SKIPPED": None}
-        runner.client.get_initial_stock_data.side_effect = error
+        recovered_company = make_company(
+            "SKIPPED",
+            "26Q1",
+            {"26Q1": make_quarter(quarter_id="26Q1")},
+        )
+        runner.client.get_initial_stock_data.side_effect = [
+            error,
+            recovered_company,
+        ]
 
         runner.run()
 
-        runner.client.get_initial_stock_data.assert_called_once_with("FAIL")
-        runner.service.init_company.assert_not_called()
+        assert runner.client.get_initial_stock_data.call_count == 2
+        runner.service.init_company.assert_called_once_with(
+            id="SKIPPED",
+            data=recovered_company,
+        )
         runner.errors.report.assert_called_once_with(
             error,
             logger=runner.log,
             source=runner.name,
-            operation="run",
+            operation="process_company",
+            context={"company_id": "FAIL"},
         )
 
     @patch("utils.is_past_date", return_value=False)

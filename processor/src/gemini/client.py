@@ -7,6 +7,10 @@ from pydantic import BaseModel
 from gemini.models import Company, ReportDates, Quarter
 
 logger = logging.getLogger(__name__)
+GEMINI_RETRY_ATTEMPTS = 5
+GEMINI_RETRY_INITIAL_DELAY_SECONDS = 2.0
+GEMINI_RETRY_MAX_DELAY_SECONDS = 30.0
+GEMINI_RETRYABLE_HTTP_STATUS_CODES = [408, 429, 500, 502, 503, 504]
 
 
 class GeminiClient:
@@ -14,7 +18,19 @@ class GeminiClient:
 
     def __init__(self, api_key, model):
         self.model = model
-        self.client = genai.Client(api_key=api_key)
+        self.client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(
+                retry_options=types.HttpRetryOptions(
+                    attempts=GEMINI_RETRY_ATTEMPTS,
+                    initial_delay=GEMINI_RETRY_INITIAL_DELAY_SECONDS,
+                    max_delay=GEMINI_RETRY_MAX_DELAY_SECONDS,
+                    exp_base=2,
+                    jitter=1.0,
+                    http_status_codes=GEMINI_RETRYABLE_HTTP_STATUS_CODES,
+                ),
+            ),
+        )
 
     def __ask(self, prompt: str, response_model: type[BaseModel]):
         response = self.client.models.generate_content(

@@ -54,35 +54,44 @@ class StockDataRetrieverRunner:
             companies: dict = self.service.get_companies()
             report_dates = ReportDates(report_dates=list())
             for company_id in companies:
-                if companies.get(company_id) is None:
-                    company: Company = self.client.get_initial_stock_data(company_id)
-                    self.service.init_company(id=company_id, data=company)
-                else:
-                    company = companies.get(company_id)
-                    current_quarter: Quarter = company.quarters.get(company.info.current_quarter_id)
-                    if current_quarter is None:
-                        self.log.error(ErrorMsg.QUARTER_NOT_FOUND.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
+                try:
+                    if companies.get(company_id) is None:
+                        company: Company = self.client.get_initial_stock_data(company_id)
+                        self.service.init_company(id=company_id, data=company)
                     else:
-                        if utils.is_past_date(date=current_quarter.report_date_this_quarter):
-                            current_quarter_reported: Quarter = self.client.get_quarter_report(company_id, current_quarter)
-                            if current_quarter == current_quarter_reported:
-                                self.log.error(ErrorMsg.QUARTER_REPORT_FAILED.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
-                                # might be rescheduled
-                                report_date = ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter)
-                                if datetime.now().weekday() == 6:
-                                    report_dates.report_dates.append(report_date)
-                                else:
-                                    new_report_dates = self.revalidate_report_dates(
-                                        ReportDates(report_dates=[report_date])
-                                    )
-                                    self.service.update_report_date(new_report_dates.report_dates[0])
-                            else:
-                                self.service.report_quarter(company_id, current_quarter_reported)
-                                new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
-                                self.service.create_quarter(company_id, new_quarter)
-                                self.discord.post(self.format_quarter_for_discord(quarter=current_quarter_reported, ticker=company_id))
+                        company = companies.get(company_id)
+                        current_quarter: Quarter = company.quarters.get(company.info.current_quarter_id)
+                        if current_quarter is None:
+                            self.log.error(ErrorMsg.QUARTER_NOT_FOUND.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
                         else:
-                            report_dates.report_dates.append(ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter))
+                            if utils.is_past_date(date=current_quarter.report_date_this_quarter):
+                                current_quarter_reported: Quarter = self.client.get_quarter_report(company_id, current_quarter)
+                                if current_quarter == current_quarter_reported:
+                                    self.log.error(ErrorMsg.QUARTER_REPORT_FAILED.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
+                                    # might be rescheduled
+                                    report_date = ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter)
+                                    if datetime.now().weekday() == 6:
+                                        report_dates.report_dates.append(report_date)
+                                    else:
+                                        new_report_dates = self.revalidate_report_dates(
+                                            ReportDates(report_dates=[report_date])
+                                        )
+                                        self.service.update_report_date(new_report_dates.report_dates[0])
+                                else:
+                                    self.service.report_quarter(company_id, current_quarter_reported)
+                                    new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
+                                    self.service.create_quarter(company_id, new_quarter)
+                                    self.discord.post(self.format_quarter_for_discord(quarter=current_quarter_reported, ticker=company_id))
+                            else:
+                                report_dates.report_dates.append(ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter))
+                except Exception as exception:
+                    self.errors.report(
+                        exception,
+                        logger=self.log,
+                        source=self.name,
+                        operation="process_company",
+                        context={"company_id": company_id},
+                    )
 
             if datetime.now().weekday() == 6:
                 new_report_dates = self.revalidate_report_dates(report_dates)
