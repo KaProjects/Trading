@@ -1,34 +1,85 @@
-import asyncio
 import logging
+import time
+from collections.abc import Callable
+from dataclasses import dataclass, field
 
-import schedule
+from schedule import Scheduler
 
 import utils
 from btc_fear_and_greed import BtcFngDiscordRunner
+from config import AppConfig
 from gemini.stock_data_retriever import StockDataRetrieverRunner
 from myfinnhub.earnings_retriever import FinnhubEarningsRetrieverRunner
 
+logger = logging.getLogger(__name__)
 
-async def gather():
-    await asyncio.gather(
-        cron(),
 
+@dataclass
+class Application:
+    btc_runner: BtcFngDiscordRunner
+    finnhub_runner: FinnhubEarningsRetrieverRunner
+    stock_runner: StockDataRetrieverRunner
+    timezone: str
+    poll_interval_seconds: float = 60
+    scheduler: Scheduler = field(default_factory=Scheduler)
+    sleeper: Callable[[float], None] = time.sleep
+    _jobs_configured: bool = field(default=False, init=False)
+
+    def configure_jobs(self) -> None:
+        if self._jobs_configured:
+            return
+
+        self.scheduler.every().day.at("03:00", self.timezone).do(
+            self.btc_runner.run
+        )
+        self.scheduler.every().day.at("07:00", self.timezone).do(
+            self.finnhub_runner.run
+        )
+        self.scheduler.every().day.at("08:00", self.timezone).do(
+            self.stock_runner.run
+        )
+        self._jobs_configured = True
+
+    def run_pending(self) -> None:
+        self.scheduler.run_pending()
+
+    def run_forever(self) -> None:
+        self.configure_jobs()
+        while True:
+            self.run_pending()
+            self.sleeper(self.poll_interval_seconds)
+
+
+def create_app(config: AppConfig) -> Application:
+    utils.init_firebase(config.firebase)
+    return Application(
+        btc_runner=BtcFngDiscordRunner(
+            config.discord_btc_webhook_key.get_secret_value(),
+            config.cmc_api_key.get_secret_value(),
+        ),
+        finnhub_runner=FinnhubEarningsRetrieverRunner(
+            config.finnhub_api_key.get_secret_value(),
+            config.discord_eventlog_webhook_key.get_secret_value(),
+        ),
+        stock_runner=StockDataRetrieverRunner(
+            config.gemini_api_key.get_secret_value(),
+            config.discord_earnings_webhook_key.get_secret_value(),
+        ),
+        timezone=config.timezone,
+        poll_interval_seconds=float(config.poll_interval_seconds),
     )
 
-async def cron():
-    schedule.every().day.at("03:00").do(btc_fng_discord_runner.run)
-    schedule.every().day.at("07:00").do(finnhub_earnings_runner.run)
-    schedule.every().day.at("08:00").do(stock_data_retriever_runner.run)
 
-    while True:
-        schedule.run_pending()
-        await asyncio.sleep(60)
+def load_config(path: str = "envs.json") -> AppConfig:
+    return AppConfig.model_validate(utils.parse(path))
 
-if __name__ == '__main__':
+
+def main() -> None:
     utils.configure_logging(logging.INFO)
-    envs = utils.parse("envs.json")
-    utils.init_firebase(envs["firebase"])
-    btc_fng_discord_runner = BtcFngDiscordRunner(envs["discord_btc_webhook_key"], envs["cmc_api_key"])
-    finnhub_earnings_runner = FinnhubEarningsRetrieverRunner(envs["finnhub_api_key"], envs["discord_eventlog_webhook_key"])
-    stock_data_retriever_runner = StockDataRetrieverRunner(envs["gemini_api_key"], envs["discord_earnings_webhook_key"])
-    asyncio.run(gather())
+    app = create_app(load_config())
+    logger.info("Starting scheduler in timezone %s", app.timezone)
+    app.run_forever()
+
+
+if __name__ == "__main__":
+    main()
