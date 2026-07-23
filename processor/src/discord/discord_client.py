@@ -1,23 +1,18 @@
 from requests import Session
 from requests.exceptions import RequestException
 
-from utils import BaseClass
-
 
 class DiscordClientError(RuntimeError):
     pass
 
 
-class DiscordClient(BaseClass):
+class DiscordClient:
     def __init__(
         self,
         webhook_key: str,
-        parent: str,
         session: Session | None = None,
         timeout: float = 10.0,
-        **kwargs,
     ):
-        super().__init__(identity=parent+".DiscordClient", **kwargs)
         self.webhook_key = webhook_key
         self.session = session or Session()
         self.timeout = timeout

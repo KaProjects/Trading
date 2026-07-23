@@ -14,7 +14,6 @@ def discord_client():
     session.post = create_autospec(session.post)
     client = DiscordClient(
         webhook_key="webhook-id/token",
-        parent="test",
         session=session,
         timeout=3.0,
     )

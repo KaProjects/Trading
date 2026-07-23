@@ -63,7 +63,7 @@ def test_runner_delegates_webhook_delivery_to_discord_client(runner):
         ],
     )
 
-    with patch("btc_fear_and_greed.log", autospec=True):
+    with patch("btc_fear_and_greed.logger", autospec=True):
         instance.run()
 
     discord.post.assert_called_once()

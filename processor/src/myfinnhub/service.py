@@ -1,20 +1,20 @@
+import logging
 from datetime import date
 
 from firebase_admin import db
 
 from myfinnhub.models import Company, Quarter, Earnings
 from myfinnhub.strings import LogMsg
-from utils import BaseClass
 
 companies_path = "company"
 data_root = "fhe"
+logger = logging.getLogger(__name__)
 
 def company_path(company_id: str) -> str:
     return companies_path + "/" + company_id + "/" + data_root
 
-class FirebaseService(BaseClass):
-    def __init__(self, parent, **kwargs):
-        super().__init__(identity=parent+".FirebaseService", **kwargs)
+class FirebaseService:
+    log = logger
 
     def get_companies(self) -> dict[str, Company]:
         companies_data: dict = db.reference(companies_path).get()

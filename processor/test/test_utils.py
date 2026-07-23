@@ -1,21 +1,21 @@
 import logging
-from uuid import uuid4
 
-import pytest
-
-from utils import BaseClass
+from utils import configure_logging
 
 
-@pytest.mark.xfail(strict=True, reason="BaseClass adds a new handler for every instance")
-def test_base_class_configures_each_named_logger_once():
-    identity = f"test.{uuid4()}"
-    logger = logging.getLogger(identity)
+def test_configure_logging_does_not_duplicate_root_handlers():
+    logger = logging.getLogger()
+    original_handlers = logger.handlers[:]
+    original_level = logger.level
 
     try:
-        BaseClass(identity=identity)
-        BaseClass(identity=identity)
+        logger.handlers.clear()
+        configure_logging()
+        configure_logging()
         assert len(logger.handlers) == 1
     finally:
         for handler in list(logger.handlers):
             logger.removeHandler(handler)
             handler.close()
+        logger.handlers.extend(original_handlers)
+        logger.setLevel(original_level)

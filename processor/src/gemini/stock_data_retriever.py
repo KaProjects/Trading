@@ -1,4 +1,5 @@
 import calendar
+import logging
 from datetime import datetime, timedelta
 
 import utils
@@ -7,19 +8,20 @@ from gemini.client import GeminiClient
 from gemini.models import Company, ReportDate, ReportDates, Quarter
 from gemini.service import FirebaseService
 from gemini.strings import ErrorMsg
-from utils import BaseClass
+
+logger = logging.getLogger(__name__)
 
 
-class StockDataRetrieverRunner(BaseClass):
+class StockDataRetrieverRunner:
+    log = logger
     name = "StockDataRetriever"
     # model = "gemini-3-flash-preview"
     model = "gemini-3.1-pro-preview"
 
-    def __init__(self, gemini_api_key, discord_webhook_key, **kwargs):
-        super().__init__(identity=self.name, **kwargs)
-        self.client = GeminiClient(api_key=gemini_api_key, parent=self.name, model=self.model, **kwargs)
-        self.service = FirebaseService(parent=self.name, **kwargs)
-        self.discord = DiscordClient(webhook_key=discord_webhook_key, parent=self.name, **kwargs)
+    def __init__(self, gemini_api_key, discord_webhook_key):
+        self.client = GeminiClient(api_key=gemini_api_key, model=self.model)
+        self.service = FirebaseService()
+        self.discord = DiscordClient(webhook_key=discord_webhook_key)
 
     def run(self):
         try:

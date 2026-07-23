@@ -1,14 +1,18 @@
+import logging
+
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
 
 from gemini.models import Company, ReportDates, Quarter
-from utils import BaseClass
+
+logger = logging.getLogger(__name__)
 
 
-class GeminiClient(BaseClass):
-    def __init__(self, api_key, model, parent, **kwargs):
-        super().__init__(identity=parent+".GeminiClient", **kwargs)
+class GeminiClient:
+    log = logger
+
+    def __init__(self, api_key, model):
         self.model = model
         self.client = genai.Client(api_key=api_key)
 

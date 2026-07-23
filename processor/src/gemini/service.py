@@ -1,20 +1,20 @@
+import logging
 from datetime import datetime
 
 from firebase_admin import db
 
 from gemini.models import Company, ReportDate, Quarter
 from gemini.strings import LogMsg
-from utils import BaseClass
 
 companies_path = "company"
 data_root = "gemini"
+logger = logging.getLogger(__name__)
 
 def company_path(company_id: str) -> str:
     return companies_path + "/" + company_id + "/" + data_root
 
-class FirebaseService(BaseClass):
-    def __init__(self, parent, **kwargs):
-        super().__init__(identity=parent+".FirebaseService", **kwargs)
+class FirebaseService:
+    log = logger
 
     def get_companies(self):
         companies_data: dict = db.reference(companies_path).get()
@@ -46,4 +46,3 @@ class FirebaseService(BaseClass):
         db.reference(company_path(company_id) + "/info/current_quarter_id").set(new_quarter_data.id)
         db.reference(company_path(company_id) + "/info/last_update").set(datetime.now().strftime("%Y-%m-%d"))
         self.log.info(LogMsg.QUARTER_CREATED.format(company_id=company_id, quarter_id=new_quarter_data.id))
-

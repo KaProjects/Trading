@@ -1,3 +1,4 @@
+import logging
 import math
 import time
 
@@ -6,17 +7,18 @@ from myfinnhub.client import FinnhubClient
 from myfinnhub.models import Company, Earnings
 from myfinnhub.service import FirebaseService
 from myfinnhub.strings import ErrMsg, LogMsg
-from utils import BaseClass
+
+logger = logging.getLogger(__name__)
 
 
-class FinnhubEarningsRetrieverRunner(BaseClass):
+class FinnhubEarningsRetrieverRunner:
+    log = logger
     name = "FinnhubEarnings"
 
-    def __init__(self, finnhub_api_key, discord_webhook_key, **kwargs):
-        super().__init__(identity=self.name, **kwargs)
-        self.client = FinnhubClient(api_key=finnhub_api_key, parent=self.name, **kwargs)
-        self.service = FirebaseService(parent=self.name, **kwargs)
-        self.discord = DiscordClient(webhook_key=discord_webhook_key, parent=self.name, **kwargs)
+    def __init__(self, finnhub_api_key, discord_webhook_key):
+        self.client = FinnhubClient(api_key=finnhub_api_key)
+        self.service = FirebaseService()
+        self.discord = DiscordClient(webhook_key=discord_webhook_key)
 
     def run(self):
         try:

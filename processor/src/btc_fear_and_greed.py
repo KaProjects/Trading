@@ -1,15 +1,12 @@
 import json
-import traceback
+import logging
 
 from requests import Session
 from requests.exceptions import RequestException
 
-import utils
 from discord.discord_client import DiscordClient
 
-
-def log(message: str):
-    utils.log("FNG", message)
+logger = logging.getLogger(__name__)
 
 
 class CoinMarketCapError(RuntimeError):
@@ -33,7 +30,6 @@ class BtcFngDiscordRunner:
         })
         self.discord = discord or DiscordClient(
             webhook_key=discord_webhook_key,
-            parent=type(self).__name__,
             timeout=timeout,
         )
         self.timeout = timeout
@@ -55,7 +51,7 @@ class BtcFngDiscordRunner:
                 if btc_data and "data" in btc_data:
                     btc_price = btc_data["data"]["BTC"][0]["quote"]["USD"]["price"]
                     message = "{} {}: {} ${:.0f}".format(self.classification_map[classification][1], classification, new_value, btc_price)
-                    log(message)
+                    logger.info(message)
                     if new_value not in range(30, 70):
                         self.discord.post({"embeds": [{
                             "color": self.classification_map[classification][0],
@@ -63,14 +59,13 @@ class BtcFngDiscordRunner:
                             "description": ":coin: ${:.0f} {}".format(btc_price, self.classification_map[classification][2]),
                         }]})
                 else:
-                    log("Error: Invalid BTC data: {}".format(btc_data))
+                    logger.error("Invalid BTC data: %r", btc_data)
 
                 self.last_value = new_value
             else:
-                log(data)
+                logger.error("Invalid fear-and-greed data: %r", data)
         except Exception:
-            log(traceback.format_exc())
-            log("^^^ exception occurred!")
+            logger.exception("BTC fear-and-greed job failed")
 
     def cmc_request(self, path: str, parameters: object):
         url = "https://pro-api.coinmarketcap.com" + path

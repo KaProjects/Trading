@@ -25,10 +25,10 @@ async def cron():
         await asyncio.sleep(60)
 
 if __name__ == '__main__':
+    utils.configure_logging(logging.INFO)
     envs = utils.parse("envs.json")
     utils.init_firebase(envs["firebase"])
-    logger_level = logging.INFO
     btc_fng_discord_runner = BtcFngDiscordRunner(envs["discord_btc_webhook_key"], envs["cmc_api_key"])
-    finnhub_earnings_runner = FinnhubEarningsRetrieverRunner(envs["finnhub_api_key"], envs["discord_eventlog_webhook_key"], logger_level=logger_level)
-    stock_data_retriever_runner = StockDataRetrieverRunner(envs["gemini_api_key"], envs["discord_earnings_webhook_key"], logger_level=logger_level)
+    finnhub_earnings_runner = FinnhubEarningsRetrieverRunner(envs["finnhub_api_key"], envs["discord_eventlog_webhook_key"])
+    stock_data_retriever_runner = StockDataRetrieverRunner(envs["gemini_api_key"], envs["discord_earnings_webhook_key"])
     asyncio.run(gather())

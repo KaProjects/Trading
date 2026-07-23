@@ -1,15 +1,18 @@
+import logging
 from datetime import date
 
 import finnhub
 
 from myfinnhub.models import Earnings
 from myfinnhub.strings import ErrMsg
-from utils import BaseClass
+
+logger = logging.getLogger(__name__)
 
 
-class FinnhubClient(BaseClass):
-    def __init__(self, api_key, parent, **kwargs):
-        super().__init__(identity=parent+".FinnhubClient", **kwargs)
+class FinnhubClient:
+    log = logger
+
+    def __init__(self, api_key):
         self.client = finnhub.Client(api_key=api_key)
         self.client.DEFAULT_TIMEOUT = 30
 
