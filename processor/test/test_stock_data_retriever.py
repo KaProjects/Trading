@@ -8,7 +8,7 @@ from discord.discord_client import DiscordClient
 from gemini.client import GeminiClient
 from gemini.models import Company, Info, Quarter, ReportDate, ReportDates
 from gemini.service import FirebaseService
-from gemini.stock_data_retriever import StockDataRetrieverRunner
+from gemini.retriever import StockDataRetrieverRunner
 
 
 def make_quarter(
@@ -52,7 +52,7 @@ class TestStockDataRetriever:
         yield instance
 
     @patch("utils.is_past_date")
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_init_new_company(self, mock_datetime, mock_is_past, runner):
         """Test Case: Company exists in list but data is None (needs init)."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)  # A Monday
@@ -65,7 +65,7 @@ class TestStockDataRetriever:
         runner.service.init_company.assert_called_once_with(id="AAPL", data=mock_company)
 
     @patch("utils.is_past_date")
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_sunday_revalidation_updates_date(self, mock_datetime, mock_is_past, runner):
         """Test Case: It's Sunday and a report date has changed."""
         mock_datetime.now.return_value = datetime(2026, 4, 26)
@@ -90,7 +90,7 @@ class TestStockDataRetriever:
         assert "quarter 26Q2 not found for NVDA" in runner.log.error.call_args[0][0]
 
     @patch("utils.is_past_date")
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_reporting_success_flow(self, mock_datetime, mock_is_past, runner):
         """Test Case: Date passed, new earnings found -> Update DB and Discord."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)
@@ -113,7 +113,7 @@ class TestStockDataRetriever:
         runner.discord.post.assert_called_once()
 
     @patch("utils.is_past_date")
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_reporting_failed_idempotency(self, mock_datetime, mock_is_past, runner):
         """Test Case: Date passed, but API returns same data -> Log error, don't update."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)
@@ -129,7 +129,7 @@ class TestStockDataRetriever:
         assert "failed getting report for quarter 25Q4 of NVDA" in runner.log.error.call_args[0][0]
 
     @patch("utils.is_past_date")
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_revalidation_skipped_on_monday(self, mock_datetime, mock_is_past, runner):
         """Test Case: Revalidation should NOT run if it is not Sunday."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)
@@ -141,7 +141,7 @@ class TestStockDataRetriever:
         runner.client.revalidate_report_dates.assert_not_called()
 
     @patch("utils.is_past_date")
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_sunday_revalidation_no_change(self, mock_datetime, mock_is_past, runner):
         """Test Case: Sunday revalidation runs, but dates match -> No DB write."""
         mock_datetime.now.return_value = datetime(2026, 4, 26)  # Sunday
@@ -157,7 +157,7 @@ class TestStockDataRetriever:
         runner.service.update_report_date.assert_not_called()
 
     @patch("utils.is_past_date")
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_multi_company_mixed_state(self, mock_datetime, mock_is_past, runner):
         """Test Case: Loop handles one new company and one existing company."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)
@@ -194,7 +194,7 @@ class TestStockDataRetriever:
         runner.log.exception.assert_called_once_with(error)
 
     @patch("utils.is_past_date", return_value=False)
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_shorter_revalidation_response_is_logged(self, mock_datetime, mock_is_past, runner):
         mock_datetime.now.return_value = datetime(2026, 4, 26)
         first = make_quarter(quarter_id="26Q1", report_date="2026-05-01")
@@ -216,7 +216,7 @@ class TestStockDataRetriever:
         runner.discord.post.assert_not_called()
 
     @patch("utils.is_past_date", return_value=False)
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_reordered_revalidation_response_is_rejected(self, mock_datetime, mock_is_past, runner):
         mock_datetime.now.return_value = datetime(2026, 4, 26)
         first = make_quarter(quarter_id="26Q1", report_date="2026-05-01")
@@ -236,7 +236,7 @@ class TestStockDataRetriever:
         runner.log.exception.assert_called_once()
 
     @patch("utils.is_past_date", return_value=False)
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_changed_revalidation_identity_is_rejected(self, mock_datetime, mock_is_past, runner):
         mock_datetime.now.return_value = datetime(2026, 4, 26)
         quarter = make_quarter(quarter_id="26Q1", report_date="2026-05-01")
@@ -256,7 +256,7 @@ class TestStockDataRetriever:
         assert "('MSFT', '26Q1')" in str(error)
 
     @patch("utils.is_past_date")
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_reporting_failed_on_sunday_revalidates_report_date(self, mock_datetime, mock_is_past, runner):
         """Test Case: Failed report retrieval on Sunday should enqueue the report date for Sunday revalidation."""
         mock_datetime.now.return_value = datetime(2026, 4, 26)  # Sunday
@@ -276,7 +276,7 @@ class TestStockDataRetriever:
         runner.service.update_report_date.assert_called_once_with(updated_report)
 
     @patch("utils.is_past_date")
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_successful_report_on_sunday_still_revalidates_remaining_dates(self, mock_datetime, mock_is_past, runner):
         """Test Case: Successful reporting on Sunday should still revalidate queued future report dates at the end of the run."""
         mock_datetime.now.return_value = datetime(2026, 4, 26)  # Sunday
@@ -323,7 +323,7 @@ class TestStockDataRetriever:
         assert new_quarter.ending_month == "26-03"
         assert new_quarter.report_date_previous_quarter == datetime(2025, 10, 20).date()
 
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_check_report_dates_next_week_logs_error_when_not_sunday(self, mock_datetime, runner):
         """Test Case: check_report_dates_next_week should log an error instead of posting when called on a non-Sunday."""
         mock_datetime.now.return_value = datetime(2026, 4, 27)  # Monday
@@ -332,7 +332,7 @@ class TestStockDataRetriever:
         assert "should run on Sunday, but is Monday" in runner.log.error.call_args[0][0]
         runner.discord.post.assert_not_called()
 
-    @patch("gemini.stock_data_retriever.datetime")
+    @patch("gemini.retriever.datetime")
     def test_check_report_dates_next_week_posts_grouped_schedule_on_sunday(self, mock_datetime, runner):
         """Test Case: check_report_dates_next_week should group next-week reports by weekday and post one Discord payload on Sunday."""
         mock_datetime.now.return_value = datetime(2026, 4, 26)  # Sunday

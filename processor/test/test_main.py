@@ -6,9 +6,9 @@ from schedule import Scheduler
 
 from cmc.retriever import BtcFearAndGreedRetrieverRunner
 from config import AppConfig
-from gemini.stock_data_retriever import StockDataRetrieverRunner
+from gemini.retriever import StockDataRetrieverRunner
 from main import Application, create_app
-from myfinnhub.earnings_retriever import FinnhubEarningsRetrieverRunner
+from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 
 
 def make_config(**overrides):

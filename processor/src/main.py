@@ -8,8 +8,8 @@ from schedule import Scheduler
 import utils
 from cmc.retriever import BtcFearAndGreedRetrieverRunner
 from config import AppConfig
-from gemini.stock_data_retriever import StockDataRetrieverRunner
-from myfinnhub.earnings_retriever import FinnhubEarningsRetrieverRunner
+from gemini.retriever import StockDataRetrieverRunner
+from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 
 logger = logging.getLogger(__name__)
 

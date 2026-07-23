@@ -6,7 +6,7 @@ import pytest
 
 from discord.discord_client import DiscordClient
 from myfinnhub.client import FinnhubClient
-from myfinnhub.earnings_retriever import FinnhubEarningsRetrieverRunner
+from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from myfinnhub.models import Company, Earnings, Quarter
 from myfinnhub.service import FirebaseService
 
@@ -31,7 +31,7 @@ def make_company(**quarters):
 class TestFinnhubEarningsRetriever:
     @pytest.fixture
     def runner(self):
-        with patch("myfinnhub.earnings_retriever.time.sleep", autospec=True):
+        with patch("myfinnhub.retriever.time.sleep", autospec=True):
             instance = object.__new__(FinnhubEarningsRetrieverRunner)
             instance.service = create_autospec(FirebaseService, instance=True)
             instance.client = create_autospec(FinnhubClient, instance=True)
