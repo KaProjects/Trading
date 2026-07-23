@@ -137,6 +137,28 @@ def test_fake_runner_executes_end_to_end_without_network(
     assert "FAKE POST Discord webhook" in caplog.text
 
 
+@pytest.mark.parametrize(
+    ("service_type", "path"),
+    [
+        (FakeGeminiFirebaseService, "Firebase /company/*/gemini"),
+        (FakeFinnhubFirebaseService, "Firebase /company/*/fhe"),
+    ],
+)
+def test_fake_firebase_logs_operation_without_snapshot_data(
+    service_type,
+    path,
+    caplog,
+):
+    service = service_type(data.firebase_company_snapshot())
+    caplog.clear()
+
+    with caplog.at_level(logging.INFO):
+        companies = service.get_companies()
+
+    assert f"FAKE GET {path}" in caplog.text
+    assert all(ticker not in caplog.text for ticker in companies)
+
+
 def test_main_executes_exactly_one_runner_with_fake_business_clients():
     runner = Mock()
     errors = Mock()

@@ -58,6 +58,10 @@ def _log_exchange(action: str, target: str, payload: Any) -> None:
     )
 
 
+def _log_operation(action: str, target: str) -> None:
+    logger.info("%s %s", action, target)
+
+
 class FakeCoinMarketCapClient:
     def __init__(self) -> None:
         self.reading = data.cmc_fear_and_greed()
@@ -158,12 +162,12 @@ class FakeGeminiFirebaseService:
             )
             for ticker, company in self.companies.items()
         }
-        _log_exchange("FAKE GET", "Firebase /company/*/gemini", result)
+        _log_operation("FAKE GET", "Firebase /company/*/gemini")
         return result
 
     def init_company(self, id: str, data: GeminiCompany) -> None:
         self.companies[id] = data.model_copy(deep=True)
-        _log_exchange("FAKE PUT", f"Firebase /company/{id}/gemini", data)
+        _log_operation("FAKE PUT", f"Firebase /company/{id}/gemini")
 
     def update_report_date(self, new_report_date: ReportDate) -> None:
         company = self.companies.get(new_report_date.ticker)
@@ -174,13 +178,12 @@ class FakeGeminiFirebaseService:
             raise KeyError(f"Unknown fake quarter: {new_report_date.quarter}")
         quarter.report_date_this_quarter = new_report_date.report_date
         company.info.last_update = date.today()
-        _log_exchange(
+        _log_operation(
             "FAKE PATCH",
             (
                 f"Firebase /company/{new_report_date.ticker}/gemini/"
                 f"quarters/{new_report_date.quarter}/report_date_this_quarter"
             ),
-            new_report_date,
         )
 
     def report_quarter(
@@ -191,10 +194,9 @@ class FakeGeminiFirebaseService:
         company = self._company(company_id)
         company.quarters[quarter_data.id] = quarter_data.model_copy(deep=True)
         company.info.last_update = date.today()
-        _log_exchange(
+        _log_operation(
             "FAKE PATCH",
             f"Firebase /company/{company_id}/gemini/quarters/{quarter_data.id}",
-            quarter_data,
         )
 
     def create_quarter(
@@ -208,13 +210,12 @@ class FakeGeminiFirebaseService:
         )
         company.info.current_quarter_id = new_quarter_data.id
         company.info.last_update = date.today()
-        _log_exchange(
+        _log_operation(
             "FAKE PATCH",
             (
                 f"Firebase /company/{company_id}/gemini/quarters/"
                 f"{new_quarter_data.id}"
             ),
-            new_quarter_data,
         )
 
     def _company(self, company_id: str) -> GeminiCompany:
@@ -247,7 +248,7 @@ class FakeFinnhubFirebaseService:
             )
             for ticker, company in self.companies.items()
         }
-        _log_exchange("FAKE GET", "Firebase /company/*/fhe", result)
+        _log_operation("FAKE GET", "Firebase /company/*/fhe")
         return result
 
     def init_company(
@@ -261,10 +262,9 @@ class FakeFinnhubFirebaseService:
             for quarter_id, item in earnings.items()
         })
         self.companies[company_id] = company
-        _log_exchange(
+        _log_operation(
             "FAKE PUT",
             f"Firebase /company/{company_id}/fhe",
-            company,
         )
 
     def init_quarter(
@@ -278,10 +278,9 @@ class FakeFinnhubFirebaseService:
         company.root[quarter_id] = FinnhubQuarter.model_validate({
             snapshot: earnings,
         })
-        _log_exchange(
+        _log_operation(
             "FAKE PUT",
             f"Firebase /company/{company_id}/fhe/{quarter_id}",
-            {snapshot: earnings},
         )
 
     def new_earnings(
@@ -293,13 +292,12 @@ class FakeFinnhubFirebaseService:
         company = self._company(company_id)
         snapshot = date.today().strftime("%Y%m%d")
         company.root[quarter_id].root[snapshot] = earnings.model_copy(deep=True)
-        _log_exchange(
+        _log_operation(
             "FAKE PUT",
             (
                 f"Firebase /company/{company_id}/fhe/"
                 f"{quarter_id}/{snapshot}"
             ),
-            earnings,
         )
 
     def _company(self, company_id: str) -> FinnhubCompany:
