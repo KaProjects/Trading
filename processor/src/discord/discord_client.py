@@ -1,26 +1,39 @@
-import json
-
 from requests import Session
-from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
+from requests.exceptions import RequestException
 
 from utils import BaseClass
 
 
+class DiscordClientError(RuntimeError):
+    pass
+
+
 class DiscordClient(BaseClass):
-    def __init__(self, webhook_key, parent, **kwargs):
+    def __init__(
+        self,
+        webhook_key: str,
+        parent: str,
+        session: Session | None = None,
+        timeout: float = 10.0,
+        **kwargs,
+    ):
         super().__init__(identity=parent+".DiscordClient", **kwargs)
         self.webhook_key = webhook_key
+        self.session = session or Session()
+        self.timeout = timeout
 
-    def post(self, payload: object):
+    def post(self, payload: object) -> None:
         url = "https://discord.com/api/webhooks/" + self.webhook_key
-        headers = {"Content-Type": "application/json"}
-
-        session = Session()
-        session.headers.update(headers)
-
         try:
-            response = session.post(url, data=json.dumps(payload))
-            if response.status_code != 204:
-                self.log.error("response " + str(response.status_code) + " " + response.text)
-        except (ConnectionError, Timeout, TooManyRedirects) as e:
-            self.log.exception(e)
+            response = self.session.post(
+                url,
+                json=payload,
+                timeout=self.timeout,
+            )
+        except RequestException as exception:
+            raise DiscordClientError("Discord webhook request failed") from exception
+
+        if response.status_code != 204:
+            raise DiscordClientError(
+                f"Discord webhook returned {response.status_code}: {response.text}"
+            )

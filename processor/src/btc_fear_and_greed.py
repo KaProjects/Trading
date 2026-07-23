@@ -2,19 +2,41 @@ import json
 import traceback
 
 from requests import Session
-from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
+from requests.exceptions import RequestException
 
 import utils
+from discord.discord_client import DiscordClient
 
 
 def log(message: str):
     utils.log("FNG", message)
 
 
+class CoinMarketCapError(RuntimeError):
+    pass
+
+
 class BtcFngDiscordRunner:
-    def __init__(self, discord_webhook_key, cmc_api_key):
-        self.discord_webhook_key = discord_webhook_key
+    def __init__(
+        self,
+        discord_webhook_key: str,
+        cmc_api_key: str,
+        session: Session | None = None,
+        discord: DiscordClient | None = None,
+        timeout: float = 10.0,
+    ):
         self.cmc_api_key = cmc_api_key
+        self.session = session or Session()
+        self.session.headers.update({
+            "Accepts": "application/json",
+            "X-CMC_PRO_API_KEY": self.cmc_api_key,
+        })
+        self.discord = discord or DiscordClient(
+            webhook_key=discord_webhook_key,
+            parent=type(self).__name__,
+            timeout=timeout,
+        )
+        self.timeout = timeout
         self.last_value = -1
         self.classification_map = {"Extreme fear": [16711680, ":scream:", "... buy the dip? :bulb:"],
                                    "Fear": [16747520, ":fearful:", ""],
@@ -35,7 +57,7 @@ class BtcFngDiscordRunner:
                     message = "{} {}: {} ${:.0f}".format(self.classification_map[classification][1], classification, new_value, btc_price)
                     log(message)
                     if new_value not in range(30, 70):
-                        self.discord_post({"embeds": [{
+                        self.discord.post({"embeds": [{
                             "color": self.classification_map[classification][0],
                             "title": "{} {}: {}".format(self.classification_map[classification][1], classification, new_value),
                             "description": ":coin: ${:.0f} {}".format(btc_price, self.classification_map[classification][2]),
@@ -52,33 +74,20 @@ class BtcFngDiscordRunner:
 
     def cmc_request(self, path: str, parameters: object):
         url = "https://pro-api.coinmarketcap.com" + path
-        headers = {
-            "Accepts": "application/json",
-            "X-CMC_PRO_API_KEY": self.cmc_api_key,
-        }
-
-        session = Session()
-        session.headers.update(headers)
-
         try:
-            response = session.get(url, params=parameters)
-            if response.status_code != 200:
-                log(response.text)
-            else:
-                return json.loads(response.text)
-        except (ConnectionError, Timeout, TooManyRedirects) as e:
-            log(e)
+            response = self.session.get(
+                url,
+                params=parameters,
+                timeout=self.timeout,
+            )
+        except RequestException as exception:
+            raise CoinMarketCapError("CoinMarketCap request failed") from exception
 
-    def discord_post(self, payload: object):
-        url = "https://discord.com/api/webhooks/" + self.discord_webhook_key
-        headers = {"Content-Type": "application/json"}
-
-        session = Session()
-        session.headers.update(headers)
-
+        if response.status_code != 200:
+            raise CoinMarketCapError(
+                f"CoinMarketCap returned {response.status_code}: {response.text}"
+            )
         try:
-            response = session.post(url, data=json.dumps(payload))
-            if response.status_code != 204:
-                log(response.text)
-        except (ConnectionError, Timeout, TooManyRedirects) as e:
-            log(e)
+            return json.loads(response.text)
+        except (TypeError, ValueError) as exception:
+            raise CoinMarketCapError("CoinMarketCap returned invalid JSON") from exception
