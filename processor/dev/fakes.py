@@ -12,10 +12,13 @@ from error_reporting import ErrorReporter
 from firebase_repository import parse_company_snapshot
 from gemini.models import (
     Company as GeminiCompany,
+    CompanyTarget,
     Quarter as GeminiQuarter,
     ReportDate,
     ReportDates,
+    Targets,
 )
+from gemini.service import create_target_id
 from myfinnhub.models import (
     Company as FinnhubCompany,
     Earnings,
@@ -69,19 +72,19 @@ class FakeCoinMarketCapClient:
 
     def get_fear_and_greed(self) -> FearAndGreedReading:
         result = self.reading.model_copy(deep=True)
-        _log_exchange("FAKE GET", "CoinMarketCap fear-and-greed", result)
+        _log_operation("FAKE GET", "CoinMarketCap fear-and-greed")
         return result
 
     def get_btc_price(self) -> BitcoinQuote:
         result = self.quote.model_copy(deep=True)
-        _log_exchange("FAKE GET", "CoinMarketCap BTC quote", result)
+        _log_operation("FAKE GET", "CoinMarketCap BTC quote")
         return result
 
 
 class FakeGeminiClient:
     def get_initial_stock_data(self, ticker: str) -> GeminiCompany:
         result = data.gemini_initial_company(ticker)
-        _log_exchange("FAKE GET", f"Gemini initial stock data [{ticker}]", result)
+        _log_operation("FAKE GET", f"Gemini initial stock data [{ticker}]")
         return result
 
     def revalidate_report_dates(
@@ -102,10 +105,7 @@ class FakeGeminiClient:
             for report in report_dates.report_dates
         ]
         result = ReportDates(report_dates=updated)
-        _log_exchange("FAKE GET", "Gemini report-date revalidation", {
-            "request": report_dates,
-            "response": result,
-        })
+        _log_operation("FAKE GET", "Gemini report-date revalidation")
         return result
 
     def get_quarter_report(
@@ -114,7 +114,19 @@ class FakeGeminiClient:
         current_quarter: GeminiQuarter,
     ) -> GeminiQuarter:
         result = data.gemini_reported_quarter(current_quarter)
-        _log_exchange("FAKE GET", f"Gemini quarter report [{ticker}]", result)
+        _log_operation("FAKE GET", f"Gemini quarter report [{ticker}]")
+        return result
+
+    def get_price_targets(
+        self,
+        tickers: list[str],
+        start_date: date,
+        end_date: date,
+    ) -> Targets:
+        result = Targets(
+            targets=data.gemini_price_targets(tickers, start_date, end_date)
+        )
+        _log_operation("FAKE GET", "Gemini institutional price targets")
         return result
 
 
@@ -130,7 +142,7 @@ class FakeFinnhubClient:
             quarter_id: earnings.model_copy(deep=True)
             for quarter_id, earnings in source.items()
         }
-        _log_exchange("FAKE GET", f"Finnhub earnings [{company_id}]", result)
+        _log_operation("FAKE GET", f"Finnhub earnings [{company_id}]")
         return result
 
 
@@ -167,7 +179,11 @@ class FakeGeminiFirebaseService:
 
     def init_company(self, id: str, data: GeminiCompany) -> None:
         self.companies[id] = data.model_copy(deep=True)
-        _log_operation("FAKE PUT", f"Firebase /company/{id}/gemini")
+        _log_exchange(
+            "FAKE PUT",
+            f"Firebase /company/{id}/gemini",
+            data,
+        )
 
     def update_report_date(self, new_report_date: ReportDate) -> None:
         company = self.companies.get(new_report_date.ticker)
@@ -218,6 +234,24 @@ class FakeGeminiFirebaseService:
             ),
         )
 
+    def upsert_target(
+        self,
+        company_id: str,
+        target: CompanyTarget,
+    ) -> str:
+        company = self._company(company_id)
+        target_id = create_target_id(company_id, target)
+        company.targets[target_id] = target.model_copy(deep=True)
+        _log_exchange(
+            "FAKE PUT",
+            (
+                f"Firebase /company/{company_id}/gemini/targets/"
+                f"{target_id}"
+            ),
+            target,
+        )
+        return target_id
+
     def _company(self, company_id: str) -> GeminiCompany:
         company = self.companies.get(company_id)
         if company is None:
@@ -262,9 +296,10 @@ class FakeFinnhubFirebaseService:
             for quarter_id, item in earnings.items()
         })
         self.companies[company_id] = company
-        _log_operation(
+        _log_exchange(
             "FAKE PUT",
             f"Firebase /company/{company_id}/fhe",
+            company,
         )
 
     def init_quarter(
@@ -275,12 +310,14 @@ class FakeFinnhubFirebaseService:
     ) -> None:
         company = self._company(company_id)
         snapshot = date.today().strftime("%Y%m%d")
-        company.root[quarter_id] = FinnhubQuarter.model_validate({
+        quarter = FinnhubQuarter.model_validate({
             snapshot: earnings,
         })
-        _log_operation(
+        company.root[quarter_id] = quarter
+        _log_exchange(
             "FAKE PUT",
             f"Firebase /company/{company_id}/fhe/{quarter_id}",
+            quarter,
         )
 
     def new_earnings(
@@ -292,12 +329,13 @@ class FakeFinnhubFirebaseService:
         company = self._company(company_id)
         snapshot = date.today().strftime("%Y%m%d")
         company.root[quarter_id].root[snapshot] = earnings.model_copy(deep=True)
-        _log_operation(
+        _log_exchange(
             "FAKE PUT",
             (
                 f"Firebase /company/{company_id}/fhe/"
                 f"{quarter_id}/{snapshot}"
             ),
+            earnings,
         )
 
     def _company(self, company_id: str) -> FinnhubCompany:

@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -7,7 +7,16 @@ import pytest
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from gemini.client import GeminiClient
-from gemini.models import Company, Info, Quarter, ReportDate, ReportDates
+from gemini.models import (
+    Company,
+    CompanyTarget,
+    Info,
+    Quarter,
+    ReportDate,
+    ReportDates,
+    Target,
+    Targets,
+)
 from gemini.service import FirebaseService
 from gemini.retriever import StockDataRetrieverRunner
 
@@ -51,6 +60,7 @@ class TestStockDataRetriever:
         instance.discord = create_autospec(DiscordClient, instance=True)
         instance.log = create_autospec(logging.Logger, instance=True)
         instance.errors = create_autospec(ErrorReporter, instance=True)
+        instance.client.get_price_targets.return_value = Targets(targets=[])
         yield instance
 
     @patch("utils.is_past_date")
@@ -188,6 +198,75 @@ class TestStockDataRetriever:
         )
         runner.client.get_initial_stock_data.assert_not_called()
         runner.client.get_quarter_report.assert_not_called()
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_price_targets_use_previous_monday_through_sunday(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 20)
+        company = make_company(
+            "AAPL",
+            "26Q2",
+            {"26Q2": make_quarter(quarter_id="26Q2")},
+        )
+        runner.service.get_companies.return_value = {
+            "AAPL": company,
+        }
+        target = Target(
+            ticker="AAPL",
+            institution="Important Research",
+            date="2026-07-15",
+            price="225.50",
+            rating="Outperform",
+            source="https://research.example.com/aapl",
+        )
+        runner.client.get_price_targets.return_value = Targets(
+            targets=[target]
+        )
+
+        runner.run()
+
+        runner.client.get_price_targets.assert_called_once_with(
+            ["AAPL"],
+            date(2026, 7, 13),
+            date(2026, 7, 19),
+        )
+        runner.service.upsert_target.assert_called_once_with(
+            "AAPL",
+            CompanyTarget(
+                institution="Important Research",
+                date="2026-07-15",
+                price="225.50",
+                rating="Outperform",
+                source="https://research.example.com/aapl",
+            ),
+        )
+        runner.errors.report.assert_not_called()
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_price_targets_are_not_requested_outside_monday(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        company = make_company(
+            "AAPL",
+            "26Q2",
+            {"26Q2": make_quarter(quarter_id="26Q2")},
+        )
+        runner.service.get_companies.return_value = {"AAPL": company}
+
+        runner.run()
+
+        runner.client.get_price_targets.assert_not_called()
+        runner.service.upsert_target.assert_not_called()
 
     def test_company_processing_failure_does_not_stop_stock_run(self, runner):
         error = RuntimeError("Gemini unavailable")

@@ -9,6 +9,7 @@ from gemini.models import (
     Company as GeminiCompany,
     Info,
     Quarter as GeminiQuarter,
+    Target,
 )
 from myfinnhub.models import (
     Company as FinnhubCompany,
@@ -165,6 +166,41 @@ def gemini_reported_quarter(
             "price_max": Decimal("214.70"),
         },
     )
+
+
+def gemini_price_targets(
+    tickers: list[str],
+    start_date: date,
+    end_date: date,
+) -> list[Target]:
+    institutions = (
+        ("Northstar Global Research", "Outperform"),
+        ("Summit Capital Markets", "Buy"),
+    )
+    targets: list[Target] = []
+    for ticker_index, ticker in enumerate(tickers):
+        for institution_index, (institution, rating) in enumerate(
+            institutions
+        ):
+            day_offset = (ticker_index + institution_index) % 7
+            target_date = min(
+                start_date + timedelta(days=day_offset),
+                end_date,
+            )
+            targets.append(Target(
+                ticker=ticker,
+                institution=institution,
+                date=target_date,
+                price=Decimal("150")
+                + Decimal(ticker_index * 10 + institution_index * 5),
+                rating=rating,
+                source=(
+                    "https://research.example.com/"
+                    f"{ticker.lower()}/{target_date.isoformat()}"
+                    f"-{institution_index}"
+                ),
+            ))
+    return targets
 
 
 def _finnhub_earnings(

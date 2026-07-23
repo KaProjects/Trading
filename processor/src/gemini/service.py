@@ -1,11 +1,13 @@
+import hashlib
 import logging
 from datetime import datetime
+from urllib.parse import urlsplit
 
 from firebase_admin import db
 
 from error_reporting import ErrorReporter
 from firebase_repository import parse_company_snapshot
-from gemini.models import Company, ReportDate, Quarter
+from gemini.models import Company, CompanyTarget, Quarter, ReportDate
 from gemini.strings import LogMsg
 
 companies_path = "company"
@@ -14,6 +16,23 @@ logger = logging.getLogger(__name__)
 
 def company_path(company_id: str) -> str:
     return companies_path + "/" + company_id + "/" + data_root
+
+
+def create_target_id(company_id: str, target: CompanyTarget) -> str:
+    source = target.source.casefold().rstrip("/")
+    parsed_source = urlsplit(
+        source if "://" in source else f"//{source}"
+    )
+    if parsed_source.hostname:
+        source = (
+            parsed_source.hostname.casefold()
+            + parsed_source.path.rstrip("/")
+        )
+    institution = " ".join(target.institution.casefold().split())
+    identity = f"{company_id}|{institution}|{source}"
+    suffix = hashlib.sha256(identity.encode()).hexdigest()[:6]
+    return f"{target.date.isoformat()}-{suffix}"
+
 
 class FirebaseService:
     log = logger
@@ -67,3 +86,20 @@ class FirebaseService:
             "info/last_update": datetime.now().strftime("%Y-%m-%d"),
         })
         self.log.info(LogMsg.QUARTER_CREATED.format(company_id=company_id, quarter_id=new_quarter_data.id))
+
+    def upsert_target(
+        self,
+        company_id: str,
+        target: CompanyTarget,
+    ) -> str:
+        target_id = create_target_id(company_id, target)
+        db.reference(
+            f"{company_path(company_id)}/targets/{target_id}"
+        ).set(target.model_dump(mode="json"))
+        self.log.info(
+            LogMsg.TARGET_UPSERTED.format(
+                company_id=company_id,
+                target_id=target_id,
+            )
+        )
+        return target_id

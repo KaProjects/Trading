@@ -1,10 +1,11 @@
 import logging
+from datetime import date
 
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
 
-from gemini.models import Company, ReportDates, Quarter
+from gemini.models import Company, Quarter, ReportDates, Targets
 
 logger = logging.getLogger(__name__)
 GEMINI_RETRY_ATTEMPTS = 5
@@ -32,7 +33,11 @@ class GeminiClient:
             ),
         )
 
-    def __ask(self, prompt: str, response_model: type[BaseModel]):
+    def __ask(
+        self,
+        prompt: str,
+        response_model: type[BaseModel],
+    ):
         response = self.client.models.generate_content(
             model=self.model,
             contents=prompt,
@@ -59,10 +64,11 @@ class GeminiClient:
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
 
         Already reported quarters should have all the values set (no n/a allowed), for the current quarter let the un-reported values as empty string.
-    
+
         Lastly, set the basic information for the company, including setting the ID of the current quarter (not yet reported). 
 
         Key of the quarter is its ID.
+        Set targets to an empty object. Price targets are retrieved separately.
         """
         return self.__ask(prompt, Company)
 
@@ -97,3 +103,68 @@ class GeminiClient:
         Return the filled template.
         """
         return self.__ask(prompt, Quarter)
+
+    def get_price_targets(
+        self,
+        tickers: list[str],
+        start_date: date,
+        end_date: date,
+    ) -> Targets:
+        prompt = f"""
+        You are a financial-data researcher extracting newly announced institutional
+        equity analyst price-target actions.
+
+        REQUESTED TICKERS:
+        {tickers}
+
+        INCLUSIVE DATE WINDOW:
+        {start_date} through {end_date}
+
+        Use Google Search extensively. For every requested ticker, first search as
+        broadly as possible across institutional equity research providers for
+        price-target actions announced during this exact date interval. Then assess
+        the importance of every institution you found. Return only institutions that
+        are highly reputable, influential, or significant in equity research,
+        including recognized sector specialists. You must make this assessment from
+        current evidence rather than from a fixed institution list. A newly
+        established institution may qualify when there is strong evidence of its
+        significance. Return no target rather than including an insignificant or
+        uncertain institution.
+
+        Return a Targets model whose targets field contains Target objects with
+        these fields:
+
+        - ticker: the exact ticker from REQUESTED TICKERS.
+        - institution: the canonical name of the important institution that issued
+          the target.
+        - date: the date the institution announced the action, in YYYY-MM-DD format.
+        - price: the newly announced target price in USD.
+        - rating: the current rating exactly as stated by the source, or null when no
+          rating is stated.
+        - source: the most direct public URL supporting the complete record, or the
+          source hostname only when a direct URL cannot be obtained.
+
+        A valid Target must satisfy every rule below:
+
+        - Its source explicitly identifies the company or ticker, institution, new
+          target price, and action date.
+        - date is the date the analyst action was announced, not the publication date
+          of a later article repeating an older action.
+        - price is the new target, not the previous target, current share price,
+          consensus target, or an algorithmic forecast.
+        - price is in USD. Exclude the record if its currency cannot be verified.
+        - rating preserves the source's wording and is never inferred.
+        - source supports all returned facts. Never invent or reconstruct a URL.
+        - Prefer an institution publication, then a reputable financial publication
+          or wire service, then an established analyst-action database.
+
+        Exclude consensus targets, anonymous analysts, rumors, blogs, social-media
+        posts, unsupported search snippets, stale reports republished during the
+        interval, and duplicate syndicated reports. Deduplicate by ticker,
+        institution, date, and price. If several sources describe the same action,
+        retain only the strongest source.
+
+        Before returning the Targets model, verify every field against its source.
+        An empty targets list is the correct result when nothing qualifies.
+        """
+        return self.__ask(prompt, Targets)

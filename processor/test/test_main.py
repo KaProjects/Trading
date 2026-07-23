@@ -45,7 +45,7 @@ def make_application():
     )
 
 
-def test_application_configures_daily_jobs_in_explicit_timezone():
+def test_application_configures_jobs_in_explicit_timezone():
     app = make_application()
 
     app.configure_jobs()

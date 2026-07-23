@@ -5,9 +5,10 @@ from unittest.mock import MagicMock, create_autospec, patch
 import pytest
 
 from error_reporting import ErrorReporter
-from gemini.models import Quarter, ReportDate
+from gemini.models import CompanyTarget, Quarter, ReportDate
 from gemini.service import FirebaseService as GeminiFirebaseService
 from gemini.service import company_path as gemini_company_path
+from gemini.service import create_target_id
 from myfinnhub.service import FirebaseService as FinnhubFirebaseService
 
 
@@ -80,6 +81,47 @@ def test_firebase_validation_error_is_reported_with_company_context():
         source="FirebaseRepository",
         operation="parse_company",
         context={"company_id": "AAPL", "data_root": "gemini"},
+    )
+
+
+def test_gemini_service_parses_targets_inside_company():
+    service = make_service(GeminiFirebaseService)
+    target_id = "2026-07-15-a1b2c3"
+    snapshot = {
+        "AAPL": {
+            "gemini": {
+                "info": {
+                    "ticker": "AAPL",
+                    "last_update": "2026-07-20",
+                    "current_quarter_id": "26Q2",
+                },
+                "quarters": {},
+                "targets": {
+                    target_id: {
+                        "institution": "Important Research",
+                        "date": "2026-07-15",
+                        "price": "225.50",
+                        "rating": "Outperform",
+                        "source": "https://research.example.com/aapl",
+                    },
+                },
+            },
+        },
+    }
+
+    with patch(
+        "gemini.service.db.reference",
+        autospec=True,
+        return_value=FakeReference(snapshot),
+    ):
+        companies = service.get_companies()
+
+    assert companies["AAPL"].targets[target_id] == CompanyTarget(
+        institution="Important Research",
+        date="2026-07-15",
+        price="225.50",
+        rating="Outperform",
+        source="https://research.example.com/aapl",
     )
 
 
@@ -158,3 +200,32 @@ def test_gemini_quarter_writes_are_atomic(method_name, updates_current_quarter):
     if updates_current_quarter:
         expected_update["info/current_quarter_id"] = "26Q1"
     company_reference.update.assert_called_once_with(expected_update)
+
+
+def test_gemini_target_write_uses_stable_date_prefixed_id():
+    service = make_service(GeminiFirebaseService)
+    target_reference = MagicMock(spec_set=["set"])
+    target = CompanyTarget(
+        institution="Important Research",
+        date="2026-07-15",
+        price="225.50",
+        rating="Outperform",
+        source="https://research.example.com/aapl?tracking=1",
+    )
+    target_id = create_target_id("AAPL", target)
+
+    with patch(
+        "gemini.service.db.reference",
+        autospec=True,
+        return_value=target_reference,
+    ) as reference:
+        result = service.upsert_target("AAPL", target)
+
+    assert result == target_id
+    assert target_id.startswith("2026-07-15-")
+    reference.assert_called_once_with(
+        f"{gemini_company_path('AAPL')}/targets/{target_id}"
+    )
+    target_reference.set.assert_called_once_with(
+        target.model_dump(mode="json")
+    )

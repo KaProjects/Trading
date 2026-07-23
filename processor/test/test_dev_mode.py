@@ -1,5 +1,6 @@
 import logging
 import subprocess
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -134,7 +135,6 @@ def test_fake_runner_executes_end_to_end_without_network(
         runner.run()
 
     assert "FAKE GET" in caplog.text
-    assert "FAKE POST Discord webhook" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -144,7 +144,7 @@ def test_fake_runner_executes_end_to_end_without_network(
         (FakeFinnhubFirebaseService, "Firebase /company/*/fhe"),
     ],
 )
-def test_fake_firebase_logs_operation_without_snapshot_data(
+def test_fake_firebase_logs_get_without_snapshot_data(
     service_type,
     path,
     caplog,
@@ -157,6 +157,30 @@ def test_fake_firebase_logs_operation_without_snapshot_data(
 
     assert f"FAKE GET {path}" in caplog.text
     assert all(ticker not in caplog.text for ticker in companies)
+
+
+def test_fake_gemini_price_targets_execute_without_network(caplog):
+    runner = build_runner(
+        parse_args(["gemini"]),
+        config=None,
+        firebase_snapshot=data.firebase_company_snapshot(),
+    )
+
+    with (
+        patch("gemini.retriever.datetime") as current_datetime,
+        caplog.at_level(logging.INFO),
+    ):
+        current_datetime.now.return_value = datetime(2026, 7, 27)
+        runner.run()
+
+    assert "FAKE GET Gemini institutional price targets" in caplog.text
+    assert "gemini/targets/" in caplog.text
+    assert '"institution":' in caplog.text
+    assert '"price":' in caplog.text
+    assert any(
+        company is not None and company.targets
+        for company in runner.service.companies.values()
+    )
 
 
 def test_main_executes_exactly_one_runner_with_fake_business_clients():

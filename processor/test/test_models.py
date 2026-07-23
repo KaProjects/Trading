@@ -4,7 +4,16 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
-from gemini.models import Company, Info, Quarter, ReportDate, ReportDates
+from gemini.models import (
+    Company,
+    CompanyTarget,
+    Info,
+    Quarter,
+    ReportDate,
+    ReportDates,
+    Target,
+    Targets,
+)
 from myfinnhub.models import Company as FinnhubCompany
 from myfinnhub.models import Earnings
 
@@ -35,10 +44,19 @@ def test_gemini_company_serialization_round_trip():
     report_dates = ReportDates(report_dates=[
         ReportDate(ticker="AAPL", quarter="26Q1", report_date="2026-04-27")
     ])
+    target = CompanyTarget(
+        institution="Important Research",
+        date="2026-04-20",
+        price="225.50",
+        rating="Outperform",
+        source="https://research.example.com/aapl",
+    )
+    company.targets["2026-04-20-a1b2c3"] = target
 
     assert quarter.report_date_this_quarter == date(2026, 4, 27)
     assert quarter.reported_eps == Decimal("1.25")
     assert quarter.reported_revenues is None
+    assert company.targets["2026-04-20-a1b2c3"] == target
     assert Company.model_validate(company.model_dump(mode="json")) == company
     assert ReportDates.model_validate(
         report_dates.model_dump(mode="json")
@@ -92,6 +110,22 @@ def test_report_dates_reject_duplicate_company_quarter_identity():
                 report_date="2026-04-28",
             ),
         ])
+
+
+def test_target_schema_describes_every_output_field():
+    target_schema = Target.model_json_schema()
+    for field_name in (
+        "ticker",
+        "institution",
+        "date",
+        "price",
+        "rating",
+        "source",
+    ):
+        assert target_schema["properties"][field_name]["description"]
+
+    targets_schema = Targets.model_json_schema()
+    assert targets_schema["properties"]["targets"]["description"]
 
 
 def test_finnhub_models_parse_legacy_numbers_and_validate_keys():
