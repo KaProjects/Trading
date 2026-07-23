@@ -44,8 +44,10 @@ class StockDataRetrieverRunner(BaseClass):
                                 if datetime.now().weekday() == 6:
                                     report_dates.report_dates.append(report_date)
                                 else:
-                                    new_report_dates = self.client.revalidate_report_dates(ReportDates(report_dates=[report_date]))
-                                    self.service.update_report_date(new_report_dates.report_dates.pop())
+                                    new_report_dates = self.revalidate_report_dates(
+                                        ReportDates(report_dates=[report_date])
+                                    )
+                                    self.service.update_report_date(new_report_dates.report_dates[0])
                             else:
                                 self.service.report_quarter(company_id, current_quarter_reported)
                                 new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
@@ -55,10 +57,13 @@ class StockDataRetrieverRunner(BaseClass):
                             report_dates.report_dates.append(ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter))
 
             if datetime.now().weekday() == 6:
-                new_report_dates = self.client.revalidate_report_dates(report_dates)
+                new_report_dates = self.revalidate_report_dates(report_dates)
 
-                for index, report_date in enumerate(report_dates.report_dates):
-                    new_report_date = new_report_dates.report_dates[index]
+                for report_date, new_report_date in zip(
+                    report_dates.report_dates,
+                    new_report_dates.report_dates,
+                    strict=True,
+                ):
                     if report_date.report_date != new_report_date.report_date:
                         self.service.update_report_date(new_report_date)
 
@@ -66,6 +71,23 @@ class StockDataRetrieverRunner(BaseClass):
 
         except Exception as exception:
             self.log.exception(exception)
+
+    def revalidate_report_dates(self, report_dates: ReportDates) -> ReportDates:
+        new_report_dates = self.client.revalidate_report_dates(report_dates)
+        requested_ids = [
+            (report.ticker, report.quarter)
+            for report in report_dates.report_dates
+        ]
+        returned_ids = [
+            (report.ticker, report.quarter)
+            for report in new_report_dates.report_dates
+        ]
+        if returned_ids != requested_ids:
+            raise ValueError(
+                "Gemini changed report-date identities: "
+                f"expected {requested_ids}, received {returned_ids}"
+            )
+        return new_report_dates
 
     def create_discord_post_payload(self, embeds):
         return {

@@ -210,13 +210,11 @@ class TestStockDataRetriever:
         runner.run()
 
         error = runner.log.exception.call_args.args[0]
-        assert isinstance(error, IndexError)
+        assert isinstance(error, ValueError)
+        assert "changed report-date identities" in str(error)
+        runner.service.update_report_date.assert_not_called()
         runner.discord.post.assert_not_called()
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="Revalidation matches responses by list position without checking ticker and quarter",
-    )
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.stock_data_retriever.datetime")
     def test_reordered_revalidation_response_is_rejected(self, mock_datetime, mock_is_past, runner):
@@ -236,6 +234,26 @@ class TestStockDataRetriever:
 
         runner.service.update_report_date.assert_not_called()
         runner.log.exception.assert_called_once()
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.stock_data_retriever.datetime")
+    def test_changed_revalidation_identity_is_rejected(self, mock_datetime, mock_is_past, runner):
+        mock_datetime.now.return_value = datetime(2026, 4, 26)
+        quarter = make_quarter(quarter_id="26Q1", report_date="2026-05-01")
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company("AAPL", "26Q1", {"26Q1": quarter}),
+        }
+        runner.client.revalidate_report_dates.return_value = ReportDates(report_dates=[
+            ReportDate(ticker="MSFT", quarter="26Q1", report_date="2026-05-03"),
+        ])
+
+        runner.run()
+
+        runner.service.update_report_date.assert_not_called()
+        error = runner.log.exception.call_args.args[0]
+        assert isinstance(error, ValueError)
+        assert "('AAPL', '26Q1')" in str(error)
+        assert "('MSFT', '26Q1')" in str(error)
 
     @patch("utils.is_past_date")
     @patch("gemini.stock_data_retriever.datetime")
