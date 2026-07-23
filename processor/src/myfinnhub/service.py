@@ -3,6 +3,7 @@ from datetime import date
 
 from firebase_admin import db
 
+from firebase_repository import parse_company_snapshot
 from myfinnhub.models import Company, Quarter, Earnings
 from myfinnhub.strings import LogMsg
 
@@ -16,15 +17,13 @@ def company_path(company_id: str) -> str:
 class FirebaseService:
     log = logger
 
-    def get_companies(self) -> dict[str, Company]:
-        companies_data: dict = db.reference(companies_path).get()
-        companies: dict[str, Company] = dict()
-        for company_id in companies_data:
-            if not isinstance(companies_data[company_id], dict) or companies_data[company_id].get(data_root) is None:
-                companies[company_id] = None
-            else:
-                companies[company_id] = Company.model_validate(companies_data[company_id][data_root])
-        return companies
+    def get_companies(self) -> dict[str, Company | None]:
+        return parse_company_snapshot(
+            db.reference(companies_path).get(),
+            data_root=data_root,
+            model=Company,
+            logger=self.log,
+        )
 
     def init_company(self, company_id: str, earnings: dict[str, Earnings]):
         today = date.today().strftime('%Y%m%d')
