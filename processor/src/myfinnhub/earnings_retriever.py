@@ -1,6 +1,6 @@
 import logging
-import math
 import time
+from decimal import Decimal, InvalidOperation
 
 from discord.discord_client import DiscordClient
 from myfinnhub.client import FinnhubClient
@@ -9,6 +9,8 @@ from myfinnhub.service import FirebaseService
 from myfinnhub.strings import ErrMsg, LogMsg
 
 logger = logging.getLogger(__name__)
+RELATIVE_TOLERANCE = Decimal("0.05")
+ABSOLUTE_TOLERANCE = Decimal("0.01")
 
 
 class FinnhubEarningsRetrieverRunner:
@@ -56,26 +58,31 @@ class FinnhubEarningsRetrieverRunner:
         except Exception as exception:
             self.log.exception(exception)
 
-    def discord_post_earnings(self, ticker, quarter, latest: Earnings, now: Earnings):
-        if latest is None: latest = Earnings(epse=None, reve=None, report="")
+    def discord_post_earnings(
+        self,
+        ticker: str,
+        quarter: str,
+        latest: Earnings | None,
+        now: Earnings,
+    ) -> None:
         epse = self.format_eps(now.epse)
-        if not self.almost_equals(latest.epse, now.epse):
+        if latest is not None and not self.almost_equals(latest.epse, now.epse):
             epse = self.format_eps(latest.epse) + " -> " + epse
 
         reve = self.format_revenue(now.reve)
-        if not self.almost_equals(latest.reve, now.reve):
+        if latest is not None and not self.almost_equals(latest.reve, now.reve):
             reve = self.format_revenue(latest.reve) + " -> " + reve
 
         fields = list()
         fields.append({"name": "Estimates:", "value": f"earnings: \u200b {epse}\nrevenues: \u200b {reve}"})
 
-        if now.epsa and now.reva:
+        if now.epsa is not None or now.reva is not None:
             epsa = self.format_eps(now.epsa)
-            if not self.almost_equals(latest.epsa, now.epsa):
+            if latest is not None and not self.almost_equals(latest.epsa, now.epsa):
                 epsa = self.format_eps(latest.epsa) + " -> " + epsa
 
             reva = self.format_revenue(now.reva)
-            if not self.almost_equals(latest.reva, now.reva):
+            if latest is not None and not self.almost_equals(latest.reva, now.reva):
                 reva = self.format_revenue(latest.reva) + " -> " + reva
 
             fields.append({"name": "Reported:", "value": f"earnings: \u200b {epsa}\nrevenues: \u200b {reva}"})
@@ -86,7 +93,7 @@ class FinnhubEarningsRetrieverRunner:
             "fields": fields
         }]))
 
-    def format_revenue(self, original):
+    def format_revenue(self, original: Decimal | None) -> str:
         if original is None: return ""
         result = original / 1000000
         if result > 1000:
@@ -94,17 +101,32 @@ class FinnhubEarningsRetrieverRunner:
         else:
             return str(round(result, 2)) + "M"
 
-    def format_eps(self, original):
+    def format_eps(self, original: Decimal | None) -> str:
         if original is None: return ""
         return str(round(original, 2))
 
-    def almost_equals_earnings(self, a: Earnings, b: Earnings):
+    def almost_equals_earnings(self, a: Earnings, b: Earnings) -> bool:
         return self.almost_equals(a.epse, b.epse) and self.almost_equals(a.reve, b.reve) and self.almost_equals(a.epsa, b.epsa) and self.almost_equals(a.reva, b.reva)
 
-    def almost_equals(self, a, b):
-        if a is None or not isinstance(a, (int, float)): a = -1000
-        if b is None or not isinstance(b, (int, float)): b = -1000
-        return math.isclose(a, b, rel_tol=0.05)
+    def almost_equals(self, a: object, b: object) -> bool:
+        if a is None or b is None:
+            return a is None and b is None
+
+        try:
+            left = Decimal(str(a))
+            right = Decimal(str(b))
+        except (InvalidOperation, TypeError, ValueError):
+            return False
+
+        if not left.is_finite() or not right.is_finite():
+            return False
+
+        difference = abs(left - right)
+        tolerance = max(
+            ABSOLUTE_TOLERANCE,
+            RELATIVE_TOLERANCE * max(abs(left), abs(right)),
+        )
+        return difference <= tolerance
 
     def create_discord_post_payload(self, embeds):
         return {

@@ -119,3 +119,9 @@ def test_finnhub_models_reject_invalid_report_and_quarter():
 
     with pytest.raises(ValidationError):
         FinnhubCompany.model_validate({"Q1": {}})
+
+
+@pytest.mark.parametrize("non_finite", ["NaN", "Infinity", "-Infinity"])
+def test_finnhub_earnings_reject_non_finite_numbers(non_finite):
+    with pytest.raises(ValidationError):
+        Earnings(report="2026-04-27-bmo", epse=non_finite)

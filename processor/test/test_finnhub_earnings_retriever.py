@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 from unittest.mock import call, create_autospec, patch
 
 import pytest
@@ -160,3 +161,51 @@ class TestFinnhubEarningsRetriever:
             call("AAPL", "26Q2", None, q2_earnings),
             call("AAPL", "26Q1", None, q1_earnings),
         ]
+
+
+def make_real_runner():
+    runner = object.__new__(FinnhubEarningsRetrieverRunner)
+    runner.discord = create_autospec(DiscordClient, instance=True)
+    return runner
+
+
+def test_discord_payload_preserves_zero_actual_values():
+    runner = make_real_runner()
+    earnings = make_earnings(epsa=0, reva=0)
+
+    runner.discord_post_earnings("AAPL", "26Q1", None, earnings)
+
+    payload = runner.discord.post.call_args.args[0]
+    reported = payload["embeds"][0]["fields"][1]
+    assert reported["name"] == "Reported:"
+    assert "earnings: \u200b 0.00" in reported["value"]
+    assert "revenues: \u200b 0.00M" in reported["value"]
+
+
+def test_discord_payload_includes_partially_available_actuals():
+    runner = make_real_runner()
+    earnings = make_earnings(epsa=Decimal("0.25"), reva=None)
+
+    runner.discord_post_earnings("AAPL", "26Q1", None, earnings)
+
+    payload = runner.discord.post.call_args.args[0]
+    reported = payload["embeds"][0]["fields"][1]
+    assert "earnings: \u200b 0.25" in reported["value"]
+
+
+@pytest.mark.parametrize(
+    ("left", "right", "expected"),
+    [
+        (None, None, True),
+        (None, Decimal("-1000"), False),
+        ("invalid", "invalid", False),
+        (Decimal("0"), Decimal("0.009"), True),
+        (Decimal("0"), Decimal("0.02"), False),
+        (Decimal("100"), Decimal("105"), True),
+        (Decimal("100"), Decimal("106"), False),
+    ],
+)
+def test_almost_equals_uses_explicit_numeric_semantics(left, right, expected):
+    runner = make_real_runner()
+
+    assert runner.almost_equals(left, right) is expected

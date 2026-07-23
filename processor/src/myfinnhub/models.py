@@ -20,7 +20,7 @@ SnapshotDate = Annotated[
 
 
 class Earnings(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     epsa: Decimal | None = None
     epse: Decimal | None = None
