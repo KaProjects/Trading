@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 from schedule import Scheduler
 
-from btc_fear_and_greed import BtcFngDiscordRunner
+from cmc.retriever import BtcFearAndGreedRetrieverRunner
 from config import AppConfig
 from gemini.stock_data_retriever import StockDataRetrieverRunner
 from main import Application, create_app
@@ -27,7 +27,10 @@ def make_config(**overrides):
 
 def make_application():
     return Application(
-        btc_runner=create_autospec(BtcFngDiscordRunner, instance=True),
+        btc_runner=create_autospec(
+            BtcFearAndGreedRetrieverRunner,
+            instance=True,
+        ),
         finnhub_runner=create_autospec(
             FinnhubEarningsRetrieverRunner,
             instance=True,
@@ -68,7 +71,10 @@ def test_create_app_initializes_dependencies_from_validated_config():
 
     with (
         patch("main.utils.init_firebase", autospec=True) as init_firebase,
-        patch("main.BtcFngDiscordRunner", autospec=True) as btc_runner,
+        patch(
+            "main.BtcFearAndGreedRetrieverRunner",
+            autospec=True,
+        ) as btc_runner,
         patch("main.FinnhubEarningsRetrieverRunner", autospec=True) as finnhub_runner,
         patch("main.StockDataRetrieverRunner", autospec=True) as stock_runner,
     ):

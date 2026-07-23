@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from schedule import Scheduler
 
 import utils
-from btc_fear_and_greed import BtcFngDiscordRunner
+from cmc.retriever import BtcFearAndGreedRetrieverRunner
 from config import AppConfig
 from gemini.stock_data_retriever import StockDataRetrieverRunner
 from myfinnhub.earnings_retriever import FinnhubEarningsRetrieverRunner
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Application:
-    btc_runner: BtcFngDiscordRunner
+    btc_runner: BtcFearAndGreedRetrieverRunner
     finnhub_runner: FinnhubEarningsRetrieverRunner
     stock_runner: StockDataRetrieverRunner
     timezone: str
@@ -53,7 +53,7 @@ class Application:
 def create_app(config: AppConfig) -> Application:
     utils.init_firebase(config.firebase)
     return Application(
-        btc_runner=BtcFngDiscordRunner(
+        btc_runner=BtcFearAndGreedRetrieverRunner(
             config.discord_btc_webhook_key.get_secret_value(),
             config.cmc_api_key.get_secret_value(),
         ),
