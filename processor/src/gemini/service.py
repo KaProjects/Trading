@@ -3,6 +3,7 @@ from datetime import datetime
 
 from firebase_admin import db
 
+from error_reporting import ErrorReporter
 from firebase_repository import parse_company_snapshot
 from gemini.models import Company, ReportDate, Quarter
 from gemini.strings import LogMsg
@@ -17,12 +18,19 @@ def company_path(company_id: str) -> str:
 class FirebaseService:
     log = logger
 
+    def __init__(
+        self,
+        error_reporter: ErrorReporter | None = None,
+    ) -> None:
+        self.errors = error_reporter
+
     def get_companies(self) -> dict[str, Company | None]:
         return parse_company_snapshot(
             db.reference(companies_path).get(),
             data_root=data_root,
             model=Company,
             logger=self.log,
+            error_reporter=self.errors,
         )
 
     def init_company(self, id: str, data: Company) -> None:

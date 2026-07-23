@@ -18,6 +18,7 @@ from dev.fakes import (
     FakeGeminiFirebaseService,
 )
 from discord.client import DiscordClient
+from error_reporting import ErrorReporter
 from gemini.client import GeminiClient
 from gemini.retriever import StockDataRetrieverRunner
 from gemini.service import FirebaseService as GeminiFirebaseService
@@ -120,19 +121,32 @@ def build_runner(
     args: argparse.Namespace,
     config: AppConfig | None,
     firebase_snapshot: dict[str, object],
+    error_reporter: ErrorReporter | None = None,
 ) -> Runner:
+    errors = error_reporter or ErrorReporter(environment="development")
     if args.runner == "btc":
-        return _build_btc_runner(args, config)
+        return _build_btc_runner(args, config, errors)
     if args.runner == "gemini":
-        return _build_gemini_runner(args, config, firebase_snapshot)
+        return _build_gemini_runner(
+            args,
+            config,
+            firebase_snapshot,
+            errors,
+        )
     if args.runner == "finnhub":
-        return _build_finnhub_runner(args, config, firebase_snapshot)
+        return _build_finnhub_runner(
+            args,
+            config,
+            firebase_snapshot,
+            errors,
+        )
     raise ValueError(f"Unknown runner: {args.runner}")
 
 
 def _build_btc_runner(
     args: argparse.Namespace,
     config: AppConfig | None,
+    error_reporter: ErrorReporter,
 ) -> BtcFearAndGreedRetrieverRunner:
     if args.cmc_production:
         production_config = _require_config(config)
@@ -150,6 +164,7 @@ def _build_btc_runner(
     return BtcFearAndGreedRetrieverRunner(
         client=cmc_client,
         discord=discord,
+        error_reporter=error_reporter,
     )
 
 
@@ -157,6 +172,7 @@ def _build_gemini_runner(
     args: argparse.Namespace,
     config: AppConfig | None,
     firebase_snapshot: dict[str, object],
+    error_reporter: ErrorReporter,
 ) -> StockDataRetrieverRunner:
     if args.gemini_production:
         production_config = _require_config(config)
@@ -173,6 +189,7 @@ def _build_gemini_runner(
         production_factory=GeminiFirebaseService,
         fake_factory=FakeGeminiFirebaseService,
         firebase_snapshot=firebase_snapshot,
+        error_reporter=error_reporter,
     )
     discord = _build_discord_client(
         args,
@@ -183,6 +200,7 @@ def _build_gemini_runner(
         client=gemini_client,
         service=service,
         discord=discord,
+        error_reporter=error_reporter,
     )
 
 
@@ -190,6 +208,7 @@ def _build_finnhub_runner(
     args: argparse.Namespace,
     config: AppConfig | None,
     firebase_snapshot: dict[str, object],
+    error_reporter: ErrorReporter,
 ) -> FinnhubEarningsRetrieverRunner:
     if args.finnhub_production:
         production_config = _require_config(config)
@@ -205,6 +224,7 @@ def _build_finnhub_runner(
         production_factory=FinnhubFirebaseService,
         fake_factory=FakeFinnhubFirebaseService,
         firebase_snapshot=firebase_snapshot,
+        error_reporter=error_reporter,
     )
     discord = _build_discord_client(
         args,
@@ -215,6 +235,7 @@ def _build_finnhub_runner(
         client=finnhub_client,
         service=service,
         discord=discord,
+        error_reporter=error_reporter,
         sleeper=lambda _: None,
     )
 
@@ -242,12 +263,16 @@ def _build_firebase_service(
     production_factory,
     fake_factory,
     firebase_snapshot: dict[str, object],
+    error_reporter: ErrorReporter,
 ):
     if not args.firebase_production:
-        return fake_factory(firebase_snapshot)
+        return fake_factory(
+            firebase_snapshot,
+            error_reporter=error_reporter,
+        )
     production_config = _require_config(config)
     utils.init_firebase(production_config.firebase)
-    return production_factory()
+    return production_factory(error_reporter=error_reporter)
 
 
 def _require_config(config: AppConfig | None) -> AppConfig:
@@ -256,28 +281,53 @@ def _require_config(config: AppConfig | None) -> AppConfig:
     return config
 
 
+def create_error_reporter(config: AppConfig) -> ErrorReporter:
+    return ErrorReporter(
+        DiscordClient(
+            config.discord_errorlog_webhook_key.get_secret_value()
+        ),
+        environment="development",
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     utils.configure_logging(logging.INFO)
-    firebase_snapshot = ensure_firebase_snapshot(
-        config_path=args.config,
-        certificate_path=args.certificate,
-    )
-    config = load_config(args.config) if needs_production_config(args) else None
-    selected_modes = ", ".join(
-        (
-            f"{client}="
-            f"{'production' if getattr(args, f'{client}_production') else 'fake'}"
+    config = load_config(args.config)
+    errors = create_error_reporter(config)
+    try:
+        firebase_snapshot = ensure_firebase_snapshot(
+            config_path=args.config,
+            certificate_path=args.certificate,
         )
-        for client in RUNNER_CLIENTS[args.runner]
-    )
-    logger.info(
-        "Running %s once with %s",
-        args.runner,
-        selected_modes,
-    )
-    runner = build_runner(args, config, firebase_snapshot)
-    runner.run()
+        selected_modes = ", ".join(
+            (
+                f"{client}="
+                f"{'production' if getattr(args, f'{client}_production') else 'fake'}"
+            )
+            for client in RUNNER_CLIENTS[args.runner]
+        )
+        logger.info(
+            "Running %s once with %s",
+            args.runner,
+            selected_modes,
+        )
+        runner = build_runner(
+            args,
+            config if needs_production_config(args) else None,
+            firebase_snapshot,
+            error_reporter=errors,
+        )
+        runner.run()
+    except Exception as exception:
+        errors.report(
+            exception,
+            logger=logger,
+            source="DevelopmentApplication",
+            operation="run_once",
+            context={"runner": args.runner},
+        )
+        raise
     return 0
 
 

@@ -4,17 +4,19 @@ from datetime import datetime, timedelta
 
 import utils
 from discord.client import DiscordClient
+from error_reporting import ErrorReporter
 from gemini.client import GeminiClient
 from gemini.models import Company, ReportDate, ReportDates, Quarter
 from gemini.service import FirebaseService
 from gemini.strings import ErrorMsg
 
-logger = logging.getLogger(__name__)
+RUNNER_NAME = "StockDataRetriever"
+logger = logging.getLogger(RUNNER_NAME)
 
 
 class StockDataRetrieverRunner:
     log = logger
-    name = "StockDataRetriever"
+    name = RUNNER_NAME
     # model = "gemini-3-flash-preview"
     model = "gemini-3.1-pro-preview"
 
@@ -25,6 +27,7 @@ class StockDataRetrieverRunner:
         client: GeminiClient | None = None,
         service: FirebaseService | None = None,
         discord: DiscordClient | None = None,
+        error_reporter: ErrorReporter | None = None,
     ) -> None:
         if client is None:
             if gemini_api_key is None:
@@ -37,8 +40,13 @@ class StockDataRetrieverRunner:
                 )
             discord = DiscordClient(webhook_key=discord_webhook_key)
 
+        self.errors = error_reporter or ErrorReporter(environment="local")
         self.client = client
-        self.service = service if service is not None else FirebaseService()
+        self.service = (
+            service
+            if service is not None
+            else FirebaseService(error_reporter=self.errors)
+        )
         self.discord = discord
 
     def run(self):
@@ -90,7 +98,12 @@ class StockDataRetrieverRunner:
                 self.check_report_dates_next_week(new_report_dates)
 
         except Exception as exception:
-            self.log.exception(exception)
+            self.errors.report(
+                exception,
+                logger=self.log,
+                source=self.name,
+                operation="run",
+            )
 
     def revalidate_report_dates(self, report_dates: ReportDates) -> ReportDates:
         new_report_dates = self.client.revalidate_report_dates(report_dates)

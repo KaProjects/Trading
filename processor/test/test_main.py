@@ -6,8 +6,9 @@ from schedule import Scheduler
 
 from cmc.retriever import BtcFearAndGreedRetrieverRunner
 from config import AppConfig
+from error_reporting import ErrorReporter
 from gemini.retriever import StockDataRetrieverRunner
-from main import Application, create_app
+from main import Application, create_app, create_error_reporter
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 
 
@@ -18,6 +19,7 @@ def make_config(**overrides):
         "discord_btc_webhook_key": "discord-btc",
         "discord_eventlog_webhook_key": "discord-events",
         "discord_earnings_webhook_key": "discord-earnings",
+        "discord_errorlog_webhook_key": "discord-errors",
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
     }
@@ -26,6 +28,7 @@ def make_config(**overrides):
 
 
 def make_application():
+    errors = create_autospec(ErrorReporter, instance=True)
     return Application(
         btc_runner=create_autospec(
             BtcFearAndGreedRetrieverRunner,
@@ -36,6 +39,7 @@ def make_application():
             instance=True,
         ),
         stock_runner=create_autospec(StockDataRetrieverRunner, instance=True),
+        errors=errors,
         timezone="Europe/Prague",
         scheduler=Scheduler(),
     )
@@ -66,8 +70,21 @@ def test_application_configures_daily_jobs_in_explicit_timezone():
     app.stock_runner.run.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    "runner_type",
+    [
+        BtcFearAndGreedRetrieverRunner,
+        FinnhubEarningsRetrieverRunner,
+        StockDataRetrieverRunner,
+    ],
+)
+def test_runner_logger_uses_runner_name(runner_type):
+    assert runner_type.log.name == runner_type.name
+
+
 def test_create_app_initializes_dependencies_from_validated_config():
     config = make_config(timezone="UTC", poll_interval_seconds=5)
+    errors = create_autospec(ErrorReporter, instance=True)
 
     with (
         patch("main.utils.init_firebase", autospec=True) as init_firebase,
@@ -78,14 +95,43 @@ def test_create_app_initializes_dependencies_from_validated_config():
         patch("main.FinnhubEarningsRetrieverRunner", autospec=True) as finnhub_runner,
         patch("main.StockDataRetrieverRunner", autospec=True) as stock_runner,
     ):
-        app = create_app(config)
+        app = create_app(config, error_reporter=errors)
 
     init_firebase.assert_called_once_with("https://example.firebaseio.com")
-    btc_runner.assert_called_once_with("discord-btc", "cmc")
-    finnhub_runner.assert_called_once_with("finnhub", "discord-events")
-    stock_runner.assert_called_once_with("gemini", "discord-earnings")
+    btc_runner.assert_called_once_with(
+        discord_webhook_key="discord-btc",
+        cmc_api_key="cmc",
+        error_reporter=errors,
+    )
+    finnhub_runner.assert_called_once_with(
+        finnhub_api_key="finnhub",
+        discord_webhook_key="discord-events",
+        error_reporter=errors,
+    )
+    stock_runner.assert_called_once_with(
+        gemini_api_key="gemini",
+        discord_webhook_key="discord-earnings",
+        error_reporter=errors,
+    )
+    assert app.errors is errors
     assert app.timezone == "UTC"
     assert app.poll_interval_seconds == 5
+
+
+def test_create_error_reporter_uses_dedicated_webhook():
+    config = make_config()
+    discord = MagicMock()
+
+    with patch(
+        "main.DiscordClient",
+        autospec=True,
+        return_value=discord,
+    ) as discord_client:
+        errors = create_error_reporter(config)
+
+    discord_client.assert_called_once_with("discord-errors")
+    assert errors.discord is discord
+    assert errors.environment == "production"
 
 
 def test_config_rejects_unknown_timezone_and_fields():

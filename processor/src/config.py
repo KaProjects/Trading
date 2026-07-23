@@ -10,6 +10,7 @@ class AppConfig(BaseModel):
     discord_btc_webhook_key: SecretStr
     discord_eventlog_webhook_key: SecretStr
     discord_earnings_webhook_key: SecretStr
+    discord_errorlog_webhook_key: SecretStr
     finnhub_api_key: SecretStr
     gemini_api_key: SecretStr
     polygon_api_key: SecretStr | None = None

@@ -5,6 +5,7 @@ from unittest.mock import create_autospec, patch
 import pytest
 
 from discord.client import DiscordClient
+from error_reporting import ErrorReporter
 from gemini.client import GeminiClient
 from gemini.models import Company, Info, Quarter, ReportDate, ReportDates
 from gemini.service import FirebaseService
@@ -49,6 +50,7 @@ class TestStockDataRetriever:
         instance.service = create_autospec(FirebaseService, instance=True)
         instance.discord = create_autospec(DiscordClient, instance=True)
         instance.log = create_autospec(logging.Logger, instance=True)
+        instance.errors = create_autospec(ErrorReporter, instance=True)
         yield instance
 
     @patch("utils.is_past_date")
@@ -178,7 +180,12 @@ class TestStockDataRetriever:
         error = Exception("DB Error")
         runner.service.get_companies.side_effect = error
         runner.run()
-        runner.log.exception.assert_called_once_with(error)
+        runner.errors.report.assert_called_once_with(
+            error,
+            logger=runner.log,
+            source=runner.name,
+            operation="run",
+        )
         runner.client.get_initial_stock_data.assert_not_called()
         runner.client.get_quarter_report.assert_not_called()
 
@@ -191,7 +198,12 @@ class TestStockDataRetriever:
 
         runner.client.get_initial_stock_data.assert_called_once_with("FAIL")
         runner.service.init_company.assert_not_called()
-        runner.log.exception.assert_called_once_with(error)
+        runner.errors.report.assert_called_once_with(
+            error,
+            logger=runner.log,
+            source=runner.name,
+            operation="run",
+        )
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")
@@ -209,7 +221,7 @@ class TestStockDataRetriever:
 
         runner.run()
 
-        error = runner.log.exception.call_args.args[0]
+        error = runner.errors.report.call_args.args[0]
         assert isinstance(error, ValueError)
         assert "changed report-date identities" in str(error)
         runner.service.update_report_date.assert_not_called()
@@ -233,7 +245,7 @@ class TestStockDataRetriever:
         runner.run()
 
         runner.service.update_report_date.assert_not_called()
-        runner.log.exception.assert_called_once()
+        runner.errors.report.assert_called_once()
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")
@@ -250,7 +262,7 @@ class TestStockDataRetriever:
         runner.run()
 
         runner.service.update_report_date.assert_not_called()
-        error = runner.log.exception.call_args.args[0]
+        error = runner.errors.report.call_args.args[0]
         assert isinstance(error, ValueError)
         assert "('AAPL', '26Q1')" in str(error)
         assert "('MSFT', '26Q1')" in str(error)

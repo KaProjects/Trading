@@ -5,8 +5,10 @@ from decimal import Decimal
 from cmc.client import CoinMarketCapClient
 from cmc.models import FearAndGreedClassification, FearAndGreedReading
 from discord.client import DiscordClient
+from error_reporting import ErrorReporter
 
-logger = logging.getLogger(__name__)
+RUNNER_NAME = "BtcFearAndGreed"
+logger = logging.getLogger(RUNNER_NAME)
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,12 +45,16 @@ CLASSIFICATION_STYLES = {
 
 
 class BtcFearAndGreedRetrieverRunner:
+    log = logger
+    name = RUNNER_NAME
+
     def __init__(
         self,
         discord_webhook_key: str | None = None,
         cmc_api_key: str | None = None,
         client: CoinMarketCapClient | None = None,
         discord: DiscordClient | None = None,
+        error_reporter: ErrorReporter | None = None,
         timeout: float = 10.0,
     ) -> None:
         if client is None:
@@ -70,6 +76,7 @@ class BtcFearAndGreedRetrieverRunner:
 
         self.client = client
         self.discord = discord
+        self.errors = error_reporter or ErrorReporter(environment="local")
 
     def run(self) -> None:
         try:
@@ -77,7 +84,7 @@ class BtcFearAndGreedRetrieverRunner:
             quote = self.client.get_btc_price()
             style = CLASSIFICATION_STYLES[reading.classification]
 
-            logger.info(
+            self.log.info(
                 "%s %s: %s $%.0f",
                 style.emoji,
                 reading.classification,
@@ -88,8 +95,13 @@ class BtcFearAndGreedRetrieverRunner:
                 self.discord.post(
                     self._create_discord_payload(reading, quote.price)
                 )
-        except Exception:
-            logger.exception("BTC fear-and-greed job failed")
+        except Exception as exception:
+            self.errors.report(
+                exception,
+                logger=self.log,
+                source=self.name,
+                operation="run",
+            )
 
     @staticmethod
     def _create_discord_payload(

@@ -21,6 +21,19 @@ from gemini.retriever import StockDataRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 
 
+def make_config() -> AppConfig:
+    return AppConfig.model_validate({
+        "firebase": "https://example.firebaseio.com",
+        "cmc_api_key": "cmc",
+        "discord_btc_webhook_key": "discord-btc",
+        "discord_eventlog_webhook_key": "discord-events",
+        "discord_earnings_webhook_key": "discord-earnings",
+        "discord_errorlog_webhook_key": "discord-errors",
+        "finnhub_api_key": "finnhub",
+        "gemini_api_key": "gemini",
+    })
+
+
 def test_missing_runner_prints_all_options_and_fails(capsys):
     with pytest.raises(SystemExit) as raised:
         parse_args([])
@@ -124,8 +137,10 @@ def test_fake_runner_executes_end_to_end_without_network(
     assert "FAKE POST Discord webhook" in caplog.text
 
 
-def test_main_executes_exactly_one_runner_without_loading_config():
+def test_main_executes_exactly_one_runner_with_fake_business_clients():
     runner = Mock()
+    errors = Mock()
+    config = make_config()
     firebase_snapshot = data.firebase_company_snapshot()
 
     with (
@@ -134,7 +149,16 @@ def test_main_executes_exactly_one_runner_without_loading_config():
             autospec=True,
             return_value=firebase_snapshot,
         ) as ensure_snapshot,
-        patch("dev.run.load_config", autospec=True) as load_config,
+        patch(
+            "dev.run.load_config",
+            autospec=True,
+            return_value=config,
+        ) as load_config,
+        patch(
+            "dev.run.create_error_reporter",
+            autospec=True,
+            return_value=errors,
+        ),
         patch(
             "dev.run.build_runner",
             autospec=True,
@@ -148,24 +172,18 @@ def test_main_executes_exactly_one_runner_without_loading_config():
         config_path="envs.json",
         certificate_path="cert.json",
     )
-    load_config.assert_not_called()
+    load_config.assert_called_once_with("envs.json")
     build.assert_called_once()
     assert build.call_args.args[1] is None
     assert build.call_args.args[2] is firebase_snapshot
+    assert build.call_args.kwargs["error_reporter"] is errors
     runner.run.assert_called_once_with()
 
 
 def test_production_switch_loads_selected_config():
-    config = AppConfig.model_validate({
-        "firebase": "https://example.firebaseio.com",
-        "cmc_api_key": "cmc",
-        "discord_btc_webhook_key": "discord-btc",
-        "discord_eventlog_webhook_key": "discord-events",
-        "discord_earnings_webhook_key": "discord-earnings",
-        "finnhub_api_key": "finnhub",
-        "gemini_api_key": "gemini",
-    })
+    config = make_config()
     runner = Mock()
+    errors = Mock()
     firebase_snapshot = data.firebase_company_snapshot()
 
     with (
@@ -179,6 +197,11 @@ def test_production_switch_loads_selected_config():
             autospec=True,
             return_value=config,
         ) as load_config,
+        patch(
+            "dev.run.create_error_reporter",
+            autospec=True,
+            return_value=errors,
+        ),
         patch(
             "dev.run.build_runner",
             autospec=True,
@@ -195,6 +218,7 @@ def test_production_switch_loads_selected_config():
     assert result == 0
     load_config.assert_called_once_with("custom-envs.json")
     assert build.call_args.args[1] is config
+    assert build.call_args.kwargs["error_reporter"] is errors
     runner.run.assert_called_once_with()
 
 

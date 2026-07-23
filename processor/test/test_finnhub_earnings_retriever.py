@@ -5,6 +5,7 @@ from unittest.mock import call, create_autospec
 import pytest
 
 from discord.client import DiscordClient
+from error_reporting import ErrorReporter
 from myfinnhub.client import FinnhubClient
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from myfinnhub.models import Company, Earnings, Quarter
@@ -36,6 +37,7 @@ class TestFinnhubEarningsRetriever:
         instance.client = create_autospec(FinnhubClient, instance=True)
         instance.discord = create_autospec(DiscordClient, instance=True)
         instance.log = create_autospec(logging.Logger, instance=True)
+        instance.errors = create_autospec(ErrorReporter, instance=True)
         instance.discord_post_earnings = create_autospec(
             instance.discord_post_earnings
         )
@@ -101,7 +103,15 @@ class TestFinnhubEarningsRetriever:
         runner.client.get_earnings.side_effect = [Exception("API Error"), {}]
         runner.run()
         runner.log.error.assert_called_once()
-        runner.log.exception.assert_called_once()
+        error = runner.errors.report.call_args.args[0]
+        assert str(error) == "API Error"
+        runner.errors.report.assert_called_once_with(
+            error,
+            logger=runner.log,
+            source=runner.name,
+            operation="process_company",
+            context={"company_id": "FAIL"},
+        )
         actual_log = runner.log.error.call_args[0][0].lower()
         assert "error while processing fail" in actual_log
         assert runner.client.get_earnings.call_count == 2
@@ -117,7 +127,7 @@ class TestFinnhubEarningsRetriever:
         runner.discord_post_earnings.assert_not_called()
         runner.log.info.assert_not_called()
         runner.log.error.assert_not_called()
-        runner.log.exception.assert_not_called()
+        runner.errors.report.assert_not_called()
 
     def test_run_logs_exception_when_loading_companies_fails(self, runner):
         """Test Case: Failure during company loading should be logged once and stop processing."""
@@ -125,7 +135,12 @@ class TestFinnhubEarningsRetriever:
         runner.service.get_companies.side_effect = error
         runner.run()
         runner.client.get_earnings.assert_not_called()
-        runner.log.exception.assert_called_once_with(error)
+        runner.errors.report.assert_called_once_with(
+            error,
+            logger=runner.log,
+            source=runner.name,
+            operation="run",
+        )
         runner.log.error.assert_not_called()
 
     def test_existing_company_handles_new_and_changed_quarters_same_run(self, runner):

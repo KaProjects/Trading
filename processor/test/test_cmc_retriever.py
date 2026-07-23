@@ -1,5 +1,6 @@
+import logging
 from decimal import Decimal
-from unittest.mock import create_autospec, patch
+from unittest.mock import create_autospec
 
 import pytest
 
@@ -11,23 +12,27 @@ from cmc.models import (
 )
 from cmc.retriever import BtcFearAndGreedRetrieverRunner
 from discord.client import DiscordClient
+from error_reporting import ErrorReporter
 
 
 @pytest.fixture
 def runner():
     client = create_autospec(CoinMarketCapClient, instance=True)
     discord = create_autospec(DiscordClient, instance=True)
+    errors = create_autospec(ErrorReporter, instance=True)
     instance = BtcFearAndGreedRetrieverRunner(
         discord_webhook_key="webhook-id/token",
         cmc_api_key="cmc-key",
         client=client,
         discord=discord,
+        error_reporter=errors,
     )
-    return instance, client, discord
+    instance.log = create_autospec(logging.Logger, instance=True)
+    return instance, client, discord, errors
 
 
 def test_runner_delegates_webhook_delivery_to_discord_client(runner):
-    instance, client, discord = runner
+    instance, client, discord, errors = runner
     client.get_fear_and_greed.return_value = FearAndGreedReading.model_validate({
         "data": {
             "value": "20",
@@ -53,11 +58,13 @@ def test_runner_delegates_webhook_delivery_to_discord_client(runner):
     assert embed["description"] == (
         ":coin: $50000 ... buy the dip? :bulb:"
     )
+    instance.log.info.assert_called_once()
+    errors.report.assert_not_called()
 
 
 @pytest.mark.parametrize("value", [30, 69])
 def test_runner_does_not_post_neutral_range(value, runner):
-    instance, client, discord = runner
+    instance, client, discord, errors = runner
     client.get_fear_and_greed.return_value = FearAndGreedReading.model_validate({
         "data": {
             "value": value,
@@ -79,16 +86,20 @@ def test_runner_does_not_post_neutral_range(value, runner):
     instance.run()
 
     discord.post.assert_not_called()
+    errors.report.assert_not_called()
 
 
 def test_runner_logs_client_failures_without_posting(runner):
-    instance, client, discord = runner
-    client.get_fear_and_greed.side_effect = RuntimeError("unavailable")
+    instance, client, discord, errors = runner
+    error = RuntimeError("unavailable")
+    client.get_fear_and_greed.side_effect = error
 
-    with patch("cmc.retriever.logger", autospec=True) as logger:
-        instance.run()
+    instance.run()
 
-    logger.exception.assert_called_once_with(
-        "BTC fear-and-greed job failed"
+    errors.report.assert_called_once_with(
+        error,
+        logger=instance.log,
+        source=instance.name,
+        operation="run",
     )
     discord.post.assert_not_called()

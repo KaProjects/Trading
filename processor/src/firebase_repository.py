@@ -3,6 +3,8 @@ from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from error_reporting import ErrorReporter
+
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
@@ -12,6 +14,7 @@ def parse_company_snapshot(
     data_root: str,
     model: type[ModelT],
     logger: logging.Logger,
+    error_reporter: ErrorReporter | None = None,
 ) -> dict[str, ModelT | None]:
     if snapshot is None:
         return {}
@@ -32,11 +35,23 @@ def parse_company_snapshot(
         try:
             companies[company_id] = model.model_validate(model_data)
         except ValidationError as exception:
-            logger.error(
-                "Ignoring invalid %s data for company %s: %s",
-                data_root,
-                company_id,
-                exception,
-            )
+            if error_reporter is None:
+                logger.error(
+                    "Ignoring invalid %s data for company %s: %s",
+                    data_root,
+                    company_id,
+                    exception,
+                )
+            else:
+                error_reporter.report(
+                    exception,
+                    logger=logger,
+                    source="FirebaseRepository",
+                    operation="parse_company",
+                    context={
+                        "company_id": company_id,
+                        "data_root": data_root,
+                    },
+                )
 
     return companies

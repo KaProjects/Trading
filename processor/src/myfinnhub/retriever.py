@@ -4,19 +4,21 @@ from collections.abc import Callable
 from decimal import Decimal, InvalidOperation
 
 from discord.client import DiscordClient
+from error_reporting import ErrorReporter
 from myfinnhub.client import FinnhubClient
 from myfinnhub.models import Company, Earnings
 from myfinnhub.service import FirebaseService
 from myfinnhub.strings import ErrMsg, LogMsg
 
-logger = logging.getLogger(__name__)
+RUNNER_NAME = "FinnhubEarnings"
+logger = logging.getLogger(RUNNER_NAME)
 RELATIVE_TOLERANCE = Decimal("0.05")
 ABSOLUTE_TOLERANCE = Decimal("0.01")
 
 
 class FinnhubEarningsRetrieverRunner:
     log = logger
-    name = "FinnhubEarnings"
+    name = RUNNER_NAME
 
     def __init__(
         self,
@@ -25,6 +27,7 @@ class FinnhubEarningsRetrieverRunner:
         client: FinnhubClient | None = None,
         service: FirebaseService | None = None,
         discord: DiscordClient | None = None,
+        error_reporter: ErrorReporter | None = None,
         sleeper: Callable[[float], None] = time.sleep,
     ) -> None:
         if client is None:
@@ -38,8 +41,13 @@ class FinnhubEarningsRetrieverRunner:
                 )
             discord = DiscordClient(webhook_key=discord_webhook_key)
 
+        self.errors = error_reporter or ErrorReporter(environment="local")
         self.client = client
-        self.service = service if service is not None else FirebaseService()
+        self.service = (
+            service
+            if service is not None
+            else FirebaseService(error_reporter=self.errors)
+        )
         self.discord = discord
         self.sleeper = sleeper
 
@@ -75,9 +83,20 @@ class FinnhubEarningsRetrieverRunner:
                     self.sleeper(5)
                 except Exception as exception:
                     self.log.error(ErrMsg.ERROR_PROCESSING_COMPANY.format(company_id=company_id))
-                    self.log.exception(exception)
+                    self.errors.report(
+                        exception,
+                        logger=self.log,
+                        source=self.name,
+                        operation="process_company",
+                        context={"company_id": company_id},
+                    )
         except Exception as exception:
-            self.log.exception(exception)
+            self.errors.report(
+                exception,
+                logger=self.log,
+                source=self.name,
+                operation="run",
+            )
 
     def discord_post_earnings(
         self,

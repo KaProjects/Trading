@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from cmc.models import BitcoinQuote, FearAndGreedReading
 from dev import data
+from error_reporting import ErrorReporter
 from firebase_repository import parse_company_snapshot
 from gemini.models import (
     Company as GeminiCompany,
@@ -135,12 +136,17 @@ class ConsoleDiscordClient:
 
 
 class FakeGeminiFirebaseService:
-    def __init__(self, snapshot: object) -> None:
+    def __init__(
+        self,
+        snapshot: object,
+        error_reporter: ErrorReporter | None = None,
+    ) -> None:
         self.companies = parse_company_snapshot(
             snapshot,
             data_root="gemini",
             model=GeminiCompany,
             logger=logger,
+            error_reporter=error_reporter,
         )
 
     def get_companies(self) -> dict[str, GeminiCompany | None]:
@@ -219,12 +225,17 @@ class FakeGeminiFirebaseService:
 
 
 class FakeFinnhubFirebaseService:
-    def __init__(self, snapshot: object) -> None:
+    def __init__(
+        self,
+        snapshot: object,
+        error_reporter: ErrorReporter | None = None,
+    ) -> None:
         self.companies = parse_company_snapshot(
             snapshot,
             data_root="fhe",
             model=FinnhubCompany,
             logger=logger,
+            error_reporter=error_reporter,
         )
 
     def get_companies(self) -> dict[str, FinnhubCompany | None]:

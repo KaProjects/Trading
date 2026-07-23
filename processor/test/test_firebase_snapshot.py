@@ -16,6 +16,7 @@ def make_config():
         "discord_btc_webhook_key": "discord-btc",
         "discord_eventlog_webhook_key": "discord-events",
         "discord_earnings_webhook_key": "discord-earnings",
+        "discord_errorlog_webhook_key": "discord-errors",
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
     }

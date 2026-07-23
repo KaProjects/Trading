@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, create_autospec, patch
 
 import pytest
 
+from error_reporting import ErrorReporter
 from gemini.models import Quarter, ReportDate
 from gemini.service import FirebaseService as GeminiFirebaseService
 from gemini.service import company_path as gemini_company_path
@@ -21,6 +22,7 @@ class FakeReference:
 def make_service(service_class):
     service = object.__new__(service_class)
     service.log = create_autospec(logging.Logger, instance=True)
+    service.errors = create_autospec(ErrorReporter, instance=True)
     return service
 
 
@@ -57,6 +59,28 @@ def test_firebase_service_skips_malformed_company_records(
 
     assert companies == {"NVDA": None}
     assert service.log.error.call_count == 2
+
+
+def test_firebase_validation_error_is_reported_with_company_context():
+    service = make_service(GeminiFirebaseService)
+    snapshot = {"AAPL": {"gemini": {}}}
+
+    with patch(
+        "gemini.service.db.reference",
+        autospec=True,
+        return_value=FakeReference(snapshot),
+    ):
+        companies = service.get_companies()
+
+    assert companies == {}
+    error = service.errors.report.call_args.args[0]
+    service.errors.report.assert_called_once_with(
+        error,
+        logger=service.log,
+        source="FirebaseRepository",
+        operation="parse_company",
+        context={"company_id": "AAPL", "data_root": "gemini"},
+    )
 
 
 @pytest.mark.parametrize(
