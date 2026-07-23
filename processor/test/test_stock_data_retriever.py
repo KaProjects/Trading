@@ -4,7 +4,7 @@ from unittest.mock import create_autospec, patch
 
 import pytest
 
-from discord.discord_client import DiscordClient
+from discord.client import DiscordClient
 from gemini.client import GeminiClient
 from gemini.models import Company, Info, Quarter, ReportDate, ReportDates
 from gemini.service import FirebaseService

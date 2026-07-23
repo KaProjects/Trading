@@ -5,7 +5,7 @@ import pytest
 from requests import Session
 from requests.exceptions import Timeout
 
-from discord.discord_client import DiscordClient, DiscordClientError
+from discord.client import DiscordClient, DiscordClientError
 
 
 @pytest.fixture

@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from cmc.client import CoinMarketCapClient
 from cmc.models import FearAndGreedClassification, FearAndGreedReading
-from discord.discord_client import DiscordClient
+from discord.client import DiscordClient
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@ import logging
 import time
 from decimal import Decimal, InvalidOperation
 
-from discord.discord_client import DiscordClient
+from discord.client import DiscordClient
 from myfinnhub.client import FinnhubClient
 from myfinnhub.models import Company, Earnings
 from myfinnhub.service import FirebaseService

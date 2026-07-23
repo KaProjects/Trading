@@ -10,7 +10,7 @@ from cmc.models import (
     FearAndGreedReading,
 )
 from cmc.retriever import BtcFearAndGreedRetrieverRunner
-from discord.discord_client import DiscordClient
+from discord.client import DiscordClient
 
 
 @pytest.fixture

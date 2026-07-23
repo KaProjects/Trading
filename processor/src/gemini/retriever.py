@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timedelta
 
 import utils
-from discord.discord_client import DiscordClient
+from discord.client import DiscordClient
 from gemini.client import GeminiClient
 from gemini.models import Company, ReportDate, ReportDates, Quarter
 from gemini.service import FirebaseService

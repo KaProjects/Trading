@@ -4,7 +4,7 @@ from unittest.mock import call, create_autospec, patch
 
 import pytest
 
-from discord.discord_client import DiscordClient
+from discord.client import DiscordClient
 from myfinnhub.client import FinnhubClient
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from myfinnhub.models import Company, Earnings, Quarter
