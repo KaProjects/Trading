@@ -43,7 +43,7 @@ class TestFinnhubEarningsRetriever:
     def test_init_new_company_earnings(self, runner):
         """Test Case: Company exists in DB but is None (first time fetch)."""
         runner.service.get_companies.return_value = {"AAPL": None}
-        mock_earnings = {"Q1": make_earnings()}
+        mock_earnings = {"26Q1": make_earnings()}
         runner.client.get_earnings.return_value = mock_earnings
         runner.run()
         runner.service.init_company.assert_called_once_with("AAPL", mock_earnings)
@@ -52,35 +52,35 @@ class TestFinnhubEarningsRetriever:
     def test_add_new_quarter_to_existing_company(self, runner):
         """Test Case: Company exists, but a new quarter appears in the API."""
         stored_q1 = make_earnings(report="2026-01-01-bmo")
-        mock_company = make_company(Q1={"20260101": stored_q1})
+        mock_company = make_company(**{"26Q1": {"20260101": stored_q1}})
         runner.service.get_companies.return_value = {"TSLA": mock_company}
         q1_earnings = make_earnings()
         q2_earnings = make_earnings(report="2026-07-27-bmo")
-        earnings_dict = {"Q1": q1_earnings, "Q2": q2_earnings}
+        earnings_dict = {"26Q1": q1_earnings, "26Q2": q2_earnings}
         runner.client.get_earnings.return_value = earnings_dict
         runner.almost_equals_earnings.return_value = True
         runner.run()
-        runner.service.init_quarter.assert_called_once_with("TSLA", "Q2", q2_earnings)
-        runner.discord_post_earnings.assert_called_once_with("TSLA", "Q2", None, q2_earnings)
+        runner.service.init_quarter.assert_called_once_with("TSLA", "26Q2", q2_earnings)
+        runner.discord_post_earnings.assert_called_once_with("TSLA", "26Q2", None, q2_earnings)
 
     def test_update_existing_earnings_significant_change(self, runner):
         """Test Case: Quarter exists, but data changed (almost_equals_earnings is False)."""
         latest_in_db = make_earnings(epse=1.0)
-        mock_company = make_company(Q1={"20260101": latest_in_db})
+        mock_company = make_company(**{"26Q1": {"20260101": latest_in_db}})
         runner.service.get_companies.return_value = {"NVDA": mock_company}
         now_earnings = make_earnings(epse=1.5)
-        runner.client.get_earnings.return_value = {"Q1": now_earnings}
+        runner.client.get_earnings.return_value = {"26Q1": now_earnings}
         runner.almost_equals_earnings.return_value = False
         runner.run()
-        runner.service.new_earnings.assert_called_once_with("NVDA", "Q1", now_earnings)
-        runner.discord_post_earnings.assert_called_once_with("NVDA", "Q1", latest_in_db, now_earnings)
+        runner.service.new_earnings.assert_called_once_with("NVDA", "26Q1", now_earnings)
+        runner.discord_post_earnings.assert_called_once_with("NVDA", "26Q1", latest_in_db, now_earnings)
 
     def test_no_change_logs_message(self, runner):
         """Test Case: Data is identical or 'almost equal' -> Log no change."""
         latest = make_earnings()
-        mock_company = make_company(Q1={"20260101": latest})
+        mock_company = make_company(**{"26Q1": {"20260101": latest}})
         runner.service.get_companies.return_value = {"MSFT": mock_company}
-        runner.client.get_earnings.return_value = {"Q1": make_earnings()}
+        runner.client.get_earnings.return_value = {"26Q1": make_earnings()}
         runner.almost_equals_earnings.return_value = True
         runner.run()
         runner.service.new_earnings.assert_not_called()
@@ -126,18 +126,18 @@ class TestFinnhubEarningsRetriever:
     def test_existing_company_handles_new_and_changed_quarters_same_run(self, runner):
         """Test Case: Existing company can add a new quarter and update an existing quarter in one run."""
         latest_in_db = make_earnings(epse=1.0)
-        mock_company = make_company(Q1={"20260101": latest_in_db})
+        mock_company = make_company(**{"26Q1": {"20260101": latest_in_db}})
         runner.service.get_companies.return_value = {"NVDA": mock_company}
         q1_earnings = make_earnings(epse=1.5)
         q2_earnings = make_earnings(report="2026-07-27-bmo")
-        runner.client.get_earnings.return_value = {"Q1": q1_earnings, "Q2": q2_earnings}
+        runner.client.get_earnings.return_value = {"26Q1": q1_earnings, "26Q2": q2_earnings}
         runner.almost_equals_earnings.return_value = False
         runner.run()
-        runner.service.init_quarter.assert_called_once_with("NVDA", "Q2", q2_earnings)
-        runner.service.new_earnings.assert_called_once_with("NVDA", "Q1", q1_earnings)
+        runner.service.init_quarter.assert_called_once_with("NVDA", "26Q2", q2_earnings)
+        runner.service.new_earnings.assert_called_once_with("NVDA", "26Q1", q1_earnings)
         runner.discord_post_earnings.assert_has_calls([
-            call("NVDA", "Q2", None, q2_earnings),
-            call("NVDA", "Q1", latest_in_db, q1_earnings),
+            call("NVDA", "26Q2", None, q2_earnings),
+            call("NVDA", "26Q1", latest_in_db, q1_earnings),
         ])
         runner.log.info.assert_not_called()
 
@@ -147,12 +147,16 @@ class TestFinnhubEarningsRetriever:
         q1_earnings = make_earnings(report="2026-04-27-bmo")
         q2_earnings = make_earnings(report="2026-07-27-bmo")
         q3_earnings = make_earnings(report="2026-10-27-bmo")
-        earnings_dict = {"Q1": q1_earnings, "Q2": q2_earnings, "Q3": q3_earnings}
+        earnings_dict = {
+            "26Q1": q1_earnings,
+            "26Q2": q2_earnings,
+            "26Q3": q3_earnings,
+        }
         runner.client.get_earnings.return_value = earnings_dict
         runner.run()
         runner.service.init_company.assert_called_once_with("AAPL", earnings_dict)
         assert runner.discord_post_earnings.call_args_list == [
-            call("AAPL", "Q3", None, q3_earnings),
-            call("AAPL", "Q2", None, q2_earnings),
-            call("AAPL", "Q1", None, q1_earnings),
+            call("AAPL", "26Q3", None, q3_earnings),
+            call("AAPL", "26Q2", None, q2_earnings),
+            call("AAPL", "26Q1", None, q1_earnings),
         ]

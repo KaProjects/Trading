@@ -128,7 +128,7 @@ def test_gemini_quarter_writes_are_atomic(method_name, updates_current_quarter):
 
     reference.assert_called_once_with(gemini_company_path("AAPL"))
     expected_update = {
-        "quarters/26Q1": quarter.model_dump(),
+        "quarters/26Q1": quarter.model_dump(mode="json"),
         "info/last_update": "2026-04-28",
     }
     if updates_current_quarter:

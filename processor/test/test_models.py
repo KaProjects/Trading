@@ -1,7 +1,12 @@
+from datetime import date
+from decimal import Decimal
+
 import pytest
 from pydantic import ValidationError
 
 from gemini.models import Company, Info, Quarter, ReportDate, ReportDates
+from myfinnhub.models import Company as FinnhubCompany
+from myfinnhub.models import Earnings
 
 
 def test_gemini_company_rejects_missing_required_info():
@@ -16,6 +21,8 @@ def test_gemini_company_serialization_round_trip():
         ending_month="26-03",
         report_date_previous_quarter="2026-01-20",
         report_date_this_quarter="2026-04-27",
+        reported_eps="1.25",
+        reported_revenues="",
     )
     company = Company(
         info=Info(
@@ -29,5 +36,86 @@ def test_gemini_company_serialization_round_trip():
         ReportDate(ticker="AAPL", quarter="26Q1", report_date="2026-04-27")
     ])
 
-    assert Company.model_validate(company.model_dump()) == company
-    assert ReportDates.model_validate(report_dates.model_dump()) == report_dates
+    assert quarter.report_date_this_quarter == date(2026, 4, 27)
+    assert quarter.reported_eps == Decimal("1.25")
+    assert quarter.reported_revenues is None
+    assert Company.model_validate(company.model_dump(mode="json")) == company
+    assert ReportDates.model_validate(
+        report_dates.model_dump(mode="json")
+    ) == report_dates
+
+
+@pytest.mark.parametrize(
+    "invalid_quarter_id",
+    ["Q1", "2026Q1", "26Q5", "invalid"],
+)
+def test_quarter_rejects_invalid_identifier(invalid_quarter_id):
+    with pytest.raises(ValidationError):
+        Quarter(
+            id=invalid_quarter_id,
+            name="invalid",
+            ending_month="26-03",
+            report_date_previous_quarter="2026-01-20",
+        )
+
+
+def test_company_rejects_quarter_key_that_does_not_match_model_id():
+    quarter = Quarter(
+        id="26Q1",
+        name="Q1 2026",
+        ending_month="26-03",
+        report_date_previous_quarter="2026-01-20",
+    )
+
+    with pytest.raises(ValidationError, match="Quarter keys do not match"):
+        Company(
+            info=Info(
+                ticker="AAPL",
+                last_update="2026-04-27",
+                current_quarter_id="26Q1",
+            ),
+            quarters={"26Q2": quarter},
+        )
+
+
+def test_report_dates_reject_duplicate_company_quarter_identity():
+    with pytest.raises(ValidationError, match="identities must be unique"):
+        ReportDates(report_dates=[
+            ReportDate(
+                ticker="AAPL",
+                quarter="26Q1",
+                report_date="2026-04-27",
+            ),
+            ReportDate(
+                ticker="AAPL",
+                quarter="26Q1",
+                report_date="2026-04-28",
+            ),
+        ])
+
+
+def test_finnhub_models_parse_legacy_numbers_and_validate_keys():
+    earnings = Earnings(
+        report="2026-04-27-bmo",
+        epse=1.25,
+        epsa="",
+        reve="1000000",
+    )
+    company = FinnhubCompany.model_validate({
+        "26Q1": {
+            "20260427": earnings.model_dump(mode="json"),
+        }
+    })
+
+    assert earnings.epse == Decimal("1.25")
+    assert earnings.epsa is None
+    assert earnings.reve == Decimal("1000000")
+    assert company.model_dump(mode="json")["26Q1"]["20260427"]["epse"] == "1.25"
+
+
+def test_finnhub_models_reject_invalid_report_and_quarter():
+    with pytest.raises(ValidationError):
+        Earnings(report="not-a-date")
+
+    with pytest.raises(ValidationError):
+        FinnhubCompany.model_validate({"Q1": {}})

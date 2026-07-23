@@ -89,6 +89,16 @@ class StockDataRetrieverRunner:
                 "Gemini changed report-date identities: "
                 f"expected {requested_ids}, received {returned_ids}"
             )
+        for requested, returned in zip(
+            report_dates.report_dates,
+            new_report_dates.report_dates,
+            strict=True,
+        ):
+            if requested.report_date is not None and returned.report_date is None:
+                raise ValueError(
+                    "Gemini removed a known report date for "
+                    f"{requested.ticker} {requested.quarter}"
+                )
         return new_report_dates
 
     def create_discord_post_payload(self, embeds):
@@ -164,29 +174,30 @@ class StockDataRetrieverRunner:
         today = datetime.now().date()
         if today.weekday() != 6:
             self.log.error(ErrorMsg.SHOULD_RUN_ON_SUNDAY.format(today=calendar.day_name[today.weekday()]))
-        else:
-            report_map = {}
-            for i in range(1, 6):
-                weekday_date = (today + timedelta(days=i)).strftime("%Y-%m-%d")
-                report_map[weekday_date] = []
+            return
 
-            for report in report_dates.report_dates:
-                if report.report_date in report_map:
-                    info = f"{report.ticker} - {report.quarter}"
-                    report_map[report.report_date].append(info)
+        report_map = {}
+        for i in range(1, 6):
+            weekday_date = today + timedelta(days=i)
+            report_map[weekday_date] = []
 
-            fields = list()
-            for day in sorted(report_map.keys()):
-                fields.append({
-                            "name": f"**{datetime.strptime(day, "%Y-%m-%d").strftime("%A")}** ({day})",
-                            "value": f"{"\n".join(report_map[day])}",
-                            "inline": False
-                        })
+        for report in report_dates.report_dates:
+            if report.report_date in report_map:
+                info = f"{report.ticker} - {report.quarter}"
+                report_map[report.report_date].append(info)
 
-            self.discord.post(self.create_discord_post_payload([
-                {
-                    "title": "📅 Upcoming Earnings Reports",
-                    "color": 3447003,
-                    "fields": fields
-                }
-            ]))
+        fields = list()
+        for day in sorted(report_map.keys()):
+            fields.append({
+                "name": f"**{day.strftime('%A')}** ({day.isoformat()})",
+                "value": "\n".join(report_map[day]),
+                "inline": False,
+            })
+
+        self.discord.post(self.create_discord_post_payload([
+            {
+                "title": "📅 Upcoming Earnings Reports",
+                "color": 3447003,
+                "fields": fields,
+            }
+        ]))

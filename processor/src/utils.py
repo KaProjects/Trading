@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+from datetime import date as Date
 from datetime import datetime, timedelta
 
 import firebase_admin
@@ -26,11 +27,17 @@ def parse(file: str):
         return json.load(content)
 
 
-def is_past_date(date: str, offset=0) -> bool:
+def is_past_date(date: Date | str | None, offset: int = 0) -> bool:
+    if date is None:
+        return False
     try:
-        input_date = datetime.strptime(date, "%Y-%m-%d").date()
+        input_date = (
+            date
+            if isinstance(date, Date)
+            else datetime.strptime(date, "%Y-%m-%d").date()
+        )
         today = datetime.now().date()
         threshold = today - timedelta(days=offset)
         return input_date < threshold
-    except ValueError:
+    except (TypeError, ValueError):
         return False

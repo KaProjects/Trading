@@ -1,35 +1,112 @@
-from pydantic import BaseModel, Field
+from datetime import date
+from decimal import Decimal
+from typing import Annotated
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
+
+from domain_types import QuarterId, Ticker
+
+EndingMonth = Annotated[
+    str,
+    StringConstraints(pattern=r"^\d{2}-(0[1-9]|1[0-2])$"),
+]
 
 
 class Info(BaseModel):
-    ticker: str = Field(description="ticker of the company")
-    last_update: str = Field(description="date of this data creation")
-    current_quarter_id: str = Field(description="in format YYQX")
+    model_config = ConfigDict(extra="forbid")
+
+    ticker: Ticker = Field(description="ticker of the company")
+    last_update: date = Field(description="date of this data creation")
+    current_quarter_id: QuarterId = Field(description="in format YYQX")
+
 
 class Quarter(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(description="Name of the quarter.")
-    id: str = Field(description="in format YYQX")
-    ending_month: str = Field(description="end month of the quarter in format YY-MM")
-    report_date_previous_quarter: str = Field(description="date of the previous quarter report in format YYYY-MM-DD")
-    report_date_this_quarter: str = Field(description="report date of this quarter in format YYYY-MM-DD", default="")
-    reported_eps: str = Field(description="reported earnings per share", default="")
-    reported_revenues: str = Field(description="reported revenues, in millions of USD", default="")
-    reported_gross_profit: str = Field(description="reported gross profit, in millions of USD", default="")
-    reported_operating_income: str = Field(description="reported operating income, in millions of USD, (should equal gross profit minus operating expenses)", default="")
-    reported_net_income: str = Field(description="reported net income, in millions of USD", default="")
-    reported_div: str = Field(description="reported dividends, in millions of USD", default="")
-    reported_shares: str = Field(description="number of shares in reported period, in millions", default="")
-    price_min: str = Field(description="minimum price in the period from previous quarter report date until this quarter report date, excluding those edge days", default="")
-    price_max: str = Field(description="maximum price in the period from previous quarter report date until this quarter report date, excluding those edge days", default="")
+    id: QuarterId = Field(description="in format YYQX")
+    ending_month: EndingMonth = Field(description="end month in format YY-MM")
+    report_date_previous_quarter: date
+    report_date_this_quarter: date | None = None
+    reported_eps: Decimal | None = None
+    reported_revenues: Decimal | None = None
+    reported_gross_profit: Decimal | None = None
+    reported_operating_income: Decimal | None = None
+    reported_net_income: Decimal | None = None
+    reported_div: Decimal | None = None
+    reported_shares: Decimal | None = None
+    price_min: Decimal | None = None
+    price_max: Decimal | None = None
+
+    @field_validator(
+        "report_date_this_quarter",
+        "reported_eps",
+        "reported_revenues",
+        "reported_gross_profit",
+        "reported_operating_income",
+        "reported_net_income",
+        "reported_div",
+        "reported_shares",
+        "price_min",
+        "price_max",
+        mode="before",
+    )
+    @classmethod
+    def empty_string_is_unavailable(cls, value):
+        return None if value == "" else value
+
 
 class Company(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     info: Info
-    quarters: dict[str, Quarter]
+    quarters: dict[QuarterId, Quarter]
+
+    @model_validator(mode="after")
+    def quarter_keys_match_ids(self):
+        mismatched = [
+            key
+            for key, quarter in self.quarters.items()
+            if key != quarter.id
+        ]
+        if mismatched:
+            raise ValueError(f"Quarter keys do not match their IDs: {mismatched}")
+        return self
+
 
 class ReportDate(BaseModel):
-    ticker: str = Field(description="ticker of the company")
-    quarter: str = Field(description="if of the current quarter")
-    report_date: str = Field(description="date of the quarterly report in format YYYY-MM-DD")
+    model_config = ConfigDict(extra="forbid")
+
+    ticker: Ticker = Field(description="ticker of the company")
+    quarter: QuarterId = Field(description="ID of the current quarter")
+    report_date: date | None = Field(
+        description="quarterly report date, if available"
+    )
+
+    @field_validator("report_date", mode="before")
+    @classmethod
+    def empty_report_date_is_unavailable(cls, value):
+        return None if value == "" else value
+
 
 class ReportDates(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     report_dates: list[ReportDate]
+
+    @model_validator(mode="after")
+    def identities_are_unique(self):
+        identities = [
+            (report.ticker, report.quarter)
+            for report in self.report_dates
+        ]
+        if len(identities) != len(set(identities)):
+            raise ValueError("Report-date identities must be unique")
+        return self

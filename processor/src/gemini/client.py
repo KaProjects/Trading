@@ -51,7 +51,7 @@ class GeminiClient:
         return self.__ask(prompt, Company)
 
     def revalidate_report_dates(self, report_dates: ReportDates) -> ReportDates:
-        data = report_dates.model_dump()
+        data = report_dates.model_dump(mode="json")
         prompt = f"""
         I provide you the list of current quarter report dates for companies, here: {data} 
         
@@ -64,7 +64,7 @@ class GeminiClient:
         return self.__ask(prompt, ReportDates)
 
     def get_quarter_report(self, company_id, current_quarter: Quarter):
-        data = current_quarter.model_dump()
+        data = current_quarter.model_dump(mode="json")
         prompt = f"""
         For company {company_id} there should be quarter {current_quarter.id} report from {current_quarter.report_date_this_quarter}. 
         Verify the date is really in the past, if not, don't change anything and return the same data.
