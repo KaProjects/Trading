@@ -1,6 +1,6 @@
 import logging
 from decimal import Decimal
-from unittest.mock import call, create_autospec, patch
+from unittest.mock import call, create_autospec
 
 import pytest
 
@@ -31,15 +31,19 @@ def make_company(**quarters):
 class TestFinnhubEarningsRetriever:
     @pytest.fixture
     def runner(self):
-        with patch("myfinnhub.retriever.time.sleep", autospec=True):
-            instance = object.__new__(FinnhubEarningsRetrieverRunner)
-            instance.service = create_autospec(FirebaseService, instance=True)
-            instance.client = create_autospec(FinnhubClient, instance=True)
-            instance.discord = create_autospec(DiscordClient, instance=True)
-            instance.log = create_autospec(logging.Logger, instance=True)
-            instance.discord_post_earnings = create_autospec(instance.discord_post_earnings)
-            instance.almost_equals_earnings = create_autospec(instance.almost_equals_earnings)
-            yield instance
+        instance = object.__new__(FinnhubEarningsRetrieverRunner)
+        instance.service = create_autospec(FirebaseService, instance=True)
+        instance.client = create_autospec(FinnhubClient, instance=True)
+        instance.discord = create_autospec(DiscordClient, instance=True)
+        instance.log = create_autospec(logging.Logger, instance=True)
+        instance.discord_post_earnings = create_autospec(
+            instance.discord_post_earnings
+        )
+        instance.almost_equals_earnings = create_autospec(
+            instance.almost_equals_earnings
+        )
+        instance.sleeper = lambda _: None
+        yield instance
 
     def test_init_new_company_earnings(self, runner):
         """Test Case: Company exists in DB but is None (first time fetch)."""

@@ -1,5 +1,6 @@
 import logging
 import time
+from collections.abc import Callable
 from decimal import Decimal, InvalidOperation
 
 from discord.client import DiscordClient
@@ -17,10 +18,30 @@ class FinnhubEarningsRetrieverRunner:
     log = logger
     name = "FinnhubEarnings"
 
-    def __init__(self, finnhub_api_key, discord_webhook_key):
-        self.client = FinnhubClient(api_key=finnhub_api_key)
-        self.service = FirebaseService()
-        self.discord = DiscordClient(webhook_key=discord_webhook_key)
+    def __init__(
+        self,
+        finnhub_api_key: str | None = None,
+        discord_webhook_key: str | None = None,
+        client: FinnhubClient | None = None,
+        service: FirebaseService | None = None,
+        discord: DiscordClient | None = None,
+        sleeper: Callable[[float], None] = time.sleep,
+    ) -> None:
+        if client is None:
+            if finnhub_api_key is None:
+                raise ValueError("finnhub_api_key is required without a client")
+            client = FinnhubClient(api_key=finnhub_api_key)
+        if discord is None:
+            if discord_webhook_key is None:
+                raise ValueError(
+                    "discord_webhook_key is required without a Discord client"
+                )
+            discord = DiscordClient(webhook_key=discord_webhook_key)
+
+        self.client = client
+        self.service = service if service is not None else FirebaseService()
+        self.discord = discord
+        self.sleeper = sleeper
 
     def run(self):
         try:
@@ -51,7 +72,7 @@ class FinnhubEarningsRetrieverRunner:
                         if no_change:
                             self.log.info(LogMsg.NO_CHANGE.format(company_id=company_id))
 
-                    time.sleep(5)
+                    self.sleeper(5)
                 except Exception as exception:
                     self.log.error(ErrMsg.ERROR_PROCESSING_COMPANY.format(company_id=company_id))
                     self.log.exception(exception)

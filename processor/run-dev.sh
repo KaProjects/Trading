@@ -12,4 +12,10 @@ else
     python_bin="python3"
 fi
 
-exec "${python_bin}" src/main.py "$@"
+if [ -n "${PYTHONPATH:-}" ]; then
+    export PYTHONPATH="${project_dir}/src:${project_dir}:${PYTHONPATH}"
+else
+    export PYTHONPATH="${project_dir}/src:${project_dir}"
+fi
+
+exec "${python_bin}" dev/run.py "$@"

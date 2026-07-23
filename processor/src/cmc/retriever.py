@@ -45,20 +45,31 @@ CLASSIFICATION_STYLES = {
 class BtcFearAndGreedRetrieverRunner:
     def __init__(
         self,
-        discord_webhook_key: str,
-        cmc_api_key: str,
+        discord_webhook_key: str | None = None,
+        cmc_api_key: str | None = None,
         client: CoinMarketCapClient | None = None,
         discord: DiscordClient | None = None,
         timeout: float = 10.0,
     ) -> None:
-        self.client = client or CoinMarketCapClient(
-            api_key=cmc_api_key,
-            timeout=timeout,
-        )
-        self.discord = discord or DiscordClient(
-            webhook_key=discord_webhook_key,
-            timeout=timeout,
-        )
+        if client is None:
+            if cmc_api_key is None:
+                raise ValueError("cmc_api_key is required without a client")
+            client = CoinMarketCapClient(
+                api_key=cmc_api_key,
+                timeout=timeout,
+            )
+        if discord is None:
+            if discord_webhook_key is None:
+                raise ValueError(
+                    "discord_webhook_key is required without a Discord client"
+                )
+            discord = DiscordClient(
+                webhook_key=discord_webhook_key,
+                timeout=timeout,
+            )
+
+        self.client = client
+        self.discord = discord
 
     def run(self) -> None:
         try:

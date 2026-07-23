@@ -18,10 +18,28 @@ class StockDataRetrieverRunner:
     # model = "gemini-3-flash-preview"
     model = "gemini-3.1-pro-preview"
 
-    def __init__(self, gemini_api_key, discord_webhook_key):
-        self.client = GeminiClient(api_key=gemini_api_key, model=self.model)
-        self.service = FirebaseService()
-        self.discord = DiscordClient(webhook_key=discord_webhook_key)
+    def __init__(
+        self,
+        gemini_api_key: str | None = None,
+        discord_webhook_key: str | None = None,
+        client: GeminiClient | None = None,
+        service: FirebaseService | None = None,
+        discord: DiscordClient | None = None,
+    ) -> None:
+        if client is None:
+            if gemini_api_key is None:
+                raise ValueError("gemini_api_key is required without a client")
+            client = GeminiClient(api_key=gemini_api_key, model=self.model)
+        if discord is None:
+            if discord_webhook_key is None:
+                raise ValueError(
+                    "discord_webhook_key is required without a Discord client"
+                )
+            discord = DiscordClient(webhook_key=discord_webhook_key)
+
+        self.client = client
+        self.service = service if service is not None else FirebaseService()
+        self.discord = discord
 
     def run(self):
         try:
