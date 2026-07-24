@@ -128,6 +128,29 @@ def test_target_schema_describes_every_output_field():
     assert targets_schema["properties"]["targets"]["description"]
 
 
+def test_quarter_schema_describes_every_output_field_and_unit():
+    properties = Quarter.model_json_schema()["properties"]
+
+    assert all(
+        properties[field_name]["description"]
+        for field_name in Quarter.model_fields
+    )
+    for field_name in (
+        "reported_revenues",
+        "reported_gross_profit",
+        "reported_operating_income",
+        "reported_net_income",
+        "reported_div",
+    ):
+        assert "millions of USD" in properties[field_name]["description"]
+    assert (
+        "millions of shares"
+        in properties["reported_shares"]["description"]
+    )
+    for field_name in ("reported_eps", "price_min", "price_max"):
+        assert "USD per share" in properties[field_name]["description"]
+
+
 def test_finnhub_models_parse_legacy_numbers_and_validate_keys():
     earnings = Earnings(
         report="2026-04-27-bmo",

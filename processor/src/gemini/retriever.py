@@ -306,10 +306,6 @@ class StockDataRetrieverRunner:
         }
 
     def format_target_for_discord(self, target: Target) -> dict[str, object]:
-        source = target.source
-        if source.startswith(("https://", "http://")):
-            source = f"[Open source]({source})"
-
         return {
             "embeds": [{
                 "title": (
@@ -320,10 +316,12 @@ class StockDataRetrieverRunner:
                 "fields": [
                     {
                         "name": target.institution,
-                        "value": (
-                            f"{target.rating or 'Not provided'}\n"
-                            f"{source}"
-                        ),
+                        "value": target.rating or "Not provided",
+                        "inline": False,
+                    },
+                    {
+                        "name": "Source",
+                        "value": target.source,
                         "inline": False,
                     },
                 ],
@@ -335,7 +333,7 @@ class StockDataRetrieverRunner:
         try:
             result = float(original)
             if result == 0: return "-"
-            if result > 1000:
+            if abs(result) >= 1000:
                 return str(round(result / 1000, 2)) + "B"
             else:
                 return str(round(result, 2)) + "M"

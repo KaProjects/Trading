@@ -42,20 +42,76 @@ class Info(BaseModel):
 class Quarter(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(description="Name of the quarter.")
-    id: QuarterId = Field(description="in format YYQX")
-    ending_month: EndingMonth = Field(description="end month in format YY-MM")
-    report_date_previous_quarter: Date
-    report_date_this_quarter: Date | None = None
-    reported_eps: Decimal | None = None
-    reported_revenues: Decimal | None = None
-    reported_gross_profit: Decimal | None = None
-    reported_operating_income: Decimal | None = None
-    reported_net_income: Decimal | None = None
-    reported_div: Decimal | None = None
-    reported_shares: Decimal | None = None
-    price_min: Decimal | None = None
-    price_max: Decimal | None = None
+    name: str = Field(
+        description="Human-readable fiscal quarter name, for example Q2 2026."
+    )
+    id: QuarterId = Field(
+        description="Fiscal quarter identifier in YYQX format."
+    )
+    ending_month: EndingMonth = Field(
+        description="Fiscal quarter ending month in YY-MM format."
+    )
+    report_date_previous_quarter: Date = Field(
+        description=(
+            "Date on which the previous fiscal quarter was reported, in "
+            "YYYY-MM-DD format."
+        )
+    )
+    report_date_this_quarter: Date | None = Field(
+        default=None,
+        description=(
+            "Actual or expected report date for this fiscal quarter, in "
+            "YYYY-MM-DD format."
+        ),
+    )
+    reported_eps: Decimal | None = Field(
+        default=None,
+        description="Reported earnings per share in USD per share.",
+    )
+    reported_revenues: Decimal | None = Field(
+        default=None,
+        description=(
+            "Reported revenue in millions of USD; for example, 16130 means "
+            "USD 16.13 billion."
+        ),
+    )
+    reported_gross_profit: Decimal | None = Field(
+        default=None,
+        description="Reported gross profit in millions of USD.",
+    )
+    reported_operating_income: Decimal | None = Field(
+        default=None,
+        description="Reported operating income in millions of USD.",
+    )
+    reported_net_income: Decimal | None = Field(
+        default=None,
+        description="Reported net income in millions of USD.",
+    )
+    reported_div: Decimal | None = Field(
+        default=None,
+        description="Reported total dividends in millions of USD.",
+    )
+    reported_shares: Decimal | None = Field(
+        default=None,
+        description=(
+            "Reported number of shares in millions of shares; for example, "
+            "5104 means 5.104 billion shares."
+        ),
+    )
+    price_min: Decimal | None = Field(
+        default=None,
+        description=(
+            "Minimum stock price in USD per share between the previous and "
+            "current report dates, excluding both edge dates."
+        ),
+    )
+    price_max: Decimal | None = Field(
+        default=None,
+        description=(
+            "Maximum stock price in USD per share between the previous and "
+            "current report dates, excluding both edge dates."
+        ),
+    )
 
     @field_validator(
         "report_date_this_quarter",

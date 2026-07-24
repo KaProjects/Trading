@@ -58,7 +58,9 @@ class GeminiClient:
         Double-check that the current quarter report date is later than the date of today, beacause if it's not, it's not the current quarter.
         Double-check the quarters names, ids and dates (important).
 
-        Then, for all already reported quarters, retrieve reported data: revenues, gross profit, operating income, net income, number of shares of the company and dividends. 
+        Then, for all already reported quarters, retrieve reported data: revenues, gross profit, operating income, net income, number of shares of the company and dividends.
+        Return financial totals in millions of USD and the number of shares in millions of shares. For example, return 16130 for USD 16.13 billion and 5104 for 5.104 billion shares; never return absolute dollar or share amounts.
+        Return EPS and stock prices in USD per share.
 
         Then, for all already reported quarters, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
@@ -93,7 +95,9 @@ class GeminiClient:
         Verify the data of the report are already available, if not, don't change anything and return the same data.
         
         Otherwise, collect the report data according to this template {data}, fill empty values, don't change anything else.
-        Specifically, we are looking for reported: revenues, gross profit, operating income, net income, number of shares of the company and dividends. 
+        Specifically, we are looking for reported: revenues, gross profit, operating income, net income, number of shares of the company and dividends.
+        Return financial totals in millions of USD and the number of shares in millions of shares. For example, return 16130 for USD 16.13 billion and 5104 for 5.104 billion shares; never return absolute dollar or share amounts.
+        Return EPS and stock prices in USD per share.
         
         For price_min and price_max, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).

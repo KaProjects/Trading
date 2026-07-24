@@ -263,13 +263,15 @@ class TestStockDataRetriever:
         assert embed["title"] == "🎯 AAPL | $225.50 | 2026-07-20"
         assert embed["fields"][0] == {
             "name": "Important Research",
-            "value": (
-                "Outperform\n"
-                "[Open source](https://research.example.com/aapl)"
-            ),
+            "value": "Outperform",
             "inline": False,
         }
-        assert len(embed["fields"]) == 1
+        assert embed["fields"][1] == {
+            "name": "Source",
+            "value": "https://research.example.com/aapl",
+            "inline": False,
+        }
+        assert len(embed["fields"]) == 2
         runner.errors.report.assert_not_called()
 
     @patch("utils.is_past_date", return_value=False)
@@ -521,6 +523,23 @@ class TestStockDataRetriever:
         assert new_quarter.name == "Q1 2026"
         assert new_quarter.ending_month == "26-03"
         assert new_quarter.report_date_previous_quarter == datetime(2025, 10, 20).date()
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("16130", "16.13B"),
+            ("-11033", "-11.03B"),
+            ("1000", "1.0B"),
+            ("-1000", "-1.0B"),
+        ],
+    )
+    def test_format_financial_uses_absolute_magnitude(
+        self,
+        runner,
+        value,
+        expected,
+    ):
+        assert runner.format_financial(value) == expected
 
     @patch("gemini.retriever.datetime")
     def test_check_report_dates_next_week_logs_error_when_not_sunday(self, mock_datetime, runner):
