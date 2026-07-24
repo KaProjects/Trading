@@ -154,6 +154,15 @@ class ConsoleDiscordClient:
             payload,
         )
 
+    def post_btc(self, payload: object) -> None:
+        _log_exchange("FAKE POST", "Discord webhook #btc", payload)
+
+    def post_eventlog(self, payload: object) -> None:
+        _log_exchange("FAKE POST", "Discord webhook #eventlog", payload)
+
+    def post_earnings(self, payload: object) -> None:
+        _log_exchange("FAKE POST", "Discord webhook #earnings", payload)
+
     def post_error(self, payload: object) -> None:
         _log_exchange("FAKE POST", "Discord error channel", payload)
 

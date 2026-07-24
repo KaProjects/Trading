@@ -69,7 +69,16 @@ def create_discord_client(config: AppConfig) -> DiscordClient:
     return DiscordClient(
         bot_token=config.discord_bot_token.get_secret_value(),
         guild_id=config.discord_guild_id,
-        error_channel_id=config.discord_errorlog_channel_id,
+        btc_webhook_key=config.discord_btc_webhook_key.get_secret_value(),
+        eventlog_webhook_key=(
+            config.discord_eventlog_webhook_key.get_secret_value()
+        ),
+        earnings_webhook_key=(
+            config.discord_earnings_webhook_key.get_secret_value()
+        ),
+        errorlog_webhook_key=(
+            config.discord_errorlog_webhook_key.get_secret_value()
+        ),
     )
 
 

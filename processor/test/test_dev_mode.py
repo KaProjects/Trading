@@ -28,7 +28,10 @@ def make_config() -> AppConfig:
         "cmc_api_key": "cmc",
         "discord_bot_token": "discord-token",
         "discord_guild_id": "guild-id",
-        "discord_errorlog_channel_id": "error-channel-id",
+        "discord_btc_webhook_key": "btc-webhook",
+        "discord_eventlog_webhook_key": "eventlog-webhook",
+        "discord_earnings_webhook_key": "earnings-webhook",
+        "discord_errorlog_webhook_key": "errorlog-webhook",
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
     })

@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from datetime import date, datetime, timedelta
 
 import utils
-from discord.client import DiscordChannel, DiscordClient
+from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from gemini.client import GeminiClient
 from gemini.models import (
@@ -85,8 +85,7 @@ class StockDataRetrieverRunner:
                                     self.service.report_quarter(company_id, current_quarter_reported)
                                     new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
                                     self.service.create_quarter(company_id, new_quarter)
-                                    self.discord.post(
-                                        DiscordChannel.EARNINGS,
+                                    self.discord.post_earnings(
                                         self.format_quarter_for_discord(
                                             quarter=current_quarter_reported,
                                             ticker=company_id,
@@ -199,8 +198,7 @@ class StockDataRetrieverRunner:
 
     def _notify_price_target(self, target: Target) -> None:
         try:
-            self.discord.post(
-                DiscordChannel.EVENTLOG,
+            self.discord.post_eventlog(
                 self.format_target_for_discord(target),
             )
         except Exception as exception:
@@ -272,6 +270,10 @@ class StockDataRetrieverRunner:
         ticker: str,
     ) -> dict[str, object]:
         return {
+            "username": "Quarterly Results Reporter",
+            "avatar_url": (
+                "https://cdn-icons-png.flaticon.com/512/1390/1390704.png"
+            ),
             "embeds": [{
                 "title": f"{ticker} - {quarter.name} report",
                 "description": (
@@ -307,6 +309,7 @@ class StockDataRetrieverRunner:
 
     def format_target_for_discord(self, target: Target) -> dict[str, object]:
         return {
+            "username": "Institutional Price Target Reporter",
             "embeds": [{
                 "title": (
                     f"🎯 {target.ticker} | ${target.price} | "
@@ -385,9 +388,12 @@ class StockDataRetrieverRunner:
                 "inline": False,
             })
 
-        self.discord.post(
-            DiscordChannel.EARNINGS,
+        self.discord.post_earnings(
             {
+                "username": "Quarterly Results Reporter",
+                "avatar_url": (
+                    "https://cdn-icons-png.flaticon.com/512/1390/1390704.png"
+                ),
                 "embeds": [{
                     "title": "📅 Upcoming Earnings Reports",
                     "color": 3447003,

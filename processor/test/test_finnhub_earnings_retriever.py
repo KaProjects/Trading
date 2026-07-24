@@ -4,7 +4,7 @@ from unittest.mock import call, create_autospec
 
 import pytest
 
-from discord.client import DiscordChannel, DiscordClient
+from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from myfinnhub.client import FinnhubClient
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
@@ -194,8 +194,9 @@ def test_discord_payload_preserves_zero_actual_values():
 
     runner.discord_post_earnings("AAPL", "26Q1", None, earnings)
 
-    assert runner.discord.post.call_args.args[0] is DiscordChannel.EVENTLOG
-    payload = runner.discord.post.call_args.args[1]
+    runner.discord.post_eventlog.assert_called_once()
+    payload = runner.discord.post_eventlog.call_args.args[0]
+    assert payload["username"] == "Earnings Estimates Reporter"
     reported = payload["embeds"][0]["fields"][1]
     assert reported["name"] == "Reported:"
     assert "earnings: \u200b 0.00" in reported["value"]
@@ -208,8 +209,8 @@ def test_discord_payload_includes_partially_available_actuals():
 
     runner.discord_post_earnings("AAPL", "26Q1", None, earnings)
 
-    assert runner.discord.post.call_args.args[0] is DiscordChannel.EVENTLOG
-    payload = runner.discord.post.call_args.args[1]
+    runner.discord.post_eventlog.assert_called_once()
+    payload = runner.discord.post_eventlog.call_args.args[0]
     reported = payload["embeds"][0]["fields"][1]
     assert "earnings: \u200b 0.25" in reported["value"]
 

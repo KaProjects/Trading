@@ -11,7 +11,7 @@ from cmc.models import (
     FearAndGreedReading,
 )
 from cmc.retriever import BtcFearAndGreedRetrieverRunner
-from discord.client import DiscordChannel, DiscordClient
+from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 
 
@@ -50,9 +50,8 @@ def test_runner_delegates_delivery_to_discord_client(runner):
 
     instance.run()
 
-    discord.post.assert_called_once()
-    assert discord.post.call_args.args[0] is DiscordChannel.BTC
-    payload = discord.post.call_args.args[1]
+    discord.post_btc.assert_called_once()
+    payload = discord.post_btc.call_args.args[0]
     embed = payload["embeds"][0]
     assert embed["title"] == ":scream: Extreme fear: 20"
     assert embed["description"] == (
@@ -85,7 +84,7 @@ def test_runner_does_not_post_neutral_range(value, runner):
 
     instance.run()
 
-    discord.post.assert_not_called()
+    discord.post_btc.assert_not_called()
     errors.report.assert_not_called()
 
 
@@ -102,4 +101,4 @@ def test_runner_logs_client_failures_without_posting(runner):
         source=instance.name,
         operation="run",
     )
-    discord.post.assert_not_called()
+    discord.post_btc.assert_not_called()

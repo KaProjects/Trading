@@ -3,7 +3,7 @@ import time
 from collections.abc import Callable
 from decimal import Decimal, InvalidOperation
 
-from discord.client import DiscordChannel, DiscordClient
+from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from myfinnhub.client import FinnhubClient
 from myfinnhub.models import Company, Earnings
@@ -122,8 +122,7 @@ class FinnhubEarningsRetrieverRunner:
 
             fields.append({"name": "Reported:", "value": f"earnings: \u200b {epsa}\nrevenues: \u200b {reva}"})
 
-        self.discord.post(
-            DiscordChannel.EVENTLOG,
+        self.discord.post_eventlog(
             self.create_discord_post_payload([{
                 "title": f"📊 {ticker} | {quarter} | {now.report}",
                 "color": 0x3498db,
@@ -168,5 +167,9 @@ class FinnhubEarningsRetrieverRunner:
 
     def create_discord_post_payload(self, embeds):
         return {
+            "username": "Earnings Estimates Reporter",
+            "avatar_url": (
+                "https://cdn-icons-png.flaticon.com/512/1353/1353566.png"
+            ),
             "embeds": embeds
         }

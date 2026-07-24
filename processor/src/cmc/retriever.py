@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from cmc.client import CoinMarketCapClient
 from cmc.models import FearAndGreedClassification, FearAndGreedReading
-from discord.client import DiscordChannel, DiscordClient
+from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 
 RUNNER_NAME = "BtcFearAndGreed"
@@ -84,8 +84,7 @@ class BtcFearAndGreedRetrieverRunner:
                 quote.price,
             )
             if reading.value < 30 or reading.value >= 70:
-                self.discord.post(
-                    DiscordChannel.BTC,
+                self.discord.post_btc(
                     self._create_discord_payload(reading, quote.price)
                 )
         except Exception as exception:

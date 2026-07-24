@@ -1,19 +1,13 @@
 import logging
-from enum import StrEnum
 
 from requests import Session
 from requests.exceptions import RequestException
 
 DISCORD_API_URL = "https://discord.com/api/v10"
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks"
 TEXT_CHANNEL_TYPES = {0, 5}
 
 logger = logging.getLogger(__name__)
-
-
-class DiscordChannel(StrEnum):
-    BTC = "btc"
-    EVENTLOG = "eventlog"
-    EARNINGS = "earnings"
 
 
 class DiscordClientError(RuntimeError):
@@ -25,13 +19,19 @@ class DiscordClient:
         self,
         bot_token: str,
         guild_id: str,
-        error_channel_id: str,
+        btc_webhook_key: str,
+        eventlog_webhook_key: str,
+        earnings_webhook_key: str,
+        errorlog_webhook_key: str,
         session: Session | None = None,
         timeout: float = 10.0,
     ) -> None:
         self.bot_token = bot_token
         self.guild_id = guild_id
-        self.error_channel_id = error_channel_id
+        self.btc_webhook_key = btc_webhook_key
+        self.eventlog_webhook_key = eventlog_webhook_key
+        self.earnings_webhook_key = earnings_webhook_key
+        self.errorlog_webhook_key = errorlog_webhook_key
         self.session = session or Session()
         self.timeout = timeout
         self._channel_ids: dict[str, str] | None = None
@@ -58,8 +58,17 @@ class DiscordClient:
 
         self._post_to_channel(channel_id, payload)
 
+    def post_btc(self, payload: dict[str, object]) -> None:
+        self._post_to_webhook(self.btc_webhook_key, payload)
+
+    def post_eventlog(self, payload: dict[str, object]) -> None:
+        self._post_to_webhook(self.eventlog_webhook_key, payload)
+
+    def post_earnings(self, payload: dict[str, object]) -> None:
+        self._post_to_webhook(self.earnings_webhook_key, payload)
+
     def post_error(self, payload: dict[str, object]) -> None:
-        self._post_to_channel(self.error_channel_id, payload)
+        self._post_to_webhook(self.errorlog_webhook_key, payload)
 
     def _resolve_channel_id(self, normalized_name: str) -> str | None:
         cache_was_loaded = self._channel_ids is not None
@@ -137,6 +146,29 @@ class DiscordClient:
         if not 200 <= response.status_code < 300:
             raise DiscordClientError(
                 f"Discord message returned {response.status_code}: "
+                f"{response.text}"
+            )
+
+    def _post_to_webhook(
+        self,
+        webhook_key: str,
+        payload: dict[str, object],
+    ) -> None:
+        url = f"{DISCORD_WEBHOOK_URL}/{webhook_key}"
+        try:
+            response = self.session.post(
+                url,
+                json=payload,
+                timeout=self.timeout,
+            )
+        except RequestException as exception:
+            raise DiscordClientError(
+                "Discord webhook request failed"
+            ) from exception
+
+        if not 200 <= response.status_code < 300:
+            raise DiscordClientError(
+                f"Discord webhook returned {response.status_code}: "
                 f"{response.text}"
             )
 

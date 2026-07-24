@@ -5,9 +5,10 @@ import pytest
 from requests import Session
 from requests.exceptions import Timeout
 
-from discord.client import DiscordChannel, DiscordClient, DiscordClientError
+from discord.client import DiscordClient, DiscordClientError
 
 API_URL = "https://discord.com/api/v10"
+WEBHOOK_URL = "https://discord.com/api/webhooks"
 HEADERS = {
     "Authorization": "Bot bot-token",
     "Content-Type": "application/json",
@@ -37,7 +38,10 @@ def discord_client():
     client = DiscordClient(
         bot_token="bot-token",
         guild_id="guild-id",
-        error_channel_id="error-id",
+        btc_webhook_key="btc-webhook",
+        eventlog_webhook_key="eventlog-webhook",
+        earnings_webhook_key="earnings-webhook",
+        errorlog_webhook_key="errorlog-webhook",
         session=session,
         timeout=3.0,
     )
@@ -49,7 +53,7 @@ def test_post_resolves_channel_name_and_caches_channel_id(discord_client):
     client, session = discord_client
     payload = {"content": "test"}
 
-    client.post(DiscordChannel.BTC, payload)
+    client.post("btc", payload)
     client.post("#btc", payload)
 
     session.get.assert_called_once_with(
@@ -73,6 +77,32 @@ def test_post_resolves_channel_name_and_caches_channel_id(discord_client):
     ]
 
 
+@pytest.mark.parametrize(
+    ("method_name", "webhook_key"),
+    [
+        ("post_btc", "btc-webhook"),
+        ("post_eventlog", "eventlog-webhook"),
+        ("post_earnings", "earnings-webhook"),
+    ],
+)
+def test_fixed_channel_methods_use_dedicated_webhooks(
+    discord_client,
+    method_name,
+    webhook_key,
+):
+    client, session = discord_client
+    payload = {"content": "test"}
+
+    getattr(client, method_name)(payload)
+
+    session.get.assert_not_called()
+    session.post.assert_called_once_with(
+        f"{WEBHOOK_URL}/{webhook_key}",
+        json=payload,
+        timeout=3.0,
+    )
+
+
 def test_missing_channel_redirects_message_to_errorlog(discord_client):
     client, session = discord_client
     payload = {"embeds": [{"title": "Target update"}]}
@@ -80,8 +110,7 @@ def test_missing_channel_redirects_message_to_errorlog(discord_client):
     client.post("AAPL", payload)
 
     session.post.assert_called_once_with(
-        f"{API_URL}/channels/error-id/messages",
-        headers=HEADERS,
+        f"{WEBHOOK_URL}/errorlog-webhook",
         json={
             "content": (
                 "Delivery fallback for #AAPL: "
@@ -93,7 +122,9 @@ def test_missing_channel_redirects_message_to_errorlog(discord_client):
     )
 
 
-def test_post_error_uses_configured_id_without_channel_lookup(discord_client):
+def test_post_error_uses_dedicated_webhook_without_channel_lookup(
+    discord_client,
+):
     client, session = discord_client
     payload = {"content": "application failed"}
 
@@ -101,8 +132,7 @@ def test_post_error_uses_configured_id_without_channel_lookup(discord_client):
 
     session.get.assert_not_called()
     session.post.assert_called_once_with(
-        f"{API_URL}/channels/error-id/messages",
-        headers=HEADERS,
+        f"{WEBHOOK_URL}/errorlog-webhook",
         json=payload,
         timeout=3.0,
     )
@@ -114,7 +144,7 @@ def test_post_raises_typed_error_on_timeout(discord_client):
     session.post.side_effect = error
 
     with pytest.raises(DiscordClientError) as raised:
-        client.post(DiscordChannel.BTC, {"content": "test"})
+        client.post("btc", {"content": "test"})
 
     assert raised.value.__cause__ is error
 
@@ -127,14 +157,14 @@ def test_post_raises_typed_error_on_non_success_response(discord_client):
     )
 
     with pytest.raises(DiscordClientError, match="returned 500: server error"):
-        client.post(DiscordChannel.BTC, {"content": "test"})
+        client.post("btc", {"content": "test"})
 
 
 def test_channel_lookup_failure_uses_errorlog_fallback(discord_client):
     client, session = discord_client
     session.get.side_effect = Timeout("lookup timed out")
 
-    client.post(DiscordChannel.BTC, {"content": "test"})
+    client.post("btc", {"content": "test"})
 
     fallback_payload = session.post.call_args.kwargs["json"]
     assert fallback_payload["content"].startswith(

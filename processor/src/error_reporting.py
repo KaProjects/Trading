@@ -160,6 +160,7 @@ class ErrorReporter:
             })
 
         return {
+            "username": "Trading Processor Error Reporter",
             "embeds": [{
                 "title": self._truncate(
                     f"Application error: {source}",

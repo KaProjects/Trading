@@ -48,7 +48,9 @@ def test_report_marks_traceback_and_posts_formatted_discord_embed():
     assert "EXCEPTION END [abc12345]" in logger.error.call_args_list[2].args[0]
 
     discord.post_error.assert_called_once()
-    embed = discord.post_error.call_args.args[0]["embeds"][0]
+    payload = discord.post_error.call_args.args[0]
+    assert payload["username"] == "Trading Processor Error Reporter"
+    embed = payload["embeds"][0]
     assert embed["title"] == "Application error: FinnhubEarnings"
     assert "RuntimeError: service unavailable" in embed["description"]
     assert embed["timestamp"] == "2026-07-23T12:30:00+00:00"

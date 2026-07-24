@@ -247,7 +247,18 @@ def _build_discord_client(
     return DiscordClient(
         bot_token=production_config.discord_bot_token.get_secret_value(),
         guild_id=production_config.discord_guild_id,
-        error_channel_id=production_config.discord_errorlog_channel_id,
+        btc_webhook_key=(
+            production_config.discord_btc_webhook_key.get_secret_value()
+        ),
+        eventlog_webhook_key=(
+            production_config.discord_eventlog_webhook_key.get_secret_value()
+        ),
+        earnings_webhook_key=(
+            production_config.discord_earnings_webhook_key.get_secret_value()
+        ),
+        errorlog_webhook_key=(
+            production_config.discord_errorlog_webhook_key.get_secret_value()
+        ),
     )
 
 
@@ -281,7 +292,18 @@ def create_error_reporter(config: AppConfig) -> ErrorReporter:
         DiscordClient(
             bot_token=config.discord_bot_token.get_secret_value(),
             guild_id=config.discord_guild_id,
-            error_channel_id=config.discord_errorlog_channel_id,
+            btc_webhook_key=(
+                config.discord_btc_webhook_key.get_secret_value()
+            ),
+            eventlog_webhook_key=(
+                config.discord_eventlog_webhook_key.get_secret_value()
+            ),
+            earnings_webhook_key=(
+                config.discord_earnings_webhook_key.get_secret_value()
+            ),
+            errorlog_webhook_key=(
+                config.discord_errorlog_webhook_key.get_secret_value()
+            ),
         ),
         environment="development",
     )

@@ -23,7 +23,10 @@ def make_config(**overrides):
         "cmc_api_key": "cmc",
         "discord_bot_token": "discord-token",
         "discord_guild_id": "guild-id",
-        "discord_errorlog_channel_id": "error-channel-id",
+        "discord_btc_webhook_key": "btc-webhook",
+        "discord_eventlog_webhook_key": "eventlog-webhook",
+        "discord_earnings_webhook_key": "earnings-webhook",
+        "discord_errorlog_webhook_key": "errorlog-webhook",
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
     }
@@ -141,7 +144,10 @@ def test_create_discord_client_uses_bot_configuration():
     discord_client.assert_called_once_with(
         bot_token="discord-token",
         guild_id="guild-id",
-        error_channel_id="error-channel-id",
+        btc_webhook_key="btc-webhook",
+        eventlog_webhook_key="eventlog-webhook",
+        earnings_webhook_key="earnings-webhook",
+        errorlog_webhook_key="errorlog-webhook",
     )
     assert result is discord
 
