@@ -115,7 +115,11 @@ def test_build_runner_uses_only_fake_dependencies_by_default(
 
     assert isinstance(runner, runner_type)
     assert isinstance(runner.client, client_type)
-    assert isinstance(runner.discord, ConsoleDiscordClient)
+    if runner_name == "gemini":
+        assert isinstance(runner.earnings_discord, ConsoleDiscordClient)
+        assert isinstance(runner.eventlog_discord, ConsoleDiscordClient)
+    else:
+        assert isinstance(runner.discord, ConsoleDiscordClient)
     if service_type is not None:
         assert isinstance(runner.service, service_type)
 

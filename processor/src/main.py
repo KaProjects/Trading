@@ -73,26 +73,30 @@ def create_app(
 ) -> Application:
     errors = error_reporter or create_error_reporter(config)
     utils.init_firebase(config.firebase)
+    btc_discord = DiscordClient(
+        config.discord_btc_webhook_key.get_secret_value()
+    )
+    eventlog_discord = DiscordClient(
+        config.discord_eventlog_webhook_key.get_secret_value()
+    )
+    earnings_discord = DiscordClient(
+        config.discord_earnings_webhook_key.get_secret_value()
+    )
     return Application(
         btc_runner=BtcFearAndGreedRetrieverRunner(
-            discord_webhook_key=(
-                config.discord_btc_webhook_key.get_secret_value()
-            ),
             cmc_api_key=config.cmc_api_key.get_secret_value(),
+            discord=btc_discord,
             error_reporter=errors,
         ),
         finnhub_runner=FinnhubEarningsRetrieverRunner(
             finnhub_api_key=config.finnhub_api_key.get_secret_value(),
-            discord_webhook_key=(
-                config.discord_eventlog_webhook_key.get_secret_value()
-            ),
+            discord=eventlog_discord,
             error_reporter=errors,
         ),
         stock_runner=StockDataRetrieverRunner(
             gemini_api_key=config.gemini_api_key.get_secret_value(),
-            discord_webhook_key=(
-                config.discord_earnings_webhook_key.get_secret_value()
-            ),
+            earnings_discord=earnings_discord,
+            eventlog_discord=eventlog_discord,
             error_reporter=errors,
         ),
         errors=errors,

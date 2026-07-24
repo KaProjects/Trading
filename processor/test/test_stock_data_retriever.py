@@ -57,7 +57,14 @@ class TestStockDataRetriever:
         instance = object.__new__(StockDataRetrieverRunner)
         instance.client = create_autospec(GeminiClient, instance=True)
         instance.service = create_autospec(FirebaseService, instance=True)
-        instance.discord = create_autospec(DiscordClient, instance=True)
+        instance.earnings_discord = create_autospec(
+            DiscordClient,
+            instance=True,
+        )
+        instance.eventlog_discord = create_autospec(
+            DiscordClient,
+            instance=True,
+        )
         instance.log = create_autospec(logging.Logger, instance=True)
         instance.errors = create_autospec(ErrorReporter, instance=True)
         instance.client.get_price_targets.return_value = Targets(targets=[])
@@ -122,7 +129,8 @@ class TestStockDataRetriever:
         runner.run()
         runner.service.report_quarter.assert_called_once_with("NVDA", new_reported_quarter)
         runner.service.create_quarter.assert_called_once_with("NVDA", next_quarter)
-        runner.discord.post.assert_called_once()
+        runner.earnings_discord.post.assert_called_once()
+        runner.eventlog_discord.post.assert_not_called()
 
     @patch("utils.is_past_date")
     @patch("gemini.retriever.datetime")
@@ -245,6 +253,17 @@ class TestStockDataRetriever:
                 source="https://research.example.com/aapl",
             ),
         )
+        runner.eventlog_discord.post.assert_called_once()
+        payload = runner.eventlog_discord.post.call_args.args[0]
+        embed = payload["embeds"][0]
+        assert embed["title"] == "AAPL | Important Research"
+        assert embed["fields"][0]["value"] == "$225.50"
+        assert embed["fields"][1]["value"] == "Outperform"
+        assert embed["fields"][2]["value"] == "2026-07-15"
+        assert embed["fields"][3]["value"] == (
+            "[Open source](https://research.example.com/aapl)"
+        )
+        runner.earnings_discord.post.assert_not_called()
         runner.errors.report.assert_not_called()
 
     @patch("utils.is_past_date", return_value=False)
@@ -267,6 +286,7 @@ class TestStockDataRetriever:
 
         runner.client.get_price_targets.assert_not_called()
         runner.service.upsert_target.assert_not_called()
+        runner.eventlog_discord.post.assert_not_called()
 
     def test_company_processing_failure_does_not_stop_stock_run(self, runner):
         error = RuntimeError("Gemini unavailable")
@@ -316,7 +336,8 @@ class TestStockDataRetriever:
         assert isinstance(error, ValueError)
         assert "changed report-date identities" in str(error)
         runner.service.update_report_date.assert_not_called()
-        runner.discord.post.assert_not_called()
+        runner.earnings_discord.post.assert_not_called()
+        runner.eventlog_discord.post.assert_not_called()
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")
@@ -433,7 +454,7 @@ class TestStockDataRetriever:
         runner.check_report_dates_next_week(ReportDates(report_dates=[]))
         runner.log.error.assert_called_once()
         assert "should run on Sunday, but is Monday" in runner.log.error.call_args[0][0]
-        runner.discord.post.assert_not_called()
+        runner.earnings_discord.post.assert_not_called()
 
     @patch("gemini.retriever.datetime")
     def test_check_report_dates_next_week_posts_grouped_schedule_on_sunday(self, mock_datetime, runner):
@@ -445,8 +466,8 @@ class TestStockDataRetriever:
             ReportDate(ticker="MSFT", quarter="25Q4", report_date="2026-05-01"),
         ])
         runner.check_report_dates_next_week(report_dates)
-        runner.discord.post.assert_called_once()
-        payload = runner.discord.post.call_args[0][0]
+        runner.earnings_discord.post.assert_called_once()
+        payload = runner.earnings_discord.post.call_args[0][0]
         embed = payload["embeds"][0]
         fields = embed["fields"]
         assert embed["title"] == "📅 Upcoming Earnings Reports"

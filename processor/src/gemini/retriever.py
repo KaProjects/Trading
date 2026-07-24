@@ -12,6 +12,7 @@ from gemini.models import (
     Quarter,
     ReportDate,
     ReportDates,
+    Target,
 )
 from gemini.service import FirebaseService
 from gemini.strings import ErrorMsg, LogMsg
@@ -29,22 +30,20 @@ class StockDataRetrieverRunner:
     def __init__(
         self,
         gemini_api_key: str | None = None,
-        discord_webhook_key: str | None = None,
         client: GeminiClient | None = None,
         service: FirebaseService | None = None,
-        discord: DiscordClient | None = None,
+        earnings_discord: DiscordClient | None = None,
+        eventlog_discord: DiscordClient | None = None,
         error_reporter: ErrorReporter | None = None,
     ) -> None:
         if client is None:
             if gemini_api_key is None:
                 raise ValueError("gemini_api_key is required without a client")
             client = GeminiClient(api_key=gemini_api_key, model=self.model)
-        if discord is None:
-            if discord_webhook_key is None:
-                raise ValueError(
-                    "discord_webhook_key is required without a Discord client"
-                )
-            discord = DiscordClient(webhook_key=discord_webhook_key)
+        if earnings_discord is None:
+            raise ValueError("earnings_discord is required")
+        if eventlog_discord is None:
+            raise ValueError("eventlog_discord is required")
 
         self.errors = error_reporter or ErrorReporter(environment="local")
         self.client = client
@@ -53,54 +52,60 @@ class StockDataRetrieverRunner:
             if service is not None
             else FirebaseService(error_reporter=self.errors)
         )
-        self.discord = discord
+        self.earnings_discord = earnings_discord
+        self.eventlog_discord = eventlog_discord
 
     def run(self):
         try:
             companies: dict = self.service.get_companies()
             report_dates = ReportDates(report_dates=list())
-            for company_id in companies:
-                try:
-                    if companies.get(company_id) is None:
-                        company: Company = self.client.get_initial_stock_data(company_id)
-                        self.service.init_company(id=company_id, data=company)
-                        companies[company_id] = company
-                    else:
-                        company = companies.get(company_id)
-                        current_quarter: Quarter = company.quarters.get(company.info.current_quarter_id)
-                        if current_quarter is None:
-                            self.log.error(ErrorMsg.QUARTER_NOT_FOUND.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
-                        else:
-                            if utils.is_past_date(date=current_quarter.report_date_this_quarter):
-                                current_quarter_reported: Quarter = self.client.get_quarter_report(company_id, current_quarter)
-                                if current_quarter == current_quarter_reported:
-                                    self.log.error(ErrorMsg.QUARTER_REPORT_FAILED.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
-                                    # might be rescheduled
-                                    report_date = ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter)
-                                    if datetime.now().weekday() == 6:
-                                        report_dates.report_dates.append(report_date)
-                                    else:
-                                        new_report_dates = self.revalidate_report_dates(
-                                            ReportDates(report_dates=[report_date])
-                                        )
-                                        self.service.update_report_date(new_report_dates.report_dates[0])
-                                else:
-                                    self.service.report_quarter(company_id, current_quarter_reported)
-                                    new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
-                                    self.service.create_quarter(company_id, new_quarter)
-                                    self.discord.post(self.format_quarter_for_discord(quarter=current_quarter_reported, ticker=company_id))
-                            else:
-                                report_dates.report_dates.append(ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter))
-                except Exception as exception:
-                    self.errors.report(
-                        exception,
-                        logger=self.log,
-                        source=self.name,
-                        operation="process_company",
-                        context={"company_id": company_id},
-                    )
+            # for company_id in companies:
+            #     try:
+            #         if companies.get(company_id) is None:
+            #             company: Company = self.client.get_initial_stock_data(company_id)
+            #             self.service.init_company(id=company_id, data=company)
+            #             companies[company_id] = company
+            #         else:
+            #             company = companies.get(company_id)
+            #             current_quarter: Quarter = company.quarters.get(company.info.current_quarter_id)
+            #             if current_quarter is None:
+            #                 self.log.error(ErrorMsg.QUARTER_NOT_FOUND.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
+            #             else:
+            #                 if utils.is_past_date(date=current_quarter.report_date_this_quarter):
+            #                     current_quarter_reported: Quarter = self.client.get_quarter_report(company_id, current_quarter)
+            #                     if current_quarter == current_quarter_reported:
+            #                         self.log.error(ErrorMsg.QUARTER_REPORT_FAILED.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
+            #                         # might be rescheduled
+            #                         report_date = ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter)
+            #                         if datetime.now().weekday() == 6:
+            #                             report_dates.report_dates.append(report_date)
+            #                         else:
+            #                             new_report_dates = self.revalidate_report_dates(
+            #                                 ReportDates(report_dates=[report_date])
+            #                             )
+            #                             self.service.update_report_date(new_report_dates.report_dates[0])
+            #                     else:
+            #                         self.service.report_quarter(company_id, current_quarter_reported)
+            #                         new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
+            #                         self.service.create_quarter(company_id, new_quarter)
+            #                         self.earnings_discord.post(
+            #                             self.format_quarter_for_discord(
+            #                                 quarter=current_quarter_reported,
+            #                                 ticker=company_id,
+            #                             )
+            #                         )
+            #                 else:
+            #                     report_dates.report_dates.append(ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter))
+            #     except Exception as exception:
+            #         self.errors.report(
+            #             exception,
+            #             logger=self.log,
+            #             source=self.name,
+            #             operation="process_company",
+            #             context={"company_id": company_id},
+            #         )
 
-            if datetime.now().weekday() == 0:
+            if True or datetime.now().weekday() == 0:
                 tickers = sorted(
                     company_id
                     for company_id, company in companies.items()
@@ -130,6 +135,24 @@ class StockDataRetrieverRunner:
                             logger=self.log,
                             source=self.name,
                             operation="persist_price_target",
+                            context={
+                                "ticker": target.ticker,
+                                "institution": target.institution,
+                                "date": target.date.isoformat(),
+                            },
+                        )
+                        continue
+
+                    try:
+                        self.eventlog_discord.post(
+                            self.format_target_for_discord(target)
+                        )
+                    except Exception as exception:
+                        self.errors.report(
+                            exception,
+                            logger=self.log,
+                            source=self.name,
+                            operation="notify_price_target",
                             context={
                                 "ticker": target.ticker,
                                 "institution": target.institution,
@@ -230,6 +253,41 @@ class StockDataRetrieverRunner:
                 }
             ])
 
+    def format_target_for_discord(self, target: Target) -> dict[str, object]:
+        source = target.source
+        if source.startswith(("https://", "http://")):
+            source = f"[Open source]({source})"
+
+        return {
+            "username": "Institutional Price Target Reporter",
+            "embeds": [{
+                "title": f"{target.ticker} | {target.institution}",
+                "color": 0xF1C40F,
+                "fields": [
+                    {
+                        "name": "Target",
+                        "value": f"${target.price}",
+                        "inline": True,
+                    },
+                    {
+                        "name": "Rating",
+                        "value": target.rating or "Not provided",
+                        "inline": True,
+                    },
+                    {
+                        "name": "Date",
+                        "value": target.date.isoformat(),
+                        "inline": True,
+                    },
+                    {
+                        "name": "Source",
+                        "value": source,
+                        "inline": False,
+                    },
+                ],
+            }],
+        }
+
     def format_financial(self, original: str):
         if original is None: return ""
         try:
@@ -287,7 +345,7 @@ class StockDataRetrieverRunner:
                 "inline": False,
             })
 
-        self.discord.post(self.create_discord_post_payload([
+        self.earnings_discord.post(self.create_discord_post_payload([
             {
                 "title": "📅 Upcoming Earnings Reports",
                 "color": 3447003,

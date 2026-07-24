@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, create_autospec, patch
+from unittest.mock import MagicMock, call, create_autospec, patch
 
 import pytest
 from pydantic import ValidationError
@@ -85,9 +85,21 @@ def test_runner_logger_uses_runner_name(runner_type):
 def test_create_app_initializes_dependencies_from_validated_config():
     config = make_config(timezone="UTC", poll_interval_seconds=5)
     errors = create_autospec(ErrorReporter, instance=True)
+    btc_discord = MagicMock()
+    eventlog_discord = MagicMock()
+    earnings_discord = MagicMock()
 
     with (
         patch("main.utils.init_firebase", autospec=True) as init_firebase,
+        patch(
+            "main.DiscordClient",
+            autospec=True,
+            side_effect=[
+                btc_discord,
+                eventlog_discord,
+                earnings_discord,
+            ],
+        ) as discord_client,
         patch(
             "main.BtcFearAndGreedRetrieverRunner",
             autospec=True,
@@ -98,19 +110,25 @@ def test_create_app_initializes_dependencies_from_validated_config():
         app = create_app(config, error_reporter=errors)
 
     init_firebase.assert_called_once_with("https://example.firebaseio.com")
+    assert discord_client.call_args_list == [
+        call("discord-btc"),
+        call("discord-events"),
+        call("discord-earnings"),
+    ]
     btc_runner.assert_called_once_with(
-        discord_webhook_key="discord-btc",
         cmc_api_key="cmc",
+        discord=btc_discord,
         error_reporter=errors,
     )
     finnhub_runner.assert_called_once_with(
         finnhub_api_key="finnhub",
-        discord_webhook_key="discord-events",
+        discord=eventlog_discord,
         error_reporter=errors,
     )
     stock_runner.assert_called_once_with(
         gemini_api_key="gemini",
-        discord_webhook_key="discord-earnings",
+        earnings_discord=earnings_discord,
+        eventlog_discord=eventlog_discord,
         error_reporter=errors,
     )
     assert app.errors is errors

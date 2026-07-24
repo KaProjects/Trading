@@ -191,15 +191,21 @@ def _build_gemini_runner(
         firebase_snapshot=firebase_snapshot,
         error_reporter=error_reporter,
     )
-    discord = _build_discord_client(
+    earnings_discord = _build_discord_client(
         args,
         config,
         secret_name="discord_earnings_webhook_key",
     )
+    eventlog_discord = _build_discord_client(
+        args,
+        config,
+        secret_name="discord_eventlog_webhook_key",
+    )
     return StockDataRetrieverRunner(
         client=gemini_client,
         service=service,
-        discord=discord,
+        earnings_discord=earnings_discord,
+        eventlog_discord=eventlog_discord,
         error_reporter=error_reporter,
     )
 
