@@ -40,7 +40,12 @@ def make_quarter(
     return Quarter(**data)
 
 
-def make_company(ticker, current_quarter_id, quarters):
+def make_company(
+    ticker,
+    current_quarter_id,
+    quarters,
+    targets=None,
+):
     return Company(
         info=Info(
             ticker=ticker,
@@ -48,6 +53,7 @@ def make_company(ticker, current_quarter_id, quarters):
             current_quarter_id=current_quarter_id,
         ),
         quarters=quarters,
+        targets=targets or {},
     )
 
 
@@ -206,13 +212,13 @@ class TestStockDataRetriever:
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")
-    def test_price_targets_use_previous_monday_through_sunday(
+    def test_price_targets_use_today_and_two_previous_days(
         self,
         mock_datetime,
         mock_is_past,
         runner,
     ):
-        mock_datetime.now.return_value = datetime(2026, 7, 20)
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
         company = make_company(
             "AAPL",
             "26Q2",
@@ -224,7 +230,7 @@ class TestStockDataRetriever:
         target = Target(
             ticker="AAPL",
             institution="Important Research",
-            date="2026-07-15",
+            date="2026-07-20",
             price="225.50",
             rating="Outperform",
             source="https://research.example.com/aapl",
@@ -237,14 +243,14 @@ class TestStockDataRetriever:
 
         runner.client.get_price_targets.assert_called_once_with(
             ["AAPL"],
-            date(2026, 7, 13),
             date(2026, 7, 19),
+            date(2026, 7, 21),
         )
         runner.service.upsert_target.assert_called_once_with(
             "AAPL",
             CompanyTarget(
                 institution="Important Research",
-                date="2026-07-15",
+                date="2026-07-20",
                 price="225.50",
                 rating="Outperform",
                 source="https://research.example.com/aapl",
@@ -257,7 +263,7 @@ class TestStockDataRetriever:
         assert embed["title"] == "AAPL | Important Research"
         assert embed["fields"][0]["value"] == "$225.50"
         assert embed["fields"][1]["value"] == "Outperform"
-        assert embed["fields"][2]["value"] == "2026-07-15"
+        assert embed["fields"][2]["value"] == "2026-07-20"
         assert embed["fields"][3]["value"] == (
             "[Open source](https://research.example.com/aapl)"
         )
@@ -265,13 +271,83 @@ class TestStockDataRetriever:
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")
-    def test_price_targets_are_not_requested_outside_monday(
+    def test_price_targets_skip_existing_and_response_duplicates(
         self,
         mock_datetime,
         mock_is_past,
         runner,
     ):
         mock_datetime.now.return_value = datetime(2026, 7, 21)
+        existing_target = CompanyTarget(
+            institution="Important Research",
+            date="2026-07-20",
+            price="200",
+            rating="Buy",
+            source="https://existing.example.com/aapl",
+        )
+        company = make_company(
+            "AAPL",
+            "26Q2",
+            {"26Q2": make_quarter(quarter_id="26Q2")},
+            targets={"2026-07-20-existing": existing_target},
+        )
+        new_target = Target(
+            ticker="AAPL",
+            institution="New Research",
+            date="2026-07-21",
+            price="230",
+            rating="Outperform",
+            source="https://new.example.com/aapl",
+        )
+        runner.service.get_companies.return_value = {"AAPL": company}
+        runner.client.get_price_targets.return_value = Targets(targets=[
+            Target(
+                ticker="AAPL",
+                institution="IMPORTANT RESEARCH",
+                date="2026-07-20",
+                price="250",
+                rating="Strong Buy",
+                source="https://different.example.com/aapl",
+            ),
+            new_target,
+            Target(
+                ticker="AAPL",
+                institution="NEW   RESEARCH",
+                date="2026-07-21",
+                price="240",
+                rating="Buy",
+                source="https://duplicate.example.com/aapl",
+            ),
+        ])
+
+        runner.run()
+
+        runner.service.upsert_target.assert_called_once_with(
+            "AAPL",
+            CompanyTarget(
+                institution="New Research",
+                date="2026-07-21",
+                price="230",
+                rating="Outperform",
+                source="https://new.example.com/aapl",
+            ),
+        )
+        runner.discord.post.assert_called_once()
+        assert (
+            runner.discord.post.call_args.args[1]["embeds"][0]["title"]
+            == "AAPL | New Research"
+        )
+        runner.errors.report.assert_not_called()
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_price_targets_are_not_requested_on_sunday(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 19)
         company = make_company(
             "AAPL",
             "26Q2",
