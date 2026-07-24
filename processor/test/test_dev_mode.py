@@ -52,21 +52,21 @@ def test_missing_runner_prints_all_options_and_fails(capsys):
 def test_all_clients_default_to_fake():
     args = parse_args(["btc"])
 
-    assert not args.cmc_production
-    assert not args.gemini_production
-    assert not args.finnhub_production
-    assert not args.discord_production
-    assert not args.firebase_production
+    assert not args.cmc_prod
+    assert not args.gemini_prod
+    assert not args.finnhub_prod
+    assert not args.discord_prod
+    assert not args.firebase_prod
 
 
 @pytest.mark.parametrize(
     ("runner_name", "option", "attribute"),
     [
-        ("btc", "--cmc-production", "cmc_production"),
-        ("gemini", "--gemini-production", "gemini_production"),
-        ("finnhub", "--finnhub-production", "finnhub_production"),
-        ("btc", "--discord-production", "discord_production"),
-        ("gemini", "--firebase-production", "firebase_production"),
+        ("btc", "--cmc-prod", "cmc_prod"),
+        ("gemini", "--gemini-prod", "gemini_prod"),
+        ("finnhub", "--finnhub-prod", "finnhub_prod"),
+        ("btc", "--discord-prod", "discord_prod"),
+        ("gemini", "--firebase-prod", "firebase_prod"),
     ],
 )
 def test_each_production_switch_requires_configuration(
@@ -258,7 +258,7 @@ def test_production_switch_loads_selected_config():
     ):
         result = main([
             "btc",
-            "--cmc-production",
+            "--cmc-prod",
             "--config",
             "custom-envs.json",
         ])

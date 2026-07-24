@@ -73,7 +73,7 @@ def create_parser() -> argparse.ArgumentParser:
     )
     for client, label in CLIENTS.items():
         parser.add_argument(
-            f"--{client}-production",
+            f"--{client}-prod",
             action="store_true",
             help=f"use the production {label} client (default: fake)",
         )
@@ -112,7 +112,7 @@ def load_config(path: str) -> AppConfig:
 
 def needs_production_config(args: argparse.Namespace) -> bool:
     return any(
-        getattr(args, f"{client}_production")
+        getattr(args, f"{client}_prod")
         for client in RUNNER_CLIENTS[args.runner]
     )
 
@@ -148,7 +148,7 @@ def _build_btc_runner(
     config: AppConfig | None,
     error_reporter: ErrorReporter,
 ) -> BtcFearAndGreedRetrieverRunner:
-    if args.cmc_production:
+    if args.cmc_prod:
         production_config = _require_config(config)
         cmc_client = CoinMarketCapClient(
             production_config.cmc_api_key.get_secret_value()
@@ -173,7 +173,7 @@ def _build_gemini_runner(
     firebase_snapshot: dict[str, object],
     error_reporter: ErrorReporter,
 ) -> StockDataRetrieverRunner:
-    if args.gemini_production:
+    if args.gemini_prod:
         production_config = _require_config(config)
         gemini_client = GeminiClient(
             api_key=production_config.gemini_api_key.get_secret_value(),
@@ -208,7 +208,7 @@ def _build_finnhub_runner(
     firebase_snapshot: dict[str, object],
     error_reporter: ErrorReporter,
 ) -> FinnhubEarningsRetrieverRunner:
-    if args.finnhub_production:
+    if args.finnhub_prod:
         production_config = _require_config(config)
         finnhub_client = FinnhubClient(
             api_key=production_config.finnhub_api_key.get_secret_value()
@@ -241,7 +241,7 @@ def _build_discord_client(
     args: argparse.Namespace,
     config: AppConfig | None,
 ) -> DiscordClient | ConsoleDiscordClient:
-    if not args.discord_production:
+    if not args.discord_prod:
         return ConsoleDiscordClient()
     production_config = _require_config(config)
     return DiscordClient(
@@ -271,7 +271,7 @@ def _build_firebase_service(
     firebase_snapshot: dict[str, object],
     error_reporter: ErrorReporter,
 ):
-    if not args.firebase_production:
+    if not args.firebase_prod:
         return fake_factory(
             firebase_snapshot,
             error_reporter=error_reporter,
@@ -320,10 +320,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             certificate_path=args.certificate,
         )
         selected_modes = ", ".join(
-            (
-                f"{client}="
-                f"{'production' if getattr(args, f'{client}_production') else 'fake'}"
-            )
+        (
+            f"{client}="
+            f"{'production' if getattr(args, f'{client}_prod') else 'fake'}"
+        )
             for client in RUNNER_CLIENTS[args.runner]
         )
         logger.info(

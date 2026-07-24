@@ -198,6 +198,7 @@ def test_discord_payload_preserves_zero_actual_values():
     runner.discord.post_eventlog.assert_called_once()
     payload = runner.discord.post_eventlog.call_args.args[0]
     assert payload["username"] == "Earnings Estimates Reporter"
+    assert payload["embeds"][0]["title"].startswith("📊 AAPL | 26Q1")
     reported = payload["embeds"][0]["fields"][1]
     assert reported["name"] == "Reported:"
     assert "earnings: \u200b 0.00" in reported["value"]
@@ -228,7 +229,8 @@ def test_discord_payload_uses_existing_ticker_channel():
         runner.discord.post_if_channel_exists.call_args.args
     )
     assert channel_name == "AAPL"
-    assert payload["embeds"][0]["title"].startswith("📊 AAPL | 26Q1")
+    assert payload["embeds"][0]["title"].startswith("📊 26Q1 |")
+    assert "AAPL" not in payload["embeds"][0]["title"]
     assert "username" not in payload
     assert "avatar_url" not in payload
     runner.discord.post_eventlog.assert_not_called()
