@@ -272,6 +272,7 @@ class TestStockDataRetriever:
         runner.discord.post_eventlog.assert_called_once()
         payload = runner.discord.post_eventlog.call_args.args[0]
         assert payload["username"] == "Institutional Price Target Reporter"
+        assert payload["avatar_url"].endswith("/1872/1872505.png")
         embed = payload["embeds"][0]
         assert embed["title"] == "🎯 AAPL | $225.50 | 2026-07-20"
         assert embed["fields"][0] == {

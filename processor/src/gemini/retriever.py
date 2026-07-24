@@ -365,6 +365,9 @@ class StockDataRetrieverRunner:
     def format_target_for_discord(self, target: Target) -> dict[str, object]:
         return {
             "username": "Institutional Price Target Reporter",
+            "avatar_url": (
+                "https://cdn-icons-png.flaticon.com/512/1872/1872505.png"
+            ),
             "embeds": [{
                 "title": (
                     f"🎯 {target.ticker} | ${target.price} | "
