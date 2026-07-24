@@ -7,10 +7,17 @@ from firebase_admin import db
 
 from error_reporting import ErrorReporter
 from firebase_repository import parse_company_snapshot
-from gemini.models import Company, CompanyTarget, Quarter, ReportDate
+from gemini.models import (
+    Company,
+    CompanyTarget,
+    InstitutionRecord,
+    Quarter,
+    ReportDate,
+)
 from gemini.strings import LogMsg
 
 companies_path = "company"
+institutions_path = "institution"
 data_root = "gemini"
 logger = logging.getLogger(__name__)
 
@@ -51,6 +58,29 @@ class FirebaseService:
             logger=self.log,
             error_reporter=self.errors,
         )
+
+    def get_institutions(self) -> dict[str, InstitutionRecord]:
+        snapshot = db.reference(institutions_path).get()
+        if snapshot is None:
+            return {}
+        if not isinstance(snapshot, dict):
+            raise TypeError("Firebase /institution snapshot must be a mapping")
+        return {
+            institution_id: InstitutionRecord.model_validate(data)
+            for institution_id, data in snapshot.items()
+        }
+
+    def create_institutions(
+        self,
+        institutions: dict[str, InstitutionRecord],
+    ) -> None:
+        if not institutions:
+            return
+        db.reference(institutions_path).update({
+            institution_id: institution.model_dump(mode="json")
+            for institution_id, institution in institutions.items()
+        })
+        self.log.info("Created %d institutions", len(institutions))
 
     def init_company(self, id: str, data: Company) -> None:
         db.reference(company_path(id)).set(data.model_dump(mode="json"))

@@ -5,10 +5,16 @@ from unittest.mock import MagicMock, create_autospec, patch
 import pytest
 
 from error_reporting import ErrorReporter
-from gemini.models import CompanyTarget, Quarter, ReportDate
+from gemini.models import (
+    CompanyTarget,
+    InstitutionRecord,
+    Quarter,
+    ReportDate,
+)
 from gemini.service import FirebaseService as GeminiFirebaseService
 from gemini.service import company_path as gemini_company_path
 from gemini.service import create_target_id
+from gemini.service import institutions_path
 from myfinnhub.service import FirebaseService as FinnhubFirebaseService
 
 
@@ -35,6 +41,58 @@ def test_gemini_service_treats_empty_snapshot_as_empty_mapping():
 def test_finnhub_service_treats_empty_snapshot_as_empty_mapping():
     with patch("myfinnhub.service.db.reference", autospec=True, return_value=FakeReference(None)):
         assert make_service(FinnhubFirebaseService).get_companies() == {}
+
+
+def test_gemini_service_loads_institutions():
+    service = make_service(GeminiFirebaseService)
+    institution = InstitutionRecord(
+        name="Baird",
+        aliases={
+            "baird": "Baird",
+            "robert-w-baird": "Robert W. Baird",
+        },
+        enabled=True,
+    )
+
+    with patch(
+        "gemini.service.db.reference",
+        autospec=True,
+        return_value=FakeReference({
+            "baird": institution.model_dump(mode="json"),
+        }),
+    ) as reference:
+        institutions = service.get_institutions()
+
+    reference.assert_called_once_with(institutions_path)
+    assert institutions == {"baird": institution}
+
+
+def test_gemini_service_batch_creates_institutions():
+    service = make_service(GeminiFirebaseService)
+    institution_reference = MagicMock(spec_set=["update"])
+    institutions = {
+        "northland-securities": InstitutionRecord(
+            name="Northland Securities",
+            aliases={
+                "northland-securities": "Northland Securities",
+            },
+            enabled=True,
+        ),
+    }
+
+    with patch(
+        "gemini.service.db.reference",
+        autospec=True,
+        return_value=institution_reference,
+    ) as reference:
+        service.create_institutions(institutions)
+
+    reference.assert_called_once_with(institutions_path)
+    institution_reference.update.assert_called_once_with({
+        "northland-securities": (
+            institutions["northland-securities"].model_dump(mode="json")
+        ),
+    })
 
 
 @pytest.mark.parametrize(

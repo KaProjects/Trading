@@ -10,9 +10,11 @@ from cmc.models import BitcoinQuote, FearAndGreedReading
 from dev import data
 from error_reporting import ErrorReporter
 from firebase_repository import parse_company_snapshot
+from gemini.institutions import InstitutionRegistry
 from gemini.models import (
     Company as GeminiCompany,
     CompanyTarget,
+    InstitutionRecord,
     Quarter as GeminiQuarter,
     ReportDate,
     ReportDates,
@@ -194,6 +196,13 @@ class FakeGeminiFirebaseService:
             logger=logger,
             error_reporter=error_reporter,
         )
+        registry = InstitutionRegistry({})
+        for company in self.companies.values():
+            if company is None:
+                continue
+            for target in company.targets.values():
+                registry.resolve_or_create(target.institution)
+        self.institutions = registry.institutions
 
     def get_companies(self) -> dict[str, GeminiCompany | None]:
         result = {
@@ -206,6 +215,27 @@ class FakeGeminiFirebaseService:
         }
         _log_operation("FAKE GET", "Firebase /company/*/gemini")
         return result
+
+    def get_institutions(self) -> dict[str, InstitutionRecord]:
+        _log_operation("FAKE GET", "Firebase /institution")
+        return {
+            institution_id: institution.model_copy(deep=True)
+            for institution_id, institution in self.institutions.items()
+        }
+
+    def create_institutions(
+        self,
+        institutions: dict[str, InstitutionRecord],
+    ) -> None:
+        self.institutions.update({
+            institution_id: institution.model_copy(deep=True)
+            for institution_id, institution in institutions.items()
+        })
+        _log_exchange(
+            "FAKE PATCH",
+            "Firebase /institution",
+            institutions,
+        )
 
     def init_company(self, id: str, data: GeminiCompany) -> None:
         self.companies[id] = data.model_copy(deep=True)

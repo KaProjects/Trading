@@ -7,6 +7,7 @@ import utils
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from gemini.client import GeminiClient
+from gemini.institutions import InstitutionRegistry
 from gemini.models import (
     Company,
     CompanyTarget,
@@ -149,21 +150,48 @@ class StockDataRetrieverRunner:
         today = datetime.now().date()
         start_date = today - timedelta(days=2)
         end_date = today
+        institutions = InstitutionRegistry(
+            self.service.get_institutions()
+        )
         targets = self.client.get_price_targets(
             tickers,
             start_date,
             end_date,
         )
 
-        known_identities = self._price_target_identities(companies)
-
+        resolved_targets = []
         for target in targets.targets:
-            target_identity = self._price_target_identity(target)
+            institution = institutions.resolve_or_create(
+                target.institution
+            )
+            resolved_targets.append((
+                target.model_copy(
+                    update={"institution": institution.name}
+                ),
+                institution.enabled,
+            ))
+
+        if institutions.new_institutions:
+            self.service.create_institutions(
+                institutions.new_institutions
+            )
+        known_identities = self._price_target_identities(
+            companies,
+            institutions,
+        )
+
+        for target, institution_enabled in resolved_targets:
+            target_identity = self._price_target_identity(
+                target,
+                institutions,
+            )
             ticker_identities = known_identities.setdefault(
                 target.ticker,
                 set(),
             )
             if target_identity in ticker_identities:
+                continue
+            if not institution_enabled:
                 continue
             if self._persist_price_target(target):
                 ticker_identities.add(target_identity)
@@ -222,10 +250,11 @@ class StockDataRetrieverRunner:
     def _price_target_identities(
         cls,
         companies: dict[str, Company | None],
+        institutions: InstitutionRegistry,
     ) -> dict[str, set[tuple[date, str]]]:
         return {
             ticker: {
-                cls._price_target_identity(target)
+                cls._price_target_identity(target, institutions)
                 for target in company.targets.values()
             }
             for ticker, company in companies.items()
@@ -235,9 +264,12 @@ class StockDataRetrieverRunner:
     @staticmethod
     def _price_target_identity(
         target: CompanyTarget,
+        institutions: InstitutionRegistry,
     ) -> tuple[date, str]:
-        institution = " ".join(target.institution.casefold().split())
-        return target.date, institution
+        return (
+            target.date,
+            institutions.canonical_key(target.institution),
+        )
 
     def revalidate_report_dates(self, report_dates: ReportDates) -> ReportDates:
         new_report_dates = self.client.revalidate_report_dates(report_dates)

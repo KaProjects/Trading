@@ -11,6 +11,7 @@ from gemini.models import (
     Company,
     CompanyTarget,
     Info,
+    InstitutionRecord,
     Quarter,
     ReportDate,
     ReportDates,
@@ -70,6 +71,7 @@ class TestStockDataRetriever:
         instance.log = create_autospec(logging.Logger, instance=True)
         instance.errors = create_autospec(ErrorReporter, instance=True)
         instance.client.get_price_targets.return_value = Targets(targets=[])
+        instance.service.get_institutions.return_value = {}
         instance.discord.post_if_channel_exists.return_value = False
         yield instance
 
@@ -248,6 +250,15 @@ class TestStockDataRetriever:
             date(2026, 7, 19),
             date(2026, 7, 21),
         )
+        runner.service.create_institutions.assert_called_once_with({
+            "important-research": InstitutionRecord(
+                name="Important Research",
+                aliases={
+                    "important-research": "Important Research",
+                },
+                enabled=True,
+            ),
+        })
         runner.service.upsert_target.assert_called_once_with(
             "AAPL",
             CompanyTarget(
@@ -275,6 +286,154 @@ class TestStockDataRetriever:
         }
         assert len(embed["fields"]) == 2
         runner.errors.report.assert_not_called()
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_price_target_alias_matches_unchanged_existing_target(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        existing_target = CompanyTarget(
+            institution="Bank Of America Securities",
+            date="2026-07-21",
+            price="225",
+            rating="Buy",
+            source="existing.example.com",
+        )
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company(
+                "AAPL",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+                targets={"existing": existing_target},
+            ),
+        }
+        runner.service.get_institutions.return_value = {
+            "bank-of-america": InstitutionRecord(
+                name="Bank of America",
+                aliases={
+                    "bank-of-america": "Bank of America",
+                    "bank-of-america-securities": (
+                        "Bank Of America Securities"
+                    ),
+                    "bofa-securities": "BofA Securities",
+                },
+                enabled=True,
+            ),
+        }
+        runner.client.get_price_targets.return_value = Targets(targets=[
+            Target(
+                ticker="AAPL",
+                institution="BofA Securities",
+                date="2026-07-21",
+                price="230",
+                rating="Buy",
+                source="new.example.com",
+            ),
+        ])
+
+        runner.run()
+
+        runner.service.upsert_target.assert_not_called()
+        runner.discord.post_eventlog.assert_not_called()
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_price_target_is_persisted_with_canonical_institution_name(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company(
+                "AAPL",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+            ),
+        }
+        runner.service.get_institutions.return_value = {
+            "baird": InstitutionRecord(
+                name="Baird",
+                aliases={
+                    "baird": "Baird",
+                    "robert-w-baird": "Robert W. Baird",
+                },
+                enabled=True,
+            ),
+        }
+        runner.client.get_price_targets.return_value = Targets(targets=[
+            Target(
+                ticker="AAPL",
+                institution="Robert W. Baird",
+                date="2026-07-21",
+                price="230",
+                rating="Outperform",
+                source="new.example.com",
+            ),
+        ])
+
+        runner.run()
+
+        runner.service.upsert_target.assert_called_once_with(
+            "AAPL",
+            CompanyTarget(
+                institution="Baird",
+                date="2026-07-21",
+                price="230",
+                rating="Outperform",
+                source="new.example.com",
+            ),
+        )
+        payload = runner.discord.post_eventlog.call_args.args[0]
+        assert payload["embeds"][0]["fields"][0]["name"] == "Baird"
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_disabled_institution_is_not_persisted_or_notified(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company(
+                "AAPL",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+            ),
+        }
+        runner.service.get_institutions.return_value = {
+            "rosenblatt": InstitutionRecord(
+                name="Rosenblatt",
+                aliases={
+                    "rosenblatt": "Rosenblatt",
+                    "rosenblatt-securities": "Rosenblatt Securities",
+                },
+                enabled=False,
+            ),
+        }
+        runner.client.get_price_targets.return_value = Targets(targets=[
+            Target(
+                ticker="AAPL",
+                institution="Rosenblatt Securities",
+                date="2026-07-21",
+                price="230",
+                rating="Buy",
+                source="new.example.com",
+            ),
+        ])
+
+        runner.run()
+
+        runner.service.upsert_target.assert_not_called()
+        runner.discord.post_if_channel_exists.assert_not_called()
+        runner.discord.post_eventlog.assert_not_called()
 
     def test_price_target_uses_compact_ticker_channel_payload(self, runner):
         target = Target(

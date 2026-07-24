@@ -17,7 +17,7 @@ EndingMonth = Annotated[
     str,
     StringConstraints(pattern=r"^\d{2}-(0[1-9]|1[0-2])$"),
 ]
-Institution = Annotated[
+InstitutionName = Annotated[
     str,
     StringConstraints(min_length=1, max_length=200, strip_whitespace=True),
 ]
@@ -134,7 +134,7 @@ class Quarter(BaseModel):
 class CompanyTarget(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
-    institution: Institution = Field(
+    institution: InstitutionName = Field(
         description=(
             "Canonical name of the important institutional equity research "
             "provider that issued the price target."
@@ -166,6 +166,14 @@ class CompanyTarget(BaseModel):
             "when a direct URL is unavailable."
         ),
     )
+
+
+class InstitutionRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: InstitutionName
+    aliases: dict[str, InstitutionName] = Field(default_factory=dict)
+    enabled: bool = True
 
 
 class Target(CompanyTarget):
