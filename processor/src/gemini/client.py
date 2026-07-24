@@ -162,6 +162,11 @@ class GeminiClient:
         - Prefer an institution publication, then a reputable financial publication
           or wire service, then an established analyst-action database.
 
+        Reddit is never an acceptable source of information for this task. Do not
+        use reddit.com links, Reddit posts, Reddit comments, or information copied
+        from Reddit to establish any returned field or an institution's significance.
+        If Reddit is the only source supporting a target, exclude that target.
+
         Exclude consensus targets, anonymous analysts, rumors, blogs, social-media
         posts, unsupported search snippets, stale reports republished during the
         interval, and duplicate syndicated reports. Deduplicate by ticker,

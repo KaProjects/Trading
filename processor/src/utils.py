@@ -20,6 +20,7 @@ def configure_logging(level: int = logging.INFO) -> None:
         datefmt="%Y-%m-%d %H:%M:%S",
         stream=sys.stdout,
     )
+    logging.getLogger("google_genai.models").setLevel(logging.WARNING)
 
 
 def parse(file: str):

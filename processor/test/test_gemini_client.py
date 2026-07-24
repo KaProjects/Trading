@@ -70,6 +70,10 @@ def test_get_price_targets_returns_python_objects_and_uses_targets_schema():
         constructor.return_value.models.generate_content.call_args
     )
     assert "2026-07-13 through 2026-07-19" in request.kwargs["contents"]
+    assert (
+        "Reddit is never an acceptable source of information"
+        in request.kwargs["contents"]
+    )
     assert request.kwargs["config"]["response_json_schema"] == (
         Targets.model_json_schema()
     )
