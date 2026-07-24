@@ -157,7 +157,11 @@ class StockDataRetrieverRunner:
         )
 
         known_identities = self._price_target_identities(companies)
+        i = 0
         for target in targets.targets:
+            i = i + 1
+            if i > 3:
+                break
             target_identity = self._price_target_identity(target)
             ticker_identities = known_identities.setdefault(
                 target.ticker,
@@ -308,27 +312,18 @@ class StockDataRetrieverRunner:
 
         return {
             "embeds": [{
-                "title": f"{target.ticker} | {target.institution}",
+                "title": (
+                    f"🎯 {target.ticker} | ${target.price} | "
+                    f"{target.date.isoformat()}"
+                ),
                 "color": 0xF1C40F,
                 "fields": [
                     {
-                        "name": "Target",
-                        "value": f"${target.price}",
-                        "inline": True,
-                    },
-                    {
-                        "name": "Rating",
-                        "value": target.rating or "Not provided",
-                        "inline": True,
-                    },
-                    {
-                        "name": "Date",
-                        "value": target.date.isoformat(),
-                        "inline": True,
-                    },
-                    {
-                        "name": "Source",
-                        "value": source,
+                        "name": target.institution,
+                        "value": (
+                            f"{target.rating or 'Not provided'}\n"
+                            f"{source}"
+                        ),
                         "inline": False,
                     },
                 ],

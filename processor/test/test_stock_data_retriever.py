@@ -260,13 +260,16 @@ class TestStockDataRetriever:
         assert runner.discord.post.call_args.args[0] is DiscordChannel.EVENTLOG
         payload = runner.discord.post.call_args.args[1]
         embed = payload["embeds"][0]
-        assert embed["title"] == "AAPL | Important Research"
-        assert embed["fields"][0]["value"] == "$225.50"
-        assert embed["fields"][1]["value"] == "Outperform"
-        assert embed["fields"][2]["value"] == "2026-07-20"
-        assert embed["fields"][3]["value"] == (
-            "[Open source](https://research.example.com/aapl)"
-        )
+        assert embed["title"] == "🎯 AAPL | $225.50 | 2026-07-20"
+        assert embed["fields"][0] == {
+            "name": "Important Research",
+            "value": (
+                "Outperform\n"
+                "[Open source](https://research.example.com/aapl)"
+            ),
+            "inline": False,
+        }
+        assert len(embed["fields"]) == 1
         runner.errors.report.assert_not_called()
 
     @patch("utils.is_past_date", return_value=False)
@@ -335,7 +338,7 @@ class TestStockDataRetriever:
         runner.discord.post.assert_called_once()
         assert (
             runner.discord.post.call_args.args[1]["embeds"][0]["title"]
-            == "AAPL | New Research"
+            == "🎯 AAPL | $230 | 2026-07-21"
         )
         runner.errors.report.assert_not_called()
 

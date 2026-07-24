@@ -201,12 +201,13 @@ class FakeGeminiFirebaseService:
             raise KeyError(f"Unknown fake quarter: {new_report_date.quarter}")
         quarter.report_date_this_quarter = new_report_date.report_date
         company.info.last_update = date.today()
-        _log_operation(
+        _log_exchange(
             "FAKE PATCH",
             (
                 f"Firebase /company/{new_report_date.ticker}/gemini/"
                 f"quarters/{new_report_date.quarter}/report_date_this_quarter"
             ),
+            new_report_date,
         )
 
     def report_quarter(
@@ -217,9 +218,10 @@ class FakeGeminiFirebaseService:
         company = self._company(company_id)
         company.quarters[quarter_data.id] = quarter_data.model_copy(deep=True)
         company.info.last_update = date.today()
-        _log_operation(
+        _log_exchange(
             "FAKE PATCH",
             f"Firebase /company/{company_id}/gemini/quarters/{quarter_data.id}",
+            quarter_data,
         )
 
     def create_quarter(
@@ -233,12 +235,13 @@ class FakeGeminiFirebaseService:
         )
         company.info.current_quarter_id = new_quarter_data.id
         company.info.last_update = date.today()
-        _log_operation(
+        _log_exchange(
             "FAKE PATCH",
             (
                 f"Firebase /company/{company_id}/gemini/quarters/"
                 f"{new_quarter_data.id}"
             ),
+            new_quarter_data,
         )
 
     def upsert_target(
