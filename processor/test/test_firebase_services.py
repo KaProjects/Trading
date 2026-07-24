@@ -93,6 +93,11 @@ def test_gemini_service_batch_creates_institutions():
             institutions["northland-securities"].model_dump(mode="json")
         ),
     })
+    service.log.info.assert_called_once_with(
+        "Created %d institutions: %s",
+        1,
+        "northland-securities",
+    )
 
 
 @pytest.mark.parametrize(

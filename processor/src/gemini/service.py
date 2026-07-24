@@ -80,7 +80,11 @@ class FirebaseService:
             institution_id: institution.model_dump(mode="json")
             for institution_id, institution in institutions.items()
         })
-        self.log.info("Created %d institutions", len(institutions))
+        self.log.info(
+            "Created %d institutions: %s",
+            len(institutions),
+            ", ".join(sorted(institutions)),
+        )
 
     def init_company(self, id: str, data: Company) -> None:
         db.reference(company_path(id)).set(data.model_dump(mode="json"))

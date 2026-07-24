@@ -1,5 +1,5 @@
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -298,7 +298,7 @@ class TestStockDataRetriever:
         mock_datetime.now.return_value = datetime(2026, 7, 21)
         existing_target = CompanyTarget(
             institution="Bank Of America Securities",
-            date="2026-07-21",
+            date="2026-07-19",
             price="225",
             rating="Buy",
             source="existing.example.com",
@@ -329,7 +329,7 @@ class TestStockDataRetriever:
                 ticker="AAPL",
                 institution="BofA Securities",
                 date="2026-07-21",
-                price="230",
+                price="225",
                 rating="Buy",
                 source="new.example.com",
             ),
@@ -504,8 +504,8 @@ class TestStockDataRetriever:
             Target(
                 ticker="AAPL",
                 institution="IMPORTANT RESEARCH",
-                date="2026-07-20",
-                price="250",
+                date="2026-07-21",
+                price="200",
                 rating="Strong Buy",
                 source="https://different.example.com/aapl",
             ),
@@ -514,7 +514,7 @@ class TestStockDataRetriever:
                 ticker="AAPL",
                 institution="NEW   RESEARCH",
                 date="2026-07-21",
-                price="240",
+                price="230",
                 rating="Buy",
                 source="https://duplicate.example.com/aapl",
             ),
@@ -538,6 +538,178 @@ class TestStockDataRetriever:
             == "🎯 AAPL | $230 | 2026-07-21"
         )
         runner.errors.report.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("days_old", "should_persist"),
+        [
+            (7, False),
+            (8, True),
+        ],
+    )
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_same_price_target_uses_seven_day_duplicate_window(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+        days_old,
+        should_persist,
+    ):
+        today = date(2026, 7, 21)
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        existing_target = CompanyTarget(
+            institution="Baird",
+            date=today - timedelta(days=days_old),
+            price="400",
+            rating="Outperform",
+            source="existing.example.com",
+        )
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company(
+                "AAPL",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+                targets={"existing": existing_target},
+            ),
+        }
+        runner.service.get_institutions.return_value = {
+            "baird": InstitutionRecord(
+                name="Baird",
+                aliases={"baird": "Baird"},
+                enabled=True,
+            ),
+        }
+        runner.client.get_price_targets.return_value = Targets(targets=[
+            Target(
+                ticker="AAPL",
+                institution="Baird",
+                date=today,
+                price="400",
+                rating="Outperform",
+                source="new.example.com",
+            ),
+        ])
+
+        runner.run()
+
+        if should_persist:
+            runner.service.upsert_target.assert_called_once()
+            runner.discord.post_eventlog.assert_called_once()
+        else:
+            runner.service.upsert_target.assert_not_called()
+            runner.discord.post_eventlog.assert_not_called()
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_changed_price_is_new_inside_duplicate_window(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        existing_target = CompanyTarget(
+            institution="Baird",
+            date="2026-07-20",
+            price="400",
+            rating="Outperform",
+            source="existing.example.com",
+        )
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company(
+                "AAPL",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+                targets={"existing": existing_target},
+            ),
+        }
+        runner.service.get_institutions.return_value = {
+            "baird": InstitutionRecord(
+                name="Baird",
+                aliases={"baird": "Baird"},
+                enabled=True,
+            ),
+        }
+        runner.client.get_price_targets.return_value = Targets(targets=[
+            Target(
+                ticker="AAPL",
+                institution="Baird",
+                date="2026-07-21",
+                price="410",
+                rating="Outperform",
+                source="new.example.com",
+            ),
+        ])
+
+        runner.run()
+
+        runner.service.upsert_target.assert_called_once_with(
+            "AAPL",
+            CompanyTarget(
+                institution="Baird",
+                date="2026-07-21",
+                price="410",
+                rating="Outperform",
+                source="new.example.com",
+            ),
+        )
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_newest_response_duplicate_is_persisted(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company(
+                "AAPL",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+            ),
+        }
+        runner.service.get_institutions.return_value = {
+            "baird": InstitutionRecord(
+                name="Baird",
+                aliases={"baird": "Baird"},
+                enabled=True,
+            ),
+        }
+        runner.client.get_price_targets.return_value = Targets(targets=[
+            Target(
+                ticker="AAPL",
+                institution="Baird",
+                date="2026-07-20",
+                price="400",
+                rating="Outperform",
+                source="older.example.com",
+            ),
+            Target(
+                ticker="AAPL",
+                institution="Baird",
+                date="2026-07-21",
+                price="400",
+                rating="Outperform",
+                source="newer.example.com",
+            ),
+        ])
+
+        runner.run()
+
+        runner.service.upsert_target.assert_called_once_with(
+            "AAPL",
+            CompanyTarget(
+                institution="Baird",
+                date="2026-07-21",
+                price="400",
+                rating="Outperform",
+                source="newer.example.com",
+            ),
+        )
+        runner.discord.post_eventlog.assert_called_once()
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")

@@ -2,6 +2,7 @@ import calendar
 import logging
 from collections.abc import Mapping
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 
 import utils
 from discord.client import DiscordClient
@@ -20,6 +21,7 @@ from gemini.service import FirebaseService
 from gemini.strings import ErrorMsg, LogMsg
 
 RUNNER_NAME = "StockDataRetriever"
+PRICE_TARGET_DUPLICATE_WINDOW_DAYS = 7
 logger = logging.getLogger(RUNNER_NAME)
 
 
@@ -159,7 +161,7 @@ class StockDataRetrieverRunner:
             end_date,
         )
 
-        resolved_targets = []
+        resolved_targets: list[tuple[Target, bool]] = []
         for target in targets.targets:
             institution = institutions.resolve_or_create(
                 target.institution
@@ -175,26 +177,37 @@ class StockDataRetrieverRunner:
             self.service.create_institutions(
                 institutions.new_institutions
             )
-        known_identities = self._price_target_identities(
+        latest_target_dates = self._latest_price_target_dates(
             companies,
             institutions,
         )
 
-        for target, institution_enabled in resolved_targets:
-            target_identity = self._price_target_identity(
+        for target, institution_enabled in sorted(
+            resolved_targets,
+            key=lambda resolved: resolved[0].date,
+            reverse=True,
+        ):
+            if not institution_enabled:
+                continue
+
+            target_key = self._price_target_key(
                 target,
                 institutions,
             )
-            ticker_identities = known_identities.setdefault(
+            ticker_target_dates = latest_target_dates.setdefault(
                 target.ticker,
-                set(),
+                {},
             )
-            if target_identity in ticker_identities:
+            latest_target_date = ticker_target_dates.get(target_key)
+            if (
+                latest_target_date is not None
+                and (target.date - latest_target_date).days
+                <= PRICE_TARGET_DUPLICATE_WINDOW_DAYS
+            ):
                 continue
-            if not institution_enabled:
-                continue
+
             if self._persist_price_target(target):
-                ticker_identities.add(target_identity)
+                ticker_target_dates[target_key] = target.date
                 self._notify_price_target(target)
 
         self.log.info(
@@ -247,28 +260,36 @@ class StockDataRetrieverRunner:
         }
 
     @classmethod
-    def _price_target_identities(
+    def _latest_price_target_dates(
         cls,
         companies: dict[str, Company | None],
         institutions: InstitutionRegistry,
-    ) -> dict[str, set[tuple[date, str]]]:
-        return {
-            ticker: {
-                cls._price_target_identity(target, institutions)
-                for target in company.targets.values()
-            }
-            for ticker, company in companies.items()
-            if company is not None
-        }
+    ) -> dict[str, dict[tuple[str, Decimal], date]]:
+        latest_dates = {}
+        for ticker, company in companies.items():
+            if company is None:
+                continue
+
+            ticker_dates = {}
+            for target in company.targets.values():
+                target_key = cls._price_target_key(
+                    target,
+                    institutions,
+                )
+                latest_date = ticker_dates.get(target_key)
+                if latest_date is None or target.date > latest_date:
+                    ticker_dates[target_key] = target.date
+            latest_dates[ticker] = ticker_dates
+        return latest_dates
 
     @staticmethod
-    def _price_target_identity(
+    def _price_target_key(
         target: CompanyTarget,
         institutions: InstitutionRegistry,
-    ) -> tuple[date, str]:
+    ) -> tuple[str, Decimal]:
         return (
-            target.date,
             institutions.canonical_key(target.institution),
+            target.price,
         )
 
     def revalidate_report_dates(self, report_dates: ReportDates) -> ReportDates:
