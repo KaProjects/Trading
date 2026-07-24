@@ -1,3 +1,0 @@
-.gitattributes !filter !diff
-
-.env filter=git-crypt diff=git-crypt

@@ -18,4 +18,4 @@
 *.tar.gz
 *.rar
 
-
+**/__pycache__
