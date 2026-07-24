@@ -1,5 +1,6 @@
 import calendar
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 
 import utils
@@ -94,78 +95,14 @@ class StockDataRetrieverRunner:
                             else:
                                 report_dates.report_dates.append(ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter))
                 except Exception as exception:
-                    self.errors.report(
+                    self.report_error(
                         exception,
-                        logger=self.log,
-                        source=self.name,
                         operation="process_company",
                         context={"company_id": company_id},
                     )
 
             if datetime.now().weekday() == 0:
-                tickers = sorted(
-                    company_id
-                    for company_id, company in companies.items()
-                    if company is not None
-                )
-                today = datetime.now().date()
-                start_date = today - timedelta(days=7)
-                end_date = today - timedelta(days=1)
-                targets = self.client.get_price_targets(
-                    tickers,
-                    start_date,
-                    end_date,
-                )
-
-                for target in targets.targets:
-                    try:
-                        stored_target = CompanyTarget.model_validate(
-                            target.model_dump(exclude={"ticker"})
-                        )
-                        self.service.upsert_target(
-                            target.ticker,
-                            stored_target,
-                        )
-                    except Exception as exception:
-                        self.errors.report(
-                            exception,
-                            logger=self.log,
-                            source=self.name,
-                            operation="persist_price_target",
-                            context={
-                                "ticker": target.ticker,
-                                "institution": target.institution,
-                                "date": target.date.isoformat(),
-                            },
-                        )
-                        continue
-
-                    try:
-                        self.discord.post(
-                            DiscordChannel.EVENTLOG,
-                            self.format_target_for_discord(target)
-                        )
-                    except Exception as exception:
-                        self.errors.report(
-                            exception,
-                            logger=self.log,
-                            source=self.name,
-                            operation="notify_price_target",
-                            context={
-                                "ticker": target.ticker,
-                                "institution": target.institution,
-                                "date": target.date.isoformat(),
-                            },
-                        )
-
-                self.log.info(
-                    LogMsg.TARGETS_RETRIEVED.format(
-                        target_count=len(targets.targets),
-                        company_count=len(tickers),
-                        start_date=start_date,
-                        end_date=end_date,
-                    )
-                )
+                self._retrieve_price_targets(companies)
 
             if datetime.now().weekday() == 6:
                 new_report_dates = self.revalidate_report_dates(report_dates)
@@ -181,12 +118,92 @@ class StockDataRetrieverRunner:
                 self.check_report_dates_next_week(new_report_dates)
 
         except Exception as exception:
-            self.errors.report(
+            self.report_error(
                 exception,
-                logger=self.log,
-                source=self.name,
                 operation="run",
             )
+
+    def report_error(
+        self,
+        exception: BaseException,
+        *,
+        operation: str,
+        context: Mapping[str, object] | None = None,
+    ) -> str:
+        return self.errors.report(
+            exception,
+            logger=self.log,
+            source=self.name,
+            operation=operation,
+            context=context,
+        )
+
+    def _retrieve_price_targets(
+        self,
+        companies: dict[str, Company | None],
+    ) -> None:
+        tickers = sorted(
+            company_id
+            for company_id, company in companies.items()
+            if company is not None
+        )
+        today = datetime.now().date()
+        start_date = today - timedelta(days=7)
+        end_date = today - timedelta(days=1)
+        targets = self.client.get_price_targets(
+            tickers,
+            start_date,
+            end_date,
+        )
+
+        for target in targets.targets:
+            if self._persist_price_target(target):
+                self._notify_price_target(target)
+
+        self.log.info(
+            LogMsg.TARGETS_RETRIEVED.format(
+                target_count=len(targets.targets),
+                company_count=len(tickers),
+                start_date=start_date,
+                end_date=end_date,
+            )
+        )
+
+    def _persist_price_target(self, target: Target) -> bool:
+        try:
+            stored_target = CompanyTarget.model_validate(
+                target.model_dump(exclude={"ticker"})
+            )
+            self.service.upsert_target(target.ticker, stored_target)
+        except Exception as exception:
+            self.report_error(
+                exception,
+                operation="persist_price_target",
+                context=self._price_target_context(target),
+            )
+            return False
+        return True
+
+    def _notify_price_target(self, target: Target) -> None:
+        try:
+            self.discord.post(
+                DiscordChannel.EVENTLOG,
+                self.format_target_for_discord(target),
+            )
+        except Exception as exception:
+            self.report_error(
+                exception,
+                operation="notify_price_target",
+                context=self._price_target_context(target),
+            )
+
+    @staticmethod
+    def _price_target_context(target: Target) -> dict[str, str]:
+        return {
+            "ticker": target.ticker,
+            "institution": target.institution,
+            "date": target.date.isoformat(),
+        }
 
     def revalidate_report_dates(self, report_dates: ReportDates) -> ReportDates:
         new_report_dates = self.client.revalidate_report_dates(report_dates)
@@ -215,39 +232,44 @@ class StockDataRetrieverRunner:
                 )
         return new_report_dates
 
-    def create_discord_post_payload(self, embeds):
+    def format_quarter_for_discord(
+        self,
+        quarter: Quarter,
+        ticker: str,
+    ) -> dict[str, object]:
         return {
-            "embeds": embeds
+            "embeds": [{
+                "title": f"{ticker} - {quarter.name} report",
+                "description": (
+                    f"ending: {quarter.ending_month} | "
+                    f"reported: {quarter.report_date_this_quarter}"
+                ),
+                "color": 3066993,
+                "fields": [
+                    {
+                        "name": "Financials",
+                        "value": (
+                            f"**Revenues:** {self.format_financial(quarter.reported_revenues)}\n"
+                            f"**Gross Profit:** {self.format_financial(quarter.reported_gross_profit)}\n"
+                            f"**Oper. Income:** {self.format_financial(quarter.reported_operating_income)}\n"
+                            f"**Net Income:** {self.format_financial(quarter.reported_net_income)}\n"
+                            f"**Divs:** {self.format_financial(quarter.reported_div)}\n"
+                            f"**Shares:** {self.format_financial(quarter.reported_shares)}\n"
+                            f"**EPS:** {quarter.reported_eps}"
+                        ),
+                        "inline": False
+                    },
+                    {
+                        "name": "Price Range (from previous report)",
+                        "value": (
+                            f"Low: **${quarter.price_min}** — "
+                            f"High: **${quarter.price_max}**"
+                        ),
+                        "inline": False
+                    }
+                ]
+            }]
         }
-
-    def format_quarter_for_discord(self, quarter: Quarter, ticker: str):
-        return self.create_discord_post_payload([
-                {
-                    "title": f"{ticker} - {quarter.name} report",
-                    "description": f"ending: {quarter.ending_month} | reported: {quarter.report_date_this_quarter}",
-                    "color": 3066993,
-                    "fields": [
-                        {
-                            "name": "Financials",
-                            "value": (
-                                f"**Revenues:** {self.format_financial(quarter.reported_revenues)}\n"
-                                f"**Gross Profit:** {self.format_financial(quarter.reported_gross_profit)}\n"
-                                f"**Oper. Income:** {self.format_financial(quarter.reported_operating_income)}\n"
-                                f"**Net Income:** {self.format_financial(quarter.reported_net_income)}\n"
-                                f"**Divs:** {self.format_financial(quarter.reported_div)}\n"
-                                f"**Shares:** {self.format_financial(quarter.reported_shares)}\n"
-                                f"**EPS:** {quarter.reported_eps}"
-                            ),
-                            "inline": False
-                        },
-                        {
-                            "name": "Price Range (from previous report)",
-                            "value": f"Low: **${quarter.price_min}** — High: **${quarter.price_max}**",
-                            "inline": False
-                        }
-                    ]
-                }
-            ])
 
     def format_target_for_discord(self, target: Target) -> dict[str, object]:
         source = target.source
@@ -342,11 +364,11 @@ class StockDataRetrieverRunner:
 
         self.discord.post(
             DiscordChannel.EARNINGS,
-            self.create_discord_post_payload([
-                {
+            {
+                "embeds": [{
                     "title": "📅 Upcoming Earnings Reports",
                     "color": 3447003,
                     "fields": fields,
-                }
-            ]),
+                }]
+            },
         )

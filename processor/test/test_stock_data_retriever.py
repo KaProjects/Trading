@@ -199,6 +199,7 @@ class TestStockDataRetriever:
             logger=runner.log,
             source=runner.name,
             operation="run",
+            context=None,
         )
         runner.client.get_initial_stock_data.assert_not_called()
         runner.client.get_quarter_report.assert_not_called()
