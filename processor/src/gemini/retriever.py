@@ -1,7 +1,7 @@
 import calendar
 import logging
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import utils
 from discord.client import DiscordChannel, DiscordClient
@@ -101,7 +101,7 @@ class StockDataRetrieverRunner:
                         context={"company_id": company_id},
                     )
 
-            if datetime.now().weekday() == 0:
+            if datetime.now().weekday() != 6:
                 self._retrieve_price_targets(companies)
 
             if datetime.now().weekday() == 6:
@@ -148,16 +148,25 @@ class StockDataRetrieverRunner:
             if company is not None
         )
         today = datetime.now().date()
-        start_date = today - timedelta(days=7)
-        end_date = today - timedelta(days=1)
+        start_date = today - timedelta(days=2)
+        end_date = today
         targets = self.client.get_price_targets(
             tickers,
             start_date,
             end_date,
         )
 
+        known_identities = self._price_target_identities(companies)
         for target in targets.targets:
+            target_identity = self._price_target_identity(target)
+            ticker_identities = known_identities.setdefault(
+                target.ticker,
+                set(),
+            )
+            if target_identity in ticker_identities:
+                continue
             if self._persist_price_target(target):
+                ticker_identities.add(target_identity)
                 self._notify_price_target(target)
 
         self.log.info(
@@ -204,6 +213,27 @@ class StockDataRetrieverRunner:
             "institution": target.institution,
             "date": target.date.isoformat(),
         }
+
+    @classmethod
+    def _price_target_identities(
+        cls,
+        companies: dict[str, Company | None],
+    ) -> dict[str, set[tuple[date, str]]]:
+        return {
+            ticker: {
+                cls._price_target_identity(target)
+                for target in company.targets.values()
+            }
+            for ticker, company in companies.items()
+            if company is not None
+        }
+
+    @staticmethod
+    def _price_target_identity(
+        target: CompanyTarget,
+    ) -> tuple[date, str]:
+        institution = " ".join(target.institution.casefold().split())
+        return target.date, institution
 
     def revalidate_report_dates(self, report_dates: ReportDates) -> ReportDates:
         new_report_dates = self.client.revalidate_report_dates(report_dates)
