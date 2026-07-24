@@ -12,6 +12,15 @@ Run the backend and frontend in development mode:
 ./build_deploy.sh dev
 ```
 
+Run development mode against the production database:
+
+```sh
+./build_deploy.sh dev --db-prod
+```
+
+Without `--db-prod`, the backend launcher overrides the production datasource
+defaults with an in-memory H2 database.
+
 Build and deploy the backend and frontend containers:
 
 ```sh
