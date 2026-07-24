@@ -77,6 +77,45 @@ def test_post_resolves_channel_name_and_caches_channel_id(discord_client):
     ]
 
 
+def test_channel_exists_checks_name_without_posting(discord_client):
+    client, session = discord_client
+
+    assert client.channel_exists("#BTC")
+    assert not client.channel_exists("missing")
+
+    assert session.get.call_count == 2
+    session.post.assert_not_called()
+
+
+def test_post_if_channel_exists_skips_missing_channel_without_fallback(
+    discord_client,
+):
+    client, session = discord_client
+
+    posted = client.post_if_channel_exists(
+        "missing",
+        {"content": "test"},
+    )
+
+    assert not posted
+    session.post.assert_not_called()
+
+
+def test_post_if_channel_exists_posts_to_resolved_channel(discord_client):
+    client, session = discord_client
+    payload = {"content": "test"}
+
+    posted = client.post_if_channel_exists("btc", payload)
+
+    assert posted
+    session.post.assert_called_once_with(
+        f"{API_URL}/channels/btc-id/messages",
+        headers=HEADERS,
+        json=payload,
+        timeout=3.0,
+    )
+
+
 @pytest.mark.parametrize(
     ("method_name", "webhook_key"),
     [

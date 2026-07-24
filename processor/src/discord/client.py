@@ -58,6 +58,23 @@ class DiscordClient:
 
         self._post_to_channel(channel_id, payload)
 
+    def channel_exists(self, channel_name: str) -> bool:
+        normalized_name = self._normalize_channel_name(channel_name)
+        return self._resolve_channel_id(normalized_name) is not None
+
+    def post_if_channel_exists(
+        self,
+        channel_name: str,
+        payload: dict[str, object],
+    ) -> bool:
+        normalized_name = self._normalize_channel_name(channel_name)
+        channel_id = self._resolve_channel_id(normalized_name)
+        if channel_id is None:
+            return False
+
+        self._post_to_channel(channel_id, payload)
+        return True
+
     def post_btc(self, payload: dict[str, object]) -> None:
         self._post_to_webhook(self.btc_webhook_key, payload)
 

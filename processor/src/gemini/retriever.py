@@ -156,11 +156,8 @@ class StockDataRetrieverRunner:
         )
 
         known_identities = self._price_target_identities(companies)
-        i = 0
+
         for target in targets.targets:
-            i = i + 1
-            if i > 3:
-                break
             target_identity = self._price_target_identity(target)
             ticker_identities = known_identities.setdefault(
                 target.ticker,
@@ -198,6 +195,11 @@ class StockDataRetrieverRunner:
 
     def _notify_price_target(self, target: Target) -> None:
         try:
+            if self.discord.post_if_channel_exists(
+                target.ticker,
+                self.format_target_for_ticker_discord(target),
+            ):
+                return
             self.discord.post_eventlog(
                 self.format_target_for_discord(target),
             )
@@ -328,6 +330,26 @@ class StockDataRetrieverRunner:
                         "inline": False,
                     },
                 ],
+            }],
+        }
+
+    @staticmethod
+    def format_target_for_ticker_discord(
+        target: Target,
+    ) -> dict[str, object]:
+        return {
+            "embeds": [{
+                "title": f"🎯 new price target ${target.price}",
+                "color": 0xF1C40F,
+                "fields": [{
+                    "name": target.institution,
+                    "value": (
+                        f"{target.rating or 'Not provided'}\n"
+                        f"{target.date.isoformat()}\n"
+                        f"source: {target.source}"
+                    ),
+                    "inline": False,
+                }],
             }],
         }
 

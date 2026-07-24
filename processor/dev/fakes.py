@@ -154,6 +154,20 @@ class ConsoleDiscordClient:
             payload,
         )
 
+    def channel_exists(self, channel_name: str) -> bool:
+        _log_operation("FAKE GET", f"Discord channel #{channel_name}")
+        return True
+
+    def post_if_channel_exists(
+        self,
+        channel_name: str,
+        payload: object,
+    ) -> bool:
+        if not self.channel_exists(channel_name):
+            return False
+        self.post(channel_name, payload)
+        return True
+
     def post_btc(self, payload: object) -> None:
         _log_exchange("FAKE POST", "Discord webhook #btc", payload)
 

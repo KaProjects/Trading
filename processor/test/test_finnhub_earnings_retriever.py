@@ -185,6 +185,7 @@ class TestFinnhubEarningsRetriever:
 def make_real_runner():
     runner = object.__new__(FinnhubEarningsRetrieverRunner)
     runner.discord = create_autospec(DiscordClient, instance=True)
+    runner.discord.post_if_channel_exists.return_value = False
     return runner
 
 
@@ -213,6 +214,24 @@ def test_discord_payload_includes_partially_available_actuals():
     payload = runner.discord.post_eventlog.call_args.args[0]
     reported = payload["embeds"][0]["fields"][1]
     assert "earnings: \u200b 0.25" in reported["value"]
+
+
+def test_discord_payload_uses_existing_ticker_channel():
+    runner = make_real_runner()
+    runner.discord.post_if_channel_exists.return_value = True
+    earnings = make_earnings()
+
+    runner.discord_post_earnings("AAPL", "26Q1", None, earnings)
+
+    runner.discord.post_if_channel_exists.assert_called_once()
+    channel_name, payload = (
+        runner.discord.post_if_channel_exists.call_args.args
+    )
+    assert channel_name == "AAPL"
+    assert payload["embeds"][0]["title"].startswith("📊 AAPL | 26Q1")
+    assert "username" not in payload
+    assert "avatar_url" not in payload
+    runner.discord.post_eventlog.assert_not_called()
 
 
 @pytest.mark.parametrize(

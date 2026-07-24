@@ -70,6 +70,7 @@ class TestStockDataRetriever:
         instance.log = create_autospec(logging.Logger, instance=True)
         instance.errors = create_autospec(ErrorReporter, instance=True)
         instance.client.get_price_targets.return_value = Targets(targets=[])
+        instance.discord.post_if_channel_exists.return_value = False
         yield instance
 
     @patch("utils.is_past_date")
@@ -273,6 +274,40 @@ class TestStockDataRetriever:
             "inline": False,
         }
         assert len(embed["fields"]) == 2
+        runner.errors.report.assert_not_called()
+
+    def test_price_target_uses_compact_ticker_channel_payload(self, runner):
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-07-24",
+            price="1250",
+            rating="Outperform",
+            source="investing.com",
+        )
+        runner.discord.post_if_channel_exists.return_value = True
+
+        runner._notify_price_target(target)
+
+        runner.discord.post_if_channel_exists.assert_called_once_with(
+            "AMD",
+            {
+                "embeds": [{
+                    "title": "🎯 new price target $1250",
+                    "color": 15844367,
+                    "fields": [{
+                        "name": "Baird",
+                        "value": (
+                            "Outperform\n"
+                            "2026-07-24\n"
+                            "source: investing.com"
+                        ),
+                        "inline": False,
+                    }],
+                }],
+            },
+        )
+        runner.discord.post_eventlog.assert_not_called()
         runner.errors.report.assert_not_called()
 
     @patch("utils.is_past_date", return_value=False)

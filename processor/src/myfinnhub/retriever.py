@@ -122,12 +122,19 @@ class FinnhubEarningsRetrieverRunner:
 
             fields.append({"name": "Reported:", "value": f"earnings: \u200b {epsa}\nrevenues: \u200b {reva}"})
 
+        embed = {
+            "title": f"📊 {ticker} | {quarter} | {now.report}",
+            "color": 0x3498DB,
+            "fields": fields,
+        }
+        if self.discord.post_if_channel_exists(
+            ticker,
+            {"embeds": [embed]},
+        ):
+            return
+
         self.discord.post_eventlog(
-            self.create_discord_post_payload([{
-                "title": f"📊 {ticker} | {quarter} | {now.report}",
-                "color": 0x3498db,
-                "fields": fields
-            }]),
+            self.create_discord_post_payload([embed]),
         )
 
     def format_revenue(self, original: Decimal | None) -> str:
