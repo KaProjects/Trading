@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from unittest.mock import call, create_autospec
+from unittest.mock import call, create_autospec, patch
 
 import pytest
 from requests import Session
@@ -15,10 +15,11 @@ HEADERS = {
 }
 
 
-def response(status_code=200, *, data=None, text=""):
+def response(status_code=200, *, data=None, text="", headers=None):
     return SimpleNamespace(
         status_code=status_code,
         text=text,
+        headers=headers or {},
         json=lambda: data,
     )
 
@@ -197,6 +198,71 @@ def test_post_raises_typed_error_on_non_success_response(discord_client):
 
     with pytest.raises(DiscordClientError, match="returned 500: server error"):
         client.post("btc", {"content": "test"})
+
+
+def test_post_retries_rate_limit_using_discord_delay(
+    discord_client,
+    caplog,
+):
+    client, session = discord_client
+    session.post.side_effect = [
+        response(
+            status_code=429,
+            data={"retry_after": 0.322, "global": False},
+            text="rate limited",
+        ),
+        response(),
+    ]
+
+    with patch("discord.client.time.sleep") as sleep:
+        with caplog.at_level("WARNING", logger="discord.client"):
+            client.post("btc", {"content": "test"})
+
+    assert session.post.call_count == 2
+    sleep.assert_called_once_with(pytest.approx(0.372))
+    assert "Discord message rate limited" in caplog.text
+
+
+def test_webhook_raises_after_three_rate_limit_retries(
+    discord_client,
+    caplog,
+):
+    client, session = discord_client
+    session.post.return_value = response(
+        status_code=429,
+        data={"retry_after": 0.1},
+        text="rate limited",
+    )
+
+    with patch("discord.client.time.sleep") as sleep:
+        with caplog.at_level("WARNING", logger="discord.client"):
+            with pytest.raises(
+                DiscordClientError,
+                match="Discord webhook returned 429: rate limited",
+            ):
+                client.post_eventlog({"content": "test"})
+
+    assert session.post.call_count == 4
+    assert sleep.call_count == 3
+    assert "still rate limited after 3 retries" in caplog.text
+
+
+def test_rate_limit_does_not_exceed_wait_budget(discord_client, caplog):
+    client, session = discord_client
+    session.post.return_value = response(
+        status_code=429,
+        data={"retry_after": 30},
+        text="rate limited",
+    )
+
+    with patch("discord.client.time.sleep") as sleep:
+        with caplog.at_level("WARNING", logger="discord.client"):
+            with pytest.raises(DiscordClientError):
+                client.post_eventlog({"content": "test"})
+
+    session.post.assert_called_once()
+    sleep.assert_not_called()
+    assert "exceeds the 30-second retry budget" in caplog.text
 
 
 def test_channel_lookup_failure_uses_errorlog_fallback(discord_client):

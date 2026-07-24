@@ -1,11 +1,16 @@
 import logging
+import time
+from collections.abc import Callable
 
-from requests import Session
+from requests import Response, Session
 from requests.exceptions import RequestException
 
 DISCORD_API_URL = "https://discord.com/api/v10"
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks"
 TEXT_CHANNEL_TYPES = {0, 5}
+RATE_LIMIT_MAX_RETRIES = 3
+RATE_LIMIT_MAX_WAIT_SECONDS = 30.0
+RATE_LIMIT_SAFETY_MARGIN_SECONDS = 0.05
 
 logger = logging.getLogger(__name__)
 
@@ -101,10 +106,13 @@ class DiscordClient:
     def _refresh_channels(self) -> None:
         url = f"{DISCORD_API_URL}/guilds/{self.guild_id}/channels"
         try:
-            response = self.session.get(
-                url,
-                headers=self._headers(),
-                timeout=self.timeout,
+            response = self._request_with_rate_limit_retry(
+                lambda: self.session.get(
+                    url,
+                    headers=self._headers(),
+                    timeout=self.timeout,
+                ),
+                operation="channel lookup",
             )
         except RequestException as exception:
             raise DiscordClientError(
@@ -149,11 +157,14 @@ class DiscordClient:
     ) -> None:
         url = f"{DISCORD_API_URL}/channels/{channel_id}/messages"
         try:
-            response = self.session.post(
-                url,
-                headers=self._headers(),
-                json=payload,
-                timeout=self.timeout,
+            response = self._request_with_rate_limit_retry(
+                lambda: self.session.post(
+                    url,
+                    headers=self._headers(),
+                    json=payload,
+                    timeout=self.timeout,
+                ),
+                operation="message",
             )
         except RequestException as exception:
             raise DiscordClientError(
@@ -173,10 +184,13 @@ class DiscordClient:
     ) -> None:
         url = f"{DISCORD_WEBHOOK_URL}/{webhook_key}"
         try:
-            response = self.session.post(
-                url,
-                json=payload,
-                timeout=self.timeout,
+            response = self._request_with_rate_limit_retry(
+                lambda: self.session.post(
+                    url,
+                    json=payload,
+                    timeout=self.timeout,
+                ),
+                operation="webhook",
             )
         except RequestException as exception:
             raise DiscordClientError(
@@ -188,6 +202,83 @@ class DiscordClient:
                 f"Discord webhook returned {response.status_code}: "
                 f"{response.text}"
             )
+
+    @staticmethod
+    def _request_with_rate_limit_retry(
+        request: Callable[[], Response],
+        *,
+        operation: str,
+    ) -> Response:
+        retries = 0
+        waited = 0.0
+
+        while True:
+            response = request()
+            if response.status_code != 429:
+                return response
+
+            retry_after = DiscordClient._retry_after(response)
+            if retry_after is None:
+                logger.warning(
+                    "Discord %s rate limit response has no retry delay",
+                    operation,
+                )
+                return response
+
+            wait = retry_after + RATE_LIMIT_SAFETY_MARGIN_SECONDS
+            if retries >= RATE_LIMIT_MAX_RETRIES:
+                logger.warning(
+                    "Discord %s is still rate limited after %d retries",
+                    operation,
+                    RATE_LIMIT_MAX_RETRIES,
+                )
+                return response
+
+            if waited + wait > RATE_LIMIT_MAX_WAIT_SECONDS:
+                logger.warning(
+                    "Discord %s rate limit exceeds the %.0f-second "
+                    "retry budget",
+                    operation,
+                    RATE_LIMIT_MAX_WAIT_SECONDS,
+                )
+                return response
+
+            retries += 1
+            waited += wait
+            logger.warning(
+                "Discord %s rate limited; retrying in %.3f seconds "
+                "(%d/%d)",
+                operation,
+                wait,
+                retries,
+                RATE_LIMIT_MAX_RETRIES,
+            )
+            time.sleep(wait)
+
+    @staticmethod
+    def _retry_after(response: Response) -> float | None:
+        try:
+            data = response.json()
+        except (RequestException, ValueError):
+            data = None
+
+        candidates = []
+        if isinstance(data, dict):
+            candidates.append(data.get("retry_after"))
+
+        headers = getattr(response, "headers", {}) or {}
+        candidates.extend([
+            headers.get("Retry-After"),
+            headers.get("X-RateLimit-Reset-After"),
+        ])
+        for candidate in candidates:
+            try:
+                retry_after = float(candidate)
+            except (TypeError, ValueError):
+                continue
+            if retry_after >= 0:
+                return retry_after
+        return None
 
     def _headers(self) -> dict[str, str]:
         return {
