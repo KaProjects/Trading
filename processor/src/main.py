@@ -56,47 +56,49 @@ class Application:
 def create_error_reporter(
     config: AppConfig,
     *,
+    discord: DiscordClient | None = None,
     environment: str = "production",
 ) -> ErrorReporter:
     return ErrorReporter(
-        DiscordClient(
-            config.discord_errorlog_webhook_key.get_secret_value()
-        ),
+        discord or create_discord_client(config),
         environment=environment,
+    )
+
+
+def create_discord_client(config: AppConfig) -> DiscordClient:
+    return DiscordClient(
+        bot_token=config.discord_bot_token.get_secret_value(),
+        guild_id=config.discord_guild_id,
+        error_channel_id=config.discord_errorlog_channel_id,
     )
 
 
 def create_app(
     config: AppConfig,
     *,
+    discord: DiscordClient | None = None,
     error_reporter: ErrorReporter | None = None,
 ) -> Application:
-    errors = error_reporter or create_error_reporter(config)
+    discord = discord or create_discord_client(config)
+    errors = error_reporter or create_error_reporter(
+        config,
+        discord=discord,
+    )
     utils.init_firebase(config.firebase)
-    btc_discord = DiscordClient(
-        config.discord_btc_webhook_key.get_secret_value()
-    )
-    eventlog_discord = DiscordClient(
-        config.discord_eventlog_webhook_key.get_secret_value()
-    )
-    earnings_discord = DiscordClient(
-        config.discord_earnings_webhook_key.get_secret_value()
-    )
     return Application(
         btc_runner=BtcFearAndGreedRetrieverRunner(
             cmc_api_key=config.cmc_api_key.get_secret_value(),
-            discord=btc_discord,
+            discord=discord,
             error_reporter=errors,
         ),
         finnhub_runner=FinnhubEarningsRetrieverRunner(
             finnhub_api_key=config.finnhub_api_key.get_secret_value(),
-            discord=eventlog_discord,
+            discord=discord,
             error_reporter=errors,
         ),
         stock_runner=StockDataRetrieverRunner(
             gemini_api_key=config.gemini_api_key.get_secret_value(),
-            earnings_discord=earnings_discord,
-            eventlog_discord=eventlog_discord,
+            discord=discord,
             error_reporter=errors,
         ),
         errors=errors,
@@ -112,9 +114,14 @@ def load_config(path: str = "envs.json") -> AppConfig:
 def main() -> None:
     utils.configure_logging(logging.INFO)
     config = load_config()
-    errors = create_error_reporter(config)
+    discord = create_discord_client(config)
+    errors = create_error_reporter(config, discord=discord)
     try:
-        app = create_app(config, error_reporter=errors)
+        app = create_app(
+            config,
+            discord=discord,
+            error_reporter=errors,
+        )
         logger.info("Starting scheduler in timezone %s", app.timezone)
         app.run_forever()
     except Exception as exception:

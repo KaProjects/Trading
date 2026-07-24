@@ -3,7 +3,7 @@ import time
 from collections.abc import Callable
 from decimal import Decimal, InvalidOperation
 
-from discord.client import DiscordClient
+from discord.client import DiscordChannel, DiscordClient
 from error_reporting import ErrorReporter
 from myfinnhub.client import FinnhubClient
 from myfinnhub.models import Company, Earnings
@@ -23,7 +23,6 @@ class FinnhubEarningsRetrieverRunner:
     def __init__(
         self,
         finnhub_api_key: str | None = None,
-        discord_webhook_key: str | None = None,
         client: FinnhubClient | None = None,
         service: FirebaseService | None = None,
         discord: DiscordClient | None = None,
@@ -35,11 +34,7 @@ class FinnhubEarningsRetrieverRunner:
                 raise ValueError("finnhub_api_key is required without a client")
             client = FinnhubClient(api_key=finnhub_api_key)
         if discord is None:
-            if discord_webhook_key is None:
-                raise ValueError(
-                    "discord_webhook_key is required without a Discord client"
-                )
-            discord = DiscordClient(webhook_key=discord_webhook_key)
+            raise ValueError("discord is required")
 
         self.errors = error_reporter or ErrorReporter(environment="local")
         self.client = client
@@ -127,11 +122,14 @@ class FinnhubEarningsRetrieverRunner:
 
             fields.append({"name": "Reported:", "value": f"earnings: \u200b {epsa}\nrevenues: \u200b {reva}"})
 
-        self.discord.post(self.create_discord_post_payload([{
-            "title": f"📊 {ticker} | {quarter} | {now.report}",
-            "color": 0x3498db,
-            "fields": fields
-        }]))
+        self.discord.post(
+            DiscordChannel.EVENTLOG,
+            self.create_discord_post_payload([{
+                "title": f"📊 {ticker} | {quarter} | {now.report}",
+                "color": 0x3498db,
+                "fields": fields
+            }]),
+        )
 
     def format_revenue(self, original: Decimal | None) -> str:
         if original is None: return ""
@@ -170,7 +168,5 @@ class FinnhubEarningsRetrieverRunner:
 
     def create_discord_post_payload(self, embeds):
         return {
-            "username": "Earnings Estimates Reporter",
-            "avatar_url": "https://cdn-icons-png.flaticon.com/512/1353/1353566.png",  # Optional
             "embeds": embeds
         }

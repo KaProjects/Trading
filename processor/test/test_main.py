@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, call, create_autospec, patch
+from unittest.mock import MagicMock, create_autospec, patch
 
 import pytest
 from pydantic import ValidationError
@@ -8,7 +8,12 @@ from cmc.retriever import BtcFearAndGreedRetrieverRunner
 from config import AppConfig
 from error_reporting import ErrorReporter
 from gemini.retriever import StockDataRetrieverRunner
-from main import Application, create_app, create_error_reporter
+from main import (
+    Application,
+    create_app,
+    create_discord_client,
+    create_error_reporter,
+)
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 
 
@@ -16,10 +21,9 @@ def make_config(**overrides):
     data = {
         "firebase": "https://example.firebaseio.com",
         "cmc_api_key": "cmc",
-        "discord_btc_webhook_key": "discord-btc",
-        "discord_eventlog_webhook_key": "discord-events",
-        "discord_earnings_webhook_key": "discord-earnings",
-        "discord_errorlog_webhook_key": "discord-errors",
+        "discord_bot_token": "discord-token",
+        "discord_guild_id": "guild-id",
+        "discord_errorlog_channel_id": "error-channel-id",
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
     }
@@ -85,21 +89,10 @@ def test_runner_logger_uses_runner_name(runner_type):
 def test_create_app_initializes_dependencies_from_validated_config():
     config = make_config(timezone="UTC", poll_interval_seconds=5)
     errors = create_autospec(ErrorReporter, instance=True)
-    btc_discord = MagicMock()
-    eventlog_discord = MagicMock()
-    earnings_discord = MagicMock()
+    discord = MagicMock()
 
     with (
         patch("main.utils.init_firebase", autospec=True) as init_firebase,
-        patch(
-            "main.DiscordClient",
-            autospec=True,
-            side_effect=[
-                btc_discord,
-                eventlog_discord,
-                earnings_discord,
-            ],
-        ) as discord_client,
         patch(
             "main.BtcFearAndGreedRetrieverRunner",
             autospec=True,
@@ -107,28 +100,26 @@ def test_create_app_initializes_dependencies_from_validated_config():
         patch("main.FinnhubEarningsRetrieverRunner", autospec=True) as finnhub_runner,
         patch("main.StockDataRetrieverRunner", autospec=True) as stock_runner,
     ):
-        app = create_app(config, error_reporter=errors)
+        app = create_app(
+            config,
+            discord=discord,
+            error_reporter=errors,
+        )
 
     init_firebase.assert_called_once_with("https://example.firebaseio.com")
-    assert discord_client.call_args_list == [
-        call("discord-btc"),
-        call("discord-events"),
-        call("discord-earnings"),
-    ]
     btc_runner.assert_called_once_with(
         cmc_api_key="cmc",
-        discord=btc_discord,
+        discord=discord,
         error_reporter=errors,
     )
     finnhub_runner.assert_called_once_with(
         finnhub_api_key="finnhub",
-        discord=eventlog_discord,
+        discord=discord,
         error_reporter=errors,
     )
     stock_runner.assert_called_once_with(
         gemini_api_key="gemini",
-        earnings_discord=earnings_discord,
-        eventlog_discord=eventlog_discord,
+        discord=discord,
         error_reporter=errors,
     )
     assert app.errors is errors
@@ -136,7 +127,7 @@ def test_create_app_initializes_dependencies_from_validated_config():
     assert app.poll_interval_seconds == 5
 
 
-def test_create_error_reporter_uses_dedicated_webhook():
+def test_create_discord_client_uses_bot_configuration():
     config = make_config()
     discord = MagicMock()
 
@@ -145,9 +136,22 @@ def test_create_error_reporter_uses_dedicated_webhook():
         autospec=True,
         return_value=discord,
     ) as discord_client:
-        errors = create_error_reporter(config)
+        result = create_discord_client(config)
 
-    discord_client.assert_called_once_with("discord-errors")
+    discord_client.assert_called_once_with(
+        bot_token="discord-token",
+        guild_id="guild-id",
+        error_channel_id="error-channel-id",
+    )
+    assert result is discord
+
+
+def test_create_error_reporter_uses_shared_discord_client():
+    config = make_config()
+    discord = MagicMock()
+
+    errors = create_error_reporter(config, discord=discord)
+
     assert errors.discord is discord
     assert errors.environment == "production"
 

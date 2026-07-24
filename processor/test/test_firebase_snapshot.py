@@ -13,10 +13,9 @@ def make_config():
     return {
         "firebase": "https://example.firebaseio.com",
         "cmc_api_key": "cmc",
-        "discord_btc_webhook_key": "discord-btc",
-        "discord_eventlog_webhook_key": "discord-events",
-        "discord_earnings_webhook_key": "discord-earnings",
-        "discord_errorlog_webhook_key": "discord-errors",
+        "discord_bot_token": "discord-token",
+        "discord_guild_id": "guild-id",
+        "discord_errorlog_channel_id": "error-channel-id",
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
     }

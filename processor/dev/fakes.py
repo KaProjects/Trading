@@ -147,8 +147,15 @@ class FakeFinnhubClient:
 
 
 class ConsoleDiscordClient:
-    def post(self, payload: object) -> None:
-        _log_exchange("FAKE POST", "Discord webhook", payload)
+    def post(self, channel_name: str, payload: object) -> None:
+        _log_exchange(
+            "FAKE POST",
+            f"Discord channel #{channel_name}",
+            payload,
+        )
+
+    def post_error(self, payload: object) -> None:
+        _log_exchange("FAKE POST", "Discord error channel", payload)
 
 
 class FakeGeminiFirebaseService:

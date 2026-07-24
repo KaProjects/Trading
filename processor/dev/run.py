@@ -159,7 +159,6 @@ def _build_btc_runner(
     discord = _build_discord_client(
         args,
         config,
-        secret_name="discord_btc_webhook_key",
     )
     return BtcFearAndGreedRetrieverRunner(
         client=cmc_client,
@@ -191,21 +190,14 @@ def _build_gemini_runner(
         firebase_snapshot=firebase_snapshot,
         error_reporter=error_reporter,
     )
-    earnings_discord = _build_discord_client(
+    discord = _build_discord_client(
         args,
         config,
-        secret_name="discord_earnings_webhook_key",
-    )
-    eventlog_discord = _build_discord_client(
-        args,
-        config,
-        secret_name="discord_eventlog_webhook_key",
     )
     return StockDataRetrieverRunner(
         client=gemini_client,
         service=service,
-        earnings_discord=earnings_discord,
-        eventlog_discord=eventlog_discord,
+        discord=discord,
         error_reporter=error_reporter,
     )
 
@@ -235,7 +227,6 @@ def _build_finnhub_runner(
     discord = _build_discord_client(
         args,
         config,
-        secret_name="discord_eventlog_webhook_key",
     )
     return FinnhubEarningsRetrieverRunner(
         client=finnhub_client,
@@ -249,17 +240,15 @@ def _build_finnhub_runner(
 def _build_discord_client(
     args: argparse.Namespace,
     config: AppConfig | None,
-    *,
-    secret_name: str,
 ) -> DiscordClient | ConsoleDiscordClient:
     if not args.discord_production:
         return ConsoleDiscordClient()
     production_config = _require_config(config)
-    webhook_key = getattr(
-        production_config,
-        secret_name,
-    ).get_secret_value()
-    return DiscordClient(webhook_key=webhook_key)
+    return DiscordClient(
+        bot_token=production_config.discord_bot_token.get_secret_value(),
+        guild_id=production_config.discord_guild_id,
+        error_channel_id=production_config.discord_errorlog_channel_id,
+    )
 
 
 def _build_firebase_service(
@@ -290,7 +279,9 @@ def _require_config(config: AppConfig | None) -> AppConfig:
 def create_error_reporter(config: AppConfig) -> ErrorReporter:
     return ErrorReporter(
         DiscordClient(
-            config.discord_errorlog_webhook_key.get_secret_value()
+            bot_token=config.discord_bot_token.get_secret_value(),
+            guild_id=config.discord_guild_id,
+            error_channel_id=config.discord_errorlog_channel_id,
         ),
         environment="development",
     )

@@ -55,7 +55,7 @@ class ErrorReporter:
             return incident_id
 
         try:
-            self.discord.post(
+            self.discord.post_error(
                 self._create_discord_payload(
                     exception,
                     incident_id=incident_id,
@@ -160,7 +160,6 @@ class ErrorReporter:
             })
 
         return {
-            "username": "Trading Processor Error Reporter",
             "embeds": [{
                 "title": self._truncate(
                     f"Application error: {source}",

@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from cmc.client import CoinMarketCapClient
 from cmc.models import FearAndGreedClassification, FearAndGreedReading
-from discord.client import DiscordClient
+from discord.client import DiscordChannel, DiscordClient
 from error_reporting import ErrorReporter
 
 RUNNER_NAME = "BtcFearAndGreed"
@@ -50,7 +50,6 @@ class BtcFearAndGreedRetrieverRunner:
 
     def __init__(
         self,
-        discord_webhook_key: str | None = None,
         cmc_api_key: str | None = None,
         client: CoinMarketCapClient | None = None,
         discord: DiscordClient | None = None,
@@ -65,14 +64,7 @@ class BtcFearAndGreedRetrieverRunner:
                 timeout=timeout,
             )
         if discord is None:
-            if discord_webhook_key is None:
-                raise ValueError(
-                    "discord_webhook_key is required without a Discord client"
-                )
-            discord = DiscordClient(
-                webhook_key=discord_webhook_key,
-                timeout=timeout,
-            )
+            raise ValueError("discord is required")
 
         self.client = client
         self.discord = discord
@@ -93,6 +85,7 @@ class BtcFearAndGreedRetrieverRunner:
             )
             if reading.value < 30 or reading.value >= 70:
                 self.discord.post(
+                    DiscordChannel.BTC,
                     self._create_discord_payload(reading, quote.price)
                 )
         except Exception as exception:

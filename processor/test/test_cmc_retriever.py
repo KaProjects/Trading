@@ -11,7 +11,7 @@ from cmc.models import (
     FearAndGreedReading,
 )
 from cmc.retriever import BtcFearAndGreedRetrieverRunner
-from discord.client import DiscordClient
+from discord.client import DiscordChannel, DiscordClient
 from error_reporting import ErrorReporter
 
 
@@ -21,7 +21,6 @@ def runner():
     discord = create_autospec(DiscordClient, instance=True)
     errors = create_autospec(ErrorReporter, instance=True)
     instance = BtcFearAndGreedRetrieverRunner(
-        discord_webhook_key="webhook-id/token",
         cmc_api_key="cmc-key",
         client=client,
         discord=discord,
@@ -31,7 +30,7 @@ def runner():
     return instance, client, discord, errors
 
 
-def test_runner_delegates_webhook_delivery_to_discord_client(runner):
+def test_runner_delegates_delivery_to_discord_client(runner):
     instance, client, discord, errors = runner
     client.get_fear_and_greed.return_value = FearAndGreedReading.model_validate({
         "data": {
@@ -52,7 +51,8 @@ def test_runner_delegates_webhook_delivery_to_discord_client(runner):
     instance.run()
 
     discord.post.assert_called_once()
-    payload = discord.post.call_args.args[0]
+    assert discord.post.call_args.args[0] is DiscordChannel.BTC
+    payload = discord.post.call_args.args[1]
     embed = payload["embeds"][0]
     assert embed["title"] == ":scream: Extreme fear: 20"
     assert embed["description"] == (

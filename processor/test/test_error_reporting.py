@@ -47,8 +47,8 @@ def test_report_marks_traceback_and_posts_formatted_discord_embed():
     assert traceback_call.kwargs["exc_info"][1] is captured_error
     assert "EXCEPTION END [abc12345]" in logger.error.call_args_list[2].args[0]
 
-    discord.post.assert_called_once()
-    embed = discord.post.call_args.args[0]["embeds"][0]
+    discord.post_error.assert_called_once()
+    embed = discord.post_error.call_args.args[0]["embeds"][0]
     assert embed["title"] == "Application error: FinnhubEarnings"
     assert "RuntimeError: service unavailable" in embed["description"]
     assert embed["timestamp"] == "2026-07-23T12:30:00+00:00"
@@ -66,7 +66,7 @@ def test_report_marks_traceback_and_posts_formatted_discord_embed():
 
 def test_discord_notification_failure_is_bounded_and_does_not_escape():
     discord = create_autospec(DiscordClient, instance=True)
-    discord.post.side_effect = RuntimeError("webhook unavailable")
+    discord.post_error.side_effect = RuntimeError("Discord unavailable")
     logger = create_autospec(logging.Logger, instance=True)
     reporter = ErrorReporter(
         discord,
@@ -113,6 +113,6 @@ def test_long_traceback_is_truncated_to_discord_embed_limit():
             operation="run",
         )
 
-    description = discord.post.call_args.args[0]["embeds"][0]["description"]
+    description = discord.post_error.call_args.args[0]["embeds"][0]["description"]
     assert len(description) < 4096
     assert "traceback truncated" in description

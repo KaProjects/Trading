@@ -7,10 +7,9 @@ class AppConfig(BaseModel):
 
     firebase: str = Field(min_length=1)
     cmc_api_key: SecretStr
-    discord_btc_webhook_key: SecretStr
-    discord_eventlog_webhook_key: SecretStr
-    discord_earnings_webhook_key: SecretStr
-    discord_errorlog_webhook_key: SecretStr
+    discord_bot_token: SecretStr
+    discord_guild_id: str = Field(min_length=1)
+    discord_errorlog_channel_id: str = Field(min_length=1)
     finnhub_api_key: SecretStr
     gemini_api_key: SecretStr
     polygon_api_key: SecretStr | None = None
