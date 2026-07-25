@@ -1,0 +1,30 @@
+FROM quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-25 AS build
+
+USER root
+RUN microdnf install -y findutils \
+    && microdnf clean all
+WORKDIR /code
+RUN chown quarkus:quarkus /code
+
+COPY --chown=quarkus:quarkus .mvn/ .mvn/
+COPY --chown=quarkus:quarkus mvnw pom.xml ./
+
+USER quarkus
+RUN ./mvnw -B dependency:go-offline
+
+COPY --chown=quarkus:quarkus src/ src/
+COPY --chown=quarkus:quarkus sql/ sql/
+RUN ./mvnw -B clean package -Dnative
+
+FROM quay.io/quarkus/ubi9-quarkus-micro-image:2.0
+
+WORKDIR /work/
+RUN chown 1001:root /work \
+    && chmod "g+rwX" /work
+
+COPY --from=build --chown=1001:root /code/target/*-runner /work/application
+
+EXPOSE 8080
+USER 1001
+
+ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]

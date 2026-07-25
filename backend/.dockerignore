@@ -12,8 +12,6 @@
 !src/test/**
 !sql/
 !sql/**
-!target/
-!target/*-runner
 
 firebase-service-account.json
 src/dev/resources/firebase.json
