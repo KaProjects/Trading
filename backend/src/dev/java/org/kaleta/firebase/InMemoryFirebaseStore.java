@@ -12,8 +12,6 @@ import org.kaleta.model.FirebaseCompanyDep;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,10 +30,10 @@ public class InMemoryFirebaseStore implements FirebaseStore
     @Inject
     public InMemoryFirebaseStore(
             ObjectMapper objectMapper,
-            @ConfigProperty(name = "firebase.data.file") Optional<String> dataFile)
+            @ConfigProperty(name = "firebase.data.resource") Optional<String> dataResource)
     {
-        dataFile.filter(path -> !path.isBlank())
-                .ifPresent(path -> load(objectMapper, Path.of(path)));
+        dataResource.filter(resource -> !resource.isBlank())
+                .ifPresent(resource -> load(objectMapper, resource));
     }
 
     @Override
@@ -72,9 +70,13 @@ public class InMemoryFirebaseStore implements FirebaseStore
         return List.copyOf(assets);
     }
 
-    private void load(ObjectMapper objectMapper, Path dataFile)
+    private void load(ObjectMapper objectMapper, String resource)
     {
-        try (InputStream input = Files.newInputStream(dataFile)) {
+        String resourcePath = resource.startsWith("/") ? resource : "/" + resource;
+        try (InputStream input = InMemoryFirebaseStore.class.getResourceAsStream(resourcePath)) {
+            if (input == null) {
+                throw new IllegalStateException("Fake Firebase resource '" + resource + "' was not found");
+            }
             FirebaseData data = objectMapper.readValue(input, FirebaseData.class);
             if (data.companiesDep != null) {
                 companiesDep.putAll(data.companiesDep);
@@ -86,7 +88,7 @@ public class InMemoryFirebaseStore implements FirebaseStore
                 assets.addAll(data.assets);
             }
         } catch (IOException exception) {
-            throw new IllegalStateException("Failed to initialize fake Firebase from '" + dataFile + "'", exception);
+            throw new IllegalStateException("Failed to initialize fake Firebase from '" + resource + "'", exception);
         }
     }
 

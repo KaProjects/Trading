@@ -12,11 +12,8 @@ import org.kaleta.rest.error.InvalidInputException;
 import org.kaleta.service.FirebaseService;
 
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.sql.Date;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,13 +27,11 @@ class InMemoryFirebaseStoreTest
     private FirebaseService firebaseService;
 
     @BeforeEach
-    void setUp() throws URISyntaxException
+    void setUp()
     {
-        Path dataFile = Path.of(Objects.requireNonNull(
-                getClass().getResource("/firebaseTestData.json")).toURI());
         firebaseStore = new InMemoryFirebaseStore(
                 new ObjectMapper(),
-                Optional.of(dataFile.toString()));
+                Optional.of("firebaseTestData.json"));
         firebaseService = new FirebaseService(firebaseStore);
     }
 

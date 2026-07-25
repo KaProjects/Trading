@@ -18,12 +18,12 @@ Run development mode against the production database:
 ./build_deploy.sh dev --db-prod
 ```
 
-Without `--db-prod`, the backend launcher overrides the production datasource
-defaults with an in-memory H2 database.
-
-Plain development mode uses an in-memory Firebase implementation initialized
-from `backend/devel/firebase.json`. The `--db-prod` flag uses both the production
-SQL database and real Firebase.
+Plain development mode activates the backend Maven `dev` profile and uses H2
+with an in-memory Firebase implementation initialized from
+`backend/src/dev/resources/firebase.json`. The `--db-prod` flag runs Quarkus
+without the Maven `dev` profile, exports the required development HTTP and
+production database environment variables, and uses the production SQL
+database and real Firebase.
 
 Build and deploy the backend and frontend containers:
 

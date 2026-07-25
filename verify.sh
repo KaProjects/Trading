@@ -140,7 +140,7 @@ backend_tests() {
 backend_package() {
   require_backend_environment || return $?
   cd "$BACKEND_DIR" || return 1
-  ./mvnw package -DskipTests
+  ./mvnw clean package -DskipTests
 }
 
 require_frontend_environment() {
