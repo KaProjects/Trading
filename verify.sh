@@ -24,38 +24,40 @@ else
   RESET=''
 fi
 
-java_is_11() {
+java_is_25() {
   local version
 
   version="$("$1" -version 2>&1)" || return 1
-  grep -Eq '"11(\.|")' <<< "$version"
+  grep -Eq 'version "25(\.|")' <<< "$version"
 }
 
-select_java_11() {
+select_java_25() {
   local candidate
 
   if [[ -n "${JAVA_HOME:-}" ]] \
       && [[ -x "$JAVA_HOME/bin/java" ]] \
-      && java_is_11 "$JAVA_HOME/bin/java"; then
+      && java_is_25 "$JAVA_HOME/bin/java"; then
     export PATH="$JAVA_HOME/bin:$PATH"
     return 0
   fi
 
-  if command -v java >/dev/null 2>&1 && java_is_11 "$(command -v java)"; then
+  if command -v java >/dev/null 2>&1 && java_is_25 "$(command -v java)"; then
     return 0
   fi
 
   for candidate in \
-      /Library/Java/JavaVirtualMachines/jdk-11*.jdk/Contents/Home \
-      "$HOME"/Library/Java/JavaVirtualMachines/jdk-11*.jdk/Contents/Home; do
+      /Library/Java/JavaVirtualMachines/graalvm-jdk-25*/Contents/Home \
+      /Library/Java/JavaVirtualMachines/jdk-25*.jdk/Contents/Home \
+      "$HOME"/Library/Java/JavaVirtualMachines/graalvm-jdk-25*/Contents/Home \
+      "$HOME"/Library/Java/JavaVirtualMachines/jdk-25*.jdk/Contents/Home; do
     [[ -x "$candidate/bin/java" ]] || continue
     export JAVA_HOME="$candidate"
     export PATH="$JAVA_HOME/bin:$PATH"
-    printf 'Using Java 11 from %s.\n' "$JAVA_HOME"
+    printf 'Using Java 25 from %s.\n' "$JAVA_HOME"
     return 0
   done
 
-  printf 'Java 11 is required for backend checks.\n'
+  printf 'Java 25 is required for backend checks.\n'
   return 127
 }
 
@@ -124,7 +126,7 @@ run_step() {
 }
 
 require_backend_environment() {
-  select_java_11 || return $?
+  select_java_25 || return $?
   if [[ ! -x "$BACKEND_DIR/mvnw" ]]; then
     printf 'Maven wrapper is missing: %s/mvnw\n' "$BACKEND_DIR"
     return 127

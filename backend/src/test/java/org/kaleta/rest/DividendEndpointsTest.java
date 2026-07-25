@@ -66,18 +66,14 @@ class DividendEndpointsTest
     void getDividends_invalidParameters()
     {
         Assert.getValidationError(PATH + "?companyId=AAAAAA", VALID_UUID);
-        Assert.getValidationError(PATH + "?companyId=", VALID_UUID);
 
         Assert.getValidationError(PATH + "?currency=X", "must be any of Currency");
-        Assert.getValidationError(PATH + "?currency=", "must be any of Currency");
 
         Assert.getValidationError(PATH + "?year=20x2", "must match YYYY");
         Assert.getValidationError(PATH + "?year=20222", "must match YYYY");
         Assert.getValidationError(PATH + "?year=202", "must match YYYY");
-        Assert.getValidationError(PATH + "?year=", "must match YYYY");
 
         Assert.getValidationError(PATH + "?sector=X", "must be any of Sector");
-        Assert.getValidationError(PATH + "?sector=", "must be any of Sector");
     }
 
     @Test

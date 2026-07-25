@@ -1,5 +1,6 @@
 package org.kaleta.model;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
@@ -11,12 +12,14 @@ import java.time.YearMonth;
 import java.util.Map;
 
 @Data
+@RegisterForReflection
 public class FirebaseCompany
 {
     private Map<String, Map<String, FinnhubEarnings>> fhe;
     private Gemini gemini;
 
     @Data
+    @RegisterForReflection
     public static class FinnhubEarnings {
         private Double epsa;
         private Double epse;
@@ -26,12 +29,15 @@ public class FirebaseCompany
     }
 
     @Data
+    @RegisterForReflection
     public static class Gemini
     {
         private Info info;
         private Map<String, Quarter> quarters;
+        private Map<String, Target> targets;
 
         @Data
+        @RegisterForReflection
         public static class Info
         {
             private String current_quarter_id;
@@ -40,6 +46,18 @@ public class FirebaseCompany
         }
 
         @Data
+        @RegisterForReflection
+        public static class Target
+        {
+            private String date;
+            private String institution;
+            private String price;
+            private String rating;
+            private String source;
+        }
+
+        @Data
+        @RegisterForReflection
         public static class Quarter
         {
             private String id;

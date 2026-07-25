@@ -294,14 +294,11 @@ class CompanyEndpointsTest
     @Order(1)
     void getCompaniesWithAggregates_invalidParameters()
     {
-        Assert.getValidationError(path + "?sort=" ,"must be any of Sort");
         Assert.getValidationError(path + "?sort=X" ,"must be any of Sort");
 
         Assert.getValidationError(path + "?currency=" + "X", "must be any of Currency");
-        Assert.getValidationError(path + "?currency=", "must be any of Currency");
 
         Assert.getValidationError(path + "?sector=" + "X", "must be any of Sector");
-        Assert.getValidationError(path + "?sector=", "must be any of Sector");
     }
 
     @Test

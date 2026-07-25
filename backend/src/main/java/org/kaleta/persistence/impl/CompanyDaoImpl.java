@@ -11,6 +11,7 @@ import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 
 import java.sql.Date;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -178,8 +179,8 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
             company.setSector(Sector.valueOf(asString(values[4])));
         }
         company.setLatestUnreportedPeriodEndingMonth(toYearMonth(values[5]));
-        company.setLatestRecordDate((Date) values[6]);
-        company.setLatestPurchaseDate((Date) values[7]);
+        company.setLatestRecordDate(toDate(values[6]));
+        company.setLatestPurchaseDate(toDate(values[7]));
         return company;
     }
 
@@ -202,6 +203,17 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
     private String asString(Object value)
     {
         return String.valueOf(value);
+    }
+
+    private Date toDate(Object value)
+    {
+        if (value == null || value instanceof Date) {
+            return (Date) value;
+        }
+        if (value instanceof LocalDate localDate) {
+            return Date.valueOf(localDate);
+        }
+        throw new IllegalArgumentException("Unsupported date value: " + value.getClass().getName());
     }
 
     private YearMonth toYearMonth(Object value)

@@ -1,8 +1,6 @@
 package org.kaleta.firebase;
 
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -17,8 +15,6 @@ import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.FirebaseCompanyDep;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,25 +35,11 @@ public class RealtimeFirebaseStore implements FirebaseStore
     private final Map<String, FirebaseCompanyDep> companiesDep = new ConcurrentHashMap<>();
     private final Map<String, FirebaseCompany> companies = new ConcurrentHashMap<>();
 
-    public RealtimeFirebaseStore(@ConfigProperty(name = "firebase.db.url") String databaseUrl)
+    public RealtimeFirebaseStore(
+            FirebaseApp app,
+            @ConfigProperty(name = "firebase.db.url") String databaseUrl)
     {
-        FirebaseOptions options;
-        try (InputStream serviceKeyStream = RealtimeFirebaseStore.class.getResourceAsStream("/cert.json")) {
-            if (serviceKeyStream == null) {
-                throw new IllegalStateException("Firebase credentials resource '/cert.json' was not found");
-            }
-            options = new FirebaseOptions.Builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceKeyStream))
-                    .setDatabaseUrl(databaseUrl)
-                    .build();
-        } catch (IOException exception) {
-            throw new IllegalStateException("Failed to initialize Firebase credentials", exception);
-        }
-
-        FirebaseApp app = FirebaseApp.getApps().isEmpty()
-                ? FirebaseApp.initializeApp(options)
-                : FirebaseApp.getInstance();
-        database = FirebaseDatabase.getInstance(app);
+        database = FirebaseDatabase.getInstance(app, databaseUrl);
         database.getReference(FirebasePath.COMPANY_DEP)
                 .addValueEventListener(createListener(companiesDep, FirebaseCompanyDep.class));
         database.getReference(FirebasePath.COMPANY)

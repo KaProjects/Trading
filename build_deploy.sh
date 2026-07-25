@@ -3,17 +3,44 @@
 set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MODE="${1:-prod}"
-DB_FLAG="${2:-}"
+MODE='prod'
+MODE_SET=0
 USE_PROD_DB=0
-if [[ $# -gt 2 \
-    || ( "$MODE" != 'dev' && "$MODE" != 'prod' ) \
-    || ( -n "$DB_FLAG" && "$DB_FLAG" != '--db-prod' ) \
-    || ( "$DB_FLAG" == '--db-prod' && "$MODE" != 'dev' ) ]]; then
-  printf 'Usage: %s [dev [--db-prod]|prod]\n' "${0##*/}" >&2
+USE_NATIVE=0
+
+usage() {
+  printf 'Usage: %s [dev [--db-prod] | prod [--native] | --native]\n' \
+    "${0##*/}" >&2
+}
+
+for argument in "$@"; do
+  case "$argument" in
+    dev|prod)
+      if [[ $MODE_SET -eq 1 ]]; then
+        usage
+        exit 2
+      fi
+      MODE="$argument"
+      MODE_SET=1
+      ;;
+    --db-prod)
+      USE_PROD_DB=1
+      ;;
+    --native)
+      USE_NATIVE=1
+      ;;
+    *)
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+if [[ ( $USE_PROD_DB -eq 1 && "$MODE" != 'dev' ) \
+    || ( $USE_NATIVE -eq 1 && "$MODE" != 'prod' ) ]]; then
+  usage
   exit 2
 fi
-[[ "$DB_FLAG" == '--db-prod' ]] && USE_PROD_DB=1
 
 MODULE_NAMES=('backend' 'frontend')
 MODULE_LABELS=('BACKEND' 'FRONTEND')
@@ -316,17 +343,22 @@ for index in "${!MODULE_NAMES[@]}"; do
   : > "$log_file"
   MODULE_LOGS[$index]="$log_file"
   MODULE_STATUSES[$index]=''
+  module_args=("$MODE")
+  if [[ "$module" == 'backend' && $USE_PROD_DB -eq 1 ]]; then
+    module_args+=('--db-prod')
+  fi
+  if [[ "$module" == 'backend' && $USE_NATIVE -eq 1 ]]; then
+    module_args+=('--native')
+  fi
 
   (
     trap '' INT
     cd "$ROOT_DIR/$module" || exit 1
-    if [[ "$module" == 'backend' && $USE_PROD_DB -eq 1 ]]; then
-      BUILDKIT_PROGRESS=plain ./build_deploy.sh "$MODE" --db-prod
-    elif [[ "$MODE" == 'prod' && $USE_TTY_PROGRESS -eq 1 ]]; then
+    if [[ "$MODE" == 'prod' && $USE_TTY_PROGRESS -eq 1 ]]; then
       script -q /dev/null env BUILDKIT_PROGRESS=tty \
-        ./build_deploy.sh "$MODE"
+        ./build_deploy.sh "${module_args[@]}"
     else
-      BUILDKIT_PROGRESS=plain ./build_deploy.sh "$MODE"
+      BUILDKIT_PROGRESS=plain ./build_deploy.sh "${module_args[@]}"
     fi
   ) >"$log_file" 2>&1 &
   MODULE_PIDS[$index]=$!

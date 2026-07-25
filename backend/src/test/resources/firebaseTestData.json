@@ -9,6 +9,15 @@
   "company": {
     "NVDA": {
       "gemini": {
+        "targets": {
+          "2026-07-24-test": {
+            "date": "2026-07-24",
+            "institution": "Example Capital",
+            "price": "210",
+            "rating": "Buy",
+            "source": "example"
+          }
+        },
         "quarters": {
           "25Q1": {
             "id": "25Q1",

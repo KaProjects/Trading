@@ -27,8 +27,7 @@ public class TradeSellDto
     @ValidBigDecimal(integerConstraint = 3, decimalConstraint = 2)
     private String fees;
     @Size(min = 1)
-    @Valid
-    private List<Trade> trades = new ArrayList<>();
+    private List<@Valid Trade> trades = new ArrayList<>();
 
     @Data
     public static class Trade

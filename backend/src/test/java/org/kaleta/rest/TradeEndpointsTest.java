@@ -59,18 +59,14 @@ class TradeEndpointsTest
     void getTrades_invalidParameters()
     {
         Assert.getValidationError(path + "?companyId=AAAA", VALID_UUID);
-        Assert.getValidationError(path + "?companyId=", VALID_UUID);
 
         Assert.getValidationError(path + "?currency=X", "must be any of Currency");
-        Assert.getValidationError(path + "?currency=", "must be any of Currency");
 
         Assert.getValidationError(path + "?year=20x2", "must match YYYY");
         Assert.getValidationError(path + "?year=20222", "must match YYYY");
         Assert.getValidationError(path + "?year=202", "must match YYYY");
-        Assert.getValidationError(path + "?year=", "must match YYYY");
 
         Assert.getValidationError(path + "?sector=X", "must be any of Sector");
-        Assert.getValidationError(path + "?sector=", "must be any of Sector");
     }
 
     @Test

@@ -3,6 +3,8 @@ package org.kaleta.firebase;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.arc.properties.IfBuildProperty;
+import io.quarkus.logging.Log;
+import io.quarkus.runtime.Startup;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -12,6 +14,10 @@ import org.kaleta.model.FirebaseCompanyDep;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Singleton
+@Startup
 @IfBuildProperty(name = "firebase.mode", stringValue = "fake")
 public class InMemoryFirebaseStore implements FirebaseStore
 {
@@ -30,10 +37,12 @@ public class InMemoryFirebaseStore implements FirebaseStore
     @Inject
     public InMemoryFirebaseStore(
             ObjectMapper objectMapper,
-            @ConfigProperty(name = "firebase.data.resource") Optional<String> dataResource)
+            FirebaseSnapshotDownloader snapshotDownloader,
+            @ConfigProperty(name = "firebase.data.file") String dataFile)
     {
-        dataResource.filter(resource -> !resource.isBlank())
-                .ifPresent(resource -> load(objectMapper, resource));
+        Path snapshotFile = Path.of(dataFile).toAbsolutePath().normalize();
+        createSnapshotIfMissing(objectMapper, snapshotDownloader, snapshotFile);
+        load(objectMapper, snapshotFile);
     }
 
     @Override
@@ -70,13 +79,48 @@ public class InMemoryFirebaseStore implements FirebaseStore
         return List.copyOf(assets);
     }
 
-    private void load(ObjectMapper objectMapper, String resource)
+    private void createSnapshotIfMissing(
+            ObjectMapper objectMapper,
+            FirebaseSnapshotDownloader snapshotDownloader,
+            Path snapshotFile)
     {
-        String resourcePath = resource.startsWith("/") ? resource : "/" + resource;
-        try (InputStream input = InMemoryFirebaseStore.class.getResourceAsStream(resourcePath)) {
-            if (input == null) {
-                throw new IllegalStateException("Fake Firebase resource '" + resource + "' was not found");
+        if (Files.exists(snapshotFile)) {
+            return;
+        }
+
+        Log.infof("Local Firebase snapshot is missing; downloading company data to %s", snapshotFile);
+        try {
+            Path parent = snapshotFile.getParent();
+            Files.createDirectories(parent);
+
+            Path temporaryFile = Files.createTempFile(parent, "firebase-", ".json.tmp");
+            try {
+                objectMapper.writerWithDefaultPrettyPrinter()
+                        .writeValue(temporaryFile.toFile(), snapshotDownloader.download());
+                moveSnapshot(temporaryFile, snapshotFile);
+            } finally {
+                Files.deleteIfExists(temporaryFile);
             }
+            Log.infof("Local Firebase snapshot created at %s", snapshotFile);
+        } catch (Exception exception) {
+            throw new IllegalStateException(
+                    "Failed to create local Firebase snapshot at '" + snapshotFile + "'",
+                    exception);
+        }
+    }
+
+    private void moveSnapshot(Path temporaryFile, Path snapshotFile) throws IOException
+    {
+        try {
+            Files.move(temporaryFile, snapshotFile, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException exception) {
+            Files.move(temporaryFile, snapshotFile);
+        }
+    }
+
+    private void load(ObjectMapper objectMapper, Path snapshotFile)
+    {
+        try (InputStream input = Files.newInputStream(snapshotFile)) {
             FirebaseData data = objectMapper.readValue(input, FirebaseData.class);
             if (data.companiesDep != null) {
                 companiesDep.putAll(data.companiesDep);
@@ -88,7 +132,9 @@ public class InMemoryFirebaseStore implements FirebaseStore
                 assets.addAll(data.assets);
             }
         } catch (IOException exception) {
-            throw new IllegalStateException("Failed to initialize fake Firebase from '" + resource + "'", exception);
+            throw new IllegalStateException(
+                    "Failed to initialize fake Firebase from '" + snapshotFile + "'",
+                    exception);
         }
     }
 

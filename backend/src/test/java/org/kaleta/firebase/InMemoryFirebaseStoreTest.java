@@ -1,9 +1,12 @@
 package org.kaleta.firebase;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.firebase.database.utilities.encoding.CustomClassMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.kaleta.model.FirebaseAsset;
+import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
@@ -12,9 +15,12 @@ import org.kaleta.rest.error.InvalidInputException;
 import org.kaleta.service.FirebaseService;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Date;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -31,8 +37,54 @@ class InMemoryFirebaseStoreTest
     {
         firebaseStore = new InMemoryFirebaseStore(
                 new ObjectMapper(),
-                Optional.of("firebaseTestData.json"));
+                () -> {
+                    throw new AssertionError("Existing Firebase snapshot must not be downloaded again");
+                },
+                "src/test/resources/firebaseTestData.json");
         firebaseService = new FirebaseService(firebaseStore);
+    }
+
+    @Test
+    void downloadsCompanyDataWhenSnapshotIsMissing(@TempDir Path directory)
+    {
+        Path snapshot = directory.resolve("firebase.json");
+        AtomicBoolean downloaded = new AtomicBoolean();
+
+        InMemoryFirebaseStore store = new InMemoryFirebaseStore(
+                new ObjectMapper(),
+                () -> {
+                    downloaded.set(true);
+                    return Map.of(
+                            "company-dep", Map.of(
+                                    "AMD", Map.of("ticker", "AMD", "signal", "BUY")),
+                            "company", Map.of("AMD", Map.of()),
+                            "asset", List.of());
+                },
+                snapshot.toString());
+
+        assertThat(downloaded.get(), is(true));
+        assertThat(Files.exists(snapshot), is(true));
+        assertThat(store.findCompanyDep("AMD").orElseThrow().getSignal(), is("BUY"));
+        assertThat(store.findCompany("AMD").isPresent(), is(true));
+    }
+
+    @Test
+    void doesNotDownloadWhenSnapshotExists(@TempDir Path directory) throws Exception
+    {
+        Path snapshot = directory.resolve("firebase.json");
+        Files.copy(Path.of("src/test/resources/firebaseTestData.json"), snapshot);
+        AtomicBoolean downloaded = new AtomicBoolean();
+
+        InMemoryFirebaseStore store = new InMemoryFirebaseStore(
+                new ObjectMapper(),
+                () -> {
+                    downloaded.set(true);
+                    return Map.of();
+                },
+                snapshot.toString());
+
+        assertThat(downloaded.get(), is(false));
+        assertThat(store.findCompany("NVDA").isPresent(), is(true));
     }
 
     @Test
@@ -58,6 +110,45 @@ class InMemoryFirebaseStoreTest
         assertThat(periods.get(1).getName(), is("25Q1"));
         assertThat(firebaseService.getPeriod("NVDA", "25Q1").getEndingMonth(), is("2025-04"));
         assertThat(firebaseService.getNewerPeriods("AMD", "24Q4"), is(empty()));
+    }
+
+    @Test
+    void readsSeededTargets()
+    {
+        FirebaseCompany.Gemini.Target target = firebaseStore
+                .findCompany("NVDA")
+                .orElseThrow()
+                .getGemini()
+                .getTargets()
+                .get("2026-07-24-test");
+
+        assertThat(target.getDate(), is("2026-07-24"));
+        assertThat(target.getInstitution(), is("Example Capital"));
+        assertThat(target.getPrice(), is("210"));
+        assertThat(target.getRating(), is("Buy"));
+        assertThat(target.getSource(), is("example"));
+    }
+
+    @Test
+    void mapsTargetsWithFirebaseMapper()
+    {
+        Map<String, Object> targetData = Map.of(
+                "date", "2026-07-24",
+                "institution", "Example Capital",
+                "price", "210",
+                "rating", "Buy",
+                "source", "example");
+        Map<String, Object> companyData = Map.of(
+                "gemini", Map.of(
+                        "targets", Map.of("2026-07-24-test", targetData)));
+
+        FirebaseCompany company = CustomClassMapper.convertToCustomClass(companyData, FirebaseCompany.class);
+        FirebaseCompany.Gemini.Target target = company.getGemini()
+                .getTargets()
+                .get("2026-07-24-test");
+
+        assertThat(target.getInstitution(), is("Example Capital"));
+        assertThat(target.getPrice(), is("210"));
     }
 
     @Test

@@ -1,10 +1,12 @@
 package org.kaleta.model;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
 import org.kaleta.Utils;
 import org.kaleta.persistence.entity.Trade;
 
 @Data
+@RegisterForReflection
 public class FirebaseAsset
 {
     private String ticker;
