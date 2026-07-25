@@ -1,0 +1,30 @@
+{
+  "company-dep": {
+    "NVDA": {
+      "price": "142.50",
+      "signal": "BUY",
+      "ticker": "NVDA"
+    }
+  },
+  "company": {
+    "NVDA": {
+      "gemini": {
+        "quarters": {
+          "25Q1": {
+            "id": "25Q1",
+            "ending_month": "25-04",
+            "report_date_this_quarter": "2025-05-28",
+            "reported_revenues": "44062"
+          },
+          "25Q2": {
+            "id": "25Q2",
+            "ending_month": "25-07",
+            "report_date_this_quarter": "2025-08-27",
+            "reported_revenues": "46743"
+          }
+        }
+      }
+    }
+  },
+  "asset": []
+}

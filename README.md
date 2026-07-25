@@ -21,6 +21,10 @@ Run development mode against the production database:
 Without `--db-prod`, the backend launcher overrides the production datasource
 defaults with an in-memory H2 database.
 
+Plain development mode uses an in-memory Firebase implementation initialized
+from `backend/devel/firebase.json`. The `--db-prod` flag uses both the production
+SQL database and real Firebase.
+
 Build and deploy the backend and frontend containers:
 
 ```sh
