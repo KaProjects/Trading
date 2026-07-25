@@ -21,11 +21,11 @@ public class FirebaseCompany
     @Data
     @RegisterForReflection
     public static class FinnhubEarnings {
-        private Double epsa;
-        private Double epse;
+        private String epsa;
+        private String epse;
         private String report;
-        private Double reva;
-        private Double reve;
+        private String reva;
+        private String reve;
     }
 
     @Data

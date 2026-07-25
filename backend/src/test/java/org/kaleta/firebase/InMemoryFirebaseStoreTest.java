@@ -152,6 +152,32 @@ class InMemoryFirebaseStoreTest
     }
 
     @Test
+    void mapsFinnhubEarningsStringsWithFirebaseMapper()
+    {
+        Map<String, Object> earningsData = Map.of(
+                "epsa", "1.25",
+                "epse", "1.20",
+                "report", "2026-04-27-bmo",
+                "reva", "44100000000",
+                "reve", "44000000000");
+        Map<String, Object> companyData = Map.of(
+                "fhe", Map.of(
+                        "26Q1", Map.of(
+                                "20260427", earningsData)));
+
+        FirebaseCompany company = CustomClassMapper.convertToCustomClass(companyData, FirebaseCompany.class);
+        FirebaseCompany.FinnhubEarnings earnings = company.getFhe()
+                .get("26Q1")
+                .get("20260427");
+
+        assertThat(earnings.getEpsa(), is("1.25"));
+        assertThat(earnings.getEpse(), is("1.20"));
+        assertThat(earnings.getReport(), is("2026-04-27-bmo"));
+        assertThat(earnings.getReva(), is("44100000000"));
+        assertThat(earnings.getReve(), is("44000000000"));
+    }
+
+    @Test
     void replacesAssets()
     {
         org.kaleta.model.Company company = new org.kaleta.model.Company();
