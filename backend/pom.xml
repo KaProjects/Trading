@@ -97,14 +97,6 @@
     </dependency>
   </dependencies>
   <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <excludes>
-          <exclude>cert.json</exclude>
-        </excludes>
-      </resource>
-    </resources>
     <plugins>
       <plugin>
         <groupId>${quarkus.platform.group-id}</groupId>
@@ -201,9 +193,6 @@
         <resources>
           <resource>
             <directory>src/main/resources</directory>
-            <excludes>
-              <exclude>cert.json</exclude>
-            </excludes>
           </resource>
           <resource>
             <directory>src/dev/resources</directory>
