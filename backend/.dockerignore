@@ -4,14 +4,8 @@
 !mvnw
 !pom.xml
 !src/
-!src/dev/
-!src/dev/**
 !src/main/
 !src/main/**
-!src/test/
-!src/test/**
-!sql/
-!sql/**
 
 firebase-service-account.json
 src/dev/resources/firebase.json

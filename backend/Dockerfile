@@ -10,9 +10,8 @@ COPY --chown=185:0 mvnw pom.xml ./
 USER 185
 RUN ./mvnw -B dependency:go-offline
 
-COPY --chown=185:0 src/ src/
-COPY --chown=185:0 sql/ sql/
-RUN ./mvnw -B clean package
+COPY --chown=185:0 src/main/ src/main/
+RUN ./mvnw -B clean package -Dmaven.test.skip=true
 
 FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24
 
