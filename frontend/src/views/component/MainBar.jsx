@@ -313,10 +313,10 @@ export const MainBar = props => {
                         {config.showStatsTabs &&
                             <Tabs value={props.statsTabsIndex}
                                   onChange={(event, value) => props.setStatsTabsIndex(value)}
-                                  TabIndicatorProps={{style: {backgroundColor: "white"}}}
+                                  slotProps={{indicator: {style: {backgroundColor: "white"}}}}
                                   textColor="inherit"
                                   sx={{
-                                      "& .MuiTabs-flexContainer": {flexWrap: {xs: "wrap", sm: "nowrap"}},
+                                      "& .MuiTabs-list": {flexWrap: {xs: "wrap", sm: "nowrap"}},
                                       "& .MuiTab-root": {minWidth: {xs: "50%", sm: 90}},
                                   }}
                             >
@@ -328,7 +328,7 @@ export const MainBar = props => {
                         {config.showResearchTabs && props.companySelectorValue &&
                             <Tabs value={props.researchTabsIndex}
                                   onChange={(event, value) => props.setResearchTabsIndex(value)}
-                                  TabIndicatorProps={{style: {backgroundColor: "white"}}}
+                                  slotProps={{indicator: {style: {backgroundColor: "white"}}}}
                                   textColor="inherit"
                                   sx={{display: {xs: "flex", sm: "none"}}}
                             >

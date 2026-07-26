@@ -71,7 +71,7 @@ export const PeriodFinancials = props => {
     return(
         <Paper elevation={0}  sx={sx} onMouseEnter={() => setShowExpand(true)} onMouseLeave={() => setShowExpand(false)}>
 
-        <Grid container direction="row" justifyContent="flex-start" alignItems="stretch">
+        <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{width: "100%"}}>
             {ttm && (
                 <>
                     <FinancialSummaryItem value={ttm.revenue.value} label="revenue" margin={ttm.revenue.margin}/>

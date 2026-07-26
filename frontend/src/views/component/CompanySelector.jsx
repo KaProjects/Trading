@@ -67,9 +67,11 @@ export const CompanySelector = (props) => {
                         <ListItemButton onClick={() => handleCompanyClick(company.id, selectorState)}>
                             <ListItemText
                                 primary={company.ticker}
-                                primaryTypographyProps={{fontSize: "20px", textAlign: "center"}}
                                 secondary={secondary(company)}
-                                secondaryTypographyProps={{fontSize: "12px", textAlign: "center"}}
+                                slotProps={{
+                                    primary: {fontSize: "20px", textAlign: "center"},
+                                    secondary: {fontSize: "12px", textAlign: "center"},
+                                }}
                             />
                         </ListItemButton>
                     </ListItem>
@@ -86,7 +88,7 @@ export const CompanySelector = (props) => {
             {loaded &&
                 <Grid container direction="row" alignItems="stretch"
                       justifyContent={state === SELECTOR_STATES.ALL ? "center" : "flex-start"}
-                      sx={state === SELECTOR_STATES.ALL ? {} : sidebarSx}
+                      sx={{width: "100%", ...(state === SELECTOR_STATES.ALL ? {} : sidebarSx)}}
                 >
                     {renderCompanyList({
                         title: "Watching",

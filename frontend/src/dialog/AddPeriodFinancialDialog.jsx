@@ -114,7 +114,7 @@ export const AddPeriodFinancialDialog = props => {
         <Dialog
             open={open}
             onClose={handleClose}
-            PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createFinancial()},}}
+            slotProps={{paper: {component: 'form', onSubmit: (event) => {event.preventDefault();createFinancial()},}}}
         >
             <DialogTitle>Add Financial for {company.ticker} {period ? formatPeriodName(period.name) : ""}</DialogTitle>
             <DialogContent>

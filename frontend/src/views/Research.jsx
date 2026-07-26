@@ -123,7 +123,7 @@ export const Research = props => {
             <CompanySelector refresh={refresh} {...props}/>
             {props.companySelectorValue && !loaded && <Loader error={error}/>}
             {props.companySelectorValue && loaded && data.company.ticker !== undefined &&
-                <Grid container direction="row" sx={{justifyContent: "center", alignItems: "flex-start"}}>
+                <Grid container direction="row" sx={{width: "100%", justifyContent: "center", alignItems: "flex-start"}}>
                     <Card sx={{
                         ...researchCardStyle,
                         display: {xs: researchTabsIndex === RESEARCH_TAB.research ? "block" : "none", sm: "block"},

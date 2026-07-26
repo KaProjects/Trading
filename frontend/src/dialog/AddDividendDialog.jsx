@@ -52,7 +52,7 @@ export const AddDividendDialog = props => {
         <Dialog
             open={open}
             onClose={handleClose}
-            PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createDividend()},}}
+            slotProps={{paper: {component: 'form', onSubmit: (event) => {event.preventDefault();createDividend()},}}}
         >
             <DialogTitle>Add Dividend</DialogTitle>
             <DialogContent>

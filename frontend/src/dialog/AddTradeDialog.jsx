@@ -54,7 +54,7 @@ export const AddTradeDialog = props => {
         <Dialog
             open={open}
             onClose={handleClose}
-            PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createTrade()},}}
+            slotProps={{paper: {component: 'form', onSubmit: (event) => {event.preventDefault();createTrade()},}}}
         >
             <DialogTitle>Add Trade</DialogTitle>
             <DialogContent>

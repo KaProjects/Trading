@@ -69,7 +69,7 @@ export const EditCompanyDialog = props => {
         <Dialog
             open={!!company}
             onClose={handleClose}
-            PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createEditCompany()},}}
+            slotProps={{paper: {component: 'form', onSubmit: (event) => {event.preventDefault();createEditCompany()},}}}
         >
             <DialogTitle>{(company && company.id) ? "Edit " + company.ticker : "Add Company"}</DialogTitle>
             <DialogContent>
@@ -107,8 +107,7 @@ export const EditCompanyDialog = props => {
                     sx={{marginTop: "10px", marginLeft: "5px"}}
                     control={<Switch color="primary"
                                      checked={watching}
-                                     onChange={(event) => setWatching(event.target.checked)}
-                                     inputProps={{ 'aria-label': 'controlled' }}/>}
+                                     onChange={(event) => setWatching(event.target.checked)}/>}
                     label="Watching"
                     labelPlacement="start"
                 />

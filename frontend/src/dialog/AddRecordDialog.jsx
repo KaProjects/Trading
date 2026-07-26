@@ -82,7 +82,7 @@ export const AddRecordDialog = props => {
         <Dialog
             open={open}
             onClose={handleClose}
-            PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createRecord()},}}
+            slotProps={{paper: {component: 'form', onSubmit: (event) => {event.preventDefault();createRecord()},}}}
         >
             <DialogTitle>Add Record</DialogTitle>
             <DialogContent>

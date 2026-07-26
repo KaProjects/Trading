@@ -3,12 +3,11 @@
   "version": "2.0.0",
   "private": true,
   "dependencies": {
-    "@emotion/css": "^11.11.2",
-    "@emotion/react": "^11.10.5",
-    "@emotion/styled": "^11.10.5",
-    "@mui/icons-material": "^5.10.15",
-    "@mui/material": "^5.10.14",
-    "@mui/x-tree-view": "^6.17.0",
+    "@emotion/css": "^11.13.5",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.11",
+    "@mui/material": "^7.3.11",
     "@polygon.io/client-js": "^7.4.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
@@ -17,13 +16,13 @@
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-is": "18.2.0",
     "react-router-dom": "^6.4.3",
     "react-scripts": "^5.0.1",
     "recharts": "^2.2.0",
     "slate": "^0.101.5",
     "slate-history": "^0.100.0",
-    "slate-react": "^0.101.5",
-    "web-vitals": "^2.1.4"
+    "slate-react": "^0.101.5"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -53,5 +52,8 @@
     "moduleNameMapper": {
       "^axios$": "axios/dist/node/axios.cjs"
     }
+  },
+  "overrides": {
+    "react-is": "18.2.0"
   }
 }

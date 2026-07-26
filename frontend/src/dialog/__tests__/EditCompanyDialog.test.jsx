@@ -74,7 +74,7 @@ describe("EditCompanyDialog", () => {
         fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "NVDA"}});
         selectOption(0, "€");
         selectOption(1, "Semiconductors");
-        fireEvent.click(screen.getByRole("checkbox", {name: "controlled"}));
+        fireEvent.click(screen.getByRole("switch", {name: "Watching"}));
         fireEvent.click(screen.getByText("Create"));
 
         await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/company", {
