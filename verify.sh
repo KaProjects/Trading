@@ -155,6 +155,12 @@ require_frontend_environment() {
   fi
 }
 
+frontend_dependencies() {
+  select_compatible_node || return $?
+  cd "$FRONTEND_DIR" || return 1
+  npm install
+}
+
 frontend_lint() {
   require_frontend_environment || return $?
   cd "$FRONTEND_DIR" || return 1
@@ -201,6 +207,7 @@ printf 'Workspace: %s\n' "$ROOT_DIR"
 
 run_step 'Backend - tests' backend_tests
 run_step 'Backend - production package' backend_package
+run_step 'Frontend - dependencies' frontend_dependencies
 run_step 'Frontend - ESLint' frontend_lint
 run_step 'Frontend - component tests' frontend_component_tests
 run_step 'Frontend - production build' frontend_build
