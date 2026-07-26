@@ -7,9 +7,10 @@ MODE='prod'
 MODE_SET=0
 USE_PROD_DB=0
 USE_NATIVE=0
+USE_LOW_MEMORY=0
 
 usage() {
-  printf 'Usage: %s [dev [--db-prod] | prod [--native] | --native]\n' \
+  printf 'Usage: %s [dev [--db-prod] | [prod] [--native] [--low-memory]]\n' \
     "${0##*/}" >&2
 }
 
@@ -29,6 +30,9 @@ for argument in "$@"; do
     --native)
       USE_NATIVE=1
       ;;
+    --low-memory)
+      USE_LOW_MEMORY=1
+      ;;
     *)
       usage
       exit 2
@@ -37,7 +41,8 @@ for argument in "$@"; do
 done
 
 if [[ ( $USE_PROD_DB -eq 1 && "$MODE" != 'dev' ) \
-    || ( $USE_NATIVE -eq 1 && "$MODE" != 'prod' ) ]]; then
+    || ( $USE_NATIVE -eq 1 && "$MODE" != 'prod' ) \
+    || ( $USE_LOW_MEMORY -eq 1 && "$MODE" != 'prod' ) ]]; then
   usage
   exit 2
 fi
@@ -349,6 +354,9 @@ for index in "${!MODULE_NAMES[@]}"; do
   fi
   if [[ "$module" == 'backend' && $USE_NATIVE -eq 1 ]]; then
     module_args+=('--native')
+  fi
+  if [[ "$module" == 'backend' && $USE_LOW_MEMORY -eq 1 ]]; then
+    module_args+=('--low-memory')
   fi
 
   (

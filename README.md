@@ -31,6 +31,23 @@ Build and deploy the backend and frontend containers:
 ./build_deploy.sh
 ```
 
+Deploy the JVM backend with memory limits suitable for a small server:
+
+```sh
+./build_deploy.sh --low-memory
+```
+
+The same runtime limits can be applied to a native backend:
+
+```sh
+./build_deploy.sh --native --low-memory
+```
+
+The low-memory profile limits the backend container to `512m`, caps the
+application heap at `128m`, and reduces the Quarkus database and worker pools.
+`BACKEND_MEMORY_LIMIT`, `BACKEND_HEAP_MIN`, and `BACKEND_HEAP_MAX` can override
+the default limits.
+
 Image names, container names, ports, backend URLs, and deployment hosts can be
 overridden through the environment variables supported by each module's
 `build_deploy.sh`.
