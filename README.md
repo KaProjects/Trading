@@ -44,9 +44,11 @@ The same runtime limits can be applied to a native backend:
 ```
 
 The low-memory profile limits the backend container to `512m`, caps the
-application heap at `128m`, and reduces the Quarkus database and worker pools.
-`BACKEND_MEMORY_LIMIT`, `BACKEND_HEAP_MIN`, and `BACKEND_HEAP_MAX` can override
-the default limits.
+application heap at `128m`, reduces the Quarkus database and worker pools, and
+uses more eager JVM heap/native-memory trimming. `BACKEND_MEMORY_LIMIT`,
+`BACKEND_HEAP_MIN`, `BACKEND_HEAP_MAX`, `BACKEND_HEAP_MIN_FREE_RATIO`,
+`BACKEND_HEAP_MAX_FREE_RATIO`, and `BACKEND_NATIVE_HEAP_TRIM_INTERVAL` can
+override the default limits.
 
 Image names, container names, ports, backend URLs, and deployment hosts can be
 overridden through the environment variables supported by each module's
