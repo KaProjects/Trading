@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -23,11 +24,32 @@ func main() {
 		log.Fatal(err)
 	}
 
+	statistics := newCSVStatisticsStore(config.HistoryPath)
+	activeRecords, err := statistics.LoadActive()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := finalizeOrphanedRecords(statistics, activeRecords, containers); err != nil {
+		log.Fatal(err)
+	}
+
 	reader := newDockerMemoryReader(config.DockerSocket, config.RequestTimeout)
-	history := newCSVHistoryWriter(config.HistoryPath)
-	monitor := newMonitor(reader, history, config.SampleInterval, config.BucketSize)
+	monitor := newMonitor(
+		reader,
+		statistics,
+		config.SampleInterval,
+		config.CheckpointInterval,
+		config.BucketSize,
+	)
 	for _, container := range containers {
-		monitor.Add(container)
+		var restored *historyRecord
+		if record, exists := activeRecords[container]; exists {
+			recordCopy := record
+			restored = &recordCopy
+		}
+		if _, err := monitor.Add(container, restored); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	application := newApplication(monitor, store)
@@ -75,11 +97,37 @@ func main() {
 	}
 	<-monitorDone
 
-	if err := monitor.ArchiveAll("monitor_shutdown"); err != nil {
-		log.Printf("statistics archive failed during shutdown: %v", err)
+	if err := monitor.Shutdown(config.SelfContainer); err != nil {
+		log.Printf("statistics shutdown checkpoint failed: %v", err)
 	}
 	if serverError != nil {
 		log.Printf("HTTP server failed: %v", serverError)
 		os.Exit(1)
 	}
+}
+
+func finalizeOrphanedRecords(
+	store statisticsStore,
+	activeRecords map[string]historyRecord,
+	containers []string,
+) error {
+	monitored := make(map[string]struct{}, len(containers))
+	for _, container := range containers {
+		monitored[container] = struct{}{}
+	}
+
+	now := time.Now()
+	for containerName, record := range activeRecords {
+		if _, exists := monitored[containerName]; exists {
+			continue
+		}
+		record.ID = finalizedRecordID(containerName, now)
+		record.ObservedUntil = now
+		record.Reason = "not_monitored"
+		if err := store.Finalize(record); err != nil {
+			return fmt.Errorf("finalize orphaned statistics for %q: %w", containerName, err)
+		}
+		delete(activeRecords, containerName)
+	}
+	return nil
 }

@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
 
 type fixedMemoryReader struct {
@@ -23,8 +22,8 @@ func (reader fixedMemoryReader) MemoryUsage(
 
 func TestAddAndDeleteEndpointsUpdateMonitorAndConfig(t *testing.T) {
 	store := newConfigStore(filepath.Join(t.TempDir(), "containers.json"))
-	history := &collectingHistoryWriter{}
-	monitor := newMonitor(fixedMemoryReader{value: 120 * mebibyte}, history, time.Minute, 10*mebibyte)
+	statistics := &collectingStatisticsStore{}
+	monitor := newTestMonitor(fixedMemoryReader{value: 120 * mebibyte}, statistics)
 	application := newApplication(monitor, store)
 
 	addRequest := httptest.NewRequest(http.MethodPost, "/add/service-a", nil)
@@ -55,17 +54,19 @@ func TestAddAndDeleteEndpointsUpdateMonitorAndConfig(t *testing.T) {
 	if monitor.Has("service-a") {
 		t.Fatal("expected container to be removed")
 	}
+	records := statistics.Records()
+	if len(records) != 1 || records[0].Reason != "removed" {
+		t.Fatalf("expected active record to be finalized on removal, got %+v", records)
+	}
 }
 
 func TestReportShowsStatisticsAndHistogram(t *testing.T) {
 	store := newConfigStore(filepath.Join(t.TempDir(), "containers.json"))
-	monitor := newMonitor(
+	monitor := newTestMonitor(
 		fixedMemoryReader{value: 152 * mebibyte},
-		&collectingHistoryWriter{},
-		time.Minute,
-		10*mebibyte,
+		&collectingStatisticsStore{},
 	)
-	monitor.Add("service-a")
+	addTestContainer(t, monitor, "service-a", nil)
 	monitor.Sample(context.Background(), "service-a")
 	application := newApplication(monitor, store)
 

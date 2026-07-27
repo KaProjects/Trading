@@ -34,9 +34,9 @@ func TestMonitorComputesStreamingStatistics(t *testing.T) {
 			memorySample("container-id", "start-time", 80*mebibyte),
 		},
 	}
-	history := &collectingHistoryWriter{}
-	monitor := newMonitor(reader, history, time.Minute, 10*mebibyte)
-	monitor.Add("service-a")
+	statistics := &collectingStatisticsStore{}
+	monitor := newTestMonitor(reader, statistics)
+	addTestContainer(t, monitor, "service-a", nil)
 
 	monitor.Sample(context.Background(), "service-a")
 	monitor.Sample(context.Background(), "service-a")
@@ -82,8 +82,8 @@ func TestMonitorComputesStreamingStatistics(t *testing.T) {
 
 func TestMonitorDoesNotCountFailedSamples(t *testing.T) {
 	reader := &sequenceMemoryReader{err: errors.New("container unavailable")}
-	monitor := newMonitor(reader, &collectingHistoryWriter{}, time.Minute, 10*mebibyte)
-	monitor.Add("service-a")
+	monitor := newTestMonitor(reader, &collectingStatisticsStore{})
+	addTestContainer(t, monitor, "service-a", nil)
 
 	monitor.Sample(context.Background(), "service-a")
 
@@ -103,19 +103,24 @@ func TestMonitorArchivesAndResetsWhenContainerRestarts(t *testing.T) {
 			memorySample("second-id", "second-start", 120*mebibyte),
 		},
 	}
-	history := &collectingHistoryWriter{}
-	monitor := newMonitor(reader, history, time.Minute, 10*mebibyte)
-	monitor.Add("service-a")
+	statistics := &collectingStatisticsStore{}
+	monitor := newTestMonitor(reader, statistics)
+	addTestContainer(t, monitor, "service-a", nil)
 
 	monitor.Sample(context.Background(), "service-a")
 	monitor.Sample(context.Background(), "service-a")
 
-	records := history.Records()
-	if len(records) != 1 {
-		t.Fatalf("expected one archived run, got %d", len(records))
+	records := statistics.Records()
+	if len(records) != 2 {
+		t.Fatalf("expected finalized and active records, got %d", len(records))
 	}
-	if records[0].Reason != "container_restarted" || records[0].Count != 1 {
-		t.Errorf("unexpected archived record: %+v", records[0])
+	finalized := recordByReason(records, "container_restarted")
+	if finalized.Count != 1 {
+		t.Errorf("unexpected finalized record: %+v", finalized)
+	}
+	active := recordByID(records, activeRecordID("service-a"))
+	if active.Count != 1 || active.CurrentBytes != 120*mebibyte {
+		t.Errorf("unexpected active record: %+v", active)
 	}
 
 	current := monitor.Snapshot().Containers[0]
@@ -131,14 +136,14 @@ func TestMonitorArchivesWhenContainerStops(t *testing.T) {
 			{err: &containerInactiveError{State: "exited"}},
 		},
 	}
-	history := &collectingHistoryWriter{}
-	monitor := newMonitor(reader, history, time.Minute, 10*mebibyte)
-	monitor.Add("service-a")
+	statistics := &collectingStatisticsStore{}
+	monitor := newTestMonitor(reader, statistics)
+	addTestContainer(t, monitor, "service-a", nil)
 
 	monitor.Sample(context.Background(), "service-a")
 	monitor.Sample(context.Background(), "service-a")
 
-	records := history.Records()
+	records := statistics.Records()
 	if len(records) != 1 || records[0].Reason != "container_exited" {
 		t.Fatalf("expected exited container to be archived, got %+v", records)
 	}
@@ -154,21 +159,62 @@ func TestMonitorArchivesActiveStatisticsOnShutdown(t *testing.T) {
 			memorySample("container-id", "start-time", 90*mebibyte),
 		},
 	}
-	history := &collectingHistoryWriter{}
-	monitor := newMonitor(reader, history, time.Minute, 10*mebibyte)
-	monitor.Add("self-monitor")
+	statistics := &collectingStatisticsStore{}
+	monitor := newTestMonitor(reader, statistics)
+	addTestContainer(t, monitor, "self-monitor", nil)
 	monitor.Sample(context.Background(), "self-monitor")
 
-	if err := monitor.ArchiveAll("monitor_shutdown"); err != nil {
+	if err := monitor.Shutdown("self-monitor"); err != nil {
 		t.Fatal(err)
 	}
 
-	records := history.Records()
+	records := statistics.Records()
 	if len(records) != 1 {
 		t.Fatalf("expected one shutdown archive, got %d", len(records))
 	}
 	if records[0].ContainerName != "self-monitor" || records[0].Reason != "monitor_shutdown" {
 		t.Errorf("unexpected shutdown archive: %+v", records[0])
+	}
+}
+
+func TestMonitorRestoresAndCheckpointsActiveStatistics(t *testing.T) {
+	statistics := &collectingStatisticsStore{}
+	restored := historyRecord{
+		ID:                 activeRecordID("service-a"),
+		ContainerName:      "service-a",
+		ContainerID:        "container-id",
+		ContainerStartedAt: "start-time",
+		ObservedFrom:       time.Now().Add(-time.Hour),
+		Reason:             "active",
+		Count:              2,
+		CurrentBytes:       110 * mebibyte,
+		MinimumBytes:       100 * mebibyte,
+		MaximumBytes:       110 * mebibyte,
+		AverageBytes:       float64(105 * mebibyte),
+		Histogram: []histogramBucket{
+			{StartBytes: 100 * mebibyte, EndBytes: 110 * mebibyte, Count: 1, Percentage: 50},
+			{StartBytes: 110 * mebibyte, EndBytes: 120 * mebibyte, Count: 1, Percentage: 50},
+		},
+	}
+	reader := &sequenceMemoryReader{
+		samples: []containerMemorySample{
+			memorySample("container-id", "start-time", 120*mebibyte),
+		},
+	}
+	monitor := newTestMonitor(reader, statistics)
+	addTestContainer(t, monitor, "service-a", &restored)
+
+	monitor.Sample(context.Background(), "service-a")
+	if err := monitor.Checkpoint(); err != nil {
+		t.Fatal(err)
+	}
+
+	active := recordByID(statistics.Records(), activeRecordID("service-a"))
+	if active.Count != 3 {
+		t.Fatalf("expected 3 restored observations, got %d", active.Count)
+	}
+	if active.MinimumBytes != 100*mebibyte || active.MaximumBytes != 120*mebibyte {
+		t.Errorf("unexpected restored range: %+v", active)
 	}
 }
 
@@ -197,4 +243,38 @@ func memorySample(containerID, startedAt string, usage uint64) containerMemorySa
 		ContainerStartedAt: startedAt,
 		UsageBytes:         usage,
 	}
+}
+
+func newTestMonitor(reader memoryReader, store statisticsStore) *monitor {
+	return newMonitor(reader, store, time.Minute, time.Hour, 10*mebibyte)
+}
+
+func addTestContainer(
+	t *testing.T,
+	monitor *monitor,
+	containerName string,
+	restored *historyRecord,
+) {
+	t.Helper()
+	if _, err := monitor.Add(containerName, restored); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func recordByID(records []historyRecord, id string) historyRecord {
+	for _, record := range records {
+		if record.ID == id {
+			return record
+		}
+	}
+	return historyRecord{}
+}
+
+func recordByReason(records []historyRecord, reason string) historyRecord {
+	for _, record := range records {
+		if record.Reason == reason {
+			return record
+		}
+	}
+	return historyRecord{}
 }

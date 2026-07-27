@@ -7,8 +7,8 @@ usage from the Docker Engine API. It keeps only streaming aggregates in memory:
 - successful observation count
 - observation counts and percentages in 10 MiB histogram buckets
 
-Raw observations are not persisted. Completed measurement periods are appended
-to `data/history.csv`.
+Raw observations are not persisted. Aggregate state is checkpointed to
+`data/history.csv` every hour by default.
 
 ## Deploy
 
@@ -62,13 +62,34 @@ so monitoring resumes after a container is recreated with the same name.
 Removing a container archives its current statistics before deleting it from
 the active list. An archive is also written when the monitor detects that a
 target exited, disappeared, restarted, or was recreated. A normal monitor
-shutdown archives all active measurement periods. Each CSV row contains the
-container identity, observation time range, completion reason, sample count,
-current/minimum/maximum/average MiB, and histogram counts and percentages.
+shutdown finalizes the monitor's own active measurement and checkpoints other
+targets that are still running.
 
-An abrupt monitor termination such as `SIGKILL`, an out-of-memory kill, or host
-power loss cannot write a final archive because the process is no longer
-running.
+Every monitored container has exactly one mutable active row:
+
+```text
+<container-name>-active
+```
+
+Each hourly checkpoint rewrites that row. When the container is removed,
+stopped, restarted, or recreated, the active row becomes an immutable finalized
+row:
+
+```text
+<container-name>-YYYYMMDDHHmm
+```
+
+A later start creates a new active row without changing finalized rows. If two
+lifecycle changes happen in the same minute, a numeric suffix prevents an older
+record from being overwritten. Finalized identity timestamps use UTC.
+
+Each row contains the container identity, observation time range, completion
+reason, sample count, current/minimum/maximum/average MiB, and histogram counts
+and percentages.
+
+After an abrupt monitor termination such as `SIGKILL`, an out-of-memory kill,
+or host power loss, the latest active checkpoint is restored on startup. At
+most one checkpoint interval of observations can be lost.
 
 ## Configuration
 
@@ -77,9 +98,10 @@ running.
 | `HTTP_ADDRESS` | `:8080` | HTTP report listen address |
 | `DOCKER_SOCKET` | `/var/run/docker.sock` | Docker Engine Unix socket |
 | `CONFIG_PATH` | `/data/containers.json` | Writable container configuration |
-| `HISTORY_PATH` | `/data/history.csv` | Completed measurement periods |
+| `HISTORY_PATH` | `/data/history.csv` | Active checkpoints and finalized periods |
 | `SELF_CONTAINER_NAME` | required | Initial target when config is absent |
 | `SAMPLE_INTERVAL` | `1m` | Delay between sampling rounds |
+| `CHECKPOINT_INTERVAL` | `1h` | Delay between aggregate CSV rewrites |
 | `DOCKER_REQUEST_TIMEOUT` | `10s` | Timeout for one Docker request |
 | `BUCKET_SIZE_MIB` | `10` | Histogram bucket width in MiB |
 

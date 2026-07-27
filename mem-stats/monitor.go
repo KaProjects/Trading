@@ -20,6 +20,7 @@ type memorySeries struct {
 	ContainerID    string
 	ContainerStart string
 	RunIdentity    string
+	ActiveRecord   bool
 	Count          uint64
 	CurrentBytes   uint64
 	MinimumBytes   uint64
@@ -51,18 +52,20 @@ type containerSnapshot struct {
 }
 
 type monitorSnapshot struct {
-	StartedAt      time.Time
-	SampleInterval time.Duration
-	BucketSize     uint64
-	Containers     []containerSnapshot
+	StartedAt          time.Time
+	SampleInterval     time.Duration
+	CheckpointInterval time.Duration
+	BucketSize         uint64
+	Containers         []containerSnapshot
 }
 
 type monitor struct {
-	reader         memoryReader
-	history        historyWriter
-	sampleInterval time.Duration
-	bucketSize     uint64
-	startedAt      time.Time
+	reader             memoryReader
+	store              statisticsStore
+	sampleInterval     time.Duration
+	checkpointInterval time.Duration
+	bucketSize         uint64
+	startedAt          time.Time
 
 	mu      sync.RWMutex
 	metrics map[string]*memorySeries
@@ -70,34 +73,43 @@ type monitor struct {
 
 func newMonitor(
 	reader memoryReader,
-	history historyWriter,
+	store statisticsStore,
 	sampleInterval time.Duration,
+	checkpointInterval time.Duration,
 	bucketSize uint64,
 ) *monitor {
 	return &monitor{
-		reader:         reader,
-		history:        history,
-		sampleInterval: sampleInterval,
-		bucketSize:     bucketSize,
-		startedAt:      time.Now(),
-		metrics:        make(map[string]*memorySeries),
+		reader:             reader,
+		store:              store,
+		sampleInterval:     sampleInterval,
+		checkpointInterval: checkpointInterval,
+		bucketSize:         bucketSize,
+		startedAt:          time.Now(),
+		metrics:            make(map[string]*memorySeries),
 	}
 }
 
-func (monitor *monitor) Add(containerName string) bool {
+func (monitor *monitor) Add(containerName string, restored *historyRecord) (bool, error) {
 	monitor.mu.Lock()
 	defer monitor.mu.Unlock()
 
 	if _, exists := monitor.metrics[containerName]; exists {
-		return false
+		return false, nil
 	}
 
-	monitor.metrics[containerName] = &memorySeries{
-		Name:           containerName,
-		StartedAt:      time.Now(),
-		HistogramCount: make(map[uint64]uint64),
+	series := newMemorySeries(containerName, time.Now(), true)
+	if restored != nil {
+		series = monitor.restoreMemorySeries(*restored)
 	}
-	return true
+
+	if err := monitor.store.Checkpoint([]historyRecord{
+		monitor.activeHistoryRecord(series, time.Now()),
+	}); err != nil {
+		return false, fmt.Errorf("checkpoint statistics for %q: %w", containerName, err)
+	}
+
+	monitor.metrics[containerName] = series
+	return true, nil
 }
 
 func (monitor *monitor) Remove(containerName string) (bool, error) {
@@ -108,8 +120,10 @@ func (monitor *monitor) Remove(containerName string) (bool, error) {
 	if !exists {
 		return false, nil
 	}
-	if err := monitor.archiveSeries(series, "removed", time.Now()); err != nil {
-		return false, err
+	if series.ActiveRecord {
+		if err := monitor.finalizeSeries(series, "removed", time.Now()); err != nil {
+			return false, err
+		}
 	}
 	delete(monitor.metrics, containerName)
 	return true, nil
@@ -138,15 +152,21 @@ func (monitor *monitor) Names() []string {
 func (monitor *monitor) Run(ctx context.Context) {
 	monitor.sampleAll(ctx)
 
-	ticker := time.NewTicker(monitor.sampleInterval)
-	defer ticker.Stop()
+	sampleTicker := time.NewTicker(monitor.sampleInterval)
+	checkpointTicker := time.NewTicker(monitor.checkpointInterval)
+	defer sampleTicker.Stop()
+	defer checkpointTicker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		case <-sampleTicker.C:
 			monitor.sampleAll(ctx)
+		case <-checkpointTicker.C:
+			if err := monitor.Checkpoint(); err != nil {
+				log.Printf("statistics checkpoint failed: %v", err)
+			}
 		}
 	}
 }
@@ -172,14 +192,14 @@ func (monitor *monitor) Sample(ctx context.Context, containerName string) {
 
 	if err != nil {
 		var inactiveError *containerInactiveError
-		if errors.As(err, &inactiveError) && series.Count > 0 {
+		if errors.As(err, &inactiveError) && series.ActiveRecord {
 			reason := "container_" + normalizeReason(inactiveError.State)
-			if archiveErr := monitor.archiveSeries(series, reason, now); archiveErr != nil {
-				series.LastError = archiveErr.Error()
+			if finalizeErr := monitor.finalizeSeries(series, reason, now); finalizeErr != nil {
+				series.LastError = finalizeErr.Error()
 				series.LastErrorAt = now
 				return
 			}
-			resetMemorySeries(series, now)
+			resetMemorySeries(series, now, false)
 		}
 		series.LastError = err.Error()
 		series.LastErrorAt = now
@@ -187,13 +207,19 @@ func (monitor *monitor) Sample(ctx context.Context, containerName string) {
 	}
 
 	runIdentity := sample.ContainerID + "|" + sample.ContainerStartedAt
-	if series.RunIdentity != "" && series.RunIdentity != runIdentity {
-		if archiveErr := monitor.archiveSeries(series, "container_restarted", now); archiveErr != nil {
-			series.LastError = archiveErr.Error()
+	checkpointAfterSample := series.Count == 0
+
+	if series.ActiveRecord && series.RunIdentity != "" && series.RunIdentity != runIdentity {
+		if finalizeErr := monitor.finalizeSeries(series, "container_restarted", now); finalizeErr != nil {
+			series.LastError = finalizeErr.Error()
 			series.LastErrorAt = now
 			return
 		}
-		resetMemorySeries(series, now)
+		resetMemorySeries(series, now, true)
+		checkpointAfterSample = true
+	} else if !series.ActiveRecord {
+		resetMemorySeries(series, now, true)
+		checkpointAfterSample = true
 	}
 
 	series.ContainerID = sample.ContainerID
@@ -217,6 +243,64 @@ func (monitor *monitor) Sample(ctx context.Context, containerName string) {
 	series.Count++
 	series.AverageBytes += (float64(sample.UsageBytes) - series.AverageBytes) / float64(series.Count)
 	series.HistogramCount[sample.UsageBytes/monitor.bucketSize]++
+
+	if checkpointAfterSample {
+		if checkpointErr := monitor.store.Checkpoint([]historyRecord{
+			monitor.activeHistoryRecord(series, now),
+		}); checkpointErr != nil {
+			series.LastError = "checkpoint statistics: " + checkpointErr.Error()
+			series.LastErrorAt = now
+		}
+	}
+}
+
+func (monitor *monitor) Checkpoint() error {
+	monitor.mu.Lock()
+	defer monitor.mu.Unlock()
+
+	now := time.Now()
+	records := make([]historyRecord, 0, len(monitor.metrics))
+	for _, series := range monitor.metrics {
+		if series.ActiveRecord {
+			records = append(records, monitor.activeHistoryRecord(series, now))
+		}
+	}
+	if len(records) == 0 {
+		return nil
+	}
+	if err := monitor.store.Checkpoint(records); err != nil {
+		return fmt.Errorf("write active statistics: %w", err)
+	}
+	return nil
+}
+
+func (monitor *monitor) Shutdown(selfContainerName string) error {
+	monitor.mu.Lock()
+	defer monitor.mu.Unlock()
+
+	now := time.Now()
+	var shutdownErrors []error
+	var activeTargets []historyRecord
+
+	for _, series := range monitor.metrics {
+		if !series.ActiveRecord {
+			continue
+		}
+		if series.Name == selfContainerName {
+			if err := monitor.finalizeSeries(series, "monitor_shutdown", now); err != nil {
+				shutdownErrors = append(shutdownErrors, err)
+			}
+			continue
+		}
+		activeTargets = append(activeTargets, monitor.activeHistoryRecord(series, now))
+	}
+
+	if len(activeTargets) > 0 {
+		if err := monitor.store.Checkpoint(activeTargets); err != nil {
+			shutdownErrors = append(shutdownErrors, fmt.Errorf("checkpoint targets during shutdown: %w", err))
+		}
+	}
+	return errors.Join(shutdownErrors...)
 }
 
 func (monitor *monitor) sampleAll(ctx context.Context) {
@@ -239,10 +323,11 @@ func (monitor *monitor) Snapshot() monitorSnapshot {
 	defer monitor.mu.RUnlock()
 
 	snapshot := monitorSnapshot{
-		StartedAt:      monitor.startedAt,
-		SampleInterval: monitor.sampleInterval,
-		BucketSize:     monitor.bucketSize,
-		Containers:     make([]containerSnapshot, 0, len(monitor.metrics)),
+		StartedAt:          monitor.startedAt,
+		SampleInterval:     monitor.sampleInterval,
+		CheckpointInterval: monitor.checkpointInterval,
+		BucketSize:         monitor.bucketSize,
+		Containers:         make([]containerSnapshot, 0, len(monitor.metrics)),
 	}
 
 	for _, series := range monitor.metrics {
@@ -258,24 +343,8 @@ func (monitor *monitor) Snapshot() monitorSnapshot {
 			MinimumBytes: series.MinimumBytes,
 			MaximumBytes: series.MaximumBytes,
 			AverageBytes: series.AverageBytes,
-			Histogram:    make([]histogramBucket, 0, len(series.HistogramCount)),
+			Histogram:    monitor.histogram(series),
 		}
-
-		for index, count := range series.HistogramCount {
-			percentage := 0.0
-			if series.Count > 0 {
-				percentage = float64(count) / float64(series.Count) * 100
-			}
-			container.Histogram = append(container.Histogram, histogramBucket{
-				StartBytes: index * monitor.bucketSize,
-				EndBytes:   (index + 1) * monitor.bucketSize,
-				Count:      count,
-				Percentage: percentage,
-			})
-		}
-		sort.Slice(container.Histogram, func(i, j int) bool {
-			return container.Histogram[i].StartBytes < container.Histogram[j].StartBytes
-		})
 		snapshot.Containers = append(snapshot.Containers, container)
 	}
 
@@ -285,24 +354,53 @@ func (monitor *monitor) Snapshot() monitorSnapshot {
 	return snapshot
 }
 
-func (monitor *monitor) ArchiveAll(reason string) error {
-	monitor.mu.Lock()
-	defer monitor.mu.Unlock()
-
-	var archiveErrors []error
-	endedAt := time.Now()
-	for _, series := range monitor.metrics {
-		if series.Count == 0 {
-			continue
-		}
-		if err := monitor.archiveSeries(series, reason, endedAt); err != nil {
-			archiveErrors = append(archiveErrors, err)
-		}
+func (monitor *monitor) finalizeSeries(
+	series *memorySeries,
+	reason string,
+	endedAt time.Time,
+) error {
+	record := monitor.historyRecord(series, reason, endedAt)
+	record.ID = finalizedRecordID(series.Name, endedAt)
+	if err := monitor.store.Finalize(record); err != nil {
+		return fmt.Errorf("finalize statistics for %q: %w", series.Name, err)
 	}
-	return errors.Join(archiveErrors...)
+	series.ActiveRecord = false
+	log.Printf("finalized statistics for %q: %s", series.Name, reason)
+	return nil
 }
 
-func (monitor *monitor) archiveSeries(series *memorySeries, reason string, endedAt time.Time) error {
+func (monitor *monitor) activeHistoryRecord(
+	series *memorySeries,
+	checkpointAt time.Time,
+) historyRecord {
+	record := monitor.historyRecord(series, "active", checkpointAt)
+	record.ID = activeRecordID(series.Name)
+	return record
+}
+
+func (monitor *monitor) historyRecord(
+	series *memorySeries,
+	reason string,
+	observedUntil time.Time,
+) historyRecord {
+	return historyRecord{
+		ContainerName:      series.Name,
+		ContainerID:        series.ContainerID,
+		ContainerStartedAt: series.ContainerStart,
+		ObservedFrom:       series.StartedAt,
+		ObservedUntil:      observedUntil,
+		LastSampleAt:       series.LastSampleAt,
+		Reason:             reason,
+		Count:              series.Count,
+		CurrentBytes:       series.CurrentBytes,
+		MinimumBytes:       series.MinimumBytes,
+		MaximumBytes:       series.MaximumBytes,
+		AverageBytes:       series.AverageBytes,
+		Histogram:          monitor.histogram(series),
+	}
+}
+
+func (monitor *monitor) histogram(series *memorySeries) []histogramBucket {
 	histogram := make([]histogramBucket, 0, len(series.HistogramCount))
 	for index, count := range series.HistogramCount {
 		percentage := 0.0
@@ -319,36 +417,40 @@ func (monitor *monitor) archiveSeries(series *memorySeries, reason string, ended
 	sort.Slice(histogram, func(i, j int) bool {
 		return histogram[i].StartBytes < histogram[j].StartBytes
 	})
-
-	record := historyRecord{
-		ID:                 series.Name + "-" + endedAt.UTC().Format("20060102-150405"),
-		ContainerName:      series.Name,
-		ContainerID:        series.ContainerID,
-		ContainerStartedAt: series.ContainerStart,
-		ObservedFrom:       series.StartedAt,
-		ObservedUntil:      endedAt,
-		Reason:             reason,
-		Count:              series.Count,
-		CurrentBytes:       series.CurrentBytes,
-		MinimumBytes:       series.MinimumBytes,
-		MaximumBytes:       series.MaximumBytes,
-		AverageBytes:       series.AverageBytes,
-		Histogram:          histogram,
-	}
-	if err := monitor.history.Append(record); err != nil {
-		return fmt.Errorf("archive statistics for %q: %w", series.Name, err)
-	}
-	log.Printf("archived statistics for %q: %s", series.Name, reason)
-	return nil
+	return histogram
 }
 
-func resetMemorySeries(series *memorySeries, startedAt time.Time) {
-	name := series.Name
-	*series = memorySeries{
-		Name:           name,
+func (monitor *monitor) restoreMemorySeries(record historyRecord) *memorySeries {
+	series := newMemorySeries(record.ContainerName, record.ObservedFrom, true)
+	series.LastSampleAt = record.LastSampleAt
+	series.ContainerID = record.ContainerID
+	series.ContainerStart = record.ContainerStartedAt
+	if record.ContainerID != "" || record.ContainerStartedAt != "" {
+		series.RunIdentity = record.ContainerID + "|" + record.ContainerStartedAt
+	}
+	series.Count = record.Count
+	series.CurrentBytes = record.CurrentBytes
+	series.MinimumBytes = record.MinimumBytes
+	series.MaximumBytes = record.MaximumBytes
+	series.AverageBytes = record.AverageBytes
+	for _, bucket := range record.Histogram {
+		series.HistogramCount[bucket.StartBytes/monitor.bucketSize] += bucket.Count
+	}
+	return series
+}
+
+func newMemorySeries(containerName string, startedAt time.Time, active bool) *memorySeries {
+	return &memorySeries{
+		Name:           containerName,
 		StartedAt:      startedAt,
+		ActiveRecord:   active,
 		HistogramCount: make(map[uint64]uint64),
 	}
+}
+
+func resetMemorySeries(series *memorySeries, startedAt time.Time, active bool) {
+	name := series.Name
+	*series = *newMemorySeries(name, startedAt, active)
 }
 
 func normalizeReason(reason string) string {

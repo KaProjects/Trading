@@ -10,14 +10,15 @@ import (
 const mebibyte = uint64(1024 * 1024)
 
 type runtimeConfig struct {
-	HTTPAddress    string
-	DockerSocket   string
-	ConfigPath     string
-	HistoryPath    string
-	SelfContainer  string
-	SampleInterval time.Duration
-	RequestTimeout time.Duration
-	BucketSize     uint64
+	HTTPAddress        string
+	DockerSocket       string
+	ConfigPath         string
+	HistoryPath        string
+	SelfContainer      string
+	SampleInterval     time.Duration
+	CheckpointInterval time.Duration
+	RequestTimeout     time.Duration
+	BucketSize         uint64
 }
 
 func loadRuntimeConfig() (runtimeConfig, error) {
@@ -34,6 +35,11 @@ func loadRuntimeConfig() (runtimeConfig, error) {
 		return runtimeConfig{}, err
 	}
 
+	checkpointInterval, err := durationEnvironment("CHECKPOINT_INTERVAL", time.Hour)
+	if err != nil {
+		return runtimeConfig{}, err
+	}
+
 	requestTimeout, err := durationEnvironment("DOCKER_REQUEST_TIMEOUT", 10*time.Second)
 	if err != nil {
 		return runtimeConfig{}, err
@@ -45,14 +51,15 @@ func loadRuntimeConfig() (runtimeConfig, error) {
 	}
 
 	return runtimeConfig{
-		HTTPAddress:    environment("HTTP_ADDRESS", ":8080"),
-		DockerSocket:   environment("DOCKER_SOCKET", "/var/run/docker.sock"),
-		ConfigPath:     environment("CONFIG_PATH", "/data/containers.json"),
-		HistoryPath:    environment("HISTORY_PATH", "/data/history.csv"),
-		SelfContainer:  selfContainer,
-		SampleInterval: sampleInterval,
-		RequestTimeout: requestTimeout,
-		BucketSize:     uint64(bucketSizeMiB) * mebibyte,
+		HTTPAddress:        environment("HTTP_ADDRESS", ":8080"),
+		DockerSocket:       environment("DOCKER_SOCKET", "/var/run/docker.sock"),
+		ConfigPath:         environment("CONFIG_PATH", "/data/containers.json"),
+		HistoryPath:        environment("HISTORY_PATH", "/data/history.csv"),
+		SelfContainer:      selfContainer,
+		SampleInterval:     sampleInterval,
+		CheckpointInterval: checkpointInterval,
+		RequestTimeout:     requestTimeout,
+		BucketSize:         uint64(bucketSizeMiB) * mebibyte,
 	}, nil
 }
 

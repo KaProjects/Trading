@@ -20,4 +20,7 @@ func TestRuntimeConfigUsesConfiguredSelfContainerName(t *testing.T) {
 	if config.SelfContainer != "self-monitor" {
 		t.Errorf("expected configured self container, got %q", config.SelfContainer)
 	}
+	if config.CheckpointInterval.String() != "1h0m0s" {
+		t.Errorf("expected hourly checkpoints, got %s", config.CheckpointInterval)
+	}
 }

@@ -2,28 +2,72 @@ package main
 
 import "sync"
 
-type collectingHistoryWriter struct {
+type collectingStatisticsStore struct {
 	mu      sync.Mutex
-	records []historyRecord
+	records map[string]historyRecord
 	err     error
 }
 
-func (writer *collectingHistoryWriter) Append(record historyRecord) error {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+func (store *collectingStatisticsStore) LoadActive() (map[string]historyRecord, error) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
 
-	if writer.err != nil {
-		return writer.err
+	if store.err != nil {
+		return nil, store.err
 	}
-	writer.records = append(writer.records, record)
+	store.initialize()
+	active := make(map[string]historyRecord)
+	for _, record := range store.records {
+		if record.ID == activeRecordID(record.ContainerName) {
+			active[record.ContainerName] = record
+		}
+	}
+	return active, nil
+}
+
+func (store *collectingStatisticsStore) Checkpoint(records []historyRecord) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	if store.err != nil {
+		return store.err
+	}
+	store.initialize()
+	for _, record := range records {
+		record.ID = activeRecordID(record.ContainerName)
+		record.Reason = "active"
+		store.records[record.ID] = record
+	}
 	return nil
 }
 
-func (writer *collectingHistoryWriter) Records() []historyRecord {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+func (store *collectingStatisticsStore) Finalize(record historyRecord) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
 
-	records := make([]historyRecord, len(writer.records))
-	copy(records, writer.records)
+	if store.err != nil {
+		return store.err
+	}
+	store.initialize()
+	delete(store.records, activeRecordID(record.ContainerName))
+	store.records[record.ID] = record
+	return nil
+}
+
+func (store *collectingStatisticsStore) Records() []historyRecord {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	store.initialize()
+	records := make([]historyRecord, 0, len(store.records))
+	for _, record := range store.records {
+		records = append(records, record)
+	}
 	return records
+}
+
+func (store *collectingStatisticsStore) initialize() {
+	if store.records == nil {
+		store.records = make(map[string]historyRecord)
+	}
 }

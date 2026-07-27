@@ -9,6 +9,7 @@ services:
     environment:
       SELF_CONTAINER_NAME: ${MEM_STATS_CONTAINER_NAME:?MEM_STATS_CONTAINER_NAME must be set}
       SAMPLE_INTERVAL: ${SAMPLE_INTERVAL:-1m}
+      CHECKPOINT_INTERVAL: ${CHECKPOINT_INTERVAL:-1h}
       BUCKET_SIZE_MIB: ${BUCKET_SIZE_MIB:-10}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro

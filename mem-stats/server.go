@@ -18,10 +18,11 @@ type application struct {
 }
 
 type reportPage struct {
-	StartedAt      string
-	SampleInterval string
-	BucketSizeMiB  uint64
-	Containers     []containerReport
+	StartedAt          string
+	SampleInterval     string
+	CheckpointInterval string
+	BucketSizeMiB      uint64
+	Containers         []containerReport
 }
 
 type containerReport struct {
@@ -145,11 +146,17 @@ func (application *application) addContainer(containerName string) error {
 		return nil
 	}
 
-	containers := append(application.monitor.Names(), containerName)
+	existingContainers := application.monitor.Names()
+	containers := append(existingContainers, containerName)
 	if err := application.store.Save(containers); err != nil {
 		return err
 	}
-	application.monitor.Add(containerName)
+	if _, err := application.monitor.Add(containerName, nil); err != nil {
+		if restoreErr := application.store.Save(existingContainers); restoreErr != nil {
+			return fmt.Errorf("%v; restoring container config also failed: %w", err, restoreErr)
+		}
+		return err
+	}
 
 	go application.monitor.Sample(context.Background(), containerName)
 	return nil
@@ -201,10 +208,11 @@ func methodNotAllowed(response http.ResponseWriter, allowed string) {
 
 func newReportPage(snapshot monitorSnapshot) reportPage {
 	page := reportPage{
-		StartedAt:      formatTime(snapshot.StartedAt),
-		SampleInterval: snapshot.SampleInterval.String(),
-		BucketSizeMiB:  snapshot.BucketSize / mebibyte,
-		Containers:     make([]containerReport, 0, len(snapshot.Containers)),
+		StartedAt:          formatTime(snapshot.StartedAt),
+		SampleInterval:     snapshot.SampleInterval.String(),
+		CheckpointInterval: snapshot.CheckpointInterval.String(),
+		BucketSizeMiB:      snapshot.BucketSize / mebibyte,
+		Containers:         make([]containerReport, 0, len(snapshot.Containers)),
 	}
 
 	for _, container := range snapshot.Containers {
@@ -286,7 +294,7 @@ var reportTemplate = template.Must(template.New("report").Parse(`<!doctype html>
 <body>
 <main>
     <h1>Container memory statistics</h1>
-    <p class="meta">Started {{.StartedAt}} | sample interval {{.SampleInterval}} | histogram buckets {{.BucketSizeMiB}} MiB</p>
+    <p class="meta">Started {{.StartedAt}} | sample interval {{.SampleInterval}} | checkpoint interval {{.CheckpointInterval}} | histogram buckets {{.BucketSizeMiB}} MiB</p>
     <form method="post" action="/add">
         <input type="hidden" name="redirect" value="1">
         <label for="name">Container</label>
