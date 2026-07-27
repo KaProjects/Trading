@@ -137,6 +137,10 @@ func (monitor *monitor) Has(containerName string) bool {
 	return exists
 }
 
+func (monitor *monitor) ValidateRunning(ctx context.Context, containerName string) error {
+	return monitor.reader.ValidateRunning(ctx, containerName)
+}
+
 func (monitor *monitor) Names() []string {
 	monitor.mu.RLock()
 	defer monitor.mu.RUnlock()

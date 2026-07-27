@@ -104,7 +104,7 @@ func (application *application) handleAdd(response http.ResponseWriter, request 
 	}
 	containerName = strings.TrimSpace(containerName)
 
-	if err := application.addContainer(containerName); err != nil {
+	if err := application.addContainer(request.Context(), containerName); err != nil {
 		http.Error(response, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -134,9 +134,16 @@ func (application *application) handleDelete(response http.ResponseWriter, reque
 	application.respondAfterMutation(response, request)
 }
 
-func (application *application) addContainer(containerName string) error {
+func (application *application) addContainer(ctx context.Context, containerName string) error {
 	if err := validateContainerName(containerName); err != nil {
 		return err
+	}
+
+	if application.monitor.Has(containerName) {
+		return nil
+	}
+	if err := application.monitor.ValidateRunning(ctx, containerName); err != nil {
+		return fmt.Errorf("cannot monitor %q: %w", containerName, err)
 	}
 
 	application.mu.Lock()

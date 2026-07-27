@@ -13,6 +13,7 @@ import (
 )
 
 type memoryReader interface {
+	ValidateRunning(context.Context, string) error
 	MemoryUsage(context.Context, string) (containerMemorySample, error)
 }
 
@@ -67,12 +68,9 @@ func newDockerMemoryReader(socketPath string, timeout time.Duration) *dockerMemo
 }
 
 func (reader *dockerMemoryReader) MemoryUsage(ctx context.Context, containerName string) (containerMemorySample, error) {
-	container, err := reader.inspectContainer(ctx, containerName)
+	container, err := reader.runningContainer(ctx, containerName)
 	if err != nil {
 		return containerMemorySample{}, err
-	}
-	if !container.State.Running {
-		return containerMemorySample{}, &containerInactiveError{State: container.State.Status}
 	}
 
 	endpoint := dockerContainerEndpoint(containerName) + "/stats?stream=false&one-shot=true"
@@ -101,6 +99,25 @@ func (reader *dockerMemoryReader) MemoryUsage(ctx context.Context, containerName
 		ContainerStartedAt: container.State.StartedAt,
 		UsageBytes:         dockerCLICompatibleMemoryUsage(stats.MemoryStats.Usage, stats.MemoryStats.Stats),
 	}, nil
+}
+
+func (reader *dockerMemoryReader) ValidateRunning(ctx context.Context, containerName string) error {
+	_, err := reader.runningContainer(ctx, containerName)
+	return err
+}
+
+func (reader *dockerMemoryReader) runningContainer(
+	ctx context.Context,
+	containerName string,
+) (dockerInspectResponse, error) {
+	container, err := reader.inspectContainer(ctx, containerName)
+	if err != nil {
+		return dockerInspectResponse{}, err
+	}
+	if !container.State.Running {
+		return dockerInspectResponse{}, &containerInactiveError{State: container.State.Status}
+	}
+	return container, nil
 }
 
 func (reader *dockerMemoryReader) inspectContainer(

@@ -14,6 +14,10 @@ type sequenceMemoryReader struct {
 	err     error
 }
 
+func (reader *sequenceMemoryReader) ValidateRunning(context.Context, string) error {
+	return nil
+}
+
 func (reader *sequenceMemoryReader) MemoryUsage(
 	context.Context,
 	string,
@@ -226,6 +230,10 @@ type memoryReadResult struct {
 type changingMemoryReader struct {
 	results []memoryReadResult
 	index   int
+}
+
+func (reader *changingMemoryReader) ValidateRunning(context.Context, string) error {
+	return nil
 }
 
 func (reader *changingMemoryReader) MemoryUsage(

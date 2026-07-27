@@ -78,6 +78,45 @@ func TestDockerMemoryReaderIdentifiesStoppedContainer(t *testing.T) {
 	}
 }
 
+func TestDockerMemoryReaderValidatesRunningContainer(t *testing.T) {
+	reader := &dockerMemoryReader{
+		client: &http.Client{
+			Transport: roundTripFunction(func(request *http.Request) (*http.Response, error) {
+				if !strings.HasSuffix(request.URL.Path, "/json") {
+					t.Fatalf("validation should only inspect the container, got %s", request.URL)
+				}
+				return jsonResponse(http.StatusOK, `{
+					"Id": "container-id",
+					"State": {"Running": true, "Status": "running"}
+				}`), nil
+			}),
+		},
+	}
+
+	if err := reader.ValidateRunning(context.Background(), "service-a"); err != nil {
+		t.Fatalf("expected running container to pass validation: %v", err)
+	}
+}
+
+func TestDockerMemoryReaderRejectsMissingContainer(t *testing.T) {
+	reader := &dockerMemoryReader{
+		client: &http.Client{
+			Transport: roundTripFunction(func(*http.Request) (*http.Response, error) {
+				return jsonResponse(http.StatusNotFound, `{"message":"No such container"}`), nil
+			}),
+		},
+	}
+
+	err := reader.ValidateRunning(context.Background(), "service-a")
+	var inactiveError *containerInactiveError
+	if !errors.As(err, &inactiveError) {
+		t.Fatalf("expected inactive container error, got %v", err)
+	}
+	if inactiveError.State != "not found" {
+		t.Errorf("expected not found state, got %q", inactiveError.State)
+	}
+}
+
 func jsonResponse(status int, body string) *http.Response {
 	return &http.Response{
 		StatusCode: status,

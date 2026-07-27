@@ -1,16 +1,23 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
 
 type fixedMemoryReader struct {
-	value uint64
+	value         uint64
+	validationErr error
+}
+
+func (reader fixedMemoryReader) ValidateRunning(context.Context, string) error {
+	return reader.validationErr
 }
 
 func (reader fixedMemoryReader) MemoryUsage(
@@ -57,6 +64,50 @@ func TestAddAndDeleteEndpointsUpdateMonitorAndConfig(t *testing.T) {
 	records := statistics.Records()
 	if len(records) != 1 || records[0].Reason != "removed" {
 		t.Fatalf("expected active record to be finalized on removal, got %+v", records)
+	}
+}
+
+func TestAddEndpointRejectsUnavailableContainerWithoutMutation(t *testing.T) {
+	for _, state := range []string{"not found", "exited"} {
+		t.Run(state, func(t *testing.T) {
+			configPath := filepath.Join(t.TempDir(), "containers.json")
+			store := newConfigStore(configPath)
+			if err := store.Save([]string{}); err != nil {
+				t.Fatal(err)
+			}
+			configBefore, err := os.ReadFile(configPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			statistics := &collectingStatisticsStore{}
+			monitor := newTestMonitor(
+				fixedMemoryReader{validationErr: &containerInactiveError{State: state}},
+				statistics,
+			)
+			application := newApplication(monitor, store)
+
+			request := httptest.NewRequest(http.MethodPost, "/add/missing-service", nil)
+			response := httptest.NewRecorder()
+			application.routes().ServeHTTP(response, request)
+
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf("expected status 400, got %d", response.Code)
+			}
+			if monitor.Has("missing-service") {
+				t.Fatal("unavailable container must not enter the monitoring pool")
+			}
+			configAfter, err := os.ReadFile(configPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(configBefore, configAfter) {
+				t.Fatal("unavailable container must not change persisted configuration")
+			}
+			if records := statistics.Records(); len(records) != 0 {
+				t.Fatalf("unavailable container must not create history, got %+v", records)
+			}
+		})
 	}
 }
 
