@@ -1,6 +1,9 @@
+import json
 from datetime import date
 from decimal import Decimal
 from unittest.mock import patch
+
+import pytest
 
 from gemini.client import (
     GEMINI_RETRY_ATTEMPTS,
@@ -9,7 +12,38 @@ from gemini.client import (
     GEMINI_RETRYABLE_HTTP_STATUS_CODES,
     GeminiClient,
 )
-from gemini.models import Target, Targets
+from gemini.models import Quarter, Target, Targets
+
+
+def make_quarter(**overrides):
+    data = {
+        "name": "Q4 2026",
+        "id": "26Q4",
+        "ending_month": "26-05",
+        "report_date_previous_quarter": "2026-04-08",
+        "report_date_this_quarter": "2026-07-27",
+    }
+    data.update(overrides)
+    return Quarter(**data)
+
+
+def complete_quarter_data():
+    return {
+        "name": "Q4 2026",
+        "id": "26Q4",
+        "ending_month": "26-05",
+        "report_date_previous_quarter": "2026-04-08",
+        "report_date_this_quarter": "2026-07-27",
+        "reported_eps": "-0.39",
+        "reported_revenues": "258.7",
+        "reported_gross_profit": "77.1",
+        "reported_operating_income": "39.9",
+        "reported_net_income": "-110.6",
+        "reported_div": "0",
+        "reported_shares": "283.59",
+        "price_min": "24.03",
+        "price_max": "50.73",
+    }
 
 
 def test_client_configures_retries_for_transient_http_failures():
@@ -77,3 +111,46 @@ def test_get_price_targets_returns_python_objects_and_uses_targets_schema():
     assert request.kwargs["config"]["response_json_schema"] == (
         Targets.model_json_schema()
     )
+
+
+@pytest.mark.parametrize("missing_value", [None, "", "omitted"])
+def test_get_quarter_report_rejects_incomplete_response(missing_value):
+    original = make_quarter()
+    response_data = complete_quarter_data()
+    if missing_value == "omitted":
+        response_data.pop("reported_gross_profit")
+    else:
+        response_data["reported_gross_profit"] = missing_value
+
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            json.dumps(response_data)
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        result = client.get_quarter_report("APLD", original)
+
+    assert result is original
+    prompt = (
+        constructor.return_value.models.generate_content.call_args.kwargs[
+            "contents"
+        ]
+    )
+    assert "return the original unfilled data template unchanged" in prompt
+
+
+def test_get_quarter_report_accepts_complete_response():
+    original = make_quarter()
+    response_data = complete_quarter_data()
+
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            json.dumps(response_data)
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        result = client.get_quarter_report("APLD", original)
+
+    assert result != original
+    assert result.reported_gross_profit == Decimal("77.1")
+    assert result.reported_div == Decimal("0")

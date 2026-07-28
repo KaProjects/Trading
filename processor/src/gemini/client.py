@@ -102,11 +102,25 @@ class GeminiClient:
         For price_min and price_max, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
 
-        The data template should now have all the values set,no n/a or empty strings are allowed.
+        The data template should now have all the values set; no null, n/a, missing,
+        or empty values are allowed. If any value cannot be found and verified,
+        return the original unfilled data template unchanged. A partially filled
+        template is an invalid response.
         
         Return the filled template.
         """
-        return self.__ask(prompt, Quarter)
+        quarter = self.__ask(prompt, Quarter)
+        if self.__has_missing_values(quarter):
+            return current_quarter
+        return quarter
+
+    @staticmethod
+    def __has_missing_values(quarter: Quarter) -> bool:
+        return any(
+            value is None
+            or (isinstance(value, str) and not value.strip())
+            for value in quarter.model_dump().values()
+        )
 
     def get_price_targets(
         self,
