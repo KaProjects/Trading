@@ -105,10 +105,13 @@ def test_post_if_channel_exists_skips_missing_channel_without_fallback(
 def test_post_if_channel_exists_posts_to_resolved_channel(discord_client):
     client, session = discord_client
     payload = {"content": "test"}
+    session.post.return_value = response(data={"id": "message-id"})
 
     posted = client.post_if_channel_exists("btc", payload)
 
-    assert posted
+    assert posted == (
+        "https://discord.com/channels/guild-id/btc-id/message-id"
+    )
     session.post.assert_called_once_with(
         f"{API_URL}/channels/btc-id/messages",
         headers=HEADERS,

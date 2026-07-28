@@ -164,11 +164,14 @@ class ConsoleDiscordClient:
         self,
         channel_name: str,
         payload: object,
-    ) -> bool:
+    ) -> str | None:
         if not self.channel_exists(channel_name):
-            return False
+            return None
         self.post(channel_name, payload)
-        return True
+        return (
+            "https://discord.com/channels/dev-guild/"
+            f"{channel_name.casefold()}/dev-message"
+        )
 
     def post_btc(self, payload: object) -> None:
         _log_exchange("FAKE POST", "Discord webhook #btc", payload)

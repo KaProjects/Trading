@@ -88,11 +88,9 @@ class StockDataRetrieverRunner:
                                     self.service.report_quarter(company_id, current_quarter_reported)
                                     new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
                                     self.service.create_quarter(company_id, new_quarter)
-                                    self.discord.post_earnings(
-                                        self.format_quarter_for_discord(
-                                            quarter=current_quarter_reported,
-                                            ticker=company_id,
-                                        )
+                                    self._notify_quarter_report(
+                                        company_id,
+                                        current_quarter_reported,
                                     )
                             else:
                                 report_dates.report_dates.append(ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter))
@@ -360,6 +358,46 @@ class StockDataRetrieverRunner:
                     }
                 ]
             }]
+        }
+
+    def _notify_quarter_report(
+        self,
+        ticker: str,
+        quarter: Quarter,
+    ) -> None:
+        earnings_report = self.format_quarter_for_discord(
+            quarter=quarter,
+            ticker=ticker,
+        )
+        ticker_report = {
+            "embeds": earnings_report["embeds"],
+        }
+        message_url = self.discord.post_if_channel_exists(
+            ticker,
+            ticker_report,
+        )
+        if not message_url:
+            self.discord.post_earnings(earnings_report)
+            return
+
+        self.discord.post_earnings(
+            self.format_quarter_link_for_discord(ticker, message_url)
+        )
+
+    @staticmethod
+    def format_quarter_link_for_discord(
+        ticker: str,
+        message_url: str,
+    ) -> dict[str, object]:
+        return {
+            "username": "Quarterly Results Reporter",
+            "avatar_url": (
+                "https://cdn-icons-png.flaticon.com/512/1390/1390704.png"
+            ),
+            "content": (
+                f"**{ticker} reported earnings.** "
+                f"[View the report in #{ticker}]({message_url})"
+            ),
         }
 
     def format_target_for_discord(self, target: Target) -> dict[str, object]:

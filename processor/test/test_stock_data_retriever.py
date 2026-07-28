@@ -72,7 +72,7 @@ class TestStockDataRetriever:
         instance.errors = create_autospec(ErrorReporter, instance=True)
         instance.client.get_price_targets.return_value = Targets(targets=[])
         instance.service.get_institutions.return_value = {}
-        instance.discord.post_if_channel_exists.return_value = False
+        instance.discord.post_if_channel_exists.return_value = None
         yield instance
 
     @patch("utils.is_past_date")
@@ -136,7 +136,68 @@ class TestStockDataRetriever:
         runner.service.create_quarter.assert_called_once_with("NVDA", next_quarter)
         runner.discord.post_earnings.assert_called_once()
         payload = runner.discord.post_earnings.call_args.args[0]
-        assert payload["username"] == "Quarterly Results Reporter"
+        expected_report = runner.format_quarter_for_discord(
+            new_reported_quarter,
+            "NVDA",
+        )
+        runner.discord.post_if_channel_exists.assert_called_once_with(
+            "NVDA",
+            {"embeds": expected_report["embeds"]},
+        )
+        assert payload == expected_report
+
+    @patch("utils.is_past_date")
+    @patch("gemini.retriever.datetime")
+    def test_report_posts_link_to_earnings_when_ticker_channel_exists(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        mock_is_past.return_value = True
+        old_quarter = make_quarter(report_date="2026-04-20")
+        company = make_company("NVDA", "25Q4", {"25Q4": old_quarter})
+        runner.service.get_companies.return_value = {"NVDA": company}
+        reported_quarter = make_quarter(
+            report_date="2026-04-20",
+            reported_eps="5.00",
+        )
+        runner.client.get_quarter_report.return_value = reported_quarter
+        runner.compose_new_quarter = create_autospec(
+            runner.compose_new_quarter,
+            return_value=make_quarter(
+                quarter_id="26Q1",
+                report_date="",
+                ending_month="26-06",
+                previous_report_date="2026-04-20",
+            ),
+        )
+        message_url = (
+            "https://discord.com/channels/guild-id/nvda-id/message-id"
+        )
+        runner.discord.post_if_channel_exists.return_value = message_url
+
+        runner.run()
+
+        report = runner.format_quarter_for_discord(
+            reported_quarter,
+            "NVDA",
+        )
+        runner.discord.post_if_channel_exists.assert_called_once_with(
+            "NVDA",
+            {"embeds": report["embeds"]},
+        )
+        runner.discord.post_earnings.assert_called_once_with({
+            "username": "Quarterly Results Reporter",
+            "avatar_url": (
+                "https://cdn-icons-png.flaticon.com/512/1390/1390704.png"
+            ),
+            "content": (
+                "**NVDA reported earnings.** "
+                f"[View the report in #NVDA]({message_url})"
+            ),
+        })
 
     @patch("utils.is_past_date")
     @patch("gemini.retriever.datetime")

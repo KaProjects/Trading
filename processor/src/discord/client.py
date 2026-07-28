@@ -6,6 +6,7 @@ from requests import Response, Session
 from requests.exceptions import RequestException
 
 DISCORD_API_URL = "https://discord.com/api/v10"
+DISCORD_CHANNEL_URL = "https://discord.com/channels"
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks"
 TEXT_CHANNEL_TYPES = {0, 5}
 RATE_LIMIT_MAX_RETRIES = 3
@@ -71,14 +72,17 @@ class DiscordClient:
         self,
         channel_name: str,
         payload: dict[str, object],
-    ) -> bool:
+    ) -> str | None:
         normalized_name = self._normalize_channel_name(channel_name)
         channel_id = self._resolve_channel_id(normalized_name)
         if channel_id is None:
-            return False
+            return None
 
-        self._post_to_channel(channel_id, payload)
-        return True
+        response = self._post_to_channel(channel_id, payload)
+        message_id = self._message_id(response)
+        return (
+            f"{DISCORD_CHANNEL_URL}/{self.guild_id}/{channel_id}/{message_id}"
+        )
 
     def post_btc(self, payload: dict[str, object]) -> None:
         self._post_to_webhook(self.btc_webhook_key, payload)
@@ -154,7 +158,7 @@ class DiscordClient:
         self,
         channel_id: str,
         payload: dict[str, object],
-    ) -> None:
+    ) -> Response:
         url = f"{DISCORD_API_URL}/channels/{channel_id}/messages"
         try:
             response = self._request_with_rate_limit_retry(
@@ -176,6 +180,7 @@ class DiscordClient:
                 f"Discord message returned {response.status_code}: "
                 f"{response.text}"
             )
+        return response
 
     def _post_to_webhook(
         self,
@@ -285,6 +290,20 @@ class DiscordClient:
             "Authorization": f"Bot {self.bot_token}",
             "Content-Type": "application/json",
         }
+
+    @staticmethod
+    def _message_id(response: Response) -> str:
+        try:
+            data = response.json()
+        except (RequestException, ValueError) as exception:
+            raise DiscordClientError(
+                "Discord message response was not valid JSON"
+            ) from exception
+        if not isinstance(data, dict) or not data.get("id"):
+            raise DiscordClientError(
+                "Discord message response did not contain a message ID"
+            )
+        return str(data["id"])
 
     @staticmethod
     def _normalize_channel_name(channel_name: str) -> str:
