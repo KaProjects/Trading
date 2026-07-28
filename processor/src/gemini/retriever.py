@@ -7,6 +7,7 @@ from decimal import Decimal
 import utils
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
+from gemini import discord_templates
 from gemini.client import GeminiClient
 from gemini.institutions import InstitutionRegistry
 from gemini.models import (
@@ -236,11 +237,11 @@ class StockDataRetrieverRunner:
         try:
             if self.discord.post_if_channel_exists(
                 target.ticker,
-                self.format_target_for_ticker_discord(target),
+                discord_templates.ticker_price_target(target),
             ):
                 return
             self.discord.post_eventlog(
-                self.format_target_for_discord(target),
+                discord_templates.price_target(target),
             )
         except Exception as exception:
             self.report_error(
@@ -317,151 +318,26 @@ class StockDataRetrieverRunner:
                 )
         return new_report_dates
 
-    def format_quarter_for_discord(
-        self,
-        quarter: Quarter,
-        ticker: str,
-    ) -> dict[str, object]:
-        return {
-            "username": "Quarterly Results Reporter",
-            "avatar_url": (
-                "https://cdn-icons-png.flaticon.com/512/1390/1390704.png"
-            ),
-            "embeds": [{
-                "title": f"{ticker} - {quarter.name} report",
-                "description": (
-                    f"ending: {quarter.ending_month} | "
-                    f"reported: {quarter.report_date_this_quarter}"
-                ),
-                "color": 3066993,
-                "fields": [
-                    {
-                        "name": "Financials",
-                        "value": (
-                            f"**Revenues:** {self.format_financial(quarter.reported_revenues)}\n"
-                            f"**Gross Profit:** {self.format_financial(quarter.reported_gross_profit)}\n"
-                            f"**Oper. Income:** {self.format_financial(quarter.reported_operating_income)}\n"
-                            f"**Net Income:** {self.format_financial(quarter.reported_net_income)}\n"
-                            f"**Divs:** {self.format_financial(quarter.reported_div)}\n"
-                            f"**Shares:** {self.format_financial(quarter.reported_shares)}\n"
-                            f"**EPS:** {quarter.reported_eps}"
-                        ),
-                        "inline": False
-                    },
-                    {
-                        "name": "Price Range (from previous report)",
-                        "value": (
-                            f"Low: **${quarter.price_min}** — "
-                            f"High: **${quarter.price_max}**"
-                        ),
-                        "inline": False
-                    }
-                ]
-            }]
-        }
-
     def _notify_quarter_report(
         self,
         ticker: str,
         quarter: Quarter,
     ) -> None:
-        earnings_report = self.format_quarter_for_discord(
-            quarter=quarter,
-            ticker=ticker,
+        earnings_report = discord_templates.quarter_report(
+            quarter,
+            ticker,
         )
-        earnings_embed = earnings_report["embeds"][0]
-        ticker_report = {
-            "embeds": [{
-                **earnings_embed,
-                "title": f"{quarter.name} report",
-            }],
-        }
         message_url = self.discord.post_if_channel_exists(
             ticker,
-            ticker_report,
+            discord_templates.ticker_quarter_report(quarter),
         )
         if not message_url:
             self.discord.post_earnings(earnings_report)
             return
 
         self.discord.post_earnings(
-            self.format_quarter_link_for_discord(ticker, message_url)
+            discord_templates.quarter_report_link(ticker, message_url)
         )
-
-    @staticmethod
-    def format_quarter_link_for_discord(
-        ticker: str,
-        message_url: str,
-    ) -> dict[str, object]:
-        return {
-            "username": "Quarterly Results Reporter",
-            "avatar_url": (
-                "https://cdn-icons-png.flaticon.com/512/1390/1390704.png"
-            ),
-            "content": (
-                f"**{ticker} reported earnings.** "
-                f"[View the report in #{ticker}]({message_url})"
-            ),
-        }
-
-    def format_target_for_discord(self, target: Target) -> dict[str, object]:
-        return {
-            "username": "Institutional Price Target Reporter",
-            "avatar_url": (
-                "https://cdn-icons-png.flaticon.com/512/1872/1872505.png"
-            ),
-            "embeds": [{
-                "title": (
-                    f"🎯 {target.ticker} | ${target.price} | "
-                    f"{target.date.isoformat()}"
-                ),
-                "color": 0xF1C40F,
-                "fields": [
-                    {
-                        "name": target.institution,
-                        "value": target.rating or "Not provided",
-                        "inline": False,
-                    },
-                    {
-                        "name": "Source",
-                        "value": target.source,
-                        "inline": False,
-                    },
-                ],
-            }],
-        }
-
-    @staticmethod
-    def format_target_for_ticker_discord(
-        target: Target,
-    ) -> dict[str, object]:
-        return {
-            "embeds": [{
-                "title": f"🎯 new price target ${target.price}",
-                "color": 0xF1C40F,
-                "fields": [{
-                    "name": target.institution,
-                    "value": (
-                        f"{target.rating or 'Not provided'}\n"
-                        f"{target.date.isoformat()}\n"
-                        f"source: {target.source}"
-                    ),
-                    "inline": False,
-                }],
-            }],
-        }
-
-    def format_financial(self, original: str):
-        if original is None: return ""
-        try:
-            result = float(original)
-            if result == 0: return "-"
-            if abs(result) >= 1000:
-                return str(round(result / 1000, 2)) + "B"
-            else:
-                return str(round(result, 2)) + "M"
-        except (ValueError, TypeError):
-            return ""
 
     def compose_new_quarter(self, previous_quarter: Quarter) -> Quarter:
         previous_y = int(previous_quarter.id[:2])
@@ -508,16 +384,4 @@ class StockDataRetrieverRunner:
                 "inline": False,
             })
 
-        self.discord.post_earnings(
-            {
-                "username": "Quarterly Results Reporter",
-                "avatar_url": (
-                    "https://cdn-icons-png.flaticon.com/512/1390/1390704.png"
-                ),
-                "embeds": [{
-                    "title": "📅 Upcoming Earnings Reports",
-                    "color": 3447003,
-                    "fields": fields,
-                }]
-            },
-        )
+        self.discord.post_earnings(discord_templates.upcoming_earnings(fields))

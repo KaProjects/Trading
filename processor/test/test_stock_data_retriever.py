@@ -6,6 +6,7 @@ import pytest
 
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
+from gemini import discord_templates
 from gemini.client import GeminiClient
 from gemini.models import (
     Company,
@@ -136,17 +137,15 @@ class TestStockDataRetriever:
         runner.service.create_quarter.assert_called_once_with("NVDA", next_quarter)
         runner.discord.post_earnings.assert_called_once()
         payload = runner.discord.post_earnings.call_args.args[0]
-        expected_report = runner.format_quarter_for_discord(
+        expected_report = discord_templates.quarter_report(
             new_reported_quarter,
             "NVDA",
         )
-        expected_ticker_embed = {
-            **expected_report["embeds"][0],
-            "title": f"{new_reported_quarter.name} report",
-        }
         runner.discord.post_if_channel_exists.assert_called_once_with(
             "NVDA",
-            {"embeds": [expected_ticker_embed]},
+            discord_templates.ticker_quarter_report(
+                new_reported_quarter
+            ),
         )
         assert payload == expected_report
         assert payload["embeds"][0]["title"].startswith("NVDA - ")
@@ -185,17 +184,13 @@ class TestStockDataRetriever:
 
         runner.run()
 
-        report = runner.format_quarter_for_discord(
+        report = discord_templates.quarter_report(
             reported_quarter,
             "NVDA",
         )
-        expected_ticker_embed = {
-            **report["embeds"][0],
-            "title": f"{reported_quarter.name} report",
-        }
         runner.discord.post_if_channel_exists.assert_called_once_with(
             "NVDA",
-            {"embeds": [expected_ticker_embed]},
+            discord_templates.ticker_quarter_report(reported_quarter),
         )
         runner.discord.post_earnings.assert_called_once_with({
             "username": "Quarterly Results Reporter",
@@ -977,10 +972,10 @@ class TestStockDataRetriever:
         value,
         expected,
     ):
-        assert runner.format_financial(value) == expected
+        assert discord_templates.format_financial(value) == expected
 
     def test_quarter_payload_restores_webhook_identity(self, runner):
-        payload = runner.format_quarter_for_discord(
+        payload = discord_templates.quarter_report(
             make_quarter(quarter_id="26Q2"),
             "AAPL",
         )
