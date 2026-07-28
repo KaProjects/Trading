@@ -140,11 +140,16 @@ class TestStockDataRetriever:
             new_reported_quarter,
             "NVDA",
         )
+        expected_ticker_embed = {
+            **expected_report["embeds"][0],
+            "title": f"{new_reported_quarter.name} report",
+        }
         runner.discord.post_if_channel_exists.assert_called_once_with(
             "NVDA",
-            {"embeds": expected_report["embeds"]},
+            {"embeds": [expected_ticker_embed]},
         )
         assert payload == expected_report
+        assert payload["embeds"][0]["title"].startswith("NVDA - ")
 
     @patch("utils.is_past_date")
     @patch("gemini.retriever.datetime")
@@ -184,9 +189,13 @@ class TestStockDataRetriever:
             reported_quarter,
             "NVDA",
         )
+        expected_ticker_embed = {
+            **report["embeds"][0],
+            "title": f"{reported_quarter.name} report",
+        }
         runner.discord.post_if_channel_exists.assert_called_once_with(
             "NVDA",
-            {"embeds": report["embeds"]},
+            {"embeds": [expected_ticker_embed]},
         )
         runner.discord.post_earnings.assert_called_once_with({
             "username": "Quarterly Results Reporter",

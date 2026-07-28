@@ -369,8 +369,12 @@ class StockDataRetrieverRunner:
             quarter=quarter,
             ticker=ticker,
         )
+        earnings_embed = earnings_report["embeds"][0]
         ticker_report = {
-            "embeds": earnings_report["embeds"],
+            "embeds": [{
+                **earnings_embed,
+                "title": f"{quarter.name} report",
+            }],
         }
         message_url = self.discord.post_if_channel_exists(
             ticker,
