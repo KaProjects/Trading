@@ -23,8 +23,11 @@ def parse_company_snapshot(
 
     companies: dict[str, ModelT | None] = {}
     for company_id, company_data in snapshot.items():
-        if not isinstance(company_id, str) or not isinstance(company_data, dict):
+        if not isinstance(company_id, str):
             logger.error("Ignoring malformed Firebase company node %r", company_id)
+            continue
+        if not isinstance(company_data, dict):
+            companies[company_id] = None
             continue
 
         model_data = company_data.get(data_root)

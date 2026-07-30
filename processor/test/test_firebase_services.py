@@ -107,7 +107,7 @@ def test_gemini_service_batch_creates_institutions():
         (FinnhubFirebaseService, "myfinnhub.service.db.reference", "fhe"),
     ],
 )
-def test_firebase_service_skips_malformed_company_records(
+def test_firebase_service_treats_non_object_companies_as_uninitialized(
     service_class,
     reference_path,
     data_root,
@@ -121,8 +121,12 @@ def test_firebase_service_skips_malformed_company_records(
     with patch(reference_path, autospec=True, return_value=FakeReference(snapshot)):
         companies = service.get_companies()
 
-    assert companies == {"NVDA": None}
-    assert service.log.error.call_count == 2
+    assert companies == {
+        "AAPL": None,
+        "MSFT": None,
+        "NVDA": None,
+    }
+    service.log.error.assert_not_called()
 
 
 def test_firebase_validation_error_is_reported_with_company_context():
