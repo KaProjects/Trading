@@ -23,7 +23,8 @@ COPY --from=build --chown=185:0 /workspace/target/quarkus-app/quarkus/ /deployme
 
 EXPOSE 8080
 USER 185
-ENV JAVA_OPTS_APPEND="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV TZ="Europe/Prague"
+ENV JAVA_OPTS_APPEND="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Duser.timezone=Europe/Prague -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
 
 ENTRYPOINT ["/opt/jboss/container/java/run/run-java.sh"]
