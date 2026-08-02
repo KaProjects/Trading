@@ -3,7 +3,7 @@ import React from "react";
 import {Button, Typography} from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
-import {formatDate, formatError, formatMillions, formatPeriodName} from "../../service/FormattingService";
+import {formatDate, formatDecimals, formatError, formatMillions, formatPeriodName} from "../../service/FormattingService";
 import axios from "axios";
 import {backend} from "../../properties";
 import {ContentEditor} from "./ContentEditor";
@@ -18,6 +18,16 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
     function formatPrice(price, currency) {
         if (price === null || price === undefined) return "";
         return price + currency;
+    }
+
+    function formatEstimate(estimate) {
+        const future = [estimate.next1, estimate.next2, estimate.next3]
+            .filter(value => value !== null && value !== undefined)
+            .map(value => " | " + formatDecimals(value, 0, 2))
+            .join("")
+        return "Estimates: " + formatDecimals(estimate.ttm, 0, 2)
+            + " |> " + formatDecimals(estimate.current, 0, 2)
+            + future
     }
 
     function updateResearch(id, content) {
@@ -56,6 +66,11 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
                             + " | Net Income: " + formatMillions(period.financial.netIncome.value)}
                     </Typography>
                 </>
+            }
+            {period.estimate &&
+                <Typography sx={{color: 'text.secondary', fontSize: 14}}>
+                    {formatEstimate(period.estimate)}
+                </Typography>
             }
             {!period.financial &&
                 <Tooltip title="Add Financials">

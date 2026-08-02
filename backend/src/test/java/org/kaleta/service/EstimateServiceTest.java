@@ -17,6 +17,8 @@ import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -78,6 +80,19 @@ class EstimateServiceTest
         when(estimateDao.findLatest(period.getId())).thenReturn(Optional.empty());
 
         assertThat(estimateService.getLatest(period.getId()), is(Optional.empty()));
+    }
+
+    @Test
+    void getLatestByPeriodIds()
+    {
+        Estimate estimate = estimate(300L, "2026-08-02T12:30:00");
+        List<Long> periodIds = List.of(period.getId());
+        when(estimateDao.findLatestByPeriodIds(periodIds)).thenReturn(List.of(estimate));
+
+        Map<Long, EstimateDto> estimates = estimateService.getLatestByPeriodIds(periodIds);
+
+        assertThat(estimates.size(), is(1));
+        assertThat(estimates.get(period.getId()).getId(), is(estimate.getId()));
     }
 
     @Test

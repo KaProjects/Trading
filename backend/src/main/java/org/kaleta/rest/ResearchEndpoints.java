@@ -12,6 +12,7 @@ import org.kaleta.model.Company;
 import org.kaleta.model.Periods;
 import org.kaleta.model.Record;
 import org.kaleta.persistence.entity.Latest;
+import org.kaleta.rest.dto.EstimateDto;
 import org.kaleta.rest.dto.PeriodImportDataDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
@@ -19,6 +20,7 @@ import org.kaleta.rest.validation.ValidPeriodName;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.service.ArithmeticService;
 import org.kaleta.service.CompanyService;
+import org.kaleta.service.EstimateService;
 import org.kaleta.service.FirebaseService;
 import org.kaleta.service.ImportService;
 import org.kaleta.service.LatestService;
@@ -27,6 +29,7 @@ import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
 
 import java.util.List;
+import java.util.Map;
 
 @Path("/research")
 public class ResearchEndpoints
@@ -47,6 +50,8 @@ public class ResearchEndpoints
     FirebaseService firebaseService;
     @Inject
     ImportService importService;
+    @Inject
+    EstimateService estimateService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -60,9 +65,13 @@ public class ResearchEndpoints
         Periods periodsModel = periodService.getBy(companyId);
         dto.setFinancials(periodsModel.getFinancials());
         dto.setTtm(periodsModel.getTtm());
+        Map<Long, EstimateDto> estimates = estimateService.getLatestByPeriodIds(
+                periodsModel.getPeriods().stream()
+                        .map(Periods.Period::getId)
+                        .toList());
         periodsModel.getPeriods().forEach(period -> {
             PeriodImportDto cachedData = firebaseService.getPeriod(company.getTicker(), period.getName().toString());
-            dto.addPeriod(period, cachedData);
+            dto.addPeriod(period, cachedData, estimates.get(period.getId()));
         });
 
         List<Record> records = recordService.getBy(companyId);

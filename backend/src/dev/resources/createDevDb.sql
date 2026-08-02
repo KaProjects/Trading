@@ -77,7 +77,13 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gro
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1260, 2212, '26Q1', '2604', '2026-05-05', '2180', '1160', '525', '365', '0', '1225', '190', '135');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES (1268, 2212, '26Q2', '2607');
 
--- Saved analyst snapshots for AMD's unreported quarter.
+-- Saved analyst snapshots for AMD quarters, including shortened future horizons.
+INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2, next3) VALUES (1395, 1256, '2025-02-01 09:00:00', '2.65', '0.95', '1.05', '1.15', '1.28');
+INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2) VALUES (1396, 1257, '2025-05-01 09:00:00', '2.92', '1.10', '1.18', '1.30');
+INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1) VALUES (1397, 1258, '2025-08-01 09:00:00', '3.18', '1.22', '1.34');
+INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2, next3) VALUES (1398, 2337, '2025-11-01 09:00:00', '3.52', '1.30', '1.42', '1.55', '1.70');
+INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2, next3) VALUES (1399, 1259, '2026-02-01 09:00:00', '3.88', '1.40', '1.52', '1.68', '1.82');
+INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2) VALUES (1400, 1260, '2026-05-01 09:00:00', '4.12', '1.50', '1.65', '1.82');
 INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2, next3) VALUES (1401, 1268, '2026-07-20 09:00:00', '4.27', '1.44', '1.82', '2.55', '2.70');
 INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2, next3) VALUES (1402, 1268, '2026-08-01 18:30:00', '4.45', '1.62', '1.85', '2.64', '2.76');
 

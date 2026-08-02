@@ -10,7 +10,10 @@ import org.kaleta.rest.dto.EstimateDto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class EstimateService
@@ -25,6 +28,14 @@ public class EstimateService
         periodService.get(periodId);
         return estimateDao.findLatest(periodId)
                 .map(this::from);
+    }
+
+    public Map<Long, EstimateDto> getLatestByPeriodIds(List<Long> periodIds)
+    {
+        return estimateDao.findLatestByPeriodIds(periodIds).stream()
+                .collect(Collectors.toMap(
+                        estimate -> estimate.getPeriod().getId(),
+                        this::from));
     }
 
     public void create(Long periodId, EstimateCreateDto dto)

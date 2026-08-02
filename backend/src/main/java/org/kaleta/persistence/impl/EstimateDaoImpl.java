@@ -35,4 +35,22 @@ public class EstimateDaoImpl extends EntityDaoImpl<Estimate> implements Estimate
                 .getResultStream()
                 .findFirst();
     }
+
+    @Override
+    public List<Estimate> findLatestByPeriodIds(List<Long> periodIds)
+    {
+        if (periodIds.isEmpty()) return List.of();
+
+        return entityManager.createQuery(
+                        selectQuery
+                                + "WHERE t.period.id IN :periodIds "
+                                + "AND NOT EXISTS ("
+                                + "SELECT newer.id FROM Estimate newer "
+                                + "WHERE newer.period.id=t.period.id "
+                                + "AND (newer.datetime > t.datetime "
+                                + "OR (newer.datetime=t.datetime AND newer.id > t.id)))",
+                        Estimate.class)
+                .setParameter("periodIds", periodIds)
+                .getResultList();
+    }
 }

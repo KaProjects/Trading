@@ -37,6 +37,13 @@ describe("Period", () => {
                         operatingIncome: {value: 100},
                         netIncome: {value: 50},
                     },
+                    estimate: {
+                        ttm: 4.45,
+                        current: 1.62,
+                        next1: 1.85,
+                        next2: null,
+                        next3: 2.76,
+                    },
                 }}
                 currency={"$"}
                 setAlert={jest.fn()}
@@ -47,6 +54,7 @@ describe("Period", () => {
         expect(screen.getByText("25FY - ending: 12/25 - report: 15.02.2026")).toBeInTheDocument();
         expect(screen.getByText("Shares: 123M | H: 20$ | L: 10$ | Dividend: 12M")).toBeInTheDocument();
         expect(screen.getByText("Revenue: 300M | Gross P.: 200M | Op. Inc.: 100M | Net Income: 50M")).toBeInTheDocument();
+        expect(screen.getByText("Estimates: 4.45 |> 1.62 | 1.85 | 2.76")).toBeInTheDocument();
     });
 
     test("updates research through axios", async () => {
@@ -76,6 +84,32 @@ describe("Period", () => {
         ));
     });
 
+    test("renders estimates when financials are missing", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    reportDate: null,
+                    estimate: {
+                        ttm: 4.45,
+                        current: 1.62,
+                        next1: null,
+                        next2: null,
+                        next3: null,
+                    },
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByText("Estimates: 4.45 |> 1.62")).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add Financials"})).toBeInTheDocument();
+    });
+
     test("opens dialog when financials are missing", () => {
         const openDialog = jest.fn();
 
@@ -97,5 +131,6 @@ describe("Period", () => {
         fireEvent.click(screen.getByRole("button", {name: "Add Financials"}));
 
         expect(openDialog).toHaveBeenCalled();
+        expect(screen.queryByText(/^Estimates:/)).not.toBeInTheDocument();
     });
 });
