@@ -55,6 +55,8 @@ describe("Period", () => {
         expect(screen.getByText("Shares: 123M | H: 20$ | L: 10$ | Dividend: 12M")).toBeInTheDocument();
         expect(screen.getByText("Revenue: 300M | Gross P.: 200M | Op. Inc.: 100M | Net Income: 50M")).toBeInTheDocument();
         expect(screen.getByText("Estimates: 4.45 |> 1.62 | 1.85 | 2.76")).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
     });
 
     test("updates research through axios", async () => {
@@ -108,6 +110,7 @@ describe("Period", () => {
 
         expect(screen.getByText("Estimates: 4.45 |> 1.62")).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add Financials"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
     });
 
     test("opens dialog when financials are missing", () => {

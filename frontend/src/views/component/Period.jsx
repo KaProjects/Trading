@@ -1,12 +1,13 @@
 import {BorderedSection} from "./BorderedSection";
 import React from "react";
-import {Button, Typography} from "@mui/material";
+import {Button, Stack, Typography} from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
-import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import {formatDate, formatDecimals, formatError, formatMillions, formatPeriodName} from "../../service/FormattingService";
 import axios from "axios";
 import {backend} from "../../properties";
 import {ContentEditor} from "./ContentEditor";
+import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financials-plus.svg";
+import {ReactComponent as EstimatesPlusIcon} from "../../assets/icons/estimates-plus.svg";
 
 export const Period = ({period, currency, setAlert, openDialog}) => {
 
@@ -72,13 +73,28 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
                     {formatEstimate(period.estimate)}
                 </Typography>
             }
-            {!period.financial &&
-                <Tooltip title="Add Financials">
-                    <Button sx={{height: "25px"}} onClick={openDialog}>
-                        <ControlPointIcon sx={{color: 'lightgreen'}}/>
+            <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
+                   sx={{
+                       position: "absolute", top: "6px", right: "8px", zIndex: 1, opacity: 0, pointerEvents: "none",
+                       transition: "opacity 120ms ease-in-out",
+                       ".mainContainer:hover &": {opacity: 1, pointerEvents: "auto",},
+                       "& .MuiButton-root": {minWidth: 0, padding: "2px", lineHeight: 0,},
+                       "& svg": {width: "20px", height: "20px", display: "block",},
+                   }}
+            >
+                {!period.financial &&
+                    <Tooltip title="Add Financials" placement="left">
+                        <Button onClick={openDialog}>
+                            <FinancialsPlusIcon/>
+                        </Button>
+                    </Tooltip>
+                }
+                <Tooltip title="Add Estimates" placement="left">
+                    <Button>
+                        <EstimatesPlusIcon/>
                     </Button>
                 </Tooltip>
-            }
+            </Stack>
         </BorderedSection>
     )
 }
