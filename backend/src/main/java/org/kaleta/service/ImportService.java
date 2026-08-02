@@ -8,6 +8,9 @@ import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonPriceRange;
 import org.kaleta.model.Company;
 import org.kaleta.model.Periods;
+import org.kaleta.persistence.entity.Period;
+import org.kaleta.persistence.entity.PeriodType;
+import org.kaleta.rest.dto.EstimateImportDto;
 import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDataDto;
 import org.kaleta.rest.dto.PeriodImportDto;
@@ -25,18 +28,21 @@ public class ImportService
     private final PeriodService periodService;
     private final FirebaseService firebaseService;
     private final PolygonClient polygonClient;
+    private final ArithmeticService arithmeticService;
 
     @Inject
     public ImportService(
             CompanyService companyService,
             PeriodService periodService,
             FirebaseService firebaseService,
-            PolygonClient polygonClient)
+            PolygonClient polygonClient,
+            ArithmeticService arithmeticService)
     {
         this.companyService = companyService;
         this.periodService = periodService;
         this.firebaseService = firebaseService;
         this.polygonClient = polygonClient;
+        this.arithmeticService = arithmeticService;
     }
 
     public PeriodImportDataDto getPeriod(Long companyId, String quarterId)
@@ -66,6 +72,45 @@ public class ImportService
             loadPolygonPrices(result, company.getTicker(), firebaseData);
         }
         return result;
+    }
+
+    public EstimateImportDto getEstimate(Long companyId, Long periodId)
+    {
+        org.kaleta.persistence.entity.Company company = companyService.findEntity(companyId);
+        Period period = periodService.get(periodId);
+        if (!companyId.equals(period.getCompany().getId())) {
+            throw new InvalidInputException(
+                    "period with id '" + periodId + "' does not belong to company with id '" + companyId + "'");
+        }
+        if (!isQuarter(period.getName().getType())) {
+            throw new InvalidInputException("period with id '" + periodId + "' is not a quarter");
+        }
+
+        String ticker = company.getTicker();
+        String currentQuarter = period.getName().toString();
+        EstimateImportDto result = new EstimateImportDto();
+        result.setPast4(getEstimate(ticker, currentQuarter, -4));
+        result.setPast3(getEstimate(ticker, currentQuarter, -3));
+        result.setPast2(getEstimate(ticker, currentQuarter, -2));
+        result.setPast1(getEstimate(ticker, currentQuarter, -1));
+        result.setCurrent(getEstimate(ticker, currentQuarter, 0));
+        result.setNext1(getEstimate(ticker, currentQuarter, 1));
+        result.setNext2(getEstimate(ticker, currentQuarter, 2));
+        result.setNext3(getEstimate(ticker, currentQuarter, 3));
+        return result;
+    }
+
+    private EstimateImportDto.Quarter getEstimate(String ticker, String quarterId, int offset)
+    {
+        return firebaseService.getLatestEstimate(ticker, arithmeticService.shiftQuarter(quarterId, offset));
+    }
+
+    private boolean isQuarter(PeriodType periodType)
+    {
+        return periodType == PeriodType.Q1
+                || periodType == PeriodType.Q2
+                || periodType == PeriodType.Q3
+                || periodType == PeriodType.Q4;
     }
 
     private PeriodImportDataDto createPeriodData(

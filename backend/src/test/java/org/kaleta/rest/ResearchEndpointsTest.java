@@ -14,6 +14,7 @@ import org.kaleta.client.dto.PolygonPriceRange;
 import org.kaleta.framework.Assert;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.PeriodName;
+import org.kaleta.rest.dto.EstimateImportDto;
 import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDataDto;
 import org.kaleta.rest.dto.PeriodImportDto;
@@ -23,10 +24,12 @@ import org.kaleta.service.FirebaseService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -253,6 +256,72 @@ public class ResearchEndpointsTest
                 "period '25Q2' is not available for import");
     }
 
+    @Test
+    void importEstimate()
+    {
+        Long companyId = 2281L;
+        Long periodId = 2182L;
+        when(firebaseService.getLatestEstimate("RCH", "24Q1"))
+                .thenReturn(estimate("1", "2024-05-01"));
+        when(firebaseService.getLatestEstimate("RCH", "24Q3"))
+                .thenReturn(estimate("3", "2024-11-01"));
+        when(firebaseService.getLatestEstimate("RCH", "24Q4"))
+                .thenReturn(estimate("4", "2025-02-01"));
+        when(firebaseService.getLatestEstimate("RCH", "25Q1"))
+                .thenReturn(estimate("5", "2025-05-01"));
+        when(firebaseService.getLatestEstimate("RCH", "25Q2"))
+                .thenReturn(estimate("6", "2025-08-01"));
+        when(firebaseService.getLatestEstimate("RCH", "25Q3"))
+                .thenReturn(estimate("7", "2025-11-01"));
+        when(firebaseService.getLatestEstimate("RCH", "25Q4"))
+                .thenReturn(estimate("8", "2026-02-01"));
+
+        io.restassured.response.Response response = given().when()
+                .get("/research/" + companyId + "/import/estimate/" + periodId)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response();
+        Map<String, Object> fields = response.jsonPath().getMap("");
+        EstimateImportDto dto = response.as(EstimateImportDto.class);
+
+        assertThat(fields.keySet(), containsInAnyOrder(
+                "past4", "past3", "past2", "past1", "current", "next1", "next2", "next3"));
+        assertThat(dto.getPast4().getEps(), is("1"));
+        assertThat(dto.getPast4().getDate(), is("2024-05-01"));
+        assertThat(dto.getPast3(), is(nullValue()));
+        assertThat(dto.getPast2().getEps(), is("3"));
+        assertThat(dto.getPast1().getEps(), is("4"));
+        assertThat(dto.getCurrent().getEps(), is("5"));
+        assertThat(dto.getNext1().getEps(), is("6"));
+        assertThat(dto.getNext2().getEps(), is("7"));
+        assertThat(dto.getNext3().getEps(), is("8"));
+    }
+
+    @Test
+    void importEstimate_invalidParameters()
+    {
+        Long companyId = 2281L;
+        Long periodId = 2182L;
+        Long missingId = 4_294_967_295L;
+
+        Assert.getValidationError(
+                "/research/0/import/estimate/" + periodId,
+                VALID_ID);
+        Assert.getValidationError(
+                "/research/" + companyId + "/import/estimate/0",
+                VALID_ID);
+        Assert.get400(
+                "/research/" + missingId + "/import/estimate/" + periodId,
+                "company with id '" + missingId + "' not found");
+        Assert.get400(
+                "/research/" + companyId + "/import/estimate/" + missingId,
+                "period with id '" + missingId + "' not found");
+        Assert.get400(
+                "/research/1927/import/estimate/" + periodId,
+                "period with id '" + periodId + "' does not belong to company with id '1927'");
+    }
+
     private PeriodImportCandidateDto candidate(String name, String endingMonth, boolean reported)
     {
         PeriodImportCandidateDto candidate = new PeriodImportCandidateDto();
@@ -260,6 +329,14 @@ public class ResearchEndpointsTest
         candidate.setEndingMonth(endingMonth);
         candidate.setIsReported(reported);
         return candidate;
+    }
+
+    private EstimateImportDto.Quarter estimate(String eps, String date)
+    {
+        EstimateImportDto.Quarter estimate = new EstimateImportDto.Quarter();
+        estimate.setEps(eps);
+        estimate.setDate(date);
+        return estimate;
     }
 
     private PeriodImportDto firebaseData()

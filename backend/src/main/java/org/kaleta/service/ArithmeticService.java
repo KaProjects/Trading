@@ -5,6 +5,8 @@ import org.kaleta.model.Asset;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
 import org.kaleta.persistence.entity.Latest;
+import org.kaleta.persistence.entity.PeriodName;
+import org.kaleta.persistence.entity.PeriodType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -102,6 +104,29 @@ public class ArithmeticService
         if (a == null && b == null) return true;
         if (a == null || b == null) return false;
         return a.compareTo(b) == 0;
+    }
+
+    public String shiftQuarter(String quarterId, int offset)
+    {
+        PeriodName quarter = PeriodName.valueOf(quarterId);
+        if (!isQuarter(quarter.getType())) {
+            throw new IllegalArgumentException("Period '" + quarterId + "' is not a quarter");
+        }
+
+        int absoluteQuarter = quarter.getYear().getValue() * 4
+                + quarter.getType().getNumber() - 1
+                + offset;
+        int year = Math.floorDiv(absoluteQuarter, 4);
+        int quarterNumber = Math.floorMod(absoluteQuarter, 4) + 1;
+        return String.format("%02dQ%d", Math.floorMod(year, 100), quarterNumber);
+    }
+
+    private boolean isQuarter(PeriodType periodType)
+    {
+        return periodType == PeriodType.Q1
+                || periodType == PeriodType.Q2
+                || periodType == PeriodType.Q3
+                || periodType == PeriodType.Q4;
     }
 
     private BigDecimal limit(BigDecimal max, BigDecimal value){

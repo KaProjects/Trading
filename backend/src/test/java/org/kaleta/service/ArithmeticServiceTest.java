@@ -219,4 +219,24 @@ public class ArithmeticServiceTest
         assertThat(arithmeticService.equalsBigDecimal(new BigDecimal("1.0"), null), is(false));
         assertThat(arithmeticService.equalsBigDecimal(null, null), is(true));
     }
+
+    @Test
+    void shiftQuarter()
+    {
+        assertThat(arithmeticService.shiftQuarter("26Q1", -1), is("25Q4"));
+        assertThat(arithmeticService.shiftQuarter("26Q1", -4), is("25Q1"));
+        assertThat(arithmeticService.shiftQuarter("26Q4", 1), is("27Q1"));
+        assertThat(arithmeticService.shiftQuarter("26Q4", 3), is("27Q3"));
+        assertThat(arithmeticService.shiftQuarter("00Q1", -1), is("99Q4"));
+    }
+
+    @Test
+    void shiftQuarter_rejectsNonQuarterPeriod()
+    {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> arithmeticService.shiftQuarter("26FY", 1));
+
+        assertThat(exception.getMessage(), is("Period '26FY' is not a quarter"));
+    }
 }

@@ -165,7 +165,11 @@ public class PeriodService
     }
 
     public Period get(Long id) {
-        return periodDao.get(id);
+        try {
+            return periodDao.get(id);
+        } catch (NoResultException exception) {
+            throw new InvalidInputException("period with id '" + id + "' not found");
+        }
     }
 
     private void pushFirebase(Period period){

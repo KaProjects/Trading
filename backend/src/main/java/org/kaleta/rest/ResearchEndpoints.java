@@ -108,4 +108,14 @@ public class ResearchEndpoints
         return Response.ok().entity(data).build();
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{companyId}/import/estimate/{periodId}")
+    public Response importEstimate(
+            @NotNull @ValidId @PathParam("companyId") Long companyId,
+            @NotNull @ValidId @PathParam("periodId") Long periodId)
+    {
+        return Response.ok().entity(importService.getEstimate(companyId, periodId)).build();
+    }
+
 }

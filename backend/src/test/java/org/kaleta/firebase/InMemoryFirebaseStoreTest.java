@@ -10,6 +10,7 @@ import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
+import org.kaleta.rest.dto.EstimateImportDto;
 import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.error.InvalidInputException;
@@ -26,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class InMemoryFirebaseStoreTest
@@ -178,6 +180,21 @@ class InMemoryFirebaseStoreTest
         assertThat(earnings.getReport(), is("2026-04-27-bmo"));
         assertThat(earnings.getReva(), is("44100000000"));
         assertThat(earnings.getReve(), is("44000000000"));
+    }
+
+    @Test
+    void readsLatestEpsEstimate()
+    {
+        EstimateImportDto.Quarter actual = firebaseService.getLatestEstimate("NVDA", "25Q1");
+        EstimateImportDto.Quarter estimated = firebaseService.getLatestEstimate("NVDA", "25Q2");
+
+        assertThat(actual.getEps(), is("1.30"));
+        assertThat(actual.getDate(), is("2025-05-21"));
+        assertThat(estimated.getEps(), is("1.40"));
+        assertThat(estimated.getDate(), is("2025-08-27"));
+        assertThat(firebaseService.getLatestEstimate("NVDA", "25Q3"), is(nullValue()));
+        assertThat(firebaseService.getLatestEstimate("NVDA", "25Q4"), is(nullValue()));
+        assertThat(firebaseService.getLatestEstimate("AMD", "25Q1"), is(nullValue()));
     }
 
     @Test
