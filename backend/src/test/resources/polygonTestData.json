@@ -1,0 +1,21 @@
+{
+  "financials": {
+    "INTC": {
+      "2026Q1": {
+        "shares": 5083000000,
+        "revenue": 13577000000,
+        "grossProfit": 5350000000,
+        "operatingIncome": -3140000000,
+        "netIncome": -3730000000
+      }
+    }
+  },
+  "priceRanges": {
+    "INTC": {
+      "2026-01-22:2026-04-23": {
+        "high": 70.33,
+        "low": 40.63
+      }
+    }
+  }
+}
