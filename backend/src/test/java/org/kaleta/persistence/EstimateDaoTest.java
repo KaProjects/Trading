@@ -26,8 +26,11 @@ class EstimateDaoTest
     {
         List<Estimate> estimates = estimateDao.list(1L);
 
-        assertThat(estimates.size(), is(1));
-        Estimate estimate = estimates.getFirst();
+        assertThat(estimates.size(), is(2));
+        Estimate estimate = estimates.stream()
+                .filter(value -> value.getId().equals(1L))
+                .findFirst()
+                .orElseThrow();
         assertThat(estimate.getId(), is(1L));
         assertThat(estimate.getPeriod().getId(), is(1L));
         assertThat(estimate.getDatetime(), is(LocalDateTime.parse("2026-08-01T12:30:00")));
@@ -36,5 +39,16 @@ class EstimateDaoTest
         assertBigDecimals(estimate.getNext1(), new BigDecimal("12.75"));
         assertBigDecimals(estimate.getNext2(), new BigDecimal("14.00"));
         assertThat(estimate.getNext3(), is(nullValue()));
+    }
+
+    @Test
+    void findLatestByPeriod()
+    {
+        Estimate latest = estimateDao.findLatest(1L).orElseThrow();
+
+        assertThat(latest.getId(), is(3L));
+        assertThat(latest.getDatetime(), is(LocalDateTime.parse("2026-08-02T12:30:00")));
+        assertBigDecimals(latest.getTtm(), new BigDecimal("30.25"));
+        assertThat(estimateDao.findLatest(3L).isEmpty(), is(true));
     }
 }

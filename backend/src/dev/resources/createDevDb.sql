@@ -75,6 +75,11 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gro
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1258, 2212, '25Q2', '2507', '2025-08-05', '1610', '835', '355', '220', '0', '1270', '182', '120');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1259, 2212, '25Q4', '2601', '2026-02-03', '1980', '1040', '455', '305', '0', '1240', '205', '151');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1260, 2212, '26Q1', '2604', '2026-05-05', '2180', '1160', '525', '365', '0', '1225', '190', '135');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (1268, 2212, '26Q2', '2607');
+
+-- Saved analyst snapshots for AMD's unreported quarter.
+INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2, next3) VALUES (1401, 1268, '2026-07-20 09:00:00', '4.27', '1.44', '1.82', '2.55', '2.70');
+INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2, next3) VALUES (1402, 1268, '2026-08-01 18:30:00', '4.45', '1.62', '1.85', '2.64', '2.76');
 
 
 -- Full-year and half-year histories exercise their separate growth rules.
