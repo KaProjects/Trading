@@ -60,6 +60,7 @@ const FinancialField = ({field, period, setPeriod, suggestions, setSuggestions, 
     function applySuggestion(source) {
         const value = suggestions[source]?.[field.key]
         setPeriod(previous => ({...previous, [field.key]: value}))
+        clearAlert()
         setSuggestions(previous => ({
             ...previous,
             [source]: {...previous[source], [field.key]: undefined},

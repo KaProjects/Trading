@@ -271,6 +271,40 @@ describe("ImportPeriodDialog", () => {
         })).toBeInTheDocument();
     });
 
+    test("clears a failed import alert whenever a field is edited", async () => {
+        axios.get.mockResolvedValue({data: createImportData()});
+        axios.post.mockRejectedValue({message: "invalid import"});
+
+        render(<ImportPeriodDialog {...createProps()}/>);
+
+        fireEvent.click(screen.getByText("24Q1"));
+        await screen.findByLabelText("Name");
+
+        fireEvent.change(screen.getByLabelText("Shares (in Millions)"), {target: {value: "10"}});
+        fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "20"}});
+        fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "30"}});
+        fireEvent.change(screen.getByLabelText("Operating Income (in Millions)"), {target: {value: "40"}});
+        fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "50"}});
+        fireEvent.change(screen.getByLabelText("Dividend (in Millions)"), {target: {value: "60"}});
+        fireEvent.change(screen.getByLabelText("Highest Price"), {target: {value: "140.25"}});
+        fireEvent.change(screen.getByLabelText("Lowest Price"), {target: {value: "90.75"}});
+        fireEvent.click(screen.getByRole("button", {name: "Create"}));
+
+        expect(await screen.findByText("Import failed")).toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "21"}});
+        expect(screen.queryByText("Import failed")).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Create"}));
+        expect(await screen.findByText("Import failed")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Firebase value for Revenue (in Millions)",
+        }));
+
+        expect(screen.queryByText("Import failed")).not.toBeInTheDocument();
+    });
+
     test("shows the backend failure reason and returns to the period list", async () => {
         const error = {name: "AxiosError", message: "backend unavailable"};
         axios.get.mockRejectedValue(error);
