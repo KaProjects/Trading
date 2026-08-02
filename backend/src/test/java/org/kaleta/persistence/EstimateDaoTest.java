@@ -35,7 +35,6 @@ class EstimateDaoTest
         assertThat(estimate.getId(), is(1L));
         assertThat(estimate.getPeriod().getId(), is(1L));
         assertThat(estimate.getDatetime(), is(LocalDateTime.parse("2026-08-01T12:30:00")));
-        assertBigDecimals(estimate.getTtm(), new BigDecimal("10.25"));
         assertBigDecimals(estimate.getCurrent(), new BigDecimal("11.50"));
         assertBigDecimals(estimate.getNext1(), new BigDecimal("12.75"));
         assertBigDecimals(estimate.getNext2(), new BigDecimal("14.00"));
@@ -49,7 +48,6 @@ class EstimateDaoTest
 
         assertThat(latest.getId(), is(3L));
         assertThat(latest.getDatetime(), is(LocalDateTime.parse("2026-08-02T12:30:00")));
-        assertBigDecimals(latest.getTtm(), new BigDecimal("30.25"));
         assertThat(estimateDao.findLatest(3L).isEmpty(), is(true));
     }
 

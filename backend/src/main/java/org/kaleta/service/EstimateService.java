@@ -43,7 +43,6 @@ public class EstimateService
         Estimate estimate = new Estimate();
         estimate.setPeriod(periodService.get(periodId));
         estimate.setDatetime(LocalDateTime.now());
-        estimate.setTtm(new BigDecimal(dto.getTtm()));
         estimate.setCurrent(new BigDecimal(dto.getCurrent()));
         estimate.setNext1(Utils.createNullableBigDecimal(dto.getNext1()));
         estimate.setNext2(Utils.createNullableBigDecimal(dto.getNext2()));
@@ -57,7 +56,6 @@ public class EstimateService
         dto.setId(estimate.getId());
         dto.setPeriodId(estimate.getPeriod().getId());
         dto.setDatetime(estimate.getDatetime());
-        dto.setTtm(estimate.getTtm());
         dto.setCurrent(estimate.getCurrent());
         dto.setNext1(estimate.getNext1());
         dto.setNext2(estimate.getNext2());

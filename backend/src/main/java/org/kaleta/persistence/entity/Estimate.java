@@ -20,9 +20,6 @@ public class Estimate extends AbstractEntity
     @Column(name = "datetime", nullable = false)
     private LocalDateTime datetime;
 
-    @Column(name = "ttm", nullable = false)
-    private BigDecimal ttm;
-
     @Column(name = "current", nullable = false)
     private BigDecimal current;
 

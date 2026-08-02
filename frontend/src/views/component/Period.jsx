@@ -26,8 +26,7 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
             .filter(value => value !== null && value !== undefined)
             .map(value => " | " + formatDecimals(value, 0, 2))
             .join("")
-        return "Estimates: " + formatDecimals(estimate.ttm, 0, 2)
-            + " |> " + formatDecimals(estimate.current, 0, 2)
+        return "Estimates: " + formatDecimals(estimate.current, 0, 2)
             + future
     }
 

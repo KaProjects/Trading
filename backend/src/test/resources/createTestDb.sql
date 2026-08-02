@@ -62,9 +62,9 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gro
 
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (1839, 1041, '22Q2', '2501', '2025-02-15');
 
-INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2) VALUES (1, 1, '2026-08-01 12:30:00', '10.25', '11.50', '12.75', '14.00');
-INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2, next3) VALUES (2, 2, '2026-08-01 13:30:00', '20.25', '21.50', '22.75', '24.00', '25.25');
-INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2, next3) VALUES (3, 1, '2026-08-02 12:30:00', '30.25', '31.50', '32.75', '34.00', '35.25');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1, 1, '2026-08-01 12:30:00', '11.50', '12.75', '14.00');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (2, 2, '2026-08-01 13:30:00', '21.50', '22.75', '24.00', '25.25');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (3, 1, '2026-08-02 12:30:00', '31.50', '32.75', '34.00', '35.25');
 
 
 -- for rest.*EndpointsTest.create tests
@@ -98,7 +98,7 @@ INSERT INTO Company (id, ticker, currency, watching) VALUES (2281, 'RCH', '$', t
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares) VALUES (1837, 2281, '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20', '100');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES (2182, 2281, '25Q1', '2504');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares) VALUES (1338, 2281, '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10', '90');
-INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1) VALUES (4, 2182, '2026-08-02 14:30:00', '4.45', '1.62', '1.85');
+INSERT INTO Estimate (id, periodId, datetime, current, next1) VALUES (4, 2182, '2026-08-02 14:30:00', '1.62', '1.85');
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1838, 2281, '2025-10-27 14:35:00', '1234');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (2095, 2281, '10', '2021-01-05', '90', '10');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (2177, 2281, '20', '2020-12-30', '180', '10');

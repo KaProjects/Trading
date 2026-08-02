@@ -67,7 +67,6 @@ class EstimateServiceTest
         assertThat(dto.getId(), is(estimate.getId()));
         assertThat(dto.getPeriodId(), is(period.getId()));
         assertThat(dto.getDatetime(), is(estimate.getDatetime()));
-        assertBigDecimals(dto.getTtm(), estimate.getTtm());
         assertBigDecimals(dto.getCurrent(), estimate.getCurrent());
         assertBigDecimals(dto.getNext1(), estimate.getNext1());
         assertBigDecimals(dto.getNext2(), estimate.getNext2());
@@ -111,7 +110,6 @@ class EstimateServiceTest
         assertThat(estimate.getDatetime(), is(notNullValue()));
         assertFalse(estimate.getDatetime().isBefore(before));
         assertFalse(estimate.getDatetime().isAfter(after));
-        assertBigDecimals(estimate.getTtm(), new BigDecimal("10.25"));
         assertBigDecimals(estimate.getCurrent(), new BigDecimal("11.50"));
         assertBigDecimals(estimate.getNext1(), new BigDecimal("12.75"));
         assertThat(estimate.getNext2(), is(nullValue()));
@@ -138,7 +136,6 @@ class EstimateServiceTest
         estimate.setId(id);
         estimate.setPeriod(period);
         estimate.setDatetime(LocalDateTime.parse(datetime));
-        estimate.setTtm(new BigDecimal("10.25"));
         estimate.setCurrent(new BigDecimal("11.50"));
         estimate.setNext1(new BigDecimal("12.75"));
         estimate.setNext2(new BigDecimal("13.25"));
@@ -148,7 +145,6 @@ class EstimateServiceTest
     private EstimateCreateDto createDto()
     {
         EstimateCreateDto dto = new EstimateCreateDto();
-        dto.setTtm("10.25");
         dto.setCurrent("11.50");
         dto.setNext1("12.75");
         dto.setNext3("14.25");

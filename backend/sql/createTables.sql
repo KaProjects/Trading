@@ -72,6 +72,7 @@ CREATE TABLE Period
     oper_income  DECIMAL(8, 2),
     net_income   DECIMAL(8, 2),
     dividend     DECIMAL(8, 2),
+    adjusted_eps DECIMAL(6, 2),
     companyId    INT UNSIGNED  NOT NULL,
     CONSTRAINT `fk_periodCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
@@ -87,7 +88,6 @@ CREATE TABLE Estimate
 (
     id           INT UNSIGNED    NOT NULL AUTO_INCREMENT PRIMARY KEY,
     datetime     DATETIME        NOT NULL,
-    ttm          DECIMAL(6, 2)   NOT NULL,
     current      DECIMAL(6, 2)   NOT NULL,
     next1        DECIMAL(6, 2),
     next2        DECIMAL(6, 2),

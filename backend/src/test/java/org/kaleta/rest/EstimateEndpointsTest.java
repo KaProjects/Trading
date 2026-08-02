@@ -45,7 +45,6 @@ class EstimateEndpointsTest
         assertThat(dto.getId(), is(3L));
         assertThat(dto.getPeriodId(), is(1L));
         assertThat(dto.getDatetime(), is(LocalDateTime.parse("2026-08-02T12:30:00")));
-        assertBigDecimals(dto.getTtm(), new BigDecimal("30.25"));
         assertBigDecimals(dto.getCurrent(), new BigDecimal("31.50"));
         assertBigDecimals(dto.getNext1(), new BigDecimal("32.75"));
         assertBigDecimals(dto.getNext2(), new BigDecimal("34.00"));
@@ -86,7 +85,6 @@ class EstimateEndpointsTest
         assertThat(estimate.getId(), is(notNullValue()));
         assertThat(estimate.getPeriod().getId(), is(periodId));
         assertThat(estimate.getDatetime(), is(notNullValue()));
-        assertBigDecimals(estimate.getTtm(), new BigDecimal(dto.getTtm()));
         assertBigDecimals(estimate.getCurrent(), new BigDecimal(dto.getCurrent()));
         assertBigDecimals(estimate.getNext1(), new BigDecimal(dto.getNext1()));
         assertThat(estimate.getNext2(), is(nullValue()));
@@ -106,12 +104,6 @@ class EstimateEndpointsTest
                 PATH + "/" + missingPeriodId,
                 dto,
                 "period with id '" + missingPeriodId + "' not found");
-
-        dto.setTtm(null);
-        Assert.postValidationError(PATH + "/" + periodId, dto, NOT_NULL);
-        dto.setTtm("x");
-        Assert.postValidationError(PATH + "/" + periodId, dto, BIG_DECIMAL_4_2_true);
-        dto.setTtm("10.25");
 
         dto.setCurrent(null);
         Assert.postValidationError(PATH + "/" + periodId, dto, NOT_NULL);
@@ -134,7 +126,6 @@ class EstimateEndpointsTest
     private EstimateCreateDto validDto()
     {
         EstimateCreateDto dto = new EstimateCreateDto();
-        dto.setTtm("-10.25");
         dto.setCurrent("11.50");
         dto.setNext1("12.75");
         dto.setNext3("14.25");

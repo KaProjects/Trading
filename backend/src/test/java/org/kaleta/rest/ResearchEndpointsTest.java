@@ -86,7 +86,6 @@ public class ResearchEndpointsTest
         assertThat(dto.getPeriods().get(1).getCachedData(), is(nullValue()));
         assertThat(dto.getPeriods().get(2).getCachedData(), is(nullValue()));
         assertThat(dto.getPeriods().get(0).getEstimate(), is(notNullValue()));
-        assertBigDecimals(dto.getPeriods().get(0).getEstimate().getTtm(), new BigDecimal("4.45"));
         assertBigDecimals(dto.getPeriods().get(0).getEstimate().getCurrent(), new BigDecimal("1.62"));
         assertBigDecimals(dto.getPeriods().get(0).getEstimate().getNext1(), new BigDecimal("1.85"));
         assertThat(dto.getPeriods().get(0).getEstimate().getNext2(), is(nullValue()));

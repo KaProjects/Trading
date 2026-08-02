@@ -9,10 +9,6 @@ public class EstimateCreateDto
 {
     @NotNull
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
-    private String ttm;
-
-    @NotNull
-    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
     private String current;
 
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
