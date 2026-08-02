@@ -27,5 +27,6 @@ public class PeriodImportDataDto
         private String operatingIncome;
         private String netIncome;
         private String dividend;
+        private String adjustedEps;
     }
 }

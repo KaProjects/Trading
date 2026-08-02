@@ -92,6 +92,7 @@ INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALU
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1261, 2214, '23FY', '2312', '2024-01-25', '5200', '2180', '120', '-80', '45', '1350', '51', '24');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1262, 2214, '24FY', '2412', '2025-01-30', '5480', '2320', '180', '-50', '48', '1330', '50', '18');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1263, 2214, '25FY', '2512', '2026-01-29', '5790', '2510', '260', '30', '50', '1310', '29', '17');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (1269, 2214, '26Q1', '2601');
 
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1264, 2073, '24H1', '2406', '2024-08-01', '780', '430', '185', '105', '12', '420', '78', '54');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1265, 2073, '24H2', '2412', '2025-02-03', '840', '475', '205', '120', '14', '418', '84', '62');

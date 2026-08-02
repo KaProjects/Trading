@@ -70,6 +70,8 @@ public class ImportService
         if (Boolean.TRUE.equals(candidate.getIsReported())) {
             loadPolygonFinancials(result, company.getTicker(), quarterId);
             loadPolygonPrices(result, company.getTicker(), firebaseData);
+            result.getPolygon().setAdjustedEps(
+                    firebaseService.getLatestActualEps(company.getTicker(), quarterId));
         }
         return result;
     }
@@ -132,6 +134,7 @@ public class ImportService
         firebase.setOperatingIncome(firebaseData.getOperatingIncome());
         firebase.setNetIncome(firebaseData.getNetIncome());
         firebase.setDividend(firebaseData.getDividend());
+        firebase.setAdjustedEps(firebaseData.getAdjustedEps());
         return result;
     }
 

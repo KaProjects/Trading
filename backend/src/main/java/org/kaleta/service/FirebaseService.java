@@ -74,22 +74,20 @@ public class FirebaseService
 
     public EstimateImportDto.Quarter getLatestEstimate(String ticker, String quarterId)
     {
-        FirebaseCompany company = firebaseStore.findCompany(ticker).orElse(null);
-        if (company == null || company.getFhe() == null) return null;
-
-        Map<String, FirebaseCompany.FinnhubEarnings> estimates = company.getFhe().get(quarterId);
-        if (estimates == null || estimates.isEmpty()) return null;
-
-        FirebaseCompany.FinnhubEarnings latest = estimates.entrySet().stream()
-                .max(Map.Entry.comparingByKey())
-                .map(Map.Entry::getValue)
-                .orElse(null);
+        FirebaseCompany.FinnhubEarnings latest = getLatestEarnings(ticker, quarterId);
         if (latest == null) return null;
 
         EstimateImportDto.Quarter quarter = new EstimateImportDto.Quarter();
         quarter.setEps(firstNonBlank(latest.getEpsa(), latest.getEpse()));
         quarter.setDate(reportDate(latest.getReport()));
         return quarter;
+    }
+
+    public String getLatestActualEps(String ticker, String quarterId)
+    {
+        FirebaseCompany.FinnhubEarnings latest = getLatestEarnings(ticker, quarterId);
+        if (latest == null || latest.getEpsa() == null || latest.getEpsa().isBlank()) return null;
+        return latest.getEpsa();
     }
 
     public void updatePeriod(Period period)
@@ -110,8 +108,23 @@ public class FirebaseService
         quarter.setReported_operating_income(toString(period.getOperatingIncome()));
         quarter.setReported_net_income(toString(period.getNetIncome()));
         quarter.setReported_div(toString(period.getDividend()));
+        quarter.setReported_eps(toString(period.getAdjustedEps()));
 
         firebaseStore.saveQuarter(ticker, quarterId, quarter);
+    }
+
+    private FirebaseCompany.FinnhubEarnings getLatestEarnings(String ticker, String quarterId)
+    {
+        FirebaseCompany company = firebaseStore.findCompany(ticker).orElse(null);
+        if (company == null || company.getFhe() == null) return null;
+
+        Map<String, FirebaseCompany.FinnhubEarnings> estimates = company.getFhe().get(quarterId);
+        if (estimates == null || estimates.isEmpty()) return null;
+
+        return estimates.entrySet().stream()
+                .max(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
+                .orElse(null);
     }
 
     private String toString(Object object)

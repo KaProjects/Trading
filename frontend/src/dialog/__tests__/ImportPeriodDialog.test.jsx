@@ -98,6 +98,7 @@ function createImportData(overrides = {}) {
             operatingIncome: "41",
             netIncome: "51",
             dividend: "61",
+            adjustedEps: "1.21",
             priceHigh: "141",
             priceLow: "91",
         },
@@ -108,6 +109,7 @@ function createImportData(overrides = {}) {
             operatingIncome: "40",
             netIncome: "50",
             dividend: null,
+            adjustedEps: "1.18",
             priceHigh: "140.25",
             priceLow: "90.75",
         },
@@ -127,7 +129,7 @@ describe("ImportPeriodDialog", () => {
         });
     });
 
-    test("loads a reported period with separate Firebase and Polygon suggestions", async () => {
+    test("loads a reported period with separate Gemini and third-party suggestions", async () => {
         axios.get.mockResolvedValue({data: createImportData()});
         axios.post.mockResolvedValue({});
 
@@ -144,14 +146,20 @@ describe("ImportPeriodDialog", () => {
         expect(screen.getByRole("heading", {name: "Import Period 24Q1"})).toBeInTheDocument();
         expect(screen.getByLabelText("Ending Month")).toHaveValue("2024-03");
         expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
-        expect(screen.getByText("Firebase")).toBeInTheDocument();
-        expect(screen.getByText("Polygon.io")).toBeInTheDocument();
+        expect(screen.getByText("Gemini")).toBeInTheDocument();
+        expect(screen.getByText("3rd party")).toBeInTheDocument();
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("");
+        expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("");
 
         fireEvent.click(await screen.findByRole("button", {
-            name: "Use Polygon.io value for Shares (in Millions)",
+            name: "Use 3rd party value for Shares (in Millions)",
         }));
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("10");
+
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use 3rd party value for Adjusted EPS",
+        }));
+        expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("1.18");
 
         fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "20"}});
         fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "30"}});
@@ -175,6 +183,7 @@ describe("ImportPeriodDialog", () => {
             operatingIncome: "40",
             netIncome: "50",
             dividend: "60",
+            adjustedEps: "1.18",
             priceHigh: "140.25",
             priceLow: "90.75",
         }));
@@ -208,8 +217,8 @@ describe("ImportPeriodDialog", () => {
         expect(screen.getByLabelText("Ending Month")).toHaveValue("2024-06");
         expect(screen.queryByLabelText("Report Date")).not.toBeInTheDocument();
         expect(axios.get).not.toHaveBeenCalled();
-        expect(screen.queryByText("Firebase")).not.toBeInTheDocument();
-        expect(screen.queryByText("Polygon.io")).not.toBeInTheDocument();
+        expect(screen.queryByText("Gemini")).not.toBeInTheDocument();
+        expect(screen.queryByText("3rd party")).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByText("Back"));
 
@@ -247,6 +256,7 @@ describe("ImportPeriodDialog", () => {
                 operatingIncome: null,
                 netIncome: null,
                 dividend: null,
+                adjustedEps: null,
                 priceHigh: "140.25",
                 priceLow: "90.75",
             },
@@ -263,11 +273,11 @@ describe("ImportPeriodDialog", () => {
         )).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole("button", {
-            name: "Use Firebase value for Revenue (in Millions)",
+            name: "Use Gemini value for Revenue (in Millions)",
         }));
         expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("21");
         expect(screen.getByRole("button", {
-            name: "Use Polygon.io value for Highest Price",
+            name: "Use 3rd party value for Highest Price",
         })).toBeInTheDocument();
     });
 
@@ -286,6 +296,7 @@ describe("ImportPeriodDialog", () => {
         fireEvent.change(screen.getByLabelText("Operating Income (in Millions)"), {target: {value: "40"}});
         fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "50"}});
         fireEvent.change(screen.getByLabelText("Dividend (in Millions)"), {target: {value: "60"}});
+        fireEvent.change(screen.getByLabelText("Adjusted EPS"), {target: {value: "1.18"}});
         fireEvent.change(screen.getByLabelText("Highest Price"), {target: {value: "140.25"}});
         fireEvent.change(screen.getByLabelText("Lowest Price"), {target: {value: "90.75"}});
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
@@ -299,7 +310,7 @@ describe("ImportPeriodDialog", () => {
         expect(await screen.findByText("Import failed")).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole("button", {
-            name: "Use Firebase value for Revenue (in Millions)",
+            name: "Use Gemini value for Revenue (in Millions)",
         }));
 
         expect(screen.queryByText("Import failed")).not.toBeInTheDocument();

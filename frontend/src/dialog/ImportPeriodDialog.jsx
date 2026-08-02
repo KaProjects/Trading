@@ -8,7 +8,6 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    Stack,
     Tooltip,
     Typography
 } from "@mui/material";
@@ -27,13 +26,21 @@ const EMPTY_VALUES = {
     operatingIncome: "",
     netIncome: "",
     dividend: "",
+    adjustedEps: "",
     priceHigh: "",
     priceLow: "",
 }
 
 const SOURCE_STYLE = {
-    firebase: {label: "Firebase", color: "success"},
-    polygon: {label: "Polygon.io", color: "info"},
+    firebase: {label: "Gemini", color: "success"},
+    polygon: {label: "3rd party", color: "info"},
+}
+
+const FINANCIAL_GRID_STYLE = {
+    display: "grid",
+    gridTemplateColumns: "minmax(230px, 1fr) 120px 120px",
+    columnGap: 2,
+    alignItems: "center",
 }
 
 const SourceSuggestion = ({source, fieldLabel, value, apply}) => {
@@ -68,7 +75,7 @@ const FinancialField = ({field, period, setPeriod, suggestions, setSuggestions, 
     }
 
     return (
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Box sx={FINANCIAL_GRID_STYLE}>
             <DialogTextField
                 id={field.id}
                 value={period[field.key]}
@@ -101,7 +108,7 @@ const FinancialField = ({field, period, setPeriod, suggestions, setSuggestions, 
                 value={suggestions.polygon?.[field.key]}
                 apply={() => applySuggestion("polygon")}
             />
-        </Stack>
+        </Box>
     )
 }
 
@@ -153,6 +160,14 @@ const FINANCIAL_FIELDS = [
         integerConstraint: 8,
         decimalConstraint: 2,
         allowNegative: false,
+    },
+    {
+        key: "adjustedEps",
+        id: "company-financial-adjusted-eps",
+        label: "Adjusted EPS",
+        integerConstraint: 6,
+        decimalConstraint: 2,
+        allowNegative: true,
     },
     {
         key: "priceHigh",
@@ -306,31 +321,35 @@ export const ImportPeriodDialog = props => {
                                     </Alert>
                                 }
 
-                                <Stack direction="row" alignItems="center">
-                                    <Box sx={{flex: 1}} />
-                                    {Object.entries(SOURCE_STYLE).map(([source, style]) => (
-                                        <Tooltip key={source} title={`${style.label} suggestions`}>
-                                            <Typography
-                                                sx={{minWidth: 120, textAlign: "center", fontWeight: 600}}
-                                                color={`${style.color}.main`}
-                                            >
-                                                {style.label}
-                                            </Typography>
-                                        </Tooltip>
-                                    ))}
-                                </Stack>
+                                <Box>
+                                    <Box sx={FINANCIAL_GRID_STYLE}>
+                                        <Box />
+                                        {Object.entries(SOURCE_STYLE).map(([source, style]) => (
+                                            <Tooltip key={source} title={`${style.label} suggestions`}>
+                                                <Typography
+                                                    sx={{textAlign: "center", fontWeight: 600}}
+                                                    color={`${style.color}.main`}
+                                                >
+                                                    {style.label}
+                                                </Typography>
+                                            </Tooltip>
+                                        ))}
+                                    </Box>
 
-                                {FINANCIAL_FIELDS.map(field => (
-                                    <FinancialField
-                                        key={field.key}
-                                        field={field}
-                                        period={period}
-                                        setPeriod={setPeriod}
-                                        suggestions={suggestions}
-                                        setSuggestions={setSuggestions}
-                                        clearAlert={() => setAlert(null)}
-                                    />
-                                ))}
+                                    <Box sx={{display: "flex", flexDirection: "column", gap: 0.5}}>
+                                        {FINANCIAL_FIELDS.map(field => (
+                                            <FinancialField
+                                                key={field.key}
+                                                field={field}
+                                                period={period}
+                                                setPeriod={setPeriod}
+                                                suggestions={suggestions}
+                                                setSuggestions={setSuggestions}
+                                                clearAlert={() => setAlert(null)}
+                                            />
+                                        ))}
+                                    </Box>
+                                </Box>
                             </>
                         }
                     </>

@@ -906,6 +906,7 @@ public class PeriodServiceTest
         createDto.setOperatingIncome(operatingIncome);
         createDto.setNetIncome(netIncome);
         createDto.setDividend(dividend);
+        createDto.setAdjustedEps("-1.25");
 
         if (expectedException == null) {
             periodService.create(createDto);
@@ -925,6 +926,7 @@ public class PeriodServiceTest
             assertBigDecimals(captor.getValue().getOperatingIncome(), Utils.createNullableBigDecimal(operatingIncome));
             assertBigDecimals(captor.getValue().getNetIncome(), Utils.createNullableBigDecimal(netIncome));
             assertBigDecimals(captor.getValue().getDividend(), Utils.createNullableBigDecimal(dividend));
+            assertBigDecimals(captor.getValue().getAdjustedEps(), new BigDecimal("-1.25"));
 
             clearInvocations(periodDao);
         } else {

@@ -183,6 +183,7 @@ public class ResearchEndpointsTest
         PeriodImportDto firebaseData = firebaseData();
         when(firebaseService.getNewerPeriods("RCH", "25Q1")).thenReturn(List.of(candidate));
         when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData);
+        when(firebaseService.getLatestActualEps("RCH", "25Q2")).thenReturn("1.27");
         when(polygonClient.getFinancials("RCH", "2025", "Q2")).thenReturn(Optional.of(
                 new PolygonFinancials(
                         new BigDecimal("10000000"),
@@ -209,15 +210,18 @@ public class ResearchEndpointsTest
         assertThat(dto.getFirebase().getShares(), is("101"));
         assertThat(dto.getFirebase().getRevenue(), is("201"));
         assertThat(dto.getFirebase().getDividend(), is("6"));
+        assertThat(dto.getFirebase().getAdjustedEps(), is("1.25"));
         assertThat(dto.getPolygon().getShares(), is("10"));
         assertThat(dto.getPolygon().getRevenue(), is("20"));
         assertThat(dto.getPolygon().getGrossProfit(), is("30"));
         assertThat(dto.getPolygon().getOperatingIncome(), is("40"));
         assertThat(dto.getPolygon().getNetIncome(), is("50"));
+        assertThat(dto.getPolygon().getAdjustedEps(), is("1.27"));
         assertThat(dto.getPolygon().getPriceHigh(), is("140.25"));
         assertThat(dto.getPolygon().getPriceLow(), is("90.75"));
         assertThat(dto.getWarnings().size(), is(0));
         verify(firebaseService).getPeriod("RCH", "25Q2");
+        verify(firebaseService).getLatestActualEps("RCH", "25Q2");
         verify(polygonClient).getFinancials("RCH", "2025", "Q2");
         verify(polygonClient).getPriceRange("RCH", "2025-05-28", "2025-08-27");
     }
@@ -362,6 +366,7 @@ public class ResearchEndpointsTest
         data.setOperatingIncome("51");
         data.setNetIncome("31");
         data.setDividend("6");
+        data.setAdjustedEps("1.25");
         data.setPriceHigh("151.5");
         data.setPriceLow("81.5");
         return data;

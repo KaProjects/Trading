@@ -62,6 +62,7 @@ public class PeriodService
         period.setOperatingIncome(Utils.createNullableBigDecimal(dto.getOperatingIncome()));
         period.setNetIncome(Utils.createNullableBigDecimal(dto.getNetIncome()));
         period.setDividend(Utils.createNullableBigDecimal(dto.getDividend()));
+        period.setAdjustedEps(Utils.createNullableBigDecimal(dto.getAdjustedEps()));
 
         periodDao.create(period);
         pushFirebase(period);

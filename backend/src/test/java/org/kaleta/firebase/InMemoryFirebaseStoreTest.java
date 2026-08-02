@@ -114,6 +114,7 @@ class InMemoryFirebaseStoreTest
         assertThat(periods.get(0).getIsReported(), is(true));
         assertThat(periods.get(1).getName(), is("25Q1"));
         assertThat(firebaseService.getPeriod("NVDA", "25Q1").getEndingMonth(), is("2025-04"));
+        assertThat(firebaseService.getPeriod("NVDA", "25Q1").getAdjustedEps(), is("1.28"));
         assertThat(firebaseService.getNewerPeriods("AMD", "24Q4"), is(empty()));
     }
 
@@ -192,6 +193,8 @@ class InMemoryFirebaseStoreTest
         assertThat(actual.getDate(), is("2025-05-21"));
         assertThat(estimated.getEps(), is("1.40"));
         assertThat(estimated.getDate(), is("2025-08-27"));
+        assertThat(firebaseService.getLatestActualEps("NVDA", "25Q1"), is("1.30"));
+        assertThat(firebaseService.getLatestActualEps("NVDA", "25Q2"), is(nullValue()));
         assertThat(firebaseService.getLatestEstimate("NVDA", "25Q3"), is(nullValue()));
         assertThat(firebaseService.getLatestEstimate("NVDA", "25Q4"), is(nullValue()));
         assertThat(firebaseService.getLatestEstimate("AMD", "25Q1"), is(nullValue()));
@@ -237,6 +240,7 @@ class InMemoryFirebaseStoreTest
         period.setGrossProfit(new BigDecimal("22000"));
         period.setOperatingIncome(new BigDecimal("20000"));
         period.setNetIncome(new BigDecimal("19000"));
+        period.setAdjustedEps(new BigDecimal("1.35"));
 
         firebaseService.updatePeriod(period);
 
@@ -255,5 +259,6 @@ class InMemoryFirebaseStoreTest
         assertThat(quarter.getReported_operating_income(), is("20000"));
         assertThat(quarter.getReported_net_income(), is("19000"));
         assertThat(quarter.getReported_div(), is(""));
+        assertThat(quarter.getReported_eps(), is("1.35"));
     }
 }

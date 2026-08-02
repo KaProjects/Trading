@@ -139,6 +139,7 @@ class PeriodEndpointsTest
         dto.setOperatingIncome("-10");
         dto.setNetIncome("-5");
         dto.setDividend("2");
+        dto.setAdjustedEps("-1.25");
 
         Assert.post201(path + "/import", dto);
 
@@ -158,6 +159,7 @@ class PeriodEndpointsTest
         assertBigDecimals(period.getOperatingIncome(), new BigDecimal(dto.getOperatingIncome()));
         assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
         assertBigDecimals(period.getDividend(), new BigDecimal(dto.getDividend()));
+        assertBigDecimals(period.getAdjustedEps(), new BigDecimal(dto.getAdjustedEps()));
     }
 
     @Test
@@ -185,6 +187,7 @@ class PeriodEndpointsTest
         assertThat(period.getOperatingIncome(), is(nullValue()));
         assertThat(period.getNetIncome(), is(nullValue()));
         assertThat(period.getDividend(), is(nullValue()));
+        assertThat(period.getAdjustedEps(), is(nullValue()));
     }
 
     @Test
@@ -245,6 +248,7 @@ class PeriodEndpointsTest
         String validOperatingIncome = "-10";
         String validNetIncome = "-5";
         String validDividend = "2";
+        String validAdjustedEps = "-1.25";
 
         Assert.postValidationError(path + "/import", null, NOT_NULL);
 
@@ -261,6 +265,7 @@ class PeriodEndpointsTest
         dto.setOperatingIncome(validOperatingIncome);
         dto.setNetIncome(validNetIncome);
         dto.setDividend(validDividend);
+        dto.setAdjustedEps(validAdjustedEps);
 
         dto.setCompanyId(null);
         Assert.postValidationError(path + "/import", dto, NOT_NULL);
@@ -401,6 +406,22 @@ class PeriodEndpointsTest
         dto.setDividend(null);
         Assert.postValidationError(path + "/import", dto, NOT_NULL);
         dto.setDividend(validDividend);
+
+        dto.setAdjustedEps("");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps(".1");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("1.");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("12345");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("10.123");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps(null);
+        Assert.postValidationError(path + "/import", dto, NOT_NULL);
+        dto.setAdjustedEps(validAdjustedEps);
 
         dto.setPriceLow("");
         Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);

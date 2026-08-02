@@ -119,6 +119,9 @@ public class FirebaseCompany
                 if (this.reported_div != null && !this.reported_div.isBlank()) {
                     period.setDividend(new BigDecimal(this.reported_div).toString());
                 }
+                if (this.reported_eps != null && !this.reported_eps.isBlank()) {
+                    period.setAdjustedEps(new BigDecimal(this.reported_eps).toString());
+                }
                 if (this.report_date_previous_quarter != null && !this.report_date_previous_quarter.isBlank()) {
                     period.setPreviousReportDate(Date.valueOf(this.report_date_previous_quarter).toString());
                 }
