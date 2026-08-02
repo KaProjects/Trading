@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_2_true;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_2_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_2_true;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_4_false;
@@ -65,6 +66,7 @@ class PeriodEndpointsTest
         assertThat(period.getOperatingIncome(), is(nullValue()));
         assertThat(period.getNetIncome(), is(nullValue()));
         assertThat(period.getDividend(), is(nullValue()));
+        assertThat(period.getAdjustedEps(), is(nullValue()));
     }
 
     @Test
@@ -455,6 +457,7 @@ class PeriodEndpointsTest
         dto.setOperatingIncome("10");
         dto.setNetIncome("5");
         dto.setDividend("2");
+        dto.setAdjustedEps("-1.25");
 
         Assert.put204(path, dto);
 
@@ -474,6 +477,7 @@ class PeriodEndpointsTest
         assertBigDecimals(period.getOperatingIncome(), new BigDecimal(dto.getOperatingIncome()));
         assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
         assertBigDecimals(period.getDividend(), new BigDecimal(dto.getDividend()));
+        assertBigDecimals(period.getAdjustedEps(), new BigDecimal(dto.getAdjustedEps()));
     }
 
     @Test
@@ -595,6 +599,18 @@ class PeriodEndpointsTest
         Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setDividend(null);
 
+        dto.setAdjustedEps("x");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps(".1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("1.");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("12345");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("10.123");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps(null);
+
         dto.setPriceLow("x");
         Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPriceLow(".1");
@@ -640,6 +656,7 @@ class PeriodEndpointsTest
         dto.setOperatingIncome("10");
         dto.setNetIncome("5");
         dto.setDividend("2");
+        dto.setAdjustedEps("1.75");
 
         Assert.put204(path + "/financial", dto);
 
@@ -658,6 +675,7 @@ class PeriodEndpointsTest
         assertBigDecimals(period.getOperatingIncome(), new BigDecimal(dto.getOperatingIncome()));
         assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
         assertBigDecimals(period.getDividend(), new BigDecimal(dto.getDividend()));
+        assertBigDecimals(period.getAdjustedEps(), new BigDecimal(dto.getAdjustedEps()));
     }
 
     @Test
@@ -675,6 +693,7 @@ class PeriodEndpointsTest
         dto.setOperatingIncome("10");
         dto.setNetIncome("5");
         dto.setDividend("2");
+        dto.setAdjustedEps("1.75");
 
         Assert.putValidationError(path + "/financial", dto, NOT_NULL);
 
@@ -783,6 +802,18 @@ class PeriodEndpointsTest
         dto.setDividend("-1");
         Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_false);
         dto.setDividend("2");
+
+        dto.setAdjustedEps("x");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps(".1");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("1.");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("12345");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("10.123");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_4_2_true);
+        dto.setAdjustedEps("1");
 
         dto.setPriceLow(null);
         Assert.putValidationError(path + "/financial", dto, NOT_NULL);

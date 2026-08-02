@@ -97,6 +97,7 @@ public class PeriodService
         if (dto.getOperatingIncome() != null) period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
         if (dto.getNetIncome() != null) period.setNetIncome(new BigDecimal(dto.getNetIncome()));
         if (dto.getDividend() != null) period.setDividend(new BigDecimal(dto.getDividend()));
+        if (dto.getAdjustedEps() != null) period.setAdjustedEps(new BigDecimal(dto.getAdjustedEps()));
 
         periodDao.save(period);
     }
@@ -120,6 +121,7 @@ public class PeriodService
         period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
         period.setNetIncome(new BigDecimal(dto.getNetIncome()));
         period.setDividend(new BigDecimal(dto.getDividend()));
+        period.setAdjustedEps(new BigDecimal(dto.getAdjustedEps()));
 
         periodDao.save(period);
         pushFirebase(period);
@@ -216,6 +218,7 @@ public class PeriodService
         financial.getNetIncome().setMargin(netMargin);
 
         financial.setDividend(period.getDividend());
+        financial.setAdjustedEps(period.getAdjustedEps());
 
         financial.setShares(period.getShares());
 

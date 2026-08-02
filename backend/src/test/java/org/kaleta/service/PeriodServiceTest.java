@@ -297,6 +297,13 @@ public class PeriodServiceTest
         });
         dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setAdjustedEps(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setAdjustedEps(String.valueOf(Generator.randomBigDecimal(9999, 2)));
+        updateAndAssertPeriod(dto, period, null);
     }
 
     @Test
@@ -322,6 +329,7 @@ public class PeriodServiceTest
         dto.setOperatingIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         dto.setNetIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        dto.setAdjustedEps(String.valueOf(Generator.randomBigDecimal(9999, 2)));
         updateAndAssertPeriod(dto, period, null);
 
         invalidDates().forEach(invalidDate -> {
@@ -386,6 +394,13 @@ public class PeriodServiceTest
         });
         dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setAdjustedEps(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setAdjustedEps(String.valueOf(Generator.randomBigDecimal(9999, 2)));
+        updateAndAssertPeriod(dto, period, null);
     }
 
     @Test
@@ -407,6 +422,7 @@ public class PeriodServiceTest
         Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25Q2"), YearMonth.of(2025, 7), "1000", "300", "200", "100", "20");
         Period period2 = Generator.generatePeriod(company, false, PeriodName.valueOf("25Q3"), YearMonth.of(2025, 10));
         Period period3 = Generator.generatePeriod(company, PeriodName.valueOf("25Q1"), YearMonth.of(2025, 4), "950", "400", "300", "50", "10");
+        period1.setAdjustedEps(new BigDecimal("1.25"));
 
         when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
 
@@ -428,6 +444,7 @@ public class PeriodServiceTest
         assertBigDecimals(periods.getFinancials().get(0).getNetIncome(), period1.getNetIncome());
         assertBigDecimals(periods.getFinancials().get(0).getNetIncome().getMargin(), new BigDecimal("10"));
         assertBigDecimals(periods.getFinancials().get(0).getDividend(), period1.getDividend());
+        assertBigDecimals(periods.getFinancials().get(0).getAdjustedEps(), period1.getAdjustedEps());
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period3.getName()));
         assertBigDecimals(periods.getFinancials().get(1).getRevenue(), period3.getRevenue());
@@ -438,6 +455,7 @@ public class PeriodServiceTest
         assertBigDecimals(periods.getFinancials().get(1).getNetIncome(), period3.getNetIncome());
         assertBigDecimals(periods.getFinancials().get(1).getNetIncome().getMargin(), new BigDecimal("5.26"));
         assertBigDecimals(periods.getFinancials().get(1).getDividend(), period3.getDividend());
+        assertThat(periods.getFinancials().get(1).getAdjustedEps(), is(nullValue()));
 
         assertThat(periods.getTtm(), is(notNullValue()));
 
@@ -817,6 +835,7 @@ public class PeriodServiceTest
             assertThat(actual.getFinancial().getNetIncome().getValue(), is(expected.getNetIncome()));
             assertThat(actual.getFinancial().getNetIncome().getMargin(), is(notNullValue()));
             assertThat(actual.getFinancial().getDividend(), is(expected.getDividend()));
+            assertThat(actual.getFinancial().getAdjustedEps(), is(expected.getAdjustedEps()));
         } else {
             assertThat(actual.getFinancial(), is(nullValue()));
         }
@@ -946,6 +965,8 @@ public class PeriodServiceTest
                     (dto.getNetIncome() == null) ? is(period.getNetIncome()) : is(new BigDecimal(dto.getNetIncome())));
             assertThat(captor.getValue().getDividend(),
                     (dto.getDividend() == null) ? is(period.getDividend()) : is(new BigDecimal(dto.getDividend())));
+            assertThat(captor.getValue().getAdjustedEps(),
+                    (dto.getAdjustedEps() == null) ? is(period.getAdjustedEps()) : is(new BigDecimal(dto.getAdjustedEps())));
 
             clearInvocations(periodDao);
         } else {
@@ -973,6 +994,8 @@ public class PeriodServiceTest
             assertThat(captor.getValue().getOperatingIncome(), is(new BigDecimal(dto.getOperatingIncome())));
             assertThat(captor.getValue().getNetIncome(), is(new BigDecimal(dto.getNetIncome())));
             assertThat(captor.getValue().getDividend(), is(new BigDecimal(dto.getDividend())));
+            assertThat(captor.getValue().getAdjustedEps(),
+                    (dto.getAdjustedEps() == null) ? is(period.getAdjustedEps()) : is(new BigDecimal(dto.getAdjustedEps())));
 
             clearInvocations(periodDao);
         } else {

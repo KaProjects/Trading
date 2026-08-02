@@ -42,6 +42,7 @@ public class Periods
         private final Metric netIncome = new Metric();
 
         private BigDecimal dividend;
+        private BigDecimal adjustedEps;
         private BigDecimal shares;
 
         @Data

@@ -48,4 +48,7 @@ public class PeriodUpdateDto
 
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String dividend;
+
+    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    private String adjustedEps;
 }
