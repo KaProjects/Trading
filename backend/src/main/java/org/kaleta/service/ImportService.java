@@ -7,11 +7,9 @@ import org.kaleta.client.RequestFailureException;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonPriceRange;
 import org.kaleta.model.Company;
-import org.kaleta.model.Periods;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodType;
 import org.kaleta.rest.dto.EstimateImportDto;
-import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDataDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.error.InvalidInputException;
@@ -48,26 +46,13 @@ public class ImportService
     public PeriodImportDataDto getPeriod(Long companyId, String quarterId)
     {
         Company company = companyService.getCompany(companyId);
-        Periods periods = periodService.getBy(companyId);
-        String latestPeriodId = periods.getPeriods().stream()
-                .findFirst()
-                .map(period -> period.getName().toString())
-                .orElse(null);
-
-        PeriodImportCandidateDto candidate = firebaseService
-                .getNewerPeriods(company.getTicker(), latestPeriodId).stream()
-                .filter(period -> quarterId.equals(period.getName()))
-                .findFirst()
-                .orElseThrow(() -> new InvalidInputException(
-                        "period '" + quarterId + "' is not available for import"));
-
         PeriodImportDto firebaseData = firebaseService.getPeriod(company.getTicker(), quarterId);
         if (firebaseData == null) {
             throw new InvalidInputException("period '" + quarterId + "' is not available for import");
         }
 
-        PeriodImportDataDto result = createPeriodData(candidate, firebaseData);
-        if (Boolean.TRUE.equals(candidate.getIsReported())) {
+        PeriodImportDataDto result = createPeriodData(firebaseData);
+        if (Boolean.TRUE.equals(firebaseData.getIsReported())) {
             loadPolygonFinancials(result, company.getTicker(), quarterId);
             loadPolygonPrices(result, company.getTicker(), firebaseData);
             result.getPolygon().setAdjustedEps(
@@ -115,15 +100,13 @@ public class ImportService
                 || periodType == PeriodType.Q4;
     }
 
-    private PeriodImportDataDto createPeriodData(
-            PeriodImportCandidateDto candidate,
-            PeriodImportDto firebaseData)
+    private PeriodImportDataDto createPeriodData(PeriodImportDto firebaseData)
     {
         PeriodImportDataDto result = new PeriodImportDataDto();
-        result.setName(candidate.getName());
-        result.setEndingMonth(candidate.getEndingMonth());
+        result.setName(firebaseData.getName());
+        result.setEndingMonth(firebaseData.getEndingMonth());
         result.setReportDate(firebaseData.getReportDate());
-        result.setIsReported(candidate.getIsReported());
+        result.setIsReported(firebaseData.getIsReported());
 
         PeriodImportDataDto.Source firebase = result.getFirebase();
         firebase.setShares(firebaseData.getShares());

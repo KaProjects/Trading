@@ -15,7 +15,6 @@ import org.kaleta.framework.Assert;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.EstimateImportDto;
-import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDataDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
@@ -179,9 +178,7 @@ public class ResearchEndpointsTest
     void importPeriod() throws RequestFailureException
     {
         Long companyId = 2281L;
-        PeriodImportCandidateDto candidate = candidate("25Q2", "2025-07", true);
         PeriodImportDto firebaseData = firebaseData();
-        when(firebaseService.getNewerPeriods("RCH", "25Q1")).thenReturn(List.of(candidate));
         when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData);
         when(firebaseService.getLatestActualEps("RCH", "25Q2")).thenReturn("1.27");
         when(polygonClient.getFinancials("RCH", "2025", "Q2")).thenReturn(Optional.of(
@@ -230,8 +227,6 @@ public class ResearchEndpointsTest
     void importPeriod_polygonFailureReturnsFirebaseDataAndWarning() throws RequestFailureException
     {
         Long companyId = 2281L;
-        when(firebaseService.getNewerPeriods("RCH", "25Q1"))
-                .thenReturn(List.of(candidate("25Q2", "2025-07", true)));
         when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData());
         when(polygonClient.getFinancials("RCH", "2025", "Q2"))
                 .thenThrow(new RequestFailureException("rate limit exceeded"));
@@ -333,15 +328,6 @@ public class ResearchEndpointsTest
         Assert.get400(
                 "/research/1927/import/estimate/" + periodId,
                 "period with id '" + periodId + "' does not belong to company with id '1927'");
-    }
-
-    private PeriodImportCandidateDto candidate(String name, String endingMonth, boolean reported)
-    {
-        PeriodImportCandidateDto candidate = new PeriodImportCandidateDto();
-        candidate.setName(name);
-        candidate.setEndingMonth(endingMonth);
-        candidate.setIsReported(reported);
-        return candidate;
     }
 
     private EstimateImportDto.Quarter estimate(String eps, String date)
