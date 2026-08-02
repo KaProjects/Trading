@@ -75,6 +75,8 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
                        position: "absolute", top: "6px", right: "8px", zIndex: 1, opacity: 0, pointerEvents: "none",
+                       maxHeight: "calc(100% - 12px)", overflowY: "auto", overflowX: "hidden",
+                       paddingRight: "8px", marginRight: "-8px",
                        transition: "opacity 120ms ease-in-out",
                        ".mainContainer:hover &": {opacity: 1, pointerEvents: "auto",},
                        "& .MuiButton-root": {minWidth: 0, padding: "2px", lineHeight: 0,},
