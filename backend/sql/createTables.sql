@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS Estimate;
 DROP TABLE IF EXISTS Latest;
 DROP TABLE IF EXISTS Period;
 DROP TABLE IF EXISTS Dividend;
@@ -81,4 +82,16 @@ CREATE TABLE Latest
     price        DECIMAL(10, 4)  NOT NULL,
     companyId    INT UNSIGNED    NOT NULL,
     CONSTRAINT `fk_latestCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
+);
+CREATE TABLE Estimate
+(
+    id           INT UNSIGNED    NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    datetime     DATETIME        NOT NULL,
+    ttm          DECIMAL(6, 2)   NOT NULL,
+    current      DECIMAL(6, 2)   NOT NULL,
+    next1        DECIMAL(6, 2),
+    next2        DECIMAL(6, 2),
+    next3        DECIMAL(6, 2),
+    periodId    INT UNSIGNED    NOT NULL,
+    CONSTRAINT `fk_estimatePeriodId` FOREIGN KEY (periodId) REFERENCES Period (id)
 );

@@ -62,6 +62,9 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gro
 
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (1839, 1041, '22Q2', '2501', '2025-02-15');
 
+INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2) VALUES (1, 1, '2026-08-01 12:30:00', '10.25', '11.50', '12.75', '14.00');
+INSERT INTO Estimate (id, periodId, datetime, ttm, current, next1, next2, next3) VALUES (2, 2, '2026-08-01 13:30:00', '20.25', '21.50', '22.75', '24.00', '25.25');
+
 
 -- for rest.*EndpointsTest.create tests
 INSERT INTO Company (id, ticker, currency, watching) VALUES (1565, 'CRE', '$', true);

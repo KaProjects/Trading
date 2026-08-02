@@ -4,3 +4,5 @@ ALTER TABLE Record MODIFY COLUMN strategy TEXT;
 ALTER TABLE Record ADD COLUMN review TEXT;
 ALTER TABLE Record ADD COLUMN retro TEXT;
 
+CREATE TABLE Estimate(...);
+
