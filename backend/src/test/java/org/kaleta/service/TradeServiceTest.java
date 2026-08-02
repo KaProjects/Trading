@@ -25,7 +25,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -158,7 +157,7 @@ public class TradeServiceTest
         activeModelCompany.setWatching(activeCompany.isWatching());
 
         Trade soldTrade = new Trade();
-        soldTrade.setId("sold-trade");
+        soldTrade.setId(11L);
         soldTrade.setCompany(soldCompany);
         soldTrade.setQuantity(new BigDecimal("5"));
         soldTrade.setPurchaseDate(Date.valueOf("2024-01-10"));
@@ -169,7 +168,7 @@ public class TradeServiceTest
         soldTrade.setSellFees(new BigDecimal("1.00"));
 
         Trade activeTrade = new Trade();
-        activeTrade.setId("active-trade");
+        activeTrade.setId(10L);
         activeTrade.setCompany(activeCompany);
         activeTrade.setQuantity(new BigDecimal("3"));
         activeTrade.setPurchaseDate(Date.valueOf("2025-03-20"));
@@ -184,7 +183,7 @@ public class TradeServiceTest
 
         assertThat(trades.getTrades().size(), is(2));
 
-        assertThat(trades.getTrades().get(0).getId(), is("active-trade"));
+        assertThat(trades.getTrades().get(0).getId(), is(10L));
         assertThat(trades.getTrades().get(0).getCompany().getTicker(), is("SHELL"));
         assertThat(trades.getTrades().get(0).getCompany().getCurrency(), is(Currency.€));
         assertThat(trades.getTrades().get(0).getPurchaseDate().toString(), is("2025-03-20"));
@@ -200,7 +199,7 @@ public class TradeServiceTest
         assertThat(trades.getTrades().get(0).getProfit(), is(nullValue()));
         assertThat(trades.getTrades().get(0).getProfitPercentage(), is(nullValue()));
 
-        assertThat(trades.getTrades().get(1).getId(), is("sold-trade"));
+        assertThat(trades.getTrades().get(1).getId(), is(11L));
         assertThat(trades.getTrades().get(1).getCompany().getTicker(), is("NVDA"));
         assertThat(trades.getTrades().get(1).getCompany().getCurrency(), is(Currency.$));
         assertThat(trades.getTrades().get(1).getPurchaseDate().toString(), is("2024-01-10"));
@@ -239,7 +238,7 @@ public class TradeServiceTest
         modelCompany.setWatching(company.isWatching());
 
         Trade trade = new Trade();
-        trade.setId("active-trade");
+        trade.setId(10L);
         trade.setCompany(company);
         trade.setQuantity(new BigDecimal("4"));
         trade.setPurchaseDate(Date.valueOf("2025-05-10"));
@@ -268,23 +267,23 @@ public class TradeServiceTest
     @Test
     void getRecentTrades()
     {
-        Company company = Generator.generateCompany("company-1");
+        Company company = Generator.generateCompany(1L);
         company.setTicker("NVDA");
         company.setCurrency(Currency.$);
         org.kaleta.model.Company modelCompany = toModelCompany(company);
 
         Trade activeTrade = new Trade();
-        activeTrade.setId("active-trade");
+        activeTrade.setId(10L);
         activeTrade.setCompany(company);
         activeTrade.setQuantity(new BigDecimal("2"));
         activeTrade.setPurchaseDate(Date.valueOf(LocalDate.now().minusYears(2)));
         activeTrade.setPurchasePrice(new BigDecimal("10"));
         activeTrade.setPurchaseFees(new BigDecimal("1"));
 
-        Trade recentSoldTrade = soldTrade("recent-sold-trade", company,
+        Trade recentSoldTrade = soldTrade(11L, company,
                 LocalDate.now().minusMonths(7).toString(), "20", "2",
                 LocalDate.now().minusMonths(6).toString(), "25", "1", "3");
-        Trade oldSoldTrade = soldTrade("old-sold-trade", company,
+        Trade oldSoldTrade = soldTrade(12L, company,
                 LocalDate.now().minusYears(2).toString(), "30", "3",
                 LocalDate.now().minusMonths(6).minusDays(1).toString(), "35", "1", "4");
 
@@ -296,19 +295,19 @@ public class TradeServiceTest
         assertThat(recentTrades.size(), is(2));
         assertThat(
                 recentTrades.stream().map(Trades.Trade::getId).collect(Collectors.toList()),
-                containsInAnyOrder("active-trade", "recent-sold-trade")
+                containsInAnyOrder(10L, 11L)
         );
     }
 
     @Test
     void getYears()
     {
-        Company company = Generator.generateCompany("company-1");
+        Company company = Generator.generateCompany(1L);
 
-        Trade trade1 = soldTrade("trade-1", company, "2024-01-10", "10", "1", "2025-02-15", "12", "1", "5");
-        Trade trade2 = soldTrade("trade-2", company, "2023-03-10", "10", "1", "2024-04-15", "12", "1", "5");
+        Trade trade1 = soldTrade(1L, company, "2024-01-10", "10", "1", "2025-02-15", "12", "1", "5");
+        Trade trade2 = soldTrade(2L, company, "2023-03-10", "10", "1", "2024-04-15", "12", "1", "5");
         Trade trade3 = new Trade();
-        trade3.setId("trade-3");
+        trade3.setId(3L);
         trade3.setCompany(company);
         trade3.setQuantity(new BigDecimal("1"));
         trade3.setPurchaseDate(Date.valueOf("2021-05-10"));
@@ -325,19 +324,19 @@ public class TradeServiceTest
     @Test
     void getByCompany()
     {
-        Company company1 = Generator.generateCompany("company-1");
+        Company company1 = Generator.generateCompany(1L);
         company1.setTicker("NVDA");
         company1.setCurrency(Currency.$);
         org.kaleta.model.Company modelCompany1 = toModelCompany(company1);
 
-        Company company2 = Generator.generateCompany("company-2");
+        Company company2 = Generator.generateCompany(2L);
         company2.setTicker("SHELL");
         company2.setCurrency(Currency.€);
         org.kaleta.model.Company modelCompany2 = toModelCompany(company2);
 
-        Trade trade1 = soldTrade("trade-1", company1, "2024-01-10", "10", "1", "2024-02-15", "12", "1", "5");
-        Trade trade2 = soldTrade("trade-2", company1, "2023-11-10", "20", "2", "2024-01-15", "22", "2", "3");
-        Trade trade3 = soldTrade("trade-3", company2, "2024-03-01", "30", "3", "2024-03-20", "40", "4", "2");
+        Trade trade1 = soldTrade(1L, company1, "2024-01-10", "10", "1", "2024-02-15", "12", "1", "5");
+        Trade trade2 = soldTrade(2L, company1, "2023-11-10", "20", "2", "2024-01-15", "22", "2", "3");
+        Trade trade3 = soldTrade(3L, company2, "2024-03-01", "30", "3", "2024-03-20", "40", "4", "2");
 
         when(tradeDao.list(false, null, null, null, null, null)).thenReturn(List.of(trade1, trade2, trade3));
         when(companyService.from(company1)).thenReturn(modelCompany1);
@@ -347,22 +346,22 @@ public class TradeServiceTest
 
         assertThat(byCompany.size(), is(2));
         assertThat(byCompany.get(modelCompany1).size(), is(2));
-        assertThat(byCompany.get(modelCompany1).get(0).getId(), is("trade-1"));
-        assertThat(byCompany.get(modelCompany1).get(1).getId(), is("trade-2"));
+        assertThat(byCompany.get(modelCompany1).get(0).getId(), is(1L));
+        assertThat(byCompany.get(modelCompany1).get(1).getId(), is(2L));
         assertThat(byCompany.get(modelCompany2).size(), is(1));
-        assertThat(byCompany.get(modelCompany2).get(0).getId(), is("trade-3"));
+        assertThat(byCompany.get(modelCompany2).get(0).getId(), is(3L));
     }
 
     @Test
     void getByPeriod()
     {
-        Company company = Generator.generateCompany("company-1");
+        Company company = Generator.generateCompany(1L);
         company.setTicker("NVDA");
         company.setCurrency(Currency.$);
         org.kaleta.model.Company modelCompany = toModelCompany(company);
 
-        Trade trade1 = soldTrade("trade-1", company, "2023-12-10", "10", "1", "2024-01-15", "12", "1", "5");
-        Trade trade2 = soldTrade("trade-2", company, "2024-02-01", "20", "2", "2024-03-20", "25", "2", "3");
+        Trade trade1 = soldTrade(1L, company, "2023-12-10", "10", "1", "2024-01-15", "12", "1", "5");
+        Trade trade2 = soldTrade(2L, company, "2024-02-01", "20", "2", "2024-03-20", "25", "2", "3");
 
         when(tradeDao.list(false, company.getId(), null, null, null, null)).thenReturn(List.of(trade1, trade2));
         when(companyService.from(company)).thenReturn(modelCompany);
@@ -376,7 +375,7 @@ public class TradeServiceTest
         assertThat(byPeriod.get("2024-Q4").isEmpty(), is(true));
         assertThat(
                 byPeriod.get("2024-Q1").stream().map(Trades.Trade::getId).collect(Collectors.toList()),
-                containsInAnyOrder("trade-1", "trade-2")
+                containsInAnyOrder(1L, 2L)
         );
     }
 
@@ -412,7 +411,7 @@ public class TradeServiceTest
 
         Company company =  Generator.generateCompany();
         when(companyService.findEntity(company.getId())).thenReturn(company);
-        doThrow(new InvalidInputException("")).when(companyService).findEntity("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+        doThrow(new InvalidInputException("")).when(companyService).findEntity(1916L);
 
         Trade validTrade = Generator.generateTrade(company, new BigDecimal(5), false);
         List<TradeSellDto.Trade> validDtoTrades =  new ArrayList<>(List.of(new TradeSellDto.Trade(validTrade.getId(), "5")));
@@ -420,7 +419,7 @@ public class TradeServiceTest
 
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, new ArrayList<>(), List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
 
-        sellAndAssertTrade("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43", validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), InvalidInputException.class);
+        sellAndAssertTrade(1916L, validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), InvalidInputException.class);
 
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), null);
 
@@ -458,12 +457,12 @@ public class TradeServiceTest
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade), copy(validTrade2)), List.of(soldTrade1, soldTrade2), null);
 
         // nonexistent trade
-        validDtoTrades.get(0).setTradeId("d7f1c3c8-4d7e-4558-9b3e-0b1fc6df3a43");
+        validDtoTrades.get(0).setTradeId(2133L);
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade), copy(validTrade2)), List.of(copy(expectedTrade)), InvalidInputException.class);
 
         // attempt to sell from different company
         Trade malformed = copy(validTrade);
-        malformed.setId(UUID.randomUUID().toString());
+        malformed.setId(4_294_967_295L);
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(malformed), List.of(copy(expectedTrade)), InvalidInputException.class);
     }
 
@@ -526,7 +525,7 @@ public class TradeServiceTest
         }
     }
 
-    private void sellAndAssertTrade(String cid, String date, String price, String fees,
+    private void sellAndAssertTrade(Long cid, String date, String price, String fees,
                                     List<TradeSellDto.Trade> dtoTrades,
                                     List<Trade> initTrades,
                                     List<Trade> expectedTrades,
@@ -540,7 +539,7 @@ public class TradeServiceTest
         dto.setTrades(dtoTrades);
 
         initTrades.forEach(trade ->  when(tradeDao.get(trade.getId())).thenReturn(trade));
-        doThrow(new NoResultException()).when(tradeDao).get("d7f1c3c8-4d7e-4558-9b3e-0b1fc6df3a43");
+        doThrow(new NoResultException()).when(tradeDao).get(2133L);
 
         if (expectedException == null) {
             tradeService.sellTrade(dto);
@@ -583,7 +582,7 @@ public class TradeServiceTest
         return company;
     }
 
-    private static Trade soldTrade(String id, Company company,
+    private static Trade soldTrade(Long id, Company company,
                                    String purchaseDate, String purchasePrice, String purchaseFees,
                                    String sellDate, String sellPrice, String sellFees,
                                    String quantity)

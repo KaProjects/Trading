@@ -14,7 +14,7 @@ public interface EntityDao<C extends AbstractEntity>
     /**
      * @return {@link C} according to specified ID
      */
-    C get(String id);
+    C get(Long id);
 
     /**
      * creates new {@link C}

@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -28,7 +27,7 @@ import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_2_true
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_4_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
-import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 
 @QuarkusTest
@@ -43,7 +42,7 @@ class PeriodEndpointsTest
     void create()
     {
         PeriodCreateDto dto = new PeriodCreateDto();
-        dto.setCompanyId("6877c555-1234-4af5-99ef-415980484d8c");
+        dto.setCompanyId(1565L);
         dto.setName("15FY");
         dto.setEndingMonth("2015-10");
         dto.setReportDate("2015-11-11");
@@ -71,7 +70,7 @@ class PeriodEndpointsTest
     @Test
     void create_invalidParameters()
     {
-        String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
+        Long validCompanyId = 2287L;
         String validName = "19FY";
         String validEndingMonth = "2019-11";
         String validReportDate = "2020-01-01";
@@ -115,10 +114,10 @@ class PeriodEndpointsTest
 
         dto.setCompanyId(null);
         Assert.postValidationError(path, dto, NOT_NULL);
-        dto.setCompanyId("x");
-        Assert.postValidationError(path, dto, VALID_UUID);
+        dto.setCompanyId(0L);
+        Assert.postValidationError(path, dto, VALID_ID);
 
-        dto.setCompanyId(UUID.randomUUID().toString());
+        dto.setCompanyId(4_294_967_295L);
         Assert.post400(path, dto, "company with id '" + dto.getCompanyId() + "' not found");
     }
 
@@ -126,7 +125,7 @@ class PeriodEndpointsTest
     void createImport()
     {
         PeriodImportDto dto = new PeriodImportDto();
-        dto.setCompanyId("6877c555-1234-1111-99ef-415980484d8c");
+        dto.setCompanyId(1564L);
         dto.setName("15FY");
         dto.setEndingMonth("2015-10");
         dto.setReportDate("2015-11-11");
@@ -163,7 +162,7 @@ class PeriodEndpointsTest
     void createUnreportedImport()
     {
         PeriodUnreportedImportDto dto = new PeriodUnreportedImportDto();
-        dto.setCompanyId("f5b87b39-6b61-4c32-8c09-4f34e97c2d7d");
+        dto.setCompanyId(2287L);
         dto.setName("25Q1");
         dto.setEndingMonth("2025-04");
 
@@ -190,7 +189,7 @@ class PeriodEndpointsTest
     void createUnreportedImport_invalidParameters()
     {
         String endpoint = path + "/import/unreported";
-        String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
+        Long validCompanyId = 2287L;
         String validName = "25Q1";
         String validEndingMonth = "2025-04";
 
@@ -203,9 +202,9 @@ class PeriodEndpointsTest
 
         dto.setCompanyId(null);
         Assert.postValidationError(endpoint, dto, NOT_NULL);
-        dto.setCompanyId("x");
-        Assert.postValidationError(endpoint, dto, VALID_UUID);
-        dto.setCompanyId(UUID.randomUUID().toString());
+        dto.setCompanyId(0L);
+        Assert.postValidationError(endpoint, dto, VALID_ID);
+        dto.setCompanyId(4_294_967_295L);
         Assert.post400(endpoint, dto, "company with id '" + dto.getCompanyId() + "' not found");
         dto.setCompanyId(validCompanyId);
 
@@ -232,7 +231,7 @@ class PeriodEndpointsTest
     @Test
     void createImport_invalidParameters()
     {
-        String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
+        Long validCompanyId = 2287L;
         String validName = "19FY";
         String validEndingMonth = "2019-11";
         String validReportDate = "2020-01-01";
@@ -263,9 +262,9 @@ class PeriodEndpointsTest
 
         dto.setCompanyId(null);
         Assert.postValidationError(path + "/import", dto, NOT_NULL);
-        dto.setCompanyId("x");
-        Assert.postValidationError(path + "/import", dto, VALID_UUID);
-        dto.setCompanyId(UUID.randomUUID().toString());
+        dto.setCompanyId(0L);
+        Assert.postValidationError(path + "/import", dto, VALID_ID);
+        dto.setCompanyId(4_294_967_295L);
         Assert.post400(path + "/import", dto, "company with id '" + dto.getCompanyId() + "' not found");
         dto.setCompanyId(validCompanyId);
 
@@ -440,7 +439,7 @@ class PeriodEndpointsTest
     @Test
     void update()
     {
-        String id = "550e8400-e29b-41d4-a716-446655440000";
+        Long id = 1467L;
 
         PeriodUpdateDto dto = new PeriodUpdateDto();
         dto.setId(id);
@@ -459,7 +458,7 @@ class PeriodEndpointsTest
 
         Assert.put204(path, dto);
 
-        List<Period> periods = periodDao.list("9c858901-8a57-4791-81fe-4c455b099bc9");
+        List<Period> periods = periodDao.list(1842L);
         assertThat(periods.size(), is(2));
         Period period = periods.stream().filter(p -> p.getId().equals(id)).findFirst().orElse(null);
         assertThat(period, is(notNullValue()));
@@ -485,13 +484,13 @@ class PeriodEndpointsTest
         PeriodUpdateDto dto =  new PeriodUpdateDto();
         Assert.putValidationError(path, dto, NOT_NULL);
 
-        dto.setId("x");
-        Assert.putValidationError(path, dto, VALID_UUID);
+        dto.setId(0L);
+        Assert.putValidationError(path, dto, VALID_ID);
 
-        dto.setId(UUID.randomUUID().toString());
+        dto.setId(4_294_967_295L);
         Assert.put400(path, dto, "period with id '" + dto.getId() + "' not found");
 
-        dto.setId("c40b6e24-0e9d-496d-9135-6cf4a9d1e8ce");
+        dto.setId(2042L);
         dto.setName("");
         Assert.putValidationError(path, dto, "must be a valid PeriodName");
         dto.setName("2025FY");
@@ -628,7 +627,7 @@ class PeriodEndpointsTest
     @Test
     void updateFinancial()
     {
-        String id = "550e8400-e29b-41d4-a716-441111440000";
+        Long id = 1466L;
 
         PeriodUpdateFinancialDto dto = new PeriodUpdateFinancialDto();
         dto.setId(id);
@@ -644,7 +643,7 @@ class PeriodEndpointsTest
 
         Assert.put204(path + "/financial", dto);
 
-        List<Period> periods = periodDao.list("9c858901-8a57-4791-81fe-4c455b099bc9");
+        List<Period> periods = periodDao.list(1842L);
         assertThat(periods.size(), is(2));
         Period period = periods.stream().filter(p -> p.getId().equals(id)).findFirst().orElse(null);
         assertThat(period, is(notNullValue()));
@@ -679,13 +678,13 @@ class PeriodEndpointsTest
 
         Assert.putValidationError(path + "/financial", dto, NOT_NULL);
 
-        dto.setId("x");
-        Assert.putValidationError(path + "/financial", dto, VALID_UUID);
+        dto.setId(0L);
+        Assert.putValidationError(path + "/financial", dto, VALID_ID);
 
-        dto.setId(UUID.randomUUID().toString());
+        dto.setId(4_294_967_295L);
         Assert.put400(path + "/financial", dto, "period with id '" + dto.getId() + "' not found");
 
-        dto.setId("c40b6e24-0e9d-496d-9135-6cf4a9d1e8ce");
+        dto.setId(2042L);
 
         dto.setReportDate(null);
         Assert.putValidationError(path + "/financial", dto, NOT_NULL);

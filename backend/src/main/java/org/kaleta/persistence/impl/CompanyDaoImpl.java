@@ -153,7 +153,7 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
     private CompanyWithAggregates mapCompanyWithAggregates(Object[] values)
     {
         CompanyWithAggregates company = new CompanyWithAggregates();
-        company.setId((String) values[0]);
+        company.setId(((Number) values[0]).longValue());
         company.setTicker(asString(values[1]).trim());
         company.setCurrency(Currency.valueOf(asString(values[2])));
         company.setWatching(toBoolean(values[3]));
@@ -171,7 +171,7 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
     private CompanyWithStats mapCompanyWithStats(Object[] values)
     {
         CompanyWithStats company = new CompanyWithStats();
-        company.setId((String) values[0]);
+        company.setId(((Number) values[0]).longValue());
         company.setTicker(asString(values[1]).trim());
         company.setCurrency(Currency.valueOf(asString(values[2])));
         company.setWatching(toBoolean(values[3]));

@@ -89,7 +89,7 @@ public class StatsService
         return model;
     }
 
-    public PeriodStats getByPeriod(PeriodFrequency frequency, String companyId, String sector)
+    public PeriodStats getByPeriod(PeriodFrequency frequency, Long companyId, String sector)
     {
         Map<String, List<Trades.Trade>> tradesByPeriod = tradeService.getByPeriod(frequency, companyId, null, sector);
         Map<String, List<Dividends.Dividend>> dividendsByPeriod = dividendService.getByPeriod(frequency, companyId , null, sector);

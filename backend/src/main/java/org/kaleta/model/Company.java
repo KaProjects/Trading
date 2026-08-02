@@ -6,7 +6,7 @@ import org.kaleta.persistence.entity.Currency;
 @Data
 public class Company implements Comparable<Company>
 {
-    private String id;
+    private Long id;
     private String ticker;
     private Currency currency;
     private Boolean watching;

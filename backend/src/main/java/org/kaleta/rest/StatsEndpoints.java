@@ -14,7 +14,7 @@ import org.kaleta.model.CompanyStats;
 import org.kaleta.model.PeriodFrequency;
 import org.kaleta.model.PeriodStats;
 import org.kaleta.persistence.entity.Sector;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 import org.kaleta.rest.validation.ValueOfEnum;
 import org.kaleta.service.StatsService;
 
@@ -47,9 +47,9 @@ public class StatsEndpoints
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/monthly")
     public Response getMonthly(
-            @ValidUuid
+            @ValidId
             @QueryParam("companyId")
-            String companyId,
+            Long companyId,
             @ValueOfEnum(enumClass = Sector.class)
             @QueryParam("sector")
             String sector
@@ -62,9 +62,9 @@ public class StatsEndpoints
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/quarterly")
     public Response getQuarterly(
-            @ValidUuid
+            @ValidId
             @QueryParam("companyId")
-            String companyId,
+            Long companyId,
             @ValueOfEnum(enumClass = Sector.class)
             @QueryParam("sector")
             String sector
@@ -77,9 +77,9 @@ public class StatsEndpoints
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/yearly")
     public Response getYearly(
-            @ValidUuid
+            @ValidId
             @QueryParam("companyId")
-            String companyId,
+            Long companyId,
             @ValueOfEnum(enumClass = Sector.class)
             @QueryParam("sector")
             String sector

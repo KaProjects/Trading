@@ -27,7 +27,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -162,14 +161,14 @@ public class RecordServiceTest
         Company company = Generator.generateCompany();
         Record record = Generator.generateRecord(company, "2020-01-01");
 
-        String randomId = UUID.randomUUID().toString();
+        Long randomId = 4_294_967_295L;
 
         when(recordDao.get(record.getId())).thenReturn(record);
         when(recordDao.get(randomId)).thenThrow(NoResultException.class);
 
         assertThrows(InvalidInputException.class, () -> recordService.delete(randomId));
 
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
         verify(recordDao, times(0)).delete(captor.capture());
 
         recordService.delete(record.getId());
@@ -182,7 +181,7 @@ public class RecordServiceTest
     void createCurrent() {
         Company company = Generator.generateCompany();
         when(companyService.findEntity(company.getId())).thenReturn(company);
-        doThrow(new InvalidInputException("")).when(companyService).findEntity("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+        doThrow(new InvalidInputException("")).when(companyService).findEntity(1916L);
 
         Periods periods = new Periods();
         periods.setTtm(Generator.generatePeriodsFinancial());
@@ -200,7 +199,7 @@ public class RecordServiceTest
 
         createCurrentAndAssertRecord(company.getId(), validT, validD, validP, expectedRatios, null);
 
-        createCurrentAndAssertRecord("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43", validT, validD, validP, expectedRatios, InvalidInputException.class);
+        createCurrentAndAssertRecord(1916L, validT, validD, validP, expectedRatios, InvalidInputException.class);
 
         createCurrentAndAssertRecord(company.getId(), null, validD, validP, expectedRatios, null);
 
@@ -242,7 +241,7 @@ public class RecordServiceTest
         assertThat(captor.getValue().getAvgAssetPrice(), is(Matchers.nullValue()));
     }
 
-    private void createCurrentAndAssertRecord(String cid, String t, String d, String p,
+    private void createCurrentAndAssertRecord(Long cid, String t, String d, String p,
                                               PriceIndicators expectedRatios,
                                               Class<? extends Exception> expectedException)
     {

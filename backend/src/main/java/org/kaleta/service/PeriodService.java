@@ -125,7 +125,7 @@ public class PeriodService
         pushFirebase(period);
     }
 
-    public Periods getBy(String companyId)
+    public Periods getBy(Long companyId)
     {
         List<Period> periods = periodDao.list(companyId);
         periods.sort((a, b) -> -a.getEndingMonth().compareTo(b.getEndingMonth()));
@@ -164,7 +164,7 @@ public class PeriodService
         return model;
     }
 
-    public Period get(String id) {
+    public Period get(Long id) {
         return periodDao.get(id);
     }
 

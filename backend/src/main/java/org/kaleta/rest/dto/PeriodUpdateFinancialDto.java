@@ -4,14 +4,14 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.kaleta.rest.validation.ValidBigDecimal;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 
 @Data
 public class PeriodUpdateFinancialDto
 {
     @NotNull
-    @ValidUuid
-    private String id;
+    @ValidId
+    private Long id;
 
     @NotNull
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")

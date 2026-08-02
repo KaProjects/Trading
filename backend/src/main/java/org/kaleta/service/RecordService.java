@@ -60,7 +60,7 @@ public class RecordService
         recordDao.create(newRecord);
     }
 
-    public void createCurrent(String companyId, String titlePrefix, String date, String price)
+    public void createCurrent(Long companyId, String titlePrefix, String date, String price)
     {
         Company company = companyService.findEntity(companyId);
         Periods periods = periodService.getBy(companyId);
@@ -117,7 +117,7 @@ public class RecordService
         recordDao.save(record);
     }
 
-    public List<org.kaleta.model.Record> getBy(String companyId)
+    public List<org.kaleta.model.Record> getBy(Long companyId)
     {
         List<org.kaleta.model.Record> records = recordDao.list(companyId).stream()
                 .map(recordEntity -> from(recordEntity)).collect(Collectors.toList());
@@ -125,7 +125,7 @@ public class RecordService
         return records;
     }
 
-    public void delete(String recordId){
+    public void delete(Long recordId){
         try {
             recordDao.get(recordId);
         } catch (NoResultException e){

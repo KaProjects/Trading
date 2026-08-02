@@ -49,12 +49,12 @@ public class CompanyService
         return aggregates;
     }
 
-    public org.kaleta.model.Company getCompany(String companyId)
+    public org.kaleta.model.Company getCompany(Long companyId)
     {
         return from(findEntity(companyId));
     }
 
-    public Company findEntity(String companyId)
+    public Company findEntity(Long companyId)
     {
         try {
             return companyDao.get(companyId);
@@ -90,7 +90,7 @@ public class CompanyService
 
     public List<org.kaleta.model.Company> getRecentCompanies()
     {
-        Map<String, org.kaleta.model.Company> recentCompanies = new LinkedHashMap<>();
+        Map<Long, org.kaleta.model.Company> recentCompanies = new LinkedHashMap<>();
         for (Trades.Trade trade : tradeService.getRecentTrades()) {
             org.kaleta.model.Company company = trade.getCompany();
             recentCompanies.putIfAbsent(company.getId(), company);

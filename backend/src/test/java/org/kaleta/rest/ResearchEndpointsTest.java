@@ -24,14 +24,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -62,7 +61,7 @@ public class ResearchEndpointsTest
 
     @Test
     void get() {
-        String companyId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+        Long companyId = 2281L;
         ResearchDto dto = given().when()
                 .get("/research/" + companyId)
                 .then()
@@ -158,16 +157,16 @@ public class ResearchEndpointsTest
     @Test
     void get_invalidParameters()
     {
-        Assert.getValidationError("/research/" + "AAAAAA", VALID_UUID);
+        Assert.getValidationError("/research/0", VALID_ID);
 
-        String randomUuid = UUID.randomUUID().toString();
-        Assert.get400("/research/" + randomUuid, "company with id '" + randomUuid + "' not found");
+        Long randomId = 4_294_967_295L;
+        Assert.get400("/research/" + randomId, "company with id '" + randomId + "' not found");
     }
 
     @Test
     void importPeriod() throws RequestFailureException
     {
-        String companyId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+        Long companyId = 2281L;
         PeriodImportCandidateDto candidate = candidate("25Q2", "2025-07", true);
         PeriodImportDto firebaseData = firebaseData();
         when(firebaseService.getNewerPeriods("RCH", "25Q1")).thenReturn(List.of(candidate));
@@ -214,7 +213,7 @@ public class ResearchEndpointsTest
     @Test
     void importPeriod_polygonFailureReturnsFirebaseDataAndWarning() throws RequestFailureException
     {
-        String companyId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+        Long companyId = 2281L;
         when(firebaseService.getNewerPeriods("RCH", "25Q1"))
                 .thenReturn(List.of(candidate("25Q2", "2025-07", true)));
         when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData());
@@ -242,10 +241,10 @@ public class ResearchEndpointsTest
     @Test
     void importPeriod_invalidParameters()
     {
-        String companyId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+        Long companyId = 2281L;
         Assert.getValidationError(
-                "/research/AAAAAA/import/period/25Q2",
-                VALID_UUID);
+                "/research/0/import/period/25Q2",
+                VALID_ID);
         Assert.getValidationError(
                 "/research/" + companyId + "/import/period/INVALID",
                 "must be a valid PeriodName");

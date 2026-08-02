@@ -16,7 +16,7 @@ public class RecordDaoImpl extends EntityCompanyDaoImpl<Record> implements Recor
 
     @Transactional
     @Override
-    public void delete(String recordId)
+    public void delete(Long recordId)
     {
         Record managed = entityManager.find(Record.class, recordId);
         if (managed != null) {

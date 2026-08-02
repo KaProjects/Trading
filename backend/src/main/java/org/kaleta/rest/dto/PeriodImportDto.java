@@ -5,14 +5,14 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.kaleta.rest.validation.ValidBigDecimal;
 import org.kaleta.rest.validation.ValidPeriodName;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 
 @Data
 public class PeriodImportDto
 {
     @NotNull
-    @ValidUuid
-    private String companyId;
+    @ValidId
+    private Long companyId;
 
     @NotNull
     @ValidPeriodName

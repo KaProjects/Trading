@@ -24,7 +24,7 @@ public abstract class EntityDaoImpl<C extends AbstractEntity> implements EntityD
     }
 
     @Override
-    public C get(String id)
+    public C get(Long id)
     {
         return entityManager.createQuery(selectQuery + "WHERE t.id=:id", getEntityClass())
                 .setParameter("id", id)

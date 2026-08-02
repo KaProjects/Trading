@@ -16,7 +16,6 @@ import org.kaleta.service.FirebaseService;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -28,7 +27,7 @@ import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_4_fals
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_4_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
-import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 
 @QuarkusTest
@@ -43,7 +42,7 @@ class RecordEndpointsTest
     void create()
     {
         RecordCreateDto dto = new RecordCreateDto();
-        dto.setCompanyId("6877c555-1234-4af5-99ef-415980484d8c");
+        dto.setCompanyId(1565L);
         dto.setPrice(Generator.randomBigDecimal(999999,4).toString());
         dto.setDate("2020-01-01");
         dto.setPriceToRevenues(Generator.randomBigDecimal(9999,2).toString());
@@ -57,7 +56,7 @@ class RecordEndpointsTest
 
         Assert.post201(path, dto);
 
-        List<Record> records = recordDao.list("6877c555-1234-4af5-99ef-415980484d8c");
+        List<Record> records = recordDao.list(1565L);
         assertThat(records.size(), is(1));
         assertThat(records.get(0).getCompany().getTicker(), is("CRE"));
         assertThat(records.get(0).getDate(), is(Utils.nullableDateValueOf(dto.getDate())));
@@ -78,7 +77,7 @@ class RecordEndpointsTest
     @Test
     void create_invalidParameters()
     {
-        String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
+        Long validCompanyId = 2287L;
         String validPrice = Generator.randomBigDecimal(999999,4).toString();
         String validDate = "2020-01-01";
         String validPs = Generator.randomBigDecimal(9999,2).toString();
@@ -105,9 +104,9 @@ class RecordEndpointsTest
 
         dto.setCompanyId(null);
         Assert.postValidationError(path, dto, NOT_NULL);
-        dto.setCompanyId("x");
-        Assert.postValidationError(path, dto, VALID_UUID);
-        dto.setCompanyId(UUID.randomUUID().toString());
+        dto.setCompanyId(0L);
+        Assert.postValidationError(path, dto, VALID_ID);
+        dto.setCompanyId(4_294_967_295L);
         Assert.post400(path, dto, "company with id '" + dto.getCompanyId() + "' not found");
         dto.setCompanyId(validCompanyId);
 
@@ -241,7 +240,7 @@ class RecordEndpointsTest
         String newAvgAssetPrice = "123.45";
 
         RecordUpdateDto dto = new RecordUpdateDto();
-        dto.setId("b5a8a2b3-08b7-4a71-9301-f57d44a0a9cb");
+        dto.setId(1974L);
         dto.setTitle(newTitle);
         dto.setContent(newContent);
         dto.setReview(newReview);
@@ -253,7 +252,7 @@ class RecordEndpointsTest
 
         Assert.put204(path, dto);
 
-        List<Record> records = recordDao.list("9c858901-8a57-4791-81fe-4c455b099bc9");
+        List<Record> records = recordDao.list(1842L);
         assertThat(records.size(), is(1));
 
         assertThat(records.get(0).getCompany().getTicker(), is("UPD"));
@@ -276,13 +275,13 @@ class RecordEndpointsTest
         RecordUpdateDto dto =  new RecordUpdateDto();
         Assert.putValidationError(path, dto, NOT_NULL);
 
-        dto.setId("x");
-        Assert.putValidationError(path, dto, VALID_UUID);
+        dto.setId(0L);
+        Assert.putValidationError(path, dto, VALID_ID);
 
-        dto.setId(UUID.randomUUID().toString());
+        dto.setId(4_294_967_295L);
         Assert.put400(path, dto, "record with id '" + dto.getId() + "' not found");
 
-        dto.setId("b5a8a2b3-08b7-4a71-9301-f57d44a0a9cb");
+        dto.setId(1974L);
 
         dto.setSumAssetQuantity("x");
         Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
@@ -315,15 +314,15 @@ class RecordEndpointsTest
     @Test
     void delete()
     {
-        Assert.delete200(path + "/a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+        Assert.delete200(path + "/1916");
     }
 
     @Test
     void delete_invalidParameters()
     {
-        Assert.deleteValidationError(path + "/x",VALID_UUID);
+        Assert.deleteValidationError(path + "/0", VALID_ID);
 
-        String randomId = UUID.randomUUID().toString();
+        Long randomId = 4_294_967_295L;
         Assert.delete400(path + "/" + randomId, "record with id '" + randomId + "' not found");
     }
 }

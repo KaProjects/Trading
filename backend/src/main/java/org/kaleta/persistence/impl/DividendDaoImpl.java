@@ -19,7 +19,7 @@ public class DividendDaoImpl extends EntityCompanyDaoImpl<Dividend> implements D
     }
 
     @Override
-    public List<Dividend> list(String companyId, String currency, String year, String sector)
+    public List<Dividend> list(Long companyId, String currency, String year, String sector)
     {
         String joinWord = " WHERE ";
         String companyCondition = "";

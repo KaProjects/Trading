@@ -21,7 +21,6 @@ import org.kaleta.rest.dto.CompanyValuesDto;
 
 import java.sql.Date;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
@@ -34,7 +33,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
-import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -129,14 +128,14 @@ class CompanyEndpointsTest
     void updateCompany()
     {
         CompanyUpdateDto dto = new CompanyUpdateDto();
-        dto.setId("9c858901-8a57-4791-81fe-4c455b099bc9");
+        dto.setId(1842L);
         dto.setCurrency(Currency.K.toString());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
         dto.setWatching(Boolean.FALSE.toString());
 
         Assert.put204(path, dto);
 
-        Company company = companyDao.get("9c858901-8a57-4791-81fe-4c455b099bc9");
+        Company company = companyDao.get(1842L);
 
         assertThat(company.getTicker(), is("UPD"));
         assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
@@ -148,7 +147,7 @@ class CompanyEndpointsTest
     @Order(2)
     void updateCompany_invalidParameters()
     {
-        String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
+        Long validCompanyId = 2287L;
         String validCurrency = Currency.$.toString();
         String validSector = Sector.SEMICONDUCTORS.toString();
         String validWatching = "false";
@@ -185,12 +184,12 @@ class CompanyEndpointsTest
 
         dto.setId(null);
         Assert.putValidationError(path, dto, NOT_NULL);
-        dto.setId("");
-        Assert.putValidationError(path, dto, VALID_UUID);
-        dto.setId("x");
-        Assert.putValidationError(path, dto, VALID_UUID);
+        dto.setId(0L);
+        Assert.putValidationError(path, dto, VALID_ID);
+        dto.setId(4_294_967_296L);
+        Assert.putValidationError(path, dto, VALID_ID);
 
-        dto.setId(UUID.randomUUID().toString());
+        dto.setId(4_294_967_295L);
         Assert.put400(path, dto, "company with id '" + dto.getId() + "' not found");
     }
 

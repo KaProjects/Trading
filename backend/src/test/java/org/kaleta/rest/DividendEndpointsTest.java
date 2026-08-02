@@ -15,7 +15,6 @@ import org.kaleta.rest.dto.DividendCreateDto;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,7 +24,7 @@ import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_2_fals
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_5_2_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
-import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 
 @QuarkusTest
@@ -65,7 +64,7 @@ class DividendEndpointsTest
     @Test
     void getDividends_invalidParameters()
     {
-        Assert.getValidationError(PATH + "?companyId=AAAAAA", VALID_UUID);
+        Assert.getValidationError(PATH + "?companyId=0", VALID_ID);
 
         Assert.getValidationError(PATH + "?currency=X", "must be any of Currency");
 
@@ -80,7 +79,7 @@ class DividendEndpointsTest
     void createDividend()
     {
         DividendCreateDto dto = new DividendCreateDto();
-        dto.setCompanyId("6877c555-1234-4af5-99ef-415980484d8c");
+        dto.setCompanyId(1565L);
         dto.setDate("2020-01-01");
         dto.setDividend("100.50");
         dto.setTax("10.50");
@@ -102,7 +101,7 @@ class DividendEndpointsTest
     @Test
     void createDividend_invalidParameters()
     {
-        String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
+        Long validCompanyId = 2287L;
         String validDate = "2020-01-01";
         String validDividend = "100.50";
         String validTax = "10.50";
@@ -117,9 +116,9 @@ class DividendEndpointsTest
 
         dto.setCompanyId(null);
         Assert.postValidationError(PATH, dto, NOT_NULL);
-        dto.setCompanyId("x");
-        Assert.postValidationError(PATH, dto, VALID_UUID);
-        dto.setCompanyId(UUID.randomUUID().toString());
+        dto.setCompanyId(0L);
+        Assert.postValidationError(PATH, dto, VALID_ID);
+        dto.setCompanyId(4_294_967_295L);
         Assert.post400(PATH, dto, "company with id '" + dto.getCompanyId() + "' not found");
         dto.setCompanyId(validCompanyId);
 

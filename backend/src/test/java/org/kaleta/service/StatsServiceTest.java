@@ -46,8 +46,8 @@ class StatsServiceTest
     @Test
     void getByCompany()
     {
-        org.kaleta.model.Company company1 = company("company-1", "NVDA", Currency.$);
-        org.kaleta.model.Company company2 = company("company-2", "SHELL", Currency.€);
+        org.kaleta.model.Company company1 = company(1L, "NVDA", Currency.$);
+        org.kaleta.model.Company company2 = company(2L, "SHELL", Currency.€);
 
         when(tradeService.getByCompany(null, null, null, null)).thenReturn(Map.of(
                 company1, List.of(
@@ -96,7 +96,7 @@ class StatsServiceTest
     @Test
     void getByPeriod()
     {
-        org.kaleta.model.Company company = company("company-1", "NVDA", Currency.$);
+        org.kaleta.model.Company company = company(1L, "NVDA", Currency.$);
 
         when(tradeService.getByPeriod(PeriodFrequency.MONTHLY, company.getId(), null, null)).thenReturn(Map.of(
                 "2024-01", List.of(trade(company, "2024-01-05", "100", "120")),
@@ -150,7 +150,7 @@ class StatsServiceTest
     @Test
     void getByPeriod_monthly_discardsFuturePeriods()
     {
-        org.kaleta.model.Company company = company("company-1", "NVDA", Currency.$);
+        org.kaleta.model.Company company = company(1L, "NVDA", Currency.$);
         String currentMonth = month(LocalDate.now());
         String futureMonth = month(LocalDate.now().plusMonths(1));
 
@@ -175,7 +175,7 @@ class StatsServiceTest
     @Test
     void getByPeriod_quarterly_discardsFuturePeriods()
     {
-        org.kaleta.model.Company company = company("company-1", "NVDA", Currency.$);
+        org.kaleta.model.Company company = company(1L, "NVDA", Currency.$);
         String currentQuarter = quarter(LocalDate.now());
         String futureQuarter = quarter(LocalDate.now().plusMonths(3));
 
@@ -200,8 +200,8 @@ class StatsServiceTest
     @Test
     void getByCompany_onlyDividends_keepsProfitPercentagesNull()
     {
-        org.kaleta.model.Company company1 = company("company-1", "NVDA", Currency.$);
-        org.kaleta.model.Company company2 = company("company-2", "SHELL", Currency.€);
+        org.kaleta.model.Company company1 = company(1L, "NVDA", Currency.$);
+        org.kaleta.model.Company company2 = company(2L, "SHELL", Currency.€);
 
         when(tradeService.getByCompany(null, null, null, null)).thenReturn(Map.of());
         when(dividendService.getByCompany(null, null, null)).thenReturn(Map.of(
@@ -225,7 +225,7 @@ class StatsServiceTest
         assertThat(stats.getAggregates().getProfitPercentage(), is(nullValue()));
     }
 
-    private static org.kaleta.model.Company company(String id, String ticker, Currency currency)
+    private static org.kaleta.model.Company company(Long id, String ticker, Currency currency)
     {
         org.kaleta.model.Company company = new org.kaleta.model.Company();
         company.setId(id);

@@ -7,5 +7,5 @@ public interface RecordDao extends EntityCompanyDao<Record>
     /**
      * removes the instance specified by id.
      */
-    void delete(String recordId);
+    void delete(Long recordId);
 }

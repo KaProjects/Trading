@@ -19,7 +19,7 @@ public class Periods
     @Data
     public static class Period
     {
-        private String id;
+        private Long id;
         private PeriodName name;
         private YearMonth endingMonth;
         private Date reportDate;

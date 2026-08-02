@@ -9,5 +9,5 @@ public interface DividendDao extends EntityCompanyDao<Dividend>
     /**
      * @return lists of dividends that match provided filters (null filter = all values)
      */
-    List<Dividend> list(String companyId, String currency, String year, String sector);
+    List<Dividend> list(Long companyId, String currency, String year, String sector);
 }

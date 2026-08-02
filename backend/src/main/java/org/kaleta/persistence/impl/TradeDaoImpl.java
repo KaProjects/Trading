@@ -19,7 +19,7 @@ public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDa
     }
 
     @Override
-    public List<Trade> list(Boolean active, String companyId, String currency, String purchaseYear, String sellYear, String sector)
+    public List<Trade> list(Boolean active, Long companyId, String currency, String purchaseYear, String sellYear, String sector)
     {
         String joinWord = " WHERE ";
         String activeCondition = "";

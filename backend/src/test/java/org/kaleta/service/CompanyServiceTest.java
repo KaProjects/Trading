@@ -60,13 +60,13 @@ public class CompanyServiceTest
     @Test
     void getCompanies()
     {
-        Company company1 = Generator.generateCompany("company-1");
+        Company company1 = Generator.generateCompany(1L);
         company1.setTicker(" NVDA ");
         company1.setCurrency(Currency.$);
         company1.setWatching(true);
         company1.setSector(Sector.SEMICONDUCTORS);
 
-        Company company2 = Generator.generateCompany("company-2");
+        Company company2 = Generator.generateCompany(2L);
         company2.setTicker("AAPL");
         company2.setCurrency(Currency.€);
         company2.setWatching(false);
@@ -84,12 +84,12 @@ public class CompanyServiceTest
     @Test
     void getCompanies_filteredSorted()
     {
-        Company company1 = Generator.generateCompany("company-1");
+        Company company1 = Generator.generateCompany(1L);
         company1.setTicker("ZZZZ");
         company1.setCurrency(Currency.$);
         company1.setSector(Sector.SEMICONDUCTORS);
 
-        Company company2 = Generator.generateCompany("company-2");
+        Company company2 = Generator.generateCompany(2L);
         company2.setTicker("AAAA");
         company2.setCurrency(Currency.$);
         company2.setSector(Sector.SEMICONDUCTORS);
@@ -107,7 +107,7 @@ public class CompanyServiceTest
     void getCompaniesWithAggregates()
     {
         CompanyWithAggregates company1 = new CompanyWithAggregates();
-        company1.setId("company-1");
+        company1.setId(1L);
         company1.setTicker("ZZZZ");
         company1.setCurrency(Currency.$);
         company1.setWatching(true);
@@ -119,7 +119,7 @@ public class CompanyServiceTest
         company1.setPeriods(1);
 
         CompanyWithAggregates company2 = new CompanyWithAggregates();
-        company2.setId("company-2");
+        company2.setId(2L);
         company2.setTicker("AAAA");
         company2.setCurrency(Currency.€);
         company2.setWatching(false);
@@ -139,7 +139,7 @@ public class CompanyServiceTest
         assertThat(companies.getCompanies().size(), is(2));
 
         CompanyAggregates.Company first = companies.getCompanies().get(0);
-        assertThat(first.getId(), is("company-1"));
+        assertThat(first.getId(), is(1L));
         assertThat(first.getTicker(), is("ZZZZ"));
         assertThat(first.getCurrency(), is(Currency.$));
         assertThat(first.getWatching(), is(true));
@@ -152,7 +152,7 @@ public class CompanyServiceTest
         assertThat(first.getPeriods(), is(1));
 
         CompanyAggregates.Company second = companies.getCompanies().get(1);
-        assertThat(second.getId(), is("company-2"));
+        assertThat(second.getId(), is(2L));
         assertThat(second.getTicker(), is("AAAA"));
         assertThat(second.getCurrency(), is(Currency.€));
         assertThat(second.getWatching(), is(false));
@@ -167,7 +167,7 @@ public class CompanyServiceTest
     @Test
     void getCompany()
     {
-        Company entity = Generator.generateCompany("company-1");
+        Company entity = Generator.generateCompany(1L);
         entity.setTicker(" MSFT ");
         entity.setSector(Sector.SOFTWARE);
 
@@ -181,7 +181,7 @@ public class CompanyServiceTest
     @Test
     void findEntity()
     {
-        Company entity = Generator.generateCompany("company-1");
+        Company entity = Generator.generateCompany(1L);
 
         when(companyDao.get(entity.getId())).thenReturn(entity);
 
@@ -191,7 +191,7 @@ public class CompanyServiceTest
     @Test
     void findEntity_invalid()
     {
-        String companyId = "company-404";
+        Long companyId = 404L;
         when(companyDao.get(companyId)).thenThrow(NoResultException.class);
 
         InvalidInputException exception = assertThrows(InvalidInputException.class, () -> companyService.findEntity(companyId));
@@ -203,7 +203,7 @@ public class CompanyServiceTest
     void getCompanyGroups()
     {
         CompanyWithStats company1 = new CompanyWithStats();
-        company1.setId("company-1");
+        company1.setId(1L);
         company1.setTicker("NVDA");
         company1.setCurrency(Currency.$);
         company1.setWatching(true);
@@ -213,14 +213,14 @@ public class CompanyServiceTest
         company1.setLatestUnreportedPeriodEndingMonth(YearMonth.of(2025, 4));
 
         CompanyWithStats company2 = new CompanyWithStats();
-        company2.setId("company-2");
+        company2.setId(2L);
         company2.setTicker("XCW");
         company2.setCurrency(Currency.$);
         company2.setWatching(false);
         company2.setSector(Sector.ELECTRIC_VEHICLES);
 
         CompanyWithStats company3 = new CompanyWithStats();
-        company3.setId("company-3");
+        company3.setId(3L);
         company3.setTicker("TSLA");
         company3.setCurrency(Currency.$);
         company3.setWatching(true);
@@ -228,7 +228,7 @@ public class CompanyServiceTest
         company3.setLatestPurchaseDate(Date.valueOf("2024-01-01"));
 
         CompanyWithStats company4 = new CompanyWithStats();
-        company4.setId("company-4");
+        company4.setId(4L);
         company4.setTicker("RR");
         company4.setCurrency(Currency.£);
         company4.setWatching(true);
@@ -265,23 +265,23 @@ public class CompanyServiceTest
     void getRecentCompanies()
     {
         org.kaleta.model.Company company1 = new org.kaleta.model.Company();
-        company1.setId("company-1");
+        company1.setId(1L);
         company1.setTicker("NVDA");
 
         org.kaleta.model.Company company2 = new org.kaleta.model.Company();
-        company2.setId("company-2");
+        company2.setId(2L);
         company2.setTicker("SHELL");
 
         Trades.Trade trade1 = new Trades.Trade();
-        trade1.setId("trade-1");
+        trade1.setId(1L);
         trade1.setCompany(company1);
 
         Trades.Trade trade2 = new Trades.Trade();
-        trade2.setId("trade-2");
+        trade2.setId(2L);
         trade2.setCompany(company2);
 
         Trades.Trade trade3 = new Trades.Trade();
-        trade3.setId("trade-3");
+        trade3.setId(3L);
         trade3.setCompany(company1);
 
         when(tradeService.getRecentTrades()).thenReturn(List.of(trade1, trade2, trade3));
@@ -296,7 +296,7 @@ public class CompanyServiceTest
     @Test
     void update()
     {
-        Company entity = Generator.generateCompany("company-1");
+        Company entity = Generator.generateCompany(1L);
         entity.setCurrency(Currency.$);
         entity.setWatching(false);
         entity.setSector(Sector.SEMICONDUCTORS);
@@ -323,7 +323,7 @@ public class CompanyServiceTest
     @Test
     void update_nullSector()
     {
-        Company entity = Generator.generateCompany("company-1");
+        Company entity = Generator.generateCompany(1L);
         entity.setSector(Sector.SEMICONDUCTORS);
 
         when(companyDao.get(entity.getId())).thenReturn(entity);
@@ -347,7 +347,7 @@ public class CompanyServiceTest
     @Test
     void update_invalidCompany()
     {
-        String companyId = "company-404";
+        Long companyId = 404L;
         when(companyDao.get(companyId)).thenThrow(NoResultException.class);
 
         CompanyUpdateDto dto = new CompanyUpdateDto();
@@ -409,7 +409,7 @@ public class CompanyServiceTest
     @Test
     void create_duplicateTicker()
     {
-        Company existing = Generator.generateCompany("company-1");
+        Company existing = Generator.generateCompany(1L);
         existing.setTicker("NVDA");
         when(companyDao.getByTicker("NVDA")).thenReturn(existing);
 
@@ -429,7 +429,7 @@ public class CompanyServiceTest
     void from()
     {
         Company entity = new Company();
-        entity.setId("company-1");
+        entity.setId(1L);
         entity.setTicker(" NVDA ");
         entity.setCurrency(Currency.$);
         entity.setWatching(true);
@@ -437,7 +437,7 @@ public class CompanyServiceTest
 
         org.kaleta.model.Company company = companyService.from(entity);
 
-        assertThat(company.getId(), is("company-1"));
+        assertThat(company.getId(), is(1L));
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getWatching(), is(true));
@@ -449,7 +449,7 @@ public class CompanyServiceTest
     void from_nullSector()
     {
         Company entity = new Company();
-        entity.setId("company-2");
+        entity.setId(2L);
         entity.setTicker("AAPL");
         entity.setCurrency(Currency.$);
         entity.setWatching(false);
@@ -457,7 +457,7 @@ public class CompanyServiceTest
 
         org.kaleta.model.Company company = companyService.from(entity);
 
-        assertThat(company.getId(), is("company-2"));
+        assertThat(company.getId(), is(2L));
         assertThat(company.getTicker(), is("AAPL"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getWatching(), is(false));

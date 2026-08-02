@@ -3,14 +3,14 @@ package org.kaleta.rest.dto;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.kaleta.rest.validation.ValidBigDecimal;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 
 @Data
 public class RecordUpdateDto
 {
     @NotNull
-    @ValidUuid
-    private String id;
+    @ValidId
+    private Long id;
     private String title;
     private String content;
     private String review;

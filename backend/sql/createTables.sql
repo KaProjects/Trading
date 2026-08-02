@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS Company;
 
 CREATE TABLE Company
 (
-    id       VARCHAR(36) NOT NULL PRIMARY KEY,
+    id       INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     ticker   CHAR(5)     NOT NULL,
     currency CHAR(1)     NOT NULL,
     watching BOOL        NOT NULL,
@@ -15,16 +15,16 @@ CREATE TABLE Company
 );
 CREATE TABLE Dividend
 (
-    id        VARCHAR(36)   NOT NULL PRIMARY KEY,
+    id        INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     date      DATE          NOT NULL,
     dividend  DECIMAL(7, 2) NOT NULL,
     tax       DECIMAL(6, 2) NOT NULL,
-    companyId VARCHAR(36)   NOT NULL,
+    companyId INT UNSIGNED  NOT NULL,
     CONSTRAINT `fk_dividendCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Trade
 (
-    id             VARCHAR(36)    NOT NULL PRIMARY KEY,
+    id             INT UNSIGNED   NOT NULL AUTO_INCREMENT PRIMARY KEY,
     quantity       DECIMAL(8, 4)  NOT NULL,
     purchase_date  DATE           NOT NULL,
     purchase_price DECIMAL(10, 4) NOT NULL,
@@ -32,12 +32,12 @@ CREATE TABLE Trade
     sell_date      DATE,
     sell_price     DECIMAL(10, 4),
     sell_fees      DECIMAL(5, 2),
-    companyId      VARCHAR(36)    NOT NULL,
+    companyId      INT UNSIGNED   NOT NULL,
     CONSTRAINT `fk_tradeCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Record
 (
-    id              VARCHAR(36)    NOT NULL PRIMARY KEY,
+    id              INT UNSIGNED   NOT NULL AUTO_INCREMENT PRIMARY KEY,
     date            DATE           NOT NULL,
     title           TINYTEXT,
     content         TEXT,
@@ -53,12 +53,12 @@ CREATE TABLE Record
     dy              DECIMAL(5, 2),
     asset_quantity  DECIMAL(8, 4),
     asset_price     DECIMAL(10, 4),
-    companyId       VARCHAR(36)    NOT NULL,
+    companyId       INT UNSIGNED   NOT NULL,
     CONSTRAINT `fk_recordCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Period
 (
-    id           VARCHAR(36)   NOT NULL PRIMARY KEY,
+    id           INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name         CHAR(4)       NOT NULL,
     ending_month CHAR(4)       NOT NULL,
     report_date  DATE,
@@ -71,14 +71,14 @@ CREATE TABLE Period
     oper_income  DECIMAL(8, 2),
     net_income   DECIMAL(8, 2),
     dividend     DECIMAL(8, 2),
-    companyId    VARCHAR(36)   NOT NULL,
+    companyId    INT UNSIGNED  NOT NULL,
     CONSTRAINT `fk_periodCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );
 CREATE TABLE Latest
 (
-    id           VARCHAR(36)     NOT NULL PRIMARY KEY,
+    id           INT UNSIGNED    NOT NULL AUTO_INCREMENT PRIMARY KEY,
     datetime     DATETIME        NOT NULL,
     price        DECIMAL(10, 4)  NOT NULL,
-    companyId    VARCHAR(36)     NOT NULL,
+    companyId    INT UNSIGNED    NOT NULL,
     CONSTRAINT `fk_latestCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );

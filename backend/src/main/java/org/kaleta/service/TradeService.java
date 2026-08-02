@@ -112,7 +112,7 @@ public class TradeService
         tradeDao.saveAll(trades);
     }
 
-    public Assets getAssets(String companyId, BigDecimal currentPrice)
+    public Assets getAssets(Long companyId, BigDecimal currentPrice)
     {
         List<Asset> assets = new ArrayList<>();
         for (Trade trade : tradeDao.list(true, companyId, null, null, null, null))
@@ -127,7 +127,7 @@ public class TradeService
         return model;
     }
 
-    public Trades getBy(Boolean active, String company, String currency, String purchaseYear, String sellYear, String sector){
+    public Trades getBy(Boolean active, Long company, String currency, String purchaseYear, String sellYear, String sector){
         List<Trade> trades = tradeDao.list(active, company, currency, purchaseYear, sellYear, sector);
 
         Trades model = new Trades();
@@ -174,7 +174,7 @@ public class TradeService
         return map;
     }
 
-    public Map<String, List<Trades.Trade>> getByPeriod(PeriodFrequency frequency, String companyId, String currency, String sector) {
+    public Map<String, List<Trades.Trade>> getByPeriod(PeriodFrequency frequency, Long companyId, String currency, String sector) {
         Trades trades = getBy(false, companyId, currency, null, null, sector);
         Map<String, List<Trades.Trade>> map = new HashMap<>();
         for (Trades.Trade trade : trades.getTrades()) {

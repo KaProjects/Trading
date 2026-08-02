@@ -20,7 +20,7 @@ import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 import org.kaleta.rest.validation.ValueOfEnum;
 import org.kaleta.service.ArithmeticService;
 import org.kaleta.service.FirebaseService;
@@ -58,9 +58,9 @@ public class TradeEndpoints
             @Pattern(regexp = "^\\d\\d\\d\\d$", message = "must match YYYY")
             @QueryParam("year")
             String year,
-            @ValidUuid
+            @ValidId
             @QueryParam("companyId")
-            String companyId,
+            Long companyId,
             @ValueOfEnum(enumClass = Currency.class)
             @QueryParam("currency")
             String currency,

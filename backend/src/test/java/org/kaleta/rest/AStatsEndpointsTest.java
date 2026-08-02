@@ -13,7 +13,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 
 @QuarkusTest
@@ -123,7 +123,7 @@ class AStatsEndpointsTest
     @Test
     void getMonthly_invalidParameters()
     {
-        Assert.getValidationError(path + "/monthly?companyId=AAAAAA", VALID_UUID);
+        Assert.getValidationError(path + "/monthly?companyId=0", VALID_ID);
         Assert.getValidationError(path + "/monthly?sector=X", "must be any of Sector");
     }
 
@@ -208,14 +208,14 @@ class AStatsEndpointsTest
     @Test
     void getQuarterly_invalidParameters()
     {
-        Assert.getValidationError(path + "/quarterly?companyId=AAAAAA", VALID_UUID);
+        Assert.getValidationError(path + "/quarterly?companyId=0", VALID_ID);
         Assert.getValidationError(path + "/quarterly?sector=X", "must be any of Sector");
     }
 
     @Test
     void getYearly_invalidParameters()
     {
-        Assert.getValidationError(path + "/yearly?companyId=AAAAAA", VALID_UUID);
+        Assert.getValidationError(path + "/yearly?companyId=0", VALID_ID);
         Assert.getValidationError(path + "/yearly?sector=X", "must be any of Sector");
     }
 

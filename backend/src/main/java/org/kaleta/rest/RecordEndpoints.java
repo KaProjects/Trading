@@ -13,7 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.rest.dto.RecordCreateDto;
 import org.kaleta.rest.dto.RecordUpdateDto;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 import org.kaleta.service.RecordService;
 
 @Path("/record")
@@ -42,7 +42,7 @@ public class RecordEndpoints
 
     @DELETE
     @Path("/{recordId}")
-    public Response delete(@NotNull @ValidUuid @PathParam("recordId") String recordId)
+    public Response delete(@NotNull @ValidId @PathParam("recordId") Long recordId)
     {
         recordService.delete(recordId);
         return Response.status(Response.Status.OK).build();

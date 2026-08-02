@@ -16,7 +16,7 @@ import org.kaleta.rest.dto.PeriodImportDataDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
 import org.kaleta.rest.validation.ValidPeriodName;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 import org.kaleta.service.ArithmeticService;
 import org.kaleta.service.CompanyService;
 import org.kaleta.service.FirebaseService;
@@ -51,7 +51,7 @@ public class ResearchEndpoints
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{companyId}")
-    public Response get(@NotNull @ValidUuid @PathParam("companyId") String companyId)
+    public Response get(@NotNull @ValidId @PathParam("companyId") Long companyId)
     {
         ResearchDto dto = new ResearchDto();
         Company company = companyService.getCompany(companyId);
@@ -101,7 +101,7 @@ public class ResearchEndpoints
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{companyId}/import/period/{quarterId}")
     public Response importPeriod(
-            @NotNull @ValidUuid @PathParam("companyId") String companyId,
+            @NotNull @ValidId @PathParam("companyId") Long companyId,
             @NotNull @ValidPeriodName @PathParam("quarterId") String quarterId)
     {
         PeriodImportDataDto data = importService.getPeriod(companyId, quarterId);

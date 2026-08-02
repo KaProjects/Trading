@@ -8,7 +8,7 @@ import java.sql.Date;
 @Data
 public class Record
 {
-    private String id;
+    private Long id;
     private Date date;
     private String title;
     private String content;

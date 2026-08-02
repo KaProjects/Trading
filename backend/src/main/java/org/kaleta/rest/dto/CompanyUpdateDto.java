@@ -5,15 +5,15 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 import org.kaleta.rest.validation.ValueOfEnum;
 
 @Data
 public class CompanyUpdateDto
 {
     @NotNull
-    @ValidUuid
-    private String id;
+    @ValidId
+    private Long id;
 
     @NotNull
     @ValueOfEnum(enumClass = Currency.class)

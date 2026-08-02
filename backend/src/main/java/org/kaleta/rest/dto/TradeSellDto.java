@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import org.kaleta.rest.validation.ValidBigDecimal;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,8 +15,8 @@ import java.util.List;
 public class TradeSellDto
 {
     @NotNull
-    @ValidUuid
-    private String companyId;
+    @ValidId
+    private Long companyId;
     @NotNull
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")
     private String date;
@@ -33,14 +33,14 @@ public class TradeSellDto
     public static class Trade
     {
         @NotNull
-        @ValidUuid
-        private String tradeId;
+        @ValidId
+        private Long tradeId;
         @NotNull
         @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 4)
         private String quantity;
 
         public Trade() {}
-        public Trade(String tradeId, String quantity)
+        public Trade(Long tradeId, String quantity)
         {
             this.tradeId = tradeId;
             this.quantity = quantity;

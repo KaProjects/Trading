@@ -39,7 +39,7 @@ public class ImportService
         this.polygonClient = polygonClient;
     }
 
-    public PeriodImportDataDto getPeriod(String companyId, String quarterId)
+    public PeriodImportDataDto getPeriod(Long companyId, String quarterId)
     {
         Company company = companyService.getCompany(companyId);
         Periods periods = periodService.getBy(companyId);

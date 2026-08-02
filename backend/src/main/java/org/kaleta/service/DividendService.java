@@ -30,12 +30,12 @@ public class DividendService
     CompanyService companyService;
 
     @Deprecated // use model
-    public List<Dividend> getDividends(String company, String currency, String year, String sector)
+    public List<Dividend> getDividends(Long company, String currency, String year, String sector)
     {
         return dividendDao.list(company, currency, year, sector);
     }
 
-    public Dividends getBy(String company, String currency, String year, String sector)
+    public Dividends getBy(Long company, String currency, String year, String sector)
     {
         List<Dividend> dividends = dividendDao.list(company, currency, year, sector);
 
@@ -69,7 +69,7 @@ public class DividendService
                 .collect(Collectors.toList());
     }
 
-    public Map<String, List<Dividends.Dividend>> getByPeriod(PeriodFrequency frequency, String companyId, String currency, String sector) {
+    public Map<String, List<Dividends.Dividend>> getByPeriod(PeriodFrequency frequency, Long companyId, String currency, String sector) {
         Dividends dividends = getBy(companyId, currency, null, sector);
         Map<String, List<Dividends.Dividend>> map = new HashMap<>();
         for (Dividends.Dividend dividend : dividends.getDividends()) {
