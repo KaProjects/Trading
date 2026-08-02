@@ -10,6 +10,7 @@ import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
+import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.kaleta.service.FirebaseService;
@@ -103,10 +104,12 @@ class InMemoryFirebaseStoreTest
     @Test
     void readsNewerPeriodsInDescendingOrder()
     {
-        List<PeriodImportDto> periods = firebaseService.getNewerPeriods("NVDA", "24Q4");
+        List<PeriodImportCandidateDto> periods = firebaseService.getNewerPeriods("NVDA", "24Q4");
 
         assertThat(periods.size(), is(2));
         assertThat(periods.get(0).getName(), is("25Q2"));
+        assertThat(periods.get(0).getEndingMonth(), is("2025-07"));
+        assertThat(periods.get(0).getIsReported(), is(true));
         assertThat(periods.get(1).getName(), is("25Q1"));
         assertThat(firebaseService.getPeriod("NVDA", "25Q1").getEndingMonth(), is("2025-04"));
         assertThat(firebaseService.getNewerPeriods("AMD", "24Q4"), is(empty()));

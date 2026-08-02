@@ -4,6 +4,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
+import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 
 import java.math.BigDecimal;
@@ -122,6 +123,16 @@ public class FirebaseCompany
                     period.setPreviousReportDate(Date.valueOf(this.report_date_previous_quarter).toString());
                 }
                 return period;
+            }
+
+            public PeriodImportCandidateDto toImportCandidateDto()
+            {
+                PeriodImportCandidateDto candidate = new PeriodImportCandidateDto();
+                candidate.setName(PeriodName.valueOf(this.id).toString());
+                candidate.setEndingMonth(YearMonth.parse("20" + this.ending_month).toString());
+                candidate.setIsReported(this.reported_revenues != null
+                        && !this.reported_revenues.isBlank());
+                return candidate;
             }
         }
     }

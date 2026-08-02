@@ -22,7 +22,7 @@ public class ResearchDto
     private Latest latest;
     private PriceIndicators indicators;
     private Assets assets;
-    private List<PeriodImportDto> newerCachedPeriods = new ArrayList<>();
+    private List<PeriodImportCandidateDto> importablePeriods = new ArrayList<>();
 
     @Data
     public static class PeriodDto extends Periods.Period {

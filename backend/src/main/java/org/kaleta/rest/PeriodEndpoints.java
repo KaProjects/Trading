@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
+import org.kaleta.rest.dto.PeriodUnreportedImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.kaleta.service.PeriodService;
@@ -52,6 +53,15 @@ public class PeriodEndpoints
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("/import")
     public Response importPeriod(@Valid @NotNull PeriodImportDto periodImportDto)
+    {
+        periodService.create(periodImportDto);
+        return Response.status(Response.Status.CREATED).build();
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/import/unreported")
+    public Response importUnreportedPeriod(@Valid @NotNull PeriodUnreportedImportDto periodImportDto)
     {
         periodService.create(periodImportDto);
         return Response.status(Response.Status.CREATED).build();

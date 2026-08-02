@@ -8,6 +8,7 @@ import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.FirebaseCompanyDep;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Period;
+import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.error.InvalidInputException;
 
@@ -45,7 +46,7 @@ public class FirebaseService
                 .collect(Collectors.toList()));
     }
 
-    public List<PeriodImportDto> getNewerPeriods(String ticker, String quarterId)
+    public List<PeriodImportCandidateDto> getNewerPeriods(String ticker, String quarterId)
     {
         FirebaseCompany company = firebaseStore.findCompany(ticker).orElse(null);
         if (company == null || company.getGemini() == null || company.getGemini().getQuarters() == null) {
@@ -54,7 +55,7 @@ public class FirebaseService
         return company.getGemini().getQuarters().values().stream()
                 .filter(quarter -> quarter.isInFutureOf(quarterId))
                 .sorted(Comparator.comparing(FirebaseCompany.Gemini.Quarter::getId).reversed())
-                .map(FirebaseCompany.Gemini.Quarter::toImportDto)
+                .map(FirebaseCompany.Gemini.Quarter::toImportCandidateDto)
                 .collect(Collectors.toList());
     }
 

@@ -14,6 +14,7 @@ import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
+import org.kaleta.rest.dto.PeriodUnreportedImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.kaleta.rest.error.InvalidInputException;
@@ -164,6 +165,31 @@ public class PeriodServiceTest
         invalidBigDecimals().forEach(invalidBigDecimal -> createAndAssertImportedPeriod(validName, validEndingMonth, validReportDate,
                 validShares, validPriceLow, validPriceHigh, validRevenue,
                 validGrossProfit, validOperatingIncome, validNetIncome, invalidBigDecimal, NumberFormatException.class));
+    }
+
+    @Test
+    void createUnreportedImport()
+    {
+        Company company = Generator.generateCompany();
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+
+        PeriodUnreportedImportDto dto = new PeriodUnreportedImportDto();
+        dto.setCompanyId(company.getId());
+        dto.setName("25Q1");
+        dto.setEndingMonth("2025-04");
+
+        periodService.create(dto);
+
+        ArgumentCaptor<Period> captor = ArgumentCaptor.forClass(Period.class);
+        verify(periodDao).create(captor.capture());
+        Period period = captor.getValue();
+        assertThat(period.getCompany(), is(company));
+        assertThat(period.getName(), is(PeriodName.valueOf(dto.getName())));
+        assertThat(period.getEndingMonth(), is(YearMonth.parse(dto.getEndingMonth())));
+        assertThat(period.getReportDate(), is(nullValue()));
+        assertThat(period.getShares(), is(nullValue()));
+        assertThat(period.getPriceLow(), is(nullValue()));
+        assertThat(period.getPriceHigh(), is(nullValue()));
     }
 
     @Test

@@ -12,6 +12,7 @@ import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.persistence.entity.PeriodType;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
+import org.kaleta.rest.dto.PeriodUnreportedImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.kaleta.rest.error.InvalidInputException;
@@ -64,6 +65,15 @@ public class PeriodService
 
         periodDao.create(period);
         pushFirebase(period);
+    }
+
+    public void create(PeriodUnreportedImportDto dto)
+    {
+        Period period = new Period();
+        period.setCompany(companyService.findEntity(dto.getCompanyId()));
+        period.setName(PeriodName.valueOf(dto.getName()));
+        period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
+        periodDao.create(period);
     }
 
     public void update(PeriodUpdateDto dto)

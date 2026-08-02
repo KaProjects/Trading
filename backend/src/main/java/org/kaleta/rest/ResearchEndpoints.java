@@ -12,12 +12,15 @@ import org.kaleta.model.Company;
 import org.kaleta.model.Periods;
 import org.kaleta.model.Record;
 import org.kaleta.persistence.entity.Latest;
+import org.kaleta.rest.dto.PeriodImportDataDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
+import org.kaleta.rest.validation.ValidPeriodName;
 import org.kaleta.rest.validation.ValidUuid;
 import org.kaleta.service.ArithmeticService;
 import org.kaleta.service.CompanyService;
 import org.kaleta.service.FirebaseService;
+import org.kaleta.service.ImportService;
 import org.kaleta.service.LatestService;
 import org.kaleta.service.PeriodService;
 import org.kaleta.service.RecordService;
@@ -42,6 +45,8 @@ public class ResearchEndpoints
     TradeService tradeService;
     @Inject
     FirebaseService firebaseService;
+    @Inject
+    ImportService importService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -87,9 +92,20 @@ public class ResearchEndpoints
         }
 
         String latestPeriodId = dto.getPeriods().stream().findFirst().map(p -> p.getName().toString()).orElse(null);
-        dto.setNewerCachedPeriods(firebaseService.getNewerPeriods(dto.getCompany().getTicker(), latestPeriodId));
+        dto.setImportablePeriods(firebaseService.getNewerPeriods(dto.getCompany().getTicker(), latestPeriodId));
 
         return Response.ok().entity(dto).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{companyId}/import/period/{quarterId}")
+    public Response importPeriod(
+            @NotNull @ValidUuid @PathParam("companyId") String companyId,
+            @NotNull @ValidPeriodName @PathParam("quarterId") String quarterId)
+    {
+        PeriodImportDataDto data = importService.getPeriod(companyId, quarterId);
+        return Response.ok().entity(data).build();
     }
 
 }

@@ -25,27 +25,35 @@ public class PeriodImportDto
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")
     private String reportDate;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String shares;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String priceLow;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String priceHigh;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String revenue;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String grossProfit;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String operatingIncome;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String netIncome;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String dividend;
 

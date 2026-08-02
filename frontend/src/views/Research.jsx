@@ -158,11 +158,11 @@ export const Research = props => {
                                 </Dialog>
 
                                 <Box sx={{position: "absolute", top: "0", right: "0", display: "flex", alignItems: "center"}}>
-                                    {data.newerCachedPeriods.length > 0 &&
+                                    {data.importablePeriods.length > 0 &&
                                         <>
                                             <Button
                                                 onClick={() => setOpenImportPeriodDialog(true)}>
-                                                <Badge badgeContent={data.newerCachedPeriods.length} sx={badgeStyle}>
+                                                <Badge badgeContent={data.importablePeriods.length} sx={badgeStyle}>
                                                     <CloudDownloadIcon sx={{color: 'lightgreen'}}/>
                                                 </Badge>
                                             </Button>
@@ -170,7 +170,7 @@ export const Research = props => {
                                                 open={openImportPeriodDialog}
                                                 handleClose={() => setOpenImportPeriodDialog(false)}
                                                 company={props.companySelectorValue}
-                                                periods={data.newerCachedPeriods}
+                                                periods={data.importablePeriods}
                                                 triggerRefresh={triggerRefresh}
                                             />
                                         </>

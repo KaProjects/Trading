@@ -32,7 +32,9 @@ jest.mock("../../dialog/AddPeriodFinancialDialog", () => ({
     AddPeriodFinancialDialog: (props) => props.open ? <div>add-period-financial-dialog</div> : null
 }));
 jest.mock("../../dialog/ImportPeriodDialog", () => ({
-    ImportPeriodDialog: (props) => props.open ? <div>import-period-dialog</div> : null
+    ImportPeriodDialog: (props) => props.open
+        ? <div>import-period-dialog:{props.periods.map(period => period.name).join(",")}</div>
+        : null
 }));
 jest.mock("../component/SnackbarErrorAlert", () => ({
     SnackbarErrorAlert: (props) => (
@@ -101,7 +103,7 @@ function createResearchData(overrides = {}) {
             dividend: 20,
         },
         periods: [{id: "period-1"}],
-        newerCachedPeriods: [],
+        importablePeriods: [],
         latest: {
             price: 123.45,
             datetime: "2026-05-09T10:11:12",
@@ -175,6 +177,28 @@ describe("Research", () => {
             replace: true,
             state: {companyId: "company-1"},
         });
+    });
+
+    test("opens import dialog with the lightweight period candidates", async () => {
+        axios.get.mockResolvedValue({data: createResearchData({
+            importablePeriods: [{
+                name: "26Q1",
+                endingMonth: "2026-04",
+                isReported: true,
+            }],
+        })});
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+            />
+        );
+
+        await waitFor(() => expect(screen.getByText("AAPL")).toBeInTheDocument());
+
+        fireEvent.click(screen.getByTestId("CloudDownloadIcon").closest("button"));
+
+        expect(screen.getByText("import-period-dialog:26Q1")).toBeInTheDocument();
     });
 
     test("updates watching status after confirm", async () => {
