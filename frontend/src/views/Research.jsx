@@ -17,9 +17,9 @@ import {PeriodFinancials} from "./component/PeriodFinancials";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
 import {AddPeriodDialog} from "../dialog/AddPeriodDialog";
 import {AddPeriodFinancialDialog} from "../dialog/AddPeriodFinancialDialog";
+import {FinancialsDialog} from "../dialog/FinancialsDialog";
 import {AddRecordDialog} from "../dialog/AddRecordDialog";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
-import {useLocation, useNavigate} from "react-router-dom";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 const RESEARCH_TAB = {
@@ -37,8 +37,6 @@ const researchCardStyle = {
 }
 
 export const Research = props => {
-    const location = useLocation()
-    const navigate = useNavigate()
     const [refresh, setRefresh] = useState("")
 
     const [data, setData] = useState(null)
@@ -49,7 +47,7 @@ export const Research = props => {
     const [openAddPeriodDialog, setOpenAddPeriodDialog] = useState(false)
     const [openImportPeriodDialog, setOpenImportPeriodDialog] = useState(false)
     const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
-    const [expandFinancials, setExpandFinancials] = useState(false)
+    const [openFinancialsDialog, setOpenFinancialsDialog] = useState(false)
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
     const [openEditFinancialDialog, setOpenEditFinancialDialog] = useState(null)
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
@@ -61,12 +59,7 @@ export const Research = props => {
                     setData(response.data)
                     setError(null)
 
-                    if (companyChanged) setExpandFinancials(false)
-                    if (location.state?.showFinancials){
-                        setExpandFinancials(true)
-                        const {showFinancials, ...remainingState} = location.state
-                        navigate(location.pathname, {replace: true, state: remainingState})
-                    }
+                    if (companyChanged) setOpenFinancialsDialog(false)
                     setLoaded(true)
                 })
                 .catch((error) => {
@@ -139,11 +132,8 @@ export const Research = props => {
 
                                 <PeriodFinancials
                                     sx={{marginBottom: "20px", marginTop: "20px"}}
-                                    financials={data.financials}
                                     ttm={data.ttm}
-                                    expand={expandFinancials}
-                                    setExpand={setExpandFinancials}
-                                    {...props}
+                                    onOpen={() => setOpenFinancialsDialog(true)}
                                 />
 
                                 <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
@@ -202,6 +192,12 @@ export const Research = props => {
                                 handleClose={() => setOpenEditFinancialDialog(null)}
                                 company={props.companySelectorValue}
                                 edit
+                            />
+                            <FinancialsDialog
+                                open={openFinancialsDialog}
+                                handleClose={() => setOpenFinancialsDialog(false)}
+                                ticker={data.company.ticker}
+                                financials={data.financials}
                             />
 
                             {data.periods.map((period) => (

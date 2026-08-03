@@ -19,8 +19,11 @@ jest.mock("../component/CompanySelector", () => ({
 }));
 jest.mock("../component/PeriodFinancials", () => ({
     PeriodFinancials: (props) => (
-        <div data-testid="period-financials">expand:{String(props.expand)} financials:{props.financials.length}</div>
+        <button data-testid="period-financials" onClick={props.onOpen}>financial-overview</button>
     ),
+}));
+jest.mock("../../dialog/FinancialsDialog", () => ({
+    FinancialsDialog: (props) => props.open ? <div>financials-dialog:{props.ticker}:{props.financials.length}</div> : null,
 }));
 jest.mock("../../dialog/AddRecordDialog", () => ({
     AddRecordDialog: (props) => props.open ? <div>add-record-dialog</div> : null
@@ -65,8 +68,6 @@ jest.mock("../component/Period", () => ({
 }));
 
 const mockFormatError = jest.fn();
-const mockUseLocation = jest.fn();
-const mockNavigate = jest.fn();
 
 jest.mock("../../service/FormattingService", () => {
     const actual = jest.requireActual("../../service/FormattingService");
@@ -75,11 +76,6 @@ jest.mock("../../service/FormattingService", () => {
         formatError: (...args) => mockFormatError(...args),
     };
 });
-
-jest.mock("react-router-dom", () => ({
-    useLocation: () => mockUseLocation(),
-    useNavigate: () => mockNavigate,
-}));
 
 import {Research} from "../Research";
 
@@ -132,9 +128,6 @@ describe("Research", () => {
         axios.put.mockReset();
         axios.delete.mockReset();
         mockFormatError.mockReset();
-        mockUseLocation.mockReset();
-        mockNavigate.mockReset();
-        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
     });
 
     test("fetches data and renders the research view", async () => {
@@ -153,7 +146,7 @@ describe("Research", () => {
 
         expect(screen.getByText("Research")).toBeInTheDocument();
         expect(screen.getByText("Technology")).toBeInTheDocument();
-        expect(screen.getByTestId("period-financials")).toHaveTextContent("expand:false financials:1");
+        expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
         expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
         expect(screen.getByText("Market Cap: $1B")).toBeInTheDocument();
         expect(screen.getByText("Dividend Yield: 2%")).toBeInTheDocument();
@@ -162,8 +155,7 @@ describe("Research", () => {
         expect(screen.getByText("record:record-1")).toBeInTheDocument();
     });
 
-    test("expands financials when navigation state requests it", async () => {
-        mockUseLocation.mockReturnValue({pathname: "/research", state: {companyId: "company-1", showFinancials: true}});
+    test("opens financials dialog from the overview", async () => {
         axios.get.mockResolvedValue({data: createResearchData()});
 
         render(
@@ -172,11 +164,9 @@ describe("Research", () => {
             />
         );
 
-        await waitFor(() => expect(screen.getByTestId("period-financials")).toHaveTextContent("expand:true financials:1"));
-        expect(mockNavigate).toHaveBeenCalledWith("/research", {
-            replace: true,
-            state: {companyId: "company-1"},
-        });
+        await screen.findByTestId("period-financials");
+        fireEvent.click(screen.getByTestId("period-financials"));
+        expect(screen.getByText("financials-dialog:AAPL:1")).toBeInTheDocument();
     });
 
     test("opens import dialog with the lightweight period candidates", async () => {
@@ -213,7 +203,7 @@ describe("Research", () => {
 
         await waitFor(() => expect(screen.getByText("AAPL")).toBeInTheDocument());
 
-        fireEvent.click(screen.getAllByRole("button")[0]);
+        fireEvent.click(screen.getByTestId("StarBorderIcon").closest("button"));
         expect(screen.getByText("Are you sure to watch the company?")).toBeInTheDocument();
 
         fireEvent.click(screen.getByText("Confirm"));
