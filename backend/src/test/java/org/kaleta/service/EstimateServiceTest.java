@@ -6,12 +6,13 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
+import org.kaleta.model.PeriodEstimates;
 import org.kaleta.persistence.api.EstimateDao;
+import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Estimate;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.rest.dto.EstimateCreateDto;
-import org.kaleta.rest.dto.EstimateDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.mockito.ArgumentCaptor;
 
@@ -40,6 +41,8 @@ class EstimateServiceTest
     EstimateDao estimateDao;
     @InjectMock
     PeriodService periodService;
+    @InjectMock
+    PeriodDao periodDao;
 
     @Inject
     EstimateService estimateService;
@@ -49,7 +52,7 @@ class EstimateServiceTest
     @BeforeEach
     void before()
     {
-        reset(estimateDao, periodService);
+        reset(estimateDao, periodService, periodDao);
         Company company = Generator.generateCompany(100L);
         period = Generator.generatePeriod(company, false);
         period.setId(200L);
@@ -62,7 +65,7 @@ class EstimateServiceTest
         Estimate estimate = estimate(300L, "2026-08-02T12:30:00");
         when(estimateDao.findLatest(period.getId())).thenReturn(Optional.of(estimate));
 
-        EstimateDto dto = estimateService.getLatest(period.getId()).orElseThrow();
+        PeriodEstimates dto = estimateService.getLatest(period.getId()).orElseThrow();
 
         assertThat(dto.getId(), is(estimate.getId()));
         assertThat(dto.getPeriodId(), is(period.getId()));
@@ -71,6 +74,26 @@ class EstimateServiceTest
         assertBigDecimals(dto.getNext1(), estimate.getNext1());
         assertBigDecimals(dto.getNext2(), estimate.getNext2());
         assertThat(dto.getNext3(), is(nullValue()));
+    }
+
+    @Test
+    void getLatest_includesAdjustedEpsFromPreviousQuarters()
+    {
+        period.setName(org.kaleta.persistence.entity.PeriodName.valueOf("26Q1"));
+        Estimate estimate = estimate(300L, "2026-08-02T12:30:00");
+        when(estimateDao.findLatest(period.getId())).thenReturn(Optional.of(estimate));
+        when(periodDao.list(period.getCompany().getId())).thenReturn(List.of(
+                previousPeriod("25Q4", "1.20"),
+                previousPeriod("25Q3", "1.10"),
+                previousPeriod("25Q2", null),
+                previousPeriod("25Q1", "0.90")));
+
+        PeriodEstimates result = estimateService.getLatest(period.getId()).orElseThrow();
+
+        assertBigDecimals(result.getPast1(), new BigDecimal("1.20"));
+        assertBigDecimals(result.getPast2(), new BigDecimal("1.10"));
+        assertThat(result.getPast3(), is(nullValue()));
+        assertBigDecimals(result.getPast4(), new BigDecimal("0.90"));
     }
 
     @Test
@@ -88,7 +111,7 @@ class EstimateServiceTest
         List<Long> periodIds = List.of(period.getId());
         when(estimateDao.findLatestByPeriodIds(periodIds)).thenReturn(List.of(estimate));
 
-        Map<Long, EstimateDto> estimates = estimateService.getLatestByPeriodIds(periodIds);
+        Map<Long, PeriodEstimates> estimates = estimateService.getLatestByPeriodIds(periodIds);
 
         assertThat(estimates.size(), is(1));
         assertThat(estimates.get(period.getId()).getId(), is(estimate.getId()));
@@ -149,5 +172,13 @@ class EstimateServiceTest
         dto.setNext1("12.75");
         dto.setNext3("14.25");
         return dto;
+    }
+
+    private Period previousPeriod(String name, String adjustedEps)
+    {
+        Period previous = Generator.generatePeriod(period.getCompany(), false);
+        previous.setName(org.kaleta.persistence.entity.PeriodName.valueOf(name));
+        previous.setAdjustedEps(adjustedEps == null ? null : new BigDecimal(adjustedEps));
+        return previous;
     }
 }

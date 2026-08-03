@@ -22,12 +22,17 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
     }
 
     function formatEstimate(estimate) {
+        const formatValue = (value) => {
+            if (value === null || value === undefined || value === "") return "-"
+            return formatDecimals(value, 0, 2) || "-"
+        }
+        const past = [estimate.past4, estimate.past3, estimate.past2, estimate.past1]
+            .map(formatValue)
+            .join(" | ")
         const future = [estimate.next1, estimate.next2, estimate.next3]
-            .filter(value => value !== null && value !== undefined)
-            .map(value => " | " + formatDecimals(value, 0, 2))
-            .join("")
-        return "Estimates: " + formatDecimals(estimate.current, 0, 2)
-            + future
+            .map(formatValue)
+            .join(" | ")
+        return "Estimates: " + past + " |> " + formatValue(estimate.current) + " | " + future
     }
 
     function updateResearch(id, content) {
@@ -57,7 +62,8 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
                         {"Shares: " + formatMillions(period.shares)
                             + " | H: " + formatPrice(period.priceHigh, currency)
                             + " | L: " + formatPrice(period.priceLow, currency)
-                            + " | Dividend: " + formatMillions(period.financial.dividend)}
+                            + " | Dividend: " + formatMillions(period.financial.dividend)
+                            + " | Adj. Eps: " + formatDecimals(period.financial.adjustedEps, 0, 2)}
                     </Typography>
                     <Typography sx={{color: 'text.secondary', fontSize: 14}} >
                         {"Revenue: " + formatMillions(period.financial.revenue.value)
@@ -90,11 +96,13 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
                         </Button>
                     </Tooltip>
                 }
-                <Tooltip title="Add Estimates" placement="left">
-                    <Button>
-                        <EstimatesPlusIcon/>
-                    </Button>
-                </Tooltip>
+                {!period.reportDate &&
+                    <Tooltip title="Add Estimates" placement="left">
+                        <Button>
+                            <EstimatesPlusIcon/>
+                        </Button>
+                    </Tooltip>
+                }
             </Stack>
         </BorderedSection>
     )

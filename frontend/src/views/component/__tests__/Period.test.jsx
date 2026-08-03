@@ -32,6 +32,7 @@ describe("Period", () => {
                     priceLow: 10,
                     financial: {
                         dividend: 12,
+                        adjustedEps: 1.62,
                         revenue: {value: 300},
                         grossProfit: {value: 200},
                         operatingIncome: {value: 100},
@@ -51,11 +52,13 @@ describe("Period", () => {
         );
 
         expect(screen.getByText("25FY - ending: 12/25 - report: 15.02.2026")).toBeInTheDocument();
-        expect(screen.getByText("Shares: 123M | H: 20$ | L: 10$ | Dividend: 12M")).toBeInTheDocument();
+        expect(screen.getByText("Shares: 123M | H: 20$ | L: 10$ | Dividend: 12M | Adj. Eps: 1.62"))
+            .toBeInTheDocument();
         expect(screen.getByText("Revenue: 300M | Gross P.: 200M | Op. Inc.: 100M | Net Income: 50M")).toBeInTheDocument();
-        expect(screen.getByText("Estimates: 1.62 | 1.85 | 2.76")).toBeInTheDocument();
+        expect(screen.getByText("Estimates: - | - | - | - |> 1.62 | 1.85 | - | 2.76"))
+            .toBeInTheDocument();
         expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
-        expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Add Estimates"})).not.toBeInTheDocument();
     });
 
     test("updates research through axios", async () => {
@@ -106,9 +109,39 @@ describe("Period", () => {
             />
         );
 
-        expect(screen.getByText("Estimates: 1.62")).toBeInTheDocument();
+        expect(screen.getByText("Estimates: - | - | - | - |> 1.62 | - | - | -"))
+            .toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add Financials"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
+    });
+
+    test("renders past estimates before the current estimate", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    reportDate: null,
+                    estimate: {
+                        past4: 0.91,
+                        past3: 1.05,
+                        past2: null,
+                        past1: 1.42,
+                        current: 1.62,
+                        next1: 1.85,
+                        next2: null,
+                        next3: 2.76,
+                    },
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByText("Estimates: 0.91 | 1.05 | - | 1.42 |> 1.62 | 1.85 | - | 2.76"))
+            .toBeInTheDocument();
     });
 
     test("opens dialog when financials are missing", () => {

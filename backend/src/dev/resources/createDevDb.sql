@@ -31,7 +31,7 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gro
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES (2278, 2213, '24Q2', '2407', '2024-08-15', '800', '400', '200', '0', '10');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES (2303, 2213, '24Q1', '2404', '2024-02-15', '1234', '456', '123', '11', '7');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES (1750, 2213, '23Q4', '2401', '2024-02-01', '900', '450', '240', '120', '15');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (2337, 2212, '25Q3', '2510', '2025-11-04', '1850', '960', '410', '260', '0', '1250', '185', '132');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2337, 2212, '25Q3', '2510', '2025-11-04', '1850', '960', '410', '260', '0', '0.75', '1250', '185', '132');
 
 
 INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES (2024, 2213, '2021-06-01', '70', '7');
@@ -63,18 +63,18 @@ INSERT INTO Record (id, companyId, date, price, content, strategy, targets, p_ne
 INSERT INTO Record (id, companyId, date, title, price, content, review, targets, p_rev, p_net, dy, asset_quantity, asset_price) VALUES (1169, 2261, '2026-07-01', 'Pipeline update', '102.30', '[{"type":"paragraph","children":[{"text":"The clinical pipeline progressed without material delays."}]}]', '[{"type":"paragraph","children":[{"text":"Risk remains concentrated in the next trial readout."}]}]', '88-125', '6.20', '24.50', '1.80', '18', '96.20');
 
 
--- Quarterly financial history for NVDA and AMD.
+-- Quarterly financial history and adjusted EPS for NVDA and AMD.
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1251, 2213, '25Q1', '2504', '2025-05-28', '1380', '815', '535', '285', '32', '990', '155', '92');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1252, 2213, '25Q2', '2507', '2025-08-27', '1540', '925', '625', '350', '34', '980', '185', '95');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1253, 2213, '25Q3', '2510', '2025-11-19', '1695', '1035', '710', '420', '36', '970', '198', '145');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1254, 2213, '25Q4', '2601', '2026-02-25', '1880', '1165', '810', '505', '38', '960', '205', '132');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1255, 2213, '26Q1', '2604', '2026-05-27', '2075', '1300', '925', '590', '40', '950', '195', '150');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1252, 2213, '25Q2', '2507', '2025-08-27', '1540', '925', '625', '350', '34', '0.76', '980', '185', '95');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1253, 2213, '25Q3', '2510', '2025-11-19', '1695', '1035', '710', '420', '36', '0.81', '970', '198', '145');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1254, 2213, '25Q4', '2601', '2026-02-25', '1880', '1165', '810', '505', '38', '0.89', '960', '205', '132');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1255, 2213, '26Q1', '2604', '2026-05-27', '2075', '1300', '925', '590', '40', '0.96', '950', '195', '150');
 
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1256, 2212, '24Q4', '2501', '2025-02-04', '1320', '670', '270', '160', '0', '1290', '178', '118');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1257, 2212, '25Q1', '2504', '2025-05-06', '1450', '745', '305', '185', '0', '1280', '165', '76');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1258, 2212, '25Q2', '2507', '2025-08-05', '1610', '835', '355', '220', '0', '1270', '182', '120');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1259, 2212, '25Q4', '2601', '2026-02-03', '1980', '1040', '455', '305', '0', '1240', '205', '151');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1260, 2212, '26Q1', '2604', '2026-05-05', '2180', '1160', '525', '365', '0', '1225', '190', '135');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1258, 2212, '25Q2', '2507', '2025-08-05', '1610', '835', '355', '220', '0', '0.54', '1270', '182', '120');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1259, 2212, '25Q4', '2601', '2026-02-03', '1980', '1040', '455', '305', '0', '1.09', '1240', '205', '151');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1260, 2212, '26Q1', '2604', '2026-05-05', '2180', '1160', '525', '365', '0', '1.16', '1225', '190', '135');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES (1268, 2212, '26Q2', '2607');
 
 -- Saved analyst snapshots for AMD quarters, including shortened future horizons.
@@ -92,7 +92,11 @@ INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALU
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1261, 2214, '23FY', '2312', '2024-01-25', '5200', '2180', '120', '-80', '45', '1350', '51', '24');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1262, 2214, '24FY', '2412', '2025-01-30', '5480', '2320', '180', '-50', '48', '1330', '50', '18');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1263, 2214, '25FY', '2512', '2026-01-29', '5790', '2510', '260', '30', '50', '1310', '29', '17');
-INSERT INTO Period (id, companyId, name, ending_month) VALUES (1269, 2214, '26Q1', '2601');
+-- Latest four Intel quarters provide the historical EPS sequence in the estimates UI.
+INSERT INTO Period (id, companyId, name, ending_month, report_date, adjusted_eps) VALUES (2401, 2214, '25Q2', '2507', '2025-07-24', '-0.02');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, adjusted_eps) VALUES (2402, 2214, '25Q3', '2510', '2025-10-23', '0.23');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, adjusted_eps) VALUES (2403, 2214, '25Q4', '2512', '2026-01-22', '0.13');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, adjusted_eps) VALUES (1269, 2214, '26Q1', '2603', '2026-04-23', '0.12');
 
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1264, 2073, '24H1', '2406', '2024-08-01', '780', '430', '185', '105', '12', '420', '78', '54');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1265, 2073, '24H2', '2412', '2025-02-03', '840', '475', '205', '120', '14', '418', '84', '62');

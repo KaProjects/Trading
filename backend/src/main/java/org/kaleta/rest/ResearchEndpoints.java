@@ -12,7 +12,7 @@ import org.kaleta.model.Company;
 import org.kaleta.model.Periods;
 import org.kaleta.model.Record;
 import org.kaleta.persistence.entity.Latest;
-import org.kaleta.rest.dto.EstimateDto;
+import org.kaleta.model.PeriodEstimates;
 import org.kaleta.rest.dto.PeriodImportDataDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
@@ -65,7 +65,7 @@ public class ResearchEndpoints
         Periods periodsModel = periodService.getBy(companyId);
         dto.setFinancials(periodsModel.getFinancials());
         dto.setTtm(periodsModel.getTtm());
-        Map<Long, EstimateDto> estimates = estimateService.getLatestByPeriodIds(
+        Map<Long, PeriodEstimates> estimates = estimateService.getLatestByPeriodIds(
                 periodsModel.getPeriods().stream()
                         .map(Periods.Period::getId)
                         .toList());
