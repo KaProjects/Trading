@@ -57,7 +57,7 @@ describe("Period", () => {
         expect(screen.getByText("Shares: 123M | H: 20$ | L: 10$ | Dividend: 12M | Adj. Eps: 1.62"))
             .toBeInTheDocument();
         expect(screen.getByText("Revenue: 300M | Gross P.: 200M | Op. Inc.: 100M | Net Income: 50M")).toBeInTheDocument();
-        expect(screen.getByText("Estimates: - | - | - | - |> 1.62 | 1.85 | - | 2.76"))
+        expect(screen.getByText("Estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76"))
             .toBeInTheDocument();
         expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
         expect(screen.queryByRole("button", {name: "Add Estimates"})).not.toBeInTheDocument();
@@ -113,7 +113,7 @@ describe("Period", () => {
             />
         );
 
-        expect(screen.getByText("Estimates: - | - | - | - |> 1.62 | - | - | -"))
+        expect(screen.getByText("Estimates: - | - | - | - => 1.62 | - | - | -"))
             .toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add Financials"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
@@ -136,6 +136,12 @@ describe("Period", () => {
                         next1: 1.85,
                         next2: null,
                         next3: 2.76,
+                        datetime: "2026-08-02T12:30:00",
+                        pastTotal: 4.38,
+                        currentChange: 12.5,
+                        next1Change: -3.25,
+                        next2Change: 0,
+                        next3Change: 4,
                     },
                 }}
                 currency={"$"}
@@ -144,8 +150,11 @@ describe("Period", () => {
             />
         );
 
-        expect(screen.getByText("Estimates: 0.91 | 1.05 | - | 1.42 |> 1.62 | 1.85 | - | 2.76"))
+        expect(screen.getByText("Estimates: 0.91 | 1.05 | - | 1.42 => 1.62 | 1.85 | - | 2.76"))
             .toBeInTheDocument();
+        expect(screen.getByText("(02.08.2026)")).toBeInTheDocument();
+        expect(screen.getByText("(4.38)")).toBeInTheDocument();
+        expect(screen.getByText("(+12.5% | -3.25% | 0% | +4%)")).toBeInTheDocument();
     });
 
     test("opens dialog when financials are missing", () => {

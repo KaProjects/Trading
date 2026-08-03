@@ -1,8 +1,8 @@
 import {BorderedSection} from "./BorderedSection";
 import React from "react";
-import {Button, Stack, Typography} from "@mui/material";
+import {Box, Button, Stack, Typography} from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
-import {formatDate, formatDecimals, formatError, formatMillions, formatPeriodName} from "../../service/FormattingService";
+import {formatDate, formatDecimals, formatError, formatMillions, formatPercent, formatPeriodName} from "../../service/FormattingService";
 import axios from "axios";
 import {backend} from "../../properties";
 import {ContentEditor} from "./ContentEditor";
@@ -33,7 +33,22 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog})
         const future = [estimate.next1, estimate.next2, estimate.next3]
             .map(formatValue)
             .join(" | ")
-        return "Estimates: " + past + " |> " + formatValue(estimate.current) + " | " + future
+        return "Estimates: " + past + " => " + formatValue(estimate.current) + " | " + future
+    }
+
+    function formatEstimateChanges(estimate) {
+        const formatChange = (value) => formatPercent(value, true, 2) || "-";
+        return [estimate.currentChange, estimate.next1Change, estimate.next2Change, estimate.next3Change]
+            .map(formatChange)
+            .join(" | ");
+    }
+
+    function formatEstimateDate(datetime) {
+        return formatDate(datetime?.substring(0, 10)) || "-";
+    }
+
+    function formatEstimatePastTotal(value) {
+        return formatDecimals(value, 0, 2) || "-";
     }
 
     function updateResearch(id, content) {
@@ -75,9 +90,23 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog})
                 </>
             }
             {period.estimate &&
-                <Typography sx={{color: 'text.secondary', fontSize: 14}}>
-                    {formatEstimate(period.estimate)}
-                </Typography>
+                <>
+                    <Typography sx={{color: 'text.secondary', fontSize: 14}}>
+                        {formatEstimate(period.estimate)}
+                    </Typography>
+                    <Box sx={{
+                        color: 'text.secondary',
+                        display: "grid",
+                        gridTemplateColumns: "repeat(8, minmax(38px, max-content))",
+                        columnGap: "8px",
+                        fontSize: 11,
+                        marginTop: "-2px",
+                    }}>
+                        <Box sx={{gridColumn: "1 / span 3"}}>({formatEstimateDate(period.estimate.datetime)})</Box>
+                        <Box>({formatEstimatePastTotal(period.estimate.pastTotal)})</Box>
+                        <Box sx={{gridColumn: "5 / span 4", marginLeft: "20px"}}>({formatEstimateChanges(period.estimate)})</Box>
+                    </Box>
+                </>
             }
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{

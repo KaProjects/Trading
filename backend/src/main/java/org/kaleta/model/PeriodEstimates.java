@@ -19,4 +19,9 @@ public class PeriodEstimates
     private BigDecimal past2;
     private BigDecimal past3;
     private BigDecimal past4;
+    private BigDecimal pastTotal;
+    private BigDecimal currentChange;
+    private BigDecimal next1Change;
+    private BigDecimal next2Change;
+    private BigDecimal next3Change;
 }

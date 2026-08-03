@@ -97,6 +97,31 @@ class EstimateServiceTest
     }
 
     @Test
+    void getLatest_calculatesRollingFourQuarterChanges()
+    {
+        period.setName(org.kaleta.persistence.entity.PeriodName.valueOf("26Q1"));
+        Estimate estimate = estimate(300L, "2026-08-02T12:30:00");
+        estimate.setCurrent(new BigDecimal("5"));
+        estimate.setNext1(new BigDecimal("6"));
+        estimate.setNext2(new BigDecimal("7"));
+        estimate.setNext3(new BigDecimal("8"));
+        when(estimateDao.findLatest(period.getId())).thenReturn(Optional.of(estimate));
+        when(periodDao.list(period.getCompany().getId())).thenReturn(List.of(
+                previousPeriod("25Q4", "4"),
+                previousPeriod("25Q3", "3"),
+                previousPeriod("25Q2", "2"),
+                previousPeriod("25Q1", "1")));
+
+        PeriodEstimates result = estimateService.getLatest(period.getId()).orElseThrow();
+
+        assertBigDecimals(result.getPastTotal(), new BigDecimal("10"));
+        assertBigDecimals(result.getCurrentChange(), new BigDecimal("40"));
+        assertBigDecimals(result.getNext1Change(), new BigDecimal("28.57"));
+        assertBigDecimals(result.getNext2Change(), new BigDecimal("22.22"));
+        assertBigDecimals(result.getNext3Change(), new BigDecimal("18.18"));
+    }
+
+    @Test
     void getLatest_empty()
     {
         when(estimateDao.findLatest(period.getId())).thenReturn(Optional.empty());

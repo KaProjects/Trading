@@ -81,8 +81,39 @@ public class EstimateService
             dto.setPast2(previousAdjustedEps(adjustedEpsByQuarter, quarter, 2));
             dto.setPast3(previousAdjustedEps(adjustedEpsByQuarter, quarter, 3));
             dto.setPast4(previousAdjustedEps(adjustedEpsByQuarter, quarter, 4));
+            setRollingChanges(dto);
         }
         return dto;
+    }
+
+    private void setRollingChanges(PeriodEstimates estimates)
+    {
+        List<BigDecimal> values = java.util.Arrays.asList(
+                estimates.getPast4(), estimates.getPast3(), estimates.getPast2(), estimates.getPast1(),
+                estimates.getCurrent(), estimates.getNext1(), estimates.getNext2(), estimates.getNext3());
+        estimates.setPastTotal(sum(values.subList(0, 4)));
+        estimates.setCurrentChange(rollingFourQuarterChange(values, 0));
+        estimates.setNext1Change(rollingFourQuarterChange(values, 1));
+        estimates.setNext2Change(rollingFourQuarterChange(values, 2));
+        estimates.setNext3Change(rollingFourQuarterChange(values, 3));
+    }
+
+    private BigDecimal rollingFourQuarterChange(List<BigDecimal> values, int offset)
+    {
+        List<BigDecimal> previousWindow = values.subList(offset, offset + 4);
+        List<BigDecimal> nextWindow = values.subList(offset + 1, offset + 5);
+        if (previousWindow.contains(null) || nextWindow.contains(null)) {
+            return null;
+        }
+
+        BigDecimal previousTotal = sum(previousWindow);
+        BigDecimal nextTotal = sum(nextWindow);
+        return arithmeticService.profitPercentage(previousTotal, nextTotal);
+    }
+
+    private BigDecimal sum(List<BigDecimal> values)
+    {
+        return values.contains(null) ? null : values.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private Map<String, BigDecimal> adjustedEpsByQuarter(Long companyId)
