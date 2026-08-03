@@ -224,10 +224,12 @@ public class ResearchEndpointsTest
     }
 
     @Test
-    void importPeriod_polygonFailureReturnsFirebaseDataAndWarning() throws RequestFailureException
+    void importPeriod_sourceFailureReturnsAvailableSuggestionsWithoutWarning() throws RequestFailureException
     {
         Long companyId = 2281L;
         when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData());
+        when(firebaseService.getLatestActualEps("RCH", "25Q2"))
+                .thenThrow(new IllegalStateException("Finnhub unavailable"));
         when(polygonClient.getFinancials("RCH", "2025", "Q2"))
                 .thenThrow(new RequestFailureException("rate limit exceeded"));
         when(polygonClient.getPriceRange("RCH", "2025-05-28", "2025-08-27"))
@@ -243,10 +245,60 @@ public class ResearchEndpointsTest
 
         assertThat(dto.getFirebase().getRevenue(), is("201"));
         assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
+        assertThat(dto.getPolygon().getAdjustedEps(), is(nullValue()));
         assertThat(dto.getPolygon().getPriceHigh(), is("140.25"));
-        assertThat(dto.getWarnings().size(), is(1));
-        assertThat(dto.getWarnings().get(0), is(
-                "Polygon.io financial data could not be loaded: rate limit exceeded"));
+        assertThat(dto.getWarnings().size(), is(0));
+    }
+
+    @Test
+    void importPeriod_missingGeminiStillLoadsExternalSuggestions() throws RequestFailureException
+    {
+        Long companyId = 2281L;
+        when(firebaseService.getPeriod("RCH", "25Q2"))
+                .thenThrow(new IllegalStateException("Gemini unavailable"));
+        when(polygonClient.getFinancials("RCH", "2025", "Q2")).thenReturn(Optional.of(
+                new PolygonFinancials(
+                        new BigDecimal("10000000"),
+                        new BigDecimal("20000000"),
+                        null,
+                        null,
+                        null)));
+        when(firebaseService.getLatestActualEps("RCH", "25Q2")).thenReturn("1.27");
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", PeriodImportDataDto.class);
+
+        assertThat(dto.getFirebase().getRevenue(), is(nullValue()));
+        assertThat(dto.getPolygon().getShares(), is("10"));
+        assertThat(dto.getPolygon().getRevenue(), is("20"));
+        assertThat(dto.getPolygon().getAdjustedEps(), is("1.27"));
+        assertThat(dto.getPolygon().getPriceHigh(), is(nullValue()));
+        assertThat(dto.getWarnings().size(), is(0));
+        verify(polygonClient).getFinancials("RCH", "2025", "Q2");
+        verify(firebaseService).getLatestActualEps("RCH", "25Q2");
+    }
+
+    @Test
+    void importPeriod_withoutAnySuggestionsReturnsEmptyData()
+    {
+        Long companyId = 2281L;
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", PeriodImportDataDto.class);
+
+        assertThat(dto.getFirebase(), is(notNullValue()));
+        assertThat(dto.getFirebase().getRevenue(), is(nullValue()));
+        assertThat(dto.getPolygon(), is(notNullValue()));
+        assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
+        assertThat(dto.getWarnings().size(), is(0));
     }
 
     @Test
@@ -259,9 +311,6 @@ public class ResearchEndpointsTest
         Assert.getValidationError(
                 "/research/" + companyId + "/import/period/INVALID",
                 "must be a valid PeriodName");
-        Assert.get400(
-                "/research/" + companyId + "/import/period/25Q2",
-                "period '25Q2' is not available for import");
     }
 
     @Test
@@ -269,12 +318,6 @@ public class ResearchEndpointsTest
     {
         Long companyId = 2281L;
         Long periodId = 2182L;
-        when(firebaseService.getLatestEstimate("RCH", "24Q1"))
-                .thenReturn(estimate("1", "2024-05-01"));
-        when(firebaseService.getLatestEstimate("RCH", "24Q3"))
-                .thenReturn(estimate("3", "2024-11-01"));
-        when(firebaseService.getLatestEstimate("RCH", "24Q4"))
-                .thenReturn(estimate("4", "2025-02-01"));
         when(firebaseService.getLatestEstimate("RCH", "25Q1"))
                 .thenReturn(estimate("5", "2025-05-01"));
         when(firebaseService.getLatestEstimate("RCH", "25Q2"))
@@ -293,17 +336,32 @@ public class ResearchEndpointsTest
         Map<String, Object> fields = response.jsonPath().getMap("");
         EstimateImportDto dto = response.as(EstimateImportDto.class);
 
-        assertThat(fields.keySet(), containsInAnyOrder(
-                "past4", "past3", "past2", "past1", "current", "next1", "next2", "next3"));
-        assertThat(dto.getPast4().getEps(), is("1"));
-        assertThat(dto.getPast4().getDate(), is("2024-05-01"));
-        assertThat(dto.getPast3(), is(nullValue()));
-        assertThat(dto.getPast2().getEps(), is("3"));
-        assertThat(dto.getPast1().getEps(), is("4"));
+        assertThat(fields.keySet(), containsInAnyOrder("current", "next1", "next2", "next3"));
         assertThat(dto.getCurrent().getEps(), is("5"));
         assertThat(dto.getNext1().getEps(), is("6"));
         assertThat(dto.getNext2().getEps(), is("7"));
         assertThat(dto.getNext3().getEps(), is("8"));
+    }
+
+    @Test
+    void importEstimate_sourceFailureReturnsEmptySuggestion()
+    {
+        Long companyId = 2281L;
+        Long periodId = 2182L;
+        when(firebaseService.getLatestEstimate("RCH", "25Q1"))
+                .thenThrow(new IllegalStateException("Finnhub unavailable"));
+
+        EstimateImportDto dto = given().when()
+                .get("/research/" + companyId + "/import/estimate/" + periodId)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(EstimateImportDto.class);
+
+        assertThat(dto.getCurrent(), is(nullValue()));
+        assertThat(dto.getNext1(), is(nullValue()));
+        assertThat(dto.getNext2(), is(nullValue()));
+        assertThat(dto.getNext3(), is(nullValue()));
     }
 
     @Test

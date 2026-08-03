@@ -5,10 +5,6 @@ import lombok.Data;
 @Data
 public class EstimateImportDto
 {
-    private Quarter past4;
-    private Quarter past3;
-    private Quarter past2;
-    private Quarter past1;
     private Quarter current;
     private Quarter next1;
     private Quarter next2;

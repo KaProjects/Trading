@@ -3,7 +3,6 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.kaleta.client.PolygonClient;
-import org.kaleta.client.RequestFailureException;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonPriceRange;
 import org.kaleta.model.Company;
@@ -46,18 +45,17 @@ public class ImportService
     public PeriodImportDataDto getPeriod(Long companyId, String quarterId)
     {
         Company company = companyService.getCompany(companyId);
-        PeriodImportDto firebaseData = firebaseService.getPeriod(company.getTicker(), quarterId);
-        if (firebaseData == null) {
-            throw new InvalidInputException("period '" + quarterId + "' is not available for import");
-        }
+        String ticker = company.getTicker();
+        PeriodImportDto firebaseData = loadFirebasePeriod(ticker, quarterId);
+        PeriodImportDataDto result = firebaseData == null
+                ? new PeriodImportDataDto()
+                : createPeriodData(firebaseData);
 
-        PeriodImportDataDto result = createPeriodData(firebaseData);
-        if (Boolean.TRUE.equals(firebaseData.getIsReported())) {
-            loadPolygonFinancials(result, company.getTicker(), quarterId);
-            loadPolygonPrices(result, company.getTicker(), firebaseData);
-            result.getPolygon().setAdjustedEps(
-                    firebaseService.getLatestActualEps(company.getTicker(), quarterId));
+        loadPolygonFinancials(result, ticker, quarterId);
+        if (firebaseData != null) {
+            loadPolygonPrices(result, ticker, firebaseData);
         }
+        loadExternalAdjustedEps(result, ticker, quarterId);
         return result;
     }
 
@@ -76,10 +74,6 @@ public class ImportService
         String ticker = company.getTicker();
         String currentQuarter = period.getName().toString();
         EstimateImportDto result = new EstimateImportDto();
-        result.setPast4(getEstimate(ticker, currentQuarter, -4));
-        result.setPast3(getEstimate(ticker, currentQuarter, -3));
-        result.setPast2(getEstimate(ticker, currentQuarter, -2));
-        result.setPast1(getEstimate(ticker, currentQuarter, -1));
         result.setCurrent(getEstimate(ticker, currentQuarter, 0));
         result.setNext1(getEstimate(ticker, currentQuarter, 1));
         result.setNext2(getEstimate(ticker, currentQuarter, 2));
@@ -89,7 +83,11 @@ public class ImportService
 
     private EstimateImportDto.Quarter getEstimate(String ticker, String quarterId, int offset)
     {
-        return firebaseService.getLatestEstimate(ticker, arithmeticService.shiftQuarter(quarterId, offset));
+        try {
+            return firebaseService.getLatestEstimate(ticker, arithmeticService.shiftQuarter(quarterId, offset));
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private boolean isQuarter(PeriodType periodType)
@@ -121,6 +119,27 @@ public class ImportService
         return result;
     }
 
+    private PeriodImportDto loadFirebasePeriod(String ticker, String quarterId)
+    {
+        try {
+            return firebaseService.getPeriod(ticker, quarterId);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private void loadExternalAdjustedEps(
+            PeriodImportDataDto result,
+            String ticker,
+            String quarterId)
+    {
+        try {
+            result.getPolygon().setAdjustedEps(firebaseService.getLatestActualEps(ticker, quarterId));
+        } catch (Exception ignored) {
+            // Import values are optional suggestions.
+        }
+    }
+
     private void loadPolygonFinancials(
             PeriodImportDataDto result,
             String ticker,
@@ -131,11 +150,7 @@ public class ImportService
         try {
             Optional<PolygonFinancials> financials = polygonClient
                     .getFinancials(ticker, fiscalYear, fiscalPeriod);
-            if (financials.isEmpty()) {
-                result.getWarnings().add(
-                        "Polygon.io financial data was not found for " + quarterId);
-                return;
-            }
+            if (financials.isEmpty()) return;
 
             PolygonFinancials values = financials.get();
             PeriodImportDataDto.Source polygon = result.getPolygon();
@@ -144,9 +159,8 @@ public class ImportService
             polygon.setGrossProfit(toMillions(values.grossProfit()));
             polygon.setOperatingIncome(toMillions(values.operatingIncome()));
             polygon.setNetIncome(toMillions(values.netIncome()));
-        } catch (RequestFailureException exception) {
-            result.getWarnings().add(
-                    "Polygon.io financial data could not be loaded: " + exception.getMessage());
+        } catch (Exception ignored) {
+            // Import values are optional suggestions.
         }
     }
 
@@ -156,8 +170,6 @@ public class ImportService
             PeriodImportDto firebaseData)
     {
         if (firebaseData.getPreviousReportDate() == null || firebaseData.getReportDate() == null) {
-            result.getWarnings().add(
-                    "Polygon.io prices could not be loaded because report dates are missing");
             return;
         }
 
@@ -166,18 +178,13 @@ public class ImportService
                     ticker,
                     firebaseData.getPreviousReportDate(),
                     firebaseData.getReportDate());
-            if (priceRange.isEmpty()) {
-                result.getWarnings().add("Polygon.io prices were not found between "
-                        + firebaseData.getPreviousReportDate() + " and " + firebaseData.getReportDate());
-                return;
-            }
+            if (priceRange.isEmpty()) return;
 
             PeriodImportDataDto.Source polygon = result.getPolygon();
             polygon.setPriceHigh(toString(priceRange.get().high()));
             polygon.setPriceLow(toString(priceRange.get().low()));
-        } catch (RequestFailureException exception) {
-            result.getWarnings().add(
-                    "Polygon.io prices could not be loaded: " + exception.getMessage());
+        } catch (Exception ignored) {
+            // Import values are optional suggestions.
         }
     }
 

@@ -208,6 +208,18 @@ describe("AddPeriodFinancialDialog", () => {
         expect(props.handleClose).not.toHaveBeenCalled();
     });
 
+    test("opens with empty suggestion columns when no import data is available", async () => {
+        axios.get.mockResolvedValue({data: {firebase: {}, polygon: {}, warnings: []}});
+
+        render(<AddPeriodFinancialDialog {...createProps()}/>);
+
+        expect(await screen.findByText("Gemini")).toBeInTheDocument();
+        expect(screen.getByText("External")).toBeInTheDocument();
+        expect(screen.getByLabelText("Report Date")).toHaveValue("");
+        expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("");
+        expect(mockFormatError).not.toHaveBeenCalled();
+    });
+
     test("edits a reported period without loading suggestions", async () => {
         axios.put.mockResolvedValue({});
         const props = createProps({

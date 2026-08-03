@@ -59,35 +59,19 @@ class ImportServiceTest
     @Test
     void getEstimate()
     {
-        EstimateImportDto.Quarter past4 = quarter("1", "2025-05-01");
-        EstimateImportDto.Quarter past3 = quarter("2", "2025-08-01");
-        EstimateImportDto.Quarter past2 = quarter("3", "2025-11-01");
-        EstimateImportDto.Quarter past1 = quarter("4", "2026-02-01");
         EstimateImportDto.Quarter current = quarter("5", "2026-05-01");
         EstimateImportDto.Quarter next1 = quarter("6", "2026-08-01");
         EstimateImportDto.Quarter next3 = quarter("8", "2027-02-01");
-        when(firebaseService.getLatestEstimate("NVDA", "25Q1")).thenReturn(past4);
-        when(firebaseService.getLatestEstimate("NVDA", "25Q2")).thenReturn(past3);
-        when(firebaseService.getLatestEstimate("NVDA", "25Q3")).thenReturn(past2);
-        when(firebaseService.getLatestEstimate("NVDA", "25Q4")).thenReturn(past1);
         when(firebaseService.getLatestEstimate("NVDA", "26Q1")).thenReturn(current);
         when(firebaseService.getLatestEstimate("NVDA", "26Q2")).thenReturn(next1);
         when(firebaseService.getLatestEstimate("NVDA", "26Q4")).thenReturn(next3);
 
         EstimateImportDto result = importService.getEstimate(company.getId(), period.getId());
 
-        assertThat(result.getPast4(), is(past4));
-        assertThat(result.getPast3(), is(past3));
-        assertThat(result.getPast2(), is(past2));
-        assertThat(result.getPast1(), is(past1));
         assertThat(result.getCurrent(), is(current));
         assertThat(result.getNext1(), is(next1));
         assertThat(result.getNext2(), is(nullValue()));
         assertThat(result.getNext3(), is(next3));
-        verify(firebaseService).getLatestEstimate("NVDA", "25Q1");
-        verify(firebaseService).getLatestEstimate("NVDA", "25Q2");
-        verify(firebaseService).getLatestEstimate("NVDA", "25Q3");
-        verify(firebaseService).getLatestEstimate("NVDA", "25Q4");
         verify(firebaseService).getLatestEstimate("NVDA", "26Q1");
         verify(firebaseService).getLatestEstimate("NVDA", "26Q2");
         verify(firebaseService).getLatestEstimate("NVDA", "26Q3");

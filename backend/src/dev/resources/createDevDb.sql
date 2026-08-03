@@ -88,8 +88,8 @@ INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALU
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1402, 1268, '2026-08-01 18:30:00', '1.62', '1.85', '2.64', '2.76');
 
 
--- Intel quarterly sequence: the oldest and latest periods remain unreported.
-INSERT INTO Period (id, companyId, name, ending_month) VALUES (2410, 2214, '25Q1', '2503');
+-- Intel quarterly sequence: only the latest period remains unreported.
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2410, 2214, '25Q1', '2503', '2025-04-24', '12667', '4672', '-301', '-821', '0', '0.13', '4343', '27', '18');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2401, 2214, '25Q2', '2506', '2025-07-24', '12860', '4780', '-630', '-590', '130', '-0.02', '4210', '26', '19');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2402, 2214, '25Q3', '2509', '2025-10-23', '13300', '5200', '100', '-80', '130', '0.23', '4180', '31', '20');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2403, 2214, '25Q4', '2512', '2026-01-22', '13800', '5500', '350', '190', '130', '0.13', '4160', '42', '22');

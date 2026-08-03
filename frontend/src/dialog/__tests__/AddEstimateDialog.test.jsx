@@ -79,11 +79,11 @@ describe("AddEstimateDialog", () => {
         expect(axios.get).toHaveBeenCalledWith("http://backend/estimate/period-1");
         expect(axios.get).toHaveBeenCalledWith("http://backend/research/company-1/import/estimate/period-1");
 
-        expect(screen.getByText("External estimates as of 10.08.2026: [ 1.62 | 1.86 | - | 2.76 ]"))
-            .toBeInTheDocument();
+        expect(screen.getByTestId("external-estimates"))
+            .toHaveTextContent("External estimates: [ 1.62 (10.08.2026) | 1.86 (10.11.2026) | - | 2.76 (10.05.2027) ]");
         fireEvent.click(screen.getByRole("button", {name: "Use external estimates"}));
-        expect(screen.getByText(/^External estimates as of/)).toBeInTheDocument();
-        expect(screen.getByTestId("estimate-date")).toHaveValue("2026-08-10");
+        expect(screen.getByText(/^External estimates:/)).toBeInTheDocument();
+        expect(screen.getByTestId("estimate-date")).toHaveValue("");
         expect(screen.getByTestId("estimate-current")).toHaveValue("1.62");
         expect(screen.getByTestId("estimate-next1")).toHaveValue("1.86");
         expect(screen.getByTestId("estimate-next2")).toHaveValue("");
@@ -134,5 +134,36 @@ describe("AddEstimateDialog", () => {
 
         expect(await screen.findByText("Invalid estimate")).toBeInTheDocument();
         expect(axios.post).not.toHaveBeenCalled();
+    });
+
+    test("shows per-value placeholders and disables external use unless current and next 1 are present", async () => {
+        axios.get.mockImplementation(url => Promise.resolve({
+            data: url === "http://backend/estimate/period-1"
+                ? history
+                : {
+                    current: {eps: "1.9", date: "2026-08-10"},
+                    next1: null,
+                    next2: {eps: "2.1", date: null},
+                    next3: {eps: null, date: "2027-05-10"},
+                },
+        }));
+
+        render(<AddEstimateDialog {...createProps()}/>);
+
+        expect(await screen.findByTestId("external-estimates"))
+            .toHaveTextContent("External estimates: [ 1.90 (10.08.2026) | - | 2.10 (-) | - ]");
+        expect(screen.getByRole("button", {name: "Use external estimates"})).toBeDisabled();
+    });
+
+    test("shows four dashes and disables external use when no estimates are imported", async () => {
+        axios.get.mockImplementation(url => Promise.resolve({
+            data: url === "http://backend/estimate/period-1" ? history : {},
+        }));
+
+        render(<AddEstimateDialog {...createProps()}/>);
+
+        expect(await screen.findByTestId("external-estimates"))
+            .toHaveTextContent("External estimates: [ - | - | - | - ]");
+        expect(screen.getByRole("button", {name: "Use external estimates"})).toBeDisabled();
     });
 });

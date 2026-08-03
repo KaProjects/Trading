@@ -61,6 +61,10 @@ const roundedImportedValue = (data, key) => {
     const value = importedValue(data, key);
     return value === "" || Number.isNaN(Number(value)) ? "" : Number(value).toFixed(2);
 };
+const importedEstimate = (data, key) => {
+    const value = roundedImportedValue(data, key);
+    return value ? {value, date: formatDate(data?.[key]?.date) || "-"} : null;
+};
 
 const parseEstimates = value => {
     const input = value.trim();
@@ -123,7 +127,6 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
     function setImportedValues() {
         setEstimate(previous => ({
             ...previous,
-            date: imported?.current?.date ?? previous.date,
             current: roundedImportedValue(imported, "current"),
             next1: roundedImportedValue(imported, "next1"),
             next2: roundedImportedValue(imported, "next2"),
@@ -173,7 +176,8 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
             .catch(error => setAlert(formatError(error)));
     }
 
-    const hasImportedValues = ESTIMATE_FIELDS.some(field => roundedImportedValue(imported, field.key) !== "");
+    const hasImportedValues = roundedImportedValue(imported, "current") !== ""
+        && roundedImportedValue(imported, "next1") !== "";
     const parsedValues = parseEstimates(estimatesToParse);
 
     return (
@@ -201,7 +205,7 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
                                 <DialogDatePicker
                                     id="estimate-date"
                                     value={estimate.date}
-                                    label="Date"
+                                    label="Snapshot date"
                                     onChange={event => update("date", event.target.value)}
                                     validate={() => validateDate(estimate.date, true, true)}
                                     sx={INPUT_STYLE}
@@ -239,10 +243,26 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
                             >
                                 ^ USE ^
                             </Button>
-                            <Typography sx={{fontSize: 16, color: "text.secondary"}}>
-                                External estimates as of {formatDate(imported?.current?.date) || "-"}: [ {ESTIMATE_FIELDS
-                                    .map(field => roundedImportedValue(imported, field.key) || "-")
-                                    .join(" | ")} ]
+                            <Typography
+                                data-testid="external-estimates"
+                                sx={{fontSize: 16, color: "text.secondary"}}
+                            >
+                                External estimates: [ {ESTIMATE_FIELDS.map((field, index) => {
+                                    const estimate = importedEstimate(imported, field.key);
+                                    return (
+                                        <React.Fragment key={field.key}>
+                                            {index > 0 && " | "}
+                                            {estimate
+                                                ? <>
+                                                    {estimate.value}{" "}
+                                                    <Box component="span" sx={{fontSize: "0.67em"}}>
+                                                        ({estimate.date})
+                                                    </Box>
+                                                </>
+                                                : "-"}
+                                        </React.Fragment>
+                                    );
+                                })} ]
                             </Typography>
                         </Box>
 
