@@ -51,6 +51,7 @@ export const Research = props => {
     const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
     const [expandFinancials, setExpandFinancials] = useState(false)
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
+    const [openEditFinancialDialog, setOpenEditFinancialDialog] = useState(null)
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
 
     function fetchData(companyChanged) {
@@ -194,6 +195,14 @@ export const Research = props => {
                                 handleClose={() => setOpenAddFinancialDialog(null)}
                                 company={props.companySelectorValue}
                             />
+                            <AddPeriodFinancialDialog
+                                open={openEditFinancialDialog !== null}
+                                period={openEditFinancialDialog}
+                                triggerRefresh={triggerRefresh}
+                                handleClose={() => setOpenEditFinancialDialog(null)}
+                                company={props.companySelectorValue}
+                                edit
+                            />
 
                             {data.periods.map((period) => (
                                 <Period
@@ -202,6 +211,7 @@ export const Research = props => {
                                     currency={data.company.currency}
                                     setAlert={setAlert}
                                     openDialog={() => setOpenAddFinancialDialog(period)}
+                                    openEditDialog={() => setOpenEditFinancialDialog(period)}
                                 />
                             ))}
                         </CardContent>

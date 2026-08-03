@@ -19,6 +19,7 @@ describe("Period", () => {
     });
 
     test("renders title and financial details", () => {
+        const openEditDialog = jest.fn();
         render(
             <Period
                 period={{
@@ -48,6 +49,7 @@ describe("Period", () => {
                 currency={"$"}
                 setAlert={jest.fn()}
                 openDialog={jest.fn()}
+                openEditDialog={openEditDialog}
             />
         );
 
@@ -59,6 +61,8 @@ describe("Period", () => {
             .toBeInTheDocument();
         expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
         expect(screen.queryByRole("button", {name: "Add Estimates"})).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", {name: "Edit Period"}));
+        expect(openEditDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
     });
 
     test("updates research through axios", async () => {

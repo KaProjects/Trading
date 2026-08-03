@@ -12,7 +12,7 @@ import {
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../properties";
-import {formatError, formatPeriodName, orBlank} from "../service/FormattingService";
+import {formatError, formatPeriodName} from "../service/FormattingService";
 import {validateDate} from "../service/ValidationService";
 import {DialogDatePicker} from "./component/DialogDatePicker";
 import {
@@ -26,7 +26,7 @@ const EMPTY_FINANCIAL = {
 }
 
 export const AddPeriodFinancialDialog = props => {
-    const {handleClose, open, period, company, triggerRefresh} = props
+    const {handleClose, open, period, company, triggerRefresh, edit = false} = props
 
     const [financial, setFinancial] = useState(EMPTY_FINANCIAL)
     const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}})
@@ -37,11 +37,17 @@ export const AddPeriodFinancialDialog = props => {
     useEffect(() => {
         if (!open || !period) return
 
+        if (edit) {
+            setFinancial(financialFromPeriod(period))
+            setSuggestions({firebase: {}, polygon: {}})
+            setWarnings([])
+            setAlert(null)
+            setLoading(false)
+            return
+        }
+
         const cachedData = period.cachedData ?? {}
-        setFinancial({
-            ...EMPTY_FINANCIAL,
-            reportDate: orBlank(cachedData.reportDate ?? period.reportDate),
-        })
+        setFinancial(EMPTY_FINANCIAL)
         setSuggestions({firebase: cachedData, polygon: {}})
         setWarnings([])
         setAlert(null)
@@ -51,10 +57,6 @@ export const AddPeriodFinancialDialog = props => {
         axios.get(`${backend}/research/${company.id}/import/period/${quarterId}`)
             .then(response => {
                 const data = response.data
-                setFinancial(previous => ({
-                    ...previous,
-                    reportDate: orBlank(data.reportDate ?? previous.reportDate),
-                }))
                 setSuggestions({
                     firebase: data.firebase ?? {},
                     polygon: data.polygon ?? {},
@@ -67,10 +69,10 @@ export const AddPeriodFinancialDialog = props => {
                 setLoading(false)
             })
         // eslint-disable-next-line
-    }, [open])
+    }, [open, period, edit])
 
     function createFinancial() {
-        axios.put(backend + "/period/financial", {
+        axios.put(backend + (edit ? "/period" : "/period/financial"), {
             id: period.id,
             ...financial,
         })
@@ -87,7 +89,7 @@ export const AddPeriodFinancialDialog = props => {
             onClose={handleClose}
             slotProps={{paper: {component: 'form', onSubmit: event => {event.preventDefault();createFinancial()},}}}
         >
-            <DialogTitle>Add Financial for {company.ticker} {period ? formatPeriodName(period.name) : ""}</DialogTitle>
+            <DialogTitle>{edit ? "Edit Period" : "Add Financial"} for {company.ticker} {period ? formatPeriodName(period.name) : ""}</DialogTitle>
             <DialogContent sx={{display: "flex", flexDirection: "column", gap: 1}}>
                 {loading &&
                     <Box sx={{display: "flex", justifyContent: "center", alignItems: "center", minHeight: 180}}>
@@ -121,6 +123,7 @@ export const AddPeriodFinancialDialog = props => {
                             suggestions={suggestions}
                             setSuggestions={setSuggestions}
                             clearAlert={() => setAlert(null)}
+                            showSuggestions={!edit}
                         />
                     </>
                 }
@@ -133,8 +136,26 @@ export const AddPeriodFinancialDialog = props => {
             }
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit" disabled={loading}>Create</Button>
+                <Button type="submit" disabled={loading}>{edit ? "Update" : "Create"}</Button>
             </DialogActions>
         </Dialog>
     )
+}
+
+function financialFromPeriod(period) {
+    const financial = period.financial ?? {}
+    const value = (input) => input === null || input === undefined ? "" : String(input)
+
+    return {
+        reportDate: value(period.reportDate),
+        shares: value(period.shares),
+        revenue: value(financial.revenue?.value),
+        grossProfit: value(financial.grossProfit?.value),
+        operatingIncome: value(financial.operatingIncome?.value),
+        netIncome: value(financial.netIncome?.value),
+        dividend: value(financial.dividend),
+        adjustedEps: value(financial.adjustedEps),
+        priceHigh: value(period.priceHigh),
+        priceLow: value(period.priceLow),
+    }
 }

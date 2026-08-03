@@ -27,6 +27,12 @@ const FINANCIAL_GRID_STYLE = {
     alignItems: "center",
 }
 
+const EDIT_FINANCIAL_GRID_STYLE = {
+    display: "grid",
+    gridTemplateColumns: "minmax(230px, 1fr)",
+    alignItems: "center",
+}
+
 const FINANCIAL_FIELDS = [
     {
         key: "shares",
@@ -122,7 +128,7 @@ const SourceSuggestion = ({source, fieldLabel, value, apply}) => {
     )
 }
 
-const FinancialField = ({field, values, setValues, suggestions, setSuggestions, clearAlert}) => {
+const FinancialField = ({field, values, setValues, suggestions, setSuggestions, clearAlert, showSuggestions}) => {
     function applySuggestion(source) {
         const value = suggestions[source]?.[field.key]
         setValues(previous => ({...previous, [field.key]: value}))
@@ -134,7 +140,7 @@ const FinancialField = ({field, values, setValues, suggestions, setSuggestions, 
     }
 
     return (
-        <Box sx={FINANCIAL_GRID_STYLE}>
+        <Box sx={showSuggestions ? FINANCIAL_GRID_STYLE : EDIT_FINANCIAL_GRID_STYLE}>
             <DialogTextField
                 id={field.id}
                 value={values[field.key]}
@@ -155,18 +161,22 @@ const FinancialField = ({field, values, setValues, suggestions, setSuggestions, 
                     field.allowNegative,
                 )}
             />
-            <SourceSuggestion
-                source="firebase"
-                fieldLabel={field.label}
-                value={suggestions.firebase?.[field.key]}
-                apply={() => applySuggestion("firebase")}
-            />
-            <SourceSuggestion
-                source="polygon"
-                fieldLabel={field.label}
-                value={suggestions.polygon?.[field.key]}
-                apply={() => applySuggestion("polygon")}
-            />
+            {showSuggestions &&
+                <>
+                    <SourceSuggestion
+                        source="firebase"
+                        fieldLabel={field.label}
+                        value={suggestions.firebase?.[field.key]}
+                        apply={() => applySuggestion("firebase")}
+                    />
+                    <SourceSuggestion
+                        source="polygon"
+                        fieldLabel={field.label}
+                        value={suggestions.polygon?.[field.key]}
+                        apply={() => applySuggestion("polygon")}
+                    />
+                </>
+            }
         </Box>
     )
 }
@@ -177,21 +187,24 @@ export const PeriodFinancialFields = ({
     suggestions,
     setSuggestions,
     clearAlert,
+    showSuggestions = true,
 }) => (
     <Box>
-        <Box sx={FINANCIAL_GRID_STYLE}>
-            <Box />
-            {Object.entries(SOURCE_STYLE).map(([source, style]) => (
-                <Tooltip key={source} title={`${style.label} suggestions`}>
-                    <Typography
-                        sx={{textAlign: "center", fontWeight: 600}}
-                        color={`${style.color}.main`}
-                    >
-                        {style.label}
-                    </Typography>
-                </Tooltip>
-            ))}
-        </Box>
+        {showSuggestions &&
+            <Box sx={FINANCIAL_GRID_STYLE}>
+                <Box />
+                {Object.entries(SOURCE_STYLE).map(([source, style]) => (
+                    <Tooltip key={source} title={`${style.label} suggestions`}>
+                        <Typography
+                            sx={{textAlign: "center", fontWeight: 600}}
+                            color={`${style.color}.main`}
+                        >
+                            {style.label}
+                        </Typography>
+                    </Tooltip>
+                ))}
+            </Box>
+        }
 
         <Box sx={{display: "flex", flexDirection: "column", gap: 0.5}}>
             {FINANCIAL_FIELDS.map(field => (
@@ -203,6 +216,7 @@ export const PeriodFinancialFields = ({
                     suggestions={suggestions}
                     setSuggestions={setSuggestions}
                     clearAlert={clearAlert}
+                    showSuggestions={showSuggestions}
                 />
             ))}
         </Box>

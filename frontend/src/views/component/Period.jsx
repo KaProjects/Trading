@@ -8,8 +8,9 @@ import {backend} from "../../properties";
 import {ContentEditor} from "./ContentEditor";
 import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financials-plus.svg";
 import {ReactComponent as EstimatesPlusIcon} from "../../assets/icons/estimates-plus.svg";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 
-export const Period = ({period, currency, setAlert, openDialog}) => {
+export const Period = ({period, currency, setAlert, openDialog, openEditDialog}) => {
 
     function formatEndingMonth(endingMonth) {
         if (endingMonth === null || endingMonth === undefined) return "";
@@ -100,6 +101,13 @@ export const Period = ({period, currency, setAlert, openDialog}) => {
                     <Tooltip title="Add Estimates" placement="left">
                         <Button>
                             <EstimatesPlusIcon/>
+                        </Button>
+                    </Tooltip>
+                }
+                {period.reportDate &&
+                    <Tooltip title="Edit Period" placement="left">
+                        <Button onClick={() => openEditDialog(period)}>
+                            <EditNoteIcon/>
                         </Button>
                     </Tooltip>
                 }

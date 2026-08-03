@@ -142,13 +142,14 @@ describe("AddPeriodFinancialDialog", () => {
         ));
         expect(await screen.findByText("Gemini")).toBeInTheDocument();
         expect(screen.getByText("3rd party")).toBeInTheDocument();
-        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
+        expect(screen.getByLabelText("Report Date")).toHaveValue("");
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("");
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("");
 
         fireEvent.click(screen.getByRole("button", {
             name: "Use 3rd party value for Shares (in Millions)",
         }));
+        fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("10");
         fireEvent.click(screen.getByRole("button", {
             name: "Use Gemini value for Revenue (in Millions)",
@@ -190,6 +191,7 @@ describe("AddPeriodFinancialDialog", () => {
         render(<AddPeriodFinancialDialog {...props}/>);
 
         await screen.findByText("Gemini");
+        fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
         fireEvent.change(screen.getByLabelText("Shares (in Millions)"), {target: {value: "1"}});
         fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "2"}});
         fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "3"}});
@@ -204,5 +206,53 @@ describe("AddPeriodFinancialDialog", () => {
         await waitFor(() => expect(mockFormatError).toHaveBeenCalled());
         expect(props.triggerRefresh).not.toHaveBeenCalled();
         expect(props.handleClose).not.toHaveBeenCalled();
+    });
+
+    test("edits a reported period without loading suggestions", async () => {
+        axios.put.mockResolvedValue({});
+        const props = createProps({
+            period: {
+                ...createProps().period,
+                shares: 123,
+                priceHigh: 125,
+                priceLow: 95,
+                financial: {
+                    revenue: {value: 21},
+                    grossProfit: {value: 31},
+                    operatingIncome: {value: 41},
+                    netIncome: {value: 51},
+                    dividend: 0.5,
+                    adjustedEps: 1.21,
+                },
+            },
+        });
+
+        render(<AddPeriodFinancialDialog {...props} edit/>);
+
+        expect(axios.get).not.toHaveBeenCalled();
+        expect(screen.queryByText("Gemini")).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", {name: "Edit Period for NVDA 24Q1"})).toBeInTheDocument();
+        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
+        expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("123");
+        expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Ending Month")).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Update"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/period", {
+            id: "period-1",
+            reportDate: "2024-02-15",
+            shares: "123",
+            revenue: "21",
+            grossProfit: "31",
+            operatingIncome: "41",
+            netIncome: "51",
+            dividend: "0.5",
+            adjustedEps: "1.21",
+            priceHigh: "125",
+            priceLow: "95",
+        }));
+        expect(props.triggerRefresh).toHaveBeenCalled();
+        expect(props.handleClose).toHaveBeenCalled();
     });
 });
