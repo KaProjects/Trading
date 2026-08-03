@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Collection
 from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
@@ -15,6 +16,7 @@ def parse_company_snapshot(
     model: type[ModelT],
     logger: logging.Logger,
     error_reporter: ErrorReporter | None = None,
+    required_fields: Collection[str] = (),
 ) -> dict[str, ModelT | None]:
     if snapshot is None:
         return {}
@@ -32,6 +34,12 @@ def parse_company_snapshot(
 
         model_data = company_data.get(data_root)
         if model_data is None:
+            companies[company_id] = None
+            continue
+        if (
+            isinstance(model_data, dict)
+            and not all(field in model_data for field in required_fields)
+        ):
             companies[company_id] = None
             continue
 

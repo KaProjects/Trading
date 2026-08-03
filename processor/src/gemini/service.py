@@ -19,6 +19,7 @@ from gemini.strings import LogMsg
 companies_path = "company"
 institutions_path = "institution"
 data_root = "gemini"
+required_company_fields = frozenset({"info", "quarters"})
 logger = logging.getLogger(__name__)
 
 def company_path(company_id: str) -> str:
@@ -57,6 +58,7 @@ class FirebaseService:
             model=Company,
             logger=self.log,
             error_reporter=self.errors,
+            required_fields=required_company_fields,
         )
 
     def get_institutions(self) -> dict[str, InstitutionRecord]:
@@ -87,7 +89,19 @@ class FirebaseService:
         )
 
     def init_company(self, id: str, data: Company) -> None:
-        db.reference(company_path(id)).set(data.model_dump(mode="json"))
+        current_quarter_id = data.info.current_quarter_id
+        if current_quarter_id not in data.quarters:
+            raise ValueError(
+                f"Cannot initialize {id}: current quarter "
+                f"{current_quarter_id} is missing"
+            )
+        db.reference(company_path(id)).update({
+            "info": data.info.model_dump(mode="json"),
+            "quarters": {
+                quarter_id: quarter.model_dump(mode="json")
+                for quarter_id, quarter in data.quarters.items()
+            },
+        })
         self.log.info(LogMsg.COMPANY_INIT.format(company_id=id, quarter_id=data.info.current_quarter_id, n_quarters=str(len(data.quarters))))
 
     def update_report_date(self, new_report_date: ReportDate) -> None:

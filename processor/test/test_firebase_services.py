@@ -6,7 +6,9 @@ import pytest
 
 from error_reporting import ErrorReporter
 from gemini.models import (
+    Company,
     CompanyTarget,
+    Info,
     InstitutionRecord,
     Quarter,
     ReportDate,
@@ -129,9 +131,42 @@ def test_firebase_service_treats_non_object_companies_as_uninitialized(
     service.log.error.assert_not_called()
 
 
+def test_gemini_service_treats_partial_company_as_uninitialized():
+    service = make_service(GeminiFirebaseService)
+    snapshot = {
+        "SKHY": {
+            "gemini": {
+                "info": {
+                    "ticker": "SKHY",
+                    "last_update": "2026-08-02",
+                    "current_quarter_id": "26Q2",
+                },
+                "targets": {},
+            },
+        },
+    }
+
+    with patch(
+        "gemini.service.db.reference",
+        autospec=True,
+        return_value=FakeReference(snapshot),
+    ):
+        companies = service.get_companies()
+
+    assert companies == {"SKHY": None}
+    service.errors.report.assert_not_called()
+
+
 def test_firebase_validation_error_is_reported_with_company_context():
     service = make_service(GeminiFirebaseService)
-    snapshot = {"AAPL": {"gemini": {}}}
+    snapshot = {
+        "AAPL": {
+            "gemini": {
+                "info": {},
+                "quarters": "invalid",
+            },
+        },
+    }
 
     with patch(
         "gemini.service.db.reference",
@@ -149,6 +184,59 @@ def test_firebase_validation_error_is_reported_with_company_context():
         operation="parse_company",
         context={"company_id": "AAPL", "data_root": "gemini"},
     )
+
+
+def test_gemini_company_initialization_preserves_existing_targets():
+    service = make_service(GeminiFirebaseService)
+    company_reference = MagicMock(spec_set=["update"])
+    quarter = Quarter(
+        name="Q2 2026",
+        id="26Q2",
+        ending_month="26-06",
+        report_date_previous_quarter="2026-04-24",
+        report_date_this_quarter="2026-07-24",
+    )
+    company = Company(
+        info=Info(
+            ticker="SKHY",
+            last_update="2026-08-03",
+            current_quarter_id="26Q2",
+        ),
+        quarters={"26Q2": quarter},
+    )
+
+    with patch(
+        "gemini.service.db.reference",
+        autospec=True,
+        return_value=company_reference,
+    ) as reference:
+        service.init_company("SKHY", company)
+
+    reference.assert_called_once_with(gemini_company_path("SKHY"))
+    company_reference.update.assert_called_once_with({
+        "info": company.info.model_dump(mode="json"),
+        "quarters": {
+            "26Q2": quarter.model_dump(mode="json"),
+        },
+    })
+
+
+def test_gemini_company_initialization_rejects_missing_current_quarter():
+    service = make_service(GeminiFirebaseService)
+    company = Company(
+        info=Info(
+            ticker="SKHY",
+            last_update="2026-08-03",
+            current_quarter_id="26Q2",
+        ),
+        quarters={},
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="current quarter 26Q2 is missing",
+    ):
+        service.init_company("SKHY", company)
 
 
 def test_gemini_service_parses_targets_inside_company():

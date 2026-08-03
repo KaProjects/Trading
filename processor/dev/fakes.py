@@ -20,7 +20,7 @@ from gemini.models import (
     ReportDates,
     Targets,
 )
-from gemini.service import create_target_id
+from gemini.service import create_target_id, required_company_fields
 from myfinnhub.models import (
     Company as FinnhubCompany,
     Earnings,
@@ -198,6 +198,7 @@ class FakeGeminiFirebaseService:
             model=GeminiCompany,
             logger=logger,
             error_reporter=error_reporter,
+            required_fields=required_company_fields,
         )
         registry = InstitutionRegistry({})
         for company in self.companies.values():
