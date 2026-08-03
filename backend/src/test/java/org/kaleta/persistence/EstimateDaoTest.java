@@ -27,7 +27,8 @@ class EstimateDaoTest
     {
         List<Estimate> estimates = estimateDao.list(1L);
 
-        assertThat(estimates.size(), is(2));
+        assertThat(estimates.size(), is(3));
+        assertThat(estimates.stream().map(Estimate::getId).toList(), is(List.of(5L, 3L, 1L)));
         Estimate estimate = estimates.stream()
                 .filter(value -> value.getId().equals(1L))
                 .findFirst()
@@ -46,7 +47,7 @@ class EstimateDaoTest
     {
         Estimate latest = estimateDao.findLatest(1L).orElseThrow();
 
-        assertThat(latest.getId(), is(3L));
+        assertThat(latest.getId(), is(5L));
         assertThat(latest.getDatetime(), is(LocalDateTime.parse("2026-08-02T12:30:00")));
         assertThat(estimateDao.findLatest(3L).isEmpty(), is(true));
     }
@@ -58,6 +59,6 @@ class EstimateDaoTest
 
         assertThat(
                 estimates.stream().map(Estimate::getId).toList(),
-                containsInAnyOrder(2L, 3L));
+                containsInAnyOrder(2L, 5L));
     }
 }

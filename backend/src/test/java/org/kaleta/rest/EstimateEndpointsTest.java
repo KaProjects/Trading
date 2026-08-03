@@ -44,13 +44,13 @@ class EstimateEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().as(PeriodEstimates.class);
 
-        assertThat(dto.getId(), is(3L));
+        assertThat(dto.getId(), is(5L));
         assertThat(dto.getPeriodId(), is(1L));
         assertThat(dto.getDatetime(), is(LocalDateTime.parse("2026-08-02T12:30:00")));
-        assertBigDecimals(dto.getCurrent(), new BigDecimal("31.50"));
-        assertBigDecimals(dto.getNext1(), new BigDecimal("32.75"));
-        assertBigDecimals(dto.getNext2(), new BigDecimal("34.00"));
-        assertBigDecimals(dto.getNext3(), new BigDecimal("35.25"));
+        assertBigDecimals(dto.getCurrent(), new BigDecimal("41.50"));
+        assertBigDecimals(dto.getNext1(), new BigDecimal("42.75"));
+        assertBigDecimals(dto.getNext2(), new BigDecimal("44.00"));
+        assertBigDecimals(dto.getNext3(), new BigDecimal("45.25"));
     }
 
     @Test
@@ -83,9 +83,10 @@ class EstimateEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().body().jsonPath().getList(".", EstimateDto.class);
 
-        assertThat(estimates.size(), is(2));
-        assertThat(estimates.get(0).getId(), is(3L));
-        assertThat(estimates.get(1).getId(), is(1L));
+        assertThat(estimates.size(), is(3));
+        assertThat(estimates.get(0).getId(), is(5L));
+        assertThat(estimates.get(1).getId(), is(3L));
+        assertThat(estimates.get(2).getId(), is(1L));
     }
 
     @Test

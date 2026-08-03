@@ -65,6 +65,7 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (1839
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1, 1, '2026-08-01 12:30:00', '11.50', '12.75', '14.00');
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (2, 2, '2026-08-01 13:30:00', '21.50', '22.75', '24.00', '25.25');
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (3, 1, '2026-08-02 12:30:00', '31.50', '32.75', '34.00', '35.25');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (5, 1, '2026-08-02 12:30:00', '41.50', '42.75', '44.00', '45.25');
 
 
 -- for rest.*EndpointsTest.create tests
