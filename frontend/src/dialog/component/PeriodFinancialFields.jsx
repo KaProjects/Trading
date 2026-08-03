@@ -17,7 +17,7 @@ export const EMPTY_PERIOD_FINANCIAL_VALUES = {
 
 const SOURCE_STYLE = {
     firebase: {label: "Gemini", color: "success"},
-    polygon: {label: "3rd party", color: "info"},
+    polygon: {label: "External", color: "info"},
 }
 
 const FINANCIAL_GRID_STYLE = {

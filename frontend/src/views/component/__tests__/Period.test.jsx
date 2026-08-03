@@ -20,6 +20,7 @@ describe("Period", () => {
 
     test("renders title and financial details", () => {
         const openEditDialog = jest.fn();
+        const openEstimateDialog = jest.fn();
         render(
             <Period
                 period={{
@@ -50,6 +51,7 @@ describe("Period", () => {
                 setAlert={jest.fn()}
                 openDialog={jest.fn()}
                 openEditDialog={openEditDialog}
+                openEstimateDialog={openEstimateDialog}
             />
         );
 
@@ -60,7 +62,9 @@ describe("Period", () => {
         expect(screen.getByText("Estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76"))
             .toBeInTheDocument();
         expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
-        expect(screen.queryByRole("button", {name: "Add Estimates"})).not.toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", {name: "Add Estimates"}));
+        expect(openEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
         fireEvent.click(screen.getByRole("button", {name: "Edit Period"}));
         expect(openEditDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
     });

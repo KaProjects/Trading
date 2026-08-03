@@ -10,7 +10,7 @@ import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financial
 import {ReactComponent as EstimatesPlusIcon} from "../../assets/icons/estimates-plus.svg";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 
-export const Period = ({period, currency, setAlert, openDialog, openEditDialog}) => {
+export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog}) => {
 
     function formatEndingMonth(endingMonth) {
         if (endingMonth === null || endingMonth === undefined) return "";
@@ -75,17 +75,17 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog})
             {period.financial &&
                 <>
                     <Typography sx={{color: 'text.secondary', fontSize: 14}}>
+                        {"Revenue: " + formatMillions(period.financial.revenue.value)
+                            + " | Gross P.: " + formatMillions(period.financial.grossProfit.value)
+                            + " | Op. Inc.: " + formatMillions(period.financial.operatingIncome.value)
+                            + " | Net Income: " + formatMillions(period.financial.netIncome.value)}
+                    </Typography>
+                    <Typography sx={{color: 'text.secondary', fontSize: 14}}>
                         {"Shares: " + formatMillions(period.shares)
                             + " | H: " + formatPrice(period.priceHigh, currency)
                             + " | L: " + formatPrice(period.priceLow, currency)
                             + " | Dividend: " + formatMillions(period.financial.dividend)
                             + " | Adj. Eps: " + formatDecimals(period.financial.adjustedEps, 0, 2)}
-                    </Typography>
-                    <Typography sx={{color: 'text.secondary', fontSize: 14}} >
-                        {"Revenue: " + formatMillions(period.financial.revenue.value)
-                            + " | Gross P.: " + formatMillions(period.financial.grossProfit.value)
-                            + " | Op. Inc.: " + formatMillions(period.financial.operatingIncome.value)
-                            + " | Net Income: " + formatMillions(period.financial.netIncome.value)}
                     </Typography>
                 </>
             }
@@ -126,13 +126,11 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog})
                         </Button>
                     </Tooltip>
                 }
-                {!period.reportDate &&
-                    <Tooltip title="Add Estimates" placement="left">
-                        <Button>
-                            <EstimatesPlusIcon/>
-                        </Button>
-                    </Tooltip>
-                }
+                <Tooltip title="Add Estimates" placement="left">
+                    <Button onClick={() => openEstimateDialog?.(period)}>
+                        <EstimatesPlusIcon/>
+                    </Button>
+                </Tooltip>
                 {period.reportDate &&
                     <Tooltip title="Edit Period" placement="left">
                         <Button onClick={() => openEditDialog(period)}>

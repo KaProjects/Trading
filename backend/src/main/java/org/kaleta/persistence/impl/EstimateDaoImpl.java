@@ -19,7 +19,9 @@ public class EstimateDaoImpl extends EntityDaoImpl<Estimate> implements Estimate
     @Override
     public List<Estimate> list(Long periodId)
     {
-        return entityManager.createQuery(selectQuery + "WHERE t.period.id=:periodId", Estimate.class)
+        return entityManager.createQuery(
+                        selectQuery + "WHERE t.period.id=:periodId ORDER BY t.datetime DESC, t.id DESC",
+                        Estimate.class)
                 .setParameter("periodId", periodId)
                 .getResultList();
     }

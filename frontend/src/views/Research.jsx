@@ -20,6 +20,7 @@ import {AddPeriodFinancialDialog} from "../dialog/AddPeriodFinancialDialog";
 import {FinancialsDialog} from "../dialog/FinancialsDialog";
 import {AddRecordDialog} from "../dialog/AddRecordDialog";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
+import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 const RESEARCH_TAB = {
@@ -50,6 +51,7 @@ export const Research = props => {
     const [openFinancialsDialog, setOpenFinancialsDialog] = useState(false)
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
     const [openEditFinancialDialog, setOpenEditFinancialDialog] = useState(null)
+    const [openAddEstimateDialog, setOpenAddEstimateDialog] = useState(null)
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
 
     function fetchData(companyChanged) {
@@ -60,6 +62,7 @@ export const Research = props => {
                     setError(null)
 
                     if (companyChanged) setOpenFinancialsDialog(false)
+                    if (companyChanged) setOpenAddEstimateDialog(null)
                     setLoaded(true)
                 })
                 .catch((error) => {
@@ -199,6 +202,13 @@ export const Research = props => {
                                 ticker={data.company.ticker}
                                 financials={data.financials}
                             />
+                            <AddEstimateDialog
+                                open={openAddEstimateDialog !== null}
+                                handleClose={() => setOpenAddEstimateDialog(null)}
+                                triggerRefresh={triggerRefresh}
+                                company={props.companySelectorValue}
+                                period={openAddEstimateDialog}
+                            />
 
                             {data.periods.map((period) => (
                                 <Period
@@ -208,6 +218,7 @@ export const Research = props => {
                                     setAlert={setAlert}
                                     openDialog={() => setOpenAddFinancialDialog(period)}
                                     openEditDialog={() => setOpenEditFinancialDialog(period)}
+                                    openEstimateDialog={() => setOpenAddEstimateDialog(period)}
                                 />
                             ))}
                         </CardContent>

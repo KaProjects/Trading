@@ -88,15 +88,24 @@ INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALU
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1402, 1268, '2026-08-01 18:30:00', '1.62', '1.85', '2.64', '2.76');
 
 
--- Full-year and half-year histories exercise their separate growth rules.
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1261, 2214, '23FY', '2312', '2024-01-25', '5200', '2180', '120', '-80', '45', '1350', '51', '24');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1262, 2214, '24FY', '2412', '2025-01-30', '5480', '2320', '180', '-50', '48', '1330', '50', '18');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1263, 2214, '25FY', '2512', '2026-01-29', '5790', '2510', '260', '30', '50', '1310', '29', '17');
--- Latest four Intel quarters provide the historical EPS sequence in the estimates UI.
-INSERT INTO Period (id, companyId, name, ending_month, report_date, adjusted_eps) VALUES (2401, 2214, '25Q2', '2507', '2025-07-24', '-0.02');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, adjusted_eps) VALUES (2402, 2214, '25Q3', '2510', '2025-10-23', '0.23');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, adjusted_eps) VALUES (2403, 2214, '25Q4', '2512', '2026-01-22', '0.13');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, adjusted_eps) VALUES (1269, 2214, '26Q1', '2603', '2026-04-23', '0.12');
+-- Intel quarterly sequence: the oldest and latest periods remain unreported.
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (2410, 2214, '25Q1', '2503');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2401, 2214, '25Q2', '2506', '2025-07-24', '12860', '4780', '-630', '-590', '130', '-0.02', '4210', '26', '19');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2402, 2214, '25Q3', '2509', '2025-10-23', '13300', '5200', '100', '-80', '130', '0.23', '4180', '31', '20');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2403, 2214, '25Q4', '2512', '2026-01-22', '13800', '5500', '350', '190', '130', '0.13', '4160', '42', '22');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1269, 2214, '26Q1', '2603', '2026-04-23', '13100', '5000', '-100', '-140', '130', '0.12', '4140', '38', '19');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (2411, 2214, '26Q2', '2606');
+
+-- Intel analyst snapshots exercise reported and unreported estimate states.
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1410, 2410, '2025-04-15 09:00:00', '-0.15', '-0.02', '0.18', '0.12');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1411, 2401, '2025-07-20 09:00:00', '-0.02', '0.20', '0.12', '0.15');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1412, 2402, '2025-10-20 09:00:00', '0.23', '0.14', '0.17', '0.20');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1413, 2403, '2026-01-18 09:00:00', '0.13', '0.12', '0.18', '0.23');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1414, 1269, '2026-04-18 09:00:00', '0.12', '0.17', '0.23', '0.28');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1415, 2411, '2026-07-20 09:00:00', '0.10', '0.19', '0.25', '0.31');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1416, 2411, '2026-08-03 09:00:00', '0.11', '0.20', '0.26', '0.32');
+
+-- Half-year history exercises its separate growth rules.
 
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1264, 2073, '24H1', '2406', '2024-08-01', '780', '430', '185', '105', '12', '420', '78', '54');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1265, 2073, '24H2', '2412', '2025-02-03', '840', '475', '205', '120', '14', '418', '84', '62');

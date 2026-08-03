@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Assert;
 import org.kaleta.persistence.api.EstimateDao;
 import org.kaleta.persistence.entity.Estimate;
+import org.kaleta.model.PeriodEstimates;
 import org.kaleta.rest.dto.EstimateCreateDto;
 import org.kaleta.rest.dto.EstimateDto;
 
@@ -20,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_2_true;
+import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
 import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
@@ -35,12 +37,12 @@ class EstimateEndpointsTest
     @Test
     void getLatest()
     {
-        EstimateDto dto = given().when()
+        PeriodEstimates dto = given().when()
                 .get(PATH + "/1/latest")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().as(EstimateDto.class);
+                .extract().response().as(PeriodEstimates.class);
 
         assertThat(dto.getId(), is(3L));
         assertThat(dto.getPeriodId(), is(1L));
@@ -72,6 +74,21 @@ class EstimateEndpointsTest
     }
 
     @Test
+    void getAll()
+    {
+        List<EstimateDto> estimates = given().when()
+                .get(PATH + "/1")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().body().jsonPath().getList(".", EstimateDto.class);
+
+        assertThat(estimates.size(), is(2));
+        assertThat(estimates.get(0).getId(), is(3L));
+        assertThat(estimates.get(1).getId(), is(1L));
+    }
+
+    @Test
     void create()
     {
         Long periodId = 1839L;
@@ -84,7 +101,7 @@ class EstimateEndpointsTest
         Estimate estimate = estimates.getFirst();
         assertThat(estimate.getId(), is(notNullValue()));
         assertThat(estimate.getPeriod().getId(), is(periodId));
-        assertThat(estimate.getDatetime(), is(notNullValue()));
+        assertThat(estimate.getDatetime(), is(LocalDateTime.parse("2026-08-03T00:00:00")));
         assertBigDecimals(estimate.getCurrent(), new BigDecimal(dto.getCurrent()));
         assertBigDecimals(estimate.getNext1(), new BigDecimal(dto.getNext1()));
         assertThat(estimate.getNext2(), is(nullValue()));
@@ -104,6 +121,12 @@ class EstimateEndpointsTest
                 PATH + "/" + missingPeriodId,
                 dto,
                 "period with id '" + missingPeriodId + "' not found");
+
+        dto.setDate(null);
+        Assert.postValidationError(PATH + "/" + periodId, dto, NOT_NULL);
+        dto.setDate("03.08.2026");
+        Assert.postValidationError(PATH + "/" + periodId, dto, MATCH_DATE_FORMAT);
+        dto.setDate("2026-08-03");
 
         dto.setCurrent(null);
         Assert.postValidationError(PATH + "/" + periodId, dto, NOT_NULL);
@@ -126,6 +149,7 @@ class EstimateEndpointsTest
     private EstimateCreateDto validDto()
     {
         EstimateCreateDto dto = new EstimateCreateDto();
+        dto.setDate("2026-08-03");
         dto.setCurrent("11.50");
         dto.setNext1("12.75");
         dto.setNext3("14.25");

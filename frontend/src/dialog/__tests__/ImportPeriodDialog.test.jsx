@@ -147,17 +147,17 @@ describe("ImportPeriodDialog", () => {
         expect(screen.getByLabelText("Ending Month")).toHaveValue("2024-03");
         expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
         expect(screen.getByText("Gemini")).toBeInTheDocument();
-        expect(screen.getByText("3rd party")).toBeInTheDocument();
+        expect(screen.getByText("External")).toBeInTheDocument();
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("");
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("");
 
         fireEvent.click(await screen.findByRole("button", {
-            name: "Use 3rd party value for Shares (in Millions)",
+            name: "Use External value for Shares (in Millions)",
         }));
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("10");
 
         fireEvent.click(screen.getByRole("button", {
-            name: "Use 3rd party value for Adjusted EPS",
+            name: "Use External value for Adjusted EPS",
         }));
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("1.18");
 
@@ -218,7 +218,7 @@ describe("ImportPeriodDialog", () => {
         expect(screen.queryByLabelText("Report Date")).not.toBeInTheDocument();
         expect(axios.get).not.toHaveBeenCalled();
         expect(screen.queryByText("Gemini")).not.toBeInTheDocument();
-        expect(screen.queryByText("3rd party")).not.toBeInTheDocument();
+        expect(screen.queryByText("External")).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByText("Back"));
 
@@ -277,7 +277,7 @@ describe("ImportPeriodDialog", () => {
         }));
         expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("21");
         expect(screen.getByRole("button", {
-            name: "Use 3rd party value for Highest Price",
+            name: "Use External value for Highest Price",
         })).toBeInTheDocument();
     });
 

@@ -39,6 +39,11 @@ jest.mock("../../dialog/ImportPeriodDialog", () => ({
         ? <div>import-period-dialog:{props.periods.map(period => period.name).join(",")}</div>
         : null
 }));
+jest.mock("../../dialog/AddEstimateDialog", () => ({
+    AddEstimateDialog: (props) => props.open
+        ? <div>add-estimate-dialog:{props.period.id}</div>
+        : null
+}));
 jest.mock("../component/SnackbarErrorAlert", () => ({
     SnackbarErrorAlert: (props) => (
         <div data-testid="snackbar">{props.error ? JSON.stringify(props.error) : "null"}|{String(props.open)}</div>
@@ -59,10 +64,11 @@ jest.mock("../component/Record", () => ({
     )
 }));
 jest.mock("../component/Period", () => ({
-    Period: ({period, openDialog}) => (
+    Period: ({period, openDialog, openEstimateDialog}) => (
         <div>
             <span>period:{period.id}</span>
             <button onClick={openDialog}>open-period-dialog:{period.id}</button>
+            <button onClick={openEstimateDialog}>open-estimate-dialog:{period.id}</button>
         </div>
     )
 }));
@@ -167,6 +173,17 @@ describe("Research", () => {
         await screen.findByTestId("period-financials");
         fireEvent.click(screen.getByTestId("period-financials"));
         expect(screen.getByText("financials-dialog:AAPL:1")).toBeInTheDocument();
+    });
+
+    test("opens the estimate dialog for a period", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("open-estimate-dialog:period-1");
+        fireEvent.click(screen.getByText("open-estimate-dialog:period-1"));
+
+        expect(screen.getByText("add-estimate-dialog:period-1")).toBeInTheDocument();
     });
 
     test("opens import dialog with the lightweight period candidates", async () => {

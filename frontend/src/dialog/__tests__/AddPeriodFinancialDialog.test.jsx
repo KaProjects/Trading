@@ -141,13 +141,13 @@ describe("AddPeriodFinancialDialog", () => {
             "http://backend/research/company-1/import/period/24Q1"
         ));
         expect(await screen.findByText("Gemini")).toBeInTheDocument();
-        expect(screen.getByText("3rd party")).toBeInTheDocument();
+        expect(screen.getByText("External")).toBeInTheDocument();
         expect(screen.getByLabelText("Report Date")).toHaveValue("");
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("");
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("");
 
         fireEvent.click(screen.getByRole("button", {
-            name: "Use 3rd party value for Shares (in Millions)",
+            name: "Use External value for Shares (in Millions)",
         }));
         fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("10");
@@ -155,7 +155,7 @@ describe("AddPeriodFinancialDialog", () => {
             name: "Use Gemini value for Revenue (in Millions)",
         }));
         fireEvent.click(screen.getByRole("button", {
-            name: "Use 3rd party value for Adjusted EPS",
+            name: "Use External value for Adjusted EPS",
         }));
         fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "3"}});
         fireEvent.change(screen.getByLabelText("Operating Income (in Millions)"), {target: {value: "4"}});

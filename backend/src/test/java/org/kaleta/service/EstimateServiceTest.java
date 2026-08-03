@@ -24,9 +24,7 @@ import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.Mockito.never;
@@ -143,21 +141,31 @@ class EstimateServiceTest
     }
 
     @Test
+    void getAll()
+    {
+        Estimate newer = estimate(301L, "2026-08-03T12:30:00");
+        Estimate older = estimate(300L, "2026-08-02T12:30:00");
+        when(estimateDao.list(period.getId())).thenReturn(List.of(newer, older));
+
+        List<org.kaleta.rest.dto.EstimateDto> result = estimateService.getAll(period.getId());
+
+        assertThat(result.size(), is(2));
+        assertThat(result.get(0).getId(), is(301L));
+        assertThat(result.get(1).getId(), is(300L));
+    }
+
+    @Test
     void create()
     {
         EstimateCreateDto dto = createDto();
-        LocalDateTime before = LocalDateTime.now();
 
         estimateService.create(period.getId(), dto);
 
-        LocalDateTime after = LocalDateTime.now();
         ArgumentCaptor<Estimate> captor = ArgumentCaptor.forClass(Estimate.class);
         verify(estimateDao).create(captor.capture());
         Estimate estimate = captor.getValue();
         assertThat(estimate.getPeriod(), is(period));
-        assertThat(estimate.getDatetime(), is(notNullValue()));
-        assertFalse(estimate.getDatetime().isBefore(before));
-        assertFalse(estimate.getDatetime().isAfter(after));
+        assertThat(estimate.getDatetime(), is(LocalDateTime.parse("2026-08-03T00:00:00")));
         assertBigDecimals(estimate.getCurrent(), new BigDecimal("11.50"));
         assertBigDecimals(estimate.getNext1(), new BigDecimal("12.75"));
         assertThat(estimate.getNext2(), is(nullValue()));
@@ -193,6 +201,7 @@ class EstimateServiceTest
     private EstimateCreateDto createDto()
     {
         EstimateCreateDto dto = new EstimateCreateDto();
+        dto.setDate("2026-08-03");
         dto.setCurrent("11.50");
         dto.setNext1("12.75");
         dto.setNext3("14.25");

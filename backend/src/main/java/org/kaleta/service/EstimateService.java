@@ -10,9 +10,10 @@ import org.kaleta.persistence.entity.Estimate;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodType;
 import org.kaleta.rest.dto.EstimateCreateDto;
+import org.kaleta.rest.dto.EstimateDto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,16 +49,37 @@ public class EstimateService
                                 this::adjustedEpsByQuarter))));
     }
 
+    public List<EstimateDto> getAll(Long periodId)
+    {
+        periodService.get(periodId);
+        return estimateDao.list(periodId).stream()
+                .map(this::toDto)
+                .toList();
+    }
+
     public void create(Long periodId, EstimateCreateDto dto)
     {
         Estimate estimate = new Estimate();
         estimate.setPeriod(periodService.get(periodId));
-        estimate.setDatetime(LocalDateTime.now());
+        estimate.setDatetime(LocalDate.parse(dto.getDate()).atStartOfDay());
         estimate.setCurrent(new BigDecimal(dto.getCurrent()));
         estimate.setNext1(Utils.createNullableBigDecimal(dto.getNext1()));
         estimate.setNext2(Utils.createNullableBigDecimal(dto.getNext2()));
         estimate.setNext3(Utils.createNullableBigDecimal(dto.getNext3()));
         estimateDao.create(estimate);
+    }
+
+    private EstimateDto toDto(Estimate estimate)
+    {
+        EstimateDto dto = new EstimateDto();
+        dto.setId(estimate.getId());
+        dto.setPeriodId(estimate.getPeriod().getId());
+        dto.setDatetime(estimate.getDatetime());
+        dto.setCurrent(estimate.getCurrent());
+        dto.setNext1(estimate.getNext1());
+        dto.setNext2(estimate.getNext2());
+        dto.setNext3(estimate.getNext3());
+        return dto;
     }
 
     private PeriodEstimates from(Estimate estimate)

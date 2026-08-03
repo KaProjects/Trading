@@ -23,6 +23,14 @@ public class EstimateEndpoints
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{periodId}")
+    public Response getAll(@NotNull @ValidId @PathParam("periodId") Long periodId)
+    {
+        return Response.ok(estimateService.getAll(periodId)).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{periodId}/latest")
     public Response getLatest(@NotNull @ValidId @PathParam("periodId") Long periodId)
     {
