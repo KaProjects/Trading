@@ -37,7 +37,7 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog})
     }
 
     function formatEstimateChanges(estimate) {
-        const formatChange = (value) => formatPercent(value, true, 2) || "-";
+        const formatChange = (value) => formatPercent(value, true, 1) || "-";
         return [estimate.currentChange, estimate.next1Change, estimate.next2Change, estimate.next3Change]
             .map(formatChange)
             .join(" | ");
@@ -97,14 +97,14 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog})
                     <Box sx={{
                         color: 'text.secondary',
                         display: "grid",
-                        gridTemplateColumns: "repeat(8, minmax(38px, max-content))",
+                        gridTemplateColumns: "88px 94px max-content",
                         columnGap: "8px",
                         fontSize: 11,
                         marginTop: "-2px",
                     }}>
-                        <Box sx={{gridColumn: "1 / span 3"}}>({formatEstimateDate(period.estimate.datetime)})</Box>
-                        <Box>({formatEstimatePastTotal(period.estimate.pastTotal)})</Box>
-                        <Box sx={{gridColumn: "5 / span 4", marginLeft: "20px"}}>({formatEstimateChanges(period.estimate)})</Box>
+                        <Box>({formatEstimateDate(period.estimate.datetime)})</Box>
+                        <Box sx={{display: "flex", justifyContent: "center"}}>({formatEstimatePastTotal(period.estimate.pastTotal)})</Box>
+                        <Box sx={{marginLeft: "20px"}}>({formatEstimateChanges(period.estimate)})</Box>
                     </Box>
                 </>
             }

@@ -154,7 +154,7 @@ describe("Period", () => {
             .toBeInTheDocument();
         expect(screen.getByText("(02.08.2026)")).toBeInTheDocument();
         expect(screen.getByText("(4.38)")).toBeInTheDocument();
-        expect(screen.getByText("(+12.5% | -3.25% | 0% | +4%)")).toBeInTheDocument();
+        expect(screen.getByText("(+12.5% | -3.3% | 0% | +4%)")).toBeInTheDocument();
     });
 
     test("opens dialog when financials are missing", () => {
