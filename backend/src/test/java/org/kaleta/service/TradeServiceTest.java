@@ -14,8 +14,8 @@ import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Trade;
-import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.PortfolioAssignmentDto;
+import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.mockito.ArgumentCaptor;
@@ -38,12 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.kaleta.framework.InvalidValues.invalidBigDecimals;
 import static org.kaleta.framework.InvalidValues.invalidDates;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.anyList;
 
 @QuarkusTest
 public class TradeServiceTest
@@ -210,7 +210,7 @@ public class TradeServiceTest
         assertThat(trades.getTrades().get(1).getCompany().getCurrency(), is(Currency.$));
         assertThat(trades.getTrades().get(1).getPortfolio().getKey(), is(Portfolio.PATRIA_MARGIN.toString()));
         assertThat(trades.getTrades().get(1).getPortfolio().getName(), is(Portfolio.PATRIA_MARGIN.getName()));
-        assertThat(trades.getTrades().get(1).getPortfolio().getAbbreviation(), is("P-M"));
+        assertThat(trades.getTrades().get(1).getPortfolio().getAbbreviation(), is("Pm"));
         assertThat(trades.getTrades().get(1).getPurchaseDate().toString(), is("2024-01-10"));
         assertBigDecimals(trades.getTrades().get(1).getPurchaseQuantity(), new BigDecimal("5"));
         assertBigDecimals(trades.getTrades().get(1).getPurchasePrice(), new BigDecimal("10.00"));
@@ -226,6 +226,7 @@ public class TradeServiceTest
 
         assertThat(trades.getAggregates().getCompanies(), is(2));
         assertThat(trades.getAggregates().getCurrencies(), is(2));
+        assertThat(trades.getAggregates().getPortfolios(), is(1));
         assertBigDecimals(trades.getAggregates().getPurchaseFees(), new BigDecimal("5.00"));
         assertBigDecimals(trades.getAggregates().getPurchaseTotal(), new BigDecimal("115.00"));
         assertBigDecimals(trades.getAggregates().getSellFees(), new BigDecimal("1.00"));

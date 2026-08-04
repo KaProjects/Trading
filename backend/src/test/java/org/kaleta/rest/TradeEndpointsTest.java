@@ -370,6 +370,7 @@ class TradeEndpointsTest
         dto.setDate(validDate);
         dto.setPrice(validPrice);
         dto.setQuantity(validQuantity);
+        dto.setPortfolio(Portfolio.REVOLUT_STANDARD.toString());
 
         dto.setFees(null);
         Assert.postValidationError(path, dto, NOT_NULL);
@@ -389,6 +390,8 @@ class TradeEndpointsTest
         Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees(validFees);
 
+        dto.setPortfolio(null);
+        Assert.postValidationError(path, dto, NOT_NULL);
         dto.setPortfolio("INVALID");
         Assert.postValidationError(path, dto, "must be any of Portfolio");
         dto.setPortfolio(Portfolio.REVOLUT_STANDARD.toString());

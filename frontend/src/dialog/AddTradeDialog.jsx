@@ -6,6 +6,8 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    FormControl,
+    InputLabel,
     MenuItem,
     Select
 } from "@mui/material";
@@ -28,6 +30,7 @@ export const AddTradeDialog = props => {
     const [quantity, setQuantity] = useState("")
     const [fees, setFees] = useState("")
     const [company, setCompany] = useState("")
+    const [portfolio, setPortfolio] = useState("")
 
     useEffect(() => {
         if (open) {
@@ -37,12 +40,20 @@ export const AddTradeDialog = props => {
             setQuantity("")
             setFees("")
             setCompany(props.companySelectorValue)
+            setPortfolio("")
         }
         // eslint-disable-next-line
     }, [open])
 
     function createTrade() {
-        const tradeData = {companyId: company.id, date: date, price: price, quantity: quantity, fees: fees}
+        const tradeData = {
+            companyId: company.id,
+            date: date,
+            price: price,
+            quantity: quantity,
+            fees: fees,
+            portfolio: portfolio,
+        }
         axios.post(backend + "/trade", tradeData)
             .then((response) => {
                 props.triggerRefresh()
@@ -74,6 +85,18 @@ export const AddTradeDialog = props => {
                         <MenuItem key={index} value={company} >{(company.ticker === undefined) ? company : company.ticker}</MenuItem>
                     ))}
                 </Select>
+                <FormControl required fullWidth variant="standard" sx={{marginTop: "20px"}}>
+                    <InputLabel id="trader-trade-portfolio-label">Portfolio</InputLabel>
+                    <Select
+                        labelId="trader-trade-portfolio-label"
+                        value={portfolio}
+                        onChange={event => {setPortfolio(event.target.value);setAlert(null);}}
+                    >
+                        {(props.portfolios ?? []).map(item => (
+                            <MenuItem key={item.key} value={item.key}>{item.name}</MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
                 <DialogTextField
                     id="trader-trade-quantity"
                     value={quantity}

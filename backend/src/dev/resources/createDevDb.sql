@@ -8,15 +8,15 @@ INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (1504, 'DDD'
 INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (2261, 'EFG', '£', true, 'HEALTH_TECH');
 
 
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (2068, 2213, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (2068, 2213, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5', 'PATRIA_STANDARD');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (1145, 2213, '10', '2018-04-05', '10', '50', '2018-06-05', '0', '0');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (2276, 2213, '5', '2023-11-11', '400.5', '14.5', '2024-01-05', '500', '50');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (2276, 2213, '5', '2023-11-11', '400.5', '14.5', '2024-01-05', '500', '50', 'PATRIA_MARGIN');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (1048, 2213, '100', '2021-05-10', '20.1', '18', '2023-12-31', '30.4', '30.5');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1705, 2213, '10', '2018-04-05', '100', '25');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, portfolio) VALUES (1705, 2213, '10', '2018-04-05', '100', '25', 'PATRIA_DIP');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (2191, 2213, '123', '2018-04-05', '500.25', '250.12');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (2293, 2213, '400', '2022-11-01', '1000', '25');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, portfolio) VALUES (2293, 2213, '400', '2022-11-01', '1000', '25', 'REVOLUT_STANDARD');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1870, 2213, '1150.1234', '2023-04-05', '300.25', '250.12');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (2067, 2073, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (2067, 2073, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5', 'REVOLUT_CFD');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1874, 2214, '1150.1234', '2025-04-15', '300.25', '250.12');
 
 
@@ -41,17 +41,17 @@ INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES (1620, 2213, '2
 
 
 -- Recent active and closed trades for selector, aggregate, and asset scenarios.
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1068, 2213, '20', '2026-06-20', '180.25', '4.95');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, portfolio) VALUES (1068, 2213, '20', '2026-06-20', '180.25', '4.95', 'PATRIA_STANDARD');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1069, 2212, '30', '2026-02-10', '110.25', '4.95');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (1070, 2212, '15', '2025-08-12', '145.50', '4.95', '2026-02-20', '132.25', '4.95');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (1070, 2212, '15', '2025-08-12', '145.50', '4.95', '2026-02-20', '132.25', '4.95', 'PATRIA_MARGIN');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1071, 2214, '50', '2026-05-12', '22.80', '3.95');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (1072, 2214, '40', '2025-10-03', '24.10', '3.95', '2026-04-16', '20.30', '3.95');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (1072, 2214, '40', '2025-10-03', '24.10', '3.95', '2026-04-16', '20.30', '3.95', 'PATRIA_DIP');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1073, 2073, '12', '2026-01-20', '82.40', '3.50');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (1074, 2073, '20', '2025-06-02', '71', '4.20', '2026-03-18', '88.40', '4.20');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (1074, 2073, '20', '2025-06-02', '71', '4.20', '2026-03-18', '88.40', '4.20', 'REVOLUT_STANDARD');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1075, 1873, '8', '2026-06-05', '155.75', '5.25');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1076, 1240, '25', '2025-12-01', '1850', '99');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, portfolio) VALUES (1076, 1240, '25', '2025-12-01', '1850', '99', 'REVOLUT_CFD');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (1077, 1504, '100', '2025-09-11', '42.50', '8.50', '2026-05-14', '54', '8.50');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1078, 2261, '18', '2026-03-06', '96.20', '6.25');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, portfolio) VALUES (1078, 2261, '18', '2026-03-06', '96.20', '6.25', 'PATRIA_STANDARD');
 
 
 -- Records cover complete, partial, and title-less editor states.

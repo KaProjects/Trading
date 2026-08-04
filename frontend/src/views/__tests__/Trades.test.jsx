@@ -57,6 +57,11 @@ function createData(overrides = {}) {
                     ticker: "NVDA",
                     currency: "$",
                 },
+                portfolio: {
+                    key: "PATRIA_MARGIN",
+                    name: "Patria - Margin",
+                    abbreviation: "Pm",
+                },
                 purchaseDate: "2024-01-10",
                 purchaseQuantity: "5",
                 purchasePrice: "400.5",
@@ -95,6 +100,7 @@ function createData(overrides = {}) {
         aggregates: {
             companies: 2,
             currencies: 2,
+            portfolios: 1,
             purchaseFees: "24.5",
             purchaseTotal: 2251.0,
             sellFees: "14.5",
@@ -143,6 +149,13 @@ describe("Trades", () => {
         expect(mockUseData).toHaveBeenCalledWith("/trade?filter&active=false&companyId=company-1&currency=$&year=2024&sector=SEMICONDUCTORS");
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("SHELL")).toBeInTheDocument();
+        expect(screen.getByText("@")).toBeInTheDocument();
+        expect(screen.getByText("#")).toHaveStyle({width: "35px", minWidth: "35px", maxWidth: "35px", textAlign: "center", verticalAlign: "middle", paddingLeft: "0", paddingRight: "0"});
+        expect(screen.getByText("@")).toHaveStyle({width: "35px", minWidth: "35px", maxWidth: "35px"});
+        expect(screen.getByText("Pm")).toHaveAttribute("title", "Patria - Margin");
+        expect(screen.getByText("Pm")).toHaveStyle({width: "35px", minWidth: "35px", maxWidth: "35px", paddingLeft: "7px", paddingRight: "7px"});
+        const sumRowCells = screen.getAllByRole("row").at(-1).querySelectorAll("td");
+        expect(sumRowCells[2]).toHaveStyle({fontWeight: "bold", textAlign: "center", width: "35px"});
         expect(mockFormatDate).toHaveBeenCalledWith("2024-01-10");
         expect(mockFormatDate).toHaveBeenCalledWith("2025-01-05");
         expect(mockFormatDate).toHaveBeenCalledWith(null);

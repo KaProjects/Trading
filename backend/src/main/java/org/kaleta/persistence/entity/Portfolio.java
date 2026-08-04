@@ -5,10 +5,10 @@ import lombok.Getter;
 public enum Portfolio
 {
     PATRIA_STANDARD("Patria - Standard", "P"),
-    PATRIA_MARGIN("Patria - Margin", "P-M"),
-    PATRIA_DIP("Patria - DIP", "P-DIP"),
+    PATRIA_MARGIN("Patria - Margin", "Pm"),
+    PATRIA_DIP("Patria - DIP", "Pd"),
     REVOLUT_STANDARD("Revolut - Standard", "R"),
-    REVOLUT_CFD("Revolut - CFD", "R-CFD"),
+    REVOLUT_CFD("Revolut - CFD", "Rd"),
     ;
 
     @Getter

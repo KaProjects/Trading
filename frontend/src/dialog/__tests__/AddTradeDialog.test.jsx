@@ -59,6 +59,11 @@ jest.mock("../component/DialogDatePicker", () => dialogDatePickerModule);
 
 import {AddTradeDialog} from "../AddTradeDialog";
 
+function selectOption(index, optionText) {
+    fireEvent.mouseDown(screen.getAllByRole("combobox")[index]);
+    fireEvent.click(screen.getByRole("option", {name: optionText}));
+}
+
 function createProps(overrides = {}) {
     const company = {id: "company-1", ticker: "NVDA"};
 
@@ -68,6 +73,10 @@ function createProps(overrides = {}) {
         triggerRefresh: jest.fn(),
         companySelectorValue: company,
         companies: [company],
+        portfolios: [
+            {key: "PATRIA_STANDARD", name: "Patria - Standard", abbreviation: "P"},
+            {key: "REVOLUT_CFD", name: "Revolut - CFD", abbreviation: "Rd"},
+        ],
         ...overrides,
     };
 }
@@ -85,6 +94,7 @@ describe("AddTradeDialog", () => {
 
         render(<AddTradeDialog {...props}/>);
 
+        selectOption(1, "Revolut - CFD");
         fireEvent.change(screen.getByTestId("trader-trade-date"), {target: {value: "2024-03-20"}});
         fireEvent.change(screen.getByLabelText("Quantity"), {target: {value: "5"}});
         fireEvent.change(screen.getByLabelText("Price"), {target: {value: "800.15"}});
@@ -97,6 +107,7 @@ describe("AddTradeDialog", () => {
             price: "800.15",
             quantity: "5",
             fees: "14.50",
+            portfolio: "REVOLUT_CFD",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.setOpenAddTrade).toHaveBeenCalledWith(false);
@@ -109,6 +120,7 @@ describe("AddTradeDialog", () => {
 
         render(<AddTradeDialog {...props}/>);
 
+        selectOption(1, "Patria - Standard");
         fireEvent.change(screen.getByTestId("trader-trade-date"), {target: {value: "2024-03-20"}});
         fireEvent.change(screen.getByLabelText("Quantity"), {target: {value: "5"}});
         fireEvent.change(screen.getByLabelText("Price"), {target: {value: "800.15"}});

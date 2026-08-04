@@ -7,6 +7,8 @@ import {AddTradeDialog} from "../dialog/AddTradeDialog";
 import {SellTradeDialog} from "../dialog/SellTradeDialog";
 import {ACTIVE_STATES} from "./component/MainBar";
 
+const compactColumnStyle = {width: "35px", minWidth: "35px", maxWidth: "35px", boxSizing: "border-box"}
+const centeredCompactColumnStyle = {...compactColumnStyle, textAlign: "center", verticalAlign: "middle", paddingLeft: 0, paddingRight: 0}
 
 export const Trades = props => {
     const [refresh, setRefresh] = useState("")
@@ -31,10 +33,10 @@ export const Trades = props => {
     }
 
     function rowStyle(index, isProfit){
-        const fontWeight = ([0, 1, 12, 13].includes(index)) ? "bold" : "normal"
-        const textAlign = ([0, 1, 2, 7].includes(index)) ? "center" : "right"
+        const fontWeight = ([0, 1, 13, 14].includes(index)) ? "bold" : "normal"
+        const textAlign = ([0, 1, 2, 3, 8].includes(index)) ? "center" : "right"
         const borderLeft = "1px solid lightgrey"
-        const borderRight = ([0, 1, 6, 11, 12, 13].includes(index)) ? "1px solid lightgrey" : "0px"
+        const borderRight = ([0, 1, 2, 7, 12, 13, 14].includes(index)) ? "1px solid lightgrey" : "0px"
         const fontFamily = "Roboto"
         let color = "primary"
         if (props.activeSelectorValue === ACTIVE_STATES[0]){
@@ -69,11 +71,12 @@ export const Trades = props => {
                     <TableHead>
                         <TableRow>
                             <TableCell key={0} colSpan={1} rowSpan={2} style={headerStyle(true)}>Ticker</TableCell>
-                            <TableCell key={1} colSpan={1} rowSpan={2} style={headerStyle(true)}>#</TableCell>
-                            <TableCell key={2} colSpan={5} rowSpan={1} style={headerStyle(true)}>Purchase</TableCell>
-                            <TableCell key={3} colSpan={5} rowSpan={1} style={headerStyle(true)}>Sale</TableCell>
-                            <TableCell key={4} colSpan={1} rowSpan={2} style={headerStyle(true)}>Profit</TableCell>
-                            <TableCell key={5} colSpan={1} rowSpan={2} style={headerStyle(true)}>Profit %</TableCell>
+                            <TableCell key={1} colSpan={1} rowSpan={2} style={{...headerStyle(true), ...centeredCompactColumnStyle}}>#</TableCell>
+                            <TableCell key={2} colSpan={1} rowSpan={2} style={{...headerStyle(true), ...compactColumnStyle, paddingLeft: "7px", paddingRight: "7px"}}>@</TableCell>
+                            <TableCell key={3} colSpan={5} rowSpan={1} style={headerStyle(true)}>Purchase</TableCell>
+                            <TableCell key={4} colSpan={5} rowSpan={1} style={headerStyle(true)}>Sale</TableCell>
+                            <TableCell key={5} colSpan={1} rowSpan={2} style={headerStyle(true)}>Profit</TableCell>
+                            <TableCell key={6} colSpan={1} rowSpan={2} style={headerStyle(true)}>Profit %</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell key={2.0} style={headerStyle(false, 0)}>Date</TableCell>
@@ -94,36 +97,38 @@ export const Trades = props => {
                                 <TableCell style={rowStyle(0)} onDoubleClick={() => selectCompany(trade.company.ticker)}>
                                     {trade.company.ticker}
                                 </TableCell>
-                                <TableCell style={rowStyle(1)}>{trade.company.currency}</TableCell>
-                                <TableCell style={rowStyle(2)}>{formatDate(trade.purchaseDate)}</TableCell>
-                                <TableCell style={rowStyle(3)}>{trade.purchaseQuantity}</TableCell>
-                                <TableCell style={rowStyle(4)}>{formatDecimals(trade.purchasePrice, 0, 4)}</TableCell>
-                                <TableCell style={rowStyle(5)}>{formatDecimals(trade.purchaseFees, 0, 2)}</TableCell>
-                                <TableCell style={rowStyle(6)}>{formatDecimals(trade.purchaseTotal, 0, 2)}</TableCell>
-                                <TableCell style={rowStyle(7)}>{formatDate(trade.sellDate)}</TableCell>
-                                <TableCell style={rowStyle(8)}>{trade.sellQuantity}</TableCell>
-                                <TableCell style={rowStyle(9)}>{formatDecimals(trade.sellPrice, 0, 4)}</TableCell>
-                                <TableCell style={rowStyle(10)}>{formatDecimals(trade.sellFees, 0, 2)}</TableCell>
-                                <TableCell style={rowStyle(11)}>{formatDecimals(trade.sellTotal, 0, 2)}</TableCell>
-                                <TableCell style={rowStyle(12, Number(trade.profit) > 0)}>{formatDecimals(trade.profit, 0, 2)}</TableCell>
-                                <TableCell style={rowStyle(13, Number(trade.profitPercentage) > 0)}>{formatDecimals(trade.profitPercentage, 0, 2)}</TableCell>
+                                <TableCell style={{...rowStyle(1), ...centeredCompactColumnStyle}}>{trade.company.currency}</TableCell>
+                                <TableCell style={{...rowStyle(2), ...compactColumnStyle, paddingLeft: "7px", paddingRight: "7px"}} title={trade.portfolio?.name}>{trade.portfolio?.abbreviation ?? "-"}</TableCell>
+                                <TableCell style={rowStyle(3)}>{formatDate(trade.purchaseDate)}</TableCell>
+                                <TableCell style={rowStyle(4)}>{trade.purchaseQuantity}</TableCell>
+                                <TableCell style={rowStyle(5)}>{formatDecimals(trade.purchasePrice, 0, 4)}</TableCell>
+                                <TableCell style={rowStyle(6)}>{formatDecimals(trade.purchaseFees, 0, 2)}</TableCell>
+                                <TableCell style={rowStyle(7)}>{formatDecimals(trade.purchaseTotal, 0, 2)}</TableCell>
+                                <TableCell style={rowStyle(8)}>{formatDate(trade.sellDate)}</TableCell>
+                                <TableCell style={rowStyle(9)}>{trade.sellQuantity}</TableCell>
+                                <TableCell style={rowStyle(10)}>{formatDecimals(trade.sellPrice, 0, 4)}</TableCell>
+                                <TableCell style={rowStyle(11)}>{formatDecimals(trade.sellFees, 0, 2)}</TableCell>
+                                <TableCell style={rowStyle(12)}>{formatDecimals(trade.sellTotal, 0, 2)}</TableCell>
+                                <TableCell style={rowStyle(13, Number(trade.profit) > 0)}>{formatDecimals(trade.profit, 0, 2)}</TableCell>
+                                <TableCell style={rowStyle(14, Number(trade.profitPercentage) > 0)}>{formatDecimals(trade.profitPercentage, 0, 2)}</TableCell>
                             </TableRow>
                         ))}
                         <TableRow key={-1} >
                             <TableCell key={0} style={sumRowStyle(0)}>{data.aggregates.companies}</TableCell>
-                            <TableCell key={1} style={sumRowStyle(1)}>{data.aggregates.currencies}</TableCell>
-                            <TableCell key={2} style={sumRowStyle(2)}></TableCell>
+                            <TableCell key={1} style={{...sumRowStyle(1), ...centeredCompactColumnStyle}}>{data.aggregates.currencies}</TableCell>
+                            <TableCell key={2} style={{...sumRowStyle(1), ...compactColumnStyle}}>{data.aggregates.portfolios}</TableCell>
                             <TableCell key={3} style={sumRowStyle(3)}></TableCell>
                             <TableCell key={4} style={sumRowStyle(4)}></TableCell>
-                            <TableCell key={5} style={sumRowStyle(5)}>{formatDecimals(data.aggregates.purchaseFees, 0, 2)}</TableCell>
-                            <TableCell key={6} style={sumRowStyle(6)}>{formatDecimals(data.aggregates.purchaseTotal, 0, 2)}</TableCell>
-                            <TableCell key={7} style={sumRowStyle(7)}></TableCell>
+                            <TableCell key={5} style={sumRowStyle(5)}></TableCell>
+                            <TableCell key={6} style={sumRowStyle(6)}>{formatDecimals(data.aggregates.purchaseFees, 0, 2)}</TableCell>
+                            <TableCell key={7} style={sumRowStyle(7)}>{formatDecimals(data.aggregates.purchaseTotal, 0, 2)}</TableCell>
                             <TableCell key={8} style={sumRowStyle(8)}></TableCell>
                             <TableCell key={9} style={sumRowStyle(9)}></TableCell>
-                            <TableCell key={10} style={sumRowStyle(10)}>{formatDecimals(data.aggregates.sellFees, 0, 2)}</TableCell>
-                            <TableCell key={11} style={sumRowStyle(11)}>{formatDecimals(data.aggregates.sellTotal, 0, 2)}</TableCell>
-                            <TableCell key={12} style={sumRowStyle(12)}>{formatDecimals(data.aggregates.profit, 0, 2)}</TableCell>
-                            <TableCell key={13} style={sumRowStyle(13)}>{formatDecimals(data.aggregates.profitPercentage, 0, 2)}</TableCell>
+                            <TableCell key={10} style={sumRowStyle(10)}></TableCell>
+                            <TableCell key={11} style={sumRowStyle(11)}>{formatDecimals(data.aggregates.sellFees, 0, 2)}</TableCell>
+                            <TableCell key={12} style={sumRowStyle(12)}>{formatDecimals(data.aggregates.sellTotal, 0, 2)}</TableCell>
+                            <TableCell key={13} style={sumRowStyle(13)}>{formatDecimals(data.aggregates.profit, 0, 2)}</TableCell>
+                            <TableCell key={14} style={sumRowStyle(14)}>{formatDecimals(data.aggregates.profitPercentage, 0, 2)}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>

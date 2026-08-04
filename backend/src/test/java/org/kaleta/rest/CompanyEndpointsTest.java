@@ -63,7 +63,7 @@ class CompanyEndpointsTest
         assertThat(dto.getPortfolios().size(), is(Portfolio.values().length));
         assertThat(dto.getPortfolios().get(0).getKey(), is(Portfolio.PATRIA_DIP.toString()));
         assertThat(dto.getPortfolios().get(0).getName(), is(Portfolio.PATRIA_DIP.getName()));
-        assertThat(dto.getPortfolios().get(0).getAbbreviation(), is("P-DIP"));
+        assertThat(dto.getPortfolios().get(0).getAbbreviation(), is("Pd"));
         assertThat(dto.getRecentCompanies().size(), is(6));
         assertThat(tickersFromCompanies(dto.getRecentCompanies()), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
         assertThat(dto.getYears(), is(List.of("2024", "2023", "2022", "2021", "2020", "2018")));

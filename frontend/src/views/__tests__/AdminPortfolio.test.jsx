@@ -20,7 +20,7 @@ const companies = [
     {id: 2, ticker: "NVDA"},
 ];
 const portfolios = [
-    {key: "PATRIA_MARGIN", name: "Patria - Margin", abbreviation: "P-M"},
+    {key: "PATRIA_MARGIN", name: "Patria - Margin", abbreviation: "Pm"},
     {key: "REVOLUT_STANDARD", name: "Revolut - Standard", abbreviation: "R"},
 ];
 const trades = [
@@ -72,10 +72,10 @@ describe("AdminPortfolio", () => {
         fireEvent.click(screen.getByLabelText("Select trade 102"));
 
         fireEvent.mouseDown(screen.getAllByRole("combobox")[1]);
-        fireEvent.click(screen.getByRole("option", {name: "Patria - Margin (P-M)"}));
+        fireEvent.click(screen.getByRole("option", {name: "Patria - Margin (Pm)"}));
         fireEvent.click(screen.getByRole("button", {name: "Assign portfolio"}));
 
-        expect(screen.getByText("Assign Patria - Margin (P-M) to 2 selected trades?")).toBeInTheDocument();
+        expect(screen.getByText("Assign Patria - Margin (Pm) to 2 selected trades?")).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", {name: "Confirm"}));
 
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/admin/portfolio", {

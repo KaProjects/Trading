@@ -78,6 +78,7 @@ public class Trades
     {
         private Integer companies;
         private Integer currencies;
+        private Integer portfolios;
         private BigDecimal purchaseFees;
         private BigDecimal purchaseTotal;
         private BigDecimal sellFees;

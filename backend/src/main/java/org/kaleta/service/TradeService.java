@@ -13,8 +13,8 @@ import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Trade;
-import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.PortfolioAssignmentDto;
+import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.rest.error.InvalidInputException;
 
@@ -26,8 +26,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -261,6 +261,7 @@ public class TradeService
     {
         Set<String> companies = new HashSet<>();
         Set<Currency> currencies = new HashSet<>();
+        Set<Portfolio> portfolios = new HashSet<>();
         BigDecimal purchaseFeesSum = BigDecimal.ZERO;
         BigDecimal purchaseTotalSum = BigDecimal.ZERO;
         BigDecimal purchaseSoldTotalSum = BigDecimal.ZERO;
@@ -270,6 +271,7 @@ public class TradeService
         {
             companies.add(trade.getCompany().getTicker());
             currencies.add(trade.getCompany().getCurrency());
+            if (trade.getPortfolio() != null) portfolios.add(Portfolio.valueOf(trade.getPortfolio().getKey()));
             purchaseFeesSum = purchaseFeesSum.add(trade.getPurchaseFees());
             purchaseTotalSum = purchaseTotalSum.add(trade.getPurchaseTotal());
             if (trade.getSellDate() != null)
@@ -282,6 +284,7 @@ public class TradeService
         Trades.Aggregates aggregates = new Trades.Aggregates();
         aggregates.setCompanies(companies.size());
         aggregates.setCurrencies(currencies.size());
+        aggregates.setPortfolios(portfolios.size());
         aggregates.setPurchaseFees(purchaseFeesSum);
         aggregates.setPurchaseTotal(purchaseTotalSum);
         aggregates.setSellFees(sellFeesSum);
