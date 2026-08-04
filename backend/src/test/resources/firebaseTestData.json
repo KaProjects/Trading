@@ -1,11 +1,4 @@
 {
-  "company-dep": {
-    "NVDA": {
-      "price": "142.50",
-      "signal": "BUY",
-      "ticker": "NVDA"
-    }
-  },
   "company": {
     "NVDA": {
       "gemini": {

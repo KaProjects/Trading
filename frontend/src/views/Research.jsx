@@ -161,10 +161,9 @@ export const Research = props => {
                                 </Dialog>
 
                                 <Box sx={{position: "absolute", top: "0", right: "0", display: "flex", alignItems: "center"}}>
-                                    {data.importablePeriods.length > 0 &&
+                                    {data.importablePeriods?.length > 0 &&
                                         <>
-                                            <Button
-                                                onClick={() => setOpenImportPeriodDialog(true)}>
+                                            <Button onClick={() => setOpenImportPeriodDialog(true)}>
                                                 <Badge badgeContent={data.importablePeriods.length} sx={badgeStyle}>
                                                     <CloudDownloadIcon sx={{color: 'lightgreen'}}/>
                                                 </Badge>

@@ -21,7 +21,7 @@ import {
 } from "./component/PeriodFinancialFields";
 
 export const ImportPeriodDialog = props => {
-    const {company, periods, open, handleClose, triggerRefresh} = props
+    const {company, periods = [], open, handleClose, triggerRefresh} = props
 
     const [period, setPeriod] = useState(null)
     const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}})
@@ -79,7 +79,10 @@ export const ImportPeriodDialog = props => {
         setLoading(true)
         axios.get(`${backend}/research/${company.id}/import/period/${candidate.name}`)
             .then(response => {
-                setPeriod(editablePeriod(response.data))
+                setPeriod(editablePeriod({
+                    ...response.data,
+                    name: response.data?.name ?? candidate.name,
+                }))
                 setSuggestions({
                     firebase: response.data.firebase ?? {},
                     polygon: response.data.polygon ?? {},
@@ -112,6 +115,10 @@ export const ImportPeriodDialog = props => {
                         {`${candidate.name}${candidate.isReported ? "" : "*"}`}
                     </Button>
                 ))}
+
+                {!period && !loading && periods.length === 0 && !alert &&
+                    <Box sx={{color: "text.secondary"}}>No periods available for import.</Box>
+                }
 
                 {period && !loading &&
                     <>

@@ -230,13 +230,9 @@ describe("Research", () => {
         expect(screen.getByText("add-estimate-dialog:period-1")).toBeInTheDocument();
     });
 
-    test("opens import dialog with the lightweight period candidates", async () => {
+    test("shows the import count and opens the dialog with lightweight period names", async () => {
         axios.get.mockResolvedValue({data: createResearchData({
-            importablePeriods: [{
-                name: "26Q1",
-                endingMonth: "2026-04",
-                isReported: true,
-            }],
+            importablePeriods: [{name: "26Q3"}, {name: "26Q4"}],
         })});
 
         render(
@@ -247,9 +243,19 @@ describe("Research", () => {
 
         await waitFor(() => expect(screen.getByText("AAPL")).toBeInTheDocument());
 
+        expect(screen.getByText("2")).toBeInTheDocument();
         fireEvent.click(screen.getByTestId("CloudDownloadIcon").closest("button"));
 
-        expect(screen.getByText("import-period-dialog:26Q1")).toBeInTheDocument();
+        expect(screen.getByText("import-period-dialog:26Q3,26Q4")).toBeInTheDocument();
+    });
+
+    test("hides the import button when there are no importable periods", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("AAPL");
+        expect(screen.queryByTestId("CloudDownloadIcon")).not.toBeInTheDocument();
     });
 
     test("updates watching status after confirm", async () => {

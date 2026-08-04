@@ -29,13 +29,11 @@ public class ResearchDto
 
     @Data
     public static class PeriodDto extends Periods.Period {
-        private PeriodImportDto cachedData;
         private PeriodEstimates estimate;
     }
 
     public void addPeriod(
             Periods.Period period,
-            PeriodImportDto cachedData,
             PeriodEstimates estimate)
     {
         PeriodDto dto = new PeriodDto();
@@ -49,7 +47,6 @@ public class ResearchDto
         dto.setPriceHigh(period.getPriceHigh());
         dto.setResearch(period.getResearch());
         dto.setFinancial(period.getFinancial());
-        dto.setCachedData(cachedData);
         dto.setEstimate(estimate);
         periods.add(dto);
     }

@@ -24,7 +24,6 @@ import java.util.concurrent.TimeoutException;
 public class ProductionFirebaseSnapshotDownloader implements FirebaseSnapshotDownloader
 {
     private static final long DOWNLOAD_TIMEOUT_SECONDS = 30;
-    private static final String COMPANY_DEP = "company-dep";
     private static final String COMPANY = "company";
     private static final String ASSET = "asset";
 
@@ -45,7 +44,6 @@ public class ProductionFirebaseSnapshotDownloader implements FirebaseSnapshotDow
     {
         FirebaseDatabase database = FirebaseDatabase.getInstance(firebaseApp.get(), databaseUrl);
         Map<String, Object> snapshot = new LinkedHashMap<>();
-        snapshot.put(COMPANY_DEP, download(database.getReference(COMPANY_DEP)));
         snapshot.put(COMPANY, download(database.getReference(COMPANY)));
         snapshot.put(ASSET, List.of());
         return snapshot;

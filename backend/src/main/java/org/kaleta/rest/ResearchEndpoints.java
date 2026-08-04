@@ -14,7 +14,6 @@ import org.kaleta.model.Record;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.model.PeriodEstimates;
 import org.kaleta.rest.dto.PeriodImportDataDto;
-import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
 import org.kaleta.rest.validation.ValidPeriodName;
 import org.kaleta.rest.validation.ValidId;
@@ -76,8 +75,7 @@ public class ResearchEndpoints
                 .map(estimateService::createOverview)
                 .ifPresent(dto::setEstimateOverview);
         periodsModel.getPeriods().forEach(period -> {
-            PeriodImportDto cachedData = firebaseService.getPeriod(company.getTicker(), period.getName().toString());
-            dto.addPeriod(period, cachedData, estimates.get(period.getId()));
+            dto.addPeriod(period, estimates.get(period.getId()));
         });
 
         List<Record> records = recordService.getBy(companyId);
@@ -106,8 +104,11 @@ public class ResearchEndpoints
             dto.setAssets(tradeService.getAssets(companyId, null));
         }
 
-        String latestPeriodId = dto.getPeriods().stream().findFirst().map(p -> p.getName().toString()).orElse(null);
-        dto.setImportablePeriods(firebaseService.getNewerPeriods(dto.getCompany().getTicker(), latestPeriodId));
+        String latestPeriodId = dto.getPeriods().stream()
+                .findFirst()
+                .map(period -> period.getName().toString())
+                .orElse(null);
+        dto.setImportablePeriods(firebaseService.getNewerPeriods(company.getTicker(), latestPeriodId));
 
         return Response.ok().entity(dto).build();
     }

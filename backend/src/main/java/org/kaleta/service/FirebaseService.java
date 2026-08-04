@@ -2,16 +2,16 @@ package org.kaleta.service;
 
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import io.quarkus.logging.Log;
 import org.kaleta.firebase.FirebaseStore;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
-import org.kaleta.model.FirebaseCompanyDep;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Period;
+import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.EstimateImportDto;
 import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
-import org.kaleta.rest.error.InvalidInputException;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 
 @Singleton
@@ -32,17 +33,6 @@ public class FirebaseService
         this.firebaseStore = firebaseStore;
     }
 
-    public boolean hasCompany(String ticker)
-    {
-        return firebaseStore.findCompanyDep(ticker).isPresent();
-    }
-
-    public FirebaseCompanyDep getCompanyDep(String ticker)
-    {
-        return firebaseStore.findCompanyDep(ticker)
-                .orElseThrow(() -> new InvalidInputException("company with ticker '" + ticker + "' not found"));
-    }
-
     public void pushAssets(Trades activeTrades)
     {
         firebaseStore.replaceAssets(activeTrades.getTrades().stream()
@@ -52,24 +42,34 @@ public class FirebaseService
 
     public List<PeriodImportCandidateDto> getNewerPeriods(String ticker, String quarterId)
     {
-        FirebaseCompany company = firebaseStore.findCompany(ticker).orElse(null);
-        if (company == null || company.getGemini() == null || company.getGemini().getQuarters() == null) {
+        try {
+            return firebaseStore.findQuarterIds(ticker).stream()
+                    .filter(id -> quarterId == null
+                            || PeriodName.valueOf(id).compareTo(PeriodName.valueOf(quarterId)) > 0)
+                    .sorted(Comparator.comparing(PeriodName::valueOf).reversed())
+                    .map(id -> toImportCandidate(ticker, id))
+                    .collect(Collectors.toList());
+        } catch (RuntimeException exception) {
+            Log.warn("Firebase import candidates could not be loaded", exception);
             return new ArrayList<>();
         }
-        return company.getGemini().getQuarters().values().stream()
-                .filter(quarter -> quarter.isInFutureOf(quarterId))
-                .sorted(Comparator.comparing(FirebaseCompany.Gemini.Quarter::getId).reversed())
-                .map(FirebaseCompany.Gemini.Quarter::toImportCandidateDto)
-                .collect(Collectors.toList());
+    }
+
+    private PeriodImportCandidateDto toImportCandidate(String ticker, String quarterId)
+    {
+        FirebaseStore.QuarterMetadata metadata = firebaseStore.findQuarterMetadata(ticker, quarterId);
+        PeriodImportCandidateDto candidate = new PeriodImportCandidateDto();
+        candidate.setName(quarterId);
+        candidate.setEndingMonth(YearMonth.parse("20" + metadata.endingMonth()).toString());
+        candidate.setIsReported(metadata.reported());
+        return candidate;
     }
 
     public PeriodImportDto getPeriod(String ticker, String quarterId)
     {
-        FirebaseCompany company = firebaseStore.findCompany(ticker).orElse(null);
-        if (company == null || company.getGemini() == null || company.getGemini().getQuarters() == null) return null;
-        FirebaseCompany.Gemini.Quarter quarter = company.getGemini().getQuarters().get(quarterId);
-        if (quarter == null) return null;
-        return quarter.toImportDto();
+        return firebaseStore.findQuarter(ticker, quarterId)
+                .map(FirebaseCompany.Gemini.Quarter::toImportDto)
+                .orElse(null);
     }
 
     public EstimateImportDto.Quarter getLatestEstimate(String ticker, String quarterId)
@@ -93,12 +93,10 @@ public class FirebaseService
     public void updatePeriod(Period period)
     {
         String ticker = period.getCompany().getTicker();
-        FirebaseCompany company = firebaseStore.findCompany(ticker).orElse(null);
-        if (company == null || company.getGemini() == null || company.getGemini().getQuarters() == null) return;
         String quarterId = period.getName().toString();
-        FirebaseCompany.Gemini.Quarter quarter = company.getGemini().getQuarters().get(quarterId);
-        if (quarter == null) return;
+        if (firebaseStore.findQuarter(ticker, quarterId).isEmpty()) return;
 
+        FirebaseCompany.Gemini.Quarter quarter = new FirebaseCompany.Gemini.Quarter();
         quarter.setReport_date_this_quarter(toString(period.getReportDate()));
         quarter.setReported_shares(toString(period.getShares()));
         quarter.setPrice_min(toString(period.getPriceLow()));
@@ -110,15 +108,12 @@ public class FirebaseService
         quarter.setReported_div(toString(period.getDividend()));
         quarter.setReported_eps(toString(period.getAdjustedEps()));
 
-        firebaseStore.saveQuarter(ticker, quarterId, quarter);
+        firebaseStore.updateQuarter(ticker, quarterId, quarter);
     }
 
     private FirebaseCompany.FinnhubEarnings getLatestEarnings(String ticker, String quarterId)
     {
-        FirebaseCompany company = firebaseStore.findCompany(ticker).orElse(null);
-        if (company == null || company.getFhe() == null) return null;
-
-        Map<String, FirebaseCompany.FinnhubEarnings> estimates = company.getFhe().get(quarterId);
+        Map<String, FirebaseCompany.FinnhubEarnings> estimates = firebaseStore.findEarnings(ticker, quarterId);
         if (estimates == null || estimates.isEmpty()) return null;
 
         return estimates.entrySet().stream()

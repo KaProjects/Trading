@@ -60,6 +60,19 @@ jest.mock("../component/DialogDatePicker", () => dialogDatePickerModule);
 
 import {ImportPeriodDialog} from "../ImportPeriodDialog";
 
+const candidates = [
+    {
+        name: "24Q1",
+        isReported: true,
+        endingMonth: "2024-03",
+    },
+    {
+        name: "24Q2",
+        isReported: false,
+        endingMonth: "2024-06",
+    },
+];
+
 function createProps(overrides = {}) {
     return {
         open: true,
@@ -69,18 +82,7 @@ function createProps(overrides = {}) {
             id: "company-1",
             ticker: "NVDA",
         },
-        periods: [
-            {
-                name: "24Q1",
-                isReported: true,
-                endingMonth: "2024-03",
-            },
-            {
-                name: "24Q2",
-                isReported: false,
-                endingMonth: "2024-06",
-            },
-        ],
+        periods: candidates,
         ...overrides,
     };
 }
@@ -127,16 +129,18 @@ describe("ImportPeriodDialog", () => {
             title: "Import failed",
             message: "Period could not be imported",
         });
+        axios.get.mockResolvedValue({data: createImportData()});
     });
 
     test("loads a reported period with separate Gemini and third-party suggestions", async () => {
-        axios.get.mockResolvedValue({data: createImportData()});
         axios.post.mockResolvedValue({});
 
         const props = createProps();
 
         render(<ImportPeriodDialog {...props}/>);
 
+        expect(await screen.findByText("24Q1")).toBeInTheDocument();
+        expect(axios.get).not.toHaveBeenCalled();
         fireEvent.click(screen.getByText("24Q1"));
 
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
@@ -193,13 +197,13 @@ describe("ImportPeriodDialog", () => {
 
     test("shows a loader while reported period data is being retrieved", async () => {
         let resolveRequest;
-        axios.get.mockReturnValue(new Promise(resolve => {
+        axios.get.mockImplementation(() => new Promise(resolve => {
             resolveRequest = resolve;
         }));
 
         render(<ImportPeriodDialog {...createProps()}/>);
 
-        fireEvent.click(screen.getByText("24Q1"));
+        fireEvent.click(await screen.findByText("24Q1"));
 
         expect(screen.getByRole("progressbar")).toBeInTheDocument();
 
@@ -211,7 +215,7 @@ describe("ImportPeriodDialog", () => {
     test("opens an unreported period without loading suggestions and can return to the list", async () => {
         render(<ImportPeriodDialog {...createProps()}/>);
 
-        fireEvent.click(screen.getByText("24Q2*"));
+        fireEvent.click(await screen.findByText("24Q2*"));
 
         expect(screen.getByLabelText("Name")).toHaveValue("24Q2");
         expect(screen.getByLabelText("Ending Month")).toHaveValue("2024-06");
@@ -232,7 +236,7 @@ describe("ImportPeriodDialog", () => {
 
         render(<ImportPeriodDialog {...props}/>);
 
-        fireEvent.click(screen.getByText("24Q2*"));
+        fireEvent.click(await screen.findByText("24Q2*"));
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
         await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
@@ -248,7 +252,7 @@ describe("ImportPeriodDialog", () => {
     });
 
     test("keeps available source data and explains partial Polygon failures", async () => {
-        axios.get.mockResolvedValue({data: createImportData({
+        const importData = createImportData({
             polygon: {
                 shares: null,
                 revenue: null,
@@ -261,11 +265,12 @@ describe("ImportPeriodDialog", () => {
                 priceLow: "90.75",
             },
             warnings: ["Polygon.io financial data could not be loaded: rate limit exceeded"],
-        })});
+        });
+        axios.get.mockResolvedValue({data: importData});
 
         render(<ImportPeriodDialog {...createProps()}/>);
 
-        fireEvent.click(screen.getByText("24Q1"));
+        fireEvent.click(await screen.findByText("24Q1"));
 
         expect(await screen.findByText("Some Polygon.io data could not be loaded")).toBeInTheDocument();
         expect(screen.getByText(
@@ -282,12 +287,11 @@ describe("ImportPeriodDialog", () => {
     });
 
     test("clears a failed import alert whenever a field is edited", async () => {
-        axios.get.mockResolvedValue({data: createImportData()});
         axios.post.mockRejectedValue({message: "invalid import"});
 
         render(<ImportPeriodDialog {...createProps()}/>);
 
-        fireEvent.click(screen.getByText("24Q1"));
+        fireEvent.click(await screen.findByText("24Q1"));
         await screen.findByLabelText("Name");
 
         fireEvent.change(screen.getByLabelText("Shares (in Millions)"), {target: {value: "10"}});
@@ -322,11 +326,18 @@ describe("ImportPeriodDialog", () => {
 
         render(<ImportPeriodDialog {...createProps()}/>);
 
-        fireEvent.click(screen.getByText("24Q1"));
+        fireEvent.click(await screen.findByText("24Q1"));
 
         await waitFor(() => expect(mockFormatError).toHaveBeenCalledWith(error));
         expect(await screen.findByText("Import failed")).toBeInTheDocument();
         expect(screen.getByText("Period could not be imported")).toBeInTheDocument();
         expect(screen.getByText("24Q1")).toBeInTheDocument();
+    });
+
+    test("shows an empty state when no periods are available", async () => {
+        render(<ImportPeriodDialog {...createProps({periods: []})}/>);
+
+        expect(await screen.findByText("No periods available for import.")).toBeInTheDocument();
+        expect(axios.get).not.toHaveBeenCalled();
     });
 });

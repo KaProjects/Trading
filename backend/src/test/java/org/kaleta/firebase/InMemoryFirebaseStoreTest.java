@@ -12,8 +12,6 @@ import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.EstimateImportDto;
 import org.kaleta.rest.dto.PeriodImportCandidateDto;
-import org.kaleta.rest.dto.PeriodImportDto;
-import org.kaleta.rest.error.InvalidInputException;
 import org.kaleta.service.FirebaseService;
 
 import java.math.BigDecimal;
@@ -28,7 +26,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class InMemoryFirebaseStoreTest
 {
@@ -58,17 +57,19 @@ class InMemoryFirebaseStoreTest
                 () -> {
                     downloaded.set(true);
                     return Map.of(
-                            "company-dep", Map.of(
-                                    "AMD", Map.of("ticker", "AMD", "signal", "BUY")),
-                            "company", Map.of("AMD", Map.of()),
+                            "company", Map.of("AMD", Map.of(
+                                    "gemini", Map.of(
+                                            "quarters", Map.of(
+                                                    "25Q1", Map.of(
+                                                            "id", "25Q1",
+                                                            "ending_month", "25-03"))))),
                             "asset", List.of());
                 },
                 snapshot.toString());
 
         assertThat(downloaded.get(), is(true));
         assertThat(Files.exists(snapshot), is(true));
-        assertThat(store.findCompanyDep("AMD").orElseThrow().getSignal(), is("BUY"));
-        assertThat(store.findCompany("AMD").isPresent(), is(true));
+        assertThat(store.findQuarter("AMD", "25Q1").isPresent(), is(true));
     }
 
     @Test
@@ -87,20 +88,7 @@ class InMemoryFirebaseStoreTest
                 snapshot.toString());
 
         assertThat(downloaded.get(), is(false));
-        assertThat(store.findCompany("NVDA").isPresent(), is(true));
-    }
-
-    @Test
-    void readsSeededCompanies()
-    {
-        assertThat(firebaseService.hasCompany("NVDA"), is(true));
-        assertThat(firebaseService.hasCompany("AMD"), is(false));
-        assertThat(firebaseService.getCompanyDep("NVDA").getSignal(), is("BUY"));
-
-        InvalidInputException exception = assertThrows(
-                InvalidInputException.class,
-                () -> firebaseService.getCompanyDep("AMD"));
-        assertThat(exception.getMessage(), is("company with ticker 'AMD' not found"));
+        assertThat(store.findQuarterIds("NVDA").isEmpty(), is(false));
     }
 
     @Test
@@ -119,42 +107,12 @@ class InMemoryFirebaseStoreTest
     }
 
     @Test
-    void readsSeededTargets()
+    void returnsEmptyImportCandidatesWhenFirebaseReadFails()
     {
-        FirebaseCompany.Gemini.Target target = firebaseStore
-                .findCompany("NVDA")
-                .orElseThrow()
-                .getGemini()
-                .getTargets()
-                .get("2026-07-24-test");
+        FirebaseStore failingStore = mock(FirebaseStore.class);
+        when(failingStore.findQuarterIds("NVDA")).thenThrow(new IllegalStateException("Firebase unavailable"));
 
-        assertThat(target.getDate(), is("2026-07-24"));
-        assertThat(target.getInstitution(), is("Example Capital"));
-        assertThat(target.getPrice(), is("210"));
-        assertThat(target.getRating(), is("Buy"));
-        assertThat(target.getSource(), is("example"));
-    }
-
-    @Test
-    void mapsTargetsWithFirebaseMapper()
-    {
-        Map<String, Object> targetData = Map.of(
-                "date", "2026-07-24",
-                "institution", "Example Capital",
-                "price", "210",
-                "rating", "Buy",
-                "source", "example");
-        Map<String, Object> companyData = Map.of(
-                "gemini", Map.of(
-                        "targets", Map.of("2026-07-24-test", targetData)));
-
-        FirebaseCompany company = CustomClassMapper.convertToCustomClass(companyData, FirebaseCompany.class);
-        FirebaseCompany.Gemini.Target target = company.getGemini()
-                .getTargets()
-                .get("2026-07-24-test");
-
-        assertThat(target.getInstitution(), is("Example Capital"));
-        assertThat(target.getPrice(), is("210"));
+        assertThat(new FirebaseService(failingStore).getNewerPeriods("NVDA", "24Q4"), is(empty()));
     }
 
     @Test
@@ -166,15 +124,9 @@ class InMemoryFirebaseStoreTest
                 "report", "2026-04-27-bmo",
                 "reva", "44100000000",
                 "reve", "44000000000");
-        Map<String, Object> companyData = Map.of(
-                "fhe", Map.of(
-                        "26Q1", Map.of(
-                                "20260427", earningsData)));
-
-        FirebaseCompany company = CustomClassMapper.convertToCustomClass(companyData, FirebaseCompany.class);
-        FirebaseCompany.FinnhubEarnings earnings = company.getFhe()
-                .get("26Q1")
-                .get("20260427");
+        FirebaseCompany.FinnhubEarnings earnings = CustomClassMapper.convertToCustomClass(
+                earningsData,
+                FirebaseCompany.FinnhubEarnings.class);
 
         assertThat(earnings.getEpsa(), is("1.25"));
         assertThat(earnings.getEpse(), is("1.20"));
@@ -245,11 +197,8 @@ class InMemoryFirebaseStoreTest
         firebaseService.updatePeriod(period);
 
         org.kaleta.model.FirebaseCompany.Gemini.Quarter quarter = firebaseStore
-                .findCompany("NVDA")
-                .orElseThrow()
-                .getGemini()
-                .getQuarters()
-                .get("25Q1");
+                .findQuarter("NVDA", "25Q1")
+                .orElseThrow();
         assertThat(quarter.getReport_date_this_quarter(), is("2025-05-29"));
         assertThat(quarter.getReported_shares(), is("24500"));
         assertThat(quarter.getPrice_min(), is("90.25"));

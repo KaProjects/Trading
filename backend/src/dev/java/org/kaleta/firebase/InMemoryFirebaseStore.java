@@ -10,7 +10,6 @@ import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
-import org.kaleta.model.FirebaseCompanyDep;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -30,7 +30,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @IfBuildProperty(name = "firebase.mode", stringValue = "fake")
 public class InMemoryFirebaseStore implements FirebaseStore
 {
-    private final Map<String, FirebaseCompanyDep> companiesDep = new ConcurrentHashMap<>();
     private final Map<String, FirebaseCompany> companies = new ConcurrentHashMap<>();
     private final List<FirebaseAsset> assets = new CopyOnWriteArrayList<>();
 
@@ -46,15 +45,45 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
-    public Optional<FirebaseCompanyDep> findCompanyDep(String ticker)
+    public Set<String> findQuarterIds(String ticker)
     {
-        return Optional.ofNullable(companiesDep.get(ticker));
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getGemini() == null || company.getGemini().getQuarters() == null) {
+            return Set.of();
+        }
+        return Set.copyOf(company.getGemini().getQuarters().keySet());
     }
 
     @Override
-    public Optional<FirebaseCompany> findCompany(String ticker)
+    public QuarterMetadata findQuarterMetadata(String ticker, String quarterId)
     {
-        return Optional.ofNullable(companies.get(ticker));
+        FirebaseCompany.Gemini.Quarter quarter = findQuarter(ticker, quarterId).orElse(null);
+        if (quarter == null) return new QuarterMetadata(null, false);
+
+        String revenues = quarter.getReported_revenues();
+        return new QuarterMetadata(
+                quarter.getEnding_month(),
+                revenues != null && !revenues.isBlank());
+    }
+
+    @Override
+    public Optional<FirebaseCompany.Gemini.Quarter> findQuarter(String ticker, String quarterId)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getGemini() == null || company.getGemini().getQuarters() == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(company.getGemini().getQuarters().get(quarterId));
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.FinnhubEarnings> findEarnings(String ticker, String quarterId)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getFhe() == null || company.getFhe().get(quarterId) == null) {
+            return Map.of();
+        }
+        return Map.copyOf(company.getFhe().get(quarterId));
     }
 
     @Override
@@ -65,13 +94,21 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
-    public void saveQuarter(String ticker, String quarterId, FirebaseCompany.Gemini.Quarter quarter)
+    public void updateQuarter(String ticker, String quarterId, FirebaseCompany.Gemini.Quarter update)
     {
-        FirebaseCompany company = companies.get(ticker);
-        if (company == null || company.getGemini() == null || company.getGemini().getQuarters() == null) {
-            return;
-        }
-        company.getGemini().getQuarters().put(quarterId, quarter);
+        FirebaseCompany.Gemini.Quarter quarter = findQuarter(ticker, quarterId).orElse(null);
+        if (quarter == null) return;
+
+        quarter.setReport_date_this_quarter(update.getReport_date_this_quarter());
+        quarter.setReported_shares(update.getReported_shares());
+        quarter.setPrice_min(update.getPrice_min());
+        quarter.setPrice_max(update.getPrice_max());
+        quarter.setReported_revenues(update.getReported_revenues());
+        quarter.setReported_gross_profit(update.getReported_gross_profit());
+        quarter.setReported_operating_income(update.getReported_operating_income());
+        quarter.setReported_net_income(update.getReported_net_income());
+        quarter.setReported_div(update.getReported_div());
+        quarter.setReported_eps(update.getReported_eps());
     }
 
     List<FirebaseAsset> getAssets()
@@ -122,9 +159,6 @@ public class InMemoryFirebaseStore implements FirebaseStore
     {
         try (InputStream input = Files.newInputStream(snapshotFile)) {
             FirebaseData data = objectMapper.readValue(input, FirebaseData.class);
-            if (data.companiesDep != null) {
-                companiesDep.putAll(data.companiesDep);
-            }
             if (data.companies != null) {
                 companies.putAll(data.companies);
             }
@@ -140,8 +174,6 @@ public class InMemoryFirebaseStore implements FirebaseStore
 
     private static class FirebaseData
     {
-        @JsonProperty("company-dep")
-        private Map<String, FirebaseCompanyDep> companiesDep;
         @JsonProperty("company")
         private Map<String, FirebaseCompany> companies;
         @JsonProperty("asset")

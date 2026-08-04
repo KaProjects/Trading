@@ -16,6 +16,7 @@ import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.EstimateImportDto;
 import org.kaleta.rest.dto.PeriodImportDataDto;
+import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
 import org.kaleta.service.FirebaseService;
@@ -81,9 +82,6 @@ public class ResearchEndpointsTest
         assertThat(dto.getPeriods().get(0).getName(), is(PeriodName.valueOf("25Q1")));
         assertThat(dto.getPeriods().get(1).getName(), is(PeriodName.valueOf("24Q4")));
         assertThat(dto.getPeriods().get(2).getName(), is(PeriodName.valueOf("24Q3")));
-        assertThat(dto.getPeriods().get(0).getCachedData(), is(nullValue()));
-        assertThat(dto.getPeriods().get(1).getCachedData(), is(nullValue()));
-        assertThat(dto.getPeriods().get(2).getCachedData(), is(nullValue()));
         assertThat(dto.getPeriods().get(0).getEstimate(), is(notNullValue()));
         assertBigDecimals(dto.getPeriods().get(0).getEstimate().getCurrent(), new BigDecimal("1.62"));
         assertBigDecimals(dto.getPeriods().get(0).getEstimate().getNext1(), new BigDecimal("1.85"));
@@ -167,8 +165,30 @@ public class ResearchEndpointsTest
         assertBigDecimals(dto.getAssets().getAggregate().getProfitValue(), new BigDecimal("32520"));
         assertBigDecimals(dto.getAssets().getAggregate().getProfitPercent(), new BigDecimal("722.67"));
 
-        assertThat(dto.getImportablePeriods(), is(notNullValue()));
-        assertThat(dto.getImportablePeriods().size(), is(0));
+        verify(firebaseService).getNewerPeriods("RCH", "25Q1");
+    }
+
+    @Test
+    void getIncludesImportablePeriodNames()
+    {
+        PeriodImportCandidateDto candidate = new PeriodImportCandidateDto();
+        candidate.setName("25Q2");
+        candidate.setEndingMonth("2025-07");
+        candidate.setIsReported(false);
+        when(firebaseService.getNewerPeriods("RCH", "25Q1")).thenReturn(List.of(candidate));
+
+        ResearchDto dto = given().when()
+                .get("/research/2281")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", ResearchDto.class);
+
+        assertThat(dto.getImportablePeriods().size(), is(1));
+        assertThat(dto.getImportablePeriods().get(0).getName(), is("25Q2"));
+        assertThat(dto.getImportablePeriods().get(0).getEndingMonth(), is("2025-07"));
+        assertThat(dto.getImportablePeriods().get(0).getIsReported(), is(false));
+        verify(firebaseService).getNewerPeriods("RCH", "25Q1");
     }
 
     @Test

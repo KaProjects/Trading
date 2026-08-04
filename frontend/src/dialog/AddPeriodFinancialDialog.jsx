@@ -46,9 +46,8 @@ export const AddPeriodFinancialDialog = props => {
             return
         }
 
-        const cachedData = period.cachedData ?? {}
         setFinancial(EMPTY_FINANCIAL)
-        setSuggestions({firebase: cachedData, polygon: {}})
+        setSuggestions({firebase: {}, polygon: {}})
         setWarnings([])
         setAlert(null)
         setLoading(true)
