@@ -77,11 +77,12 @@ test("projects prices and P/E ratios from an editable target price", () => {
     expect(screen.getByLabelText("t - 15 P/E")).toHaveTextContent("5");
     expect(screen.getByLabelText("target ~ ttm price")).toHaveTextContent("200");
     expect(screen.getByLabelText("target ~ next 3 price")).toHaveTextContent("1,000");
-    expect(screen.getByLabelText("P (H, Q-1) P/E")).toHaveTextContent("9.00");
-    expect(screen.getByLabelText("P (H, Q-1) ttm price")).toHaveTextContent("90");
-    expect(screen.getByLabelText("P (H, Q-1) current price")).toHaveTextContent("180");
-    expect(screen.getByLabelText("P (L, Q-1) P/E")).toHaveTextContent("5.00");
-    expect(screen.getByLabelText("P (L, Q-1) next 3 price")).toHaveTextContent("250");
+    expect(screen.getByRole("table", {name: "historical price projections"})).toBeInTheDocument();
+    expect(screen.getByLabelText("High P/E")).toHaveTextContent("9.00");
+    expect(screen.getByLabelText("High ttm price")).toHaveTextContent("90");
+    expect(screen.getByLabelText("High current price")).toHaveTextContent("180");
+    expect(screen.getByLabelText("Low P/E")).toHaveTextContent("5.00");
+    expect(screen.getByLabelText("Low next 3 price")).toHaveTextContent("250");
 
     fireEvent.change(screen.getByLabelText("Past 4"), {target: {value: "31"}});
     expect(screen.getByLabelText("target ~ ttm P/E")).toHaveTextContent("5.00");
@@ -170,8 +171,7 @@ test("uses blanks and dashes when price or earnings are unavailable", () => {
     expect(screen.getByLabelText("t + 20% price")).toHaveTextContent("-");
     expect(screen.getByLabelText("target ~ ttm P/E")).toHaveTextContent("-");
     expect(screen.getByLabelText("target ~ ttm price")).toHaveTextContent("-");
-    expect(screen.queryByText("P (H, Q-1)")).not.toBeInTheDocument();
-    expect(screen.queryByText("P (L, Q-1)")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table", {name: "historical price projections"})).not.toBeInTheDocument();
     expect(screen.getAllByText("Required")).toHaveLength(8);
 
     fireEvent.keyDown(screen.getByLabelText("Target price"), {key: "ArrowDown"});

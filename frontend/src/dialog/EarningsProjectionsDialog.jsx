@@ -198,8 +198,8 @@ export const EarningsProjectionsDialog = ({
     const previousPriceLow = numberValue(previousPeriod?.priceLow);
     const previousPriceRows = previousPriceHigh !== null && previousPriceLow !== null
         ? [
-            {label: "P (H, Q-1)", price: previousPriceHigh, separated: true},
-            {label: "P (L, Q-1)", price: previousPriceLow},
+            {label: "High", price: previousPriceHigh},
+            {label: "Low", price: previousPriceLow},
         ]
         : [];
     const periodName = typeof latestPeriod?.name === "string"
@@ -396,7 +396,7 @@ export const EarningsProjectionsDialog = ({
                         <TableHead>
                             <TableRow>
                                 <TableCell sx={{border}}/>
-                                <TableCell align="center" sx={{border, backgroundColor: priceColor, color: "#111"}}>
+                                <TableCell align="center" sx={{border, backgroundColor: headerColor, color: "#111"}}>
                                     Price
                                 </TableCell>
                                 <TableCell colSpan={1} sx={{border, backgroundColor: headerColor, color: "#111"}}>
@@ -451,7 +451,7 @@ export const EarningsProjectionsDialog = ({
                         </TableBody>
                     </Table>
                 </TableContainer>
-                <TableContainer sx={{marginTop: 3}}>
+                <TableContainer sx={{marginTop: "5px"}}>
                     <Table
                         size="small"
                         aria-label="price projections by P/E"
@@ -467,7 +467,7 @@ export const EarningsProjectionsDialog = ({
                         <TableHead>
                             <TableRow>
                                 <TableCell sx={{border}}/>
-                                <TableCell align="center" sx={{border, backgroundColor: priceColor, color: "#111"}}>
+                                <TableCell align="center" sx={{border, backgroundColor: headerColor, color: "#111"}}>
                                     P/E
                                 </TableCell>
                                 <TableCell sx={{border, backgroundColor: headerColor, color: "#111"}}>
@@ -518,44 +518,76 @@ export const EarningsProjectionsDialog = ({
                                     </TableRow>
                                 );
                             })}
-                            {previousPriceRows.map(row => {
-                                const pe = peFromPrice(row.price, earnings?.ttm?.value);
-                                const separator = row.separated ? {borderTop: "3px solid rgba(0, 0, 0, 0.55)"} : {};
-                                return (
-                                    <TableRow key={row.label}>
-                                        <TableCell sx={{border, ...separator, backgroundColor: priceColor, color: "#111", whiteSpace: "nowrap"}}>
-                                            {row.label}
-                                        </TableCell>
-                                        <TableCell
-                                            align="right"
-                                            aria-label={`${row.label} P/E`}
-                                            sx={{border, ...separator, backgroundColor: ratioColor, color: "#111"}}
-                                        >
-                                            {pe === null ? "-" : formatDecimals(pe, 2, 2) || "-"}
-                                        </TableCell>
-                                        <TableCell
-                                            align="right"
-                                            aria-label={`${row.label} ttm price`}
-                                            sx={{border, ...separator, backgroundColor: priceColor, color: "#111"}}
-                                        >
-                                            {formatDecimals(row.price, 0, 2) || "-"}
-                                        </TableCell>
-                                        {earningsColumns.slice(1).map(column => (
-                                            <TableCell
-                                                key={column.key}
-                                                align="right"
-                                                aria-label={`${row.label} ${column.label} price`}
-                                                sx={{border, ...separator, backgroundColor: ratioColor, color: "#111"}}
-                                            >
-                                                {earningsToPrice(pe, earnings?.[column.key]?.value)}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                );
-                            })}
                         </TableBody>
                     </Table>
                 </TableContainer>
+                {previousPriceRows.length > 0 &&
+                    <TableContainer sx={{marginTop: "5px"}}>
+                        <Table
+                            size="small"
+                            aria-label="historical price projections"
+                            sx={{tableLayout: "fixed", width: "auto"}}
+                        >
+                            <colgroup>
+                                <col style={{width: columnWidth}}/>
+                                <col style={{width: columnWidth}}/>
+                                {earningsColumns.map(column => (
+                                    <col key={column.key} style={{width: columnWidth}}/>
+                                ))}
+                            </colgroup>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell sx={{border}}/>
+                                    <TableCell sx={{border, backgroundColor: headerColor, color: "#111"}}>
+                                        P (Q-1)
+                                    </TableCell>
+                                    <TableCell sx={{border, backgroundColor: headerColor, color: "#111"}}>
+                                        P/E (TTM)
+                                    </TableCell>
+                                    <TableCell colSpan={4} sx={{border, backgroundColor: headerColor, color: "#111"}}>
+                                        Price (Forward with fixed P/E)
+                                    </TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {previousPriceRows.map(row => {
+                                    const pe = peFromPrice(row.price, earnings?.ttm?.value);
+                                    return (
+                                        <TableRow key={row.label}>
+                                            <TableCell sx={{border, backgroundColor: priceColor, color: "#111"}}>
+                                                {row.label}
+                                            </TableCell>
+                                            <TableCell
+                                                align="right"
+                                                aria-label={`${row.label} ttm price`}
+                                                sx={{border, backgroundColor: priceColor, color: "#111"}}
+                                            >
+                                                {formatDecimals(row.price, 0, 2) || "-"}
+                                            </TableCell>
+                                            <TableCell
+                                                align="right"
+                                                aria-label={`${row.label} P/E`}
+                                                sx={{border, backgroundColor: priceColor, color: "#111"}}
+                                            >
+                                                {pe === null ? "-" : formatDecimals(pe, 2, 2) || "-"}
+                                            </TableCell>
+                                            {earningsColumns.slice(1).map(column => (
+                                                <TableCell
+                                                    key={column.key}
+                                                    align="right"
+                                                    aria-label={`${row.label} ${column.label} price`}
+                                                    sx={{border, backgroundColor: ratioColor, color: "#111"}}
+                                                >
+                                                    {earningsToPrice(pe, earnings?.[column.key]?.value)}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                }
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose}>Close</Button>
