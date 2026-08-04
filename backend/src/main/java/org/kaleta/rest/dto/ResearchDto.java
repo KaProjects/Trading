@@ -3,6 +3,7 @@ package org.kaleta.rest.dto;
 import lombok.Data;
 import org.kaleta.model.Assets;
 import org.kaleta.model.Company;
+import org.kaleta.model.EstimateOverview;
 import org.kaleta.model.PeriodEstimates;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
@@ -19,6 +20,7 @@ public class ResearchDto
     private List<PeriodDto> periods = new ArrayList<>();
     private List<Periods.Financial> financials = new ArrayList<>();
     private Periods.Financial ttm;
+    private EstimateOverview estimateOverview;
     private List<Record> records = new ArrayList<>();
     private Latest latest;
     private PriceIndicators indicators;

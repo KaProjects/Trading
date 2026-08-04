@@ -69,6 +69,12 @@ public class ResearchEndpoints
                 periodsModel.getPeriods().stream()
                         .map(Periods.Period::getId)
                         .toList());
+        periodsModel.getPeriods().stream()
+                .findFirst()
+                .map(Periods.Period::getId)
+                .map(estimates::get)
+                .map(estimateService::createOverview)
+                .ifPresent(dto::setEstimateOverview);
         periodsModel.getPeriods().forEach(period -> {
             PeriodImportDto cachedData = firebaseService.getPeriod(company.getTicker(), period.getName().toString());
             dto.addPeriod(period, cachedData, estimates.get(period.getId()));

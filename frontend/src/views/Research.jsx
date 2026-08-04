@@ -14,6 +14,7 @@ import {Record} from "./component/Record";
 import {Period} from "./component/Period";
 import {CompanySelector} from "./component/CompanySelector";
 import {PeriodFinancials} from "./component/PeriodFinancials";
+import {PeriodEstimatesOverview} from "./component/PeriodEstimatesOverview";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
 import {AddPeriodDialog} from "../dialog/AddPeriodDialog";
 import {AddPeriodFinancialDialog} from "../dialog/AddPeriodFinancialDialog";
@@ -134,9 +135,13 @@ export const Research = props => {
                                 {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
 
                                 <PeriodFinancials
-                                    sx={{marginBottom: "20px", marginTop: "20px"}}
+                                    sx={{marginTop: "20px"}}
                                     ttm={data.ttm}
                                     onOpen={() => setOpenFinancialsDialog(true)}
+                                />
+                                <PeriodEstimatesOverview
+                                    sx={{marginTop: "8px", marginBottom: "20px"}}
+                                    overview={data.estimateOverview}
                                 />
 
                                 <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>

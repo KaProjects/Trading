@@ -6,6 +6,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
+import org.kaleta.model.EstimateOverview;
 import org.kaleta.model.PeriodEstimates;
 import org.kaleta.persistence.api.EstimateDao;
 import org.kaleta.persistence.api.PeriodDao;
@@ -117,6 +118,18 @@ class EstimateServiceTest
         assertBigDecimals(result.getNext1Change(), new BigDecimal("28.57"));
         assertBigDecimals(result.getNext2Change(), new BigDecimal("22.22"));
         assertBigDecimals(result.getNext3Change(), new BigDecimal("18.18"));
+
+        EstimateOverview overview = estimateService.createOverview(result);
+        assertBigDecimals(overview.getTtm().getValue(), new BigDecimal("10"));
+        assertThat(overview.getTtm().getChange(), is(nullValue()));
+        assertBigDecimals(overview.getCurrent().getValue(), new BigDecimal("14"));
+        assertBigDecimals(overview.getCurrent().getChange(), new BigDecimal("40"));
+        assertBigDecimals(overview.getNext1().getValue(), new BigDecimal("18"));
+        assertBigDecimals(overview.getNext1().getChange(), new BigDecimal("28.57"));
+        assertBigDecimals(overview.getNext2().getValue(), new BigDecimal("22"));
+        assertBigDecimals(overview.getNext2().getChange(), new BigDecimal("22.22"));
+        assertBigDecimals(overview.getNext3().getValue(), new BigDecimal("26"));
+        assertBigDecimals(overview.getNext3().getChange(), new BigDecimal("18.18"));
     }
 
     @Test

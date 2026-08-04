@@ -91,6 +91,12 @@ public class ResearchEndpointsTest
         assertThat(dto.getPeriods().get(0).getEstimate().getNext3(), is(nullValue()));
         assertThat(dto.getPeriods().get(1).getEstimate(), is(nullValue()));
         assertThat(dto.getPeriods().get(2).getEstimate(), is(nullValue()));
+        assertThat(dto.getEstimateOverview(), is(notNullValue()));
+        assertThat(dto.getEstimateOverview().getTtm().getValue(), is(nullValue()));
+        assertThat(dto.getEstimateOverview().getCurrent().getValue(), is(nullValue()));
+        assertThat(dto.getEstimateOverview().getNext1().getValue(), is(nullValue()));
+        assertThat(dto.getEstimateOverview().getNext2().getValue(), is(nullValue()));
+        assertThat(dto.getEstimateOverview().getNext3().getValue(), is(nullValue()));
         assertThat(dto.getFinancials().size(), is(2));
         assertThat(dto.getFinancials().get(0).getPeriod(), is(PeriodName.valueOf("24Q4")));
         assertBigDecimals(dto.getFinancials().get(0).getAdjustedEps(), new BigDecimal("1.25"));

@@ -22,6 +22,11 @@ jest.mock("../component/PeriodFinancials", () => ({
         <button data-testid="period-financials" onClick={props.onOpen}>financial-overview</button>
     ),
 }));
+jest.mock("../component/PeriodEstimatesOverview", () => ({
+    PeriodEstimatesOverview: (props) => (
+        <div data-testid="period-estimates-overview">estimate-overview:{props.overview?.current?.value}</div>
+    ),
+}));
 jest.mock("../../dialog/FinancialsDialog", () => ({
     FinancialsDialog: (props) => props.open ? <div>financials-dialog:{props.ticker}:{props.financials.length}</div> : null,
 }));
@@ -104,6 +109,13 @@ function createResearchData(overrides = {}) {
             netIncome: 200,
             dividend: 20,
         },
+        estimateOverview: {
+            ttm: {value: 10},
+            current: {value: 14, change: 40},
+            next1: {value: 18, change: 28.57},
+            next2: {value: 22, change: 22.22},
+            next3: {value: 26, change: 18.18},
+        },
         periods: [{id: "period-1"}],
         importablePeriods: [],
         latest: {
@@ -153,6 +165,7 @@ describe("Research", () => {
         expect(screen.getByText("Research")).toBeInTheDocument();
         expect(screen.getByText("Technology")).toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
+        expect(screen.getByTestId("period-estimates-overview")).toHaveTextContent("estimate-overview:14");
         expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
         expect(screen.getByText("Market Cap: $1B")).toBeInTheDocument();
         expect(screen.getByText("Dividend Yield: 2%")).toBeInTheDocument();

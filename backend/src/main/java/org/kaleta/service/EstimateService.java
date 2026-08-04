@@ -3,6 +3,7 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.kaleta.Utils;
+import org.kaleta.model.EstimateOverview;
 import org.kaleta.model.PeriodEstimates;
 import org.kaleta.persistence.api.EstimateDao;
 import org.kaleta.persistence.api.PeriodDao;
@@ -55,6 +56,24 @@ public class EstimateService
         return estimateDao.list(periodId).stream()
                 .map(this::toDto)
                 .toList();
+    }
+
+    public EstimateOverview createOverview(PeriodEstimates estimates)
+    {
+        List<BigDecimal> values = java.util.Arrays.asList(
+                estimates.getPast4(), estimates.getPast3(), estimates.getPast2(), estimates.getPast1(),
+                estimates.getCurrent(), estimates.getNext1(), estimates.getNext2(), estimates.getNext3());
+        List<BigDecimal> totals = java.util.stream.IntStream.rangeClosed(0, 4)
+                .mapToObj(offset -> sum(values.subList(offset, offset + 4)))
+                .toList();
+
+        EstimateOverview overview = new EstimateOverview();
+        setOverviewWindow(overview.getTtm(), totals.get(0), null);
+        setOverviewWindow(overview.getCurrent(), totals.get(1), estimates.getCurrentChange());
+        setOverviewWindow(overview.getNext1(), totals.get(2), estimates.getNext1Change());
+        setOverviewWindow(overview.getNext2(), totals.get(3), estimates.getNext2Change());
+        setOverviewWindow(overview.getNext3(), totals.get(4), estimates.getNext3Change());
+        return overview;
     }
 
     public void create(Long periodId, EstimateCreateDto dto)
@@ -118,6 +137,15 @@ public class EstimateService
         estimates.setNext1Change(rollingFourQuarterChange(values, 1));
         estimates.setNext2Change(rollingFourQuarterChange(values, 2));
         estimates.setNext3Change(rollingFourQuarterChange(values, 3));
+    }
+
+    private void setOverviewWindow(
+            EstimateOverview.Window window,
+            BigDecimal value,
+            BigDecimal change)
+    {
+        window.setValue(value);
+        window.setChange(change);
     }
 
     private BigDecimal rollingFourQuarterChange(List<BigDecimal> values, int offset)
