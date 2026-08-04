@@ -18,6 +18,41 @@ describe("EditableValueBox", () => {
         expect(container.firstChild).toHaveStyle("margin-top: -4px");
     });
 
+    test("renders optional secondary content inside the editable button", () => {
+        render(
+            <EditableValueBox
+                value={"3@100"}
+                suffix={"$"}
+                label={"Asset aggregate"}
+                validate={() => ""}
+                update={jest.fn()}
+                secondary={<span>+75$ (+25%)</span>}
+            />
+        );
+
+        const button = screen.getByRole("button");
+        expect(button).toHaveTextContent("3@100$");
+        expect(button).toHaveTextContent("+75$ (+25%)");
+    });
+
+    test("formats only the displayed value and keeps the raw value for editing", () => {
+        render(
+            <EditableValueBox
+                value={"12345.5@1234.25"}
+                suffix={"$"}
+                label={"Asset aggregate"}
+                valueStyle={{fontSize: 16, fontWeight: 500}}
+                formatValue={() => "12,345.5@1,234.25"}
+                validate={() => ""}
+                update={jest.fn()}
+            />
+        );
+
+        expect(screen.getByText("12,345.5@1,234.25$")).toHaveStyle("font-size: 16px; font-weight: 500");
+        fireEvent.click(screen.getByRole("button"));
+        expect(screen.getByRole("textbox")).toHaveValue("12345.5@1234.25");
+    });
+
     test("accepts mui sx selectors through style prop", () => {
         const {container} = render(
             <EditableValueBox

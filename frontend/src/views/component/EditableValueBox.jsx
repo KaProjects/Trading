@@ -4,7 +4,7 @@ import React from "react";
 import Tooltip from "@mui/material/Tooltip";
 import {Editable} from "./Editable";
 
-export const EditableValueBox = ({value, suffix, label, style, validate, update}) => {
+export const EditableValueBox = ({value, suffix, label, style, valueStyle, formatValue, validate, update, secondary}) => {
 
     return (
         <Editable
@@ -21,11 +21,27 @@ export const EditableValueBox = ({value, suffix, label, style, validate, update}
                     placement="top"
                     slotProps={{popper: {modifiers: [{name: 'offset', options: {offset: [0, -13],},},],},}}
                 >
-                    <Button sx={{color: 'text.primary', borderRadius: 2, boxShadow: "1px 1px 1px #eeeeee", border: "1px solid #eeeeee", height: "25px", textTransform: 'none'}}
+                    <Button sx={{
+                                color: 'text.primary',
+                                borderRadius: 2,
+                                boxShadow: "1px 1px 1px #eeeeee",
+                                border: "1px solid #eeeeee",
+                                height: secondary ? "auto" : "25px",
+                                minHeight: "25px",
+                                py: secondary ? 0.25 : 0,
+                                flexDirection: "column",
+                                lineHeight: 1.2,
+                                textTransform: 'none',
+                            }}
                             onClick={() => setEditing(true)}
                     >
-                        {showValue && <Typography sx={{fontFamily: "Roboto",}}>{showValue}{suffix}</Typography>}
+                        {showValue &&
+                            <Typography sx={{fontFamily: "Roboto", ...valueStyle}}>
+                                {formatValue ? formatValue(showValue) : showValue}{suffix}
+                            </Typography>
+                        }
                         {!showValue && <ControlPointIcon sx={{color: '#eeeeee',}}/>}
+                        {secondary}
                     </Button>
                 </Tooltip>
             }

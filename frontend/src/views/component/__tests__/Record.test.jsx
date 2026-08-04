@@ -26,10 +26,10 @@ jest.mock("../ContentEditor", () => ({
     ),
     defaultContent: () => [{type: "paragraph", children: [{text: ""}]}]
 }));
-jest.mock("../AssetBox", () => ({
-    AssetBox: ({asset, currency, update}) => (
+jest.mock("../RecordAssetAggregate", () => ({
+    RecordAssetAggregate: ({asset, currency, update}) => (
         <button onClick={() => update && update("5.5", "110.25")}>
-            {asset.quantity}@{asset.purchasePrice}{currency}
+            aggregate:{asset.quantity}@{asset.purchasePrice}{currency}:{asset.profitPercent}:{asset.profitValue}
         </button>
     )
 }));
@@ -60,7 +60,7 @@ describe("Record", () => {
                     strategy: "S",
                     title: "Initial title",
                     content: "Initial content",
-                    asset: {quantity: 3, purchasePrice: 100},
+                    asset: {quantity: 3, purchasePrice: 100, profitPercent: 23, profitValue: 69},
                 }}
                 currency={"$"}
                 setAlert={jest.fn()}
@@ -77,7 +77,7 @@ describe("Record", () => {
         expect(screen.getByText("Targets:T$")).toBeInTheDocument();
         expect(screen.getByText("Strategy:")).toBeInTheDocument();
         expect(screen.getByText("Content:")).toBeInTheDocument();
-        expect(screen.getByText("3@100$")).toBeInTheDocument();
+        expect(screen.getByText("aggregate:3@100$:23:69")).toBeInTheDocument();
     });
 
     test("hides empty targets until record hover", () => {
@@ -214,7 +214,7 @@ describe("Record", () => {
             />
         );
 
-        expect(screen.queryByText("3@100$")).not.toBeInTheDocument();
+        expect(screen.queryByText(/aggregate:/)).not.toBeInTheDocument();
     });
 
     test("does not render editor sections with default content", () => {
@@ -342,7 +342,7 @@ describe("Record", () => {
             />
         );
 
-        fireEvent.click(screen.getByText("3@100$"));
+        fireEvent.click(screen.getByText("aggregate:3@100$::"));
 
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
             expect.stringContaining("/record"),

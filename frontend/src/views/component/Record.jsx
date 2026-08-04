@@ -1,6 +1,6 @@
 import {formatDate, formatError} from "../../service/FormattingService";
 import {Box, Button, Dialog, DialogActions, DialogTitle, Stack, Tooltip} from "@mui/material";
-import {AssetBox} from "./AssetBox";
+import {RecordAssetAggregate} from "./RecordAssetAggregate";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {backend} from "../../properties";
@@ -132,14 +132,11 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
             </Stack>
 
             {record.asset &&
-                <Stack direction="row" justifyContent="flex-start" alignItems="stretch" spacing={2}>
-                    <AssetBox
-                        asset={record.asset}
-                        currency={currency}
-                        style={{marginLeft: "10px"}}
-                        update={(quantity, purchasePrice) => updateAsset(quantity, purchasePrice)}
-                    />
-                </Stack>
+                <RecordAssetAggregate
+                    asset={record.asset}
+                    currency={currency}
+                    update={(quantity, purchasePrice) => updateAsset(quantity, purchasePrice)}
+                />
             }
             {record.title &&
                 <EditableTypography
