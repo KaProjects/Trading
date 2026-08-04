@@ -20,6 +20,7 @@ public @interface ValidBigDecimal
     int integerConstraint() default Integer.MAX_VALUE;
     int decimalConstraint() default Integer.MAX_VALUE;
     boolean allowNegative() default false;
+    boolean allowBlank() default false;
 
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};

@@ -4,6 +4,7 @@ import io.quarkus.test.Mock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.kaleta.Utils;
 import org.kaleta.framework.Assert;
@@ -37,6 +38,8 @@ class RecordEndpointsTest
 
     @Inject
     RecordDao recordDao;
+    @Inject
+    EntityManager entityManager;
 
     @Test
     void create()
@@ -282,6 +285,14 @@ class RecordEndpointsTest
         assertBigDecimals(records.get(0).getPriceToNetIncome(), new BigDecimal(newPriceToNetIncome));
         assertBigDecimals(records.get(0).getSumAssetQuantity(), new BigDecimal(newSumAssetQuantity));
         assertBigDecimals(records.get(0).getAvgAssetPrice(), new BigDecimal(newAvgAssetPrice));
+
+        io.restassured.RestAssured.given()
+                .contentType(io.restassured.http.ContentType.JSON)
+                .body("{\"id\":1974,\"dividendYield\":\"\"}")
+                .when().put(path)
+                .then().statusCode(204);
+        entityManager.clear();
+        assertThat(recordDao.list(1842L).get(0).getDividendYield(), is(nullValue()));
 
     }
 

@@ -10,6 +10,7 @@ public class BigDecimalValidator implements ConstraintValidator<ValidBigDecimal,
     private int integerConstraint;
     private int decimalConstraint;
     private boolean allowNegativeConstraint;
+    private boolean allowBlankConstraint;
 
     @Override
     public void initialize(ValidBigDecimal constraintAnnotation)
@@ -17,13 +18,14 @@ public class BigDecimalValidator implements ConstraintValidator<ValidBigDecimal,
         this.integerConstraint = constraintAnnotation.integerConstraint();
         this.decimalConstraint = constraintAnnotation.decimalConstraint();
         this.allowNegativeConstraint = constraintAnnotation.allowNegative();
+        this.allowBlankConstraint = constraintAnnotation.allowBlank();
     }
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context)
     {
         if (value == null) return true;
-        if (value.isBlank()) return false;
+        if (value.isBlank()) return allowBlankConstraint;
         try {
             BigDecimal bigDecimal = new BigDecimal(value);
             if (!allowNegativeConstraint && bigDecimal.compareTo(BigDecimal.ZERO) < 0) return false;

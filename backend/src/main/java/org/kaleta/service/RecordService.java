@@ -112,7 +112,9 @@ public class RecordService
         if (dto.getRetro() != null) record.setRetro(dto.getRetro());
         if (dto.getTargets() != null) record.setTargets(dto.getTargets());
         if (dto.getPrice() != null) record.setPrice(new BigDecimal(dto.getPrice()));
-        if (dto.getDividendYield() != null) record.setDividendYield(new BigDecimal(dto.getDividendYield()));
+        if (dto.getDividendYield() != null) {
+            record.setDividendYield(dto.getDividendYield().isBlank() ? null : new BigDecimal(dto.getDividendYield()));
+        }
         if (dto.getPriceToRevenues() != null) record.setPriceToRevenues(Utils.createNullableBigDecimal(dto.getPriceToRevenues()));
         if (dto.getPriceToGrossProfit() != null) record.setPriceToGrossProfit(Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
         if (dto.getPriceToOperatingIncome() != null) record.setPriceToOperatingIncome(Utils.createNullableBigDecimal(dto.getPriceToOperatingIncome()));

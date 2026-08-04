@@ -40,20 +40,6 @@ function hasFinancialRatios(record) {
     ].some(hasValue);
 }
 
-function summaryEditableStyle(value) {
-    if (hasValue(value)) return {};
-
-    return {
-        opacity: 0,
-        pointerEvents: "none",
-        transition: "opacity 120ms ease-in-out",
-        ".mainContainer:hover &": {
-            opacity: 1,
-            pointerEvents: "auto",
-        },
-    };
-}
-
 function formatFinancialRatios(value) {
     return value.split("/")
         .map(ratio => ratio.trim())
@@ -192,7 +178,6 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                     value={record.targets}
                     suffix={currency}
                     label={"Targets"}
-                    style={summaryEditableStyle(record.targets)}
                     validate={() => ""}
                     update={(value) => updateTargets(value)}
                 />
@@ -210,9 +195,8 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                     value={record.dividendYield}
                     suffix="%"
                     label="Dividend yield"
-                    style={summaryEditableStyle(record.dividendYield)}
                     formatValue={(value) => formatDecimals(Number(value), 0, 2)}
-                    validate={(value) => validateNumber(value, false, 5, 2, false)}
+                    validate={(value) => validateNumber(value, true, 5, 2, false)}
                     update={updateDividendYield}
                 />
             </Stack>
@@ -238,6 +222,7 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                     label={"Review"}
                     content={record.review}
                     update={(value) => updateReview(value)}
+                style={{marginTop: "5px"}}
                 />
             }
             {showStrategySection() &&

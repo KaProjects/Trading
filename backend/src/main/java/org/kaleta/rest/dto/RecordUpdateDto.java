@@ -19,7 +19,7 @@ public class RecordUpdateDto
     private String targets;
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String price;
-    @ValidBigDecimal(integerConstraint = 3, decimalConstraint = 2)
+    @ValidBigDecimal(integerConstraint = 3, decimalConstraint = 2, allowBlank = true)
     private String dividendYield;
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2)
     private String priceToRevenues;

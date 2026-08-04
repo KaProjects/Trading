@@ -133,6 +133,9 @@ public class RecordServiceTest
         dto.setDividendYield("6.25");
         updateAndAssertRecord(dto, record, null);
 
+        dto.setDividendYield("");
+        updateAndAssertRecord(dto, record, null);
+
         dto.setPriceToRevenues("1.25");
         dto.setPriceToGrossProfit("2.5");
         dto.setPriceToOperatingIncome("-3.75");
@@ -300,7 +303,10 @@ public class RecordServiceTest
             assertThat(captor.getValue().getRetro(), (dto.getRetro() == null) ? is(record.getRetro()) : is(dto.getRetro()));
             assertThat(captor.getValue().getTargets(), (dto.getTargets() == null) ? is(record.getTargets()) : is(dto.getTargets()));
             assertBigDecimals(captor.getValue().getPrice(), (dto.getPrice() == null) ? record.getPrice() : new BigDecimal(dto.getPrice()));
-            assertBigDecimals(captor.getValue().getDividendYield(), (dto.getDividendYield() == null) ? record.getDividendYield() : new BigDecimal(dto.getDividendYield()));
+            assertBigDecimals(captor.getValue().getDividendYield(),
+                    dto.getDividendYield() == null
+                            ? record.getDividendYield()
+                            : (dto.getDividendYield().isBlank() ? null : new BigDecimal(dto.getDividendYield())));
             assertBigDecimals(captor.getValue().getPriceToRevenues(), (dto.getPriceToRevenues() == null) ? record.getPriceToRevenues() : Utils.createNullableBigDecimal(dto.getPriceToRevenues()));
             assertBigDecimals(captor.getValue().getPriceToGrossProfit(), (dto.getPriceToGrossProfit() == null) ? record.getPriceToGrossProfit() : Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
             assertBigDecimals(captor.getValue().getPriceToOperatingIncome(), (dto.getPriceToOperatingIncome() == null) ? record.getPriceToOperatingIncome() : Utils.createNullableBigDecimal(dto.getPriceToOperatingIncome()));

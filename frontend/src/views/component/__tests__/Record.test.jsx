@@ -8,13 +8,14 @@ jest.mock("../EditableTypography", () => ({
     )
 }));
 jest.mock("../EditableValueBox", () => ({
-    EditableValueBox: ({value, prefix, suffix, label, style, formatValue, update, disabled}) => {
+    EditableValueBox: ({value, prefix, suffix, label, style, formatValue, validate, update, disabled}) => {
         const displayedValue = formatValue ? formatValue(String(value)) : value;
         return (
             <button
                 data-testid={"editable-value-" + label}
                 style={{opacity: style?.opacity, pointerEvents: style?.pointerEvents}}
                 aria-disabled={disabled}
+                data-empty-valid={validate?.("") === ""}
                 onClick={() => !disabled && update && update(label === "Dividend yield" ? "6.25" : "Updated target")}
             >
                 {label}:{prefix}{displayedValue}{suffix}
@@ -78,6 +79,7 @@ describe("Record", () => {
         expect(screen.getByText("Price to financials ratios:1 / 2 / 3 / 4")).toBeInTheDocument();
         expect(screen.getByTestId("editable-value-Price to financials ratios")).toHaveAttribute("aria-disabled", "true");
         expect(screen.getByText("Dividend yield:5%")).toBeInTheDocument();
+        expect(screen.getByTestId("editable-value-Dividend yield")).toHaveAttribute("data-empty-valid", "true");
         expect(screen.getByText("Targets:T$")).toBeInTheDocument();
         expect(screen.getByTestId("editable-value-Price").compareDocumentPosition(
             screen.getByTestId("editable-value-Targets")
@@ -87,7 +89,7 @@ describe("Record", () => {
         expect(screen.getByText("aggregate:3@100$:23:69")).toBeInTheDocument();
     });
 
-    test("hides empty targets until record hover", () => {
+    test("keeps empty targets visible", () => {
         render(
             <Record
                 data={{
@@ -106,11 +108,11 @@ describe("Record", () => {
             />
         );
 
-        expect(screen.getByTestId("editable-value-Targets")).toHaveStyle("opacity: 0");
-        expect(screen.getByTestId("editable-value-Targets")).toHaveStyle("pointer-events: none");
+        expect(screen.getByTestId("editable-value-Targets")).not.toHaveStyle("opacity: 0");
+        expect(screen.getByTestId("editable-value-Targets")).not.toHaveStyle("pointer-events: none");
     });
 
-    test("hides empty dividend yield until record hover", () => {
+    test("keeps empty dividend yield visible", () => {
         render(
             <Record
                 data={{
@@ -129,8 +131,8 @@ describe("Record", () => {
             />
         );
 
-        expect(screen.getByTestId("editable-value-Dividend yield")).toHaveStyle("opacity: 0");
-        expect(screen.getByTestId("editable-value-Dividend yield")).toHaveStyle("pointer-events: none");
+        expect(screen.getByTestId("editable-value-Dividend yield")).not.toHaveStyle("opacity: 0");
+        expect(screen.getByTestId("editable-value-Dividend yield")).not.toHaveStyle("pointer-events: none");
     });
 
     test("does not render financial ratios when all four values are missing", () => {

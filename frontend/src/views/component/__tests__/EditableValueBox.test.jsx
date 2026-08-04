@@ -134,6 +134,28 @@ describe("EditableValueBox", () => {
         await waitFor(() => expect(screen.getByText("150$")).toBeInTheDocument());
     });
 
+    test("submits an empty nullable value", async () => {
+        const update = jest.fn().mockResolvedValue(null);
+
+        render(
+            <EditableValueBox
+                value={5}
+                suffix="%"
+                label="Dividend yield"
+                validate={() => ""}
+                update={update}
+            />
+        );
+
+        fireEvent.click(screen.getByRole("button"));
+        const input = screen.getByRole("textbox");
+        fireEvent.change(input, {target: {value: ""}});
+        fireEvent.keyDown(input, {key: "Enter"});
+
+        await waitFor(() => expect(update).toHaveBeenCalledWith(""));
+        await waitFor(() => expect(screen.queryByRole("textbox")).not.toBeInTheDocument());
+    });
+
     test("shows validation message while editing invalid value", () => {
         render(
             <EditableValueBox
