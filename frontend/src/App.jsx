@@ -13,6 +13,7 @@ import {Companies} from "./views/Companies";
 import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
 import {Home} from "./views/Home";
+import {AdminPortfolio} from "./views/AdminPortfolio";
 import {Box, ThemeProvider} from "@mui/material";
 import {appTheme} from "./theme";
 
@@ -29,6 +30,7 @@ export const App = () => {
     const [recentCompanies, setRecentCompanies] = useState([]);
     const [currencies, setCurrencies] = useState([]);
     const [sectors, setSectors] = useState([]);
+    const [portfolios, setPortfolios] = useState([]);
     const [years, setYears] = useState([]);
     const [activeSelectorValue, setActiveSelectorValue] = useState("");
     const [companySelectorValue, setCompanySelectorStateValue] = useState("");
@@ -49,6 +51,7 @@ export const App = () => {
                 setRecentCompanies(response.data.recentCompanies ?? []);
                 setCurrencies(response.data.currencies);
                 setSectors(response.data.sectors);
+                setPortfolios(response.data.portfolios ?? []);
                 setYears(response.data.years ?? []);
                 setError(null);
                 setLoaded(true);
@@ -71,6 +74,7 @@ export const App = () => {
         recentCompanies,
         currencies,
         sectors,
+        portfolios,
 
         years,
 
@@ -119,6 +123,7 @@ export const App = () => {
                             <Route exact path="/stats" element={<Stats {...props}/>}/>
                             <Route exact path="/companies" element={<Companies {...props}/>}/>
                             <Route exact path="/analytics" element={<Analytics {...props}/>}/>
+                            <Route exact path="/admin/portfolio" element={<AdminPortfolio {...props}/>}/>
                             <Route path="*" element={<PageNotFound/>}/>
                         </Routes>
                     }

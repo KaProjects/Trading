@@ -53,17 +53,31 @@ jest.mock("../views/Analytics", () => ({
     Analytics: () => <div>analytics</div>,
 }));
 
+jest.mock("../views/AdminPortfolio", () => ({
+    AdminPortfolio: (props) => <div>admin-portfolios:{props.portfolios.map(portfolio => portfolio.key).join(",")}</div>,
+}));
+
 describe("App", () => {
     beforeEach(() => {
+        window.history.pushState({}, "", "/");
         axios.get.mockResolvedValue({
             data: {
                 companies: [{id: "company-1", ticker: "NVDA"}],
                 recentCompanies: [{id: "company-2", ticker: "CEZ"}],
                 currencies: ["$"],
                 sectors: [{key: "TECH", name: "Technology"}],
+                portfolios: [{key: "PATRIA_STANDARD", name: "Patria - Standard", abbreviation: "P"}],
                 years: ["2024", "2023"],
             },
         });
+    });
+
+    test("loads the hidden admin portfolio route directly", async () => {
+        window.history.pushState({}, "", "/admin/portfolio");
+
+        render(<App/>);
+
+        expect(await screen.findByText("admin-portfolios:PATRIA_STANDARD")).toBeInTheDocument();
     });
 
     test("resets currency and sector when actual company is selected", async () => {

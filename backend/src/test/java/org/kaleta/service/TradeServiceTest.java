@@ -15,6 +15,7 @@ import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
+import org.kaleta.rest.dto.PortfolioAssignmentDto;
 import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.mockito.ArgumentCaptor;
@@ -39,8 +40,10 @@ import static org.kaleta.framework.InvalidValues.invalidBigDecimals;
 import static org.kaleta.framework.InvalidValues.invalidDates;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyList;
 
 @QuarkusTest
 public class TradeServiceTest
@@ -325,6 +328,50 @@ public class TradeServiceTest
         List<String> years = tradeService.getYears();
 
         assertThat(years, is(List.of("2025", "2024", "2023", "2021")));
+    }
+
+    @Test
+    void assignPortfolio()
+    {
+        Trade trade1 = new Trade();
+        trade1.setId(10L);
+        Trade trade2 = new Trade();
+        trade2.setId(11L);
+        when(tradeDao.get(10L)).thenReturn(trade1);
+        when(tradeDao.get(11L)).thenReturn(trade2);
+
+        PortfolioAssignmentDto dto = new PortfolioAssignmentDto();
+        dto.setTradeIds(List.of(10L, 11L, 10L));
+        dto.setPortfolio(Portfolio.PATRIA_MARGIN.toString());
+
+        tradeService.assignPortfolio(dto);
+
+        ArgumentCaptor<List<Trade>> captor = ArgumentCaptor.forClass(List.class);
+        verify(tradeDao).saveAll(captor.capture());
+        assertThat(captor.getValue().size(), is(2));
+        assertThat(captor.getValue().get(0).getPortfolio(), is(Portfolio.PATRIA_MARGIN));
+        assertThat(captor.getValue().get(1).getPortfolio(), is(Portfolio.PATRIA_MARGIN));
+    }
+
+    @Test
+    void assignPortfolio_rejectsTradeThatAlreadyHasPortfolio()
+    {
+        Trade trade = new Trade();
+        trade.setId(10L);
+        trade.setPortfolio(Portfolio.REVOLUT_STANDARD);
+        when(tradeDao.get(10L)).thenReturn(trade);
+
+        PortfolioAssignmentDto dto = new PortfolioAssignmentDto();
+        dto.setTradeIds(List.of(10L));
+        dto.setPortfolio(Portfolio.PATRIA_STANDARD.toString());
+
+        InvalidInputException exception = assertThrows(
+                InvalidInputException.class,
+                () -> tradeService.assignPortfolio(dto)
+        );
+
+        assertThat(exception.getMessage(), is("trade with id '10' is not available for portfolio assignment"));
+        verify(tradeDao, never()).saveAll(anyList());
     }
 
     @Test

@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
 @Positive
 @Max(4294967295L)
 @ReportAsSingleViolation
-@Target({ ElementType.FIELD, ElementType.PARAMETER })
+@Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE_USE })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidId
 {
