@@ -59,8 +59,8 @@ describe("Period", () => {
         expect(screen.getByText("Shares: 123M | H: 20$ | L: 10$ | Dividend: 12M | Adj. Eps: 1.62"))
             .toBeInTheDocument();
         expect(screen.getByText("Revenue: 300M | Gross P.: 200M | Op. Inc.: 100M | Net Income: 50M")).toBeInTheDocument();
-        expect(screen.getByText("Estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76"))
-            .toBeInTheDocument();
+        expect(screen.getByTestId("period-estimates"))
+            .toHaveTextContent("Estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76");
         expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", {name: "Add Estimates"}));
@@ -117,8 +117,8 @@ describe("Period", () => {
             />
         );
 
-        expect(screen.getByText("Estimates: - | - | - | - => 1.62 | - | - | -"))
-            .toBeInTheDocument();
+        expect(screen.getByTestId("period-estimates"))
+            .toHaveTextContent("Estimates: - | - | - | - => 1.62 | - | - | -");
         expect(screen.getByRole("button", {name: "Add Financials"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
     });
@@ -154,8 +154,8 @@ describe("Period", () => {
             />
         );
 
-        expect(screen.getByText("Estimates: 0.91 | 1.05 | - | 1.42 => 1.62 | 1.85 | - | 2.76"))
-            .toBeInTheDocument();
+        expect(screen.getByTestId("period-estimates"))
+            .toHaveTextContent("Estimates: 0.91 | 1.05 | - | 1.42 => 1.62 | 1.85 | - | 2.76");
         expect(screen.getByText("(02.08.2026)")).toBeInTheDocument();
         expect(screen.getByText("(4.38)")).toBeInTheDocument();
         expect(screen.getByText("(+12.5% | -3.3% | 0% | +4%)")).toBeInTheDocument();

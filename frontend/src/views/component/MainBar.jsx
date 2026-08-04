@@ -295,6 +295,7 @@ export const MainBar = props => {
     ]
     const showResearchExternalLinks = location.pathname === "/research" && props.companySelectorValue?.ticker
     const visibleActionButtons = actionButtons.filter((button) => button.visible)
+    const visibleSelectors = selectors.filter((selector) => selector.visible)
     const visiblePageNavigationButtons = pageNavigationButtons.filter((button) => button.visible)
 
     return (
@@ -368,32 +369,34 @@ export const MainBar = props => {
                                 ))}
                             </Box>
                         }
-                        {selectors
-                            .filter((selector) => selector.visible)
-                            .map((selector) => (
-                                <MainBarSelect
-                                    key={selector.key}
-                                    values={selector.values}
-                                    value={selector.value}
-                                    setValue={selector.setValue}
-                                    valueKey={selector.valueKey}
-                                    label={selector.label}
-                                />
-                            ))}
-                        {visiblePageNavigationButtons.length > 0 &&
-                            <Box sx={{display: "flex", alignItems: "center", marginLeft: "8px"}}>
-                                {visiblePageNavigationButtons.map((button) => (
-                                    <MainBarIconButton
-                                        key={button.key}
-                                        tooltip={button.tooltip}
-                                        ariaLabel={button.ariaLabel}
-                                        onClick={button.onClick}
-                                        icon={button.icon}
-                                        color="white"
-                                        buttonSx={{width: 50, height: 30}}
-                                        iconSx={{width: 23, height: 23}}
+                        {(visibleSelectors.length > 0 || visiblePageNavigationButtons.length > 0) &&
+                            <Box sx={{display: "flex", alignItems: "center", flexWrap: "nowrap", maxWidth: "100%", overflowX: "auto"}}>
+                                {visibleSelectors.map((selector) => (
+                                    <MainBarSelect
+                                        key={selector.key}
+                                        values={selector.values}
+                                        value={selector.value}
+                                        setValue={selector.setValue}
+                                        valueKey={selector.valueKey}
+                                        label={selector.label}
                                     />
                                 ))}
+                                {visiblePageNavigationButtons.length > 0 &&
+                                    <Box sx={{display: "flex", alignItems: "center", flexShrink: 0, marginLeft: "8px"}}>
+                                        {visiblePageNavigationButtons.map((button) => (
+                                            <MainBarIconButton
+                                                key={button.key}
+                                                tooltip={button.tooltip}
+                                                ariaLabel={button.ariaLabel}
+                                                onClick={button.onClick}
+                                                icon={button.icon}
+                                                color="white"
+                                                buttonSx={{width: 50, height: 30}}
+                                                iconSx={{width: 23, height: 23}}
+                                            />
+                                        ))}
+                                    </Box>
+                                }
                             </Box>
                         }
                     </Box>

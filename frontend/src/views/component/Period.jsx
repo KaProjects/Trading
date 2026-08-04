@@ -22,18 +22,23 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
         return price + currency;
     }
 
-    function formatEstimate(estimate) {
-        const formatValue = (value) => {
-            if (value === null || value === undefined || value === "") return "-"
-            return formatDecimals(value, 0, 2) || "-"
-        }
+    function formatEstimateValue(value) {
+        if (value === null || value === undefined || value === "") return "-"
+        return formatDecimals(value, 0, 2) || "-"
+    }
+
+    function formatPastEstimates(estimate) {
         const past = [estimate.past4, estimate.past3, estimate.past2, estimate.past1]
-            .map(formatValue)
+            .map(formatEstimateValue)
             .join(" | ")
+        return past + " => "
+    }
+
+    function formatCurrentAndFutureEstimates(estimate) {
         const future = [estimate.next1, estimate.next2, estimate.next3]
-            .map(formatValue)
+            .map(formatEstimateValue)
             .join(" | ")
-        return "Estimates: " + past + " => " + formatValue(estimate.current) + " | " + future
+        return formatEstimateValue(estimate.current) + " | " + future
     }
 
     function formatEstimateChanges(estimate) {
@@ -91,20 +96,24 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
             }
             {period.estimate &&
                 <>
-                    <Typography sx={{color: 'text.secondary', fontSize: 14}}>
-                        {formatEstimate(period.estimate)}
+                    <Typography data-testid="period-estimates" sx={{color: 'text.secondary', fontSize: 14}}>
+                        {"Estimates: "}
+                        <Box component="span" sx={{display: {xs: "none", sm: "inline"}}}>
+                            {formatPastEstimates(period.estimate)}
+                        </Box>
+                        {formatCurrentAndFutureEstimates(period.estimate)}
                     </Typography>
                     <Box sx={{
                         color: 'text.secondary',
                         display: "grid",
-                        gridTemplateColumns: "88px 94px max-content",
+                        gridTemplateColumns: {xs: "88px max-content", sm: "88px 94px max-content"},
                         columnGap: "8px",
                         fontSize: 11,
                         marginTop: "-2px",
                     }}>
                         <Box>({formatEstimateDate(period.estimate.datetime)})</Box>
-                        <Box sx={{display: "flex", justifyContent: "center"}}>({formatEstimatePastTotal(period.estimate.pastTotal)})</Box>
-                        <Box sx={{marginLeft: "20px"}}>({formatEstimateChanges(period.estimate)})</Box>
+                        <Box sx={{display: {xs: "none", sm: "flex"}, justifyContent: "center"}}>({formatEstimatePastTotal(period.estimate.pastTotal)})</Box>
+                        <Box sx={{marginLeft: {xs: 0, sm: "20px"}}}>({formatEstimateChanges(period.estimate)})</Box>
                     </Box>
                 </>
             }

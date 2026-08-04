@@ -24,8 +24,8 @@ const headers = ["Period", "Revenue", "Gross Profit", "Operating Income", "Net I
 
 const formatDividend = (value) => value === 0 || isNotAValue(value) ? "-" : formatMillions(value) || "-";
 
-const FinancialSummaryItem = ({value, label, margin}) => (
-    <Box sx={{marginLeft: "10px"}}>
+const FinancialSummaryItem = ({value, label, margin, first = false}) => (
+    <Box sx={{marginLeft: first ? {xs: 0, sm: "5px"} : "10px", flexShrink: 0}}>
         <Box sx={{fontSize: 9, textAlign: "center", marginBottom: "0px"}}>({formatDecimals(margin, 0, 0)}%)</Box>
         <Box sx={{fontWeight: "bold", fontSize: 13, textAlign: "center"}}>{formatMillions(value)}</Box>
         <Box sx={{color: "lightgrey", fontWeight: "bold", mx: 0.5, fontSize: 12, textAlign: "center"}}>{label}</Box>
@@ -87,15 +87,32 @@ export const FinancialsTable = ({financials, fontSize = 14, scrollable = false})
 );
 
 export const PeriodFinancials = ({ttm, onOpen, sx}) => (
-    <Paper elevation={0} sx={sx}>
-        <Grid container direction="row" justifyContent="flex-start" alignItems="stretch" sx={{width: "100%"}}>
+    <Paper
+        elevation={0}
+        sx={{
+            ...sx,
+            marginLeft: {xs: "-5px", sm: 0},
+            width: {xs: "calc(100% + 5px)", sm: "100%"},
+            maxWidth: {xs: "calc(100% + 5px)", sm: "100%"},
+            overflowX: "auto",
+            overflowY: "hidden",
+        }}
+    >
+        <Grid
+            container
+            wrap="nowrap"
+            direction="row"
+            justifyContent="flex-start"
+            alignItems="stretch"
+            sx={{width: "max-content", minWidth: "100%"}}
+        >
             {ttm &&
                 <>
-                    <FinancialSummaryItem value={ttm.revenue.value} label="revenue" margin={ttm.revenue.margin}/>
+                    <FinancialSummaryItem first value={ttm.revenue.value} label="revenue" margin={ttm.revenue.margin}/>
                     <FinancialSummaryItem value={ttm.grossProfit.value} label="gross profit" margin={ttm.grossProfit.margin}/>
-                    <FinancialSummaryItem value={ttm.operatingIncome.value} label="operating income" margin={ttm.operatingIncome.margin}/>
+                    <FinancialSummaryItem value={ttm.operatingIncome.value} label="op. income" margin={ttm.operatingIncome.margin}/>
                     <FinancialSummaryItem value={ttm.netIncome.value} label="net income" margin={ttm.netIncome.margin}/>
-                    <Button aria-label="Open financials" sx={{minWidth: 0, height: "25px", padding: "2px", color: "primary.main"}} onClick={onOpen}>
+                    <Button aria-label="Open financials" sx={{minWidth: 0, height: "25px", padding: "2px", color: "primary.main", flexShrink: 0}} onClick={onOpen}>
                         <FinancialsIcon width="20" height="20"/>
                     </Button>
                 </>

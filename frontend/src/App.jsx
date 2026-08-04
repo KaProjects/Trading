@@ -13,7 +13,8 @@ import {Companies} from "./views/Companies";
 import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
 import {Home} from "./views/Home";
-import {Box} from "@mui/material";
+import {Box, ThemeProvider} from "@mui/material";
+import {appTheme} from "./theme";
 
 const PageNotFound = () => (
     <div style={{position: "absolute", top: "25%", left: "50%", transform: "translate(-50%, -50%)"}}>
@@ -100,27 +101,29 @@ export const App = () => {
     };
 
     return (
-        <BrowserRouter>
-            <MainBar {...props} />
-            <Box sx={{
-                pt: "var(--main-bar-height, 48px)",
-                px: {xs: 1, sm: 2},
-                pb: {xs: 1, sm: 2},
-            }}>
-                {!loaded && <Loader error={error}/>}
-                {loaded &&
-                    <Routes>
-                        <Route exact path="/" element={<Home {...props}/>}/>
-                        <Route exact path="/trades" element={<Trades {...props}/>}/>
-                        <Route exact path="/research" element={<Research {...props}/>}/>
-                        <Route exact path="/dividends" element={<Dividends {...props}/>}/>
-                        <Route exact path="/stats" element={<Stats {...props}/>}/>
-                        <Route exact path="/companies" element={<Companies {...props}/>}/>
-                        <Route exact path="/analytics" element={<Analytics {...props}/>}/>
-                        <Route path="*" element={<PageNotFound/>}/>
-                    </Routes>
-                }
-            </Box>
-        </BrowserRouter>
+        <ThemeProvider theme={appTheme}>
+            <BrowserRouter>
+                <MainBar {...props} />
+                <Box sx={{
+                    pt: "var(--main-bar-height, 48px)",
+                    px: {xs: 1, sm: 2},
+                    pb: {xs: 1, sm: 2},
+                }}>
+                    {!loaded && <Loader error={error}/>}
+                    {loaded &&
+                        <Routes>
+                            <Route exact path="/" element={<Home {...props}/>}/>
+                            <Route exact path="/trades" element={<Trades {...props}/>}/>
+                            <Route exact path="/research" element={<Research {...props}/>}/>
+                            <Route exact path="/dividends" element={<Dividends {...props}/>}/>
+                            <Route exact path="/stats" element={<Stats {...props}/>}/>
+                            <Route exact path="/companies" element={<Companies {...props}/>}/>
+                            <Route exact path="/analytics" element={<Analytics {...props}/>}/>
+                            <Route path="*" element={<PageNotFound/>}/>
+                        </Routes>
+                    }
+                </Box>
+            </BrowserRouter>
+        </ThemeProvider>
     );
 }

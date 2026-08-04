@@ -356,7 +356,10 @@ export const EarningsProjectionsDialog = ({
             fullWidth
             maxWidth="lg"
             slotProps={{
-                paper: {sx: {height: "calc(100vh - 64px)", maxHeight: "900px"}},
+                paper: {sx: {
+                    height: {xs: "100%", sm: "calc(100vh - 64px)"},
+                    maxHeight: {xs: "none", sm: "900px"},
+                }},
                 transition: {onEntered: updateTableScrollFades},
             }}
         >

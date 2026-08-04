@@ -23,6 +23,7 @@ describe("PeriodFinancials", () => {
         render(<PeriodFinancials ttm={ttm} onOpen={onOpen}/>);
 
         expect(screen.getByText("1.5B")).toBeInTheDocument();
+        expect(screen.getByText("op. income")).toBeInTheDocument();
         expect(screen.getByText("net income")).toBeInTheDocument();
         expect(screen.queryByText("Dividend")).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", {name: "Open financials"}));
