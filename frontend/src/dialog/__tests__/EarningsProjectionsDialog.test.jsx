@@ -43,12 +43,20 @@ test("projects prices and P/E ratios from an editable target price", () => {
     expect(screen.getByLabelText("Next 3")).toHaveValue("14");
     expect(screen.getByLabelText("Past 4")).toHaveAttribute("type", "text");
     expect(screen.getByLabelText("Save estimate")).toBeDisabled();
+    expect(screen.getByLabelText("Forecast adjustment (%)")).toHaveValue(0);
     expect(screen.getByRole("columnheader", {name: "Price"})).toBeInTheDocument();
     expect(screen.getByLabelText("Target price")).toHaveValue(100);
     expect(screen.getByLabelText("Target price").value).toBe("100.00");
     expect(screen.getByLabelText("Target price")).toHaveAttribute("type", "number");
     expect(screen.getByLabelText("t + 20% price")).toHaveTextContent("120");
     expect(screen.getByLabelText("target ~ ttm P/E")).toHaveTextContent("10.00");
+    expect(screen.getByLabelText("target ~ current P/E")).toHaveTextContent("5.00");
+
+    fireEvent.keyDown(screen.getByLabelText("Forecast adjustment (%)"), {key: "ArrowUp"});
+    expect(screen.getByLabelText("Forecast adjustment (%)")).toHaveValue(5);
+    expect(screen.getByLabelText("target ~ current P/E")).toHaveTextContent("4.87");
+    fireEvent.click(screen.getByLabelText("Decrease forecast adjustment (%)"));
+    expect(screen.getByLabelText("Forecast adjustment (%)")).toHaveValue(0);
     expect(screen.getByLabelText("target ~ current P/E")).toHaveTextContent("5.00");
 
     fireEvent.change(screen.getByLabelText("Target price"), {target: {value: "200"}});

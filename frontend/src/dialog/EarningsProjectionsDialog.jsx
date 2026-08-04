@@ -187,6 +187,7 @@ export const EarningsProjectionsDialog = ({
 }) => {
     const [targetPrice, setTargetPrice] = useState("");
     const [targetPe, setTargetPe] = useState("30");
+    const [forecastAdjustment, setForecastAdjustment] = useState("0");
     const [estimateValues, setEstimateValues] = useState({});
     const [persistedEstimateValues, setPersistedEstimateValues] = useState({});
     const [openPersistConfirmation, setOpenPersistConfirmation] = useState(false);
@@ -210,6 +211,7 @@ export const EarningsProjectionsDialog = ({
             const price = numberValue(currentPrice);
             setTargetPrice(price === null ? "" : price.toFixed(2));
             setTargetPe("30");
+            setForecastAdjustment("0");
             const values = Object.fromEntries(estimateFields.map(field => {
                 const value = latestPeriod?.estimate?.[field.key];
                 return [field.key, numberValue(value) === null ? "" : String(value)];
@@ -221,7 +223,12 @@ export const EarningsProjectionsDialog = ({
         }
     }, [open, currentPrice, latestPeriod]);
 
-    const estimateSequence = estimateFields.map(field => numberValue(estimateValues[field.key]));
+    const adjustment = numberValue(forecastAdjustment) ?? 0;
+    const estimateSequence = estimateFields.map((field, index) => {
+        const value = numberValue(estimateValues[field.key]);
+        if (value === null || index < 4) return value;
+        return Math.round(value * (1 + adjustment / 100) * 100) / 100;
+    });
     const rollingEarnings = offset => {
         const values = estimateSequence.slice(offset, offset + 4);
         return values.length === 4 && !values.includes(null)
@@ -264,6 +271,11 @@ export const EarningsProjectionsDialog = ({
         setTargetPe(inputNumber(Math.max(15, pe + direction * 5)));
     };
 
+    const stepForecastAdjustment = direction => {
+        const value = numberValue(forecastAdjustment) ?? 0;
+        setForecastAdjustment(inputNumber(value + direction * 5));
+    };
+
     const openPersistEstimateConfirmation = () => {
         setPersistDate(currentDate());
         setSaveError(null);
@@ -297,7 +309,7 @@ export const EarningsProjectionsDialog = ({
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="lg">
             <DialogTitle>{ticker} - {periodName || "-"} - Earnings and Price Projections</DialogTitle>
             <DialogContent sx={{padding: 2}}>
-                <Box sx={{display: "flex", alignItems: "flex-start", gap: 1, marginBottom: 2, paddingTop: 1}}>
+                <Box sx={{display: "flex", alignItems: "flex-start", gap: 1, marginBottom: 1, paddingTop: 1}}>
                     <Box
                         sx={{
                             display: "grid",
@@ -351,6 +363,19 @@ export const EarningsProjectionsDialog = ({
                     >
                         <SaveOutlinedIcon/>
                     </IconButton>
+                </Box>
+                <Box sx={{width: "130px", marginBottom: 2}}>
+                    <Box sx={{color: "text.secondary", fontSize: 11, textAlign: "center"}}>
+                        Forecast adjustment (%)
+                    </Box>
+                    <Box sx={{borderBottom: "1px solid rgba(0, 0, 0, 0.42)"}}>
+                        <ProjectionInput
+                            value={forecastAdjustment}
+                            onChange={event => setForecastAdjustment(event.target.value)}
+                            onStep={stepForecastAdjustment}
+                            label="Forecast adjustment (%)"
+                        />
+                    </Box>
                 </Box>
                 <TableContainer>
                     <Table
