@@ -37,13 +37,16 @@ test("projects prices and P/E ratios from an editable target price", () => {
         />
     );
 
-    expect(screen.getByRole("heading", {name: "NVDA - 26Q2 - Earnings and Price Projections"})).toBeInTheDocument();
+    expect(screen.getByRole("heading", {name: "NVDA - 26Q2 - E&P Projections"})).toBeInTheDocument();
     expect(screen.getByLabelText("Past 4")).toHaveValue("1");
     expect(screen.getByLabelText("Current")).toHaveValue("11");
     expect(screen.getByLabelText("Next 3")).toHaveValue("14");
     expect(screen.getByLabelText("Past 4")).toHaveAttribute("type", "text");
     expect(screen.getByLabelText("Save estimate")).toBeDisabled();
     expect(screen.getByLabelText("Forecast adjustment (%)")).toHaveValue(0);
+    expect(screen.getByText("+100%")).toBeInTheDocument();
+    expect(screen.getAllByText("+25%")).toHaveLength(2);
+    expect(screen.getByText("+60%")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", {name: "Price"})).toBeInTheDocument();
     expect(screen.getByLabelText("Target price")).toHaveValue(100);
     expect(screen.getByLabelText("Target price").value).toBe("100.00");

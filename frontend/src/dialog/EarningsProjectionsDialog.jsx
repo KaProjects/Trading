@@ -21,9 +21,9 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import axios from "axios";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {backend} from "../properties";
-import {formatDate, formatDecimals, formatError, formatPeriodName} from "../service/FormattingService";
+import {formatDate, formatDecimals, formatError, formatPercent, formatPeriodName} from "../service/FormattingService";
 import {validateNumber} from "../service/ValidationService";
 
 const priceRows = [
@@ -194,6 +194,8 @@ export const EarningsProjectionsDialog = ({
     const [persistDate, setPersistDate] = useState("");
     const [savingEstimate, setSavingEstimate] = useState(false);
     const [saveError, setSaveError] = useState(null);
+    const [tableScrollFades, setTableScrollFades] = useState({top: false, bottom: false});
+    const tablesScrollRef = useRef(null);
     const previousPriceHigh = numberValue(previousPeriod?.priceHigh);
     const previousPriceLow = numberValue(previousPeriod?.priceLow);
     const previousPriceRows = previousPriceHigh !== null && previousPriceLow !== null
@@ -205,6 +207,15 @@ export const EarningsProjectionsDialog = ({
     const periodName = typeof latestPeriod?.name === "string"
         ? latestPeriod.name
         : formatPeriodName(latestPeriod?.name);
+
+    const updateTableScrollFades = () => {
+        const element = tablesScrollRef.current;
+        if (!element) return;
+        setTableScrollFades({
+            top: element.scrollTop > 1,
+            bottom: element.scrollTop + element.clientHeight < element.scrollHeight - 1,
+        });
+    };
 
     useEffect(() => {
         if (open) {
@@ -223,22 +234,55 @@ export const EarningsProjectionsDialog = ({
         }
     }, [open, currentPrice, latestPeriod]);
 
+    useEffect(() => {
+        if (!open || !tablesScrollRef.current) return undefined;
+
+        const element = tablesScrollRef.current;
+        const frame = window.requestAnimationFrame(updateTableScrollFades);
+        const transitionFallback = window.setTimeout(updateTableScrollFades, 300);
+        window.addEventListener("resize", updateTableScrollFades);
+        const resizeObserver = typeof ResizeObserver === "undefined"
+            ? null
+            : new ResizeObserver(updateTableScrollFades);
+        resizeObserver?.observe(element);
+        if (element.firstElementChild) resizeObserver?.observe(element.firstElementChild);
+
+        return () => {
+            window.cancelAnimationFrame(frame);
+            window.clearTimeout(transitionFallback);
+            window.removeEventListener("resize", updateTableScrollFades);
+            resizeObserver?.disconnect();
+        };
+        // The fade state also refreshes from the dialog transition and scroll events.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, previousPriceRows.length]);
+
+    const baseEstimateSequence = estimateFields.map(field => numberValue(estimateValues[field.key]));
     const adjustment = numberValue(forecastAdjustment) ?? 0;
-    const estimateSequence = estimateFields.map((field, index) => {
-        const value = numberValue(estimateValues[field.key]);
+    const estimateSequence = baseEstimateSequence.map((value, index) => {
         if (value === null || index < 4) return value;
         return Math.round(value * (1 + adjustment / 100) * 100) / 100;
     });
-    const rollingEarnings = offset => {
-        const values = estimateSequence.slice(offset, offset + 4);
+    const rollingEarnings = (sequence, offset) => {
+        const values = sequence.slice(offset, offset + 4);
         return values.length === 4 && !values.includes(null)
             ? values.reduce((sum, value) => sum + value, 0)
             : null;
     };
     const earnings = Object.fromEntries(earningsColumns.map((column, index) => [
         column.key,
-        {value: rollingEarnings(index)},
+        {value: rollingEarnings(estimateSequence, index)},
     ]));
+    const baseRollingEarnings = earningsColumns.map((column, index) =>
+        rollingEarnings(baseEstimateSequence, index));
+    const rollingChanges = Object.fromEntries(persistedEstimateKeys.map((key, index) => {
+        const previous = baseRollingEarnings[index];
+        const current = baseRollingEarnings[index + 1];
+        const change = previous === null || current === null || previous === 0
+            ? null
+            : (current / previous - 1) * 100;
+        return [key, change];
+    }));
     const allPersistedValuesValid = persistedEstimateKeys.every(key =>
         validateNumber(estimateValues[key] ?? "", false, 6, 2, true) === "");
     const persistedValuesChanged = persistedEstimateKeys.some(key =>
@@ -306,19 +350,44 @@ export const EarningsProjectionsDialog = ({
 
     return (
         <>
-        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="lg">
-            <DialogTitle>{ticker} - {periodName || "-"} - Earnings and Price Projections</DialogTitle>
-            <DialogContent sx={{padding: 2}}>
-                <Box sx={{display: "flex", alignItems: "flex-start", gap: 1, marginBottom: 1, paddingTop: 1}}>
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            fullWidth
+            maxWidth="lg"
+            slotProps={{
+                paper: {sx: {height: "calc(100vh - 64px)", maxHeight: "900px"}},
+                transition: {onEntered: updateTableScrollFades},
+            }}
+        >
+            <DialogTitle>{ticker} - {periodName || "-"} - E&amp;P Projections</DialogTitle>
+            <DialogContent sx={{padding: 2, display: "flex", flex: "1 1 0", flexDirection: "column", overflow: "hidden", minHeight: 0}}>
+                <Box
+                    data-testid="estimate-settings-scroll"
+                    sx={{
+                        display: "flex",
+                        flex: "0 0 auto",
+                        alignItems: "flex-start",
+                        gap: 1,
+                        marginBottom: 1,
+                        paddingTop: 1,
+                        overflowX: "auto",
+                    }}
+                >
                     <Box
                         sx={{
                             display: "grid",
-                            gridTemplateColumns: "repeat(8, 60px)",
+                            gridTemplateColumns: {xs: "repeat(4, 60px)", sm: "repeat(8, 60px)"},
                             columnGap: "20px",
+                            flex: "0 0 auto",
                         }}
                     >
                         {estimateFields.map(field => {
                             const missing = numberValue(estimateValues[field.key]) === null;
+                            const showRollingChange = persistedEstimateKeys.includes(field.key);
+                            const rollingChange = showRollingChange
+                                ? formatPercent(rollingChanges[field.key], true, 1) || "-"
+                                : " ";
                             return (
                                 <TextField
                                 key={field.key}
@@ -337,7 +406,7 @@ export const EarningsProjectionsDialog = ({
                                     }
                                 }}
                                 error={missing}
-                                helperText={missing ? "Required" : " "}
+                                helperText={missing ? "Required" : rollingChange}
                                 inputProps={{inputMode: "decimal"}}
                                 sx={{
                                     "& .MuiInputBase-input": {textAlign: "center", paddingBottom: "2px"},
@@ -349,14 +418,23 @@ export const EarningsProjectionsDialog = ({
                                     "& .MuiInputLabel-root.MuiInputLabel-shrink": {
                                         transform: "translate(0, 0.5px) scale(0.75)",
                                     },
+                                    display: field.key.startsWith("past") ? {xs: "none", sm: "inline-flex"} : undefined,
                                 }}
-                                FormHelperTextProps={{sx: {fontSize: 10, margin: 0, textAlign: "center"}}}
+                                FormHelperTextProps={{
+                                    sx: {
+                                        fontSize: showRollingChange && !missing ? 12 : 10,
+                                        color: showRollingChange && !missing ? "text.primary" : undefined,
+                                        margin: 0,
+                                        textAlign: "center",
+                                    },
+                                }}
                                 />
                             );
                         })}
                     </Box>
                     <IconButton
                         aria-label="Save estimate"
+                        color="primary"
                         disabled={!canPersistEstimate}
                         onClick={openPersistEstimateConfirmation}
                         sx={{marginTop: "5px"}}
@@ -377,6 +455,14 @@ export const EarningsProjectionsDialog = ({
                         />
                     </Box>
                 </Box>
+                <Box sx={{position: "relative", flex: "1 1 auto", minHeight: 0, overflow: "hidden"}}>
+                <Box
+                    ref={tablesScrollRef}
+                    data-testid="projection-tables-scroll"
+                    onScroll={updateTableScrollFades}
+                    sx={{position: "absolute", inset: 0, overflowY: "auto"}}
+                >
+                <Box>
                 <TableContainer>
                     <Table
                         size="small"
@@ -588,6 +674,39 @@ export const EarningsProjectionsDialog = ({
                         </Table>
                     </TableContainer>
                 }
+                </Box>
+                </Box>
+                {tableScrollFades.top &&
+                    <Box
+                        data-testid="projection-tables-top-fade"
+                        sx={{
+                            position: "absolute",
+                            zIndex: 1,
+                            pointerEvents: "none",
+                            top: 0,
+                            left: 0,
+                            right: "8px",
+                            height: "24px",
+                            background: theme => `linear-gradient(to bottom, ${theme.palette.background.paper}, transparent)`,
+                        }}
+                    />
+                }
+                {tableScrollFades.bottom &&
+                    <Box
+                        data-testid="projection-tables-bottom-fade"
+                        sx={{
+                            position: "absolute",
+                            zIndex: 1,
+                            pointerEvents: "none",
+                            bottom: 0,
+                            left: 0,
+                            right: "8px",
+                            height: "24px",
+                            background: theme => `linear-gradient(to top, ${theme.palette.background.paper}, transparent)`,
+                        }}
+                    />
+                }
+                </Box>
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose}>Close</Button>
