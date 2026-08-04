@@ -19,6 +19,7 @@ import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
 import {AddPeriodDialog} from "../dialog/AddPeriodDialog";
 import {AddPeriodFinancialDialog} from "../dialog/AddPeriodFinancialDialog";
 import {FinancialsDialog} from "../dialog/FinancialsDialog";
+import {EarningsProjectionsDialog} from "../dialog/EarningsProjectionsDialog";
 import {AddRecordDialog} from "../dialog/AddRecordDialog";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
@@ -50,6 +51,7 @@ export const Research = props => {
     const [openImportPeriodDialog, setOpenImportPeriodDialog] = useState(false)
     const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
     const [openFinancialsDialog, setOpenFinancialsDialog] = useState(false)
+    const [openEarningsProjectionsDialog, setOpenEarningsProjectionsDialog] = useState(false)
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
     const [openEditFinancialDialog, setOpenEditFinancialDialog] = useState(null)
     const [openAddEstimateDialog, setOpenAddEstimateDialog] = useState(null)
@@ -63,6 +65,7 @@ export const Research = props => {
                     setError(null)
 
                     if (companyChanged) setOpenFinancialsDialog(false)
+                    if (companyChanged) setOpenEarningsProjectionsDialog(false)
                     if (companyChanged) setOpenAddEstimateDialog(null)
                     setLoaded(true)
                 })
@@ -142,6 +145,7 @@ export const Research = props => {
                                 <PeriodEstimatesOverview
                                     sx={{marginTop: "8px", marginBottom: "20px"}}
                                     overview={data.estimateOverview}
+                                    onOpen={() => setOpenEarningsProjectionsDialog(true)}
                                 />
 
                                 <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
@@ -206,6 +210,14 @@ export const Research = props => {
                                 handleClose={() => setOpenFinancialsDialog(false)}
                                 ticker={data.company.ticker}
                                 financials={data.financials}
+                            />
+                            <EarningsProjectionsDialog
+                                open={openEarningsProjectionsDialog}
+                                handleClose={() => setOpenEarningsProjectionsDialog(false)}
+                                ticker={data.company.ticker}
+                                currentPrice={data.latest?.price}
+                                earnings={data.estimateOverview}
+                                previousPeriod={data.periods[1]}
                             />
                             <AddEstimateDialog
                                 open={openAddEstimateDialog !== null}

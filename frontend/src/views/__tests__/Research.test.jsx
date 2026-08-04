@@ -24,11 +24,16 @@ jest.mock("../component/PeriodFinancials", () => ({
 }));
 jest.mock("../component/PeriodEstimatesOverview", () => ({
     PeriodEstimatesOverview: (props) => (
-        <div data-testid="period-estimates-overview">estimate-overview:{props.overview?.current?.value}</div>
+        <button data-testid="period-estimates-overview" onClick={props.onOpen}>estimate-overview:{props.overview?.current?.value}</button>
     ),
 }));
 jest.mock("../../dialog/FinancialsDialog", () => ({
     FinancialsDialog: (props) => props.open ? <div>financials-dialog:{props.ticker}:{props.financials.length}</div> : null,
+}));
+jest.mock("../../dialog/EarningsProjectionsDialog", () => ({
+    EarningsProjectionsDialog: (props) => props.open
+        ? <div>earnings-projections-dialog:{props.ticker}:{props.currentPrice}:{props.earnings.current.value}:{props.previousPeriod.priceHigh}</div>
+        : null,
 }));
 jest.mock("../../dialog/AddRecordDialog", () => ({
     AddRecordDialog: (props) => props.open ? <div>add-record-dialog</div> : null
@@ -116,7 +121,10 @@ function createResearchData(overrides = {}) {
             next2: {value: 22, change: 22.22},
             next3: {value: 26, change: 18.18},
         },
-        periods: [{id: "period-1"}],
+        periods: [
+            {id: "period-1"},
+            {id: "period-2", priceHigh: 140, priceLow: 80},
+        ],
         importablePeriods: [],
         latest: {
             price: 123.45,
@@ -186,6 +194,16 @@ describe("Research", () => {
         await screen.findByTestId("period-financials");
         fireEvent.click(screen.getByTestId("period-financials"));
         expect(screen.getByText("financials-dialog:AAPL:1")).toBeInTheDocument();
+    });
+
+    test("opens earnings projections dialog from the estimates overview", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByTestId("period-estimates-overview");
+        fireEvent.click(screen.getByTestId("period-estimates-overview"));
+        expect(screen.getByText("earnings-projections-dialog:AAPL:123.45:14:140")).toBeInTheDocument();
     });
 
     test("opens the estimate dialog for a period", async () => {
