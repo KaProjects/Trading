@@ -17,6 +17,7 @@ public class Trades
     public static class Trade implements Comparable<Trade>{
         private Long id;
         private Company company;
+        private Portfolio portfolio;
 
         private Date purchaseDate;
         private BigDecimal purchaseQuantity;
@@ -45,6 +46,30 @@ public class Trades
                 if (this.getSellDate() != null && other.getSellDate() == null) return 1;
                 return  -this.getSellDate().compareTo(other.getSellDate());
             }
+        }
+    }
+
+    @Data
+    public static class Portfolio implements Comparable<Portfolio>
+    {
+        private String key;
+        private String name;
+        private String abbreviation;
+
+        public Portfolio() {}
+
+        public Portfolio(org.kaleta.persistence.entity.Portfolio portfolio)
+        {
+            this.key = portfolio.toString();
+            this.name = portfolio.getName();
+            this.abbreviation = portfolio.getAbbreviation();
+        }
+
+        @Override
+        public int compareTo(Portfolio other)
+        {
+            if (other == null) return -1;
+            return this.getKey().compareTo(other.getKey());
         }
     }
 

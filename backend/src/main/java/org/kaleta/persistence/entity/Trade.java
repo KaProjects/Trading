@@ -2,9 +2,13 @@ package org.kaleta.persistence.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -35,4 +39,9 @@ public class Trade extends AbstractEntityCompany
 
     @Column(name = "sell_fees")
     private BigDecimal sellFees;
+
+    @Column(name = "portfolio")
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    private Portfolio portfolio;
 }

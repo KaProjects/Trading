@@ -14,6 +14,7 @@ import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
@@ -59,6 +60,10 @@ class CompanyEndpointsTest
         assertThat(dto.getCompanies().get(0).getTicker(), is("ABCD"));
         assertThat(dto.getSectors().size(), is(Sector.values().length));
         assertThat(dto.getCurrencies().size(), is(Currency.values().length));
+        assertThat(dto.getPortfolios().size(), is(Portfolio.values().length));
+        assertThat(dto.getPortfolios().get(0).getKey(), is(Portfolio.PATRIA_DIP.toString()));
+        assertThat(dto.getPortfolios().get(0).getName(), is(Portfolio.PATRIA_DIP.getName()));
+        assertThat(dto.getPortfolios().get(0).getAbbreviation(), is("P-DIP"));
         assertThat(dto.getRecentCompanies().size(), is(6));
         assertThat(tickersFromCompanies(dto.getRecentCompanies()), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
         assertThat(dto.getYears(), is(List.of("2024", "2023", "2022", "2021", "2020", "2018")));

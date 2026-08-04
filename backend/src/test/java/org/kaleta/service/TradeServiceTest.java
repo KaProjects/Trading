@@ -12,6 +12,7 @@ import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
@@ -166,6 +167,7 @@ public class TradeServiceTest
         soldTrade.setSellDate(Date.valueOf("2024-02-15"));
         soldTrade.setSellPrice(new BigDecimal("12.00"));
         soldTrade.setSellFees(new BigDecimal("1.00"));
+        soldTrade.setPortfolio(Portfolio.PATRIA_MARGIN);
 
         Trade activeTrade = new Trade();
         activeTrade.setId(10L);
@@ -186,6 +188,7 @@ public class TradeServiceTest
         assertThat(trades.getTrades().get(0).getId(), is(10L));
         assertThat(trades.getTrades().get(0).getCompany().getTicker(), is("SHELL"));
         assertThat(trades.getTrades().get(0).getCompany().getCurrency(), is(Currency.€));
+        assertThat(trades.getTrades().get(0).getPortfolio(), is(nullValue()));
         assertThat(trades.getTrades().get(0).getPurchaseDate().toString(), is("2025-03-20"));
         assertBigDecimals(trades.getTrades().get(0).getPurchaseQuantity(), new BigDecimal("3"));
         assertBigDecimals(trades.getTrades().get(0).getPurchasePrice(), new BigDecimal("20.00"));
@@ -202,6 +205,9 @@ public class TradeServiceTest
         assertThat(trades.getTrades().get(1).getId(), is(11L));
         assertThat(trades.getTrades().get(1).getCompany().getTicker(), is("NVDA"));
         assertThat(trades.getTrades().get(1).getCompany().getCurrency(), is(Currency.$));
+        assertThat(trades.getTrades().get(1).getPortfolio().getKey(), is(Portfolio.PATRIA_MARGIN.toString()));
+        assertThat(trades.getTrades().get(1).getPortfolio().getName(), is(Portfolio.PATRIA_MARGIN.getName()));
+        assertThat(trades.getTrades().get(1).getPortfolio().getAbbreviation(), is("P-M"));
         assertThat(trades.getTrades().get(1).getPurchaseDate().toString(), is("2024-01-10"));
         assertBigDecimals(trades.getTrades().get(1).getPurchaseQuantity(), new BigDecimal("5"));
         assertBigDecimals(trades.getTrades().get(1).getPurchasePrice(), new BigDecimal("10.00"));
@@ -414,6 +420,7 @@ public class TradeServiceTest
         doThrow(new InvalidInputException("")).when(companyService).findEntity(1916L);
 
         Trade validTrade = Generator.generateTrade(company, new BigDecimal(5), false);
+        validTrade.setPortfolio(Portfolio.REVOLUT_CFD);
         List<TradeSellDto.Trade> validDtoTrades =  new ArrayList<>(List.of(new TradeSellDto.Trade(validTrade.getId(), "5")));
         Trade expectedTrade = sell(validTrade, validDate, validPrice, validFees);
 
@@ -475,6 +482,7 @@ public class TradeServiceTest
         copy.setPurchaseDate(origin.getPurchaseDate());
         copy.setPurchasePrice(origin.getPurchasePrice());
         copy.setPurchaseFees(origin.getPurchaseFees());
+        copy.setPortfolio(origin.getPortfolio());
         copy.setSellDate(origin.getSellDate());
         copy.setSellPrice(origin.getSellPrice());
         copy.setSellFees(origin.getSellFees());
@@ -501,6 +509,7 @@ public class TradeServiceTest
         dto.setPrice(price);
         dto.setQuantity(q);
         dto.setFees(fees);
+        dto.setPortfolio(Portfolio.PATRIA_STANDARD.toString());
 
         if (expectedException == null) {
             tradeService.createTrade(dto);
@@ -514,6 +523,7 @@ public class TradeServiceTest
             assertThat(captor.getValue().getPurchaseDate(), is(Date.valueOf(date)));
             assertBigDecimals(captor.getValue().getPurchasePrice(), new BigDecimal(price));
             assertBigDecimals(captor.getValue().getPurchaseFees(), new BigDecimal(fees));
+            assertThat(captor.getValue().getPortfolio(), is(Portfolio.PATRIA_STANDARD));
 
             assertThat(captor.getValue().getSellDate(), is(nullValue()));
             assertThat(captor.getValue().getSellPrice(), is(nullValue()));
@@ -567,6 +577,7 @@ public class TradeServiceTest
         assertThat(actual.getPurchaseDate(), is(expected.getPurchaseDate()));
         assertBigDecimals(actual.getPurchasePrice(), expected.getPurchasePrice());
         assertBigDecimals(actual.getPurchaseFees(), expected.getPurchaseFees());
+        assertThat(actual.getPortfolio(), is(expected.getPortfolio()));
         assertThat(actual.getSellDate(), is(expected.getSellDate()));
         assertBigDecimals(actual.getSellPrice(), expected.getSellPrice());
         assertBigDecimals(actual.getSellFees(), expected.getSellFees());

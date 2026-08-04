@@ -10,6 +10,7 @@ import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
@@ -49,6 +50,7 @@ public class TradeService
         newTrade.setQuantity(new BigDecimal(dto.getQuantity()));
         newTrade.setPurchasePrice(new BigDecimal(dto.getPrice()));
         newTrade.setPurchaseFees(new BigDecimal(dto.getFees()));
+        newTrade.setPortfolio(dto.getPortfolio() == null ? null : Portfolio.valueOf(dto.getPortfolio()));
 
         tradeDao.create(newTrade);
     }
@@ -98,6 +100,7 @@ public class TradeService
                 residualTrade.setPurchaseDate(trade.getPurchaseDate());
                 residualTrade.setPurchasePrice(trade.getPurchasePrice());
                 residualTrade.setPurchaseFees(residualFees);
+                residualTrade.setPortfolio(trade.getPortfolio());
 
                 trades.add(residualTrade);
 
@@ -194,6 +197,9 @@ public class TradeService
         Trades.Trade trade = new Trades.Trade();
         trade.setId(entity.getId());
         trade.setCompany(companyService.from(entity.getCompany()));
+        if (entity.getPortfolio() != null) {
+            trade.setPortfolio(new Trades.Portfolio(entity.getPortfolio()));
+        }
         trade.setPurchaseDate(entity.getPurchaseDate());
         trade.setPurchaseQuantity(entity.getQuantity());
         trade.setPurchasePrice(entity.getPurchasePrice());

@@ -11,6 +11,7 @@ import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
@@ -334,6 +335,7 @@ class TradeEndpointsTest
         dto.setPrice("100.5");
         dto.setQuantity("10");
         dto.setFees("15");
+        dto.setPortfolio(Portfolio.PATRIA_DIP.toString());
 
         Assert.post201(path, dto);
 
@@ -346,6 +348,7 @@ class TradeEndpointsTest
         assertBigDecimals(trade.getPurchasePrice(), new BigDecimal(dto.getPrice()));
         assertBigDecimals(trade.getQuantity(), new BigDecimal(dto.getQuantity()));
         assertBigDecimals(trade.getPurchaseFees(), new BigDecimal(dto.getFees()));
+        assertThat(trade.getPortfolio(), is(Portfolio.PATRIA_DIP));
         assertThat(trade.getSellDate(), is(nullValue()));
         assertThat(trade.getSellPrice(), is(nullValue()));
         assertThat(trade.getSellFees(), is(nullValue()));
@@ -385,6 +388,10 @@ class TradeEndpointsTest
         dto.setFees("-1");
         Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setFees(validFees);
+
+        dto.setPortfolio("INVALID");
+        Assert.postValidationError(path, dto, "must be any of Portfolio");
+        dto.setPortfolio(Portfolio.REVOLUT_STANDARD.toString());
 
         dto.setPrice(null);
         Assert.postValidationError(path, dto, NOT_NULL);

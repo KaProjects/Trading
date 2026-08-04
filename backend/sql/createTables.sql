@@ -33,6 +33,7 @@ CREATE TABLE Trade
     sell_date      DATE,
     sell_price     DECIMAL(10, 4),
     sell_fees      DECIMAL(5, 2),
+    portfolio      VARCHAR(30),
     companyId      INT UNSIGNED   NOT NULL,
     CONSTRAINT `fk_tradeCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );

@@ -15,8 +15,10 @@ import jakarta.ws.rs.core.Response;
 import org.kaleta.model.Company;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.model.CompanyGroups;
+import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
@@ -52,6 +54,9 @@ public class CompanyEndpoints
 
         List.of(Sector.values()).forEach(sector -> dto.getSectors().add(new Company.Sector(sector)));
         dto.getSectors().sort(Company.Sector::compareTo);
+
+        List.of(Portfolio.values()).forEach(portfolio -> dto.getPortfolios().add(new Trades.Portfolio(portfolio)));
+        dto.getPortfolios().sort(Trades.Portfolio::compareTo);
 
         dto.setCompanies(companyService.getCompanies());
         dto.getCompanies().sort(Comparator.comparing(Company::getTicker));

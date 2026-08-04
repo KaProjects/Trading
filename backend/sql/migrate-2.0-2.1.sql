@@ -5,3 +5,5 @@ ALTER TABLE Record ADD COLUMN review TEXT;
 ALTER TABLE Record ADD COLUMN retro TEXT;
 
 CREATE TABLE Estimate(...);
+
+ALTER TABLE Trade ADD COLUMN portfolio VARCHAR(30);
