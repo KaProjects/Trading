@@ -65,6 +65,7 @@ public class CompanyServiceTest
         company1.setCurrency(Currency.$);
         company1.setWatching(true);
         company1.setSector(Sector.SEMICONDUCTORS);
+        company1.setTags(List.of("growth", "ai"));
 
         Company company2 = Generator.generateCompany(2L);
         company2.setTicker("AAPL");
@@ -470,6 +471,7 @@ public class CompanyServiceTest
         assertThat(actual.getTicker(), is(expected.getTicker()));
         assertThat(actual.getCurrency(), is(expected.getCurrency()));
         assertThat(actual.getWatching(), is(expected.isWatching()));
+        assertThat(actual.getTags(), is(expected.getTags()));
         if (expected.getSector() == null) {
             assertThat(actual.getSector(), is(nullValue()));
         } else {

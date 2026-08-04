@@ -26,6 +26,15 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
     }
 
     @Override
+    public List<Company> list()
+    {
+        return entityManager.createQuery(
+                "SELECT DISTINCT t FROM Company t LEFT JOIN FETCH t.tags",
+                Company.class
+        ).getResultList();
+    }
+
+    @Override
     public List<Company> list(String currency, String sector)
     {
         String joinWord = " WHERE ";

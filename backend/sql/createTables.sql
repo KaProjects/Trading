@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS Tag;
 DROP TABLE IF EXISTS Estimate;
 DROP TABLE IF EXISTS Latest;
 DROP TABLE IF EXISTS Period;
@@ -93,6 +94,13 @@ CREATE TABLE Estimate
     next1        DECIMAL(6, 2),
     next2        DECIMAL(6, 2),
     next3        DECIMAL(6, 2),
-    periodId    INT UNSIGNED    NOT NULL,
+    periodId     INT UNSIGNED    NOT NULL,
     CONSTRAINT `fk_estimatePeriodId` FOREIGN KEY (periodId) REFERENCES Period (id)
+);
+CREATE TABLE Tag
+(
+    id           INT UNSIGNED    NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    value        VARCHAR(30)     NOT NULL,
+    companyId    INT UNSIGNED    NOT NULL,
+    CONSTRAINT `fk_tagCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );

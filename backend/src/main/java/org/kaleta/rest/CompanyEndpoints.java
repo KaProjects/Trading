@@ -60,6 +60,7 @@ public class CompanyEndpoints
 
         dto.setCompanies(companyService.getCompanies());
         dto.getCompanies().sort(Comparator.comparing(Company::getTicker));
+        dto.getCompanies().forEach(company -> dto.getTags().addAll(company.getTags()));
 
         dto.setRecentCompanies(companyService.getRecentCompanies());
         dto.getRecentCompanies().sort(Comparator.comparing(Company::getTicker));

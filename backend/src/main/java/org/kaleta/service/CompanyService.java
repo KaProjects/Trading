@@ -136,6 +136,7 @@ public class CompanyService
         company.setTicker(entity.getTicker());
         company.setCurrency(entity.getCurrency());
         company.setWatching(entity.isWatching());
+        company.setTags(new ArrayList<>(entity.getTags()));
         if (entity.getSector() != null) {
             company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));
         }

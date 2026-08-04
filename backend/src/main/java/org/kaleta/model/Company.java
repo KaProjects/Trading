@@ -3,6 +3,9 @@ package org.kaleta.model;
 import lombok.Data;
 import org.kaleta.persistence.entity.Currency;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 public class Company implements Comparable<Company>
 {
@@ -11,6 +14,7 @@ public class Company implements Comparable<Company>
     private Currency currency;
     private Boolean watching;
     private Sector sector;
+    private List<String> tags = new ArrayList<>();
 
     public Company() {}
 

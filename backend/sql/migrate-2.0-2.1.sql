@@ -7,3 +7,5 @@ ALTER TABLE Record ADD COLUMN retro TEXT;
 CREATE TABLE Estimate(...);
 
 ALTER TABLE Trade ADD COLUMN portfolio VARCHAR(30);
+
+CREATE TABLE Tag(...);
