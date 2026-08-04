@@ -1,7 +1,6 @@
 package org.kaleta.rest.dto;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
@@ -18,10 +17,6 @@ public class CompanyUpdateDto
     @NotNull
     @ValueOfEnum(enumClass = Currency.class)
     private String currency;
-
-    @NotNull
-    @Pattern(regexp = "^true|false$", message = "must be 'true' or 'false'")
-    private String watching;
 
     @ValueOfEnum(enumClass = Sector.class)
     private String sector;

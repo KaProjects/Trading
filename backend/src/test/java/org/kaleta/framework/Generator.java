@@ -67,7 +67,6 @@ public class Generator
                 .collect(Collectors.joining()));
         company.setCurrency(randomEnum(Currency.class));
         company.setSector(randomEnum(Sector.class));
-        company.setWatching(RANDOM.nextBoolean());
         return company;
     }
 

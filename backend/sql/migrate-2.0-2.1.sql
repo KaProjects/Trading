@@ -9,3 +9,5 @@ CREATE TABLE Estimate(...);
 ALTER TABLE Trade ADD COLUMN portfolio VARCHAR(30);
 
 CREATE TABLE Tag(...);
+
+ALTER TABLE Company DROP COLUMN watching;

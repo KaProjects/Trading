@@ -39,18 +39,11 @@ function createProps(overrides = {}) {
 
 function createData(overrides = {}) {
     return {
-        watching: [
-            {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-03-15"},
-            {id: "company-2", ticker: "SHELL", latestRecordDate: "2024-02-01"},
-        ],
         owned: [
             {id: "company-3", ticker: "TSLA", latestPurchaseDate: "2024-04-20"},
         ],
         unreported: [
             {id: "company-4", ticker: "CEZ", latestUnreportedPeriodEndingMonth: "2025-01"},
-        ],
-        deprecated: [
-            {id: "company-5", ticker: "AAPL", latestRecordDate: "2023-12-31"},
         ],
         sectors: {
             Semiconductors: [
@@ -91,7 +84,7 @@ describe("CompanySelector", () => {
         render(<CompanySelector {...createProps()}/>);
 
         expect(screen.getByTestId("loader")).toHaveTextContent("failed");
-        expect(screen.queryByText("Watching")).not.toBeInTheDocument();
+        expect(screen.queryByText("Owned")).not.toBeInTheDocument();
     });
 
     test("renders all company groups and requests refresh data when provided", async () => {
@@ -104,16 +97,12 @@ describe("CompanySelector", () => {
         render(<CompanySelector {...createProps({refresh: "123"})}/>);
 
         expect(mockUseData).toHaveBeenCalledWith("/company/lists?refresh123");
-        expect(await screen.findByText("Watching")).toBeInTheDocument();
-        expect(screen.getByText("Owned")).toBeInTheDocument();
+        expect(await screen.findByText("Owned")).toBeInTheDocument();
         expect(screen.getByText("Not Reported")).toBeInTheDocument();
-        expect(screen.getByText("Deprecated")).toBeInTheDocument();
         expect(screen.getByRole("combobox")).toHaveTextContent("Semiconductors");
-        expect(screen.getAllByText("NVDA")).toHaveLength(2);
-        expect(screen.getByText("SHELL")).toBeInTheDocument();
+        expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("TSLA")).toBeInTheDocument();
         expect(screen.getByText("CEZ")).toBeInTheDocument();
-        expect(screen.getByText("AAPL")).toBeInTheDocument();
     });
 
     test("selects clicked company and records selector event", async () => {
@@ -132,9 +121,8 @@ describe("CompanySelector", () => {
         expect(setCompanySelectorValue).toHaveBeenCalledWith({id: "company-3", ticker: "TSLA"});
         expect(mockRecordEvent).toHaveBeenCalledWith("/research#selector:companies:owned");
 
-        await waitFor(() => expect(screen.queryByText("Watching")).not.toBeInTheDocument());
+        await waitFor(() => expect(screen.queryByText("Not Reported")).not.toBeInTheDocument());
         expect(screen.getByText("Owned")).toBeInTheDocument();
-        expect(screen.queryByText("Deprecated")).not.toBeInTheDocument();
     });
 
     test("changes displayed sector companies when another sector is selected", async () => {
@@ -151,7 +139,7 @@ describe("CompanySelector", () => {
 
         expect(screen.getByRole("combobox")).toHaveTextContent("Energy");
         expect(screen.getByText("XOM")).toBeInTheDocument();
-        expect(screen.queryAllByText("NVDA")).toHaveLength(1);
+        expect(screen.queryByText("NVDA")).not.toBeInTheDocument();
     });
 
     test("resets to the first sector when refreshed data arrives", async () => {
@@ -171,17 +159,12 @@ describe("CompanySelector", () => {
         expect(screen.getByRole("combobox")).toHaveTextContent("Energy");
         expect(screen.getByText("XOM")).toBeInTheDocument();
 
-        useDataResponse.data = createData({
-            watching: [
-                {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-05-01"},
-                {id: "company-2", ticker: "SHELL", latestRecordDate: "2024-02-01"},
-            ],
-        });
+        useDataResponse.data = createData();
 
         rerender(<CompanySelector {...createProps()}/>);
 
         await waitFor(() => expect(screen.getByRole("combobox")).toHaveTextContent("Semiconductors"));
-        expect(screen.getAllByText("NVDA")).toHaveLength(2);
+        expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.queryByText("XOM")).not.toBeInTheDocument();
     });
 
@@ -196,14 +179,12 @@ describe("CompanySelector", () => {
             companySelectorValue: {id: "company-1", ticker: "NVDA"},
         })}/>);
 
-        await waitFor(() => expect(screen.queryByText("Watching")).not.toBeInTheDocument());
-        expect(screen.queryByText("Owned")).not.toBeInTheDocument();
+        await waitFor(() => expect(screen.queryByText("Owned")).not.toBeInTheDocument());
 
         rerender(<CompanySelector {...createProps({
             companySelectorValue: null,
         })}/>);
 
-        expect(await screen.findByText("Watching")).toBeInTheDocument();
-        expect(screen.getByText("Owned")).toBeInTheDocument();
+        expect(await screen.findByText("Owned")).toBeInTheDocument();
     });
 });

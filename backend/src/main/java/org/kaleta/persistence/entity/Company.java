@@ -31,9 +31,6 @@ public class Company extends AbstractEntity
     @JdbcTypeCode(SqlTypes.CHAR)
     private Currency currency;
 
-    @Column(name = "watching")
-    private boolean watching;
-
     @Column(name = "sector")
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)

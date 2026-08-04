@@ -1,11 +1,9 @@
-import {Badge, Box, Button, Card, CardContent, Dialog, DialogActions, DialogTitle, Grid, Stack} from "@mui/material";
+import {Badge, Box, Button, Card, CardContent, Grid, Stack} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {Loader} from "./component/Loader";
 import {backend} from "../properties";
 import axios from "axios";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
-import StarIcon from '@mui/icons-material/Star';
-import StarBorderIcon from '@mui/icons-material/StarBorder';
 import {formatDecimals, formatError, formatMillions, formatPercent} from "../service/FormattingService";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import {AssetBox} from "./component/AssetBox";
@@ -49,7 +47,6 @@ export const Research = props => {
     const [openAddRecordDialog, setOpenAddRecordDialog] = useState(false)
     const [openAddPeriodDialog, setOpenAddPeriodDialog] = useState(false)
     const [openImportPeriodDialog, setOpenImportPeriodDialog] = useState(false)
-    const [openConfirmWatchDialog, setOpenConfirmWatchDialog] = useState(false)
     const [openFinancialsDialog, setOpenFinancialsDialog] = useState(false)
     const [openEarningsProjectionsDialog, setOpenEarningsProjectionsDialog] = useState(false)
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
@@ -102,23 +99,6 @@ export const Research = props => {
             })
     }
 
-    function handleConfirmWatch() {
-        const newWatching = !data.company.watching
-        const companyData = {...data.company}
-        companyData.sector = companyData.sector.key
-        companyData.watching = newWatching
-        axios.put(backend + "/company", companyData)
-            .then((response) => {
-                setData(prev => ({...prev, company: {...prev.company, watching: newWatching}}))
-            })
-            .catch((error) => {
-                const formatted = formatError(error)
-                setAlert(formatted)
-                return formatted
-            })
-        setOpenConfirmWatchDialog(false)
-    }
-
     return (
         <>
             <CompanySelector refresh={refresh} {...props}/>
@@ -147,18 +127,6 @@ export const Research = props => {
                                     overview={data.estimateOverview}
                                     onOpen={() => setOpenEarningsProjectionsDialog(true)}
                                 />
-
-                                <Button sx={{position: "absolute", top: "0", left: "100px"}} onClick={() => setOpenConfirmWatchDialog(true)}>
-                                    {data.company.watching && <StarIcon sx={{color: 'gold',}}/>}
-                                    {!data.company.watching && <StarBorderIcon sx={{color: 'lightgrey',}}/>}
-                                </Button>
-                                <Dialog open={openConfirmWatchDialog} onClose={() => setOpenConfirmWatchDialog(false)}>
-                                    <DialogTitle>{"Are you sure to " + (data.company.watching ? "unwatch" : "watch") + " the company?"}</DialogTitle>
-                                    <DialogActions>
-                                        <Button onClick={() => setOpenConfirmWatchDialog(false)}>Cancel</Button>
-                                        <Button onClick={() => handleConfirmWatch()} autoFocus>Confirm</Button>
-                                    </DialogActions>
-                                </Dialog>
 
                                 <Box sx={{position: "absolute", top: "0", right: "0", display: "flex", alignItems: "center"}}>
                                     {data.importablePeriods?.length > 0 &&

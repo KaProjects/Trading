@@ -80,19 +80,6 @@ class CompanyEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyGroups.class);
 
-        assertThat(dto.getWatching().size(), is(22));
-        assertThat(dto.getWatching().get(0).getTicker(), is("ABCD"));
-        assertThat(dto.getWatching().get(dto.getWatching().size() - 1).getTicker(), is("ZZZ"));
-        for (int i = 1; i < dto.getWatching().size(); i++) {
-            assertThat(dto.getWatching().get(i - 1).getTicker().compareTo(dto.getWatching().get(i).getTicker()), lessThanOrEqualTo(0));
-        }
-
-        assertThat(dto.getDeprecated().size(), is(4));
-        assertThat(dto.getDeprecated().get(0).getTicker(), is("UPD"));
-        assertThat(dto.getDeprecated().get(1).getTicker(), is("XCW"));
-        assertThat(dto.getDeprecated().get(2).getTicker(), is("XXX"));
-        assertThat(dto.getDeprecated().get(3).getTicker(), is("YYY"));
-
         assertThat(dto.getOwned().size(), is(6));
         assertThat(dto.getOwned().get(0).getTicker(), is("CEZ"));
         assertThat(dto.getOwned().get(1).getTicker(), is("RR"));
@@ -136,7 +123,6 @@ class CompanyEndpointsTest
         dto.setId(1842L);
         dto.setCurrency(Currency.K.toString());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
-        dto.setWatching(Boolean.FALSE.toString());
 
         Assert.put204(path, dto);
 
@@ -145,7 +131,6 @@ class CompanyEndpointsTest
         assertThat(company.getTicker(), is("UPD"));
         assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
         assertThat(company.getSector(), is(Sector.valueOf(dto.getSector())));
-        assertThat(company.isWatching(), is(Boolean.parseBoolean(dto.getWatching())));
     }
 
     @Test
@@ -155,7 +140,6 @@ class CompanyEndpointsTest
         Long validCompanyId = 2287L;
         String validCurrency = Currency.$.toString();
         String validSector = Sector.SEMICONDUCTORS.toString();
-        String validWatching = "false";
 
         Assert.putValidationError(path, null, NOT_NULL);
 
@@ -163,7 +147,6 @@ class CompanyEndpointsTest
         dto.setId(validCompanyId);
         dto.setCurrency(validCurrency);
         dto.setSector(validSector);
-        dto.setWatching(validWatching);
 
         dto.setCurrency(null);
         Assert.putValidationError(path, dto, NOT_NULL);
@@ -178,14 +161,6 @@ class CompanyEndpointsTest
         dto.setSector("xyz");
         Assert.putValidationError(path, dto, "must be any of Sector");
         dto.setSector(validSector);
-
-        dto.setWatching(null);
-        Assert.putValidationError(path, dto, NOT_NULL);
-        dto.setWatching("");
-        Assert.putValidationError(path, dto, "must be 'true' or 'false'");
-        dto.setWatching("xyz");
-        Assert.putValidationError(path, dto, "must be 'true' or 'false'");
-        dto.setWatching(validWatching);
 
         dto.setId(null);
         Assert.putValidationError(path, dto, NOT_NULL);
@@ -206,7 +181,6 @@ class CompanyEndpointsTest
         dto.setTicker("CCCCC");
         dto.setCurrency(Currency.K.toString());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
-        dto.setWatching(Boolean.FALSE.toString());
 
         Assert.post201(path, dto);
 
@@ -215,7 +189,6 @@ class CompanyEndpointsTest
         assertThat(company.getId(), is(not(nullValue())));
         assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
         assertThat(company.getSector(), is(Sector.valueOf(dto.getSector())));
-        assertThat(company.isWatching(), is(Boolean.parseBoolean(dto.getWatching())));
     }
 
     @Test
@@ -225,7 +198,6 @@ class CompanyEndpointsTest
         String validTicker = "ICCCC";
         String validCurrency = Currency.$.toString();
         String validSector = Sector.SEMICONDUCTORS.toString();
-        String validWatching = "false";
 
         Assert.postValidationError(path, null, NOT_NULL);
 
@@ -233,7 +205,6 @@ class CompanyEndpointsTest
         dto.setTicker(validTicker);
         dto.setCurrency(validCurrency);
         dto.setSector(validSector);
-        dto.setWatching(validWatching);
 
         dto.setCurrency(null);
         Assert.postValidationError(path, dto, NOT_NULL);
@@ -248,14 +219,6 @@ class CompanyEndpointsTest
         dto.setSector("xyz");
         Assert.postValidationError(path, dto, "must be any of Sector");
         dto.setSector(validSector);
-
-        dto.setWatching(null);
-        Assert.postValidationError(path, dto, NOT_NULL);
-        dto.setWatching("");
-        Assert.postValidationError(path, dto, "must be 'true' or 'false'");
-        dto.setWatching("xyz");
-        Assert.postValidationError(path, dto, "must be 'true' or 'false'");
-        dto.setWatching(validWatching);
 
         dto.setTicker(null);
         Assert.postValidationError(path, dto, NOT_NULL);
@@ -285,7 +248,6 @@ class CompanyEndpointsTest
         CompanyAggregates.Company company = dto.getCompanies().get(7);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
-        assertThat(company.getWatching(), is(true));
         assertThat(company.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(company.getTotalTrades(), is(1));
         assertThat(company.getActiveTrades(), is(0));
@@ -320,7 +282,6 @@ class CompanyEndpointsTest
         assertThat(dto.getCompanies().size(), is(1));
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
-        assertThat(dto.getCompanies().get(0).getWatching(), is(true));
         assertThat(dto.getCompanies().get(0).getSector().getKey(), is(Sector.ENERGY_MINERALS.toString()));
         assertThat(dto.getCompanies().get(0).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
@@ -344,7 +305,6 @@ class CompanyEndpointsTest
         assertThat(dto.getCompanies().size(), is(1));
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
-        assertThat(dto.getCompanies().get(0).getWatching(), is(true));
         assertThat(dto.getCompanies().get(0).getSector().getKey(), is(Sector.ENERGY_MINERALS.toString()));
         assertThat(dto.getCompanies().get(0).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
@@ -371,7 +331,6 @@ class CompanyEndpointsTest
         CompanyAggregates.Company company = dto.getCompanies().get(7);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
-        assertThat(company.getWatching(), is(true));
         assertThat(company.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(company.getTotalTrades(), is(1));
         assertThat(company.getActiveTrades(), is(0));
@@ -390,19 +349,6 @@ class CompanyEndpointsTest
         assertThat(dto.getCompanies().size(), is(expectedCompanies));
         for (int i=1; i<dto.getCompanies().size(); i++){
             assertThat(dto.getCompanies().get(i-1).getCurrency().compareTo(dto.getCompanies().get(i).getCurrency()), lessThanOrEqualTo(0));
-        }
-
-        dto = given().when()
-                .get(path + "?sort=" + CompanyAggregates.Sort.WATCHING)
-                .then()
-                .statusCode(200)
-                .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyAggregates.class);
-
-        assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
-        assertThat(dto.getCompanies().size(), is(expectedCompanies));
-        for (int i=1; i<dto.getCompanies().size(); i++){
-            assertThat(dto.getCompanies().get(i-1).getWatching().compareTo(dto.getCompanies().get(i).getWatching()), greaterThanOrEqualTo(0));
         }
 
         dto = given().when()

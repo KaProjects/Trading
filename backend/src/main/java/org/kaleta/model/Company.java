@@ -12,7 +12,6 @@ public class Company implements Comparable<Company>
     private Long id;
     private String ticker;
     private Currency currency;
-    private Boolean watching;
     private Sector sector;
     private List<String> tags = new ArrayList<>();
 

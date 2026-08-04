@@ -149,7 +149,6 @@ public class TradeServiceTest
         soldModelCompany.setId(soldCompany.getId());
         soldModelCompany.setTicker(soldCompany.getTicker());
         soldModelCompany.setCurrency(soldCompany.getCurrency());
-        soldModelCompany.setWatching(soldCompany.isWatching());
 
         Company activeCompany = Generator.generateCompany();
         activeCompany.setTicker("SHELL");
@@ -158,7 +157,6 @@ public class TradeServiceTest
         activeModelCompany.setId(activeCompany.getId());
         activeModelCompany.setTicker(activeCompany.getTicker());
         activeModelCompany.setCurrency(activeCompany.getCurrency());
-        activeModelCompany.setWatching(activeCompany.isWatching());
 
         Trade soldTrade = new Trade();
         soldTrade.setId(11L);
@@ -245,7 +243,6 @@ public class TradeServiceTest
         modelCompany.setId(company.getId());
         modelCompany.setTicker(company.getTicker());
         modelCompany.setCurrency(company.getCurrency());
-        modelCompany.setWatching(company.isWatching());
 
         Trade trade = new Trade();
         trade.setId(10L);
@@ -637,7 +634,6 @@ public class TradeServiceTest
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setCurrency(entity.getCurrency());
-        company.setWatching(entity.isWatching());
         return company;
     }
 

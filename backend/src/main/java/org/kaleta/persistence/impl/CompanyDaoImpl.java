@@ -81,7 +81,6 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
                         + "c.id, "
                         + "c.ticker, "
                         + "c.currency, "
-                        + "c.watching, "
                         + "c.sector, "
                         + "COALESCE(t.total_trades, 0), "
                         + "COALESCE(t.active_trades, 0), "
@@ -126,7 +125,6 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
                         + "c.id, "
                         + "c.ticker, "
                         + "c.currency, "
-                        + "c.watching, "
                         + "c.sector, "
                         + "p.latest_ending_month, "
                         + "r.latest_record_date, "
@@ -165,15 +163,14 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
         company.setId(((Number) values[0]).longValue());
         company.setTicker(asString(values[1]).trim());
         company.setCurrency(Currency.valueOf(asString(values[2])));
-        company.setWatching(toBoolean(values[3]));
-        if (values[4] != null) {
-            company.setSector(Sector.valueOf(asString(values[4])));
+        if (values[3] != null) {
+            company.setSector(Sector.valueOf(asString(values[3])));
         }
-        company.setTotalTrades(toInt(values[5]));
-        company.setActiveTrades(toInt(values[6]));
-        company.setDividends(toInt(values[7]));
-        company.setRecords(toInt(values[8]));
-        company.setPeriods(toInt(values[9]));
+        company.setTotalTrades(toInt(values[4]));
+        company.setActiveTrades(toInt(values[5]));
+        company.setDividends(toInt(values[6]));
+        company.setRecords(toInt(values[7]));
+        company.setPeriods(toInt(values[8]));
         return company;
     }
 
@@ -183,30 +180,18 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
         company.setId(((Number) values[0]).longValue());
         company.setTicker(asString(values[1]).trim());
         company.setCurrency(Currency.valueOf(asString(values[2])));
-        company.setWatching(toBoolean(values[3]));
-        if (values[4] != null) {
-            company.setSector(Sector.valueOf(asString(values[4])));
+        if (values[3] != null) {
+            company.setSector(Sector.valueOf(asString(values[3])));
         }
-        company.setLatestUnreportedPeriodEndingMonth(toYearMonth(values[5]));
-        company.setLatestRecordDate(toDate(values[6]));
-        company.setLatestPurchaseDate(toDate(values[7]));
+        company.setLatestUnreportedPeriodEndingMonth(toYearMonth(values[4]));
+        company.setLatestRecordDate(toDate(values[5]));
+        company.setLatestPurchaseDate(toDate(values[6]));
         return company;
     }
 
     private int toInt(Object value)
     {
         return (value == null) ? 0 : ((Number) value).intValue();
-    }
-
-    private boolean toBoolean(Object value)
-    {
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        }
-        if (value instanceof Number) {
-            return ((Number) value).intValue() != 0;
-        }
-        return Boolean.parseBoolean(String.valueOf(value));
     }
 
     private String asString(Object value)

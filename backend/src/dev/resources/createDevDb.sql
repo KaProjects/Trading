@@ -1,11 +1,11 @@
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (2213, 'NVDA', '$', false, 'HARDWARE');
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (2212, 'AMD', '$', false, 'HARDWARE');
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (2214, 'INTC', '$', true, 'HARDWARE');
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (2073, 'AA', '€', true, 'SOFTWARE');
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (1873, 'BBC', '$', false, 'FINANCE');
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (1240, 'CX', 'K', true, 'ETF');
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (1504, 'DDD', '$', false, 'COMMUNICATION_SERVICES');
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (2261, 'EFG', '£', true, 'HEALTH_TECH');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2213, 'NVDA', '$', 'HARDWARE');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2212, 'AMD', '$', 'HARDWARE');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2214, 'INTC', '$', 'HARDWARE');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2073, 'AA', '€', 'SOFTWARE');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (1873, 'BBC', '$', 'FINANCE');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (1240, 'CX', 'K', 'ETF');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (1504, 'DDD', '$', 'COMMUNICATION_SERVICES');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2261, 'EFG', '£', 'HEALTH_TECH');
 
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (2068, 2213, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5', 'PATRIA_STANDARD');

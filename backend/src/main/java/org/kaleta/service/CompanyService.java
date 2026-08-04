@@ -68,11 +68,6 @@ public class CompanyService
         CompanyGroups companyGroups = new CompanyGroups();
         for (CompanyWithStats companyWithStats : companyDao.listWithStats())
         {
-            if (companyWithStats.isWatching()) {
-                companyGroups.getWatching().add(companyWithStats);
-            } else {
-                companyGroups.getDeprecated().add(companyWithStats);
-            }
             if (companyWithStats.getLatestPurchaseDate() != null) {
                 companyGroups.getOwned().add(companyWithStats);
             }
@@ -108,7 +103,6 @@ public class CompanyService
         }
 
         company.setCurrency(Currency.valueOf(dto.getCurrency()));
-        company.setWatching(Boolean.parseBoolean(dto.getWatching()));
         company.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
 
         companyDao.save(company);
@@ -124,7 +118,6 @@ public class CompanyService
         Company newCompany = new Company();
         newCompany.setTicker(dto.getTicker());
         newCompany.setCurrency(Currency.valueOf(dto.getCurrency()));
-        newCompany.setWatching(Boolean.parseBoolean(dto.getWatching()));
         newCompany.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
 
         companyDao.create(newCompany);
@@ -135,7 +128,6 @@ public class CompanyService
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setCurrency(entity.getCurrency());
-        company.setWatching(entity.isWatching());
         company.setTags(new ArrayList<>(entity.getTags()));
         if (entity.getSector() != null) {
             company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));
@@ -149,7 +141,6 @@ public class CompanyService
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setCurrency(entity.getCurrency());
-        company.setWatching(entity.isWatching());
         if (entity.getSector() != null) {
             company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));
         }

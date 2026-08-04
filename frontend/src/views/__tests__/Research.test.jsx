@@ -104,7 +104,6 @@ function createResearchData(overrides = {}) {
             ticker: "AAPL",
             currency: "$",
             sector: {key: "TECH", name: "Technology"},
-            watching: false,
         },
         financials: [{period: "25FY"}],
         ttm: {
@@ -256,33 +255,6 @@ describe("Research", () => {
 
         await screen.findByText("AAPL");
         expect(screen.queryByTestId("CloudDownloadIcon")).not.toBeInTheDocument();
-    });
-
-    test("updates watching status after confirm", async () => {
-        axios.get.mockResolvedValue({data: createResearchData()});
-        axios.put.mockResolvedValue({});
-
-        render(
-            <Research
-                companySelectorValue={companySelectorValue}
-            />
-        );
-
-        await waitFor(() => expect(screen.getByText("AAPL")).toBeInTheDocument());
-
-        fireEvent.click(screen.getByTestId("StarBorderIcon").closest("button"));
-        expect(screen.getByText("Are you sure to watch the company?")).toBeInTheDocument();
-
-        fireEvent.click(screen.getByText("Confirm"));
-
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/company", expect.objectContaining({
-            id: "company-1",
-            sector: "TECH",
-            watching: true,
-        })));
-
-        fireEvent.click(screen.getAllByRole("button")[0]);
-        expect(screen.getByText("Are you sure to unwatch the company?")).toBeInTheDocument();
     });
 
     test("shows formatted fetch error in loader", async () => {

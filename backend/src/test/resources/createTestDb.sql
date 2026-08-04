@@ -1,21 +1,21 @@
 
-INSERT INTO Company (id, ticker, currency, watching) VALUES (2213, 'XXX', 'K', false);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1041, 'YYY', 'K', false);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1579, 'ZZZ', '$', true);
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (1927, 'NVDA', '$', true,  'SEMICONDUCTORS');
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (1425, 'SHELL', '€', true, 'ENERGY_MINERALS');
-INSERT INTO Company (id, ticker, currency, watching) VALUES (2229, 'RR', '£', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1531, 'CEZ', 'K', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1557, 'ABCD', '$', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (2150, 'XRC', '$', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1501, 'XRSA', '$', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1658, 'XRSB', '$', true);
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (1492, 'XCW', '$', false,  'ELECTRIC_VEHICLES');
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1173, 'XTC', '$', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (2050, 'XTS', '$', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (2249, 'XRL', '$', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1562, 'XFC', '$', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1563, 'XFQ', '$', true);
+INSERT INTO Company (id, ticker, currency) VALUES (2213, 'XXX', 'K');
+INSERT INTO Company (id, ticker, currency) VALUES (1041, 'YYY', 'K');
+INSERT INTO Company (id, ticker, currency) VALUES (1579, 'ZZZ', '$');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (1927, 'NVDA', '$',  'SEMICONDUCTORS');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (1425, 'SHELL', '€', 'ENERGY_MINERALS');
+INSERT INTO Company (id, ticker, currency) VALUES (2229, 'RR', '£');
+INSERT INTO Company (id, ticker, currency) VALUES (1531, 'CEZ', 'K');
+INSERT INTO Company (id, ticker, currency) VALUES (1557, 'ABCD', '$');
+INSERT INTO Company (id, ticker, currency) VALUES (2150, 'XRC', '$');
+INSERT INTO Company (id, ticker, currency) VALUES (1501, 'XRSA', '$');
+INSERT INTO Company (id, ticker, currency) VALUES (1658, 'XRSB', '$');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (1492, 'XCW', '$',  'ELECTRIC_VEHICLES');
+INSERT INTO Company (id, ticker, currency) VALUES (1173, 'XTC', '$');
+INSERT INTO Company (id, ticker, currency) VALUES (2050, 'XTS', '$');
+INSERT INTO Company (id, ticker, currency) VALUES (2249, 'XRL', '$');
+INSERT INTO Company (id, ticker, currency) VALUES (1562, 'XFC', '$');
+INSERT INTO Company (id, ticker, currency) VALUES (1563, 'XFQ', '$');
 
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (5, 2213, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
@@ -69,33 +69,33 @@ INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALU
 
 
 -- for rest.*EndpointsTest.create tests
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1565, 'CRE', '$', true);
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1564, 'IMP', '$', true);
+INSERT INTO Company (id, ticker, currency) VALUES (1565, 'CRE', '$');
+INSERT INTO Company (id, ticker, currency) VALUES (1564, 'IMP', '$');
 
 -- for rest.*EndpointsTest.createInvalidValues tests
-INSERT INTO Company (id, ticker, currency, watching) VALUES (2287, 'CINV', '$', true);
+INSERT INTO Company (id, ticker, currency) VALUES (2287, 'CINV', '$');
 
 -- for rest.*EndpointsTests.update tests
-INSERT INTO Company (id, ticker, currency, watching, sector) VALUES (1842, 'UPD', '$', false,  'ELECTRIC_VEHICLES');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (1842, 'UPD', '$',  'ELECTRIC_VEHICLES');
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (1467, 1842, '21Q1', '2501', '2025-02-15');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES (1466, 1842, '21Q2', '2503');
 INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1974, 1842, '2021-04-05', 'xxx', '100', '10.1');
 
 -- for rest.*EndpointsTests.updateInvalidValues tests
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1581, 'UINV', '$', true);
+INSERT INTO Company (id, ticker, currency) VALUES (1581, 'UINV', '$');
 INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (2042, 1581, '21Q1', '2501', '2025-02-15');
 INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1317, 1581, '2021-04-05', 'xxx', '100', '10.1');
 
 -- for rest.*EndpointsTests.delete tests
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1692, 'DEL', '$', true);
+INSERT INTO Company (id, ticker, currency) VALUES (1692, 'DEL', '$');
 INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1916, 1692, '2021-04-05', 'xxx', '100', '10.1');
 
 -- for rest.*EndpointsTests.deleteInvalidValues tests
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1490, 'DINV', '$', true);
+INSERT INTO Company (id, ticker, currency) VALUES (1490, 'DINV', '$');
 INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1840, 1490, '2021-04-05', 'xxx', '100', '10.1');
 
 -- for ResearchEndpointsTest.get test
-INSERT INTO Company (id, ticker, currency, watching) VALUES (2281, 'RCH', '$', true);
+INSERT INTO Company (id, ticker, currency) VALUES (2281, 'RCH', '$');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares) VALUES (1837, 2281, '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20', '1.25', '100');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES (2182, 2281, '25Q1', '2504');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares) VALUES (1338, 2281, '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10', '90');
@@ -107,7 +107,7 @@ INSERT INTO Record (id, companyId, date, title, price, p_rev, p_gross, p_oper, p
 INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1517, 2281, '2022-01-02', 'yyy', '100', '10.1');
 
 -- for TradeEndpointsTest.sell test
-INSERT INTO Company (id, ticker, currency, watching) VALUES (1209, 'SELL', '$', true);
+INSERT INTO Company (id, ticker, currency) VALUES (1209, 'SELL', '$');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (2335, 1209, '1', '2020-03-15', '400', '10');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1788, 1209, '5', '2020-04-05', '450', '10');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1130, 1209, '7.5', '2020-05-01', '500', '10');

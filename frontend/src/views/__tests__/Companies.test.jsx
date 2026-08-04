@@ -42,13 +42,12 @@ function createProps(overrides = {}) {
 
 function createData(overrides = {}) {
     return {
-        sorts: ["TICKER", "CURRENCY", "WATCHING", "SECTOR", "ALL_TRADES", "ACTIVE_TRADES", "DIVIDENDS", "RECORDS", "PERIODS"],
+        sorts: ["TICKER", "CURRENCY", "SECTOR", "ALL_TRADES", "ACTIVE_TRADES", "DIVIDENDS", "RECORDS", "PERIODS"],
         companies: [
             {
                 id: "company-1",
                 ticker: "NVDA",
                 currency: "$",
-                watching: true,
                 sector: {key: "SEMICONDUCTORS", name: "Semiconductors"},
                 totalTrades: 11,
                 activeTrades: 7,
@@ -60,7 +59,6 @@ function createData(overrides = {}) {
                 id: "company-2",
                 ticker: "SHELL",
                 currency: "€",
-                watching: false,
                 sector: {key: "ENERGY_MINERALS", name: "Energy Minerals"},
                 totalTrades: 4,
                 activeTrades: 1,

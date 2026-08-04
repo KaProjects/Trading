@@ -63,14 +63,12 @@ public class CompanyServiceTest
         Company company1 = Generator.generateCompany(1L);
         company1.setTicker(" NVDA ");
         company1.setCurrency(Currency.$);
-        company1.setWatching(true);
         company1.setSector(Sector.SEMICONDUCTORS);
         company1.setTags(List.of("growth", "ai"));
 
         Company company2 = Generator.generateCompany(2L);
         company2.setTicker("AAPL");
         company2.setCurrency(Currency.€);
-        company2.setWatching(false);
         company2.setSector(null);
 
         when(companyDao.list()).thenReturn(List.of(company1, company2));
@@ -111,7 +109,6 @@ public class CompanyServiceTest
         company1.setId(1L);
         company1.setTicker("ZZZZ");
         company1.setCurrency(Currency.$);
-        company1.setWatching(true);
         company1.setSector(Sector.SEMICONDUCTORS);
         company1.setTotalTrades(5);
         company1.setActiveTrades(2);
@@ -123,7 +120,6 @@ public class CompanyServiceTest
         company2.setId(2L);
         company2.setTicker("AAAA");
         company2.setCurrency(Currency.€);
-        company2.setWatching(false);
         company2.setSector(null);
         company2.setTotalTrades(0);
         company2.setActiveTrades(0);
@@ -143,7 +139,6 @@ public class CompanyServiceTest
         assertThat(first.getId(), is(1L));
         assertThat(first.getTicker(), is("ZZZZ"));
         assertThat(first.getCurrency(), is(Currency.$));
-        assertThat(first.getWatching(), is(true));
         assertThat(first.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(first.getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
         assertThat(first.getTotalTrades(), is(5));
@@ -156,7 +151,6 @@ public class CompanyServiceTest
         assertThat(second.getId(), is(2L));
         assertThat(second.getTicker(), is("AAAA"));
         assertThat(second.getCurrency(), is(Currency.€));
-        assertThat(second.getWatching(), is(false));
         assertThat(second.getSector(), is(nullValue()));
         assertThat(second.getTotalTrades(), is(0));
         assertThat(second.getActiveTrades(), is(0));
@@ -207,7 +201,6 @@ public class CompanyServiceTest
         company1.setId(1L);
         company1.setTicker("NVDA");
         company1.setCurrency(Currency.$);
-        company1.setWatching(true);
         company1.setSector(Sector.SEMICONDUCTORS);
         company1.setLatestPurchaseDate(Date.valueOf("2024-07-10"));
         company1.setLatestRecordDate(Date.valueOf("2024-06-15"));
@@ -217,14 +210,12 @@ public class CompanyServiceTest
         company2.setId(2L);
         company2.setTicker("XCW");
         company2.setCurrency(Currency.$);
-        company2.setWatching(false);
         company2.setSector(Sector.ELECTRIC_VEHICLES);
 
         CompanyWithStats company3 = new CompanyWithStats();
         company3.setId(3L);
         company3.setTicker("TSLA");
         company3.setCurrency(Currency.$);
-        company3.setWatching(true);
         company3.setSector(Sector.ELECTRIC_VEHICLES);
         company3.setLatestPurchaseDate(Date.valueOf("2024-01-01"));
 
@@ -232,20 +223,11 @@ public class CompanyServiceTest
         company4.setId(4L);
         company4.setTicker("RR");
         company4.setCurrency(Currency.£);
-        company4.setWatching(true);
         company4.setSector(null);
 
         when(companyDao.listWithStats()).thenReturn(List.of(company1, company2, company3, company4));
 
         CompanyGroups companyGroups = companyService.getCompanyGroups();
-
-        assertThat(companyGroups.getWatching().size(), is(3));
-        assertThat(companyGroups.getWatching().get(0), is(company1));
-        assertThat(companyGroups.getWatching().get(1), is(company3));
-        assertThat(companyGroups.getWatching().get(2), is(company4));
-
-        assertThat(companyGroups.getDeprecated().size(), is(1));
-        assertThat(companyGroups.getDeprecated().get(0), is(company2));
 
         assertThat(companyGroups.getOwned().size(), is(2));
         assertThat(companyGroups.getOwned().get(0), is(company1));
@@ -299,7 +281,6 @@ public class CompanyServiceTest
     {
         Company entity = Generator.generateCompany(1L);
         entity.setCurrency(Currency.$);
-        entity.setWatching(false);
         entity.setSector(Sector.SEMICONDUCTORS);
 
         when(companyDao.get(entity.getId())).thenReturn(entity);
@@ -307,7 +288,6 @@ public class CompanyServiceTest
         CompanyUpdateDto dto = new CompanyUpdateDto();
         dto.setId(entity.getId());
         dto.setCurrency(Currency.€.name());
-        dto.setWatching("true");
         dto.setSector(Sector.SOFTWARE.toString());
 
         companyService.update(dto);
@@ -317,7 +297,6 @@ public class CompanyServiceTest
 
         assertThat(captor.getValue().getId(), is(entity.getId()));
         assertThat(captor.getValue().getCurrency(), is(Currency.€));
-        assertThat(captor.getValue().isWatching(), is(true));
         assertThat(captor.getValue().getSector(), is(Sector.SOFTWARE));
     }
 
@@ -332,7 +311,6 @@ public class CompanyServiceTest
         CompanyUpdateDto dto = new CompanyUpdateDto();
         dto.setId(entity.getId());
         dto.setCurrency(Currency.$.name());
-        dto.setWatching("false");
         dto.setSector(null);
 
         companyService.update(dto);
@@ -341,7 +319,6 @@ public class CompanyServiceTest
         verify(companyDao).save(captor.capture());
 
         assertThat(captor.getValue().getSector(), is(nullValue()));
-        assertThat(captor.getValue().isWatching(), is(false));
         assertThat(captor.getValue().getCurrency(), is(Currency.$));
     }
 
@@ -354,7 +331,6 @@ public class CompanyServiceTest
         CompanyUpdateDto dto = new CompanyUpdateDto();
         dto.setId(companyId);
         dto.setCurrency(Currency.$.name());
-        dto.setWatching("true");
         dto.setSector(Sector.SEMICONDUCTORS.toString());
 
         InvalidInputException exception = assertThrows(InvalidInputException.class, () -> companyService.update(dto));
@@ -371,7 +347,6 @@ public class CompanyServiceTest
         CompanyCreateDto dto = new CompanyCreateDto();
         dto.setTicker("NVDA");
         dto.setCurrency(Currency.$.name());
-        dto.setWatching("true");
         dto.setSector(Sector.SEMICONDUCTORS.toString());
 
         companyService.create(dto);
@@ -381,7 +356,6 @@ public class CompanyServiceTest
 
         assertThat(captor.getValue().getTicker(), is("NVDA"));
         assertThat(captor.getValue().getCurrency(), is(Currency.$));
-        assertThat(captor.getValue().isWatching(), is(true));
         assertThat(captor.getValue().getSector(), is(Sector.SEMICONDUCTORS));
     }
 
@@ -393,7 +367,6 @@ public class CompanyServiceTest
         CompanyCreateDto dto = new CompanyCreateDto();
         dto.setTicker("AAPL");
         dto.setCurrency(Currency.€.name());
-        dto.setWatching("false");
         dto.setSector(null);
 
         companyService.create(dto);
@@ -403,7 +376,6 @@ public class CompanyServiceTest
 
         assertThat(captor.getValue().getTicker(), is("AAPL"));
         assertThat(captor.getValue().getCurrency(), is(Currency.€));
-        assertThat(captor.getValue().isWatching(), is(false));
         assertThat(captor.getValue().getSector(), is(nullValue()));
     }
 
@@ -417,7 +389,6 @@ public class CompanyServiceTest
         CompanyCreateDto dto = new CompanyCreateDto();
         dto.setTicker("NVDA");
         dto.setCurrency(Currency.$.name());
-        dto.setWatching("true");
         dto.setSector(Sector.SEMICONDUCTORS.toString());
 
         InvalidInputException exception = assertThrows(InvalidInputException.class, () -> companyService.create(dto));
@@ -433,7 +404,6 @@ public class CompanyServiceTest
         entity.setId(1L);
         entity.setTicker(" NVDA ");
         entity.setCurrency(Currency.$);
-        entity.setWatching(true);
         entity.setSector(Sector.SEMICONDUCTORS);
 
         org.kaleta.model.Company company = companyService.from(entity);
@@ -441,7 +411,6 @@ public class CompanyServiceTest
         assertThat(company.getId(), is(1L));
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
-        assertThat(company.getWatching(), is(true));
         assertThat(company.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(company.getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
     }
@@ -453,7 +422,6 @@ public class CompanyServiceTest
         entity.setId(2L);
         entity.setTicker("AAPL");
         entity.setCurrency(Currency.$);
-        entity.setWatching(false);
         entity.setSector(null);
 
         org.kaleta.model.Company company = companyService.from(entity);
@@ -461,7 +429,6 @@ public class CompanyServiceTest
         assertThat(company.getId(), is(2L));
         assertThat(company.getTicker(), is("AAPL"));
         assertThat(company.getCurrency(), is(Currency.$));
-        assertThat(company.getWatching(), is(false));
         assertThat(company.getSector(), is(nullValue()));
     }
 
@@ -470,7 +437,6 @@ public class CompanyServiceTest
         assertThat(actual.getId(), is(expected.getId()));
         assertThat(actual.getTicker(), is(expected.getTicker()));
         assertThat(actual.getCurrency(), is(expected.getCurrency()));
-        assertThat(actual.getWatching(), is(expected.isWatching()));
         assertThat(actual.getTags(), is(expected.getTags()));
         if (expected.getSector() == null) {
             assertThat(actual.getSector(), is(nullValue()));

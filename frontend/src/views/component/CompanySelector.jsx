@@ -7,10 +7,8 @@ import {recordEvent} from "../../service/utils";
 const SELECTOR_STATES = {
     ALL: "all",
     NONE: "none",
-    WATCHING: "watching",
     OWNED: "owned",
     UNREPORTED: "unreported",
-    DEPRECATED: "deprecated",
     SECTORS: "sectors",
 }
 
@@ -91,12 +89,6 @@ export const CompanySelector = (props) => {
                       sx={{width: "100%", ...(state === SELECTOR_STATES.ALL ? {} : sidebarSx)}}
                 >
                     {renderCompanyList({
-                        title: "Watching",
-                        companies: data.watching,
-                        selectorState: SELECTOR_STATES.WATCHING,
-                        secondary: company => company.latestRecordDate,
-                    })}
-                    {renderCompanyList({
                         title: "Owned",
                         companies: data.owned,
                         selectorState: SELECTOR_STATES.OWNED,
@@ -107,12 +99,6 @@ export const CompanySelector = (props) => {
                         companies: data.unreported,
                         selectorState: SELECTOR_STATES.UNREPORTED,
                         secondary: company => company.latestUnreportedPeriodEndingMonth,
-                    })}
-                    {renderCompanyList({
-                        title: "Deprecated",
-                        companies: data.deprecated,
-                        selectorState: SELECTOR_STATES.DEPRECATED,
-                        secondary: company => company.latestRecordDate,
                     })}
                     {sector && data.sectors?.[sector] && renderCompanyList({
                         companies: data.sectors[sector],

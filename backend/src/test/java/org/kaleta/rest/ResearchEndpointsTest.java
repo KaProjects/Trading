@@ -75,7 +75,6 @@ public class ResearchEndpointsTest
 
         assertThat(dto.getCompany().getId(), is(companyId));
         assertThat(dto.getCompany().getTicker(), is("RCH"));
-        assertThat(dto.getCompany().getWatching(), is(true));
         assertThat(dto.getCompany().getCurrency(), is(Currency.$));
 
         assertThat(dto.getPeriods().size(), is(3));

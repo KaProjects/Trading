@@ -31,15 +31,15 @@ export const Companies = props => {
 
     function headerStyle(index){
         const border = "1px solid lightgrey"
-        const borderRight = (index === 9) ? border : "0px"
+        const borderRight = (index === 7) ? border : "0px"
         return {textAlign: "center", borderLeft: border, borderRight: borderRight, borderBottom: border, borderTop: border}
     }
 
     function rowStyle(index){
         const fontWeight = ([].includes(index)) ? "bold" : "normal"
-        const textAlign = ([0, 1, 2, 3].includes(index)) ? "left" : "right"
+        const textAlign = ([0, 1, 2].includes(index)) ? "left" : "right"
         const borderLeft = "1px solid lightgrey"
-        const borderRight = ([9].includes(index)) ? "1px solid lightgrey" : "0px"
+        const borderRight = ([7].includes(index)) ? "1px solid lightgrey" : "0px"
         const fontFamily = "Roboto"
         let color = "primary"
         return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily, color: color}
@@ -63,7 +63,7 @@ export const Companies = props => {
                        onMouseEnter={() => {if (action) setShowAction(true)}}
                        onMouseLeave={() => {if (action) setShowAction(false)}}
             >
-                {index > 3 && showAction &&
+                {index > 2 && showAction &&
                     <IconButton style={{height: "18px", width: "18px", marginRight: "1px"}} onClick={action}>
                         <OpenInNewIcon sx={{width: 16}}/>
                     </IconButton>
@@ -92,18 +92,17 @@ export const Companies = props => {
                 <>
                     <EditCompanyDialog triggerRefresh={triggerRefresh} {...props}/>
                     <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto 10px auto", maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
-                        <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 820, sm: "unset"}}}>
+                        <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 760, sm: "unset"}}}>
                             <TableHead>
                                 <TableRow>
                                     <HeaderCell index={0} value={"Ticker"}/>
                                     <HeaderCell index={1} value={"#"}/>
-                                    <HeaderCell index={2} value={"*"}/>
-                                    <HeaderCell index={3} value={"Sector"}/>
-                                    <HeaderCell index={4} value={"Total Trades"}/>
-                                    <HeaderCell index={5} value={"Active Trades"}/>
-                                    <HeaderCell index={6} value={"Dividends"}/>
-                                    <HeaderCell index={7} value={"Records"}/>
-                                    <HeaderCell index={8} value={"Periods"}/>
+                                    <HeaderCell index={2} value={"Sector"}/>
+                                    <HeaderCell index={3} value={"Total Trades"}/>
+                                    <HeaderCell index={4} value={"Active Trades"}/>
+                                    <HeaderCell index={5} value={"Dividends"}/>
+                                    <HeaderCell index={6} value={"Records"}/>
+                                    <HeaderCell index={7} value={"Periods"}/>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -111,13 +110,12 @@ export const Companies = props => {
                                     <TableRow key={company.id} hover>
                                         <TableCellWithAction index={0} action={() => props.setOpenEditCompany(company)} value={company.ticker}/>
                                         <TableCellWithAction index={1} value={company.currency}/>
-                                        <TableCellWithAction index={2} value={company.watching ? '*' : ''}/>
-                                        <TableCellWithAction index={3} value={company.sector ? company.sector.name : ''}/>
-                                        <TableCellWithAction index={4} value={company.totalTrades} action={() => redirect(company.id, '/trades')}/>
-                                        <TableCellWithAction index={5} value={company.activeTrades} action={() => redirect(company.id, '/trades', ACTIVE_STATES[0])}/>
-                                        <TableCellWithAction index={6} value={company.dividends} action={() => redirect(company.id, '/dividends')}/>
-                                        <TableCellWithAction index={7} value={company.records} action={() => redirect(company.id, '/research')}/>
-                                        <TableCellWithAction index={8} value={company.periods} action={() => redirect(company.id, '/research', null, true)}/>
+                                        <TableCellWithAction index={2} value={company.sector ? company.sector.name : ''}/>
+                                        <TableCellWithAction index={3} value={company.totalTrades} action={() => redirect(company.id, '/trades')}/>
+                                        <TableCellWithAction index={4} value={company.activeTrades} action={() => redirect(company.id, '/trades', ACTIVE_STATES[0])}/>
+                                        <TableCellWithAction index={5} value={company.dividends} action={() => redirect(company.id, '/dividends')}/>
+                                        <TableCellWithAction index={6} value={company.records} action={() => redirect(company.id, '/research')}/>
+                                        <TableCellWithAction index={7} value={company.periods} action={() => redirect(company.id, '/research', null, true)}/>
                                     </TableRow>
                                 ))}
                             </TableBody>

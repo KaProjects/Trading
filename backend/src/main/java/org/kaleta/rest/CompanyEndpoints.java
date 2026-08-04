@@ -99,8 +99,6 @@ public class CompanyEndpoints
     {
         CompanyGroups dto = companyService.getCompanyGroups();
 
-        dto.getWatching().sort(Comparator.comparing(CompanyWithStats::getTicker));
-        dto.getDeprecated().sort(Comparator.comparing(CompanyWithStats::getTicker));
         dto.getOwned().sort(Comparator.comparing(CompanyWithStats::getLatestPurchaseDate, Comparator.nullsLast(Comparator.reverseOrder())));
         dto.getUnreported().sort(Comparator.comparing(CompanyWithStats::getLatestUnreportedPeriodEndingMonth));
 

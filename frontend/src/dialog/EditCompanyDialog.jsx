@@ -9,10 +9,8 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    FormControlLabel,
     MenuItem,
-    Select,
-    Switch
+    Select
 } from "@mui/material";
 import {validateTicker} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
@@ -26,7 +24,6 @@ export const EditCompanyDialog = props => {
     const [alert, setAlert] = useState(null)
     const [ticker, setTicker] = useState("")
     const [currency, setCurrency] = useState("")
-    const [watching, setWatching] = useState(true)
     const [sector, setSector] = useState("")
 
     useEffect(() => {
@@ -34,7 +31,6 @@ export const EditCompanyDialog = props => {
             setAlert(null)
             setTicker(company.id ? company.ticker : "")
             setCurrency(company.id ? company.currency : "")
-            setWatching(company.id ? company.watching : true)
             if ((company.id && company.sector)){
                 props.sectors.forEach(sector => {
                     if (sector.key === company.sector.key) setSector(sector)
@@ -47,7 +43,7 @@ export const EditCompanyDialog = props => {
     }, [company])
 
     function createEditCompany() {
-        const companyData = {ticker: ticker, currency: currency, watching: watching}
+        const companyData = {ticker: ticker, currency: currency}
         if (sector) companyData.sector = sector.key
         if (company.id){
             companyData.id = company.id
@@ -103,14 +99,6 @@ export const EditCompanyDialog = props => {
                         <MenuItem key={index} value={sector} >{sector.name}</MenuItem>
                     ))}
                 </Select>
-                <FormControlLabel
-                    sx={{marginTop: "10px", marginLeft: "5px"}}
-                    control={<Switch color="primary"
-                                     checked={watching}
-                                     onChange={(event) => setWatching(event.target.checked)}/>}
-                    label="Watching"
-                    labelPlacement="start"
-                />
             </DialogContent>
             {alert &&
                 <Alert severity="error" variant="filled">
