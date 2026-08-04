@@ -1,4 +1,6 @@
 import {
+    Alert,
+    AlertTitle,
     Box,
     Button,
     Dialog,
@@ -13,11 +15,16 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    TextField,
 } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import axios from "axios";
 import React, {useEffect, useState} from "react";
-import {formatDecimals} from "../service/FormattingService";
+import {backend} from "../properties";
+import {formatDate, formatDecimals, formatError, formatPeriodName} from "../service/FormattingService";
+import {validateNumber} from "../service/ValidationService";
 
 const priceRows = [
     {label: "t + 20%", factor: 1.20},
@@ -45,6 +52,17 @@ const earningsColumns = [
     {key: "next1", label: "next 1"},
     {key: "next2", label: "next 2"},
     {key: "next3", label: "next 3"},
+];
+
+const estimateFields = [
+    {key: "past4", label: "Past 4"},
+    {key: "past3", label: "Past 3"},
+    {key: "past2", label: "Past 2"},
+    {key: "past1", label: "Past 1"},
+    {key: "current", label: "Current"},
+    {key: "next1", label: "Next 1"},
+    {key: "next2", label: "Next 2"},
+    {key: "next3", label: "Next 3"},
 ];
 
 const border = "1px solid rgba(0, 0, 0, 0.35)";
@@ -88,6 +106,17 @@ const earningsToPrice = (pe, earnings) => {
 };
 
 const inputNumber = value => String(Math.round(value * 100000000) / 100000000);
+const estimateInputPattern = /^-?(?:\d+(?:\.\d*)?|\.\d*)?$/;
+const persistedEstimateKeys = ["current", "next1", "next2", "next3"];
+
+const currentDate = () => {
+    const date = new Date();
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+};
 
 const ProjectionInput = ({value, onChange, onBlur, onStep, label, min}) => (
     <InputBase
@@ -147,9 +176,23 @@ const ProjectionInput = ({value, onChange, onBlur, onStep, label, min}) => (
     />
 );
 
-export const EarningsProjectionsDialog = ({open, handleClose, ticker, currentPrice, earnings, previousPeriod}) => {
+export const EarningsProjectionsDialog = ({
+    open,
+    handleClose,
+    triggerRefresh,
+    ticker,
+    currentPrice,
+    latestPeriod,
+    previousPeriod,
+}) => {
     const [targetPrice, setTargetPrice] = useState("");
     const [targetPe, setTargetPe] = useState("30");
+    const [estimateValues, setEstimateValues] = useState({});
+    const [persistedEstimateValues, setPersistedEstimateValues] = useState({});
+    const [openPersistConfirmation, setOpenPersistConfirmation] = useState(false);
+    const [persistDate, setPersistDate] = useState("");
+    const [savingEstimate, setSavingEstimate] = useState(false);
+    const [saveError, setSaveError] = useState(null);
     const previousPriceHigh = numberValue(previousPeriod?.priceHigh);
     const previousPriceLow = numberValue(previousPeriod?.priceLow);
     const previousPriceRows = previousPriceHigh !== null && previousPriceLow !== null
@@ -158,14 +201,45 @@ export const EarningsProjectionsDialog = ({open, handleClose, ticker, currentPri
             {label: "P (L, Q-1)", price: previousPriceLow},
         ]
         : [];
+    const periodName = typeof latestPeriod?.name === "string"
+        ? latestPeriod.name
+        : formatPeriodName(latestPeriod?.name);
 
     useEffect(() => {
         if (open) {
             const price = numberValue(currentPrice);
             setTargetPrice(price === null ? "" : price.toFixed(2));
             setTargetPe("30");
+            const values = Object.fromEntries(estimateFields.map(field => {
+                const value = latestPeriod?.estimate?.[field.key];
+                return [field.key, numberValue(value) === null ? "" : String(value)];
+            }));
+            setEstimateValues(values);
+            setPersistedEstimateValues(Object.fromEntries(persistedEstimateKeys.map(key => [key, values[key]])));
+            setOpenPersistConfirmation(false);
+            setSaveError(null);
         }
-    }, [open, currentPrice]);
+    }, [open, currentPrice, latestPeriod]);
+
+    const estimateSequence = estimateFields.map(field => numberValue(estimateValues[field.key]));
+    const rollingEarnings = offset => {
+        const values = estimateSequence.slice(offset, offset + 4);
+        return values.length === 4 && !values.includes(null)
+            ? values.reduce((sum, value) => sum + value, 0)
+            : null;
+    };
+    const earnings = Object.fromEntries(earningsColumns.map((column, index) => [
+        column.key,
+        {value: rollingEarnings(index)},
+    ]));
+    const allPersistedValuesValid = persistedEstimateKeys.every(key =>
+        validateNumber(estimateValues[key] ?? "", false, 6, 2, true) === "");
+    const persistedValuesChanged = persistedEstimateKeys.some(key =>
+        numberValue(estimateValues[key]) !== numberValue(persistedEstimateValues[key]));
+    const canPersistEstimate = Boolean(latestPeriod?.id)
+        && allPersistedValuesValid
+        && persistedValuesChanged
+        && !savingEstimate;
 
     const stepTargetPrice = direction => {
         const price = numberValue(targetPrice);
@@ -190,10 +264,94 @@ export const EarningsProjectionsDialog = ({open, handleClose, ticker, currentPri
         setTargetPe(inputNumber(Math.max(15, pe + direction * 5)));
     };
 
+    const openPersistEstimateConfirmation = () => {
+        setPersistDate(currentDate());
+        setSaveError(null);
+        setOpenPersistConfirmation(true);
+    };
+
+    const persistEstimate = () => {
+        if (!canPersistEstimate) return;
+
+        setSavingEstimate(true);
+        setSaveError(null);
+        axios.post(`${backend}/estimate/${latestPeriod.id}`, {
+            date: persistDate,
+            current: estimateValues.current,
+            next1: estimateValues.next1,
+            next2: estimateValues.next2,
+            next3: estimateValues.next3,
+        })
+            .then(() => {
+                setPersistedEstimateValues(Object.fromEntries(
+                    persistedEstimateKeys.map(key => [key, estimateValues[key]])));
+                setOpenPersistConfirmation(false);
+                triggerRefresh?.();
+            })
+            .catch(error => setSaveError(formatError(error)))
+            .finally(() => setSavingEstimate(false));
+    };
+
     return (
+        <>
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="lg">
-            <DialogTitle>{ticker} - Earnings and Price Projections</DialogTitle>
+            <DialogTitle>{ticker} - {periodName || "-"} - Earnings and Price Projections</DialogTitle>
             <DialogContent sx={{padding: 2}}>
+                <Box sx={{display: "flex", alignItems: "flex-start", gap: 1, marginBottom: 2, paddingTop: 1}}>
+                    <Box
+                        sx={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(8, 60px)",
+                            columnGap: "20px",
+                        }}
+                    >
+                        {estimateFields.map(field => {
+                            const missing = numberValue(estimateValues[field.key]) === null;
+                            return (
+                                <TextField
+                                key={field.key}
+                                type="text"
+                                size="small"
+                                variant="standard"
+                                label={field.label}
+                                value={estimateValues[field.key] ?? ""}
+                                onChange={event => {
+                                    const value = event.target.value;
+                                    if (estimateInputPattern.test(value)) {
+                                        setEstimateValues(values => ({
+                                            ...values,
+                                            [field.key]: value,
+                                        }));
+                                    }
+                                }}
+                                error={missing}
+                                helperText={missing ? "Required" : " "}
+                                inputProps={{inputMode: "decimal"}}
+                                sx={{
+                                    "& .MuiInputBase-input": {textAlign: "center", paddingBottom: "2px"},
+                                    "& .MuiInputLabel-root": {
+                                        width: "100%",
+                                        textAlign: "center",
+                                        transformOrigin: "top center",
+                                    },
+                                    "& .MuiInputLabel-root.MuiInputLabel-shrink": {
+                                        transform: "translate(0, 0.5px) scale(0.75)",
+                                    },
+                                }}
+                                FormHelperTextProps={{sx: {fontSize: 10, margin: 0, textAlign: "center"}}}
+                                />
+                            );
+                        })}
+                    </Box>
+                    <IconButton
+                        aria-label="Save estimate"
+                        disabled={!canPersistEstimate}
+                        onClick={openPersistEstimateConfirmation}
+                        sx={{marginTop: "5px"}}
+                    >
+                        <SaveOutlinedIcon/>
+                    </IconButton>
+                </Box>
                 <TableContainer>
                     <Table
                         size="small"
@@ -378,5 +536,29 @@ export const EarningsProjectionsDialog = ({open, handleClose, ticker, currentPri
                 <Button onClick={handleClose}>Close</Button>
             </DialogActions>
         </Dialog>
+        <Dialog
+            open={openPersistConfirmation}
+            onClose={() => !savingEstimate && setOpenPersistConfirmation(false)}
+            maxWidth="sm"
+            fullWidth
+        >
+            <DialogTitle>Persist Estimate</DialogTitle>
+            <DialogContent>
+                <Box>
+                    Do you want to persist new estimate values for {ticker} {periodName} as of {formatDate(persistDate)}?
+                </Box>
+                {saveError &&
+                    <Alert severity="error" sx={{marginTop: 2}}>
+                        <AlertTitle>{saveError.title}</AlertTitle>
+                        {saveError.message}
+                    </Alert>
+                }
+            </DialogContent>
+            <DialogActions>
+                <Button disabled={savingEstimate} onClick={() => setOpenPersistConfirmation(false)}>Cancel</Button>
+                <Button disabled={savingEstimate || !canPersistEstimate} onClick={persistEstimate}>Add</Button>
+            </DialogActions>
+        </Dialog>
+        </>
     );
 };

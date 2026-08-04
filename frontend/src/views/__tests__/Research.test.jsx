@@ -32,7 +32,7 @@ jest.mock("../../dialog/FinancialsDialog", () => ({
 }));
 jest.mock("../../dialog/EarningsProjectionsDialog", () => ({
     EarningsProjectionsDialog: (props) => props.open
-        ? <div>earnings-projections-dialog:{props.ticker}:{props.currentPrice}:{props.earnings.current.value}:{props.previousPeriod.priceHigh}</div>
+        ? <div>earnings-projections-dialog:{props.ticker}:{props.currentPrice}:{props.latestPeriod.name}:{props.latestPeriod.estimate.current}:{props.previousPeriod.priceHigh}</div>
         : null,
 }));
 jest.mock("../../dialog/AddRecordDialog", () => ({
@@ -122,7 +122,20 @@ function createResearchData(overrides = {}) {
             next3: {value: 26, change: 18.18},
         },
         periods: [
-            {id: "period-1"},
+            {
+                id: "period-1",
+                name: "26Q2",
+                estimate: {
+                    past4: 1,
+                    past3: 2,
+                    past2: 3,
+                    past1: 4,
+                    current: 5,
+                    next1: 6,
+                    next2: 7,
+                    next3: 8,
+                },
+            },
             {id: "period-2", priceHigh: 140, priceLow: 80},
         ],
         importablePeriods: [],
@@ -203,7 +216,7 @@ describe("Research", () => {
 
         await screen.findByTestId("period-estimates-overview");
         fireEvent.click(screen.getByTestId("period-estimates-overview"));
-        expect(screen.getByText("earnings-projections-dialog:AAPL:123.45:14:140")).toBeInTheDocument();
+        expect(screen.getByText("earnings-projections-dialog:AAPL:123.45:26Q2:5:140")).toBeInTheDocument();
     });
 
     test("opens the estimate dialog for a period", async () => {

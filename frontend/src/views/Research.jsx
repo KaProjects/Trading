@@ -214,9 +214,10 @@ export const Research = props => {
                             <EarningsProjectionsDialog
                                 open={openEarningsProjectionsDialog}
                                 handleClose={() => setOpenEarningsProjectionsDialog(false)}
+                                triggerRefresh={triggerRefresh}
                                 ticker={data.company.ticker}
                                 currentPrice={data.latest?.price}
-                                earnings={data.estimateOverview}
+                                latestPeriod={data.periods[0]}
                                 previousPeriod={data.periods[1]}
                             />
                             <AddEstimateDialog
