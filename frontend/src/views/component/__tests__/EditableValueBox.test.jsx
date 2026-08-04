@@ -18,6 +18,27 @@ describe("EditableValueBox", () => {
         expect(container.firstChild).toHaveStyle("margin-top: -4px");
     });
 
+    test("renders a prefix and does not enter editing mode when disabled", () => {
+        render(
+            <EditableValueBox
+                value={"123"}
+                prefix={"$"}
+                label={"Price"}
+                validate={() => ""}
+                update={jest.fn()}
+                disabled
+            />
+        );
+
+        const button = screen.getByRole("button");
+        expect(button).toHaveTextContent("$123");
+        expect(button).toHaveAttribute("aria-disabled", "true");
+
+        fireEvent.click(button);
+
+        expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    });
+
     test("renders optional secondary content inside the editable button", () => {
         render(
             <EditableValueBox

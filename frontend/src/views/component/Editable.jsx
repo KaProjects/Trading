@@ -2,11 +2,15 @@ import React, {useEffect, useState} from "react";
 import {Box, FormControl, FormHelperText, Input, InputLabel} from "@mui/material";
 import "../../style/Blinking.css";
 
+const normalizeValue = (value) => value === null || value === undefined
+    ? ""
+    : String(value);
+
 export const Editable = ({value, label, validate, update, style, startAdornment, children}) => {
 
     const [editing, setEditing] = useState(false)
-    const [showValue, setShowValue] = useState(value ? value : "")
-    const [editValue, setEditValue] = useState(value ? value : "")
+    const [showValue, setShowValue] = useState(normalizeValue(value))
+    const [editValue, setEditValue] = useState(normalizeValue(value))
 
     const [error, setError] = useState(null)
 
@@ -15,7 +19,7 @@ export const Editable = ({value, label, validate, update, style, startAdornment,
     }, [editValue, editing])
 
     useEffect(() => {
-        const newValue = value ?? "";
+        const newValue = normalizeValue(value);
         setShowValue(newValue);
         setEditValue(newValue);
         setEditing(false);

@@ -8,15 +8,19 @@ jest.mock("../EditableTypography", () => ({
     )
 }));
 jest.mock("../EditableValueBox", () => ({
-    EditableValueBox: ({value, suffix, label, style, update}) => (
-        <button
-            data-testid={"editable-value-" + label}
-            style={{opacity: style?.opacity, pointerEvents: style?.pointerEvents}}
-            onClick={() => update && update("Updated target")}
-        >
-            {label}:{value}{suffix}
-        </button>
-    )
+    EditableValueBox: ({value, prefix, suffix, label, style, formatValue, update, disabled}) => {
+        const displayedValue = formatValue ? formatValue(String(value)) : value;
+        return (
+            <button
+                data-testid={"editable-value-" + label}
+                style={{opacity: style?.opacity, pointerEvents: style?.pointerEvents}}
+                aria-disabled={disabled}
+                onClick={() => !disabled && update && update(label === "Dividend yield" ? "6.25" : "Updated target")}
+            >
+                {label}:{prefix}{displayedValue}{suffix}
+            </button>
+        );
+    }
 }));
 jest.mock("../ContentEditor", () => ({
     ContentEditor: ({content, update}) => (
@@ -68,13 +72,16 @@ describe("Record", () => {
         );
 
         expect(screen.getByText("09.05.2026")).toBeInTheDocument();
-        expect(screen.getByText("$123")).toBeInTheDocument();
-        expect(screen.getByText("PS:1")).toBeInTheDocument();
-        expect(screen.getByText("PG:2")).toBeInTheDocument();
-        expect(screen.getByText("PO:3")).toBeInTheDocument();
-        expect(screen.getByText("PE:4")).toBeInTheDocument();
-        expect(screen.getByText("DY:5")).toBeInTheDocument();
+        expect(screen.getByTestId("record-summary")).toHaveStyle("gap: 5px");
+        expect(screen.getByText("Price:$123")).toBeInTheDocument();
+        expect(screen.getByTestId("editable-value-Price")).toHaveAttribute("aria-disabled", "true");
+        expect(screen.getByText("Price to financials ratios:1 / 2 / 3 / 4")).toBeInTheDocument();
+        expect(screen.getByTestId("editable-value-Price to financials ratios")).toHaveAttribute("aria-disabled", "true");
+        expect(screen.getByText("Dividend yield:5%")).toBeInTheDocument();
         expect(screen.getByText("Targets:T$")).toBeInTheDocument();
+        expect(screen.getByTestId("editable-value-Price").compareDocumentPosition(
+            screen.getByTestId("editable-value-Targets")
+        ) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(screen.getByText("Strategy:")).toBeInTheDocument();
         expect(screen.getByText("Content:")).toBeInTheDocument();
         expect(screen.getByText("aggregate:3@100$:23:69")).toBeInTheDocument();
@@ -101,6 +108,47 @@ describe("Record", () => {
 
         expect(screen.getByTestId("editable-value-Targets")).toHaveStyle("opacity: 0");
         expect(screen.getByTestId("editable-value-Targets")).toHaveStyle("pointer-events: none");
+    });
+
+    test("hides empty dividend yield until record hover", () => {
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    priceToRevenues: 1,
+                    priceToGrossProfit: 2,
+                    priceToOperatingIncome: 3,
+                    priceToNetIncome: 4,
+                    dividendYield: null,
+                    targets: "T",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("editable-value-Dividend yield")).toHaveStyle("opacity: 0");
+        expect(screen.getByTestId("editable-value-Dividend yield")).toHaveStyle("pointer-events: none");
+    });
+
+    test("does not render financial ratios when all four values are missing", () => {
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    dividendYield: 5,
+                    targets: "T",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        expect(screen.queryByTestId("editable-value-Price to financials ratios")).not.toBeInTheDocument();
     });
 
     test("keeps targets visible when they are set", () => {
@@ -190,6 +238,34 @@ describe("Record", () => {
             {id: "record-1", targets: "Updated target"}
         ));
         await waitFor(() => expect(screen.getByText("Targets:Updated target$")).toBeInTheDocument());
+    });
+
+    test("updates dividend yield through axios and refreshes local record state", async () => {
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    priceToRevenues: 1,
+                    priceToGrossProfit: 2,
+                    priceToOperatingIncome: 3,
+                    priceToNetIncome: 4,
+                    dividendYield: 5,
+                    targets: "T",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        fireEvent.click(screen.getByText("Dividend yield:5%"));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
+            expect.stringContaining("/record"),
+            {id: "record-1", dividendYield: "6.25"}
+        ));
+        await waitFor(() => expect(screen.getByText("Dividend yield:6.25%")).toBeInTheDocument());
     });
 
     test("does not render asset when record has no asset", () => {

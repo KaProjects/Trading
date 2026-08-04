@@ -111,6 +111,12 @@ public class RecordService
         if (dto.getStrategy() != null) record.setStrategy(dto.getStrategy());
         if (dto.getRetro() != null) record.setRetro(dto.getRetro());
         if (dto.getTargets() != null) record.setTargets(dto.getTargets());
+        if (dto.getPrice() != null) record.setPrice(new BigDecimal(dto.getPrice()));
+        if (dto.getDividendYield() != null) record.setDividendYield(new BigDecimal(dto.getDividendYield()));
+        if (dto.getPriceToRevenues() != null) record.setPriceToRevenues(Utils.createNullableBigDecimal(dto.getPriceToRevenues()));
+        if (dto.getPriceToGrossProfit() != null) record.setPriceToGrossProfit(Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
+        if (dto.getPriceToOperatingIncome() != null) record.setPriceToOperatingIncome(Utils.createNullableBigDecimal(dto.getPriceToOperatingIncome()));
+        if (dto.getPriceToNetIncome() != null) record.setPriceToNetIncome(Utils.createNullableBigDecimal(dto.getPriceToNetIncome()));
         if (dto.getSumAssetQuantity() != null) record.setSumAssetQuantity(Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
         if (dto.getAvgAssetPrice() != null) record.setAvgAssetPrice(Utils.createNullableBigDecimal(dto.getAvgAssetPrice()));
 

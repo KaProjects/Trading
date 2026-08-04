@@ -236,6 +236,12 @@ class RecordEndpointsTest
         String newStrategy = "buy as many as possible";
         String newRetro = "retro notes";
         String newTargets = "10-5~7";
+        String newPrice = "321.45";
+        String newDividendYield = "6.25";
+        String newPriceToRevenues = "1.25";
+        String newPriceToGrossProfit = "2.5";
+        String newPriceToOperatingIncome = "-3.75";
+        String newPriceToNetIncome = "4.25";
         String newSumAssetQuantity = "12.5";
         String newAvgAssetPrice = "123.45";
 
@@ -247,6 +253,12 @@ class RecordEndpointsTest
         dto.setStrategy(newStrategy);
         dto.setRetro(newRetro);
         dto.setTargets(newTargets);
+        dto.setPrice(newPrice);
+        dto.setDividendYield(newDividendYield);
+        dto.setPriceToRevenues(newPriceToRevenues);
+        dto.setPriceToGrossProfit(newPriceToGrossProfit);
+        dto.setPriceToOperatingIncome(newPriceToOperatingIncome);
+        dto.setPriceToNetIncome(newPriceToNetIncome);
         dto.setSumAssetQuantity(newSumAssetQuantity);
         dto.setAvgAssetPrice(newAvgAssetPrice);
 
@@ -262,6 +274,12 @@ class RecordEndpointsTest
         assertThat(records.get(0).getStrategy(), is(newStrategy));
         assertThat(records.get(0).getRetro(), is(newRetro));
         assertThat(records.get(0).getTargets(), is(newTargets));
+        assertBigDecimals(records.get(0).getPrice(), new BigDecimal(newPrice));
+        assertBigDecimals(records.get(0).getDividendYield(), new BigDecimal(newDividendYield));
+        assertBigDecimals(records.get(0).getPriceToRevenues(), new BigDecimal(newPriceToRevenues));
+        assertBigDecimals(records.get(0).getPriceToGrossProfit(), new BigDecimal(newPriceToGrossProfit));
+        assertBigDecimals(records.get(0).getPriceToOperatingIncome(), new BigDecimal(newPriceToOperatingIncome));
+        assertBigDecimals(records.get(0).getPriceToNetIncome(), new BigDecimal(newPriceToNetIncome));
         assertBigDecimals(records.get(0).getSumAssetQuantity(), new BigDecimal(newSumAssetQuantity));
         assertBigDecimals(records.get(0).getAvgAssetPrice(), new BigDecimal(newAvgAssetPrice));
 

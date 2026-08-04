@@ -4,7 +4,19 @@ import React from "react";
 import Tooltip from "@mui/material/Tooltip";
 import {Editable} from "./Editable";
 
-export const EditableValueBox = ({value, suffix, label, style, valueStyle, formatValue, validate, update, secondary}) => {
+export const EditableValueBox = ({
+    value,
+    prefix,
+    suffix,
+    label,
+    style,
+    valueStyle,
+    formatValue,
+    validate,
+    update,
+    secondary,
+    disabled = false,
+}) => {
 
     return (
         <Editable
@@ -13,7 +25,10 @@ export const EditableValueBox = ({value, suffix, label, style, valueStyle, forma
             validate={validate}
             update={update}
             style={style}
-            startAdornment={<InputAdornment position="start">{suffix}</InputAdornment>}
+            startAdornment={(prefix || suffix)
+                ? <InputAdornment position="start">{prefix || suffix}</InputAdornment>
+                : undefined
+            }
         >
             {({showValue, setEditing}) =>
                 <Tooltip
@@ -32,12 +47,16 @@ export const EditableValueBox = ({value, suffix, label, style, valueStyle, forma
                                 flexDirection: "column",
                                 lineHeight: 1.2,
                                 textTransform: 'none',
+                                cursor: disabled ? "default" : "pointer",
                             }}
-                            onClick={() => setEditing(true)}
+                            aria-disabled={disabled}
+                            onClick={() => {
+                                if (!disabled) setEditing(true);
+                            }}
                     >
                         {showValue &&
                             <Typography sx={{fontFamily: "Roboto", ...valueStyle}}>
-                                {formatValue ? formatValue(showValue) : showValue}{suffix}
+                                {prefix}{formatValue ? formatValue(showValue) : showValue}{suffix}
                             </Typography>
                         }
                         {!showValue && <ControlPointIcon sx={{color: '#eeeeee',}}/>}

@@ -85,6 +85,33 @@ describe("Editable", () => {
         expect(screen.queryByRole("button", {name: "Initial Value"})).not.toBeInTheDocument();
     });
 
+    test("normalizes a numeric API value to a string before validation", () => {
+        const validate = jest.fn((value) => typeof value === "string" ? "" : "not a string");
+        const update = jest.fn();
+
+        render(
+            <Editable
+                value={5}
+                label="Dividend yield"
+                validate={validate}
+                update={update}
+            >
+                {({showValue, setEditing}) =>
+                    <button onClick={() => setEditing(true)}>{showValue}</button>
+                }
+            </Editable>
+        );
+
+        fireEvent.click(screen.getByRole("button", {name: "5"}));
+
+        expect(screen.getByRole("textbox")).toHaveValue("5");
+        expect(screen.queryByText("not a string")).not.toBeInTheDocument();
+        expect(validate).toHaveBeenCalledWith("5");
+
+        fireEvent.blur(screen.getByRole("textbox"));
+        expect(update).not.toHaveBeenCalled();
+    });
+
     test("shows validation message while editing invalid value", () => {
         render(
             <Editable

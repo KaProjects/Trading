@@ -1,5 +1,5 @@
-import {formatDate, formatError} from "../../service/FormattingService";
-import {Box, Button, Dialog, DialogActions, DialogTitle, Stack, Tooltip} from "@mui/material";
+import {formatDate, formatDecimals, formatError} from "../../service/FormattingService";
+import {Button, Dialog, DialogActions, DialogTitle, Stack, Tooltip} from "@mui/material";
 import {RecordAssetAggregate} from "./RecordAssetAggregate";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
@@ -14,6 +14,63 @@ import {ReactComponent as StrategyPlusIcon} from "../../assets/icons/strategy-pl
 import {ReactComponent as RetroPlusIcon} from "../../assets/icons/retro-plus.svg";
 import {ReactComponent as DeleteIcon} from "../../assets/icons/delete.svg";
 import {EditableValueBox} from "./EditableValueBox";
+import {validateNumber} from "../../service/ValidationService";
+
+const FINANCIAL_RATIO_LABELS = ["PS", "PG", "PO", "PE"];
+
+function financialRatiosValue(record) {
+    return [
+        record.priceToRevenues,
+        record.priceToGrossProfit,
+        record.priceToOperatingIncome,
+        record.priceToNetIncome,
+    ].map(value => value ?? "").join("/");
+}
+
+function hasValue(value) {
+    return value !== null && value !== undefined && value !== "";
+}
+
+function hasFinancialRatios(record) {
+    return [
+        record.priceToRevenues,
+        record.priceToGrossProfit,
+        record.priceToOperatingIncome,
+        record.priceToNetIncome,
+    ].some(hasValue);
+}
+
+function summaryEditableStyle(value) {
+    if (hasValue(value)) return {};
+
+    return {
+        opacity: 0,
+        pointerEvents: "none",
+        transition: "opacity 120ms ease-in-out",
+        ".mainContainer:hover &": {
+            opacity: 1,
+            pointerEvents: "auto",
+        },
+    };
+}
+
+function formatFinancialRatios(value) {
+    return value.split("/")
+        .map(ratio => ratio.trim())
+        .map(ratio => ratio === "" ? "-" : formatDecimals(Number(ratio), 0, 2))
+        .join(" / ");
+}
+
+function validateFinancialRatios(value) {
+    const ratios = value.split("/").map(ratio => ratio.trim());
+    if (ratios.length !== 4) return "Use format PS/PG/PO/PE";
+
+    for (let index = 0; index < ratios.length; index++) {
+        const error = validateNumber(ratios[index], false, 6, 2, index > 0);
+        if (error) return `${FINANCIAL_RATIO_LABELS[index]}: ${error}`;
+    }
+    return "";
+}
 
 
 export const Record = ({data, currency, setAlert, deleteRecord}) => {
@@ -68,6 +125,26 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
         updateRecord({id: record.id, targets: value})
     }
 
+    function updatePrice(value) {
+        return updateRecord({id: record.id, price: value})
+    }
+
+    function updateDividendYield(value) {
+        return updateRecord({id: record.id, dividendYield: value})
+    }
+
+    function updateFinancialRatios(value) {
+        const [priceToRevenues, priceToGrossProfit, priceToOperatingIncome, priceToNetIncome]
+            = value.split("/").map(ratio => ratio.trim());
+        return updateRecord({
+            id: record.id,
+            priceToRevenues,
+            priceToGrossProfit,
+            priceToOperatingIncome,
+            priceToNetIncome,
+        })
+    }
+
     function updateAsset(quantity, purchasePrice) {
         return updateRecord({
             id: record.id,
@@ -96,38 +173,47 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
         <BorderedSection title={formatDate(record.date)} style={{color: 'text.primary'}}>
 
             <Stack
+                data-testid="record-summary"
                 direction="row"
                 justifyContent="flex-start"
                 alignItems="stretch"
-                spacing={2}
-                sx={{flexWrap: {xs: "wrap", sm: "nowrap"}, rowGap: {xs: 1, sm: 0}}}
+                sx={{flexWrap: {xs: "wrap", sm: "nowrap"}, gap: "5px"}}
             >
-                <Box>{currency}{record.price}</Box>
-                <Box>PS:{record.priceToRevenues}</Box>
-                <Box>PG:{record.priceToGrossProfit}</Box>
-                <Box>PO:{record.priceToOperatingIncome}</Box>
-                <Box>PE:{record.priceToNetIncome}</Box>
-                <Box>DY:{record.dividendYield}</Box>
+                <EditableValueBox
+                    value={record.price}
+                    prefix={currency}
+                    label="Price"
+                    formatValue={(value) => formatDecimals(Number(value), 0, 4)}
+                    validate={(value) => validateNumber(value, false, 10, 4, false)}
+                    update={updatePrice}
+                    disabled
+                />
                 <EditableValueBox
                     value={record.targets}
                     suffix={currency}
                     label={"Targets"}
-                    style={
-                        !record.targets
-                        ? {
-                            transform: "translateY(-4px)",
-                            opacity: 0,
-                            pointerEvents: "none",
-                            transition: "opacity 120ms ease-in-out",
-                            ".mainContainer:hover &": {
-                                opacity: 1,
-                                pointerEvents: "auto",
-                            },
-                        }
-                        : {transform: "translateY(-4px)",}
-                    }
+                    style={summaryEditableStyle(record.targets)}
                     validate={() => ""}
                     update={(value) => updateTargets(value)}
+                />
+                {hasFinancialRatios(record) &&
+                    <EditableValueBox
+                        value={financialRatiosValue(record)}
+                        label="Price to financials ratios"
+                        formatValue={formatFinancialRatios}
+                        validate={validateFinancialRatios}
+                        update={updateFinancialRatios}
+                        disabled
+                    />
+                }
+                <EditableValueBox
+                    value={record.dividendYield}
+                    suffix="%"
+                    label="Dividend yield"
+                    style={summaryEditableStyle(record.dividendYield)}
+                    formatValue={(value) => formatDecimals(Number(value), 0, 2)}
+                    validate={(value) => validateNumber(value, false, 5, 2, false)}
+                    update={updateDividendYield}
                 />
             </Stack>
 

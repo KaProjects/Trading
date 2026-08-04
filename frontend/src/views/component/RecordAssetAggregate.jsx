@@ -65,7 +65,7 @@ export const RecordAssetAggregate = ({asset, currency, update}) => {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                margin: "8px 0 2px 10px",
+                margin: "3px 0 2px 0",
                 width: "fit-content",
                 maxWidth: "100%",
                 lineHeight: 1.25,
