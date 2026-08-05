@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.comparesEqualTo;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -27,7 +28,7 @@ public class Assert
         public static final String BIG_DECIMAL_5_2_false = constructBigDecimal(5,2, false);
         public static final String NOT_NULL = "must not be null";
         public static final String MATCH_DATE_FORMAT = "must match YYYY-MM-DD";
-        public static final String VALID_UUID = "must be a valid UUID";
+        public static final String VALID_ID = "must be a valid entity ID";
 
         private static String constructBigDecimal(int integer, int decimal, boolean negative) {
             return String.format(
@@ -147,8 +148,9 @@ public class Assert
         assertThat(validationErrorResponse.getTitle(), is("Constraint Violation"));
         assertThat(validationErrorResponse.getStatus(), is(400));
         assertThat(validationErrorResponse.getViolations().toString(),validationErrorResponse.getViolations().size(), is(expectedViolations.length));
-        for (int i = 0; i < expectedViolations.length; i++) {
-            assertThat(validationErrorResponse.getViolations().get(i).getMessage(), is(expectedViolations[i]));
-        }
+        assertThat(
+                validationErrorResponse.getViolations().stream().map(violation -> violation.getMessage()).toList(),
+                containsInAnyOrder(expectedViolations)
+        );
     }
 }

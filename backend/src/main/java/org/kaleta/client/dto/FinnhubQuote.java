@@ -1,8 +1,10 @@
 package org.kaleta.client.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
 
 @Data
+@RegisterForReflection
 public class FinnhubQuote
 {
     private String c;

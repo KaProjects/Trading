@@ -1,5 +1,11 @@
 *
-!target/*-runner
-!target/*-runner.jar
-!target/lib/*
-!target/quarkus-app/*
+!.mvn/
+!.mvn/**
+!mvnw
+!pom.xml
+!src/
+!src/main/
+!src/main/**
+
+firebase-service-account.json
+src/dev/resources/firebase.json

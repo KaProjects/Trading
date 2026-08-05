@@ -31,13 +31,12 @@ public class CompanyAggregates
             this.setId(company.getId());
             this.setTicker(company.getTicker());
             this.setCurrency(company.getCurrency());
-            this.setWatching(company.getWatching());
             this.setSector(company.getSector());
         }
     }
 
     public enum Sort {
-        TICKER, CURRENCY, WATCHING, SECTOR, ALL_TRADES, ACTIVE_TRADES, DIVIDENDS, RECORDS, PERIODS
+        TICKER, CURRENCY, SECTOR, ALL_TRADES, ACTIVE_TRADES, DIVIDENDS, RECORDS, PERIODS
     }
 
     public void sort(Sort sort) {
@@ -47,9 +46,6 @@ public class CompanyAggregates
                 break;
             case CURRENCY:
                 companies.sort(Comparator.comparing(Company::getCurrency));
-                break;
-            case WATCHING:
-                companies.sort(Comparator.comparing(Company::getWatching, Comparator.reverseOrder()));
                 break;
             case SECTOR:
                 companies.sort(Comparator.comparing(Company::getSector, Comparator.nullsLast(Comparator.comparing(Company.Sector::getKey))));

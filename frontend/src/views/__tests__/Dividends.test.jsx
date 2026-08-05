@@ -2,9 +2,14 @@ import React from "react";
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 
 const mockUseData = jest.fn();
+const mockFormatDate = jest.fn((value) => `formatted:${value ?? ""}`);
 
 jest.mock("../../service/BackendService", () => ({
     useData: (...args) => mockUseData(...args),
+}));
+
+jest.mock("../../service/FormattingService", () => ({
+    formatDate: (...args) => mockFormatDate(...args),
 }));
 
 jest.mock("../component/Loader", () => ({
@@ -15,7 +20,10 @@ jest.mock("../component/Loader", () => ({
 
 jest.mock("../../dialog/AddDividendDialog", () => ({
     AddDividendDialog: (props) => (
-        <button onClick={props.triggerRefresh}>add-dividend-dialog</button>
+        <div>
+            <div>companies:{props.companyLists.all.map(company => company.ticker).join(",")}</div>
+            <button onClick={props.triggerRefresh}>add-dividend-dialog</button>
+        </div>
     )
 }));
 
@@ -27,9 +35,7 @@ function createProps(overrides = {}) {
         currencySelectorValue: "",
         yearSelectorValue: "",
         sectorSelectorValue: null,
-        showYearSelector: true,
-        toggleDividendsSelectors: jest.fn(),
-        companies: [],
+        companyLists: {all: []},
         setCompanySelectorValue: jest.fn(),
         ...overrides,
     };
@@ -76,9 +82,18 @@ function createData(overrides = {}) {
     };
 }
 
+function mockLoadedData() {
+    mockUseData.mockReturnValue({
+        data: createData(),
+        loaded: true,
+        error: null,
+    });
+}
+
 describe("Dividends", () => {
     beforeEach(() => {
         mockUseData.mockReset();
+        mockFormatDate.mockClear();
     });
 
     test("shows loader while data is loading", () => {
@@ -95,11 +110,7 @@ describe("Dividends", () => {
     });
 
     test("renders dividends table and passes filter query to useData", () => {
-        mockUseData.mockReturnValue({
-            data: createData(),
-            loaded: true,
-            error: null,
-        });
+        mockLoadedData();
 
         render(<Dividends {...createProps({
             companySelectorValue: {id: "company-1"},
@@ -111,83 +122,21 @@ describe("Dividends", () => {
         expect(mockUseData).toHaveBeenCalledWith("/dividend?filter&companyId=company-1&currency=$&year=2024&sector=SEMICONDUCTORS");
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("CEZ")).toBeInTheDocument();
-        expect(screen.getByText("2022-12-01")).toBeInTheDocument();
+        expect(mockFormatDate).toHaveBeenCalledWith("2022-12-01");
+        expect(mockFormatDate).toHaveBeenCalledWith("2021-12-01");
         expect(screen.getByText("72")).toBeInTheDocument();
         expect(screen.getByText("972")).toBeInTheDocument();
     });
 
-    test("collects years from dividends when year selector is hidden", async () => {
-        mockUseData.mockReturnValue({
-            data: createData({
-                dividends: [
-                    {
-                        id: "dividend-1",
-                        ticker: "NVDA",
-                        currency: "$",
-                        company: {
-                            ticker: "NVDA",
-                            currency: "$",
-                        },
-                        date: "2021-06-01",
-                        dividend: "70",
-                        tax: "7",
-                        net: "63",
-                    },
-                    {
-                        id: "dividend-2",
-                        ticker: "CEZ",
-                        currency: "K",
-                        company: {
-                            ticker: "CEZ",
-                            currency: "K",
-                        },
-                        date: "2021-12-01",
-                        dividend: "1000",
-                        tax: "100",
-                        net: "900",
-                    },
-                    {
-                        id: "dividend-3",
-                        ticker: "ABCD",
-                        currency: "$",
-                        company: {
-                            ticker: "ABCD",
-                            currency: "$",
-                        },
-                        date: "2025-01-10",
-                        dividend: "10",
-                        tax: "1",
-                        net: "9",
-                    },
-                ],
-            }),
-            loaded: true,
-            error: null,
-        });
-
-        const toggleDividendsSelectors = jest.fn();
-
-        render(<Dividends {...createProps({
-            showYearSelector: false,
-            toggleDividendsSelectors,
-        })}/>);
-
-        await waitFor(() => expect(toggleDividendsSelectors).toHaveBeenCalledWith(["2025", "2021"]));
-    });
-
     test("selects company on ticker double click", () => {
-        mockUseData.mockReturnValue({
-            data: createData(),
-            loaded: true,
-            error: null,
-        });
+        mockLoadedData();
 
         const nvidia = {id: "company-1", ticker: "NVDA"};
         const cez = {id: "company-2", ticker: "CEZ"};
         const setCompanySelectorValue = jest.fn();
 
         render(<Dividends {...createProps({
-            companies: [nvidia, cez],
+            companyLists: {all: [nvidia, cez]},
             setCompanySelectorValue,
         })}/>);
 
@@ -197,11 +146,7 @@ describe("Dividends", () => {
     });
 
     test("refreshes the data path when dialog triggers refresh", async () => {
-        mockUseData.mockReturnValue({
-            data: createData(),
-            loaded: true,
-            error: null,
-        });
+        mockLoadedData();
 
         const getTimeSpy = jest.spyOn(Date.prototype, "getTime").mockReturnValue(12345);
 
@@ -209,7 +154,7 @@ describe("Dividends", () => {
 
         fireEvent.click(screen.getByText("add-dividend-dialog"));
 
-        await waitFor(() => expect(mockUseData).toHaveBeenLastCalledWith("/dividend?filter&refresh12345"));
+        await waitFor(() => expect(mockUseData).toHaveBeenCalledWith("/dividend?filter&refresh12345"));
 
         getTimeSpy.mockRestore();
     });

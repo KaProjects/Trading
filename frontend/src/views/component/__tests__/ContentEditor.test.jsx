@@ -2,6 +2,10 @@ import {render, screen} from "@testing-library/react";
 import {ContentEditor} from "../ContentEditor";
 
 describe("ContentEditor", () => {
+    beforeAll(() => {
+        global.structuredClone = value => JSON.parse(JSON.stringify(value));
+    });
+
     test("renders existing content", () => {
         render(
             <ContentEditor

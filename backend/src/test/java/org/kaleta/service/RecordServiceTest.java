@@ -27,7 +27,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -105,10 +104,10 @@ public class RecordServiceTest
         updateAndAssertRecord(dto, record, null);
 
         dto.setTitle("");
-        updateAndAssertRecord(dto, record, InvalidInputException.class);
+        updateAndAssertRecord(dto, record, null);
 
         dto.setTitle("   ");
-        updateAndAssertRecord(dto, record, InvalidInputException.class);
+        updateAndAssertRecord(dto, record, null);
 
         dto.setTitle("title");
         updateAndAssertRecord(dto, record, null);
@@ -116,10 +115,37 @@ public class RecordServiceTest
         dto.setContent("content");
         updateAndAssertRecord(dto, record, null);
 
+        dto.setReview("review");
+        updateAndAssertRecord(dto, record, null);
+
         dto.setStrategy("strategy");
         updateAndAssertRecord(dto, record, null);
 
+        dto.setRetro("retro");
+        updateAndAssertRecord(dto, record, null);
+
         dto.setTargets("targets");
+        updateAndAssertRecord(dto, record, null);
+
+        dto.setPrice("123.45");
+        updateAndAssertRecord(dto, record, null);
+
+        dto.setDividendYield("6.25");
+        updateAndAssertRecord(dto, record, null);
+
+        dto.setDividendYield("");
+        updateAndAssertRecord(dto, record, null);
+
+        dto.setPriceToRevenues("1.25");
+        dto.setPriceToGrossProfit("2.5");
+        dto.setPriceToOperatingIncome("-3.75");
+        dto.setPriceToNetIncome("4.25");
+        updateAndAssertRecord(dto, record, null);
+
+        dto.setSumAssetQuantity("12.5");
+        updateAndAssertRecord(dto, record, null);
+
+        dto.setAvgAssetPrice("123.45");
         updateAndAssertRecord(dto, record, null);
     }
 
@@ -129,6 +155,8 @@ public class RecordServiceTest
         Record record1 = Generator.generateRecord(company, "2025-10-01");
         Record record2 = Generator.generateRecord(company, "2024-11-21");
         Record record3 = Generator.generateRecord(company, "2025-12-15");
+        record3.setReview("latest review");
+        record3.setRetro("latest retro");
 
         when(companyService.findEntity(company.getId())).thenReturn(company);
         when(recordDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(record1, record2, record3)));
@@ -136,6 +164,8 @@ public class RecordServiceTest
         List<org.kaleta.model.Record> records = recordService.getBy(company.getId());
 
         assertThat(records.get(0).getId(), is(record3.getId()));
+        assertThat(records.get(0).getReview(), is("latest review"));
+        assertThat(records.get(0).getRetro(), is("latest retro"));
         assertThat(records.get(1).getId(), is(record1.getId()));
         assertThat(records.get(2).getId(), is(record2.getId()));
     }
@@ -146,14 +176,14 @@ public class RecordServiceTest
         Company company = Generator.generateCompany();
         Record record = Generator.generateRecord(company, "2020-01-01");
 
-        String randomId = UUID.randomUUID().toString();
+        Long randomId = 4_294_967_295L;
 
         when(recordDao.get(record.getId())).thenReturn(record);
         when(recordDao.get(randomId)).thenThrow(NoResultException.class);
 
         assertThrows(InvalidInputException.class, () -> recordService.delete(randomId));
 
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
         verify(recordDao, times(0)).delete(captor.capture());
 
         recordService.delete(record.getId());
@@ -166,7 +196,7 @@ public class RecordServiceTest
     void createCurrent() {
         Company company = Generator.generateCompany();
         when(companyService.findEntity(company.getId())).thenReturn(company);
-        doThrow(new InvalidInputException("")).when(companyService).findEntity("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+        doThrow(new InvalidInputException("")).when(companyService).findEntity(1916L);
 
         Periods periods = new Periods();
         periods.setTtm(Generator.generatePeriodsFinancial());
@@ -184,7 +214,7 @@ public class RecordServiceTest
 
         createCurrentAndAssertRecord(company.getId(), validT, validD, validP, expectedRatios, null);
 
-        createCurrentAndAssertRecord("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43", validT, validD, validP, expectedRatios, InvalidInputException.class);
+        createCurrentAndAssertRecord(1916L, validT, validD, validP, expectedRatios, InvalidInputException.class);
 
         createCurrentAndAssertRecord(company.getId(), null, validD, validP, expectedRatios, null);
 
@@ -213,7 +243,8 @@ public class RecordServiceTest
         ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
         verify(recordDao).create(captor.capture());
 
-        assertThat(captor.getValue().getTitle(), is("snapshot@123$"));
+        assertThat(captor.getValue().getTitle(), is(Matchers.nullValue()));
+        assertThat(captor.getValue().getStrategy(), is("snapshot@123$"));
         assertThat(captor.getValue().getDate(), is(Date.valueOf("2030-01-01")));
         assertBigDecimals(captor.getValue().getPrice(), new BigDecimal("123"));
         assertThat(captor.getValue().getPriceToRevenues(), is(Matchers.nullValue()));
@@ -225,7 +256,7 @@ public class RecordServiceTest
         assertThat(captor.getValue().getAvgAssetPrice(), is(Matchers.nullValue()));
     }
 
-    private void createCurrentAndAssertRecord(String cid, String t, String d, String p,
+    private void createCurrentAndAssertRecord(Long cid, String t, String d, String p,
                                               PriceIndicators expectedRatios,
                                               Class<? extends Exception> expectedException)
     {
@@ -237,7 +268,8 @@ public class RecordServiceTest
             verify(recordDao).create(captor.capture());
 
             assertThat(captor.getValue().getCompany().getId(), is(cid));
-            assertThat(captor.getValue().getTitle(), Matchers.startsWith((t == null) ? "null" : t));
+            assertThat(captor.getValue().getTitle(), is(Matchers.nullValue()));
+            assertThat(captor.getValue().getStrategy(), Matchers.startsWith((t == null) ? "null" : t));
             assertThat(captor.getValue().getDate(), is(Date.valueOf(d)));
             assertBigDecimals(captor.getValue().getPrice(), new BigDecimal(p));
 
@@ -266,8 +298,21 @@ public class RecordServiceTest
 
             assertThat(captor.getValue().getTitle(), (dto.getTitle() == null) ? is(record.getTitle()) : is(dto.getTitle()));
             assertThat(captor.getValue().getContent(), (dto.getContent() == null) ? is(record.getContent()) : is(dto.getContent()));
+            assertThat(captor.getValue().getReview(), (dto.getReview() == null) ? is(record.getReview()) : is(dto.getReview()));
             assertThat(captor.getValue().getStrategy(), (dto.getStrategy() == null) ? is(record.getStrategy()) : is(dto.getStrategy()));
+            assertThat(captor.getValue().getRetro(), (dto.getRetro() == null) ? is(record.getRetro()) : is(dto.getRetro()));
             assertThat(captor.getValue().getTargets(), (dto.getTargets() == null) ? is(record.getTargets()) : is(dto.getTargets()));
+            assertBigDecimals(captor.getValue().getPrice(), (dto.getPrice() == null) ? record.getPrice() : new BigDecimal(dto.getPrice()));
+            assertBigDecimals(captor.getValue().getDividendYield(),
+                    dto.getDividendYield() == null
+                            ? record.getDividendYield()
+                            : (dto.getDividendYield().isBlank() ? null : new BigDecimal(dto.getDividendYield())));
+            assertBigDecimals(captor.getValue().getPriceToRevenues(), (dto.getPriceToRevenues() == null) ? record.getPriceToRevenues() : Utils.createNullableBigDecimal(dto.getPriceToRevenues()));
+            assertBigDecimals(captor.getValue().getPriceToGrossProfit(), (dto.getPriceToGrossProfit() == null) ? record.getPriceToGrossProfit() : Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
+            assertBigDecimals(captor.getValue().getPriceToOperatingIncome(), (dto.getPriceToOperatingIncome() == null) ? record.getPriceToOperatingIncome() : Utils.createNullableBigDecimal(dto.getPriceToOperatingIncome()));
+            assertBigDecimals(captor.getValue().getPriceToNetIncome(), (dto.getPriceToNetIncome() == null) ? record.getPriceToNetIncome() : Utils.createNullableBigDecimal(dto.getPriceToNetIncome()));
+            assertBigDecimals(captor.getValue().getSumAssetQuantity(), (dto.getSumAssetQuantity() == null) ? record.getSumAssetQuantity() : Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
+            assertBigDecimals(captor.getValue().getAvgAssetPrice(), (dto.getAvgAssetPrice() == null) ? record.getAvgAssetPrice() : Utils.createNullableBigDecimal(dto.getAvgAssetPrice()));
 
             clearInvocations(recordDao);
         } else {
@@ -287,7 +332,6 @@ public class RecordServiceTest
         dto.setCompanyId(company.getId());
         dto.setDate(date);
         dto.setPrice(price);
-        dto.setTitle(title);
         dto.setPriceToRevenues(ps);
         dto.setPriceToGrossProfit(pg);
         dto.setPriceToOperatingIncome(po);
@@ -306,7 +350,7 @@ public class RecordServiceTest
             assertThat(captor.getValue().getCompany().getId(), is(company.getId()));
             assertThat(captor.getValue().getDate(), is(Date.valueOf(date)));
             assertBigDecimals(captor.getValue().getPrice(), Utils.createNullableBigDecimal(price));
-            assertThat(captor.getValue().getTitle(), is(title));
+            assertThat(captor.getValue().getTitle(), Matchers.nullValue());
 
             assertBigDecimals(captor.getValue().getPriceToRevenues(), Utils.createNullableBigDecimal(ps));
             assertBigDecimals(captor.getValue().getPriceToGrossProfit(), Utils.createNullableBigDecimal(pg));

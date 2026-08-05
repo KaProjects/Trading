@@ -12,7 +12,9 @@ import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Trade;
+import org.kaleta.rest.dto.PortfolioAssignmentDto;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.rest.error.InvalidInputException;
@@ -24,7 +26,6 @@ import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,8 +37,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.kaleta.framework.InvalidValues.invalidBigDecimals;
 import static org.kaleta.framework.InvalidValues.invalidDates;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -145,7 +148,6 @@ public class TradeServiceTest
         soldModelCompany.setId(soldCompany.getId());
         soldModelCompany.setTicker(soldCompany.getTicker());
         soldModelCompany.setCurrency(soldCompany.getCurrency());
-        soldModelCompany.setWatching(soldCompany.isWatching());
 
         Company activeCompany = Generator.generateCompany();
         activeCompany.setTicker("SHELL");
@@ -154,10 +156,9 @@ public class TradeServiceTest
         activeModelCompany.setId(activeCompany.getId());
         activeModelCompany.setTicker(activeCompany.getTicker());
         activeModelCompany.setCurrency(activeCompany.getCurrency());
-        activeModelCompany.setWatching(activeCompany.isWatching());
 
         Trade soldTrade = new Trade();
-        soldTrade.setId("sold-trade");
+        soldTrade.setId(11L);
         soldTrade.setCompany(soldCompany);
         soldTrade.setQuantity(new BigDecimal("5"));
         soldTrade.setPurchaseDate(Date.valueOf("2024-01-10"));
@@ -166,9 +167,10 @@ public class TradeServiceTest
         soldTrade.setSellDate(Date.valueOf("2024-02-15"));
         soldTrade.setSellPrice(new BigDecimal("12.00"));
         soldTrade.setSellFees(new BigDecimal("1.00"));
+        soldTrade.setPortfolio(Portfolio.PATRIA_MARGIN);
 
         Trade activeTrade = new Trade();
-        activeTrade.setId("active-trade");
+        activeTrade.setId(10L);
         activeTrade.setCompany(activeCompany);
         activeTrade.setQuantity(new BigDecimal("3"));
         activeTrade.setPurchaseDate(Date.valueOf("2025-03-20"));
@@ -183,9 +185,10 @@ public class TradeServiceTest
 
         assertThat(trades.getTrades().size(), is(2));
 
-        assertThat(trades.getTrades().get(0).getId(), is("active-trade"));
+        assertThat(trades.getTrades().get(0).getId(), is(10L));
         assertThat(trades.getTrades().get(0).getCompany().getTicker(), is("SHELL"));
         assertThat(trades.getTrades().get(0).getCompany().getCurrency(), is(Currency.€));
+        assertThat(trades.getTrades().get(0).getPortfolio(), is(nullValue()));
         assertThat(trades.getTrades().get(0).getPurchaseDate().toString(), is("2025-03-20"));
         assertBigDecimals(trades.getTrades().get(0).getPurchaseQuantity(), new BigDecimal("3"));
         assertBigDecimals(trades.getTrades().get(0).getPurchasePrice(), new BigDecimal("20.00"));
@@ -199,9 +202,12 @@ public class TradeServiceTest
         assertThat(trades.getTrades().get(0).getProfit(), is(nullValue()));
         assertThat(trades.getTrades().get(0).getProfitPercentage(), is(nullValue()));
 
-        assertThat(trades.getTrades().get(1).getId(), is("sold-trade"));
+        assertThat(trades.getTrades().get(1).getId(), is(11L));
         assertThat(trades.getTrades().get(1).getCompany().getTicker(), is("NVDA"));
         assertThat(trades.getTrades().get(1).getCompany().getCurrency(), is(Currency.$));
+        assertThat(trades.getTrades().get(1).getPortfolio().getKey(), is(Portfolio.PATRIA_MARGIN.toString()));
+        assertThat(trades.getTrades().get(1).getPortfolio().getName(), is(Portfolio.PATRIA_MARGIN.getName()));
+        assertThat(trades.getTrades().get(1).getPortfolio().getAbbreviation(), is("Pm"));
         assertThat(trades.getTrades().get(1).getPurchaseDate().toString(), is("2024-01-10"));
         assertBigDecimals(trades.getTrades().get(1).getPurchaseQuantity(), new BigDecimal("5"));
         assertBigDecimals(trades.getTrades().get(1).getPurchasePrice(), new BigDecimal("10.00"));
@@ -217,6 +223,7 @@ public class TradeServiceTest
 
         assertThat(trades.getAggregates().getCompanies(), is(2));
         assertThat(trades.getAggregates().getCurrencies(), is(2));
+        assertThat(trades.getAggregates().getPortfolios(), is(1));
         assertBigDecimals(trades.getAggregates().getPurchaseFees(), new BigDecimal("5.00"));
         assertBigDecimals(trades.getAggregates().getPurchaseTotal(), new BigDecimal("115.00"));
         assertBigDecimals(trades.getAggregates().getSellFees(), new BigDecimal("1.00"));
@@ -235,10 +242,9 @@ public class TradeServiceTest
         modelCompany.setId(company.getId());
         modelCompany.setTicker(company.getTicker());
         modelCompany.setCurrency(company.getCurrency());
-        modelCompany.setWatching(company.isWatching());
 
         Trade trade = new Trade();
-        trade.setId("active-trade");
+        trade.setId(10L);
         trade.setCompany(company);
         trade.setQuantity(new BigDecimal("4"));
         trade.setPurchaseDate(Date.valueOf("2025-05-10"));
@@ -265,21 +271,87 @@ public class TradeServiceTest
     }
 
     @Test
+    void getYears()
+    {
+        Company company = Generator.generateCompany(1L);
+
+        Trade trade1 = soldTrade(1L, company, "2024-01-10", "10", "1", "2025-02-15", "12", "1", "5");
+        Trade trade2 = soldTrade(2L, company, "2023-03-10", "10", "1", "2024-04-15", "12", "1", "5");
+        Trade trade3 = new Trade();
+        trade3.setId(3L);
+        trade3.setCompany(company);
+        trade3.setQuantity(new BigDecimal("1"));
+        trade3.setPurchaseDate(Date.valueOf("2021-05-10"));
+        trade3.setPurchasePrice(new BigDecimal("10"));
+        trade3.setPurchaseFees(new BigDecimal("1"));
+
+        when(tradeDao.list()).thenReturn(List.of(trade1, trade2, trade3));
+
+        List<String> years = tradeService.getYears();
+
+        assertThat(years, is(List.of("2025", "2024", "2023", "2021")));
+    }
+
+    @Test
+    void assignPortfolio()
+    {
+        Trade trade1 = new Trade();
+        trade1.setId(10L);
+        Trade trade2 = new Trade();
+        trade2.setId(11L);
+        when(tradeDao.get(10L)).thenReturn(trade1);
+        when(tradeDao.get(11L)).thenReturn(trade2);
+
+        PortfolioAssignmentDto dto = new PortfolioAssignmentDto();
+        dto.setTradeIds(List.of(10L, 11L, 10L));
+        dto.setPortfolio(Portfolio.PATRIA_MARGIN.toString());
+
+        tradeService.assignPortfolio(dto);
+
+        ArgumentCaptor<List<Trade>> captor = ArgumentCaptor.forClass(List.class);
+        verify(tradeDao).saveAll(captor.capture());
+        assertThat(captor.getValue().size(), is(2));
+        assertThat(captor.getValue().get(0).getPortfolio(), is(Portfolio.PATRIA_MARGIN));
+        assertThat(captor.getValue().get(1).getPortfolio(), is(Portfolio.PATRIA_MARGIN));
+    }
+
+    @Test
+    void assignPortfolio_rejectsTradeThatAlreadyHasPortfolio()
+    {
+        Trade trade = new Trade();
+        trade.setId(10L);
+        trade.setPortfolio(Portfolio.REVOLUT_STANDARD);
+        when(tradeDao.get(10L)).thenReturn(trade);
+
+        PortfolioAssignmentDto dto = new PortfolioAssignmentDto();
+        dto.setTradeIds(List.of(10L));
+        dto.setPortfolio(Portfolio.PATRIA_STANDARD.toString());
+
+        InvalidInputException exception = assertThrows(
+                InvalidInputException.class,
+                () -> tradeService.assignPortfolio(dto)
+        );
+
+        assertThat(exception.getMessage(), is("trade with id '10' is not available for portfolio assignment"));
+        verify(tradeDao, never()).saveAll(anyList());
+    }
+
+    @Test
     void getByCompany()
     {
-        Company company1 = Generator.generateCompany("company-1");
+        Company company1 = Generator.generateCompany(1L);
         company1.setTicker("NVDA");
         company1.setCurrency(Currency.$);
         org.kaleta.model.Company modelCompany1 = toModelCompany(company1);
 
-        Company company2 = Generator.generateCompany("company-2");
+        Company company2 = Generator.generateCompany(2L);
         company2.setTicker("SHELL");
         company2.setCurrency(Currency.€);
         org.kaleta.model.Company modelCompany2 = toModelCompany(company2);
 
-        Trade trade1 = soldTrade("trade-1", company1, "2024-01-10", "10", "1", "2024-02-15", "12", "1", "5");
-        Trade trade2 = soldTrade("trade-2", company1, "2023-11-10", "20", "2", "2024-01-15", "22", "2", "3");
-        Trade trade3 = soldTrade("trade-3", company2, "2024-03-01", "30", "3", "2024-03-20", "40", "4", "2");
+        Trade trade1 = soldTrade(1L, company1, "2024-01-10", "10", "1", "2024-02-15", "12", "1", "5");
+        Trade trade2 = soldTrade(2L, company1, "2023-11-10", "20", "2", "2024-01-15", "22", "2", "3");
+        Trade trade3 = soldTrade(3L, company2, "2024-03-01", "30", "3", "2024-03-20", "40", "4", "2");
 
         when(tradeDao.list(false, null, null, null, null, null)).thenReturn(List.of(trade1, trade2, trade3));
         when(companyService.from(company1)).thenReturn(modelCompany1);
@@ -289,22 +361,22 @@ public class TradeServiceTest
 
         assertThat(byCompany.size(), is(2));
         assertThat(byCompany.get(modelCompany1).size(), is(2));
-        assertThat(byCompany.get(modelCompany1).get(0).getId(), is("trade-1"));
-        assertThat(byCompany.get(modelCompany1).get(1).getId(), is("trade-2"));
+        assertThat(byCompany.get(modelCompany1).get(0).getId(), is(1L));
+        assertThat(byCompany.get(modelCompany1).get(1).getId(), is(2L));
         assertThat(byCompany.get(modelCompany2).size(), is(1));
-        assertThat(byCompany.get(modelCompany2).get(0).getId(), is("trade-3"));
+        assertThat(byCompany.get(modelCompany2).get(0).getId(), is(3L));
     }
 
     @Test
     void getByPeriod()
     {
-        Company company = Generator.generateCompany("company-1");
+        Company company = Generator.generateCompany(1L);
         company.setTicker("NVDA");
         company.setCurrency(Currency.$);
         org.kaleta.model.Company modelCompany = toModelCompany(company);
 
-        Trade trade1 = soldTrade("trade-1", company, "2023-12-10", "10", "1", "2024-01-15", "12", "1", "5");
-        Trade trade2 = soldTrade("trade-2", company, "2024-02-01", "20", "2", "2024-03-20", "25", "2", "3");
+        Trade trade1 = soldTrade(1L, company, "2023-12-10", "10", "1", "2024-01-15", "12", "1", "5");
+        Trade trade2 = soldTrade(2L, company, "2024-02-01", "20", "2", "2024-03-20", "25", "2", "3");
 
         when(tradeDao.list(false, company.getId(), null, null, null, null)).thenReturn(List.of(trade1, trade2));
         when(companyService.from(company)).thenReturn(modelCompany);
@@ -318,7 +390,7 @@ public class TradeServiceTest
         assertThat(byPeriod.get("2024-Q4").isEmpty(), is(true));
         assertThat(
                 byPeriod.get("2024-Q1").stream().map(Trades.Trade::getId).collect(Collectors.toList()),
-                containsInAnyOrder("trade-1", "trade-2")
+                containsInAnyOrder(1L, 2L)
         );
     }
 
@@ -354,15 +426,16 @@ public class TradeServiceTest
 
         Company company =  Generator.generateCompany();
         when(companyService.findEntity(company.getId())).thenReturn(company);
-        doThrow(new InvalidInputException("")).when(companyService).findEntity("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+        doThrow(new InvalidInputException("")).when(companyService).findEntity(1916L);
 
         Trade validTrade = Generator.generateTrade(company, new BigDecimal(5), false);
+        validTrade.setPortfolio(Portfolio.REVOLUT_CFD);
         List<TradeSellDto.Trade> validDtoTrades =  new ArrayList<>(List.of(new TradeSellDto.Trade(validTrade.getId(), "5")));
         Trade expectedTrade = sell(validTrade, validDate, validPrice, validFees);
 
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, new ArrayList<>(), List.of(copy(validTrade)), List.of(copy(expectedTrade)), IllegalArgumentException.class);
 
-        sellAndAssertTrade("a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43", validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), InvalidInputException.class);
+        sellAndAssertTrade(1916L, validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), InvalidInputException.class);
 
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade)), List.of(copy(expectedTrade)), null);
 
@@ -400,12 +473,12 @@ public class TradeServiceTest
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade), copy(validTrade2)), List.of(soldTrade1, soldTrade2), null);
 
         // nonexistent trade
-        validDtoTrades.get(0).setTradeId("d7f1c3c8-4d7e-4558-9b3e-0b1fc6df3a43");
+        validDtoTrades.get(0).setTradeId(2133L);
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(copy(validTrade), copy(validTrade2)), List.of(copy(expectedTrade)), InvalidInputException.class);
 
         // attempt to sell from different company
         Trade malformed = copy(validTrade);
-        malformed.setId(UUID.randomUUID().toString());
+        malformed.setId(4_294_967_295L);
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(malformed), List.of(copy(expectedTrade)), InvalidInputException.class);
     }
 
@@ -418,6 +491,7 @@ public class TradeServiceTest
         copy.setPurchaseDate(origin.getPurchaseDate());
         copy.setPurchasePrice(origin.getPurchasePrice());
         copy.setPurchaseFees(origin.getPurchaseFees());
+        copy.setPortfolio(origin.getPortfolio());
         copy.setSellDate(origin.getSellDate());
         copy.setSellPrice(origin.getSellPrice());
         copy.setSellFees(origin.getSellFees());
@@ -444,6 +518,7 @@ public class TradeServiceTest
         dto.setPrice(price);
         dto.setQuantity(q);
         dto.setFees(fees);
+        dto.setPortfolio(Portfolio.PATRIA_STANDARD.toString());
 
         if (expectedException == null) {
             tradeService.createTrade(dto);
@@ -457,6 +532,7 @@ public class TradeServiceTest
             assertThat(captor.getValue().getPurchaseDate(), is(Date.valueOf(date)));
             assertBigDecimals(captor.getValue().getPurchasePrice(), new BigDecimal(price));
             assertBigDecimals(captor.getValue().getPurchaseFees(), new BigDecimal(fees));
+            assertThat(captor.getValue().getPortfolio(), is(Portfolio.PATRIA_STANDARD));
 
             assertThat(captor.getValue().getSellDate(), is(nullValue()));
             assertThat(captor.getValue().getSellPrice(), is(nullValue()));
@@ -468,7 +544,7 @@ public class TradeServiceTest
         }
     }
 
-    private void sellAndAssertTrade(String cid, String date, String price, String fees,
+    private void sellAndAssertTrade(Long cid, String date, String price, String fees,
                                     List<TradeSellDto.Trade> dtoTrades,
                                     List<Trade> initTrades,
                                     List<Trade> expectedTrades,
@@ -482,7 +558,7 @@ public class TradeServiceTest
         dto.setTrades(dtoTrades);
 
         initTrades.forEach(trade ->  when(tradeDao.get(trade.getId())).thenReturn(trade));
-        doThrow(new NoResultException()).when(tradeDao).get("d7f1c3c8-4d7e-4558-9b3e-0b1fc6df3a43");
+        doThrow(new NoResultException()).when(tradeDao).get(2133L);
 
         if (expectedException == null) {
             tradeService.sellTrade(dto);
@@ -510,6 +586,7 @@ public class TradeServiceTest
         assertThat(actual.getPurchaseDate(), is(expected.getPurchaseDate()));
         assertBigDecimals(actual.getPurchasePrice(), expected.getPurchasePrice());
         assertBigDecimals(actual.getPurchaseFees(), expected.getPurchaseFees());
+        assertThat(actual.getPortfolio(), is(expected.getPortfolio()));
         assertThat(actual.getSellDate(), is(expected.getSellDate()));
         assertBigDecimals(actual.getSellPrice(), expected.getSellPrice());
         assertBigDecimals(actual.getSellFees(), expected.getSellFees());
@@ -521,11 +598,10 @@ public class TradeServiceTest
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setCurrency(entity.getCurrency());
-        company.setWatching(entity.isWatching());
         return company;
     }
 
-    private static Trade soldTrade(String id, Company company,
+    private static Trade soldTrade(Long id, Company company,
                                    String purchaseDate, String purchasePrice, String purchaseFees,
                                    String sellDate, String sellPrice, String sellFees,
                                    String quantity)

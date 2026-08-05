@@ -4,7 +4,7 @@ import React from "react";
 
 export const Analytics = props => {
     return (
-        <TableContainer component={Paper} sx={{ width: "max-content", margin: "10px auto 10px auto", maxHeight: "calc(100vh - 70px)"}}>
+        <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto 10px auto", maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
             <Table size="small" aria-label="a dense table" stickyHeader>
                 <TableHead>
                     <TableRow>

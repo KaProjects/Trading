@@ -1,9 +1,17 @@
 ## release workflow:
 
      rest/web same versioning
-     check appliaction.properties 
      bump pom.xml version
      bump build_deploy.sh versions 
+
+
+## 2.1
+Released: 6.8.2026
+
+    persistance and endpoints for estimates and tags
+    java 25, containerization improvments, mem. perf. tunning
+    portfolio attribute to trades
+    optimized firebase datasource usage
 
 ## 2.0
 Released: 15.6.2026

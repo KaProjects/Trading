@@ -3,6 +3,8 @@ package org.kaleta.rest.dto;
 import lombok.Data;
 import org.kaleta.model.Assets;
 import org.kaleta.model.Company;
+import org.kaleta.model.EstimateOverview;
+import org.kaleta.model.PeriodEstimates;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
 import org.kaleta.model.Record;
@@ -18,18 +20,21 @@ public class ResearchDto
     private List<PeriodDto> periods = new ArrayList<>();
     private List<Periods.Financial> financials = new ArrayList<>();
     private Periods.Financial ttm;
+    private EstimateOverview estimateOverview;
     private List<Record> records = new ArrayList<>();
     private Latest latest;
     private PriceIndicators indicators;
     private Assets assets;
-    private List<PeriodImportDto> newerCachedPeriods;
+    private List<PeriodImportCandidateDto> importablePeriods = new ArrayList<>();
 
     @Data
     public static class PeriodDto extends Periods.Period {
-        private PeriodImportDto cachedData;
+        private PeriodEstimates estimate;
     }
 
-    public void addPeriod(Periods.Period period, PeriodImportDto cachedData)
+    public void addPeriod(
+            Periods.Period period,
+            PeriodEstimates estimate)
     {
         PeriodDto dto = new PeriodDto();
         dto.setId(period.getId());
@@ -42,7 +47,7 @@ public class ResearchDto
         dto.setPriceHigh(period.getPriceHigh());
         dto.setResearch(period.getResearch());
         dto.setFinancial(period.getFinancial());
-        dto.setCachedData(cachedData);
+        dto.setEstimate(estimate);
         periods.add(dto);
     }
 }

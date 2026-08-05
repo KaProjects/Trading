@@ -10,7 +10,7 @@ import java.time.YearMonth;
 @EqualsAndHashCode(callSuper=true)
 public class CompanyWithStats extends Company
 {
-    private YearMonth latestUnreportedPeriodEndingMonth;
+    private YearMonth latestPeriodEndingMonth;
     private Date latestRecordDate;
     private Date latestPurchaseDate;
 }

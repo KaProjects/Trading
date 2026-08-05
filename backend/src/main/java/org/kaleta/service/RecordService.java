@@ -44,7 +44,6 @@ public class RecordService
         newRecord.setCompany(companyService.findEntity(dto.getCompanyId()));
         newRecord.setDate(Date.valueOf(dto.getDate()));
         newRecord.setPrice(new BigDecimal(dto.getPrice()));
-        newRecord.setTitle(dto.getTitle());
 
         newRecord.setPriceToRevenues(Utils.createNullableBigDecimal(dto.getPriceToRevenues()));
         newRecord.setPriceToGrossProfit(Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
@@ -61,7 +60,7 @@ public class RecordService
         recordDao.create(newRecord);
     }
 
-    public void createCurrent(String companyId, String titlePrefix, String date, String price)
+    public void createCurrent(Long companyId, String titlePrefix, String date, String price)
     {
         Company company = companyService.findEntity(companyId);
         Periods periods = periodService.getBy(companyId);
@@ -69,7 +68,7 @@ public class RecordService
         Record newRecord = new Record();
 
         newRecord.setCompany(company);
-        newRecord.setTitle(titlePrefix + "@" + price + company.getCurrency());
+        newRecord.setStrategy(titlePrefix + "@" + price + company.getCurrency());
 
         newRecord.setDate(Date.valueOf(date));
         newRecord.setPrice(new BigDecimal(price));
@@ -106,19 +105,27 @@ public class RecordService
             throw new InvalidInputException("record with id '" + dto.getId() + "' not found");
         }
 
-        if (dto.getTitle() != null) {
-            if (dto.getTitle().isBlank())
-                throw new InvalidInputException("record title shouldn't be empty");
-            record.setTitle(dto.getTitle());
-        }
+        if (dto.getTitle() != null) record.setTitle(dto.getTitle());
         if (dto.getContent() != null) record.setContent(dto.getContent());
+        if (dto.getReview() != null) record.setReview(dto.getReview());
         if (dto.getStrategy() != null) record.setStrategy(dto.getStrategy());
+        if (dto.getRetro() != null) record.setRetro(dto.getRetro());
         if (dto.getTargets() != null) record.setTargets(dto.getTargets());
+        if (dto.getPrice() != null) record.setPrice(new BigDecimal(dto.getPrice()));
+        if (dto.getDividendYield() != null) {
+            record.setDividendYield(dto.getDividendYield().isBlank() ? null : new BigDecimal(dto.getDividendYield()));
+        }
+        if (dto.getPriceToRevenues() != null) record.setPriceToRevenues(Utils.createNullableBigDecimal(dto.getPriceToRevenues()));
+        if (dto.getPriceToGrossProfit() != null) record.setPriceToGrossProfit(Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
+        if (dto.getPriceToOperatingIncome() != null) record.setPriceToOperatingIncome(Utils.createNullableBigDecimal(dto.getPriceToOperatingIncome()));
+        if (dto.getPriceToNetIncome() != null) record.setPriceToNetIncome(Utils.createNullableBigDecimal(dto.getPriceToNetIncome()));
+        if (dto.getSumAssetQuantity() != null) record.setSumAssetQuantity(Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
+        if (dto.getAvgAssetPrice() != null) record.setAvgAssetPrice(Utils.createNullableBigDecimal(dto.getAvgAssetPrice()));
 
         recordDao.save(record);
     }
 
-    public List<org.kaleta.model.Record> getBy(String companyId)
+    public List<org.kaleta.model.Record> getBy(Long companyId)
     {
         List<org.kaleta.model.Record> records = recordDao.list(companyId).stream()
                 .map(recordEntity -> from(recordEntity)).collect(Collectors.toList());
@@ -126,7 +133,7 @@ public class RecordService
         return records;
     }
 
-    public void delete(String recordId){
+    public void delete(Long recordId){
         try {
             recordDao.get(recordId);
         } catch (NoResultException e){
@@ -143,6 +150,7 @@ public class RecordService
         record.setDate(recordEntity.getDate());
         record.setTitle(recordEntity.getTitle());
         record.setContent(recordEntity.getContent());
+        record.setReview(recordEntity.getReview());
 
         record.setPrice(recordEntity.getPrice());
 
@@ -154,6 +162,7 @@ public class RecordService
         record.setDividendYield(recordEntity.getDividendYield());
 
         record.setStrategy(recordEntity.getStrategy());
+        record.setRetro(recordEntity.getRetro());
         record.setTargets(recordEntity.getTargets());
 
         record.setAsset(arithmeticService.computeAsset(recordEntity.getPrice(), recordEntity.getSumAssetQuantity(), recordEntity.getAvgAssetPrice()));

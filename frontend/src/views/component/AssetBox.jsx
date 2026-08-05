@@ -2,7 +2,7 @@ import {formatDecimals} from "../../service/FormattingService";
 import {Box} from "@mui/material";
 import React from "react";
 
-export const AssetBox = ({asset, currency}) => {
+export const AssetBox = ({asset, currency, style}) => {
     let profitColor = 'text.primary'
     let profitPercent = null
 
@@ -19,14 +19,16 @@ export const AssetBox = ({asset, currency}) => {
         }
     }
 
-    return <Box sx={{marginLeft: "10px"}}>
-        {profitPercent &&
-            <Box sx={{color: profitColor, fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
-                {profitPercent}%
+    return (
+        <Box sx={style} data-testid="asset-box">
+            {profitPercent &&
+                <Box sx={{color: profitColor, fontWeight: 'bold', mx: 0.5, fontSize: 12, textAlign: "center"}}>
+                    {profitPercent}%
+                </Box>
+            }
+            <Box sx={{color: "text.secondary", fontSize: 16, fontFamily: "Roboto"}}>
+                {asset.quantity}@{asset.purchasePrice}{currency}
             </Box>
-        }
-        <Box sx={{color: "text.secondary", fontSize: 16, fontFamily: "Roboto",}}>
-            {asset.quantity}@{asset.purchasePrice}{currency}
         </Box>
-    </Box>
+    )
 }

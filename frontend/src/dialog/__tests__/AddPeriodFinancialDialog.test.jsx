@@ -3,8 +3,6 @@ import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import axios from "axios";
 
 const mockFormatError = jest.fn(() => ({title: "Save failed", message: "Financial data could not be saved"}));
-const mockGetFinancial = jest.fn();
-const mockGetQuote = jest.fn();
 const dialogTextFieldModule = {
     DialogTextField: ({id, label, value = "", onChange, validate, required = true, ...props}) => {
         const error = validate ? validate() : "";
@@ -57,25 +55,36 @@ jest.mock("../../service/FormattingService", () => ({
     ...jest.requireActual("../../service/FormattingService"),
     formatError: (...args) => mockFormatError(...args),
 }));
-jest.mock("../../service/PolygonIoService", () => ({
-    getFinancial: (...args) => mockGetFinancial(...args),
-    getQuote: (...args) => mockGetQuote(...args),
-}));
 jest.mock("../component/DialogTextField", () => dialogTextFieldModule);
 jest.mock("../component/DialogDatePicker", () => dialogDatePickerModule);
 
 import {AddPeriodFinancialDialog} from "../AddPeriodFinancialDialog";
 
-const polygonFinancial = {
-    financials: {
-        income_statement: {
-            basic_average_shares: {value: 10000000},
-            revenues: {value: 20000000},
-            gross_profit: {value: 30000000},
-            operating_income_loss: {value: 40000000},
-            net_income_loss: {value: 50000000},
-        },
+const comparisonData = {
+    reportDate: "2024-02-15",
+    firebase: {
+        shares: "11",
+        revenue: "21",
+        grossProfit: "31",
+        operatingIncome: "41",
+        netIncome: "51",
+        dividend: "0.5",
+        adjustedEps: "1.21",
+        priceHigh: "141",
+        priceLow: "91",
     },
+    polygon: {
+        shares: "10",
+        revenue: "20",
+        grossProfit: "30",
+        operatingIncome: "40",
+        netIncome: "50",
+        dividend: null,
+        adjustedEps: "1.18",
+        priceHigh: "140.25",
+        priceLow: "90.75",
+    },
+    warnings: [],
 };
 
 function createProps(overrides = {}) {
@@ -84,6 +93,7 @@ function createProps(overrides = {}) {
         handleClose: jest.fn(),
         triggerRefresh: jest.fn(),
         company: {
+            id: "company-1",
             ticker: "NVDA",
         },
         period: {
@@ -94,18 +104,6 @@ function createProps(overrides = {}) {
             },
             reportDate: "2024-02-15",
             previousReportDate: "2023-11-15",
-            cachedData: {
-                shares: "1",
-                revenue: "2",
-                grossProfit: "3",
-                operatingIncome: "4",
-                netIncome: "5",
-                dividend: "0.5",
-                priceHigh: "125",
-                priceLow: "95",
-                reportDate: "2024-02-15",
-                previousReportDate: "2023-11-15",
-            },
         },
         ...overrides,
     };
@@ -113,29 +111,45 @@ function createProps(overrides = {}) {
 
 describe("AddPeriodFinancialDialog", () => {
     beforeEach(() => {
+        axios.get.mockReset();
         axios.put.mockReset();
         mockFormatError.mockClear();
-        mockGetFinancial.mockReset();
-        mockGetQuote.mockReset();
-        mockGetFinancial.mockResolvedValue(polygonFinancial);
-        mockGetQuote.mockResolvedValue({h: 140.25, l: 90.75});
+        axios.get.mockResolvedValue({data: comparisonData});
     });
 
-    test("loads cached values, fetches suggestions, and submits updated financial data", async () => {
+    test("loads Gemini and third-party suggestions and submits updated financial data", async () => {
         axios.put.mockResolvedValue({});
 
         const props = createProps();
 
         render(<AddPeriodFinancialDialog {...props}/>);
 
-        expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("1");
-        expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("2");
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
+            "http://backend/research/company-1/import/period/24Q1"
+        ));
+        expect(await screen.findByText("Gemini")).toBeInTheDocument();
+        expect(screen.getByText("External")).toBeInTheDocument();
+        expect(screen.getByLabelText("Report Date")).toHaveValue("");
+        expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("");
+        expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("");
 
-        await waitFor(() => expect(mockGetFinancial).toHaveBeenCalledWith("NVDA", "2024", "Q1"));
-        await waitFor(() => expect(mockGetQuote).toHaveBeenCalledWith("NVDA", "2023-11-16", "2024-02-14"));
-
-        fireEvent.click(await screen.findByRole("button", {name: "<< 10"}));
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use External value for Shares (in Millions)",
+        }));
+        fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("10");
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Gemini value for Revenue (in Millions)",
+        }));
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use External value for Adjusted EPS",
+        }));
+        fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "3"}});
+        fireEvent.change(screen.getByLabelText("Operating Income (in Millions)"), {target: {value: "4"}});
+        fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "5"}});
+        fireEvent.change(screen.getByLabelText("Dividend (in Millions)"), {target: {value: "0.5"}});
+        fireEvent.change(screen.getByLabelText("Highest Price"), {target: {value: "125"}});
+        fireEvent.change(screen.getByLabelText("Lowest Price"), {target: {value: "95"}});
 
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
@@ -145,11 +159,12 @@ describe("AddPeriodFinancialDialog", () => {
             priceLow: "95",
             priceHigh: "125",
             shares: "10",
-            revenue: "2",
+            revenue: "21",
             grossProfit: "3",
             operatingIncome: "4",
             netIncome: "5",
             dividend: "0.5",
+            adjustedEps: "1.18",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();
@@ -162,11 +177,81 @@ describe("AddPeriodFinancialDialog", () => {
 
         render(<AddPeriodFinancialDialog {...props}/>);
 
-        await screen.findByRole("button", {name: "<< 10"});
+        await screen.findByText("Gemini");
+        fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
+        fireEvent.change(screen.getByLabelText("Shares (in Millions)"), {target: {value: "1"}});
+        fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "2"}});
+        fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "3"}});
+        fireEvent.change(screen.getByLabelText("Operating Income (in Millions)"), {target: {value: "4"}});
+        fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "5"}});
+        fireEvent.change(screen.getByLabelText("Dividend (in Millions)"), {target: {value: "0.5"}});
+        fireEvent.change(screen.getByLabelText("Adjusted EPS"), {target: {value: "1.18"}});
+        fireEvent.change(screen.getByLabelText("Highest Price"), {target: {value: "125"}});
+        fireEvent.change(screen.getByLabelText("Lowest Price"), {target: {value: "95"}});
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
         await waitFor(() => expect(mockFormatError).toHaveBeenCalled());
         expect(props.triggerRefresh).not.toHaveBeenCalled();
         expect(props.handleClose).not.toHaveBeenCalled();
+    });
+
+    test("opens with empty suggestion columns when no import data is available", async () => {
+        axios.get.mockResolvedValue({data: {firebase: {}, polygon: {}, warnings: []}});
+
+        render(<AddPeriodFinancialDialog {...createProps()}/>);
+
+        expect(await screen.findByText("Gemini")).toBeInTheDocument();
+        expect(screen.getByText("External")).toBeInTheDocument();
+        expect(screen.getByLabelText("Report Date")).toHaveValue("");
+        expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("");
+        expect(mockFormatError).not.toHaveBeenCalled();
+    });
+
+    test("edits a reported period without loading suggestions", async () => {
+        axios.put.mockResolvedValue({});
+        const props = createProps({
+            period: {
+                ...createProps().period,
+                shares: 123,
+                priceHigh: 125,
+                priceLow: 95,
+                financial: {
+                    revenue: {value: 21},
+                    grossProfit: {value: 31},
+                    operatingIncome: {value: 41},
+                    netIncome: {value: 51},
+                    dividend: 0.5,
+                    adjustedEps: 1.21,
+                },
+            },
+        });
+
+        render(<AddPeriodFinancialDialog {...props} edit/>);
+
+        expect(axios.get).not.toHaveBeenCalled();
+        expect(screen.queryByText("Gemini")).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", {name: "Edit Period for NVDA 24Q1"})).toBeInTheDocument();
+        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
+        expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("123");
+        expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Ending Month")).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Update"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/period", {
+            id: "period-1",
+            reportDate: "2024-02-15",
+            shares: "123",
+            revenue: "21",
+            grossProfit: "31",
+            operatingIncome: "41",
+            netIncome: "51",
+            dividend: "0.5",
+            adjustedEps: "1.21",
+            priceHigh: "125",
+            priceLow: "95",
+        }));
+        expect(props.triggerRefresh).toHaveBeenCalled();
+        expect(props.handleClose).toHaveBeenCalled();
     });
 });

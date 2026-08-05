@@ -62,10 +62,16 @@ export function formatDate(date) {
     return `${day}.${month}.${year}`;
 }
 
-export function formatPercent(value) {
+export function formatPercent(value, signed = false, decimals = 2) {
     if (isNotAValue(value)) return "";
-    value = formatDecimals(value, 0, 2)
-    return value ? value + "%" : "";
+    let formatted = formatDecimals(value, 0, decimals)
+    if (formatted) {
+        if (signed && Number(value) > 0) {
+            formatted = "+" + formatted;
+        }
+        formatted = formatted + "%";
+    }
+    return formatted;
 }
 
 export function isNotAValue(value) {

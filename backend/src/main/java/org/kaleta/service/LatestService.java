@@ -27,7 +27,7 @@ public class LatestService
     @Inject
     CompanyService companyService;
 
-    public Latest getSyncedFor(String companyId)
+    public Latest getSyncedFor(Long companyId)
     {
         Company company = companyService.findEntity(companyId);
 

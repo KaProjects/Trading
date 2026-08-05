@@ -3,43 +3,39 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.model.CompanyGroups;
+import jakarta.transaction.Transactional;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
-import org.kaleta.persistence.api.RecordDao;
-import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
+import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class CompanyService
 {
+    private static final Set<String> RESERVED_TAGS = Set.of("owned", "recent", "researched", "all");
+    private static final Comparator<String> COMPANY_LIST_ORDER = Comparator
+            .comparingInt(CompanyService::companyListOrder)
+            .thenComparing(Comparator.naturalOrder());
+
     @Inject
     CompanyDao companyDao;
-    @Inject
-    RecordDao recordDao;
-    @Inject
-    TradeDao tradeDao;
-
-    public List<org.kaleta.model.Company> getCompanies()
-    {
-        return companyDao.list().stream().map(this::from).collect(Collectors.toList());
-    }
-
-    public List<org.kaleta.model.Company> getCompanies(String currency, String sector)
-    {
-        return companyDao.list(currency, sector).stream().map(this::from).sorted(org.kaleta.model.Company::compareTo).collect(Collectors.toList());
-    }
 
     public CompanyAggregates getCompaniesWithAggregates(String currency, String sector)
     {
@@ -50,12 +46,12 @@ public class CompanyService
         return aggregates;
     }
 
-    public org.kaleta.model.Company getCompany(String companyId)
+    public org.kaleta.model.Company getCompany(Long companyId)
     {
         return from(findEntity(companyId));
     }
 
-    public Company findEntity(String companyId)
+    public Company findEntity(Long companyId)
     {
         try {
             return companyDao.get(companyId);
@@ -64,29 +60,43 @@ public class CompanyService
         }
     }
 
-    public CompanyGroups getCompanyGroups()
+    public Map<String, List<CompanyWithStats>> getCompaniesByTag()
     {
-        CompanyGroups companyGroups = new CompanyGroups();
-        for (CompanyWithStats companyWithStats : companyDao.listWithStats())
+        Map<String, List<CompanyWithStats>> companiesByTag = new TreeMap<>(COMPANY_LIST_ORDER);
+        List<CompanyWithStats> allCompanies = new ArrayList<>();
+        YearMonth periodCutoff = YearMonth.now().minusYears(1);
+        LocalDate recordCutoff = LocalDate.now().minusYears(1);
+
+        for (CompanyWithStats company : companyDao.listWithStats())
         {
-            if (companyWithStats.isWatching()) {
-                companyGroups.getWatching().add(companyWithStats);
-            } else {
-                companyGroups.getDeprecated().add(companyWithStats);
+            allCompanies.add(company);
+            if (company.getLatestPurchaseDate() != null) {
+                companiesByTag.computeIfAbsent("owned", ignored -> new ArrayList<>()).add(company);
             }
-            if (companyWithStats.getLatestPurchaseDate() != null) {
-                companyGroups.getOwned().add(companyWithStats);
+            if (company.getLatestPeriodEndingMonth() != null
+                    && !company.getLatestPeriodEndingMonth().isBefore(periodCutoff)) {
+                companiesByTag.computeIfAbsent("researched", ignored -> new ArrayList<>()).add(company);
             }
-            if (companyWithStats.getLatestUnreportedPeriodEndingMonth() != null ) {
-                companyGroups.getUnreported().add(companyWithStats);
+            if (company.getLatestRecordDate() != null
+                    && !company.getLatestRecordDate().toLocalDate().isBefore(recordCutoff)) {
+                companiesByTag.computeIfAbsent("recent", ignored -> new ArrayList<>()).add(company);
             }
-            if (companyWithStats.getSector() != null) {
-                companyGroups.getSectors()
-                        .computeIfAbsent(companyWithStats.getSector().getName(), key -> new ArrayList<>())
-                        .add(companyWithStats);
-            }
+            company.getTags().stream().distinct().forEach(tag ->
+                    companiesByTag.computeIfAbsent(tag, ignored -> new ArrayList<>()).add(company));
         }
-        return companyGroups;
+        companiesByTag.put("all", allCompanies);
+        return companiesByTag;
+    }
+
+    private static int companyListOrder(String tag)
+    {
+        return switch (tag) {
+            case "owned" -> 0;
+            case "recent" -> 1;
+            case "researched" -> 2;
+            case "all" -> 4;
+            default -> 3;
+        };
     }
 
     public void update(CompanyUpdateDto dto)
@@ -99,7 +109,6 @@ public class CompanyService
         }
 
         company.setCurrency(Currency.valueOf(dto.getCurrency()));
-        company.setWatching(Boolean.parseBoolean(dto.getWatching()));
         company.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
 
         companyDao.save(company);
@@ -115,10 +124,47 @@ public class CompanyService
         Company newCompany = new Company();
         newCompany.setTicker(dto.getTicker());
         newCompany.setCurrency(Currency.valueOf(dto.getCurrency()));
-        newCompany.setWatching(Boolean.parseBoolean(dto.getWatching()));
         newCompany.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
 
         companyDao.create(newCompany);
+    }
+
+    public void addTag(CompanyTagCreateDto dto)
+    {
+        validateCustomTag(dto.getValue());
+
+        Company company = findEntity(dto.getCompanyId());
+
+        if (company.getTags().stream().anyMatch(tag -> tag.equalsIgnoreCase(dto.getValue()))) {
+            throw new InvalidInputException("tag '" + dto.getValue() + "' is already assigned to company '"
+                    + company.getTicker() + "'");
+        }
+
+        company.getTags().add(dto.getValue());
+        companyDao.save(company);
+    }
+
+    @Transactional
+    public void removeTag(Long companyId, String value)
+    {
+        validateCustomTag(value);
+
+        Company company = findEntity(companyId);
+        String assignedTag = company.getTags().stream()
+                .filter(tag -> tag.equalsIgnoreCase(value))
+                .findFirst()
+                .orElseThrow(() -> new InvalidInputException("tag '" + value
+                        + "' is not assigned to company '" + company.getTicker() + "'"));
+
+        company.getTags().remove(assignedTag);
+        companyDao.save(company);
+    }
+
+    private static void validateCustomTag(String value)
+    {
+        if (RESERVED_TAGS.stream().anyMatch(tag -> tag.equalsIgnoreCase(value))) {
+            throw new InvalidInputException("tag '" + value + "' is reserved");
+        }
     }
 
     public org.kaleta.model.Company from(Company entity){
@@ -126,7 +172,7 @@ public class CompanyService
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setCurrency(entity.getCurrency());
-        company.setWatching(entity.isWatching());
+        company.setTags(new ArrayList<>(entity.getTags()));
         if (entity.getSector() != null) {
             company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));
         }
@@ -139,7 +185,6 @@ public class CompanyService
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setCurrency(entity.getCurrency());
-        company.setWatching(entity.isWatching());
         if (entity.getSector() != null) {
             company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));
         }

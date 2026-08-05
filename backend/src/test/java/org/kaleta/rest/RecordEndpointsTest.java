@@ -4,6 +4,7 @@ import io.quarkus.test.Mock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.kaleta.Utils;
 import org.kaleta.framework.Assert;
@@ -16,7 +17,6 @@ import org.kaleta.service.FirebaseService;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -28,7 +28,7 @@ import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_4_fals
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_4_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
-import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 
 @QuarkusTest
@@ -38,15 +38,16 @@ class RecordEndpointsTest
 
     @Inject
     RecordDao recordDao;
+    @Inject
+    EntityManager entityManager;
 
     @Test
     void create()
     {
         RecordCreateDto dto = new RecordCreateDto();
-        dto.setCompanyId("6877c555-1234-4af5-99ef-415980484d8c");
+        dto.setCompanyId(1565L);
         dto.setPrice(Generator.randomBigDecimal(999999,4).toString());
         dto.setDate("2020-01-01");
-        dto.setTitle("a title");
         dto.setPriceToRevenues(Generator.randomBigDecimal(9999,2).toString());
         dto.setPriceToGrossProfit(Generator.randomBigDecimal(9999,2).toString());
         dto.setPriceToOperatingIncome(Generator.randomBigDecimal(9999,2).toString());
@@ -58,11 +59,11 @@ class RecordEndpointsTest
 
         Assert.post201(path, dto);
 
-        List<Record> records = recordDao.list("6877c555-1234-4af5-99ef-415980484d8c");
+        List<Record> records = recordDao.list(1565L);
         assertThat(records.size(), is(1));
         assertThat(records.get(0).getCompany().getTicker(), is("CRE"));
         assertThat(records.get(0).getDate(), is(Utils.nullableDateValueOf(dto.getDate())));
-        assertThat(records.get(0).getTitle(), is(dto.getTitle()));
+        assertThat(records.get(0).getTitle(), is(nullValue()));
         assertThat(records.get(0).getPrice(), is(new BigDecimal(dto.getPrice())));
         assertBigDecimals(records.get(0).getPriceToRevenues(), new BigDecimal(dto.getPriceToRevenues()));
         assertBigDecimals(records.get(0).getPriceToGrossProfit(), new BigDecimal(dto.getPriceToGrossProfit()));
@@ -79,10 +80,9 @@ class RecordEndpointsTest
     @Test
     void create_invalidParameters()
     {
-        String validCompanyId = "f5b87b39-6b61-4c32-8c09-4f34e97c2d7d";
+        Long validCompanyId = 2287L;
         String validPrice = Generator.randomBigDecimal(999999,4).toString();
         String validDate = "2020-01-01";
-        String validTitle = "a title";
         String validPs = Generator.randomBigDecimal(9999,2).toString();
         String validPg = Generator.randomBigDecimal(9999,2).toString();
         String validPo = Generator.randomBigDecimal(9999,2).toString();
@@ -97,7 +97,6 @@ class RecordEndpointsTest
         dto.setCompanyId(validCompanyId);
         dto.setDate(validDate);
         dto.setPrice(validPrice);
-        dto.setTitle(validTitle);
         dto.setPriceToRevenues(validPs);
         dto.setPriceToGrossProfit(validPg);
         dto.setPriceToOperatingIncome(validPo);
@@ -108,9 +107,9 @@ class RecordEndpointsTest
 
         dto.setCompanyId(null);
         Assert.postValidationError(path, dto, NOT_NULL);
-        dto.setCompanyId("x");
-        Assert.postValidationError(path, dto, VALID_UUID);
-        dto.setCompanyId(UUID.randomUUID().toString());
+        dto.setCompanyId(0L);
+        Assert.postValidationError(path, dto, VALID_ID);
+        dto.setCompanyId(4_294_967_295L);
         Assert.post400(path, dto, "company with id '" + dto.getCompanyId() + "' not found");
         dto.setCompanyId(validCompanyId);
 
@@ -137,10 +136,6 @@ class RecordEndpointsTest
         dto.setPrice("-1");
         Assert.postValidationError(path, dto, BIG_DECIMAL_6_4_false);
         dto.setPrice(validPrice);
-
-        dto.setTitle(null);
-        Assert.postValidationError(path, dto, NOT_NULL);
-        dto.setTitle(validTitle);
 
         dto.setPriceToRevenues("x");
         Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_false);
@@ -238,28 +233,67 @@ class RecordEndpointsTest
     @Test
     void update()
     {
-        String newTitle = "new title";
+        String newTitle = "   ";
         String newContent = "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"saasdasdaa\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"as\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"das\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"s\"}]}]}]";
+        String newReview = "review notes";
         String newStrategy = "buy as many as possible";
+        String newRetro = "retro notes";
         String newTargets = "10-5~7";
+        String newPrice = "321.45";
+        String newDividendYield = "6.25";
+        String newPriceToRevenues = "1.25";
+        String newPriceToGrossProfit = "2.5";
+        String newPriceToOperatingIncome = "-3.75";
+        String newPriceToNetIncome = "4.25";
+        String newSumAssetQuantity = "12.5";
+        String newAvgAssetPrice = "123.45";
 
         RecordUpdateDto dto = new RecordUpdateDto();
-        dto.setId("b5a8a2b3-08b7-4a71-9301-f57d44a0a9cb");
+        dto.setId(1974L);
         dto.setTitle(newTitle);
         dto.setContent(newContent);
+        dto.setReview(newReview);
         dto.setStrategy(newStrategy);
+        dto.setRetro(newRetro);
         dto.setTargets(newTargets);
+        dto.setPrice(newPrice);
+        dto.setDividendYield(newDividendYield);
+        dto.setPriceToRevenues(newPriceToRevenues);
+        dto.setPriceToGrossProfit(newPriceToGrossProfit);
+        dto.setPriceToOperatingIncome(newPriceToOperatingIncome);
+        dto.setPriceToNetIncome(newPriceToNetIncome);
+        dto.setSumAssetQuantity(newSumAssetQuantity);
+        dto.setAvgAssetPrice(newAvgAssetPrice);
 
         Assert.put204(path, dto);
 
-        List<Record> records = recordDao.list("9c858901-8a57-4791-81fe-4c455b099bc9");
+        List<Record> records = recordDao.list(1842L);
         assertThat(records.size(), is(1));
 
         assertThat(records.get(0).getCompany().getTicker(), is("UPD"));
         assertThat(records.get(0).getTitle(), is(newTitle));
         assertThat(records.get(0).getContent(), is(newContent));
+        assertThat(records.get(0).getReview(), is(newReview));
         assertThat(records.get(0).getStrategy(), is(newStrategy));
+        assertThat(records.get(0).getRetro(), is(newRetro));
         assertThat(records.get(0).getTargets(), is(newTargets));
+        assertBigDecimals(records.get(0).getPrice(), new BigDecimal(newPrice));
+        assertBigDecimals(records.get(0).getDividendYield(), new BigDecimal(newDividendYield));
+        assertBigDecimals(records.get(0).getPriceToRevenues(), new BigDecimal(newPriceToRevenues));
+        assertBigDecimals(records.get(0).getPriceToGrossProfit(), new BigDecimal(newPriceToGrossProfit));
+        assertBigDecimals(records.get(0).getPriceToOperatingIncome(), new BigDecimal(newPriceToOperatingIncome));
+        assertBigDecimals(records.get(0).getPriceToNetIncome(), new BigDecimal(newPriceToNetIncome));
+        assertBigDecimals(records.get(0).getSumAssetQuantity(), new BigDecimal(newSumAssetQuantity));
+        assertBigDecimals(records.get(0).getAvgAssetPrice(), new BigDecimal(newAvgAssetPrice));
+
+        io.restassured.RestAssured.given()
+                .contentType(io.restassured.http.ContentType.JSON)
+                .body("{\"id\":1974,\"dividendYield\":\"\"}")
+                .when().put(path)
+                .then().statusCode(204);
+        entityManager.clear();
+        assertThat(recordDao.list(1842L).get(0).getDividendYield(), is(nullValue()));
+
     }
 
     @Test
@@ -270,29 +304,54 @@ class RecordEndpointsTest
         RecordUpdateDto dto =  new RecordUpdateDto();
         Assert.putValidationError(path, dto, NOT_NULL);
 
-        dto.setId("x");
-        Assert.putValidationError(path, dto, VALID_UUID);
+        dto.setId(0L);
+        Assert.putValidationError(path, dto, VALID_ID);
 
-        dto.setId("3b1e7f0f-f263-4a8e-86a7-1b6c4c9e3ad2");
-        dto.setTitle("   ");
-        Assert.put400(path, dto, "record title shouldn't be empty");
-
-        dto.setId(UUID.randomUUID().toString());
+        dto.setId(4_294_967_295L);
         Assert.put400(path, dto, "record with id '" + dto.getId() + "' not found");
+
+        dto.setId(1974L);
+
+        dto.setSumAssetQuantity("x");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity(".1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity("1.");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity("12345");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity("10.12345");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        dto.setSumAssetQuantity("12.5");
+
+        dto.setAvgAssetPrice("x");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setAvgAssetPrice(".1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setAvgAssetPrice("1.");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setAvgAssetPrice("1234567");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setAvgAssetPrice("10.12345");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
+        dto.setAvgAssetPrice("-1");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_4_false);
     }
 
     @Test
     void delete()
     {
-        Assert.delete200(path + "/a9f86e1e-b81d-4b28-b4f3-91d25dfb6b43");
+        Assert.delete200(path + "/1916");
     }
 
     @Test
     void delete_invalidParameters()
     {
-        Assert.deleteValidationError(path + "/x",VALID_UUID);
+        Assert.deleteValidationError(path + "/0", VALID_ID);
 
-        String randomId = UUID.randomUUID().toString();
+        Long randomId = 4_294_967_295L;
         Assert.delete400(path + "/" + randomId, "record with id '" + randomId + "' not found");
     }
 }

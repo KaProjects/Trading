@@ -4,14 +4,14 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.kaleta.rest.validation.ValidBigDecimal;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 
 @Data
 public class RecordCreateDto
 {
     @NotNull
-    @ValidUuid
-    private String companyId;
+    @ValidId
+    private Long companyId;
 
     @NotNull
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")
@@ -20,9 +20,6 @@ public class RecordCreateDto
     @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String price;
-
-    @NotNull
-    private String title;
 
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2)
     private String priceToRevenues;

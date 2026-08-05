@@ -19,7 +19,7 @@ public class Periods
     @Data
     public static class Period
     {
-        private String id;
+        private Long id;
         private PeriodName name;
         private YearMonth endingMonth;
         private Date reportDate;
@@ -35,14 +35,22 @@ public class Periods
     public static class Financial
     {
         private PeriodName period;
-        private BigDecimal revenue;
-        private BigDecimal grossProfit;
-        private BigDecimal grossMargin;
-        private BigDecimal operatingIncome;
-        private BigDecimal operatingMargin;
-        private BigDecimal netIncome;
-        private BigDecimal netMargin;
+
+        private final Metric revenue = new Metric();
+        private final Metric grossProfit = new Metric();
+        private final Metric operatingIncome = new Metric();
+        private final Metric netIncome = new Metric();
+
         private BigDecimal dividend;
+        private BigDecimal adjustedEps;
         private BigDecimal shares;
+
+        @Data
+        public static class Metric {
+            private BigDecimal value;
+            private BigDecimal margin;
+            private BigDecimal yoy;
+            private BigDecimal qoq;
+        }
     }
 }

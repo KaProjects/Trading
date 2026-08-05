@@ -9,5 +9,5 @@ public interface EntityCompanyDao<C extends AbstractEntityCompany> extends Entit
     /**
      * @return list of {@link C} for specified company
      */
-    List<C> list(String companyId);
+    List<C> list(Long companyId);
 }

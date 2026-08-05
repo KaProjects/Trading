@@ -18,4 +18,6 @@
 *.tar.gz
 *.rar
 
+**/__pycache__
 
+backend/src/dev/resources/firebase.json

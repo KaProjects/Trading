@@ -2,28 +2,44 @@ package org.kaleta.rest;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.MockitoConfig;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.client.FinnhubClient;
+import org.kaleta.client.PolygonClient;
 import org.kaleta.client.RequestFailureException;
+import org.kaleta.client.dto.PolygonFinancials;
+import org.kaleta.client.dto.PolygonPriceRange;
 import org.kaleta.framework.Assert;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.PeriodName;
+import org.kaleta.rest.dto.EstimateImportDto;
+import org.kaleta.rest.dto.PeriodImportDataDto;
+import org.kaleta.rest.dto.PeriodImportCandidateDto;
+import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
+import org.kaleta.service.FirebaseService;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -31,16 +47,24 @@ public class ResearchEndpointsTest
 {
     @InjectMock
     FinnhubClient finnhubClient;
+    @InjectMock
+    PolygonClient polygonClient;
+    @InjectMock
+    @MockitoConfig(convertScopes = true)
+    FirebaseService firebaseService;
 
     @BeforeEach
     void before() throws RequestFailureException
     {
+        reset(finnhubClient, polygonClient, firebaseService);
         when(finnhubClient.quote(any())).thenReturn(null);
+        when(firebaseService.getPeriod(anyString(), anyString())).thenReturn(null);
+        when(firebaseService.getNewerPeriods(anyString(), nullable(String.class))).thenReturn(List.of());
     }
 
     @Test
     void get() {
-        String companyId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+        Long companyId = 2281L;
         ResearchDto dto = given().when()
                 .get("/research/" + companyId)
                 .then()
@@ -51,19 +75,30 @@ public class ResearchEndpointsTest
 
         assertThat(dto.getCompany().getId(), is(companyId));
         assertThat(dto.getCompany().getTicker(), is("RCH"));
-        assertThat(dto.getCompany().getWatching(), is(true));
         assertThat(dto.getCompany().getCurrency(), is(Currency.$));
 
         assertThat(dto.getPeriods().size(), is(3));
         assertThat(dto.getPeriods().get(0).getName(), is(PeriodName.valueOf("25Q1")));
         assertThat(dto.getPeriods().get(1).getName(), is(PeriodName.valueOf("24Q4")));
         assertThat(dto.getPeriods().get(2).getName(), is(PeriodName.valueOf("24Q3")));
-        assertThat(dto.getPeriods().get(0).getCachedData(), is(nullValue()));
-        assertThat(dto.getPeriods().get(1).getCachedData(), is(nullValue()));
-        assertThat(dto.getPeriods().get(2).getCachedData(), is(nullValue()));
+        assertThat(dto.getPeriods().get(0).getEstimate(), is(notNullValue()));
+        assertBigDecimals(dto.getPeriods().get(0).getEstimate().getCurrent(), new BigDecimal("1.62"));
+        assertBigDecimals(dto.getPeriods().get(0).getEstimate().getNext1(), new BigDecimal("1.85"));
+        assertThat(dto.getPeriods().get(0).getEstimate().getNext2(), is(nullValue()));
+        assertThat(dto.getPeriods().get(0).getEstimate().getNext3(), is(nullValue()));
+        assertThat(dto.getPeriods().get(1).getEstimate(), is(nullValue()));
+        assertThat(dto.getPeriods().get(2).getEstimate(), is(nullValue()));
+        assertThat(dto.getEstimateOverview(), is(notNullValue()));
+        assertThat(dto.getEstimateOverview().getTtm().getValue(), is(nullValue()));
+        assertThat(dto.getEstimateOverview().getCurrent().getValue(), is(nullValue()));
+        assertThat(dto.getEstimateOverview().getNext1().getValue(), is(nullValue()));
+        assertThat(dto.getEstimateOverview().getNext2().getValue(), is(nullValue()));
+        assertThat(dto.getEstimateOverview().getNext3().getValue(), is(nullValue()));
         assertThat(dto.getFinancials().size(), is(2));
         assertThat(dto.getFinancials().get(0).getPeriod(), is(PeriodName.valueOf("24Q4")));
+        assertBigDecimals(dto.getFinancials().get(0).getAdjustedEps(), new BigDecimal("1.25"));
         assertThat(dto.getFinancials().get(1).getPeriod(), is(PeriodName.valueOf("24Q3")));
+        assertThat(dto.getFinancials().get(1).getAdjustedEps(), is(nullValue()));
         assertThat(dto.getTtm(), is(notNullValue()));
 
         assertThat(dto.getRecords().size(), is(2));
@@ -129,16 +164,280 @@ public class ResearchEndpointsTest
         assertBigDecimals(dto.getAssets().getAggregate().getProfitValue(), new BigDecimal("32520"));
         assertBigDecimals(dto.getAssets().getAggregate().getProfitPercent(), new BigDecimal("722.67"));
 
-        assertThat(dto.getNewerCachedPeriods(), is(notNullValue()));
-        assertThat(dto.getNewerCachedPeriods().size(), is(0));
+        verify(firebaseService).getNewerPeriods("RCH", "25Q1");
+    }
+
+    @Test
+    void getIncludesImportablePeriodNames()
+    {
+        PeriodImportCandidateDto candidate = new PeriodImportCandidateDto();
+        candidate.setName("25Q2");
+        candidate.setEndingMonth("2025-07");
+        candidate.setIsReported(false);
+        when(firebaseService.getNewerPeriods("RCH", "25Q1")).thenReturn(List.of(candidate));
+
+        ResearchDto dto = given().when()
+                .get("/research/2281")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", ResearchDto.class);
+
+        assertThat(dto.getImportablePeriods().size(), is(1));
+        assertThat(dto.getImportablePeriods().get(0).getName(), is("25Q2"));
+        assertThat(dto.getImportablePeriods().get(0).getEndingMonth(), is("2025-07"));
+        assertThat(dto.getImportablePeriods().get(0).getIsReported(), is(false));
+        verify(firebaseService).getNewerPeriods("RCH", "25Q1");
     }
 
     @Test
     void get_invalidParameters()
     {
-        Assert.getValidationError("/research/" + "AAAAAA", VALID_UUID);
+        Assert.getValidationError("/research/0", VALID_ID);
 
-        String randomUuid = UUID.randomUUID().toString();
-        Assert.get400("/research/" + randomUuid, "company with id '" + randomUuid + "' not found");
+        Long randomId = 4_294_967_295L;
+        Assert.get400("/research/" + randomId, "company with id '" + randomId + "' not found");
+    }
+
+    @Test
+    void importPeriod() throws RequestFailureException
+    {
+        Long companyId = 2281L;
+        PeriodImportDto firebaseData = firebaseData();
+        when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData);
+        when(firebaseService.getLatestActualEps("RCH", "25Q2")).thenReturn("1.27");
+        when(polygonClient.getFinancials("RCH", "2025", "Q2")).thenReturn(Optional.of(
+                new PolygonFinancials(
+                        new BigDecimal("10000000"),
+                        new BigDecimal("20000000"),
+                        new BigDecimal("30000000"),
+                        new BigDecimal("40000000"),
+                        new BigDecimal("50000000"))));
+        when(polygonClient.getPriceRange("RCH", "2025-05-28", "2025-08-27"))
+                .thenReturn(Optional.of(new PolygonPriceRange(
+                        new BigDecimal("140.25"),
+                        new BigDecimal("90.75"))));
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", PeriodImportDataDto.class);
+
+        assertThat(dto.getName(), is("25Q2"));
+        assertThat(dto.getEndingMonth(), is("2025-07"));
+        assertThat(dto.getReportDate(), is("2025-08-27"));
+        assertThat(dto.getIsReported(), is(true));
+        assertThat(dto.getFirebase().getShares(), is("101"));
+        assertThat(dto.getFirebase().getRevenue(), is("201"));
+        assertThat(dto.getFirebase().getDividend(), is("6"));
+        assertThat(dto.getFirebase().getAdjustedEps(), is("1.25"));
+        assertThat(dto.getPolygon().getShares(), is("10"));
+        assertThat(dto.getPolygon().getRevenue(), is("20"));
+        assertThat(dto.getPolygon().getGrossProfit(), is("30"));
+        assertThat(dto.getPolygon().getOperatingIncome(), is("40"));
+        assertThat(dto.getPolygon().getNetIncome(), is("50"));
+        assertThat(dto.getPolygon().getAdjustedEps(), is("1.27"));
+        assertThat(dto.getPolygon().getPriceHigh(), is("140.25"));
+        assertThat(dto.getPolygon().getPriceLow(), is("90.75"));
+        assertThat(dto.getWarnings().size(), is(0));
+        verify(firebaseService).getPeriod("RCH", "25Q2");
+        verify(firebaseService).getLatestActualEps("RCH", "25Q2");
+        verify(polygonClient).getFinancials("RCH", "2025", "Q2");
+        verify(polygonClient).getPriceRange("RCH", "2025-05-28", "2025-08-27");
+    }
+
+    @Test
+    void importPeriod_sourceFailureReturnsAvailableSuggestionsWithoutWarning() throws RequestFailureException
+    {
+        Long companyId = 2281L;
+        when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData());
+        when(firebaseService.getLatestActualEps("RCH", "25Q2"))
+                .thenThrow(new IllegalStateException("Finnhub unavailable"));
+        when(polygonClient.getFinancials("RCH", "2025", "Q2"))
+                .thenThrow(new RequestFailureException("rate limit exceeded"));
+        when(polygonClient.getPriceRange("RCH", "2025-05-28", "2025-08-27"))
+                .thenReturn(Optional.of(new PolygonPriceRange(
+                        new BigDecimal("140.25"),
+                        new BigDecimal("90.75"))));
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2")
+                .then()
+                .statusCode(200)
+                .extract().response().jsonPath().getObject("", PeriodImportDataDto.class);
+
+        assertThat(dto.getFirebase().getRevenue(), is("201"));
+        assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
+        assertThat(dto.getPolygon().getAdjustedEps(), is(nullValue()));
+        assertThat(dto.getPolygon().getPriceHigh(), is("140.25"));
+        assertThat(dto.getWarnings().size(), is(0));
+    }
+
+    @Test
+    void importPeriod_missingGeminiStillLoadsExternalSuggestions() throws RequestFailureException
+    {
+        Long companyId = 2281L;
+        when(firebaseService.getPeriod("RCH", "25Q2"))
+                .thenThrow(new IllegalStateException("Gemini unavailable"));
+        when(polygonClient.getFinancials("RCH", "2025", "Q2")).thenReturn(Optional.of(
+                new PolygonFinancials(
+                        new BigDecimal("10000000"),
+                        new BigDecimal("20000000"),
+                        null,
+                        null,
+                        null)));
+        when(firebaseService.getLatestActualEps("RCH", "25Q2")).thenReturn("1.27");
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", PeriodImportDataDto.class);
+
+        assertThat(dto.getFirebase().getRevenue(), is(nullValue()));
+        assertThat(dto.getPolygon().getShares(), is("10"));
+        assertThat(dto.getPolygon().getRevenue(), is("20"));
+        assertThat(dto.getPolygon().getAdjustedEps(), is("1.27"));
+        assertThat(dto.getPolygon().getPriceHigh(), is(nullValue()));
+        assertThat(dto.getWarnings().size(), is(0));
+        verify(polygonClient).getFinancials("RCH", "2025", "Q2");
+        verify(firebaseService).getLatestActualEps("RCH", "25Q2");
+    }
+
+    @Test
+    void importPeriod_withoutAnySuggestionsReturnsEmptyData()
+    {
+        Long companyId = 2281L;
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", PeriodImportDataDto.class);
+
+        assertThat(dto.getFirebase(), is(notNullValue()));
+        assertThat(dto.getFirebase().getRevenue(), is(nullValue()));
+        assertThat(dto.getPolygon(), is(notNullValue()));
+        assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
+        assertThat(dto.getWarnings().size(), is(0));
+    }
+
+    @Test
+    void importPeriod_invalidParameters()
+    {
+        Long companyId = 2281L;
+        Assert.getValidationError(
+                "/research/0/import/period/25Q2",
+                VALID_ID);
+        Assert.getValidationError(
+                "/research/" + companyId + "/import/period/INVALID",
+                "must be a valid PeriodName");
+    }
+
+    @Test
+    void importEstimate()
+    {
+        Long companyId = 2281L;
+        Long periodId = 2182L;
+        when(firebaseService.getLatestEstimate("RCH", "25Q1"))
+                .thenReturn(estimate("5", "2025-05-01"));
+        when(firebaseService.getLatestEstimate("RCH", "25Q2"))
+                .thenReturn(estimate("6", "2025-08-01"));
+        when(firebaseService.getLatestEstimate("RCH", "25Q3"))
+                .thenReturn(estimate("7", "2025-11-01"));
+        when(firebaseService.getLatestEstimate("RCH", "25Q4"))
+                .thenReturn(estimate("8", "2026-02-01"));
+
+        io.restassured.response.Response response = given().when()
+                .get("/research/" + companyId + "/import/estimate/" + periodId)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response();
+        Map<String, Object> fields = response.jsonPath().getMap("");
+        EstimateImportDto dto = response.as(EstimateImportDto.class);
+
+        assertThat(fields.keySet(), containsInAnyOrder("current", "next1", "next2", "next3"));
+        assertThat(dto.getCurrent().getEps(), is("5"));
+        assertThat(dto.getNext1().getEps(), is("6"));
+        assertThat(dto.getNext2().getEps(), is("7"));
+        assertThat(dto.getNext3().getEps(), is("8"));
+    }
+
+    @Test
+    void importEstimate_sourceFailureReturnsEmptySuggestion()
+    {
+        Long companyId = 2281L;
+        Long periodId = 2182L;
+        when(firebaseService.getLatestEstimate("RCH", "25Q1"))
+                .thenThrow(new IllegalStateException("Finnhub unavailable"));
+
+        EstimateImportDto dto = given().when()
+                .get("/research/" + companyId + "/import/estimate/" + periodId)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(EstimateImportDto.class);
+
+        assertThat(dto.getCurrent(), is(nullValue()));
+        assertThat(dto.getNext1(), is(nullValue()));
+        assertThat(dto.getNext2(), is(nullValue()));
+        assertThat(dto.getNext3(), is(nullValue()));
+    }
+
+    @Test
+    void importEstimate_invalidParameters()
+    {
+        Long companyId = 2281L;
+        Long periodId = 2182L;
+        Long missingId = 4_294_967_295L;
+
+        Assert.getValidationError(
+                "/research/0/import/estimate/" + periodId,
+                VALID_ID);
+        Assert.getValidationError(
+                "/research/" + companyId + "/import/estimate/0",
+                VALID_ID);
+        Assert.get400(
+                "/research/" + missingId + "/import/estimate/" + periodId,
+                "company with id '" + missingId + "' not found");
+        Assert.get400(
+                "/research/" + companyId + "/import/estimate/" + missingId,
+                "period with id '" + missingId + "' not found");
+        Assert.get400(
+                "/research/1927/import/estimate/" + periodId,
+                "period with id '" + periodId + "' does not belong to company with id '1927'");
+    }
+
+    private EstimateImportDto.Quarter estimate(String eps, String date)
+    {
+        EstimateImportDto.Quarter estimate = new EstimateImportDto.Quarter();
+        estimate.setEps(eps);
+        estimate.setDate(date);
+        return estimate;
+    }
+
+    private PeriodImportDto firebaseData()
+    {
+        PeriodImportDto data = new PeriodImportDto();
+        data.setName("25Q2");
+        data.setEndingMonth("2025-07");
+        data.setReportDate("2025-08-27");
+        data.setPreviousReportDate("2025-05-28");
+        data.setIsReported(true);
+        data.setShares("101");
+        data.setRevenue("201");
+        data.setGrossProfit("102");
+        data.setOperatingIncome("51");
+        data.setNetIncome("31");
+        data.setDividend("6");
+        data.setAdjustedEps("1.25");
+        data.setPriceHigh("151.5");
+        data.setPriceLow("81.5");
+        return data;
     }
 }

@@ -19,6 +19,8 @@ describe("Period", () => {
     });
 
     test("renders title and financial details", () => {
+        const openEditDialog = jest.fn();
+        const openEstimateDialog = jest.fn();
         render(
             <Period
                 period={{
@@ -32,21 +34,39 @@ describe("Period", () => {
                     priceLow: 10,
                     financial: {
                         dividend: 12,
-                        revenue: 300,
-                        grossProfit: 200,
-                        operatingIncome: 100,
-                        netIncome: 50,
+                        adjustedEps: 1.62,
+                        revenue: {value: 300},
+                        grossProfit: {value: 200},
+                        operatingIncome: {value: 100},
+                        netIncome: {value: 50},
+                    },
+                    estimate: {
+                        current: 1.62,
+                        next1: 1.85,
+                        next2: null,
+                        next3: 2.76,
                     },
                 }}
                 currency={"$"}
                 setAlert={jest.fn()}
                 openDialog={jest.fn()}
+                openEditDialog={openEditDialog}
+                openEstimateDialog={openEstimateDialog}
             />
         );
 
         expect(screen.getByText("25FY - ending: 12/25 - report: 15.02.2026")).toBeInTheDocument();
-        expect(screen.getByText("Shares: 123M | H: 20$ | L: 10$ | Dividend: 12M")).toBeInTheDocument();
+        expect(screen.getByText("Shares: 123M | H: 20$ | L: 10$ | Dividend: 12M | Adj. Eps: 1.62"))
+            .toBeInTheDocument();
         expect(screen.getByText("Revenue: 300M | Gross P.: 200M | Op. Inc.: 100M | Net Income: 50M")).toBeInTheDocument();
+        expect(screen.getByTestId("period-estimates"))
+            .toHaveTextContent("Estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76");
+        expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", {name: "Add Estimates"}));
+        expect(openEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
+        fireEvent.click(screen.getByRole("button", {name: "Edit Period"}));
+        expect(openEditDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
     });
 
     test("updates research through axios", async () => {
@@ -76,6 +96,71 @@ describe("Period", () => {
         ));
     });
 
+    test("renders estimates when financials are missing", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    reportDate: null,
+                    estimate: {
+                        current: 1.62,
+                        next1: null,
+                        next2: null,
+                        next3: null,
+                    },
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("period-estimates"))
+            .toHaveTextContent("Estimates: - | - | - | - => 1.62 | - | - | -");
+        expect(screen.getByRole("button", {name: "Add Financials"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
+    });
+
+    test("renders past estimates before the current estimate", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    reportDate: null,
+                    estimate: {
+                        past4: 0.91,
+                        past3: 1.05,
+                        past2: null,
+                        past1: 1.42,
+                        current: 1.62,
+                        next1: 1.85,
+                        next2: null,
+                        next3: 2.76,
+                        datetime: "2026-08-02T12:30:00",
+                        pastTotal: 4.38,
+                        currentChange: 12.5,
+                        next1Change: -3.25,
+                        next2Change: 0,
+                        next3Change: 4,
+                    },
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("period-estimates"))
+            .toHaveTextContent("Estimates: 0.91 | 1.05 | - | 1.42 => 1.62 | 1.85 | - | 2.76");
+        expect(screen.getByText("(02.08.2026)")).toBeInTheDocument();
+        expect(screen.getByText("(4.38)")).toBeInTheDocument();
+        expect(screen.getByText("(+12.5% | -3.3% | 0% | +4%)")).toBeInTheDocument();
+    });
+
     test("opens dialog when financials are missing", () => {
         const openDialog = jest.fn();
 
@@ -97,5 +182,6 @@ describe("Period", () => {
         fireEvent.click(screen.getByRole("button", {name: "Add Financials"}));
 
         expect(openDialog).toHaveBeenCalled();
+        expect(screen.queryByText(/^Estimates:/)).not.toBeInTheDocument();
     });
 });

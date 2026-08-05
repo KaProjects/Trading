@@ -16,7 +16,7 @@ public class Dividends
     @Data
     public static class Dividend implements Comparable<Dividend>
     {
-        private String id;
+        private Long id;
         private Company company;
 
         private Date date;

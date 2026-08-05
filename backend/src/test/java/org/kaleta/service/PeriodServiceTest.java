@@ -14,6 +14,7 @@ import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
+import org.kaleta.rest.dto.PeriodUnreportedImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.kaleta.rest.error.InvalidInputException;
@@ -167,6 +168,31 @@ public class PeriodServiceTest
     }
 
     @Test
+    void createUnreportedImport()
+    {
+        Company company = Generator.generateCompany();
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+
+        PeriodUnreportedImportDto dto = new PeriodUnreportedImportDto();
+        dto.setCompanyId(company.getId());
+        dto.setName("25Q1");
+        dto.setEndingMonth("2025-04");
+
+        periodService.create(dto);
+
+        ArgumentCaptor<Period> captor = ArgumentCaptor.forClass(Period.class);
+        verify(periodDao).create(captor.capture());
+        Period period = captor.getValue();
+        assertThat(period.getCompany(), is(company));
+        assertThat(period.getName(), is(PeriodName.valueOf(dto.getName())));
+        assertThat(period.getEndingMonth(), is(YearMonth.parse(dto.getEndingMonth())));
+        assertThat(period.getReportDate(), is(nullValue()));
+        assertThat(period.getShares(), is(nullValue()));
+        assertThat(period.getPriceLow(), is(nullValue()));
+        assertThat(period.getPriceHigh(), is(nullValue()));
+    }
+
+    @Test
     void update()
     {
         Company company = Generator.generateCompany();
@@ -271,6 +297,13 @@ public class PeriodServiceTest
         });
         dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setAdjustedEps(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setAdjustedEps(String.valueOf(Generator.randomBigDecimal(9999, 2)));
+        updateAndAssertPeriod(dto, period, null);
     }
 
     @Test
@@ -296,6 +329,7 @@ public class PeriodServiceTest
         dto.setOperatingIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         dto.setNetIncome(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
+        dto.setAdjustedEps(String.valueOf(Generator.randomBigDecimal(9999, 2)));
         updateAndAssertPeriod(dto, period, null);
 
         invalidDates().forEach(invalidDate -> {
@@ -360,6 +394,13 @@ public class PeriodServiceTest
         });
         dto.setDividend(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         updateAndAssertPeriod(dto, period, null);
+
+        invalidBigDecimals().forEach(invalidBigDecimal -> {
+            dto.setAdjustedEps(invalidBigDecimal);
+            updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
+        });
+        dto.setAdjustedEps(String.valueOf(Generator.randomBigDecimal(9999, 2)));
+        updateAndAssertPeriod(dto, period, null);
     }
 
     @Test
@@ -381,6 +422,7 @@ public class PeriodServiceTest
         Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25Q2"), YearMonth.of(2025, 7), "1000", "300", "200", "100", "20");
         Period period2 = Generator.generatePeriod(company, false, PeriodName.valueOf("25Q3"), YearMonth.of(2025, 10));
         Period period3 = Generator.generatePeriod(company, PeriodName.valueOf("25Q1"), YearMonth.of(2025, 4), "950", "400", "300", "50", "10");
+        period1.setAdjustedEps(new BigDecimal("1.25"));
 
         when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3)));
 
@@ -396,38 +438,165 @@ public class PeriodServiceTest
         assertThat(periods.getFinancials().get(0).getPeriod(), is(period1.getName()));
         assertBigDecimals(periods.getFinancials().get(0).getRevenue(), period1.getRevenue());
         assertBigDecimals(periods.getFinancials().get(0).getGrossProfit(), period1.getGrossProfit());
-        assertBigDecimals(periods.getFinancials().get(0).getGrossMargin(), new BigDecimal("30"));
+        assertBigDecimals(periods.getFinancials().get(0).getGrossProfit().getMargin(), new BigDecimal("30"));
         assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome(), period1.getOperatingIncome());
-        assertBigDecimals(periods.getFinancials().get(0).getOperatingMargin(), new BigDecimal("20"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome().getMargin(), new BigDecimal("20"));
         assertBigDecimals(periods.getFinancials().get(0).getNetIncome(), period1.getNetIncome());
-        assertBigDecimals(periods.getFinancials().get(0).getNetMargin(), new BigDecimal("10"));
+        assertBigDecimals(periods.getFinancials().get(0).getNetIncome().getMargin(), new BigDecimal("10"));
         assertBigDecimals(periods.getFinancials().get(0).getDividend(), period1.getDividend());
+        assertBigDecimals(periods.getFinancials().get(0).getAdjustedEps(), period1.getAdjustedEps());
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period3.getName()));
         assertBigDecimals(periods.getFinancials().get(1).getRevenue(), period3.getRevenue());
         assertBigDecimals(periods.getFinancials().get(1).getGrossProfit(), period3.getGrossProfit());
-        assertBigDecimals(periods.getFinancials().get(1).getGrossMargin(), new BigDecimal("42.11"));
+        assertBigDecimals(periods.getFinancials().get(1).getGrossProfit().getMargin(), new BigDecimal("42.11"));
         assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome(), period3.getOperatingIncome());
-        assertBigDecimals(periods.getFinancials().get(1).getOperatingMargin(), new BigDecimal("31.58"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome().getMargin(), new BigDecimal("31.58"));
         assertBigDecimals(periods.getFinancials().get(1).getNetIncome(), period3.getNetIncome());
-        assertBigDecimals(periods.getFinancials().get(1).getNetMargin(), new BigDecimal("5.26"));
+        assertBigDecimals(periods.getFinancials().get(1).getNetIncome().getMargin(), new BigDecimal("5.26"));
         assertBigDecimals(periods.getFinancials().get(1).getDividend(), period3.getDividend());
+        assertThat(periods.getFinancials().get(1).getAdjustedEps(), is(nullValue()));
 
         assertThat(periods.getTtm(), is(notNullValue()));
 
         assertBigDecimals(periods.getTtm().getRevenue(), new BigDecimal("3900"));
         assertBigDecimals(periods.getTtm().getGrossProfit(), new BigDecimal("1400"));
-        assertBigDecimals(periods.getTtm().getGrossMargin(), new BigDecimal("35.90"));
+        assertBigDecimals(periods.getTtm().getGrossProfit().getMargin(), new BigDecimal("35.90"));
 
         assertBigDecimals(periods.getTtm().getOperatingIncome(), new BigDecimal("1000"));
-        assertBigDecimals(periods.getTtm().getOperatingMargin(), new BigDecimal("25.64"));
+        assertBigDecimals(periods.getTtm().getOperatingIncome().getMargin(), new BigDecimal("25.64"));
 
         assertBigDecimals(periods.getTtm().getNetIncome(), new BigDecimal("300"));
-        assertBigDecimals(periods.getTtm().getNetMargin(), new BigDecimal("7.69"));
+        assertBigDecimals(periods.getTtm().getNetIncome().getMargin(), new BigDecimal("7.69"));
 
         assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("60"));
 
         assertBigDecimals(periods.getTtm().getShares(), period1.getShares());
+    }
+
+    @Test
+    void getBy_financialGrowth()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25Q2"), YearMonth.of(2025, 6), "150", "90", "60", "30", "5");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("25Q1"), YearMonth.of(2025, 3), "100", "60", "40", "20", "4");
+        Period period3 = Generator.generatePeriod(company, PeriodName.valueOf("24Q4"), YearMonth.of(2024, 12), "80", "40", "20", "10", "3");
+        Period period4 = Generator.generatePeriod(company, PeriodName.valueOf("24Q3"), YearMonth.of(2024, 9), "70", "35", "14", "7", "2");
+        Period period5 = Generator.generatePeriod(company, PeriodName.valueOf("24Q2"), YearMonth.of(2024, 6), "75", "45", "30", "15", "1");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3, period4, period5)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getFinancials().size(), is(5));
+
+        Periods.Financial current = periods.getFinancials().get(0);
+        assertThat(current.getPeriod(), is(period1.getName()));
+        assertMetricGrowth(current.getRevenue(), new BigDecimal("50"), new BigDecimal("100"));
+        assertMetricGrowth(current.getGrossProfit(), new BigDecimal("50"), new BigDecimal("100"));
+        assertMetricGrowth(current.getOperatingIncome(), new BigDecimal("50"), new BigDecimal("100"));
+        assertMetricGrowth(current.getNetIncome(), new BigDecimal("50"), new BigDecimal("100"));
+
+        Periods.Financial previousQuarter = periods.getFinancials().get(1);
+        assertThat(previousQuarter.getPeriod(), is(period2.getName()));
+        assertMetricGrowth(previousQuarter.getRevenue(), new BigDecimal("25"), null);
+        assertMetricGrowth(previousQuarter.getGrossProfit(), new BigDecimal("50"), null);
+        assertMetricGrowth(previousQuarter.getOperatingIncome(), new BigDecimal("100"), null);
+        assertMetricGrowth(previousQuarter.getNetIncome(), new BigDecimal("100"), null);
+
+        Periods.Financial oldest = periods.getFinancials().get(4);
+        assertThat(oldest.getPeriod(), is(period5.getName()));
+        assertMetricGrowth(oldest.getRevenue(), null, null);
+        assertMetricGrowth(oldest.getGrossProfit(), null, null);
+        assertMetricGrowth(oldest.getOperatingIncome(), null, null);
+        assertMetricGrowth(oldest.getNetIncome(), null, null);
+    }
+
+    @Test
+    void getBy_financialGrowth_negativeValues()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25Q2"), YearMonth.of(2025, 6), "150", "-90", "60", "30", "5");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("25Q1"), YearMonth.of(2025, 3), "-100", "60", "-40", "20", "4");
+        Period period3 = Generator.generatePeriod(company, PeriodName.valueOf("24Q4"), YearMonth.of(2024, 12), "80", "40", "20", "-10", "3");
+        Period period4 = Generator.generatePeriod(company, PeriodName.valueOf("24Q3"), YearMonth.of(2024, 9), "70", "35", "14", "7", "2");
+        Period period5 = Generator.generatePeriod(company, PeriodName.valueOf("24Q2"), YearMonth.of(2024, 6), "75", "45", "30", "15", "1");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3, period4, period5)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        Periods.Financial current = periods.getFinancials().get(0);
+        assertThat(current.getPeriod(), is(period1.getName()));
+        assertMetricGrowth(current.getRevenue(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getGrossProfit(), null, null);
+        assertMetricGrowth(current.getOperatingIncome(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getNetIncome(), new BigDecimal("50"), new BigDecimal("100"));
+
+        Periods.Financial previousQuarter = periods.getFinancials().get(1);
+        assertThat(previousQuarter.getPeriod(), is(period2.getName()));
+        assertMetricGrowth(previousQuarter.getRevenue(), null, null);
+        assertMetricGrowth(previousQuarter.getGrossProfit(), new BigDecimal("50"), null);
+        assertMetricGrowth(previousQuarter.getOperatingIncome(), null, null);
+        assertMetricGrowth(previousQuarter.getNetIncome(), null, null);
+    }
+
+    @Test
+    void getBy_financialGrowth_halves()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25H2"), YearMonth.of(2025, 12), "200", "100", "80", "40", "8");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("25H1"), YearMonth.of(2025, 6), "160", "80", "40", "20", "6");
+        Period period3 = Generator.generatePeriod(company, PeriodName.valueOf("24H2"), YearMonth.of(2024, 12), "100", "50", "40", "10", "4");
+        Period period4 = Generator.generatePeriod(company, PeriodName.valueOf("24H1"), YearMonth.of(2024, 6), "80", "40", "20", "10", "2");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3, period4)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getFinancials().size(), is(4));
+
+        Periods.Financial current = periods.getFinancials().get(0);
+        assertThat(current.getPeriod(), is(period1.getName()));
+        assertMetricGrowth(current.getRevenue(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getGrossProfit(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getOperatingIncome(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getNetIncome(), null, new BigDecimal("300"));
+
+        Periods.Financial previousHalf = periods.getFinancials().get(1);
+        assertThat(previousHalf.getPeriod(), is(period2.getName()));
+        assertMetricGrowth(previousHalf.getRevenue(), null, new BigDecimal("100"));
+        assertMetricGrowth(previousHalf.getGrossProfit(), null, new BigDecimal("100"));
+        assertMetricGrowth(previousHalf.getOperatingIncome(), null, new BigDecimal("100"));
+        assertMetricGrowth(previousHalf.getNetIncome(), null, new BigDecimal("100"));
+    }
+
+    @Test
+    void getBy_financialGrowth_years()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("25FY"), YearMonth.of(2025, 12), "1500", "900", "600", "300", "30");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("24FY"), YearMonth.of(2024, 12), "1000", "600", "300", "100", "20");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getFinancials().size(), is(2));
+
+        Periods.Financial current = periods.getFinancials().get(0);
+        assertThat(current.getPeriod(), is(period1.getName()));
+        assertMetricGrowth(current.getRevenue(), null, new BigDecimal("50"));
+        assertMetricGrowth(current.getGrossProfit(), null, new BigDecimal("50"));
+        assertMetricGrowth(current.getOperatingIncome(), null, new BigDecimal("100"));
+        assertMetricGrowth(current.getNetIncome(), null, new BigDecimal("200"));
+
+        Periods.Financial previousYear = periods.getFinancials().get(1);
+        assertThat(previousYear.getPeriod(), is(period2.getName()));
+        assertMetricGrowth(previousYear.getRevenue(), null, null);
+        assertMetricGrowth(previousYear.getGrossProfit(), null, null);
+        assertMetricGrowth(previousYear.getOperatingIncome(), null, null);
+        assertMetricGrowth(previousYear.getNetIncome(), null, null);
     }
 
     @Test
@@ -452,34 +621,34 @@ public class PeriodServiceTest
         assertThat(periods.getFinancials().get(0).getPeriod(), is(period3.getName()));
         assertBigDecimals(periods.getFinancials().get(0).getRevenue(), period3.getRevenue());
         assertBigDecimals(periods.getFinancials().get(0).getGrossProfit(), period3.getGrossProfit());
-        assertBigDecimals(periods.getFinancials().get(0).getGrossMargin(), new BigDecimal("42.11"));
+        assertBigDecimals(periods.getFinancials().get(0).getGrossProfit().getMargin(), new BigDecimal("42.11"));
         assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome(), period3.getOperatingIncome());
-        assertBigDecimals(periods.getFinancials().get(0).getOperatingMargin(), new BigDecimal("31.58"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome().getMargin(), new BigDecimal("31.58"));
         assertBigDecimals(periods.getFinancials().get(0).getNetIncome(), period3.getNetIncome());
-        assertBigDecimals(periods.getFinancials().get(0).getNetMargin(), new BigDecimal("5.26"));
+        assertBigDecimals(periods.getFinancials().get(0).getNetIncome().getMargin(), new BigDecimal("5.26"));
         assertBigDecimals(periods.getFinancials().get(0).getDividend(), period3.getDividend());
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period1.getName()));
         assertBigDecimals(periods.getFinancials().get(1).getRevenue(), period1.getRevenue());
         assertBigDecimals(periods.getFinancials().get(1).getGrossProfit(), period1.getGrossProfit());
-        assertBigDecimals(periods.getFinancials().get(1).getGrossMargin(), new BigDecimal("30"));
+        assertBigDecimals(periods.getFinancials().get(1).getGrossProfit().getMargin(), new BigDecimal("30"));
         assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome(), period1.getOperatingIncome());
-        assertBigDecimals(periods.getFinancials().get(1).getOperatingMargin(), new BigDecimal("20"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome().getMargin(), new BigDecimal("20"));
         assertBigDecimals(periods.getFinancials().get(1).getNetIncome(), period1.getNetIncome());
-        assertBigDecimals(periods.getFinancials().get(1).getNetMargin(), new BigDecimal("10"));
+        assertBigDecimals(periods.getFinancials().get(1).getNetIncome().getMargin(), new BigDecimal("10"));
         assertBigDecimals(periods.getFinancials().get(1).getDividend(), period1.getDividend());
 
         assertThat(periods.getTtm(), is(notNullValue()));
 
         assertBigDecimals(periods.getTtm().getRevenue(), new BigDecimal("1950"));
         assertBigDecimals(periods.getTtm().getGrossProfit(), new BigDecimal("700"));
-        assertBigDecimals(periods.getTtm().getGrossMargin(), new BigDecimal("35.90"));
+        assertBigDecimals(periods.getTtm().getGrossProfit().getMargin(), new BigDecimal("35.90"));
 
         assertBigDecimals(periods.getTtm().getOperatingIncome(), new BigDecimal("500"));
-        assertBigDecimals(periods.getTtm().getOperatingMargin(), new BigDecimal("25.64"));
+        assertBigDecimals(periods.getTtm().getOperatingIncome().getMargin(), new BigDecimal("25.64"));
 
         assertBigDecimals(periods.getTtm().getNetIncome(), new BigDecimal("150"));
-        assertBigDecimals(periods.getTtm().getNetMargin(), new BigDecimal("7.69"));
+        assertBigDecimals(periods.getTtm().getNetIncome().getMargin(), new BigDecimal("7.69"));
 
         assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("30"));
 
@@ -508,34 +677,34 @@ public class PeriodServiceTest
         assertThat(periods.getFinancials().get(0).getPeriod(), is(period1.getName()));
         assertBigDecimals(periods.getFinancials().get(0).getRevenue(), period1.getRevenue());
         assertBigDecimals(periods.getFinancials().get(0).getGrossProfit(), period1.getGrossProfit());
-        assertBigDecimals(periods.getFinancials().get(0).getGrossMargin(), new BigDecimal("30"));
+        assertBigDecimals(periods.getFinancials().get(0).getGrossProfit().getMargin(), new BigDecimal("30"));
         assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome(), period1.getOperatingIncome());
-        assertBigDecimals(periods.getFinancials().get(0).getOperatingMargin(), new BigDecimal("20"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome().getMargin(), new BigDecimal("20"));
         assertBigDecimals(periods.getFinancials().get(0).getNetIncome(), period1.getNetIncome());
-        assertBigDecimals(periods.getFinancials().get(0).getNetMargin(), new BigDecimal("10"));
+        assertBigDecimals(periods.getFinancials().get(0).getNetIncome().getMargin(), new BigDecimal("10"));
         assertBigDecimals(periods.getFinancials().get(0).getDividend(), period1.getDividend());
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period2.getName()));
         assertBigDecimals(periods.getFinancials().get(1).getRevenue(), period2.getRevenue());
         assertBigDecimals(periods.getFinancials().get(1).getGrossProfit(), period2.getGrossProfit());
-        assertBigDecimals(periods.getFinancials().get(1).getGrossMargin(), new BigDecimal("42.11"));
+        assertBigDecimals(periods.getFinancials().get(1).getGrossProfit().getMargin(), new BigDecimal("42.11"));
         assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome(), period2.getOperatingIncome());
-        assertBigDecimals(periods.getFinancials().get(1).getOperatingMargin(), new BigDecimal("31.58"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome().getMargin(), new BigDecimal("31.58"));
         assertBigDecimals(periods.getFinancials().get(1).getNetIncome(), period2.getNetIncome());
-        assertBigDecimals(periods.getFinancials().get(1).getNetMargin(), new BigDecimal("5.26"));
+        assertBigDecimals(periods.getFinancials().get(1).getNetIncome().getMargin(), new BigDecimal("5.26"));
         assertBigDecimals(periods.getFinancials().get(1).getDividend(), period2.getDividend());
 
         assertThat(periods.getTtm(), is(notNullValue()));
 
         assertBigDecimals(periods.getTtm().getRevenue(), new BigDecimal("1000"));
         assertBigDecimals(periods.getTtm().getGrossProfit(), new BigDecimal("300"));
-        assertBigDecimals(periods.getTtm().getGrossMargin(), new BigDecimal("30"));
+        assertBigDecimals(periods.getTtm().getGrossProfit().getMargin(), new BigDecimal("30"));
 
         assertBigDecimals(periods.getTtm().getOperatingIncome(), new BigDecimal("200"));
-        assertBigDecimals(periods.getTtm().getOperatingMargin(), new BigDecimal("20"));
+        assertBigDecimals(periods.getTtm().getOperatingIncome().getMargin(), new BigDecimal("20"));
 
         assertBigDecimals(periods.getTtm().getNetIncome(), new BigDecimal("100"));
-        assertBigDecimals(periods.getTtm().getNetMargin(), new BigDecimal("10"));
+        assertBigDecimals(periods.getTtm().getNetIncome().getMargin(), new BigDecimal("10"));
 
         assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("20"));
 
@@ -564,34 +733,42 @@ public class PeriodServiceTest
         assertThat(periods.getFinancials().get(0).getPeriod(), is(period2.getName()));
         assertBigDecimals(periods.getFinancials().get(0).getRevenue(), period2.getRevenue());
         assertBigDecimals(periods.getFinancials().get(0).getGrossProfit(), period2.getGrossProfit());
-        assertBigDecimals(periods.getFinancials().get(0).getGrossMargin(), new BigDecimal("20"));
+        assertBigDecimals(periods.getFinancials().get(0).getGrossProfit().getMargin(), new BigDecimal("20"));
         assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome(), period2.getOperatingIncome());
-        assertBigDecimals(periods.getFinancials().get(0).getOperatingMargin(), new BigDecimal("20"));
+        assertBigDecimals(periods.getFinancials().get(0).getOperatingIncome().getMargin(), new BigDecimal("20"));
         assertBigDecimals(periods.getFinancials().get(0).getNetIncome(), period2.getNetIncome());
-        assertBigDecimals(periods.getFinancials().get(0).getNetMargin(), new BigDecimal("20"));
+        assertBigDecimals(periods.getFinancials().get(0).getNetIncome().getMargin(), new BigDecimal("20"));
         assertBigDecimals(periods.getFinancials().get(0).getDividend(), period2.getDividend());
+        assertMetricGrowth(periods.getFinancials().get(0).getRevenue(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(0).getGrossProfit(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(0).getOperatingIncome(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(0).getNetIncome(), null, null);
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period1.getName()));
         assertBigDecimals(periods.getFinancials().get(1).getRevenue(), period1.getRevenue());
         assertBigDecimals(periods.getFinancials().get(1).getGrossProfit(), period1.getGrossProfit());
-        assertBigDecimals(periods.getFinancials().get(1).getGrossMargin(), new BigDecimal("30"));
+        assertBigDecimals(periods.getFinancials().get(1).getGrossProfit().getMargin(), new BigDecimal("30"));
         assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome(), period1.getOperatingIncome());
-        assertBigDecimals(periods.getFinancials().get(1).getOperatingMargin(), new BigDecimal("20"));
+        assertBigDecimals(periods.getFinancials().get(1).getOperatingIncome().getMargin(), new BigDecimal("20"));
         assertBigDecimals(periods.getFinancials().get(1).getNetIncome(), period1.getNetIncome());
-        assertBigDecimals(periods.getFinancials().get(1).getNetMargin(), new BigDecimal("10"));
+        assertBigDecimals(periods.getFinancials().get(1).getNetIncome().getMargin(), new BigDecimal("10"));
         assertBigDecimals(periods.getFinancials().get(1).getDividend(), period1.getDividend());
+        assertMetricGrowth(periods.getFinancials().get(1).getRevenue(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(1).getGrossProfit(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(1).getOperatingIncome(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(1).getNetIncome(), null, null);
 
         assertThat(periods.getTtm(), is(notNullValue()));
 
         assertBigDecimals(periods.getTtm().getRevenue(), new BigDecimal("1250"));
         assertBigDecimals(periods.getTtm().getGrossProfit(), new BigDecimal("325"));
-        assertBigDecimals(periods.getTtm().getGrossMargin(), new BigDecimal("26.00"));
+        assertBigDecimals(periods.getTtm().getGrossProfit().getMargin(), new BigDecimal("26.00"));
 
         assertBigDecimals(periods.getTtm().getOperatingIncome(), new BigDecimal("250"));
-        assertBigDecimals(periods.getTtm().getOperatingMargin(), new BigDecimal("20.00"));
+        assertBigDecimals(periods.getTtm().getOperatingIncome().getMargin(), new BigDecimal("20.00"));
 
         assertBigDecimals(periods.getTtm().getNetIncome(), new BigDecimal("175"));
-        assertBigDecimals(periods.getTtm().getNetMargin(), new BigDecimal("14"));
+        assertBigDecimals(periods.getTtm().getNetIncome().getMargin(), new BigDecimal("14"));
 
         assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("25"));
 
@@ -650,17 +827,34 @@ public class PeriodServiceTest
         if (expected.getRevenue() != null) {
             assertThat(actual.getFinancial(), is(notNullValue()));
             assertThat(actual.getFinancial().getPeriod(), is(expected.getName()));
-            assertThat(actual.getFinancial().getRevenue(), is(expected.getRevenue()));
+            assertThat(actual.getFinancial().getRevenue().getValue(), is(expected.getRevenue()));
             assertThat(actual.getFinancial().getGrossProfit(), is(notNullValue()));
-            assertThat(actual.getFinancial().getGrossMargin(), is(notNullValue()));
+            assertThat(actual.getFinancial().getGrossProfit().getMargin(), is(notNullValue()));
             assertThat(actual.getFinancial().getOperatingIncome(), is(notNullValue()));
-            assertThat(actual.getFinancial().getOperatingMargin(), is(notNullValue()));
-            assertThat(actual.getFinancial().getNetIncome(), is(expected.getNetIncome()));
-            assertThat(actual.getFinancial().getNetMargin(), is(notNullValue()));
+            assertThat(actual.getFinancial().getOperatingIncome().getMargin(), is(notNullValue()));
+            assertThat(actual.getFinancial().getNetIncome().getValue(), is(expected.getNetIncome()));
+            assertThat(actual.getFinancial().getNetIncome().getMargin(), is(notNullValue()));
             assertThat(actual.getFinancial().getDividend(), is(expected.getDividend()));
+            assertThat(actual.getFinancial().getAdjustedEps(), is(expected.getAdjustedEps()));
         } else {
             assertThat(actual.getFinancial(), is(nullValue()));
         }
+    }
+
+    private void assertBigDecimals(Periods.Financial.Metric actual, BigDecimal expected)
+    {
+        assertBigDecimals(actual.getValue(), expected);
+    }
+
+    private void assertMetricGrowth(Periods.Financial.Metric actual, BigDecimal expectedQoq, BigDecimal expectedYoy)
+    {
+        assertBigDecimals(actual.getQoq(), expectedQoq);
+        assertBigDecimals(actual.getYoy(), expectedYoy);
+    }
+
+    private void assertBigDecimals(BigDecimal actual, BigDecimal expected)
+    {
+        org.kaleta.framework.Assert.assertBigDecimals(actual, expected);
     }
 
     private void createAndAssertPeriod(String name, String endingMonth, String reportDate, Class<? extends Exception> expectedException)
@@ -712,6 +906,7 @@ public class PeriodServiceTest
         createDto.setOperatingIncome(operatingIncome);
         createDto.setNetIncome(netIncome);
         createDto.setDividend(dividend);
+        createDto.setAdjustedEps("-1.25");
 
         if (expectedException == null) {
             periodService.create(createDto);
@@ -731,6 +926,7 @@ public class PeriodServiceTest
             assertBigDecimals(captor.getValue().getOperatingIncome(), Utils.createNullableBigDecimal(operatingIncome));
             assertBigDecimals(captor.getValue().getNetIncome(), Utils.createNullableBigDecimal(netIncome));
             assertBigDecimals(captor.getValue().getDividend(), Utils.createNullableBigDecimal(dividend));
+            assertBigDecimals(captor.getValue().getAdjustedEps(), new BigDecimal("-1.25"));
 
             clearInvocations(periodDao);
         } else {
@@ -771,6 +967,8 @@ public class PeriodServiceTest
                     (dto.getNetIncome() == null) ? is(period.getNetIncome()) : is(new BigDecimal(dto.getNetIncome())));
             assertThat(captor.getValue().getDividend(),
                     (dto.getDividend() == null) ? is(period.getDividend()) : is(new BigDecimal(dto.getDividend())));
+            assertThat(captor.getValue().getAdjustedEps(),
+                    (dto.getAdjustedEps() == null) ? is(period.getAdjustedEps()) : is(new BigDecimal(dto.getAdjustedEps())));
 
             clearInvocations(periodDao);
         } else {
@@ -798,6 +996,8 @@ public class PeriodServiceTest
             assertThat(captor.getValue().getOperatingIncome(), is(new BigDecimal(dto.getOperatingIncome())));
             assertThat(captor.getValue().getNetIncome(), is(new BigDecimal(dto.getNetIncome())));
             assertThat(captor.getValue().getDividend(), is(new BigDecimal(dto.getDividend())));
+            assertThat(captor.getValue().getAdjustedEps(),
+                    (dto.getAdjustedEps() == null) ? is(period.getAdjustedEps()) : is(new BigDecimal(dto.getAdjustedEps())));
 
             clearInvocations(periodDao);
         } else {

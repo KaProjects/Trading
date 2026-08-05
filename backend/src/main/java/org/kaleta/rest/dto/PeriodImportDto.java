@@ -5,14 +5,14 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.kaleta.rest.validation.ValidBigDecimal;
 import org.kaleta.rest.validation.ValidPeriodName;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 
 @Data
 public class PeriodImportDto
 {
     @NotNull
-    @ValidUuid
-    private String companyId;
+    @ValidId
+    private Long companyId;
 
     @NotNull
     @ValidPeriodName
@@ -25,29 +25,41 @@ public class PeriodImportDto
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")
     private String reportDate;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String shares;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String priceLow;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String priceHigh;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String revenue;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String grossProfit;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String operatingIncome;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String netIncome;
 
+    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String dividend;
+
+    @NotNull
+    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    private String adjustedEps;
 
     private Boolean isReported = false;
     private String previousReportDate;

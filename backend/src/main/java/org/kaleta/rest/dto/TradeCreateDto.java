@@ -3,15 +3,17 @@ package org.kaleta.rest.dto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.rest.validation.ValidBigDecimal;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
+import org.kaleta.rest.validation.ValueOfEnum;
 
 @Data
 public class TradeCreateDto
 {
     @NotNull
-    @ValidUuid
-    private String companyId;
+    @ValidId
+    private Long companyId;
     @NotNull
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")
     private String date;
@@ -24,4 +26,6 @@ public class TradeCreateDto
     @NotNull
     @ValidBigDecimal(integerConstraint = 3, decimalConstraint = 2)
     private String fees;
+    @ValueOfEnum(enumClass = Portfolio.class)
+    private String portfolio;
 }

@@ -9,8 +9,10 @@ import org.kaleta.model.Periods;
 import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
+import org.kaleta.persistence.entity.PeriodType;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
+import org.kaleta.rest.dto.PeriodUnreportedImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.kaleta.rest.error.InvalidInputException;
@@ -32,6 +34,8 @@ public class PeriodService
     CompanyService companyService;
     @Inject
     FirebaseService firebaseService;
+    @Inject
+    ArithmeticService arithmeticService;
 
     public void create(PeriodCreateDto dto)
     {
@@ -58,9 +62,19 @@ public class PeriodService
         period.setOperatingIncome(Utils.createNullableBigDecimal(dto.getOperatingIncome()));
         period.setNetIncome(Utils.createNullableBigDecimal(dto.getNetIncome()));
         period.setDividend(Utils.createNullableBigDecimal(dto.getDividend()));
+        period.setAdjustedEps(Utils.createNullableBigDecimal(dto.getAdjustedEps()));
 
         periodDao.create(period);
         pushFirebase(period);
+    }
+
+    public void create(PeriodUnreportedImportDto dto)
+    {
+        Period period = new Period();
+        period.setCompany(companyService.findEntity(dto.getCompanyId()));
+        period.setName(PeriodName.valueOf(dto.getName()));
+        period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
+        periodDao.create(period);
     }
 
     public void update(PeriodUpdateDto dto)
@@ -84,6 +98,7 @@ public class PeriodService
         if (dto.getOperatingIncome() != null) period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
         if (dto.getNetIncome() != null) period.setNetIncome(new BigDecimal(dto.getNetIncome()));
         if (dto.getDividend() != null) period.setDividend(new BigDecimal(dto.getDividend()));
+        if (dto.getAdjustedEps() != null) period.setAdjustedEps(new BigDecimal(dto.getAdjustedEps()));
 
         periodDao.save(period);
     }
@@ -107,12 +122,13 @@ public class PeriodService
         period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
         period.setNetIncome(new BigDecimal(dto.getNetIncome()));
         period.setDividend(new BigDecimal(dto.getDividend()));
+        period.setAdjustedEps(new BigDecimal(dto.getAdjustedEps()));
 
         periodDao.save(period);
         pushFirebase(period);
     }
 
-    public Periods getBy(String companyId)
+    public Periods getBy(Long companyId)
     {
         List<Period> periods = periodDao.list(companyId);
         periods.sort((a, b) -> -a.getEndingMonth().compareTo(b.getEndingMonth()));
@@ -128,6 +144,9 @@ public class PeriodService
             }
             model.getPeriods().add(periodModel);
         }
+
+        computeFinancialGrowth(model.getFinancials());
+
         Period ttm = computeTtm(
                 periods.stream()
                         .filter(p -> p.getRevenue() != null)
@@ -148,8 +167,12 @@ public class PeriodService
         return model;
     }
 
-    public Period get(String id) {
-        return periodDao.get(id);
+    public Period get(Long id) {
+        try {
+            return periodDao.get(id);
+        } catch (NoResultException exception) {
+            throw new InvalidInputException("period with id '" + id + "' not found");
+        }
     }
 
     private void pushFirebase(Period period){
@@ -179,25 +202,105 @@ public class PeriodService
         Periods.Financial financial = new Periods.Financial();
 
         financial.setPeriod(period.getName());
-        financial.setRevenue(period.getRevenue());
-        financial.setGrossProfit(period.getGrossProfit());
-        financial.setOperatingIncome(period.getOperatingIncome());
-        financial.setNetIncome(period.getNetIncome());
+        financial.getRevenue().setValue(period.getRevenue());
+        financial.getGrossProfit().setValue(period.getGrossProfit());
+        financial.getOperatingIncome().setValue(period.getOperatingIncome());
+        financial.getNetIncome().setValue(period.getNetIncome());
 
-        BigDecimal grossMargin = financial.getGrossProfit().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        financial.setGrossMargin(grossMargin);
+        financial.getRevenue().setMargin(new BigDecimal(100));
 
-        BigDecimal operatingMargin = financial.getOperatingIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        financial.setOperatingMargin(operatingMargin);
+        BigDecimal grossMargin = period.getGrossProfit().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
+        financial.getGrossProfit().setMargin(grossMargin);
+
+        BigDecimal operatingMargin = period.getOperatingIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
+        financial.getOperatingIncome().setMargin(operatingMargin);
 
         BigDecimal netMargin = period.getNetIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        financial.setNetMargin(netMargin);
+        financial.getNetIncome().setMargin(netMargin);
 
         financial.setDividend(period.getDividend());
+        financial.setAdjustedEps(period.getAdjustedEps());
 
         financial.setShares(period.getShares());
 
         return financial;
+    }
+
+    private void computeFinancialGrowth(List<Periods.Financial> financials)
+    {
+        if (financials.isEmpty()) {
+            return;
+        }
+
+        if (allOfType(financials, PeriodType.Q1, PeriodType.Q2, PeriodType.Q3, PeriodType.Q4)) {
+            computeFinancialGrowth(financials, 1, 4);
+            return;
+        }
+
+        if (allOfType(financials, PeriodType.H1, PeriodType.H2)) {
+            computeFinancialGrowth(financials, null, 2);
+            return;
+        }
+
+        if (allOfType(financials, PeriodType.FY)) {
+            computeFinancialGrowth(financials, null, 1);
+        }
+    }
+
+    private void computeFinancialGrowth(List<Periods.Financial> financials, Integer qoqOffset, int yoyOffset)
+    {
+        for (int i = 0; i < financials.size(); i++) {
+            Periods.Financial current = financials.get(i);
+            Periods.Financial previousPeriod = qoqOffset == null || financials.size() <= i + qoqOffset ? null : financials.get(i + qoqOffset);
+            Periods.Financial previousYear = financials.size() <= i + yoyOffset ? null : financials.get(i + yoyOffset);
+
+            computeMetricGrowth(
+                    current.getRevenue(),
+                    previousPeriod == null ? null : previousPeriod.getRevenue(),
+                    previousYear == null ? null : previousYear.getRevenue());
+            computeMetricGrowth(
+                    current.getGrossProfit(),
+                    previousPeriod == null ? null : previousPeriod.getGrossProfit(),
+                    previousYear == null ? null : previousYear.getGrossProfit());
+            computeMetricGrowth(
+                    current.getOperatingIncome(),
+                    previousPeriod == null ? null : previousPeriod.getOperatingIncome(),
+                    previousYear == null ? null : previousYear.getOperatingIncome());
+            computeMetricGrowth(
+                    current.getNetIncome(),
+                    previousPeriod == null ? null : previousPeriod.getNetIncome(),
+                    previousYear == null ? null : previousYear.getNetIncome());
+        }
+    }
+
+    private boolean allOfType(List<Periods.Financial> financials, PeriodType... types)
+    {
+        List<PeriodType> expectedTypes = List.of(types);
+        return financials.stream()
+                .map(financial -> financial.getPeriod().getType())
+                .allMatch(expectedTypes::contains);
+    }
+
+    private void computeMetricGrowth(Periods.Financial.Metric current,
+                                     Periods.Financial.Metric previousQuarter,
+                                     Periods.Financial.Metric previousYear)
+    {
+        if (current.getValue() == null) {
+            return;
+        }
+        if (previousQuarter != null && canComputeGrowth(current.getValue(), previousQuarter.getValue())) {
+            current.setQoq(arithmeticService.profitPercentage(previousQuarter.getValue(), current.getValue()));
+        }
+        if (previousYear != null && canComputeGrowth(current.getValue(), previousYear.getValue())) {
+            current.setYoy(arithmeticService.profitPercentage(previousYear.getValue(), current.getValue()));
+        }
+    }
+
+    private boolean canComputeGrowth(BigDecimal current, BigDecimal previous)
+    {
+        return previous != null
+                && current.compareTo(BigDecimal.ZERO) >= 0
+                && previous.compareTo(BigDecimal.ZERO) >= 0;
     }
 
     private Period computeTtm(List<Period> periods)

@@ -21,12 +21,14 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 public class Generator
 {
     private static final Random RANDOM = new Random();
+    private static final AtomicLong ID = new AtomicLong(10_000);
 
     public static <T extends Enum<?>> T randomEnum(Class<T> clazz){
         T[] constants = clazz.getEnumConstants();
@@ -57,15 +59,14 @@ public class Generator
         return generateCompany(null);
     }
 
-    public static Company generateCompany(String requiredId) {
+    public static Company generateCompany(Long requiredId) {
         Company company = new Company();
-        if (requiredId != null) company.setId(requiredId);
+        company.setId(requiredId == null ? ID.incrementAndGet() : requiredId);
         company.setTicker(RANDOM.ints(4, 'A', 'Z' + 1)
                 .mapToObj(i -> String.valueOf((char) i))
                 .collect(Collectors.joining()));
         company.setCurrency(randomEnum(Currency.class));
         company.setSector(randomEnum(Sector.class));
-        company.setWatching(RANDOM.nextBoolean());
         return company;
     }
 
@@ -78,6 +79,7 @@ public class Generator
 
     public static Period generatePeriod(Company company, boolean reported, PeriodName name, YearMonth endingMonth) {
         Period period = new Period();
+        period.setId(ID.incrementAndGet());
         period.setCompany(company);
         period.setName(name);
         period.setEndingMonth(endingMonth);
@@ -119,6 +121,7 @@ public class Generator
     public static Record generateRecord(Company company, String date)
     {
         Record record = new Record();
+        record.setId(ID.incrementAndGet());
         record.setCompany(company);
         record.setTitle("title " + String.format("%02d", RANDOM.nextInt(100)));
         record.setDate(Date.valueOf(date));
@@ -139,6 +142,7 @@ public class Generator
     public static Latest generateLatest(Company company)
     {
         Latest latest = new Latest();
+        latest.setId(ID.incrementAndGet());
         latest.setDatetime(LocalDateTime.of(
                 2000 + RANDOM.nextInt(100),
                 Month.of(RANDOM.nextInt(12) + 1),
@@ -154,6 +158,7 @@ public class Generator
     public static Trade generateTrade(Company company, BigDecimal quantity, boolean sold)
     {
         Trade trade = new Trade();
+        trade.setId(ID.incrementAndGet());
         trade.setCompany(company);
         trade.setQuantity(quantity);
 
@@ -175,14 +180,14 @@ public class Generator
         Periods.Financial financial = new Periods.Financial();
         financial.setPeriod(PeriodName.valueOf(String.format("%02d", RANDOM.nextInt(100))
                 + List.of("FY", "H1", "H2", "Q1", "Q2", "Q3", "Q4").get(RANDOM.nextInt(7))));
-        financial.setRevenue(randomBigDecimal(new BigDecimal(999999), 2));
-        financial.setGrossProfit(randomBigDecimal(financial.getRevenue(), 2));
-        financial.setGrossMargin(financial.getGrossProfit().multiply(new BigDecimal(100)).divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
-        financial.setOperatingIncome(randomBigDecimal(financial.getGrossProfit(), 2));
-        financial.setOperatingMargin(financial.getOperatingIncome().multiply(new BigDecimal(100)).divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
-        financial.setNetIncome(randomBigDecimal(financial.getOperatingIncome(), 2));
-        financial.setNetMargin(financial.getNetIncome().multiply(new BigDecimal(100)).divide(financial.getRevenue(), 2, RoundingMode.HALF_UP));
-        financial.setDividend(randomBigDecimal(financial.getNetIncome(), 2));
+        financial.getRevenue().setValue(randomBigDecimal(new BigDecimal(999999), 2));
+        financial.getGrossProfit().setValue(randomBigDecimal(financial.getRevenue().getValue(), 2));
+        financial.getGrossProfit().setMargin(financial.getGrossProfit().getValue().multiply(new BigDecimal(100)).divide(financial.getRevenue().getValue(), 2, RoundingMode.HALF_UP));
+        financial.getOperatingIncome().setValue(randomBigDecimal(financial.getGrossProfit().getValue(), 2));
+        financial.getOperatingIncome().setMargin(financial.getOperatingIncome().getValue().multiply(new BigDecimal(100)).divide(financial.getRevenue().getValue(), 2, RoundingMode.HALF_UP));
+        financial.getNetIncome().setValue(randomBigDecimal(financial.getOperatingIncome().getValue(), 2));
+        financial.getNetIncome().setMargin(financial.getNetIncome().getValue().multiply(new BigDecimal(100)).divide(financial.getRevenue().getValue(), 2, RoundingMode.HALF_UP));
+        financial.setDividend(randomBigDecimal(financial.getNetIncome().getValue(), 2));
         financial.setShares(randomBigDecimal(new BigDecimal(999999), 2));
         return financial;
     }

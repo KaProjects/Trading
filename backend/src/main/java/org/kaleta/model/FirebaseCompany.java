@@ -1,8 +1,10 @@
 package org.kaleta.model;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
+import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 
 import java.math.BigDecimal;
@@ -11,27 +13,32 @@ import java.time.YearMonth;
 import java.util.Map;
 
 @Data
+@RegisterForReflection
 public class FirebaseCompany
 {
     private Map<String, Map<String, FinnhubEarnings>> fhe;
     private Gemini gemini;
 
     @Data
+    @RegisterForReflection
     public static class FinnhubEarnings {
-        private Double epsa;
-        private Double epse;
+        private String epsa;
+        private String epse;
         private String report;
-        private Double reva;
-        private Double reve;
+        private String reva;
+        private String reve;
     }
 
     @Data
+    @RegisterForReflection
     public static class Gemini
     {
         private Info info;
         private Map<String, Quarter> quarters;
+        private Map<String, Target> targets;
 
         @Data
+        @RegisterForReflection
         public static class Info
         {
             private String current_quarter_id;
@@ -40,6 +47,18 @@ public class FirebaseCompany
         }
 
         @Data
+        @RegisterForReflection
+        public static class Target
+        {
+            private String date;
+            private String institution;
+            private String price;
+            private String rating;
+            private String source;
+        }
+
+        @Data
+        @RegisterForReflection
         public static class Quarter
         {
             private String id;
@@ -59,6 +78,8 @@ public class FirebaseCompany
 
             public boolean isInFutureOf(String quarterId)
             {
+                if (quarterId == null) return true;
+
                 PeriodName marginPeriodName = PeriodName.valueOf(quarterId);
                 PeriodName thisPeriodName = PeriodName.valueOf(id);
 
@@ -98,10 +119,23 @@ public class FirebaseCompany
                 if (this.reported_div != null && !this.reported_div.isBlank()) {
                     period.setDividend(new BigDecimal(this.reported_div).toString());
                 }
+                if (this.reported_eps != null && !this.reported_eps.isBlank()) {
+                    period.setAdjustedEps(new BigDecimal(this.reported_eps).toString());
+                }
                 if (this.report_date_previous_quarter != null && !this.report_date_previous_quarter.isBlank()) {
                     period.setPreviousReportDate(Date.valueOf(this.report_date_previous_quarter).toString());
                 }
                 return period;
+            }
+
+            public PeriodImportCandidateDto toImportCandidateDto()
+            {
+                PeriodImportCandidateDto candidate = new PeriodImportCandidateDto();
+                candidate.setName(PeriodName.valueOf(this.id).toString());
+                candidate.setEndingMonth(YearMonth.parse("20" + this.ending_month).toString());
+                candidate.setIsReported(this.reported_revenues != null
+                        && !this.reported_revenues.isBlank());
+                return candidate;
             }
         }
     }

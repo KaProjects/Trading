@@ -34,7 +34,7 @@ export const AddPeriodDialog = props => {
         <Dialog
             open={open}
             onClose={handleClose}
-            PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createPeriod()},}}
+            slotProps={{paper: {component: 'form', onSubmit: (event) => {event.preventDefault();createPeriod()},}}}
         >
             <DialogTitle>Add Period</DialogTitle>
             <DialogContent>

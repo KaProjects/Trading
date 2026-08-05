@@ -1,0 +1,16 @@
+services:
+  mem-stats:
+    build: .
+    image: ${MEM_STATS_IMAGE_NAME:-mem-stats:latest}
+    container_name: ${MEM_STATS_CONTAINER_NAME:?MEM_STATS_CONTAINER_NAME must be set}
+    restart: unless-stopped
+    ports:
+      - "${PORT:?PORT must be set}:8080"
+    environment:
+      SELF_CONTAINER_NAME: ${MEM_STATS_CONTAINER_NAME:?MEM_STATS_CONTAINER_NAME must be set}
+      SAMPLE_INTERVAL: ${SAMPLE_INTERVAL:-1m}
+      CHECKPOINT_INTERVAL: ${CHECKPOINT_INTERVAL:-1h}
+      BUCKET_SIZE_MIB: ${BUCKET_SIZE_MIB:-10}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data:/data

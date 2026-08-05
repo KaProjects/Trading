@@ -9,13 +9,12 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    MenuItem,
-    Select
 } from "@mui/material";
 import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
+import {DialogCompanySelect} from "./component/DialogCompanySelect";
 
 
 export const AddDividendDialog = props => {
@@ -52,7 +51,7 @@ export const AddDividendDialog = props => {
         <Dialog
             open={open}
             onClose={handleClose}
-            PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createDividend()},}}
+            slotProps={{paper: {component: 'form', onSubmit: (event) => {event.preventDefault();createDividend()},}}}
         >
             <DialogTitle>Add Dividend</DialogTitle>
             <DialogContent>
@@ -61,17 +60,14 @@ export const AddDividendDialog = props => {
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                 />
-                <Select required margin="dense" fullWidth variant="standard" displayEmpty
-                        value={company}
-                        error={company === ""}
-                        onChange={event => {setCompany(event.target.value);setAlert(null);}}
-                        sx={{marginTop: "20px"}}
-                >
-                    <MenuItem value=""></MenuItem>
-                    {props.companies.map((company, index) => (
-                        <MenuItem key={index} value={company} >{(company.ticker === undefined) ? company : company.ticker}</MenuItem>
-                    ))}
-                </Select>
+                <DialogCompanySelect
+                    key={`add-dividend-company-${open}`}
+                    id="trader-dividend-company"
+                    companyLists={props.companyLists}
+                    defaultCompanyList="owned"
+                    value={company}
+                    onChange={value => {setCompany(value);setAlert(null);}}
+                />
                 <DialogTextField
                     id="trader-dividend-dividend"
                     value={dividend}

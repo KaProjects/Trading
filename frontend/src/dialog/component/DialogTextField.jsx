@@ -2,7 +2,9 @@ import {TextField} from "@mui/material";
 import React from "react";
 
 
-export const DialogTextField = ({validate, ...props}) => {
+export const DialogTextField = ({validate, helperText, showValidationError = true, ...props}) => {
+    const validation = validate ? validate() : "";
+
     return (
         <TextField
             required
@@ -10,8 +12,8 @@ export const DialogTextField = ({validate, ...props}) => {
             fullWidth
             variant="standard"
             {...props}
-            error={validate() !== ""}
-            helperText={validate()}
+            error={showValidationError && validation !== ""}
+            helperText={helperText ?? validation}
         />
     )
 }

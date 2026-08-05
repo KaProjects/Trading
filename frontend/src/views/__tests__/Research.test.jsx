@@ -13,14 +13,31 @@ jest.mock("../component/Loader", () => ({
     ),
 }));
 jest.mock("../component/CompanySelector", () => ({
+    BUILT_IN_LIST_TITLES: {owned: "Owned", recent: "Recent", researched: "Researched", all: "All"},
     CompanySelector: (props) => (
-        <div data-testid="company-selector">company-selector:{props.refresh}</div>
+        <div data-testid="company-selector">
+            company-selector:{props.refresh}
+            <button onClick={() => props.onCustomTagsChange(["growth", "income"])}>provide-tags</button>
+        </div>
     ),
 }));
 jest.mock("../component/PeriodFinancials", () => ({
     PeriodFinancials: (props) => (
-        <div data-testid="period-financials">expand:{String(props.expand)} financials:{props.financials.length}</div>
+        <button data-testid="period-financials" onClick={props.onOpen}>financial-overview</button>
     ),
+}));
+jest.mock("../component/PeriodEstimatesOverview", () => ({
+    PeriodEstimatesOverview: (props) => (
+        <button data-testid="period-estimates-overview" onClick={props.onOpen}>estimate-overview:{props.overview?.current?.value}</button>
+    ),
+}));
+jest.mock("../../dialog/FinancialsDialog", () => ({
+    FinancialsDialog: (props) => props.open ? <div>financials-dialog:{props.ticker}:{props.financials.length}</div> : null,
+}));
+jest.mock("../../dialog/EarningsProjectionsDialog", () => ({
+    EarningsProjectionsDialog: (props) => props.open
+        ? <div>earnings-projections-dialog:{props.ticker}:{props.currentPrice}:{props.latestPeriod.name}:{props.latestPeriod.estimate.current}:{props.previousPeriod.priceHigh}</div>
+        : null,
 }));
 jest.mock("../../dialog/AddRecordDialog", () => ({
     AddRecordDialog: (props) => props.open ? <div>add-record-dialog</div> : null
@@ -32,7 +49,19 @@ jest.mock("../../dialog/AddPeriodFinancialDialog", () => ({
     AddPeriodFinancialDialog: (props) => props.open ? <div>add-period-financial-dialog</div> : null
 }));
 jest.mock("../../dialog/ImportPeriodDialog", () => ({
-    ImportPeriodDialog: (props) => props.open ? <div>import-period-dialog</div> : null
+    ImportPeriodDialog: (props) => props.open
+        ? <div>import-period-dialog:{props.periods.map(period => period.name).join(",")}</div>
+        : null
+}));
+jest.mock("../../dialog/AddEstimateDialog", () => ({
+    AddEstimateDialog: (props) => props.open
+        ? <div>add-estimate-dialog:{props.period.id}</div>
+        : null
+}));
+jest.mock("../../dialog/AddTagDialog", () => ({
+    AddTagDialog: (props) => props.open
+        ? <div>add-tag-dialog:{props.companyId}:{props.suggestions.join(",")}</div>
+        : null,
 }));
 jest.mock("../component/SnackbarErrorAlert", () => ({
     SnackbarErrorAlert: (props) => (
@@ -46,13 +75,19 @@ jest.mock("../component/DateTime", () => ({
     DateTime: ({value}) => <div>datetime:{value}</div>
 }));
 jest.mock("../component/Record", () => ({
-    Record: ({record}) => <div>record:{record.id}</div>
+    Record: ({data, deleteRecord}) => (
+        <div>
+            <span>record:{data.id}</span>
+            <button onClick={() => deleteRecord(data.id)}>delete:{data.id}</button>
+        </div>
+    )
 }));
 jest.mock("../component/Period", () => ({
-    Period: ({period, openDialog}) => (
+    Period: ({period, openDialog, openEstimateDialog}) => (
         <div>
             <span>period:{period.id}</span>
             <button onClick={openDialog}>open-period-dialog:{period.id}</button>
+            <button onClick={openEstimateDialog}>open-estimate-dialog:{period.id}</button>
         </div>
     )
 }));
@@ -78,7 +113,7 @@ function createResearchData(overrides = {}) {
             ticker: "AAPL",
             currency: "$",
             sector: {key: "TECH", name: "Technology"},
-            watching: false,
+            tags: ["growth", "owned", "recent", "researched"],
         },
         financials: [{period: "25FY"}],
         ttm: {
@@ -88,8 +123,31 @@ function createResearchData(overrides = {}) {
             netIncome: 200,
             dividend: 20,
         },
-        periods: [{id: "period-1"}],
-        newerCachedPeriods: [],
+        estimateOverview: {
+            ttm: {value: 10},
+            current: {value: 14, change: 40},
+            next1: {value: 18, change: 28.57},
+            next2: {value: 22, change: 22.22},
+            next3: {value: 26, change: 18.18},
+        },
+        periods: [
+            {
+                id: "period-1",
+                name: "26Q2",
+                estimate: {
+                    past4: 1,
+                    past3: 2,
+                    past2: 3,
+                    past1: 4,
+                    current: 5,
+                    next1: 6,
+                    next2: 7,
+                    next3: 8,
+                },
+            },
+            {id: "period-2", priceHigh: 140, priceLow: 80},
+        ],
+        importablePeriods: [],
         latest: {
             price: 123.45,
             datetime: "2026-05-09T10:11:12",
@@ -116,23 +174,19 @@ describe("Research", () => {
     beforeEach(() => {
         axios.get.mockReset();
         axios.put.mockReset();
+        axios.delete.mockReset();
         mockFormatError.mockReset();
-        sessionStorage.clear();
     });
 
     test("fetches data and renders the research view", async () => {
         axios.get.mockResolvedValue({data: createResearchData()});
 
-        const toggleRecordsSelectors = jest.fn();
-
         render(
             <Research
                 companySelectorValue={companySelectorValue}
-                toggleRecordsSelectors={toggleRecordsSelectors}
             />
         );
 
-        expect(toggleRecordsSelectors).toHaveBeenCalled();
         expect(screen.getByTestId("loader")).toBeInTheDocument();
 
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith("http://backend/research/company-1"));
@@ -140,7 +194,10 @@ describe("Research", () => {
 
         expect(screen.getByText("Research")).toBeInTheDocument();
         expect(screen.getByText("Technology")).toBeInTheDocument();
-        expect(screen.getByTestId("period-financials")).toHaveTextContent("expand:false financials:1");
+        expect(screen.getByText("#growth")).toBeInTheDocument();
+        expect(screen.queryByText("#owned")).not.toBeInTheDocument();
+        expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
+        expect(screen.getByTestId("period-estimates-overview")).toHaveTextContent("estimate-overview:14");
         expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
         expect(screen.getByText("Market Cap: $1B")).toBeInTheDocument();
         expect(screen.getByText("Dividend Yield: 2%")).toBeInTheDocument();
@@ -149,47 +206,112 @@ describe("Research", () => {
         expect(screen.getByText("record:record-1")).toBeInTheDocument();
     });
 
-    test("expands financials when session storage requests it", async () => {
-        sessionStorage.setItem("showFinancials", "true");
+    test("opens add tag with custom list suggestions", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("AAPL");
+        fireEvent.click(screen.getByText("provide-tags"));
+        fireEvent.click(screen.getByRole("button", {name: "Add tag"}));
+
+        expect(screen.getByText("add-tag-dialog:company-1:growth,income")).toBeInTheDocument();
+    });
+
+    test("confirms and removes a tag from the selected company", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+        axios.delete.mockResolvedValue({});
+        const refreshCompanyLists = jest.fn();
+
+        render(<Research companySelectorValue={companySelectorValue} refreshCompanyLists={refreshCompanyLists}/>);
+
+        await screen.findByText("#growth");
+        fireEvent.click(screen.getByRole("button", {name: "Remove tag growth"}));
+
+        expect(screen.getByText("Do you want to remove tag #growth from AAPL?")).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", {name: "Remove"}));
+
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith(
+            "http://backend/company/company-1/tag",
+            {params: {value: "growth"}},
+        ));
+        await waitFor(() => expect(refreshCompanyLists).toHaveBeenCalled());
+    });
+
+    test("does not remove a tag when confirmation is cancelled", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("#growth");
+        fireEvent.click(screen.getByRole("button", {name: "Remove tag growth"}));
+        fireEvent.click(screen.getByRole("button", {name: "Cancel"}));
+
+        await waitFor(() => expect(screen.queryByText("Remove tag?")).not.toBeInTheDocument());
+        expect(axios.delete).not.toHaveBeenCalled();
+    });
+
+    test("opens financials dialog from the overview", async () => {
         axios.get.mockResolvedValue({data: createResearchData()});
 
         render(
             <Research
                 companySelectorValue={companySelectorValue}
-                toggleRecordsSelectors={jest.fn()}
             />
         );
 
-        await waitFor(() => expect(screen.getByTestId("period-financials")).toHaveTextContent("expand:true financials:1"));
-        expect(sessionStorage.getItem("showFinancials")).toBeNull();
+        await screen.findByTestId("period-financials");
+        fireEvent.click(screen.getByTestId("period-financials"));
+        expect(screen.getByText("financials-dialog:AAPL:1")).toBeInTheDocument();
     });
 
-    test("updates watching status after confirm", async () => {
+    test("opens earnings projections dialog from the estimates overview", async () => {
         axios.get.mockResolvedValue({data: createResearchData()});
-        axios.put.mockResolvedValue({});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByTestId("period-estimates-overview");
+        fireEvent.click(screen.getByTestId("period-estimates-overview"));
+        expect(screen.getByText("earnings-projections-dialog:AAPL:123.45:26Q2:5:140")).toBeInTheDocument();
+    });
+
+    test("opens the estimate dialog for a period", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("open-estimate-dialog:period-1");
+        fireEvent.click(screen.getByText("open-estimate-dialog:period-1"));
+
+        expect(screen.getByText("add-estimate-dialog:period-1")).toBeInTheDocument();
+    });
+
+    test("shows the import count and opens the dialog with lightweight period names", async () => {
+        axios.get.mockResolvedValue({data: createResearchData({
+            importablePeriods: [{name: "26Q3"}, {name: "26Q4"}],
+        })});
 
         render(
             <Research
                 companySelectorValue={companySelectorValue}
-                toggleRecordsSelectors={jest.fn()}
             />
         );
 
         await waitFor(() => expect(screen.getByText("AAPL")).toBeInTheDocument());
 
-        fireEvent.click(screen.getAllByRole("button")[0]);
-        expect(screen.getByText("Are you sure to watch the company?")).toBeInTheDocument();
+        expect(screen.getByText("2")).toBeInTheDocument();
+        fireEvent.click(screen.getByTestId("CloudDownloadIcon").closest("button"));
 
-        fireEvent.click(screen.getByText("Confirm"));
+        expect(screen.getByText("import-period-dialog:26Q3,26Q4")).toBeInTheDocument();
+    });
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/company", expect.objectContaining({
-            id: "company-1",
-            sector: "TECH",
-            watching: true,
-        })));
+    test("hides the import button when there are no importable periods", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
 
-        fireEvent.click(screen.getAllByRole("button")[0]);
-        expect(screen.getByText("Are you sure to unwatch the company?")).toBeInTheDocument();
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("AAPL");
+        expect(screen.queryByTestId("CloudDownloadIcon")).not.toBeInTheDocument();
     });
 
     test("shows formatted fetch error in loader", async () => {
@@ -201,11 +323,54 @@ describe("Research", () => {
         render(
             <Research
                 companySelectorValue={companySelectorValue}
-                toggleRecordsSelectors={jest.fn()}
             />
         );
 
         await waitFor(() => expect(mockFormatError).toHaveBeenCalledWith(error));
         expect(screen.getByTestId("loader")).toHaveTextContent(JSON.stringify(formatted));
+    });
+
+    test("deletes record and removes it from the current view", async () => {
+        axios.get.mockResolvedValue({data: createResearchData({
+            records: [{id: "record-1"}, {id: "record-2"}],
+        })});
+        axios.delete.mockResolvedValue({});
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+            />
+        );
+
+        await waitFor(() => expect(screen.getByText("record:record-1")).toBeInTheDocument());
+        expect(screen.getByText("record:record-2")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText("delete:record-1"));
+
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("http://backend/record/record-1"));
+        await waitFor(() => expect(screen.queryByText("record:record-1")).not.toBeInTheDocument());
+        expect(screen.getByText("record:record-2")).toBeInTheDocument();
+    });
+
+    test("shows formatted error when record delete fails", async () => {
+        const formatted = {title: "Delete failed", message: "record could not be deleted"};
+        const error = {name: "AxiosError", message: "boom"};
+        axios.get.mockResolvedValue({data: createResearchData()});
+        axios.delete.mockRejectedValue(error);
+        mockFormatError.mockReturnValue(formatted);
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+            />
+        );
+
+        await waitFor(() => expect(screen.getByText("record:record-1")).toBeInTheDocument());
+
+        fireEvent.click(screen.getByText("delete:record-1"));
+
+        await waitFor(() => expect(mockFormatError).toHaveBeenCalledWith(error));
+        expect(screen.getByTestId("snackbar")).toHaveTextContent(JSON.stringify(formatted));
+        expect(screen.getByText("record:record-1")).toBeInTheDocument();
     });
 });

@@ -17,6 +17,7 @@ describe("DialogDatePicker", () => {
         const {container} = render(<DialogDatePicker label={"Date"} value={""}/>);
 
         expect(container.querySelector("input")).toHaveAttribute("aria-invalid", "true");
+        expect(screen.getByText("Date")).toHaveAttribute("data-shrink", "true");
     });
 
     test("uses custom validation message when validator is provided", () => {

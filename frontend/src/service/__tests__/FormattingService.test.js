@@ -105,6 +105,10 @@ describe('FormattingService', () => {
         expect(formatPercent(12.3)).toBe("12.3%");
         expect(formatPercent(1.23456)).toBe("1.23%");
         expect(formatPercent(1.23956)).toBe("1.24%");
+
+        expect(formatPercent(1.2, true)).toBe("+1.2%");
+        expect(formatPercent(-1.2, true)).toBe("-1.2%");
+        expect(formatPercent(1.23456, false, 3)).toBe("1.235%");
     })
 
     test("isNotAValue", () => {

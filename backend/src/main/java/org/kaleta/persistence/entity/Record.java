@@ -18,14 +18,20 @@ public class Record extends AbstractEntityCompany
     @Column(name = "date", nullable = false)
     private Date date;
 
-    @Column(name = "title", nullable = false)
+    @Column(name = "title")
     private String title;
 
     @Column(name = "content")
     private String content;
 
+    @Column(name = "review")
+    private String review;
+
     @Column(name = "strategy")
     private String strategy;
+
+    @Column(name = "retro")
+    private String retro;
 
     @Column(name = "targets")
     private String targets;

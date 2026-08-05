@@ -20,8 +20,9 @@ import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 import org.kaleta.rest.validation.ValueOfEnum;
+import org.kaleta.service.ArithmeticService;
 import org.kaleta.service.FirebaseService;
 import org.kaleta.service.LatestService;
 import org.kaleta.service.RecordService;
@@ -45,6 +46,8 @@ public class TradeEndpoints
     RecordService recordService;
     @Inject
     LatestService latestService;
+    @Inject
+    ArithmeticService arithmeticService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -55,9 +58,9 @@ public class TradeEndpoints
             @Pattern(regexp = "^\\d\\d\\d\\d$", message = "must match YYYY")
             @QueryParam("year")
             String year,
-            @ValidUuid
+            @ValidId
             @QueryParam("companyId")
-            String companyId,
+            Long companyId,
             @ValueOfEnum(enumClass = Currency.class)
             @QueryParam("currency")
             String currency,
@@ -79,8 +82,12 @@ public class TradeEndpoints
                 {
                     trade.setSellDate(new Date(synced.get(trade.getCompany()).getDatetime()
                             .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()));
+                    trade.setSellQuantity(trade.getPurchaseQuantity());
                     trade.setSellPrice(synced.get(trade.getCompany()).getPrice());
                     trade.setSellFees(trade.getPurchaseFees());
+                    trade.setSellTotal(arithmeticService.sellTotal(trade.getSellPrice(), trade.getSellQuantity(), trade.getSellFees()));
+                    trade.setProfit(trade.getSellTotal().subtract(trade.getPurchaseTotal()));
+                    trade.setProfitPercentage(arithmeticService.profitPercentage(trade.getPurchaseTotal(), trade.getSellTotal()));
                 }
             }
         }

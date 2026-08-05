@@ -1,10 +1,3 @@
-./mvnw compile quarkus:dev -Ddebug
-
-
-
-
-
-
 # trader-researcher
 
 This project uses Quarkus, the Supersonic Subatomic Java Framework.
@@ -15,8 +8,19 @@ If you want to learn more about Quarkus, please visit its website: https://quark
 
 You can run your application in dev mode that enables live coding using:
 ```shell script
-./mvnw compile quarkus:dev
+./build_deploy.sh dev
 ```
+
+Development output is kept in `target-dev` so tests and production builds can
+use `target` without stopping the live development process.
+
+Standard dev mode uses H2 plus fake Firebase, Polygon, and Finnhub clients.
+Polygon and Finnhub data is maintained in `src/dev/resources/polygon.json` and
+`src/dev/resources/finnhub.json`. The local Firebase snapshot remains in
+`src/dev/resources/firebase.json` and is downloaded once when missing.
+
+Running `./build_deploy.sh dev --db-prod` intentionally uses the production
+database and real external clients instead.
 
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8080/q/dev/.
 

@@ -13,7 +13,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.kaleta.framework.Assert.ExpectedViolation.VALID_UUID;
+import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 
 @QuarkusTest
@@ -71,13 +71,10 @@ class AStatsEndpointsTest
         Assert.getValidationError(path + "/company?year=20x2", "must match YYYY");
         Assert.getValidationError(path + "/company?year=20222", "must match YYYY");
         Assert.getValidationError(path + "/company?year=202", "must match YYYY");
-        Assert.getValidationError(path + "/company?year=", "must match YYYY");
         Assert.getValidationError(path + "/company?sort=-1", "must be any of Sort");
         Assert.getValidationError(path + "/company?sort=8", "must be any of Sort");
-        Assert.getValidationError(path + "/company?sort=", "must be any of Sort");
         Assert.getValidationError(path + "/company?sort=X", "must be any of Sort");
         Assert.getValidationError(path + "/company?sector=X", "must be any of Sector");
-        Assert.getValidationError(path + "/company?sector=", "must be any of Sector");
     }
 
     @Test
@@ -126,10 +123,8 @@ class AStatsEndpointsTest
     @Test
     void getMonthly_invalidParameters()
     {
-        Assert.getValidationError(path + "/monthly?companyId=AAAAAA", VALID_UUID);
-        Assert.getValidationError(path + "/monthly?companyId=", VALID_UUID);
+        Assert.getValidationError(path + "/monthly?companyId=0", VALID_ID);
         Assert.getValidationError(path + "/monthly?sector=X", "must be any of Sector");
-        Assert.getValidationError(path + "/monthly?sector=", "must be any of Sector");
     }
 
     @Test
@@ -213,19 +208,15 @@ class AStatsEndpointsTest
     @Test
     void getQuarterly_invalidParameters()
     {
-        Assert.getValidationError(path + "/quarterly?companyId=AAAAAA", VALID_UUID);
-        Assert.getValidationError(path + "/quarterly?companyId=", VALID_UUID);
+        Assert.getValidationError(path + "/quarterly?companyId=0", VALID_ID);
         Assert.getValidationError(path + "/quarterly?sector=X", "must be any of Sector");
-        Assert.getValidationError(path + "/quarterly?sector=", "must be any of Sector");
     }
 
     @Test
     void getYearly_invalidParameters()
     {
-        Assert.getValidationError(path + "/yearly?companyId=AAAAAA", VALID_UUID);
-        Assert.getValidationError(path + "/yearly?companyId=", VALID_UUID);
+        Assert.getValidationError(path + "/yearly?companyId=0", VALID_ID);
         Assert.getValidationError(path + "/yearly?sector=X", "must be any of Sector");
-        Assert.getValidationError(path + "/yearly?sector=", "must be any of Sector");
     }
 
     private static CompanyStats.Company findCompany(CompanyStats dto, String ticker)

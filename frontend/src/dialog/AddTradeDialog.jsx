@@ -6,6 +6,8 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    FormControl,
+    InputLabel,
     MenuItem,
     Select
 } from "@mui/material";
@@ -16,6 +18,7 @@ import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
+import {DialogCompanySelect} from "./component/DialogCompanySelect";
 
 
 export const AddTradeDialog = props => {
@@ -28,6 +31,7 @@ export const AddTradeDialog = props => {
     const [quantity, setQuantity] = useState("")
     const [fees, setFees] = useState("")
     const [company, setCompany] = useState("")
+    const [portfolio, setPortfolio] = useState("")
 
     useEffect(() => {
         if (open) {
@@ -37,12 +41,20 @@ export const AddTradeDialog = props => {
             setQuantity("")
             setFees("")
             setCompany(props.companySelectorValue)
+            setPortfolio("")
         }
         // eslint-disable-next-line
     }, [open])
 
     function createTrade() {
-        const tradeData = {companyId: company.id, date: date, price: price, quantity: quantity, fees: fees}
+        const tradeData = {
+            companyId: company.id,
+            date: date,
+            price: price,
+            quantity: quantity,
+            fees: fees,
+            portfolio: portfolio || null,
+        }
         axios.post(backend + "/trade", tradeData)
             .then((response) => {
                 props.triggerRefresh()
@@ -54,7 +66,7 @@ export const AddTradeDialog = props => {
         <Dialog
             open={open}
             onClose={handleClose}
-            PaperProps={{component: 'form', onSubmit: (event) => {event.preventDefault();createTrade()},}}
+            slotProps={{paper: {component: 'form', onSubmit: (event) => {event.preventDefault();createTrade()},}}}
         >
             <DialogTitle>Add Trade</DialogTitle>
             <DialogContent>
@@ -63,17 +75,27 @@ export const AddTradeDialog = props => {
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                 />
-                <Select required margin="dense" fullWidth variant="standard" displayEmpty
-                        value={company}
-                        error={company === ""}
-                        onChange={event => {setCompany(event.target.value);setAlert(null);}}
-                        sx={{marginTop: "20px"}}
-                >
-                    <MenuItem value=""></MenuItem>
-                    {props.companies.map((company, index) => (
-                        <MenuItem key={index} value={company} >{(company.ticker === undefined) ? company : company.ticker}</MenuItem>
-                    ))}
-                </Select>
+                <DialogCompanySelect
+                    key={`add-trade-company-${open}`}
+                    id="trader-trade-company"
+                    companyLists={props.companyLists}
+                    defaultCompanyList="recent"
+                    value={company}
+                    onChange={value => {setCompany(value);setAlert(null);}}
+                />
+                <FormControl fullWidth variant="standard" sx={{marginTop: "20px"}}>
+                    <InputLabel id="trader-trade-portfolio-label">Portfolio</InputLabel>
+                    <Select
+                        labelId="trader-trade-portfolio-label"
+                        value={portfolio}
+                        onChange={event => {setPortfolio(event.target.value);setAlert(null);}}
+                    >
+                        <MenuItem value=""></MenuItem>
+                        {(props.portfolios ?? []).map(item => (
+                            <MenuItem key={item.key} value={item.key}>{item.name}</MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
                 <DialogTextField
                     id="trader-trade-quantity"
                     value={quantity}

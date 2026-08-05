@@ -5,14 +5,14 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.kaleta.rest.validation.ValidBigDecimal;
 import org.kaleta.rest.validation.ValidPeriodName;
-import org.kaleta.rest.validation.ValidUuid;
+import org.kaleta.rest.validation.ValidId;
 
 @Data
 public class PeriodUpdateDto
 {
     @NotNull
-    @ValidUuid
-    private String id;
+    @ValidId
+    private Long id;
 
     @ValidPeriodName
     private String name;
@@ -48,4 +48,7 @@ public class PeriodUpdateDto
 
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String dividend;
+
+    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    private String adjustedEps;
 }

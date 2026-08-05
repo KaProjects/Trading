@@ -3,6 +3,7 @@ import {fireEvent, render, screen, waitFor, within} from "@testing-library/react
 
 const mockUseData = jest.fn();
 const mockRecordEvent = jest.fn();
+const mockNavigate = jest.fn();
 
 jest.mock("../../service/BackendService", () => ({
     useData: (...args) => mockUseData(...args),
@@ -10,6 +11,10 @@ jest.mock("../../service/BackendService", () => ({
 
 jest.mock("../../service/utils", () => ({
     recordEvent: (...args) => mockRecordEvent(...args),
+}));
+
+jest.mock("react-router-dom", () => ({
+    useNavigate: () => mockNavigate,
 }));
 
 jest.mock("../component/Loader", () => ({
@@ -30,22 +35,19 @@ function createProps(overrides = {}) {
     return {
         currencySelectorValue: "",
         sectorSelectorValue: null,
-        toggleCompaniesSelectors: jest.fn(),
         setOpenEditCompany: jest.fn(),
-        activeStates: ["ACTIVE", "CLOSED"],
         ...overrides,
     };
 }
 
 function createData(overrides = {}) {
     return {
-        sorts: ["TICKER", "CURRENCY", "WATCHING", "SECTOR", "ALL_TRADES", "ACTIVE_TRADES", "DIVIDENDS", "RECORDS", "PERIODS"],
+        sorts: ["TICKER", "CURRENCY", "SECTOR", "ALL_TRADES", "ACTIVE_TRADES", "DIVIDENDS", "RECORDS", "PERIODS"],
         companies: [
             {
                 id: "company-1",
                 ticker: "NVDA",
                 currency: "$",
-                watching: true,
                 sector: {key: "SEMICONDUCTORS", name: "Semiconductors"},
                 totalTrades: 11,
                 activeTrades: 7,
@@ -57,7 +59,6 @@ function createData(overrides = {}) {
                 id: "company-2",
                 ticker: "SHELL",
                 currency: "€",
-                watching: false,
                 sector: {key: "ENERGY_MINERALS", name: "Energy Minerals"},
                 totalTrades: 4,
                 activeTrades: 1,
@@ -85,7 +86,7 @@ describe("Companies", () => {
     beforeEach(() => {
         mockUseData.mockReset();
         mockRecordEvent.mockReset();
-        sessionStorage.clear();
+        mockNavigate.mockReset();
     });
 
     test("shows loader while company data is loading", () => {
@@ -101,19 +102,16 @@ describe("Companies", () => {
         expect(screen.queryByText("Ticker")).not.toBeInTheDocument();
     });
 
-    test("renders companies table and passes filters to useData", async () => {
+    test("renders companies table and passes filters to useData", () => {
         mockUseData.mockReturnValue({
             data: createData(),
             loaded: true,
             error: null,
         });
 
-        const toggleCompaniesSelectors = jest.fn();
-
         render(<Companies {...createProps({
             currencySelectorValue: "$",
             sectorSelectorValue: {key: "SEMICONDUCTORS"},
-            toggleCompaniesSelectors,
         })}/>);
 
         expect(mockUseData).toHaveBeenCalledWith("/company?query&currency=$&sector=SEMICONDUCTORS");
@@ -122,8 +120,6 @@ describe("Companies", () => {
         expect(screen.getByText("SHELL")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.getByText("Energy Minerals")).toBeInTheDocument();
-
-        await waitFor(() => expect(toggleCompaniesSelectors).toHaveBeenCalled());
     });
 
     test("re-queries companies when sortable header is clicked", async () => {
@@ -158,7 +154,7 @@ describe("Companies", () => {
         getTimeSpy.mockRestore();
     });
 
-    test("redirects from trade aggregates and stores company context", async () => {
+    test("redirects from trade aggregates with company navigation state", async () => {
         const data = createData();
 
         mockUseData.mockReturnValue({
@@ -174,11 +170,61 @@ describe("Companies", () => {
         fireEvent.mouseEnter(totalTradesCell);
         fireEvent.click(within(totalTradesCell).getByRole("button"));
 
-        expect(sessionStorage.getItem("companyId")).toBe("company-1");
-        expect(sessionStorage.getItem("tradeState")).toBeNull();
-        expect(sessionStorage.getItem("showFinancials")).toBeNull();
         expect(mockRecordEvent).toHaveBeenCalledWith("/companies#redirect:/trades");
-        expect(window.location.href).toBe("/trades");
+        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+            state: {
+                companyId: "company-1",
+                tradeState: "",
+            },
+        });
+    });
+
+    test("redirects from active trades with the company and active filter", () => {
+        mockUseData.mockReturnValue({data: createData(), loaded: true, error: null});
+
+        render(<Companies {...createProps()}/>);
+
+        const activeTradesCell = screen.getByText("7").closest("td");
+        fireEvent.mouseEnter(activeTradesCell);
+        fireEvent.click(within(activeTradesCell).getByRole("button"));
+
+        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+            state: {companyId: "company-1", tradeState: "only active"},
+        });
+    });
+
+    test("redirects from dividends with only the selected company", () => {
+        mockUseData.mockReturnValue({data: createData(), loaded: true, error: null});
+
+        render(<Companies {...createProps()}/>);
+
+        const dividendsCell = screen.getByText("5").closest("td");
+        fireEvent.mouseEnter(dividendsCell);
+        fireEvent.click(within(dividendsCell).getByRole("button"));
+
+        expect(mockNavigate).toHaveBeenCalledWith("/dividends", {
+            state: {companyId: "company-1"},
+        });
+    });
+
+    test("redirects periods and records to their corresponding research tabs", () => {
+        mockUseData.mockReturnValue({data: createData(), loaded: true, error: null});
+
+        render(<Companies {...createProps()}/>);
+
+        const companyCells = within(screen.getByText("NVDA").closest("tr")).getAllByRole("cell");
+
+        fireEvent.mouseEnter(companyCells[6]);
+        fireEvent.click(within(companyCells[6]).getByRole("button"));
+        expect(mockNavigate).toHaveBeenLastCalledWith("/research", {
+            state: {companyId: "company-1", researchTab: 1},
+        });
+
+        fireEvent.mouseEnter(companyCells[7]);
+        fireEvent.click(within(companyCells[7]).getByRole("button"));
+        expect(mockNavigate).toHaveBeenLastCalledWith("/research", {
+            state: {companyId: "company-1", researchTab: 0},
+        });
     });
 
     test("opens company edit action from ticker cell", () => {

@@ -3,11 +3,11 @@ import React from "react";
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import {backend} from "../properties";
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
-import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
-import CandlestickChartIcon from '@mui/icons-material/CandlestickChart';
-import PercentIcon from '@mui/icons-material/Percent';
 import StoreIcon from '@mui/icons-material/Store';
 import DonutSmallIcon from '@mui/icons-material/DonutSmall';
+import {ReactComponent as TradesIcon} from "../assets/icons/trades.svg";
+import {ReactComponent as DividendsIcon} from "../assets/icons/dividends.svg";
+import {ReactComponent as ResearchIcon} from "../assets/icons/research.svg";
 
 
 export const Home = props => {
@@ -34,16 +34,16 @@ export const Home = props => {
     }
 
     return (
-        <Paper elevation={0} sx={{maxHeight: "calc(100vh - 70px)", overflowY: "scroll"}}>
+        <Paper elevation={0}>
             <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="center" alignItems={{ xs: 'middle', md: 'flex-start' }} spacing={2} sx={{marginTop: "20px"}}>
                 <ClickableCard action={() => window.location.href='/trades'}
                                title={"Trades"}
-                               icon={<CandlestickChartIcon/>}
+                               icon={<TradesIcon style={{width: 24, height: 24}}/>}
                                description={"History of all trades (active, closed) with filters and their management."}
                 />
                 <ClickableCard action={() => window.location.href='/dividends'}
                                title={"Dividends"}
-                               icon={<PercentIcon/>}
+                               icon={<DividendsIcon style={{width: 24, height: 24}}/>}
                                description={"History of all dividends received with filters and their management."}
                 />
             </Stack>
@@ -51,7 +51,7 @@ export const Home = props => {
             <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="center"alignItems={{ xs: 'middle', md: 'flex-start' }} spacing={2} sx={{marginTop: "20px"}}>
                 <ClickableCard action={() => window.location.href='/research'}
                                title={"Research"}
-                               icon={<FormatListBulletedIcon/>}
+                               icon={<ResearchIcon style={{width: 24, height: 24}}/>}
                                description={"Collection of periods and records for companies including related data like financials and ratios"}
                 />
                 <ClickableCard action={() => window.location.href='/companies'}
@@ -74,10 +74,10 @@ export const Home = props => {
                 />
             </Stack>
 
-            <Typography style={{width: '100%', position: 'fixed', bottom: 0}} component="footer" align={"center"}>
+            <Typography sx={{width: '100%', position: 'fixed', bottom: 0, display: {xs: "none", md: "block"},}} component="footer" align={"center"}>
                 Copyright © {new Date().getFullYear()} Stanislav Kaleta
             </Typography>
-            <DonutSmallIcon style={{position: "fixed", bottom: 0, right: 0}} onClick={() => window.location.href='/analytics'}/>
+            <DonutSmallIcon sx={{position: "fixed", bottom: 0, right: 0, display: {xs: "none", md: "block"}}} onClick={() => window.location.href='/analytics'}/>
         </Paper>
     )
 }

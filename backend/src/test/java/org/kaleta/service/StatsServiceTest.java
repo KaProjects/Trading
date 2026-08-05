@@ -14,6 +14,7 @@ import org.kaleta.persistence.entity.Currency;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -45,8 +46,8 @@ class StatsServiceTest
     @Test
     void getByCompany()
     {
-        org.kaleta.model.Company company1 = company("company-1", "NVDA", Currency.$);
-        org.kaleta.model.Company company2 = company("company-2", "SHELL", Currency.€);
+        org.kaleta.model.Company company1 = company(1L, "NVDA", Currency.$);
+        org.kaleta.model.Company company2 = company(2L, "SHELL", Currency.€);
 
         when(tradeService.getByCompany(null, null, null, null)).thenReturn(Map.of(
                 company1, List.of(
@@ -95,7 +96,7 @@ class StatsServiceTest
     @Test
     void getByPeriod()
     {
-        org.kaleta.model.Company company = company("company-1", "NVDA", Currency.$);
+        org.kaleta.model.Company company = company(1L, "NVDA", Currency.$);
 
         when(tradeService.getByPeriod(PeriodFrequency.MONTHLY, company.getId(), null, null)).thenReturn(Map.of(
                 "2024-01", List.of(trade(company, "2024-01-05", "100", "120")),
@@ -147,10 +148,60 @@ class StatsServiceTest
     }
 
     @Test
+    void getByPeriod_monthly_discardsFuturePeriods()
+    {
+        org.kaleta.model.Company company = company(1L, "NVDA", Currency.$);
+        String currentMonth = month(LocalDate.now());
+        String futureMonth = month(LocalDate.now().plusMonths(1));
+
+        when(tradeService.getByPeriod(PeriodFrequency.MONTHLY, company.getId(), null, null)).thenReturn(Map.of(
+                currentMonth, List.of(trade(company, currentMonth + "-01", "100", "120")),
+                futureMonth, List.of(trade(company, futureMonth + "-01", "200", "240"))
+        ));
+        when(dividendService.getByPeriod(PeriodFrequency.MONTHLY, company.getId(), null, null)).thenReturn(Map.of(
+                futureMonth, List.of(dividend(company, futureMonth + "-01", "50"))
+        ));
+
+        PeriodStats stats = statsService.getByPeriod(PeriodFrequency.MONTHLY, company.getId(), null);
+
+        assertThat(stats.getPeriods().size(), is(1));
+        assertThat(stats.getPeriods().get(0).getPeriod(), is(currentMonth));
+        assertThat(stats.getAggregates().getPeriods(), is(1));
+        assertThat(stats.getAggregates().getTradesCount(), is(1));
+        assertBigDecimals(stats.getAggregates().getTradesProfitSum(), new BigDecimal("20"));
+        assertBigDecimals(stats.getAggregates().getDividendSum(), BigDecimal.ZERO);
+    }
+
+    @Test
+    void getByPeriod_quarterly_discardsFuturePeriods()
+    {
+        org.kaleta.model.Company company = company(1L, "NVDA", Currency.$);
+        String currentQuarter = quarter(LocalDate.now());
+        String futureQuarter = quarter(LocalDate.now().plusMonths(3));
+
+        when(tradeService.getByPeriod(PeriodFrequency.QUARTERLY, company.getId(), null, null)).thenReturn(Map.of(
+                currentQuarter, List.of(trade(company, LocalDate.now().toString(), "100", "120")),
+                futureQuarter, List.of(trade(company, LocalDate.now().plusMonths(3).toString(), "200", "240"))
+        ));
+        when(dividendService.getByPeriod(PeriodFrequency.QUARTERLY, company.getId(), null, null)).thenReturn(Map.of(
+                futureQuarter, List.of(dividend(company, LocalDate.now().plusMonths(3).toString(), "50"))
+        ));
+
+        PeriodStats stats = statsService.getByPeriod(PeriodFrequency.QUARTERLY, company.getId(), null);
+
+        assertThat(stats.getPeriods().size(), is(1));
+        assertThat(stats.getPeriods().get(0).getPeriod(), is(currentQuarter));
+        assertThat(stats.getAggregates().getPeriods(), is(1));
+        assertThat(stats.getAggregates().getTradesCount(), is(1));
+        assertBigDecimals(stats.getAggregates().getTradesProfitSum(), new BigDecimal("20"));
+        assertBigDecimals(stats.getAggregates().getDividendSum(), BigDecimal.ZERO);
+    }
+
+    @Test
     void getByCompany_onlyDividends_keepsProfitPercentagesNull()
     {
-        org.kaleta.model.Company company1 = company("company-1", "NVDA", Currency.$);
-        org.kaleta.model.Company company2 = company("company-2", "SHELL", Currency.€);
+        org.kaleta.model.Company company1 = company(1L, "NVDA", Currency.$);
+        org.kaleta.model.Company company2 = company(2L, "SHELL", Currency.€);
 
         when(tradeService.getByCompany(null, null, null, null)).thenReturn(Map.of());
         when(dividendService.getByCompany(null, null, null)).thenReturn(Map.of(
@@ -174,7 +225,7 @@ class StatsServiceTest
         assertThat(stats.getAggregates().getProfitPercentage(), is(nullValue()));
     }
 
-    private static org.kaleta.model.Company company(String id, String ticker, Currency currency)
+    private static org.kaleta.model.Company company(Long id, String ticker, Currency currency)
     {
         org.kaleta.model.Company company = new org.kaleta.model.Company();
         company.setId(id);
@@ -200,6 +251,17 @@ class StatsServiceTest
         dividend.setDate(Date.valueOf(date));
         dividend.setNet(new BigDecimal(net));
         return dividend;
+    }
+
+    private static String month(LocalDate date)
+    {
+        return String.format("%04d-%02d", date.getYear(), date.getMonthValue());
+    }
+
+    private static String quarter(LocalDate date)
+    {
+        int quarter = ((date.getMonthValue() - 1) / 3) + 1;
+        return date.getYear() + "-Q" + quarter;
     }
 
     private static CompanyStats.Company findCompany(CompanyStats stats, String ticker)

@@ -67,7 +67,7 @@ function createProps(overrides = {}) {
         setOpenAddDividend: jest.fn(),
         triggerRefresh: jest.fn(),
         companySelectorValue: company,
-        companies: [company],
+        companyLists: {owned: [company], all: [company]},
         ...overrides,
     };
 }
@@ -115,5 +115,22 @@ describe("AddDividendDialog", () => {
         await waitFor(() => expect(mockFormatError).toHaveBeenCalled());
         expect(props.triggerRefresh).not.toHaveBeenCalled();
         expect(props.setOpenAddDividend).not.toHaveBeenCalled();
+    });
+
+    test("uses the owned company list for company options", () => {
+        const props = createProps({
+            companySelectorValue: "",
+            companyLists: {
+                owned: [{id: "company-2", ticker: "CEZ"}],
+                all: [{id: "company-2", ticker: "CEZ"}, {id: "company-3", ticker: "AAPL"}],
+            },
+        });
+
+        render(<AddDividendDialog {...props}/>);
+
+        fireEvent.mouseDown(screen.getByRole("combobox"));
+
+        expect(screen.getByRole("option", {name: "CEZ"})).toBeInTheDocument();
+        expect(screen.queryByRole("option", {name: "AAPL"})).not.toBeInTheDocument();
     });
 });

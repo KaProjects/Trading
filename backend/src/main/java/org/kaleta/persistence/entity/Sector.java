@@ -23,7 +23,9 @@ public enum Sector
     AEROSPACE_DEFENSE("Aerospace & Defense"),
     HEALTH_TECH("Health Technology"),
     ELECTRICAL_PRODUCTS("Electrical Products"),
-    ETF("ETF");
+    ETF("ETF"),
+    ELECTRIC_UTILITIES("Electric Utilities"),
+    ;
 
     @Getter
     private final String name;

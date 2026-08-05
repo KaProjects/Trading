@@ -1,145 +1,50 @@
 import {fireEvent, render, screen} from "@testing-library/react";
+import {FinancialsTable, PeriodFinancials} from "../PeriodFinancials";
 
-import {PeriodFinancials} from "../PeriodFinancials";
+const ttm = {
+    revenue: {value: 1500, margin: 100},
+    grossProfit: {value: 600, margin: 40},
+    operatingIncome: {value: 300, margin: 20},
+    netIncome: {value: 150, margin: 10},
+};
 
-function mockMatchMedia(maxWidth) {
-    window.matchMedia = jest.fn().mockImplementation((query) => {
-        const maxWidthMatch = query.match(/max-width:\s*(\d+)px/);
-        const matches = maxWidthMatch ? maxWidth <= Number(maxWidthMatch[1]) : false;
-
-        return {
-            matches,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(),
-            removeListener: jest.fn(),
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        };
-    });
-}
+const financials = [{
+    period: {year: "2025", type: "FY"},
+    revenue: {value: 1500, margin: 100, yoy: 25},
+    grossProfit: {value: 600, margin: 40, yoy: 50, qoq: 20},
+    operatingIncome: {value: 300, margin: 20, yoy: -10},
+    netIncome: {value: 150, margin: 10, qoq: 0},
+    dividend: 25,
+}];
 
 describe("PeriodFinancials", () => {
-    const ttm = {
-        revenue: 1500,
-        grossProfit: 600,
-        grossMargin: 40,
-        operatingIncome: 300,
-        operatingMargin: 20,
-        netIncome: 150,
-        netMargin: 10,
-    };
-
-    const financials = [
-        {
-            period: {year: "2025", type: "FY"},
-            revenue: 1500,
-            grossProfit: 600,
-            grossMargin: 40,
-            operatingIncome: 300,
-            operatingMargin: 20,
-            netIncome: 150,
-            netMargin: 10,
-            dividend: 25,
-        },
-        {
-            period: {year: "2024", type: "FY"},
-            revenue: 1200,
-            grossProfit: 420,
-            grossMargin: 35,
-            operatingIncome: 180,
-            operatingMargin: 15,
-            netIncome: 120,
-            netMargin: 10,
-            dividend: 20,
-        },
-    ];
-
-    beforeEach(() => {
-        mockMatchMedia(1600);
-    });
-
-    test("renders compact ttm financial summary", () => {
-        render(
-            <PeriodFinancials
-                financials={financials}
-                ttm={ttm}
-                expand={false}
-                setExpand={jest.fn()}
-            />
-        );
+    test("renders only the compact summary and opens financials", () => {
+        const onOpen = jest.fn();
+        render(<PeriodFinancials ttm={ttm} onOpen={onOpen}/>);
 
         expect(screen.getByText("1.5B")).toBeInTheDocument();
-        expect(screen.getByText("revenue")).toBeInTheDocument();
-        expect(screen.getByText("600M")).toBeInTheDocument();
-        expect(screen.getByText("gross profit")).toBeInTheDocument();
-        expect(screen.getByText("300M")).toBeInTheDocument();
-        expect(screen.getByText("operating income")).toBeInTheDocument();
-        expect(screen.getByText("150M")).toBeInTheDocument();
+        expect(screen.getByText("op. income")).toBeInTheDocument();
         expect(screen.getByText("net income")).toBeInTheDocument();
-        expect(screen.getAllByText("(100%)")).toHaveLength(1);
-        expect(screen.getAllByText("(40%)")).toHaveLength(1);
-        expect(screen.getAllByText("(20%)")).toHaveLength(1);
-        expect(screen.getAllByText("(10%)")).toHaveLength(1);
-        expect(screen.queryByRole("button")).not.toBeInTheDocument();
         expect(screen.queryByText("Dividend")).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", {name: "Open financials"}));
+        expect(onOpen).toHaveBeenCalled();
     });
 
-    test("shows expand control on hover for wide screens and toggles expand state", () => {
-        const setExpand = jest.fn();
-        const {container} = render(
-            <PeriodFinancials
-                financials={financials}
-                ttm={ttm}
-                expand={false}
-                setExpand={setExpand}
-            />
-        );
-
-        fireEvent.mouseEnter(container.firstChild);
-        fireEvent.click(screen.getByRole("button"));
-
-        expect(setExpand).toHaveBeenCalledWith(true);
-    });
-
-    test("shows expand control without hover for screens narrower than 1600px", () => {
-        mockMatchMedia(1400);
-
-        render(
-            <PeriodFinancials
-                financials={financials}
-                ttm={ttm}
-                expand={false}
-                setExpand={jest.fn()}
-            />
-        );
-
-        expect(screen.getByRole("button")).toBeInTheDocument();
-    });
-
-    test("renders detailed financial table when expanded", () => {
-        render(
-            <PeriodFinancials
-                financials={financials}
-                ttm={ttm}
-                expand={true}
-                setExpand={jest.fn()}
-            />
-        );
+    test("renders the detailed financial table separately", () => {
+        render(<FinancialsTable financials={financials} fontSize={16}/>);
 
         expect(screen.getByText("Period")).toBeInTheDocument();
         expect(screen.getByText("Revenue")).toBeInTheDocument();
-        expect(screen.getByText("Gross Profit")).toBeInTheDocument();
-        expect(screen.getByText("Operating Income")).toBeInTheDocument();
-        expect(screen.getByText("Net Income")).toBeInTheDocument();
-        expect(screen.getByText("Dividend")).toBeInTheDocument();
         expect(screen.getByText("25FY")).toBeInTheDocument();
-        expect(screen.getByText("24FY")).toBeInTheDocument();
-        expect(screen.getAllByText("1.5B")).toHaveLength(2);
-        expect(screen.getAllByText("25M")).toHaveLength(1);
-        expect(screen.getAllByText("20M")).toHaveLength(1);
-        expect(screen.getAllByText("(35%)")).toHaveLength(1);
-        expect(screen.getAllByText("(15%)")).toHaveLength(1);
+        expect(screen.getByText("+50% / +20%")).toBeInTheDocument();
+    });
+
+    test("shows a dash when a dividend is zero or absent", () => {
+        render(<FinancialsTable financials={[
+            {...financials[0], period: {year: "2025", type: "Q1"}, dividend: 0},
+            {...financials[0], period: {year: "2024", type: "Q4"}, dividend: null},
+        ]}/>);
+
+        expect(screen.getAllByText("-")).toHaveLength(2);
     });
 });

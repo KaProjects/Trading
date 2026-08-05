@@ -13,6 +13,7 @@ import org.kaleta.persistence.entity.Dividend;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,12 +30,12 @@ public class DividendService
     CompanyService companyService;
 
     @Deprecated // use model
-    public List<Dividend> getDividends(String company, String currency, String year, String sector)
+    public List<Dividend> getDividends(Long company, String currency, String year, String sector)
     {
         return dividendDao.list(company, currency, year, sector);
     }
 
-    public Dividends getBy(String company, String currency, String year, String sector)
+    public Dividends getBy(Long company, String currency, String year, String sector)
     {
         List<Dividend> dividends = dividendDao.list(company, currency, year, sector);
 
@@ -59,7 +60,16 @@ public class DividendService
         return map;
     }
 
-    public Map<String, List<Dividends.Dividend>> getByPeriod(PeriodFrequency frequency, String companyId, String currency, String sector) {
+    public List<String> getYears()
+    {
+        return dividendDao.list().stream()
+                .map(dividend -> dividend.getDate().toString().substring(0, 4))
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
+    }
+
+    public Map<String, List<Dividends.Dividend>> getByPeriod(PeriodFrequency frequency, Long companyId, String currency, String sector) {
         Dividends dividends = getBy(companyId, currency, null, sector);
         Map<String, List<Dividends.Dividend>> map = new HashMap<>();
         for (Dividends.Dividend dividend : dividends.getDividends()) {
