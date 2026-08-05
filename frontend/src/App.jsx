@@ -33,6 +33,7 @@ export const App = () => {
     const [years, setYears] = useState([]);
     const [activeSelectorValue, setActiveSelectorValue] = useState("");
     const [companySelectorValue, setCompanySelectorStateValue] = useState("");
+    const [companyListSelectorValue, setCompanyListSelectorValue] = useState("all");
     const [currencySelectorValue, setCurrencySelectorValue] = useState("");
     const [yearSelectorValue, setYearSelectorValue] = useState("");
     const [sectorSelectorValue, setSectorSelectorValue] = useState("");
@@ -88,6 +89,8 @@ export const App = () => {
         setActiveSelectorValue,
         companySelectorValue,
         setCompanySelectorValue,
+        companyListSelectorValue,
+        setCompanyListSelectorValue,
         currencySelectorValue,
         setCurrencySelectorValue,
         yearSelectorValue,

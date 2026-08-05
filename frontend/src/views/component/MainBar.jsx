@@ -15,6 +15,7 @@ export const RESEARCH_TAB = {
     research: 0,
     records: 1,
 };
+export const RESEARCH_SPLIT_BREAKPOINT = 2000;
 const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly"];
 const RESEARCH_TAB_LABELS = ["Research", "Records"];
 const DATA_ROUTES = ["/trades", "/dividends", "/research"];
@@ -251,6 +252,8 @@ export const MainBar = props => {
             label: "companies",
             companyLists: props.companyLists,
             defaultCompanyList: "all",
+            companyListValue: props.companyListSelectorValue,
+            setCompanyListValue: props.setCompanyListSelectorValue,
         },
         {
             key: "currency",
@@ -343,7 +346,10 @@ export const MainBar = props => {
                                   onChange={(event, value) => props.setResearchTabsIndex(value)}
                                   slotProps={{indicator: {style: {backgroundColor: "white"}}}}
                                   textColor="inherit"
-                                  sx={{display: {xs: "flex", sm: "none"}}}
+                                  sx={{
+                                      display: "none",
+                                      [`@media (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {display: "flex"},
+                                  }}
                             >
                                 {RESEARCH_TAB_LABELS.map((tab) => (
                                     <Tab key={tab} label={tab}/>
@@ -393,6 +399,8 @@ export const MainBar = props => {
                                         label={selector.label}
                                         companyLists={selector.companyLists}
                                         defaultCompanyList={selector.defaultCompanyList}
+                                        companyListValue={selector.companyListValue}
+                                        setCompanyListValue={selector.setCompanyListValue}
                                     />
                                 ))}
                                 {visiblePageNavigationButtons.length > 0 &&

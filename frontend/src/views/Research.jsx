@@ -35,7 +35,7 @@ import {EarningsProjectionsDialog} from "../dialog/EarningsProjectionsDialog";
 import {AddRecordDialog} from "../dialog/AddRecordDialog";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
-import {RESEARCH_TAB} from "./component/MainBar";
+import {RESEARCH_SPLIT_BREAKPOINT, RESEARCH_TAB} from "./component/MainBar";
 import {AddTagDialog} from "../dialog/AddTagDialog";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
@@ -135,7 +135,10 @@ export const Research = props => {
                 <Grid container direction="row" sx={{width: "100%", justifyContent: "center", alignItems: "flex-start"}}>
                     <Card sx={{
                         ...researchCardStyle,
-                        display: {xs: researchTabsIndex === RESEARCH_TAB.research ? "block" : "none", sm: "block"},
+                        display: "block",
+                        [`@media (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {
+                            display: researchTabsIndex === RESEARCH_TAB.research ? "block" : "none",
+                        },
                     }}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>
@@ -330,7 +333,10 @@ export const Research = props => {
                     </Card>
                     <Card sx={{
                         ...researchCardStyle,
-                        display: {xs: researchTabsIndex === RESEARCH_TAB.records ? "block" : "none", sm: "block"},
+                        display: "block",
+                        [`@media (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {
+                            display: researchTabsIndex === RESEARCH_TAB.records ? "block" : "none",
+                        },
                     }}>
                         <CardContent>
                             <Box sx={{position: "relative"}}>

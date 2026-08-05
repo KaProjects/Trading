@@ -2,10 +2,12 @@ import React from "react";
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 
 const mockRecordEvent = jest.fn();
+const mockUseMediaQuery = jest.fn(() => false);
 
 jest.mock("../../../service/utils", () => ({
     recordEvent: (...args) => mockRecordEvent(...args),
 }));
+jest.mock("@mui/material/useMediaQuery", () => (...args) => mockUseMediaQuery(...args));
 
 import {CompanySelector} from "../CompanySelector";
 
@@ -61,6 +63,7 @@ describe("CompanySelector", () => {
 
     beforeEach(() => {
         mockRecordEvent.mockReset();
+        mockUseMediaQuery.mockReturnValue(false);
     });
 
     test("renders one company list for every map key", async () => {
@@ -110,12 +113,14 @@ describe("CompanySelector", () => {
 
     test("selects a company and retains only the source list", async () => {
         const setCompanySelectorValue = jest.fn();
+        const setCompanyListSelectorValue = jest.fn();
 
-        render(<CompanySelector {...createProps({setCompanySelectorValue})}/>);
+        render(<CompanySelector {...createProps({setCompanySelectorValue, setCompanyListSelectorValue})}/>);
 
         fireEvent.click((await screen.findAllByText("TSLA"))[0]);
 
         expect(setCompanySelectorValue).toHaveBeenCalledWith({id: "company-3", ticker: "TSLA"});
+        expect(setCompanyListSelectorValue).toHaveBeenCalledWith("owned");
         expect(mockRecordEvent).toHaveBeenCalledWith("/research#selector:companies:owned");
 
         await waitFor(() => expect(screen.queryByText("CEZ")).not.toBeInTheDocument());
@@ -146,6 +151,17 @@ describe("CompanySelector", () => {
         expect(screen.queryByText("TSLA")).not.toBeInTheDocument();
     });
 
+    test("uses the list selected in the app bar when it contains the selected company", async () => {
+        render(<CompanySelector {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+            companyListSelectorValue: "Semiconductors",
+        })}/>);
+
+        expect(await screen.findByRole("combobox", {name: "Company list"})).toHaveTextContent("Semiconductors");
+        expect(screen.getByText("NVDA")).toBeInTheDocument();
+        expect(screen.queryByText("TSLA")).not.toBeInTheDocument();
+    });
+
     test("shows every list again after clearing the selected company", async () => {
         const {rerender} = render(<CompanySelector {...createProps({
             companySelectorValue: {id: "company-1", ticker: "NVDA"},
@@ -158,6 +174,47 @@ describe("CompanySelector", () => {
         expect(await screen.findByText("Owned")).toBeInTheDocument();
         expect(screen.getByText("Researched")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
+        expect(screen.queryByRole("combobox", {name: "Company list"})).not.toBeInTheDocument();
+    });
+
+    test("shows only the first full-width list on a narrow screen and allows switching it", async () => {
+        mockUseMediaQuery.mockReturnValue(true);
+
+        render(<CompanySelector {...createProps()}/>);
+
+        const listSelector = await screen.findByRole("combobox", {name: "Company list"});
+        expect(listSelector).toHaveTextContent("Owned");
+        expect(screen.getAllByRole("list")).toHaveLength(1);
+        expect(screen.getByText("TSLA")).toBeInTheDocument();
+        expect(screen.queryByText("NVDA")).not.toBeInTheDocument();
+
+        fireEvent.mouseDown(listSelector);
+        fireEvent.click(screen.getByRole("option", {name: "Energy"}));
+
+        expect(screen.getByRole("combobox", {name: "Company list"})).toHaveTextContent("Energy");
+        expect(screen.getByText("XOM")).toBeInTheDocument();
+        expect(screen.queryByText("TSLA")).not.toBeInTheDocument();
+    });
+
+    test("hides the selected-company sidebar when there is not enough space", () => {
+        mockUseMediaQuery.mockReturnValue(true);
+
+        const {container} = render(<CompanySelector {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+        })}/>);
+
+        expect(container).toBeEmptyDOMElement();
+    });
+
+    test("keeps all unselected lists above the compact breakpoint even when the sidebar would be hidden", async () => {
+        mockUseMediaQuery.mockImplementation(query => query.includes("1200"));
+
+        render(<CompanySelector {...createProps()}/>);
+
+        expect(await screen.findByText("Owned")).toBeInTheDocument();
+        expect(screen.getByText("Researched")).toBeInTheDocument();
+        expect(screen.getByText("Semiconductors")).toBeInTheDocument();
+        expect(screen.getByText("All")).toBeInTheDocument();
         expect(screen.queryByRole("combobox", {name: "Company list"})).not.toBeInTheDocument();
     });
 });

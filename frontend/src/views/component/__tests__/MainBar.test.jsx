@@ -166,10 +166,10 @@ describe("MainBar", () => {
             setResearchTabsIndex,
         })} />);
 
-        expect(screen.getByRole("tab", {name: "Research"})).toBeInTheDocument();
-        expect(screen.getByRole("tab", {name: "Records"})).toBeInTheDocument();
+        expect(screen.getByRole("tab", {name: "Research", hidden: true})).toBeInTheDocument();
+        expect(screen.getByRole("tab", {name: "Records", hidden: true})).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole("tab", {name: "Records"}));
+        fireEvent.click(screen.getByRole("tab", {name: "Records", hidden: true}));
 
         expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
     });

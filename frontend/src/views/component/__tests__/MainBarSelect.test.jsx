@@ -106,6 +106,7 @@ describe("MainBarSelect", () => {
 
     test("defaults company selector to all and switches the visible company list from its header", () => {
         const setValue = jest.fn();
+        const setCompanyListValue = jest.fn();
         const nvidia = {id: "company-1", ticker: "NVDA"};
 
         render(
@@ -121,6 +122,7 @@ describe("MainBarSelect", () => {
                 defaultCompanyList="all"
                 value=""
                 setValue={setValue}
+                setCompanyListValue={setCompanyListValue}
                 label="companies"
                 valueKey="ticker"
             />
@@ -149,6 +151,7 @@ describe("MainBarSelect", () => {
         fireEvent.click(screen.getByRole("option", {name: "NVDA"}));
 
         expect(setValue).toHaveBeenCalledWith(nvidia);
+        expect(setCompanyListValue).toHaveBeenCalledWith("owned");
         expect(mockRecordEvent).toHaveBeenCalledWith("/stats#selector:company-list:owned");
         expect(mockRecordEvent).toHaveBeenCalledWith("/stats#selector:companies");
 

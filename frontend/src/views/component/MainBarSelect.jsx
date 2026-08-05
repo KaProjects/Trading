@@ -1,6 +1,6 @@
 import {Box, ButtonBase, ListSubheader, MenuItem, Select} from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {recordEvent} from "../../service/utils";
 import {getCompanyListKeys, getCompanyListTitle} from "../../service/CompanyListService";
 
@@ -11,12 +11,20 @@ export const MainBarSelect = props => {
     const {value, setValue, label, valueKey, companyLists, defaultCompanyList = "all"} = props
     const companyPlaceholder = props.companyPlaceholder ?? "company"
     const listKeys = getCompanyListKeys(companyLists)
-    const initialList = companyLists?.[defaultCompanyList] ? defaultCompanyList : listKeys[0]
+    const initialList = companyLists?.[props.companyListValue]
+        ? props.companyListValue
+        : companyLists?.[defaultCompanyList] ? defaultCompanyList : listKeys[0]
     const [activeList, setActiveList] = useState(initialList)
     const [selectingList, setSelectingList] = useState(false)
     const values = companyLists ? companyLists[activeList] ?? [] : props.values ?? []
     const selectedOption = getSelectedValue(companyLists?.all ?? values, value, valueKey)
     const selectedValue = companyLists ? selectedOption?.id ?? "" : selectedOption
+
+    useEffect(() => {
+        if (companyLists?.[props.companyListValue]) {
+            setActiveList(props.companyListValue)
+        }
+    }, [companyLists, props.companyListValue])
 
     function openSelector() {
         if (companyLists) {
@@ -26,6 +34,7 @@ export const MainBarSelect = props => {
 
     function selectCompanyList(listKey) {
         setActiveList(listKey)
+        props.setCompanyListValue?.(listKey)
         setSelectingList(false)
         recordEvent(window.location.pathname + "#selector:company-list:" + listKey)
     }
@@ -37,6 +46,9 @@ export const MainBarSelect = props => {
                 ? (companyLists.all ?? []).find(company => company.id === newValue) ?? ""
                 : newValue
 
+        if (companyLists && newValue !== CLEAR_VALUE) {
+            props.setCompanyListValue?.(activeList)
+        }
         setValue(nextValue)
         recordEvent(window.location.pathname + "#selector:" + label)
     }
