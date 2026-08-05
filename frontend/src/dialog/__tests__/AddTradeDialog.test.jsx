@@ -72,7 +72,7 @@ function createProps(overrides = {}) {
         setOpenAddTrade: jest.fn(),
         triggerRefresh: jest.fn(),
         companySelectorValue: company,
-        companyLists: {all: [company]},
+        companyLists: {recent: [company], all: [company]},
         portfolios: [
             {key: "PATRIA_STANDARD", name: "Patria - Standard", abbreviation: "P"},
             {key: "REVOLUT_CFD", name: "Revolut - CFD", abbreviation: "Rd"},
@@ -130,5 +130,54 @@ describe("AddTradeDialog", () => {
         await waitFor(() => expect(mockFormatError).toHaveBeenCalled());
         expect(props.triggerRefresh).not.toHaveBeenCalled();
         expect(props.setOpenAddTrade).not.toHaveBeenCalled();
+    });
+
+    test("allows creating a trade without a portfolio", async () => {
+        axios.post.mockResolvedValue({});
+        const props = createProps();
+
+        render(<AddTradeDialog {...props}/>);
+
+        fireEvent.mouseDown(screen.getAllByRole("combobox")[1]);
+        expect(screen.getByRole("option", {name: ""})).toHaveAttribute("data-value", "");
+        fireEvent.click(screen.getByRole("option", {name: ""}));
+        fireEvent.change(screen.getByTestId("trader-trade-date"), {target: {value: "2024-03-20"}});
+        fireEvent.change(screen.getByLabelText("Quantity"), {target: {value: "5"}});
+        fireEvent.change(screen.getByLabelText("Price"), {target: {value: "800.15"}});
+        fireEvent.change(screen.getByLabelText("Fees"), {target: {value: "14.50"}});
+        fireEvent.click(screen.getByText("Create"));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/trade", {
+            companyId: "company-1",
+            date: "2024-03-20",
+            price: "800.15",
+            quantity: "5",
+            fees: "14.50",
+            portfolio: null,
+        }));
+    });
+
+    test("uses recent companies by default and can switch to another company list", () => {
+        const selected = {id: "company-1", ticker: "NVDA"};
+        const recent = {id: "company-2", ticker: "CEZ"};
+        const allOnly = {id: "company-3", ticker: "AAPL"};
+
+        render(<AddTradeDialog {...createProps({
+            companySelectorValue: selected,
+            companyLists: {recent: [recent], all: [selected, recent, allOnly]},
+        })}/>);
+
+        fireEvent.mouseDown(screen.getAllByRole("combobox")[0]);
+
+        expect(screen.getByRole("button", {name: "Company list Recent"})).toBeInTheDocument();
+        expect(screen.getByRole("option", {name: "CEZ"})).toBeInTheDocument();
+        expect(screen.queryByRole("option", {name: "AAPL"})).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Company list Recent"}));
+        fireEvent.click(screen.getByRole("button", {name: "Use company list All"}));
+
+        expect(screen.getByRole("option", {name: "NVDA"})).toBeInTheDocument();
+        expect(screen.getByRole("option", {name: "CEZ"})).toBeInTheDocument();
+        expect(screen.getByRole("option", {name: "AAPL"})).toBeInTheDocument();
     });
 });

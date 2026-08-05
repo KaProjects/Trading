@@ -18,6 +18,7 @@ import {validateNumber} from "../service/ValidationService";
 import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
+import {DialogCompanySelect} from "./component/DialogCompanySelect";
 
 
 export const AddTradeDialog = props => {
@@ -52,7 +53,7 @@ export const AddTradeDialog = props => {
             price: price,
             quantity: quantity,
             fees: fees,
-            portfolio: portfolio,
+            portfolio: portfolio || null,
         }
         axios.post(backend + "/trade", tradeData)
             .then((response) => {
@@ -74,24 +75,22 @@ export const AddTradeDialog = props => {
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                 />
-                <Select required margin="dense" fullWidth variant="standard" displayEmpty
-                        value={company}
-                        error={company === ""}
-                        onChange={event => {setCompany(event.target.value);setAlert(null);}}
-                        sx={{marginTop: "20px"}}
-                >
-                    <MenuItem value=""></MenuItem>
-                    {(props.companyLists?.all ?? []).map((company, index) => (
-                        <MenuItem key={index} value={company} >{(company.ticker === undefined) ? company : company.ticker}</MenuItem>
-                    ))}
-                </Select>
-                <FormControl required fullWidth variant="standard" sx={{marginTop: "20px"}}>
+                <DialogCompanySelect
+                    key={`add-trade-company-${open}`}
+                    id="trader-trade-company"
+                    companyLists={props.companyLists}
+                    defaultCompanyList="recent"
+                    value={company}
+                    onChange={value => {setCompany(value);setAlert(null);}}
+                />
+                <FormControl fullWidth variant="standard" sx={{marginTop: "20px"}}>
                     <InputLabel id="trader-trade-portfolio-label">Portfolio</InputLabel>
                     <Select
                         labelId="trader-trade-portfolio-label"
                         value={portfolio}
                         onChange={event => {setPortfolio(event.target.value);setAlert(null);}}
                     >
+                        <MenuItem value=""></MenuItem>
                         {(props.portfolios ?? []).map(item => (
                             <MenuItem key={item.key} value={item.key}>{item.name}</MenuItem>
                         ))}

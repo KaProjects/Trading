@@ -6,6 +6,9 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    FormControl,
+    FormHelperText,
+    InputLabel,
     MenuItem,
     Select,
     Table,
@@ -40,7 +43,9 @@ export const SellTradeDialog = props => {
             setDate("")
             setPrice("")
             setFees("")
-            selectCompany(props.companySelectorValue)
+            const selectedOwnedCompany = (props.companyLists?.owned ?? [])
+                .find(company => company.id === props.companySelectorValue?.id) ?? ""
+            selectCompany(selectedOwnedCompany)
             setTrades([])
         }
         // eslint-disable-next-line
@@ -74,6 +79,8 @@ export const SellTradeDialog = props => {
                         sellQuantity: trade.sellQuantity == null ? "" : String(trade.sellQuantity),
                     })))
                 }).catch((error) => {setAlert(formatError(error))})
+        } else {
+            setTrades([])
         }
         setCompany(company)
     }
@@ -100,6 +107,27 @@ export const SellTradeDialog = props => {
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                 />
+                <FormControl required error={!company} fullWidth variant="standard" sx={{marginTop: "15px"}}>
+                    <InputLabel id="trader-sell-trade-company-label">Company</InputLabel>
+                    <Select
+                        labelId="trader-sell-trade-company-label"
+                        value={company?.id ?? ""}
+                        required
+                        displayEmpty
+                        onChange={event => {
+                            const selectedCompany = (props.companyLists?.owned ?? [])
+                                .find(company => company.id === event.target.value) ?? ""
+                            selectCompany(selectedCompany)
+                            setAlert(null)
+                        }}
+                    >
+                        <MenuItem value=""></MenuItem>
+                        {(props.companyLists?.owned ?? []).map(company => (
+                            <MenuItem key={company.id} value={company.id}>{company.ticker}</MenuItem>
+                        ))}
+                    </Select>
+                    <FormHelperText>{company ? "" : "not filled"}</FormHelperText>
+                </FormControl>
                 <DialogTextField
                     id="trader-sell-trade-price"
                     value={price}
@@ -114,17 +142,6 @@ export const SellTradeDialog = props => {
                     onChange={(e) => {setFees(e.target.value);setAlert(null);}}
                     validate={() => validateNumber(fees, false, 5, 2, false)}
                 />
-                <Select required margin="dense" fullWidth variant="standard" displayEmpty
-                        value={company}
-                        error={company === ""}
-                        onChange={event => {selectCompany(event.target.value);setAlert(null);}}
-                        sx={{marginTop: "15px"}}
-                >
-                    <MenuItem value=""></MenuItem>
-                    {(props.companyLists?.all ?? []).map((company, index) => (
-                        <MenuItem key={index} value={company} >{(company.ticker === undefined) ? company : company.ticker}</MenuItem>
-                    ))}
-                </Select>
                 <Table size="small" aria-label="a dense table" stickyHeader sx={{marginBottom: "20px"}}>
                     <TableHead>
                         <TableRow>

@@ -67,7 +67,7 @@ function createProps(overrides = {}) {
         setOpenSellTrade: jest.fn(),
         triggerRefresh: jest.fn(),
         companySelectorValue: company,
-        companyLists: {all: [company]},
+        companyLists: {owned: [company], all: [company]},
         ...overrides,
     };
 }
@@ -173,5 +173,25 @@ describe("SellTradeDialog", () => {
         await waitFor(() => expect(mockFormatError).toHaveBeenCalled());
         expect(props.triggerRefresh).not.toHaveBeenCalled();
         expect(props.setOpenSellTrade).not.toHaveBeenCalled();
+    });
+
+    test("uses owned companies for company options", () => {
+        const owned = {id: "company-2", ticker: "CEZ"};
+        const allOnly = {id: "company-3", ticker: "AAPL"};
+
+        render(<SellTradeDialog {...createProps({
+            companySelectorValue: "",
+            companyLists: {owned: [owned], all: [owned, allOnly]},
+        })}/>);
+
+        const companySelector = screen.getByRole("combobox");
+        expect(companySelector).toHaveAttribute("aria-invalid", "true");
+        expect(screen.getByText("Company")).toHaveAttribute("data-shrink", "false");
+        fireEvent.mouseDown(companySelector);
+
+        expect(screen.queryByRole("button", {name: /Company list/})).not.toBeInTheDocument();
+        expect(screen.getByRole("option", {name: ""})).toHaveAttribute("data-value", "");
+        expect(screen.getByRole("option", {name: "CEZ"})).toBeInTheDocument();
+        expect(screen.queryByRole("option", {name: "AAPL"})).not.toBeInTheDocument();
     });
 });

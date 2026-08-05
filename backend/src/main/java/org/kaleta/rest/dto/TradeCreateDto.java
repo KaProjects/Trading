@@ -26,7 +26,6 @@ public class TradeCreateDto
     @NotNull
     @ValidBigDecimal(integerConstraint = 3, decimalConstraint = 2)
     private String fees;
-    @NotNull
     @ValueOfEnum(enumClass = Portfolio.class)
     private String portfolio;
 }

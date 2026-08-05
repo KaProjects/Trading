@@ -166,12 +166,16 @@ export const MainBarSelect = props => {
 
     return (
         <Select
+            labelId={props.labelId}
+            required={props.required}
+            fullWidth={props.fullWidth}
+            error={props.error}
             value={selectedValue}
             renderValue={companyLists
                 ? () => selectedOption?.[valueKey] ?? companyPlaceholder
                 : undefined}
             variant="standard"
-            sx={{marginLeft: "15px", textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
+            sx={props.sx ?? {marginLeft: "15px", textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
                 ':not(.Mui-disabled):hover::before': { borderBottomColor: '#1976d2' },
                 ':before': { borderBottomColor: '#1976d2' },
                 ':after': { borderBottomColor: '#1976d2' }}}
