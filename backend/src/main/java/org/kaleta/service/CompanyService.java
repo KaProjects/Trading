@@ -3,6 +3,7 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
+import jakarta.transaction.Transactional;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
@@ -21,12 +22,14 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class CompanyService
 {
+    private static final Set<String> RESERVED_TAGS = Set.of("owned", "recent", "researched", "all");
     private static final Comparator<String> COMPANY_LIST_ORDER = Comparator
             .comparingInt(CompanyService::companyListOrder)
             .thenComparing(Comparator.naturalOrder());
@@ -128,11 +131,39 @@ public class CompanyService
 
     public void addTag(CompanyTagCreateDto dto)
     {
+        validateCustomTag(dto.getValue());
+
         Company company = findEntity(dto.getCompanyId());
 
-        if (!company.getTags().contains(dto.getValue())) {
-            company.getTags().add(dto.getValue());
-            companyDao.save(company);
+        if (company.getTags().stream().anyMatch(tag -> tag.equalsIgnoreCase(dto.getValue()))) {
+            throw new InvalidInputException("tag '" + dto.getValue() + "' is already assigned to company '"
+                    + company.getTicker() + "'");
+        }
+
+        company.getTags().add(dto.getValue());
+        companyDao.save(company);
+    }
+
+    @Transactional
+    public void removeTag(Long companyId, String value)
+    {
+        validateCustomTag(value);
+
+        Company company = findEntity(companyId);
+        String assignedTag = company.getTags().stream()
+                .filter(tag -> tag.equalsIgnoreCase(value))
+                .findFirst()
+                .orElseThrow(() -> new InvalidInputException("tag '" + value
+                        + "' is not assigned to company '" + company.getTicker() + "'"));
+
+        company.getTags().remove(assignedTag);
+        companyDao.save(company);
+    }
+
+    private static void validateCustomTag(String value)
+    {
+        if (RESERVED_TAGS.stream().anyMatch(tag -> tag.equalsIgnoreCase(value))) {
+            throw new InvalidInputException("tag '" + value + "' is reserved");
         }
     }
 

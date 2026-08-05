@@ -34,7 +34,28 @@ const EstimateSummaryItem = ({window = {}, label, first = false}) => {
 };
 
 export const PeriodEstimatesOverview = ({overview, onOpen, sx}) => (
-    <Paper elevation={0} sx={{...sx, maxWidth: "100%", overflowX: "auto", overflowY: "hidden"}}>
+    <Paper elevation={0} sx={{
+        ...sx,
+        maxWidth: "100%",
+        overflowX: "auto",
+        overflowY: "hidden",
+        "& .overview-action": {
+            opacity: {xs: 1, sm: 0},
+            pointerEvents: {xs: "auto", sm: "none"},
+            width: {xs: "36px", sm: 0},
+            marginLeft: {xs: "3px", sm: 0},
+            padding: {xs: "6px", sm: 0},
+            overflow: "hidden",
+            transition: "opacity 120ms ease-in-out, width 120ms ease-in-out, margin 120ms ease-in-out, padding 120ms ease-in-out",
+        },
+        "&:hover .overview-action, &:focus-within .overview-action": {
+            opacity: 1,
+            pointerEvents: "auto",
+            width: "36px",
+            marginLeft: "3px",
+            padding: "6px",
+        },
+    }}>
         <Grid
             container
             wrap="nowrap"
@@ -54,11 +75,12 @@ export const PeriodEstimatesOverview = ({overview, onOpen, sx}) => (
                         />
                     ))}
                     <Button
+                        className="overview-action"
                         aria-label="Open estimates"
                         onClick={onOpen}
-                        sx={{minWidth: 0, height: "25px", marginLeft: "3px", padding: "2px", color: "primary.main", transform: "translateY(5px)", flexShrink: 0}}
+                        sx={{minWidth: 0, height: "36px", color: "primary.main", alignSelf: "center", flexShrink: 0}}
                     >
-                        <EstimatesIcon width="20" height="20"/>
+                        <EstimatesIcon width="24" height="24"/>
                     </Button>
                 </>
             }

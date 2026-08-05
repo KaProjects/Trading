@@ -214,6 +214,15 @@ class CompanyEndpointsTest
         Assert.post201(path + "/tag", dto);
 
         assertThat(companyDao.get(dto.getCompanyId()).getTags(), hasItem("watchlist"));
+        Assert.post400(path + "/tag", dto,
+                "tag 'watchlist' is already assigned to company '" + companyDao.get(dto.getCompanyId()).getTicker() + "'");
+
+        given().queryParam("value", "watchlist")
+                .when().delete(path + "/" + dto.getCompanyId() + "/tag")
+                .then().statusCode(204);
+
+        Assert.delete400(path + "/" + dto.getCompanyId() + "/tag?value=watchlist",
+                "tag 'watchlist' is not assigned to company '" + companyDao.get(dto.getCompanyId()).getTicker() + "'");
     }
 
     @Test
@@ -242,6 +251,9 @@ class CompanyEndpointsTest
         Assert.postValidationError(path + "/tag", dto, "must not contain whitespace");
         dto.setValue("x".repeat(31));
         Assert.postValidationError(path + "/tag", dto, "size must be between 0 and 30");
+
+        dto.setValue("Owned");
+        Assert.post400(path + "/tag", dto, "tag 'Owned' is reserved");
     }
 
     @Test

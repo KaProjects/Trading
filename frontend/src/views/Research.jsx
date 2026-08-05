@@ -1,9 +1,23 @@
-import {Badge, Box, Button, Card, CardContent, Grid, IconButton, Stack, Tooltip} from "@mui/material";
+import {
+    Badge,
+    Box,
+    Button,
+    Card,
+    CardContent,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Grid,
+    IconButton,
+    Stack,
+} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {Loader} from "./component/Loader";
 import {backend} from "../properties";
 import axios from "axios";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
+import {ReactComponent as DeleteIcon} from "../assets/icons/delete.svg";
 import {formatDecimals, formatError, formatMillions, formatPercent} from "../service/FormattingService";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import {AssetBox} from "./component/AssetBox";
@@ -51,6 +65,7 @@ export const Research = props => {
     const [openEditFinancialDialog, setOpenEditFinancialDialog] = useState(null)
     const [openAddEstimateDialog, setOpenAddEstimateDialog] = useState(null)
     const [openAddTagDialog, setOpenAddTagDialog] = useState(false)
+    const [tagToDelete, setTagToDelete] = useState(null)
     const [tagSuggestions, setTagSuggestions] = useState([])
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
 
@@ -100,6 +115,18 @@ export const Research = props => {
             })
     }
 
+    function deleteTag() {
+        axios.delete(backend + "/company/" + data.company.id + "/tag", {
+            params: {value: tagToDelete},
+        }).then(() => {
+            setTagToDelete(null)
+            triggerRefresh()
+        }).catch((error) => {
+            setTagToDelete(null)
+            setAlert(formatError(error))
+        })
+    }
+
     return (
         <>
             <CompanySelector onCustomTagsChange={setTagSuggestions} {...props}/>
@@ -137,22 +164,59 @@ export const Research = props => {
                                             opacity: 1,
                                             pointerEvents: "auto",
                                         },
+                                        "& .company-tag": {
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                        },
+                                        "& .delete-tag-button": {
+                                            opacity: {xs: 1, sm: 0},
+                                            pointerEvents: {xs: "auto", sm: "none"},
+                                            width: {xs: "24px", sm: 0},
+                                            height: "24px",
+                                            marginRight: {xs: "-6px", sm: 0},
+                                            overflow: "hidden",
+                                            padding: {xs: "2px", sm: 0},
+                                            minWidth: 0,
+                                            lineHeight: 0,
+                                            transition: "opacity 120ms ease-in-out, width 120ms ease-in-out, margin 120ms ease-in-out, padding 120ms ease-in-out",
+                                        },
+                                        "& .company-tag:hover .delete-tag-button": {
+                                            opacity: 1,
+                                            pointerEvents: "auto",
+                                            width: "24px",
+                                            marginRight: "-6px",
+                                            padding: "2px",
+                                        },
+                                        "& .delete-tag-button svg": {
+                                            width: "17px",
+                                            height: "17px",
+                                            display: "block",
+                                        },
                                     }}
                                 >
                                     {(data.company.tags ?? [])
                                         .filter(tag => !BUILT_IN_LIST_TITLES[tag])
-                                        .map(tag => <Box component="span" key={tag}>#{tag}</Box>)}
-                                    <Tooltip title="Add tag">
-                                        <IconButton
-                                            className="add-tag-button"
-                                            aria-label="Add tag"
-                                            size="small"
-                                            onClick={() => setOpenAddTagDialog(true)}
-                                            sx={{padding: 0}}
-                                        >
-                                            <ControlPointIcon sx={{color: "lightgreen", fontSize: 16}}/>
-                                        </IconButton>
-                                    </Tooltip>
+                                        .map(tag => (
+                                            <Box component="span" className="company-tag" key={tag}>
+                                                <Button
+                                                    className="delete-tag-button"
+                                                    aria-label={`Remove tag ${tag}`}
+                                                    onClick={() => setTagToDelete(tag)}
+                                                >
+                                                    <DeleteIcon/>
+                                                </Button>
+                                                #{tag}
+                                            </Box>
+                                        ))}
+                                    <IconButton
+                                        className="add-tag-button"
+                                        aria-label="Add tag"
+                                        size="small"
+                                        onClick={() => setOpenAddTagDialog(true)}
+                                        sx={{padding: 0}}
+                                    >
+                                        <ControlPointIcon sx={{color: "lightgreen", fontSize: 16}}/>
+                                    </IconButton>
                                 </Box>
                                 <AddTagDialog
                                     open={openAddTagDialog}
@@ -160,7 +224,18 @@ export const Research = props => {
                                     triggerRefresh={triggerRefresh}
                                     companyId={data.company.id}
                                     suggestions={tagSuggestions}
+                                    currentTags={data.company.tags}
                                 />
+                                <Dialog open={tagToDelete !== null} onClose={() => setTagToDelete(null)}>
+                                    <DialogTitle>Remove tag?</DialogTitle>
+                                    <DialogContent>
+                                        Do you want to remove tag #{tagToDelete} from {data.company.ticker}?
+                                    </DialogContent>
+                                    <DialogActions>
+                                        <Button onClick={() => setTagToDelete(null)}>Cancel</Button>
+                                        <Button color="error" onClick={deleteTag} autoFocus>Remove</Button>
+                                    </DialogActions>
+                                </Dialog>
 
                                 <PeriodFinancials
                                     sx={{marginTop: "20px"}}

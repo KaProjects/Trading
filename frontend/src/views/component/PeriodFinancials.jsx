@@ -96,6 +96,20 @@ export const PeriodFinancials = ({ttm, onOpen, sx}) => (
             maxWidth: {xs: "calc(100% + 5px)", sm: "100%"},
             overflowX: "auto",
             overflowY: "hidden",
+            "& .overview-action": {
+                opacity: {xs: 1, sm: 0},
+                pointerEvents: {xs: "auto", sm: "none"},
+                width: {xs: "36px", sm: 0},
+                padding: {xs: "6px", sm: 0},
+                overflow: "hidden",
+                transition: "opacity 120ms ease-in-out, width 120ms ease-in-out, padding 120ms ease-in-out",
+            },
+            "&:hover .overview-action, &:focus-within .overview-action": {
+                opacity: 1,
+                pointerEvents: "auto",
+                width: "36px",
+                padding: "6px",
+            },
         }}
     >
         <Grid
@@ -112,8 +126,8 @@ export const PeriodFinancials = ({ttm, onOpen, sx}) => (
                     <FinancialSummaryItem value={ttm.grossProfit.value} label="gross profit" margin={ttm.grossProfit.margin}/>
                     <FinancialSummaryItem value={ttm.operatingIncome.value} label="op. income" margin={ttm.operatingIncome.margin}/>
                     <FinancialSummaryItem value={ttm.netIncome.value} label="net income" margin={ttm.netIncome.margin}/>
-                    <Button aria-label="Open financials" sx={{minWidth: 0, height: "25px", padding: "2px", color: "primary.main", flexShrink: 0}} onClick={onOpen}>
-                        <FinancialsIcon width="20" height="20"/>
+                    <Button className="overview-action" aria-label="Open financials" sx={{minWidth: 0, height: "36px", color: "primary.main", flexShrink: 0}} onClick={onOpen}>
+                        <FinancialsIcon width="24" height="24"/>
                     </Button>
                 </>
             }

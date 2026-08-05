@@ -335,7 +335,7 @@ public class CompanyServiceTest
     }
 
     @Test
-    void addTag_existingTagIsIgnored()
+    void addTag_existingTagIsRejected()
     {
         Company entity = Generator.generateCompany(1L);
         entity.setTags(new java.util.ArrayList<>(List.of("growth")));
@@ -343,10 +343,53 @@ public class CompanyServiceTest
 
         CompanyTagCreateDto dto = new CompanyTagCreateDto();
         dto.setCompanyId(entity.getId());
-        dto.setValue("growth");
+        dto.setValue("GROWTH");
 
-        companyService.addTag(dto);
+        InvalidInputException exception = assertThrows(InvalidInputException.class, () -> companyService.addTag(dto));
 
+        assertThat(exception.getMessage(), is("tag 'GROWTH' is already assigned to company '" + entity.getTicker() + "'"));
+        assertThat(entity.getTags(), is(List.of("growth")));
+        verify(companyDao, never()).save(entity);
+    }
+
+    @Test
+    void addTag_reservedTagIsRejected()
+    {
+        CompanyTagCreateDto dto = new CompanyTagCreateDto();
+        dto.setCompanyId(1L);
+        dto.setValue("Owned");
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class, () -> companyService.addTag(dto));
+
+        assertThat(exception.getMessage(), is("tag 'Owned' is reserved"));
+        verify(companyDao, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void removeTag()
+    {
+        Company entity = Generator.generateCompany(1L);
+        entity.setTags(new java.util.ArrayList<>(List.of("growth", "income")));
+        when(companyDao.get(entity.getId())).thenReturn(entity);
+
+        companyService.removeTag(entity.getId(), "GROWTH");
+
+        assertThat(entity.getTags(), is(List.of("income")));
+        verify(companyDao).save(entity);
+    }
+
+    @Test
+    void removeTag_missingTagIsRejected()
+    {
+        Company entity = Generator.generateCompany(1L);
+        entity.setTags(new java.util.ArrayList<>(List.of("growth")));
+        when(companyDao.get(entity.getId())).thenReturn(entity);
+
+        InvalidInputException exception = assertThrows(
+                InvalidInputException.class,
+                () -> companyService.removeTag(entity.getId(), "income"));
+
+        assertThat(exception.getMessage(), is("tag 'income' is not assigned to company '" + entity.getTicker() + "'"));
         assertThat(entity.getTags(), is(List.of("growth")));
         verify(companyDao, never()).save(entity);
     }

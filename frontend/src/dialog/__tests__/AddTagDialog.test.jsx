@@ -55,6 +55,33 @@ describe("AddTagDialog", () => {
         expect(screen.getByText("Add")).toBeDisabled();
     });
 
+    test("filters tags already assigned to the company from suggestions", () => {
+        render(<AddTagDialog {...createProps({currentTags: ["growth"]})}/>);
+
+        fireEvent.mouseDown(screen.getByRole("combobox", {name: /Tag/}));
+
+        expect(screen.queryByRole("option", {name: "growth"})).not.toBeInTheDocument();
+        expect(screen.getByRole("option", {name: "income"})).toBeInTheDocument();
+    });
+
+    test("rejects a tag already assigned to the company", () => {
+        render(<AddTagDialog {...createProps({currentTags: ["growth"]})}/>);
+
+        fireEvent.change(screen.getByRole("combobox", {name: /Tag/}), {target: {value: "GROWTH"}});
+
+        expect(screen.getByText("Add")).toBeDisabled();
+        expect(screen.getByText("Tag is already assigned to this company")).toBeInTheDocument();
+    });
+
+    test.each(["owned", "Recent", "RESEARCHED", "all"])("rejects reserved tag %p", value => {
+        render(<AddTagDialog {...createProps()}/>);
+
+        fireEvent.change(screen.getByRole("combobox", {name: /Tag/}), {target: {value}});
+
+        expect(screen.getByText("Add")).toBeDisabled();
+        expect(screen.getByText("Tag name is reserved")).toBeInTheDocument();
+    });
+
     test.each(["high growth", "high\tgrowth", " growth", "growth "])(
         "rejects whitespace in tag %p",
         value => {

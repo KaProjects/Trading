@@ -13,14 +13,30 @@ import {
 } from "@mui/material";
 import {backend} from "../properties";
 import {formatError} from "../service/FormattingService";
+import {COMPANY_LIST_TITLES} from "../service/CompanyListService";
 
 const MAX_TAG_LENGTH = 30;
 
 export const AddTagDialog = props => {
     const [tag, setTag] = useState("");
     const [alert, setAlert] = useState(null);
+    const normalizedTag = tag.toLocaleLowerCase();
+    const currentTags = props.currentTags ?? [];
     const containsWhitespace = /\s/.test(tag);
-    const valid = tag.length > 0 && tag.length <= MAX_TAG_LENGTH && !containsWhitespace;
+    const alreadyAssigned = tag.length > 0
+        && currentTags.some(currentTag => currentTag.toLocaleLowerCase() === normalizedTag);
+    const reserved = tag.length > 0
+        && Object.prototype.hasOwnProperty.call(COMPANY_LIST_TITLES, normalizedTag);
+    const valid = tag.length > 0
+        && tag.length <= MAX_TAG_LENGTH
+        && !containsWhitespace
+        && !alreadyAssigned
+        && !reserved;
+    const suggestions = (props.suggestions ?? []).filter(suggestion => {
+        const normalizedSuggestion = suggestion.toLocaleLowerCase();
+        return !currentTags.some(currentTag => currentTag.toLocaleLowerCase() === normalizedSuggestion)
+            && !Object.prototype.hasOwnProperty.call(COMPANY_LIST_TITLES, normalizedSuggestion);
+    });
 
     useEffect(() => {
         if (props.open) {
@@ -59,7 +75,7 @@ export const AddTagDialog = props => {
             <DialogContent>
                 <Autocomplete
                     freeSolo
-                    options={props.suggestions ?? []}
+                    options={suggestions}
                     inputValue={tag}
                     onInputChange={(_, value) => {
                         setTag(value);
@@ -74,10 +90,12 @@ export const AddTagDialog = props => {
                             margin="dense"
                             variant="standard"
                             label="Tag"
-                            error={tag.length > MAX_TAG_LENGTH || containsWhitespace}
+                            error={tag.length > MAX_TAG_LENGTH || containsWhitespace || alreadyAssigned || reserved}
                             helperText={tag.length > MAX_TAG_LENGTH
                                 ? `Maximum ${MAX_TAG_LENGTH} characters`
-                                : containsWhitespace ? "Tag must not contain spaces or tabs" : ""}
+                                : containsWhitespace ? "Tag must not contain spaces or tabs"
+                                    : alreadyAssigned ? "Tag is already assigned to this company"
+                                        : reserved ? "Tag name is reserved" : ""}
                             slotProps={{htmlInput: {...params.inputProps, maxLength: MAX_TAG_LENGTH + 1}}}
                         />
                     )}

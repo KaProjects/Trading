@@ -2,12 +2,17 @@ package org.kaleta.rest;
 
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
@@ -24,6 +29,7 @@ import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.dto.CompanyValuesDto;
 import org.kaleta.rest.validation.ValueOfEnum;
+import org.kaleta.rest.validation.ValidId;
 import org.kaleta.service.CompanyService;
 import org.kaleta.service.DividendService;
 import org.kaleta.service.TradeService;
@@ -128,5 +134,18 @@ public class CompanyEndpoints
     {
         companyService.addTag(dto);
         return Response.status(Response.Status.CREATED).build();
+    }
+
+    @DELETE
+    @Path("/{companyId}/tag")
+    public Response removeTag(
+            @ValidId @PathParam("companyId") Long companyId,
+            @NotBlank
+            @Size(max = 30)
+            @Pattern(regexp = "\\S+", message = "must not contain whitespace")
+            @QueryParam("value") String value)
+    {
+        companyService.removeTag(companyId, value);
+        return Response.noContent().build();
     }
 }
