@@ -42,17 +42,18 @@ function createData(overrides = {}) {
         owned: [
             {id: "company-3", ticker: "TSLA", latestPurchaseDate: "2024-04-20"},
         ],
-        unreported: [
-            {id: "company-4", ticker: "CEZ", latestUnreportedPeriodEndingMonth: "2025-01"},
+        period: [
+            {id: "company-4", ticker: "CEZ", latestPeriodEndingMonth: "2025-01"},
         ],
-        sectors: {
-            Semiconductors: [
-                {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-03-15"},
-            ],
-            Energy: [
-                {id: "company-6", ticker: "XOM", latestRecordDate: "2024-01-20"},
-            ],
-        },
+        record: [
+            {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-03-15"},
+        ],
+        Semiconductors: [
+            {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-03-15"},
+        ],
+        Energy: [
+            {id: "company-6", ticker: "XOM", latestRecordDate: "2024-01-20"},
+        ],
         ...overrides,
     };
 }
@@ -74,7 +75,7 @@ describe("CompanySelector", () => {
         mockRecordEvent.mockReset();
     });
 
-    test("shows loader while company groups are loading", () => {
+    test("shows loader while company lists are loading", () => {
         mockUseData.mockReturnValue({
             data: null,
             loaded: false,
@@ -87,7 +88,7 @@ describe("CompanySelector", () => {
         expect(screen.queryByText("Owned")).not.toBeInTheDocument();
     });
 
-    test("renders all company groups and requests refresh data when provided", async () => {
+    test("renders one company list for every map key and requests refresh data when provided", async () => {
         mockUseData.mockReturnValue({
             data: createData(),
             loaded: true,
@@ -98,14 +99,16 @@ describe("CompanySelector", () => {
 
         expect(mockUseData).toHaveBeenCalledWith("/company/lists?refresh123");
         expect(await screen.findByText("Owned")).toBeInTheDocument();
-        expect(screen.getByText("Not Reported")).toBeInTheDocument();
-        expect(screen.getByRole("combobox")).toHaveTextContent("Semiconductors");
-        expect(screen.getByText("NVDA")).toBeInTheDocument();
+        expect(screen.getByText("Period")).toBeInTheDocument();
+        expect(screen.getByText("Record")).toBeInTheDocument();
+        expect(screen.getByText("Semiconductors")).toBeInTheDocument();
+        expect(screen.getByText("Energy")).toBeInTheDocument();
+        expect(screen.getAllByText("NVDA")).toHaveLength(2);
         expect(screen.getByText("TSLA")).toBeInTheDocument();
         expect(screen.getByText("CEZ")).toBeInTheDocument();
     });
 
-    test("selects clicked company and records selector event", async () => {
+    test("selects a company and retains only the source list", async () => {
         mockUseData.mockReturnValue({
             data: createData(),
             loaded: true,
@@ -121,11 +124,12 @@ describe("CompanySelector", () => {
         expect(setCompanySelectorValue).toHaveBeenCalledWith({id: "company-3", ticker: "TSLA"});
         expect(mockRecordEvent).toHaveBeenCalledWith("/research#selector:companies:owned");
 
-        await waitFor(() => expect(screen.queryByText("Not Reported")).not.toBeInTheDocument());
-        expect(screen.getByText("Owned")).toBeInTheDocument();
+        await waitFor(() => expect(screen.queryByText("CEZ")).not.toBeInTheDocument());
+        expect(screen.getByRole("combobox", {name: "Company list"})).toHaveTextContent("Owned");
+        expect(screen.getByText("TSLA")).toBeInTheDocument();
     });
 
-    test("changes displayed sector companies when another sector is selected", async () => {
+    test("switches the retained list from its title", async () => {
         mockUseData.mockReturnValue({
             data: createData(),
             loaded: true,
@@ -133,42 +137,34 @@ describe("CompanySelector", () => {
         });
 
         render(<CompanySelector {...createProps()}/>);
+        fireEvent.click(await screen.findByText("TSLA"));
 
-        fireEvent.mouseDown(await screen.findByRole("combobox"));
+        const listSelector = await screen.findByRole("combobox", {name: "Company list"});
+        fireEvent.mouseDown(listSelector);
         fireEvent.click(screen.getByRole("option", {name: "Energy"}));
 
-        expect(screen.getByRole("combobox")).toHaveTextContent("Energy");
+        expect(screen.getByRole("combobox", {name: "Company list"})).toHaveTextContent("Energy");
         expect(screen.getByText("XOM")).toBeInTheDocument();
-        expect(screen.queryByText("NVDA")).not.toBeInTheDocument();
+        expect(screen.queryByText("TSLA")).not.toBeInTheDocument();
     });
 
-    test("resets to the first sector when refreshed data arrives", async () => {
-        const useDataResponse = {
+    test("uses a selected company's first matching list when no source list is active", async () => {
+        mockUseData.mockReturnValue({
             data: createData(),
             loaded: true,
             error: null,
-        };
+        });
 
-        mockUseData.mockImplementation(() => useDataResponse);
+        render(<CompanySelector {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+        })}/>);
 
-        const {rerender} = render(<CompanySelector {...createProps()}/>);
-
-        fireEvent.mouseDown(await screen.findByRole("combobox"));
-        fireEvent.click(screen.getByRole("option", {name: "Energy"}));
-
-        expect(screen.getByRole("combobox")).toHaveTextContent("Energy");
-        expect(screen.getByText("XOM")).toBeInTheDocument();
-
-        useDataResponse.data = createData();
-
-        rerender(<CompanySelector {...createProps()}/>);
-
-        await waitFor(() => expect(screen.getByRole("combobox")).toHaveTextContent("Semiconductors"));
+        expect(await screen.findByRole("combobox", {name: "Company list"})).toHaveTextContent("Record");
         expect(screen.getByText("NVDA")).toBeInTheDocument();
-        expect(screen.queryByText("XOM")).not.toBeInTheDocument();
+        expect(screen.queryByText("TSLA")).not.toBeInTheDocument();
     });
 
-    test("hides lists while a company is selected and shows them again after clearing selection", async () => {
+    test("shows every list again after clearing the selected company", async () => {
         mockUseData.mockReturnValue({
             data: createData(),
             loaded: true,
@@ -179,12 +175,13 @@ describe("CompanySelector", () => {
             companySelectorValue: {id: "company-1", ticker: "NVDA"},
         })}/>);
 
-        await waitFor(() => expect(screen.queryByText("Owned")).not.toBeInTheDocument());
+        await screen.findByRole("combobox", {name: "Company list"});
 
-        rerender(<CompanySelector {...createProps({
-            companySelectorValue: null,
-        })}/>);
+        rerender(<CompanySelector {...createProps({companySelectorValue: null})}/>);
 
         expect(await screen.findByText("Owned")).toBeInTheDocument();
+        expect(screen.getByText("Period")).toBeInTheDocument();
+        expect(screen.getByText("Semiconductors")).toBeInTheDocument();
+        expect(screen.queryByRole("combobox", {name: "Company list"})).not.toBeInTheDocument();
     });
 });

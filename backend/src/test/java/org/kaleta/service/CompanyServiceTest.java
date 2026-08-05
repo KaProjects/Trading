@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.CompanyAggregates;
-import org.kaleta.model.CompanyGroups;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.api.CompanyDao;
@@ -24,8 +23,10 @@ import org.kaleta.rest.error.InvalidInputException;
 import org.mockito.ArgumentCaptor;
 
 import java.sql.Date;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -195,53 +196,52 @@ public class CompanyServiceTest
     }
 
     @Test
-    void getCompanyGroups()
+    void getCompaniesByTag()
     {
+        YearMonth periodCutoff = YearMonth.now().minusYears(1);
+        LocalDate recordCutoff = LocalDate.now().minusYears(1);
+
         CompanyWithStats company1 = new CompanyWithStats();
         company1.setId(1L);
         company1.setTicker("NVDA");
         company1.setCurrency(Currency.$);
-        company1.setSector(Sector.SEMICONDUCTORS);
         company1.setLatestPurchaseDate(Date.valueOf("2024-07-10"));
-        company1.setLatestRecordDate(Date.valueOf("2024-06-15"));
-        company1.setLatestUnreportedPeriodEndingMonth(YearMonth.of(2025, 4));
+        company1.setLatestRecordDate(Date.valueOf(recordCutoff));
+        company1.setLatestPeriodEndingMonth(periodCutoff);
+        company1.setTags(List.of("ai", "growth", "ai"));
 
         CompanyWithStats company2 = new CompanyWithStats();
         company2.setId(2L);
         company2.setTicker("XCW");
         company2.setCurrency(Currency.$);
-        company2.setSector(Sector.ELECTRIC_VEHICLES);
+        company2.setLatestRecordDate(Date.valueOf(recordCutoff.minusDays(1)));
+        company2.setLatestPeriodEndingMonth(periodCutoff.minusMonths(1));
+        company2.setTags(List.of("growth"));
 
         CompanyWithStats company3 = new CompanyWithStats();
         company3.setId(3L);
         company3.setTicker("TSLA");
         company3.setCurrency(Currency.$);
-        company3.setSector(Sector.ELECTRIC_VEHICLES);
         company3.setLatestPurchaseDate(Date.valueOf("2024-01-01"));
+        company3.setLatestRecordDate(Date.valueOf(recordCutoff.plusMonths(1)));
+        company3.setLatestPeriodEndingMonth(periodCutoff.plusMonths(1));
+        company3.setTags(List.of("period"));
 
         CompanyWithStats company4 = new CompanyWithStats();
         company4.setId(4L);
         company4.setTicker("RR");
         company4.setCurrency(Currency.£);
-        company4.setSector(null);
 
         when(companyDao.listWithStats()).thenReturn(List.of(company1, company2, company3, company4));
 
-        CompanyGroups companyGroups = companyService.getCompanyGroups();
+        Map<String, List<CompanyWithStats>> companiesByTag = companyService.getCompaniesByTag();
 
-        assertThat(companyGroups.getOwned().size(), is(2));
-        assertThat(companyGroups.getOwned().get(0), is(company1));
-        assertThat(companyGroups.getOwned().get(1), is(company3));
-
-        assertThat(companyGroups.getUnreported().size(), is(1));
-        assertThat(companyGroups.getUnreported().get(0), is(company1));
-
-        assertThat(companyGroups.getSectors().size(), is(2));
-        assertThat(companyGroups.getSectors().get(Sector.SEMICONDUCTORS.getName()).size(), is(1));
-        assertThat(companyGroups.getSectors().get(Sector.SEMICONDUCTORS.getName()).get(0), is(company1));
-        assertThat(companyGroups.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).size(), is(2));
-        assertThat(companyGroups.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).get(0), is(company2));
-        assertThat(companyGroups.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).get(1), is(company3));
+        assertThat(companiesByTag.keySet(), is(java.util.Set.of("ai", "growth", "owned", "period", "record")));
+        assertThat(companiesByTag.get("ai"), is(List.of(company1)));
+        assertThat(companiesByTag.get("growth"), is(List.of(company1, company2)));
+        assertThat(companiesByTag.get("owned"), is(List.of(company1, company3)));
+        assertThat(companiesByTag.get("period"), is(List.of(company1, company3, company3)));
+        assertThat(companiesByTag.get("record"), is(List.of(company1, company3)));
     }
 
     @Test

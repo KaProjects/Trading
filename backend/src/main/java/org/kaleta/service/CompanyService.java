@@ -3,7 +3,6 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.model.CompanyGroups;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.model.CompanyAggregates;
@@ -16,10 +15,13 @@ import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -63,24 +65,29 @@ public class CompanyService
         }
     }
 
-    public CompanyGroups getCompanyGroups()
+    public Map<String, List<CompanyWithStats>> getCompaniesByTag()
     {
-        CompanyGroups companyGroups = new CompanyGroups();
-        for (CompanyWithStats companyWithStats : companyDao.listWithStats())
+        Map<String, List<CompanyWithStats>> companiesByTag = new TreeMap<>();
+        YearMonth periodCutoff = YearMonth.now().minusYears(1);
+        LocalDate recordCutoff = LocalDate.now().minusYears(1);
+
+        for (CompanyWithStats company : companyDao.listWithStats())
         {
-            if (companyWithStats.getLatestPurchaseDate() != null) {
-                companyGroups.getOwned().add(companyWithStats);
+            if (company.getLatestPurchaseDate() != null) {
+                companiesByTag.computeIfAbsent("owned", ignored -> new ArrayList<>()).add(company);
             }
-            if (companyWithStats.getLatestUnreportedPeriodEndingMonth() != null ) {
-                companyGroups.getUnreported().add(companyWithStats);
+            if (company.getLatestPeriodEndingMonth() != null
+                    && !company.getLatestPeriodEndingMonth().isBefore(periodCutoff)) {
+                companiesByTag.computeIfAbsent("period", ignored -> new ArrayList<>()).add(company);
             }
-            if (companyWithStats.getSector() != null) {
-                companyGroups.getSectors()
-                        .computeIfAbsent(companyWithStats.getSector().getName(), key -> new ArrayList<>())
-                        .add(companyWithStats);
+            if (company.getLatestRecordDate() != null
+                    && !company.getLatestRecordDate().toLocalDate().isBefore(recordCutoff)) {
+                companiesByTag.computeIfAbsent("record", ignored -> new ArrayList<>()).add(company);
             }
+            company.getTags().stream().distinct().forEach(tag ->
+                    companiesByTag.computeIfAbsent(tag, ignored -> new ArrayList<>()).add(company));
         }
-        return companyGroups;
+        return companiesByTag;
     }
 
     public List<org.kaleta.model.Company> getRecentCompanies()

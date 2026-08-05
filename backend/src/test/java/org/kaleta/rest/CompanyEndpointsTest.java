@@ -1,6 +1,7 @@
 package org.kaleta.rest;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.common.mapper.TypeRef;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.MethodOrderer;
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.kaleta.framework.Assert;
 import org.kaleta.model.CompanyAggregates;
-import org.kaleta.model.CompanyGroups;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithStats;
@@ -22,6 +22,7 @@ import org.kaleta.rest.dto.CompanyValuesDto;
 
 import java.sql.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
@@ -73,46 +74,27 @@ class CompanyEndpointsTest
     @Order(1)
     void getCompanyLists()
     {
-        CompanyGroups dto = given().when()
+        Map<String, List<CompanyWithStats>> dto = given().when()
                 .get(path + "/lists")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .extract().response().jsonPath().getObject("", CompanyGroups.class);
+                .extract().as(new TypeRef<>() {});
 
-        assertThat(dto.getOwned().size(), is(6));
-        assertThat(dto.getOwned().get(0).getTicker(), is("CEZ"));
-        assertThat(dto.getOwned().get(1).getTicker(), is("RR"));
-        assertThat(dto.getOwned().get(dto.getOwned().size() - 1).getTicker(), is("SELL"));
-        for (int i = 1; i < dto.getOwned().size(); i++) {
-            Date previous = dto.getOwned().get(i - 1).getLatestPurchaseDate();
-            Date current = dto.getOwned().get(i).getLatestPurchaseDate();
+        List<CompanyWithStats> owned = dto.get("owned");
+        assertThat(dto.size(), is(1));
+        assertThat(owned.size(), is(6));
+        assertThat(owned.get(0).getTicker(), is("CEZ"));
+        assertThat(owned.get(1).getTicker(), is("RR"));
+        assertThat(owned.get(owned.size() - 1).getTicker(), is("SELL"));
+        for (int i = 1; i < owned.size(); i++) {
+            Date previous = owned.get(i - 1).getLatestPurchaseDate();
+            Date current = owned.get(i).getLatestPurchaseDate();
             assertThat(previous, is(not(nullValue())));
             assertThat(current, is(not(nullValue())));
             assertThat(previous.compareTo(current), greaterThanOrEqualTo(0));
         }
-        assertThat(tickers(dto.getOwned()), hasItems("RCH", "XRSA", "XRSB"));
-
-        assertThat(dto.getUnreported().size(), is(5));
-        assertThat(dto.getUnreported().get(0).getLatestUnreportedPeriodEndingMonth().toString(), is("2025-01"));
-        assertThat(dto.getUnreported().get(1).getLatestUnreportedPeriodEndingMonth().toString(), is("2025-01"));
-        assertThat(dto.getUnreported().get(2).getLatestUnreportedPeriodEndingMonth().toString(), is("2025-03"));
-        assertThat(tickers(dto.getUnreported()), hasItems("YYY", "UINV", "UPD", "NVDA", "RCH"));
-        for (int i = 1; i < dto.getUnreported().size(); i++) {
-            assertThat(dto.getUnreported().get(i - 1).getLatestUnreportedPeriodEndingMonth()
-                    .compareTo(dto.getUnreported().get(i).getLatestUnreportedPeriodEndingMonth()), lessThanOrEqualTo(0));
-        }
-
-        assertThat(dto.getSectors().size(), is(3));
-        assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()), is(not(nullValue())));
-        assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()).size(), is(1));
-        assertThat(dto.getSectors().get(Sector.SEMICONDUCTORS.getName()).get(0).getTicker(), is("NVDA"));
-        assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()), is(not(nullValue())));
-        assertThat(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName()).size(), is(2));
-        assertThat(tickers(dto.getSectors().get(Sector.ELECTRIC_VEHICLES.getName())), hasItems("UPD", "XCW"));
-        assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()), is(not(nullValue())));
-        assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()).size(), is(1));
-        assertThat(dto.getSectors().get(Sector.ENERGY_MINERALS.getName()).get(0).getTicker(), is("SHELL"));
+        assertThat(tickers(owned), hasItems("RCH", "XRSA", "XRSB"));
     }
 
     @Test

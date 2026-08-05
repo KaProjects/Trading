@@ -14,7 +14,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.model.Company;
 import org.kaleta.model.CompanyAggregates;
-import org.kaleta.model.CompanyGroups;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
@@ -30,6 +29,7 @@ import org.kaleta.service.TradeService;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -95,12 +95,18 @@ public class CompanyEndpoints
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/lists")
-    public Response getCompanyLists()
+    public Response getCompaniesByTag()
     {
-        CompanyGroups dto = companyService.getCompanyGroups();
-
-        dto.getOwned().sort(Comparator.comparing(CompanyWithStats::getLatestPurchaseDate, Comparator.nullsLast(Comparator.reverseOrder())));
-        dto.getUnreported().sort(Comparator.comparing(CompanyWithStats::getLatestUnreportedPeriodEndingMonth));
+        Map<String, List<CompanyWithStats>> dto = companyService.getCompaniesByTag();
+        dto.forEach((tag, companies) -> companies.sort(switch (tag) {
+            case "owned" -> Comparator.comparing(CompanyWithStats::getLatestPurchaseDate,
+                    Comparator.nullsLast(Comparator.reverseOrder()));
+            case "period" -> Comparator.comparing(CompanyWithStats::getLatestPeriodEndingMonth,
+                    Comparator.nullsLast(Comparator.reverseOrder()));
+            case "record" -> Comparator.comparing(CompanyWithStats::getLatestRecordDate,
+                    Comparator.nullsLast(Comparator.reverseOrder()));
+            default -> Comparator.comparing(CompanyWithStats::getTicker);
+        }));
 
         return Response.ok(dto).build();
     }

@@ -4,68 +4,115 @@ import {Loader} from "./Loader";
 import {Grid, List, ListItem, ListItemButton, ListItemText, ListSubheader, MenuItem, Select} from "@mui/material";
 import {recordEvent} from "../../service/utils";
 
-const SELECTOR_STATES = {
-    ALL: "all",
-    NONE: "none",
-    OWNED: "owned",
-    UNREPORTED: "unreported",
-    SECTORS: "sectors",
+const BUILT_IN_LIST_TITLES = {
+    owned: "Owned",
+    period: "Period",
+    record: "Record",
 }
 
 export const CompanySelector = (props) => {
     const {refresh} = props
     const {data, loaded, error} = useData("/company/lists" + (refresh ? "?refresh" + refresh : ""))
-    const [state, setState] = useState(SELECTOR_STATES.ALL)
-    const [sector, setSector] = useState(null);
+    const [activeList, setActiveList] = useState(null)
+
+    const listKeys = data ? Object.keys(data) : []
 
     useEffect(() => {
         if (!props.companySelectorValue) {
-            setState(SELECTOR_STATES.ALL)
+            setActiveList(null)
             return
         }
 
-        setState((prev) => prev === SELECTOR_STATES.ALL ? SELECTOR_STATES.NONE : prev)
-    }, [props.companySelectorValue])
-
-    useEffect(() => {
-        if (data) {
-            setSector(Object.keys(data.sectors)[0] || null)
+        if (!data) {
+            return
         }
-        // eslint-disable-next-line
-    }, [data])
 
-    function handleCompanyClick(companyId, selectorState) {
+        setActiveList((previousList) => {
+            if (previousList && data[previousList]) {
+                return previousList
+            }
+
+            const availableListKeys = Object.keys(data)
+            return availableListKeys.find((listKey) => data[listKey].some(
+                company => company.id === props.companySelectorValue.id
+            )) ?? availableListKeys[0] ?? null
+        })
+    }, [data, props.companySelectorValue])
+
+    function handleCompanyClick(companyId, listKey) {
         const selectedCompany = props.companies.find((company) => company.id === companyId)
 
         if (selectedCompany) {
             props.setCompanySelectorValue(selectedCompany)
         }
 
-        setState(selectorState)
-        recordEvent(window.location.pathname + "#selector:companies:" + selectorState)
+        setActiveList(listKey)
+        recordEvent(window.location.pathname + "#selector:companies:" + listKey)
+    }
+
+    function getListTitle(listKey) {
+        return BUILT_IN_LIST_TITLES[listKey] ?? listKey
+    }
+
+    function getSecondaryValue(company, listKey) {
+        switch (listKey) {
+            case "owned":
+                return company.latestPurchaseDate
+            case "period":
+                return company.latestPeriodEndingMonth
+            default:
+                return company.latestRecordDate
+        }
     }
 
     const listStyle = {minWidth: "200px", marginTop: "2px", bgcolor: 'background.paper', boxShadow: 1, borderRadius: 2}
     const listHeaderStyle = {textAlign: "center", boxShadow: 1, borderRadius: 2, fontSize: "16px", color: "grey"}
+    const listSelectorStyle = {
+        color: "grey",
+        fontSize: "16px",
+        '.MuiSelect-select': {textAlign: "center", paddingTop: 0, paddingBottom: 0},
+        '.MuiSvgIcon-root': {fill: "grey"},
+        ':not(.Mui-disabled):hover::before': {borderBottomColor: 'grey'},
+        ':before': {borderBottomColor: 'transparent'},
+        ':after': {borderBottomColor: 'grey'},
+    }
     const sidebarSx = {maxWidth: "200px", position: "absolute", display: "block", "@media (max-width:2030px)": {display: "none"}}
 
-    function renderCompanyList({title, companies, selectorState, secondary, subheader}) {
-        if (!(state === SELECTOR_STATES.ALL || state === selectorState)) {
+    function renderListHeader(listKey) {
+        if (!activeList) {
+            return <ListSubheader component="div" sx={listHeaderStyle}>{getListTitle(listKey)}</ListSubheader>
+        }
+
+        return (
+            <ListSubheader component="div" sx={listHeaderStyle}>
+                <Select
+                    value={activeList}
+                    variant="standard"
+                    inputProps={{'aria-label': 'Company list'}}
+                    sx={listSelectorStyle}
+                    onChange={event => setActiveList(event.target.value)}
+                >
+                    {listKeys.map((key) => (
+                        <MenuItem key={key} value={key}>{getListTitle(key)}</MenuItem>
+                    ))}
+                </Select>
+            </ListSubheader>
+        )
+    }
+
+    function renderCompanyList(listKey) {
+        if (activeList && activeList !== listKey) {
             return null
         }
 
         return (
-            <List
-                dense
-                sx={listStyle}
-                subheader={subheader || <ListSubheader component="div" sx={listHeaderStyle}>{title}</ListSubheader>}
-            >
-                {companies.map((company) => (
+            <List dense sx={listStyle} subheader={renderListHeader(listKey)} key={listKey}>
+                {data[listKey].map((company) => (
                     <ListItem key={company.id}>
-                        <ListItemButton onClick={() => handleCompanyClick(company.id, selectorState)}>
+                        <ListItemButton onClick={() => handleCompanyClick(company.id, listKey)}>
                             <ListItemText
                                 primary={company.ticker}
-                                secondary={secondary(company)}
+                                secondary={getSecondaryValue(company, listKey)}
                                 slotProps={{
                                     primary: {fontSize: "20px", textAlign: "center"},
                                     secondary: {fontSize: "12px", textAlign: "center"},
@@ -80,46 +127,13 @@ export const CompanySelector = (props) => {
 
     return (
         <>
-            {!loaded &&
-                <Loader error ={error}/>
-            }
+            {!loaded && <Loader error={error}/>}
             {loaded &&
                 <Grid container direction="row" alignItems="stretch"
-                      justifyContent={state === SELECTOR_STATES.ALL ? "center" : "flex-start"}
-                      sx={{width: "100%", ...(state === SELECTOR_STATES.ALL ? {} : sidebarSx)}}
+                      justifyContent={activeList ? "flex-start" : "center"}
+                      sx={{width: "100%", ...(activeList ? sidebarSx : {})}}
                 >
-                    {renderCompanyList({
-                        title: "Owned",
-                        companies: data.owned,
-                        selectorState: SELECTOR_STATES.OWNED,
-                        secondary: company => company.latestPurchaseDate,
-                    })}
-                    {renderCompanyList({
-                        title: "Not Reported",
-                        companies: data.unreported,
-                        selectorState: SELECTOR_STATES.UNREPORTED,
-                        secondary: company => company.latestUnreportedPeriodEndingMonth,
-                    })}
-                    {sector && data.sectors?.[sector] && renderCompanyList({
-                        companies: data.sectors[sector],
-                        selectorState: SELECTOR_STATES.SECTORS,
-                        secondary: company => company.latestRecordDate,
-                        subheader: (
-                            <ListSubheader component="div" sx={listHeaderStyle}>
-                                <Select value={sector} variant="standard"
-                                    sx={{color: "grey", '.MuiSvgIcon-root ': {fill: "white"},
-                                        ':not(.Mui-disabled):hover::before': { borderBottomColor: '#ffffff' },
-                                        ':before': { borderBottomColor: '#ffffff' },
-                                        ':after': { borderBottomColor: '#ffffff' }}}
-                                    onChange={event => setSector(event.target.value)}
-                                >
-                                    {Object.keys(data.sectors).map((value) => (
-                                        <MenuItem key={value} value={value} >{value}</MenuItem>
-                                    ))}
-                                </Select>
-                            </ListSubheader>
-                        ),
-                    })}
+                    {listKeys.map(renderCompanyList)}
                 </Grid>
             }
         </>
