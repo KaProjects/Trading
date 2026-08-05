@@ -1,10 +1,19 @@
 ## release workflow:
 
      rest/web same versioning
-     check src/properties.js
      bump package.json version +(npm i --package-lock-only)
      bump build_deploy.sh versions 
 
+
+## 2.1
+Released: 6.8.2026
+
+    major UI improvements - links, redirects, mobile compatible UI
+    eps estimates and projections component
+    financials overview dialog
+    company lists/selectors improvements
+    record content improvements
+    
 ## 2.0
 Released: 15.6.2026
 
