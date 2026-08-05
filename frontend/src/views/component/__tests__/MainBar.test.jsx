@@ -215,6 +215,49 @@ describe("MainBar", () => {
         });
     });
 
+    test("clears the active trade filter when navigation state contains an empty value", async () => {
+        mockUseLocation.mockReturnValue({
+            pathname: "/trades",
+            state: {companyId: "company-1", tradeState: ""},
+        });
+
+        const company = {id: "company-1", ticker: "NVDA"};
+        const setActiveSelectorValue = jest.fn();
+
+        render(<MainBar {...createProps({
+            companies: [company],
+            activeSelectorValue: "only active",
+            setActiveSelectorValue,
+        })} />);
+
+        await waitFor(() => expect(setActiveSelectorValue).toHaveBeenCalledWith(""));
+        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+            replace: true,
+            state: {},
+        });
+    });
+
+    test("restores the research tab from navigation state", async () => {
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            state: {companyId: "company-1", researchTab: 1},
+        });
+
+        const company = {id: "company-1", ticker: "NVDA"};
+        const setResearchTabsIndex = jest.fn();
+
+        render(<MainBar {...createProps({
+            companies: [company],
+            setResearchTabsIndex,
+        })} />);
+
+        await waitFor(() => expect(setResearchTabsIndex).toHaveBeenCalledWith(1));
+        expect(mockNavigate).toHaveBeenCalledWith("/research", {
+            replace: true,
+            state: {},
+        });
+    });
+
     test("preserves unconsumed navigation state for target page", async () => {
         mockUseLocation.mockReturnValue({
             pathname: "/research",

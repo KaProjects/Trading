@@ -1,5 +1,5 @@
 import React from "react";
-import {render, screen, waitFor} from "@testing-library/react";
+import {act, render, screen, waitFor} from "@testing-library/react";
 import axios from "axios";
 import {useData} from "../BackendService";
 
@@ -76,5 +76,27 @@ describe("BackendService", () => {
 
         expect(axios.get).toHaveBeenNthCalledWith(1, "http://backend/company");
         expect(axios.get).toHaveBeenNthCalledWith(2, "http://backend/record");
+    });
+
+    test("useData ignores a stale response after the path changes", async () => {
+        let resolveCompanies;
+        let resolveTrades;
+        axios.get
+            .mockImplementationOnce(() => new Promise(resolve => {resolveCompanies = resolve}))
+            .mockImplementationOnce(() => new Promise(resolve => {resolveTrades = resolve}));
+
+        const {rerender} = render(<TestComponent path={"/trade?filter"}/>);
+        rerender(<TestComponent path={"/trade?filter&companyId=company-1"}/>);
+
+        await act(async () => {
+            resolveTrades({data: {companies: ["NVDA"]}});
+        });
+        expect(screen.getByTestId("data")).toHaveTextContent(JSON.stringify({companies: ["NVDA"]}));
+
+        await act(async () => {
+            resolveCompanies({data: {companies: ["NVDA", "AMD"]}});
+        });
+        expect(screen.getByTestId("data")).toHaveTextContent(JSON.stringify({companies: ["NVDA"]}));
+        expect(screen.getByTestId("loaded")).toHaveTextContent("true");
     });
 });

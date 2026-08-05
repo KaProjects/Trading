@@ -21,12 +21,9 @@ import {EarningsProjectionsDialog} from "../dialog/EarningsProjectionsDialog";
 import {AddRecordDialog} from "../dialog/AddRecordDialog";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
+import {RESEARCH_TAB} from "./component/MainBar";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
-const RESEARCH_TAB = {
-    research: 0,
-    records: 1,
-}
 const researchCardStyle = {
     bgcolor: 'background.paper',
     boxShadow: 1,

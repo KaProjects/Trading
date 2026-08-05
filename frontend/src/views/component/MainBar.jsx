@@ -11,8 +11,12 @@ import {ReactComponent as DividendsRedirectIcon} from "../../assets/icons/divide
 import {ReactComponent as ResearchRedirectIcon} from "../../assets/icons/research-redirect.svg";
 
 export const ACTIVE_STATES = ["only active", "only closed"];
+export const RESEARCH_TAB = {
+    research: 0,
+    records: 1,
+};
 const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly"];
-const RESEARCH_TABS = ["Research", "Records"];
+const RESEARCH_TAB_LABELS = ["Research", "Records"];
 const DATA_ROUTES = ["/trades", "/dividends", "/research"];
 
 const DEFAULT_MAIN_BAR_CONFIG = {
@@ -113,9 +117,14 @@ export const MainBar = props => {
                 consumed = true
             }
         }
-        if (location.state.tradeState){
-            props.setActiveSelectorValue(location.state.tradeState);
+        if (Object.prototype.hasOwnProperty.call(location.state, "tradeState")) {
+            props.setActiveSelectorValue(location.state.tradeState ?? "");
             delete remainingState.tradeState
+            consumed = true
+        }
+        if (Object.prototype.hasOwnProperty.call(location.state, "researchTab")) {
+            props.setResearchTabsIndex(location.state.researchTab);
+            delete remainingState.researchTab
             consumed = true
         }
         if (location.state.currency){
@@ -333,7 +342,7 @@ export const MainBar = props => {
                                   textColor="inherit"
                                   sx={{display: {xs: "flex", sm: "none"}}}
                             >
-                                {RESEARCH_TABS.map((tab) => (
+                                {RESEARCH_TAB_LABELS.map((tab) => (
                                     <Tab key={tab} label={tab}/>
                                 ))}
                             </Tabs>

@@ -7,7 +7,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import {recordEvent} from "../service/utils";
 import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
-import {ACTIVE_STATES} from "./component/MainBar";
+import {ACTIVE_STATES, RESEARCH_TAB} from "./component/MainBar";
 import {useNavigate} from "react-router-dom";
 
 
@@ -45,14 +45,14 @@ export const Companies = props => {
         return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily, color: color}
     }
 
-    function redirect(companyId, href, tradeState, showFinancials) {
+    function redirect(companyId, href, tradeState, researchTab) {
         recordEvent(window.location.pathname + "#redirect:" + href);
+        const state = {companyId}
+        if (href === "/trades") state.tradeState = tradeState ?? ""
+        if (researchTab !== undefined) state.researchTab = researchTab
+
         navigate(href, {
-            state: {
-                companyId: companyId,
-                tradeState: tradeState,
-                showFinancials: showFinancials,
-            },
+            state,
         })
     }
 
@@ -114,8 +114,8 @@ export const Companies = props => {
                                         <TableCellWithAction index={3} value={company.totalTrades} action={() => redirect(company.id, '/trades')}/>
                                         <TableCellWithAction index={4} value={company.activeTrades} action={() => redirect(company.id, '/trades', ACTIVE_STATES[0])}/>
                                         <TableCellWithAction index={5} value={company.dividends} action={() => redirect(company.id, '/dividends')}/>
-                                        <TableCellWithAction index={6} value={company.records} action={() => redirect(company.id, '/research')}/>
-                                        <TableCellWithAction index={7} value={company.periods} action={() => redirect(company.id, '/research', null, true)}/>
+                                        <TableCellWithAction index={6} value={company.records} action={() => redirect(company.id, '/research', null, RESEARCH_TAB.records)}/>
+                                        <TableCellWithAction index={7} value={company.periods} action={() => redirect(company.id, '/research', null, RESEARCH_TAB.research)}/>
                                     </TableRow>
                                 ))}
                             </TableBody>

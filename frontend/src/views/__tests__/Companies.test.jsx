@@ -174,9 +174,56 @@ describe("Companies", () => {
         expect(mockNavigate).toHaveBeenCalledWith("/trades", {
             state: {
                 companyId: "company-1",
-                tradeState: undefined,
-                showFinancials: undefined,
+                tradeState: "",
             },
+        });
+    });
+
+    test("redirects from active trades with the company and active filter", () => {
+        mockUseData.mockReturnValue({data: createData(), loaded: true, error: null});
+
+        render(<Companies {...createProps()}/>);
+
+        const activeTradesCell = screen.getByText("7").closest("td");
+        fireEvent.mouseEnter(activeTradesCell);
+        fireEvent.click(within(activeTradesCell).getByRole("button"));
+
+        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+            state: {companyId: "company-1", tradeState: "only active"},
+        });
+    });
+
+    test("redirects from dividends with only the selected company", () => {
+        mockUseData.mockReturnValue({data: createData(), loaded: true, error: null});
+
+        render(<Companies {...createProps()}/>);
+
+        const dividendsCell = screen.getByText("5").closest("td");
+        fireEvent.mouseEnter(dividendsCell);
+        fireEvent.click(within(dividendsCell).getByRole("button"));
+
+        expect(mockNavigate).toHaveBeenCalledWith("/dividends", {
+            state: {companyId: "company-1"},
+        });
+    });
+
+    test("redirects periods and records to their corresponding research tabs", () => {
+        mockUseData.mockReturnValue({data: createData(), loaded: true, error: null});
+
+        render(<Companies {...createProps()}/>);
+
+        const companyCells = within(screen.getByText("NVDA").closest("tr")).getAllByRole("cell");
+
+        fireEvent.mouseEnter(companyCells[6]);
+        fireEvent.click(within(companyCells[6]).getByRole("button"));
+        expect(mockNavigate).toHaveBeenLastCalledWith("/research", {
+            state: {companyId: "company-1", researchTab: 1},
+        });
+
+        fireEvent.mouseEnter(companyCells[7]);
+        fireEvent.click(within(companyCells[7]).getByRole("button"));
+        expect(mockNavigate).toHaveBeenLastCalledWith("/research", {
+            state: {companyId: "company-1", researchTab: 0},
         });
     });
 
