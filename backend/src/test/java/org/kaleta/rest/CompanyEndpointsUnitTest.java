@@ -27,8 +27,6 @@ class CompanyEndpointsUnitTest
 
         CompanyService companyService = mock(CompanyService.class);
         when(companyService.getCompanies()).thenReturn(new ArrayList<>(List.of(first, second)));
-        when(companyService.getRecentCompanies()).thenReturn(new ArrayList<>());
-
         TradeService tradeService = mock(TradeService.class);
         when(tradeService.getYears()).thenReturn(List.of());
 

@@ -68,7 +68,7 @@ export const AddDividendDialog = props => {
                         sx={{marginTop: "20px"}}
                 >
                     <MenuItem value=""></MenuItem>
-                    {props.recentCompanies.map((company, index) => (
+                    {props.recentlyOwnedCompanies.map((company, index) => (
                         <MenuItem key={index} value={company} >{(company.ticker === undefined) ? company : company.ticker}</MenuItem>
                     ))}
                 </Select>

@@ -90,14 +90,14 @@ public class CompanyService
         return companiesByTag;
     }
 
-    public List<org.kaleta.model.Company> getRecentCompanies()
+    public List<org.kaleta.model.Company> getRecentlyOwnedCompanies()
     {
-        Map<Long, org.kaleta.model.Company> recentCompanies = new LinkedHashMap<>();
-        for (Trades.Trade trade : tradeService.getRecentTrades()) {
+        Map<Long, org.kaleta.model.Company> recentlyOwnedCompanies = new LinkedHashMap<>();
+        for (Trades.Trade trade : tradeService.getRecentlyOwnedTrades()) {
             org.kaleta.model.Company company = trade.getCompany();
-            recentCompanies.putIfAbsent(company.getId(), company);
+            recentlyOwnedCompanies.putIfAbsent(company.getId(), company);
         }
-        return new ArrayList<>(recentCompanies.values());
+        return new ArrayList<>(recentlyOwnedCompanies.values());
     }
 
     public void update(CompanyUpdateDto dto)

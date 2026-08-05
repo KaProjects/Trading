@@ -68,7 +68,7 @@ function createProps(overrides = {}) {
         triggerRefresh: jest.fn(),
         companySelectorValue: company,
         companies: [company],
-        recentCompanies: [company],
+        recentlyOwnedCompanies: [company],
         ...overrides,
     };
 }
@@ -118,11 +118,11 @@ describe("AddDividendDialog", () => {
         expect(props.setOpenAddDividend).not.toHaveBeenCalled();
     });
 
-    test("uses recent companies for company options", () => {
+    test("uses recently owned companies for company options", () => {
         const props = createProps({
             companySelectorValue: "",
             companies: [{id: "company-1", ticker: "NVDA"}],
-            recentCompanies: [{id: "company-2", ticker: "CEZ"}],
+            recentlyOwnedCompanies: [{id: "company-2", ticker: "CEZ"}],
         });
 
         render(<AddDividendDialog {...props}/>);

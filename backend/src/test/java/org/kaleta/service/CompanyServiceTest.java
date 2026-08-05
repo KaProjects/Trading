@@ -245,7 +245,7 @@ public class CompanyServiceTest
     }
 
     @Test
-    void getRecentCompanies()
+    void getRecentlyOwnedCompanies()
     {
         org.kaleta.model.Company company1 = new org.kaleta.model.Company();
         company1.setId(1L);
@@ -267,13 +267,13 @@ public class CompanyServiceTest
         trade3.setId(3L);
         trade3.setCompany(company1);
 
-        when(tradeService.getRecentTrades()).thenReturn(List.of(trade1, trade2, trade3));
+        when(tradeService.getRecentlyOwnedTrades()).thenReturn(List.of(trade1, trade2, trade3));
 
-        List<org.kaleta.model.Company> recentCompanies = companyService.getRecentCompanies();
+        List<org.kaleta.model.Company> recentlyOwnedCompanies = companyService.getRecentlyOwnedCompanies();
 
-        assertThat(recentCompanies.size(), is(2));
-        assertThat(recentCompanies.get(0), is(company1));
-        assertThat(recentCompanies.get(1), is(company2));
+        assertThat(recentlyOwnedCompanies.size(), is(2));
+        assertThat(recentlyOwnedCompanies.get(0), is(company1));
+        assertThat(recentlyOwnedCompanies.get(1), is(company2));
     }
 
     @Test

@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class TradeService
 {
-    private static final int RECENT_TRADE_MONTHS = 6;
+    private static final int RECENTLY_OWNED_MONTHS = 9;
 
     @Inject
     TradeDao tradeDao;
@@ -176,9 +176,9 @@ public class TradeService
         return model;
     }
 
-    public List<Trades.Trade> getRecentTrades()
+    public List<Trades.Trade> getRecentlyOwnedTrades()
     {
-        LocalDate recentSellDateLimit = LocalDate.now().minusMonths(RECENT_TRADE_MONTHS);
+        LocalDate recentSellDateLimit = LocalDate.now().minusMonths(RECENTLY_OWNED_MONTHS);
 
         return tradeDao.list().stream()
                 .filter(trade -> trade.getSellDate() == null || !trade.getSellDate().toLocalDate().isBefore(recentSellDateLimit))

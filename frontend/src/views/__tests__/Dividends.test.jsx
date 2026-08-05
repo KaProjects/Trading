@@ -20,7 +20,10 @@ jest.mock("../component/Loader", () => ({
 
 jest.mock("../../dialog/AddDividendDialog", () => ({
     AddDividendDialog: (props) => (
-        <button onClick={props.triggerRefresh}>add-dividend-dialog</button>
+        <div>
+            <div>recently-owned:{props.recentlyOwnedCompanies.map(company => company.ticker).join(",")}</div>
+            <button onClick={props.triggerRefresh}>add-dividend-dialog</button>
+        </div>
     )
 }));
 
@@ -79,6 +82,21 @@ function createData(overrides = {}) {
     };
 }
 
+function mockLoadedData() {
+    mockUseData.mockImplementation(path => path === "/company/recently-owned"
+        ? {
+            data: [{id: "company-1", ticker: "NVDA"}],
+            loaded: true,
+            error: null,
+        }
+        : {
+            data: createData(),
+            loaded: true,
+            error: null,
+        }
+    );
+}
+
 describe("Dividends", () => {
     beforeEach(() => {
         mockUseData.mockReset();
@@ -99,11 +117,7 @@ describe("Dividends", () => {
     });
 
     test("renders dividends table and passes filter query to useData", () => {
-        mockUseData.mockReturnValue({
-            data: createData(),
-            loaded: true,
-            error: null,
-        });
+        mockLoadedData();
 
         render(<Dividends {...createProps({
             companySelectorValue: {id: "company-1"},
@@ -113,6 +127,8 @@ describe("Dividends", () => {
         })}/>);
 
         expect(mockUseData).toHaveBeenCalledWith("/dividend?filter&companyId=company-1&currency=$&year=2024&sector=SEMICONDUCTORS");
+        expect(mockUseData).toHaveBeenCalledWith("/company/recently-owned");
+        expect(screen.getByText("recently-owned:NVDA")).toBeInTheDocument();
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("CEZ")).toBeInTheDocument();
         expect(mockFormatDate).toHaveBeenCalledWith("2022-12-01");
@@ -122,11 +138,7 @@ describe("Dividends", () => {
     });
 
     test("selects company on ticker double click", () => {
-        mockUseData.mockReturnValue({
-            data: createData(),
-            loaded: true,
-            error: null,
-        });
+        mockLoadedData();
 
         const nvidia = {id: "company-1", ticker: "NVDA"};
         const cez = {id: "company-2", ticker: "CEZ"};
@@ -143,11 +155,7 @@ describe("Dividends", () => {
     });
 
     test("refreshes the data path when dialog triggers refresh", async () => {
-        mockUseData.mockReturnValue({
-            data: createData(),
-            loaded: true,
-            error: null,
-        });
+        mockLoadedData();
 
         const getTimeSpy = jest.spyOn(Date.prototype, "getTime").mockReturnValue(12345);
 
@@ -155,7 +163,7 @@ describe("Dividends", () => {
 
         fireEvent.click(screen.getByText("add-dividend-dialog"));
 
-        await waitFor(() => expect(mockUseData).toHaveBeenLastCalledWith("/dividend?filter&refresh12345"));
+        await waitFor(() => expect(mockUseData).toHaveBeenCalledWith("/dividend?filter&refresh12345"));
 
         getTimeSpy.mockRestore();
     });

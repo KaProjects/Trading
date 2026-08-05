@@ -17,7 +17,6 @@ public class CompanyValuesDto
     private List<Company.Sector> sectors = new ArrayList<>();
     private List<Trades.Portfolio> portfolios = new ArrayList<>();
     private List<Company> companies = new ArrayList<>();
-    private List<Company> recentCompanies = new ArrayList<>();
     private Set<String> tags = new TreeSet<>();
     private List<String> years = new ArrayList<>();
 }

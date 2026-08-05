@@ -272,7 +272,7 @@ public class TradeServiceTest
     }
 
     @Test
-    void getRecentTrades()
+    void getRecentlyOwnedTrades()
     {
         Company company = Generator.generateCompany(1L);
         company.setTicker("NVDA");
@@ -288,20 +288,20 @@ public class TradeServiceTest
         activeTrade.setPurchaseFees(new BigDecimal("1"));
 
         Trade recentSoldTrade = soldTrade(11L, company,
-                LocalDate.now().minusMonths(7).toString(), "20", "2",
-                LocalDate.now().minusMonths(6).toString(), "25", "1", "3");
+                LocalDate.now().minusMonths(10).toString(), "20", "2",
+                LocalDate.now().minusMonths(9).toString(), "25", "1", "3");
         Trade oldSoldTrade = soldTrade(12L, company,
                 LocalDate.now().minusYears(2).toString(), "30", "3",
-                LocalDate.now().minusMonths(6).minusDays(1).toString(), "35", "1", "4");
+                LocalDate.now().minusMonths(9).minusDays(1).toString(), "35", "1", "4");
 
         when(tradeDao.list()).thenReturn(List.of(activeTrade, recentSoldTrade, oldSoldTrade));
         when(companyService.from(company)).thenReturn(modelCompany);
 
-        List<Trades.Trade> recentTrades = tradeService.getRecentTrades();
+        List<Trades.Trade> recentlyOwnedTrades = tradeService.getRecentlyOwnedTrades();
 
-        assertThat(recentTrades.size(), is(2));
+        assertThat(recentlyOwnedTrades.size(), is(2));
         assertThat(
-                recentTrades.stream().map(Trades.Trade::getId).collect(Collectors.toList()),
+                recentlyOwnedTrades.stream().map(Trades.Trade::getId).collect(Collectors.toList()),
                 containsInAnyOrder(10L, 11L)
         );
     }

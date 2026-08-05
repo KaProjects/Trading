@@ -65,9 +65,22 @@ class CompanyEndpointsTest
         assertThat(dto.getPortfolios().get(0).getKey(), is(Portfolio.PATRIA_DIP.toString()));
         assertThat(dto.getPortfolios().get(0).getName(), is(Portfolio.PATRIA_DIP.getName()));
         assertThat(dto.getPortfolios().get(0).getAbbreviation(), is("Pd"));
-        assertThat(dto.getRecentCompanies().size(), is(6));
-        assertThat(tickersFromCompanies(dto.getRecentCompanies()), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
         assertThat(dto.getYears(), is(List.of("2024", "2023", "2022", "2021", "2020", "2018")));
+    }
+
+    @Test
+    @Order(1)
+    void getRecentlyOwnedCompanies()
+    {
+        List<org.kaleta.model.Company> companies = given().when()
+                .get(path + "/recently-owned")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().as(new TypeRef<>() {});
+
+        assertThat(companies.size(), is(6));
+        assertThat(tickersFromCompanies(companies), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
     }
 
     @Test

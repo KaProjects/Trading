@@ -27,7 +27,6 @@ export const App = () => {
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState(null);
     const [companies, setCompanies] = useState([]);
-    const [recentCompanies, setRecentCompanies] = useState([]);
     const [currencies, setCurrencies] = useState([]);
     const [sectors, setSectors] = useState([]);
     const [portfolios, setPortfolios] = useState([]);
@@ -48,7 +47,6 @@ export const App = () => {
         axios.get(backend + "/company/values")
             .then((response) => {
                 setCompanies(response.data.companies);
-                setRecentCompanies(response.data.recentCompanies ?? []);
                 setCurrencies(response.data.currencies);
                 setSectors(response.data.sectors);
                 setPortfolios(response.data.portfolios ?? []);
@@ -71,7 +69,6 @@ export const App = () => {
 
     const props = {
         companies,
-        recentCompanies,
         currencies,
         sectors,
         portfolios,

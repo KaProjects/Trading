@@ -13,7 +13,6 @@ jest.mock("../views/component/MainBar", () => ({
     MainBar: (props) => (
         <div>
             <div>company:{props.companySelectorValue?.ticker || ""}</div>
-            <div>recentCompanies:{props.recentCompanies.map(company => company.ticker).join(",")}</div>
             <div>currency:{props.currencySelectorValue || ""}</div>
             <div>years:{props.years.join(",")}</div>
             <div>sector:{props.sectorSelectorValue?.name || ""}</div>
@@ -63,7 +62,6 @@ describe("App", () => {
         axios.get.mockResolvedValue({
             data: {
                 companies: [{id: "company-1", ticker: "NVDA"}],
-                recentCompanies: [{id: "company-2", ticker: "CEZ"}],
                 currencies: ["$"],
                 sectors: [{key: "TECH", name: "Technology"}],
                 portfolios: [{key: "PATRIA_STANDARD", name: "Patria - Standard", abbreviation: "P"}],
@@ -84,7 +82,6 @@ describe("App", () => {
         render(<App/>);
 
         await waitFor(() => expect(screen.getByText("home")).toBeInTheDocument());
-        expect(screen.getByText("recentCompanies:CEZ")).toBeInTheDocument();
         expect(screen.getByText("years:2024,2023")).toBeInTheDocument();
 
         fireEvent.click(screen.getByText("set currency"));

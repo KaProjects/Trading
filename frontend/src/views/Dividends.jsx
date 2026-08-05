@@ -9,6 +9,11 @@ import {formatDate} from "../service/FormattingService";
 export const Dividends = props => {
     const [refresh, setRefresh] = useState("")
     const {data, loaded, error} = useData("/dividend" + constructQueryParams())
+    const {
+        data: recentlyOwnedCompanies,
+        loaded: recentlyOwnedCompaniesLoaded,
+        error: recentlyOwnedCompaniesError,
+    } = useData("/company/recently-owned")
 
     function constructQueryParams(){
         return "?filter" + (props.companySelectorValue ? "&companyId="+props.companySelectorValue.id : "")
@@ -43,10 +48,16 @@ export const Dividends = props => {
 
     return (
         <>
-        {!loaded && <Loader error ={error}/>}
-        {loaded &&
+        {(!loaded || !recentlyOwnedCompaniesLoaded) &&
+            <Loader error={error || recentlyOwnedCompaniesError}/>
+        }
+        {loaded && recentlyOwnedCompaniesLoaded &&
             <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto 10px auto", maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
-                <AddDividendDialog triggerRefresh={triggerRefresh} {...props}/>
+                <AddDividendDialog
+                    {...props}
+                    triggerRefresh={triggerRefresh}
+                    recentlyOwnedCompanies={recentlyOwnedCompanies}
+                />
                 <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 520, sm: "unset"}}}>
                     <TableHead>
                         <TableRow>

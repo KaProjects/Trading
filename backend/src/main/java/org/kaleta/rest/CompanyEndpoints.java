@@ -62,15 +62,22 @@ public class CompanyEndpoints
         dto.getCompanies().sort(Comparator.comparing(Company::getTicker));
         dto.getCompanies().forEach(company -> dto.getTags().addAll(company.getTags()));
 
-        dto.setRecentCompanies(companyService.getRecentCompanies());
-        dto.getRecentCompanies().sort(Comparator.comparing(Company::getTicker));
-
         Set<String> years = new TreeSet<>(Comparator.reverseOrder());
         years.addAll(tradeService.getYears());
         years.addAll(dividendService.getYears());
         dto.setYears(List.copyOf(years));
 
         return Response.ok(dto).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/recently-owned")
+    public Response getRecentlyOwnedCompanies()
+    {
+        List<Company> companies = companyService.getRecentlyOwnedCompanies();
+        companies.sort(Comparator.comparing(Company::getTicker));
+        return Response.ok(companies).build();
     }
 
     @GET

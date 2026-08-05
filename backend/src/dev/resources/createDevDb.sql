@@ -6,6 +6,7 @@ INSERT INTO Company (id, ticker, currency, sector) VALUES (1873, 'BBC', '$', 'FI
 INSERT INTO Company (id, ticker, currency, sector) VALUES (1240, 'CX', 'K', 'ETF');
 INSERT INTO Company (id, ticker, currency, sector) VALUES (1504, 'DDD', '$', 'COMMUNICATION_SERVICES');
 INSERT INTO Company (id, ticker, currency, sector) VALUES (2261, 'EFG', '£', 'HEALTH_TECH');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2300, 'NTRD', '$', 'SOFTWARE');
 
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (2068, 2213, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5', 'PATRIA_STANDARD');
@@ -61,6 +62,12 @@ INSERT INTO Record (id, companyId, date, price, content, review, strategy, retro
 INSERT INTO Record (id, companyId, date, title, price, content, targets, dy, asset_quantity, asset_price) VALUES (1167, 2073, '2026-04-01', 'Post-sale review', '90', '[{"type":"paragraph","children":[{"text":"The valuation reached the planned exit range."}]}]', '78-95', '1.25', '12', '82.40');
 INSERT INTO Record (id, companyId, date, price, content, strategy, targets, p_net, dy, asset_quantity, asset_price) VALUES (1168, 1873, '2026-06-06', '160', '[{"type":"paragraph","children":[{"text":"Credit quality remains healthy and capital returns are improving."}]}]', '[{"type":"paragraph","children":[{"text":"Keep as a diversified financial holding."}]}]', '145-185', '12.80', '2.10', '8', '155.75');
 INSERT INTO Record (id, companyId, date, title, price, content, review, targets, p_rev, p_net, dy, asset_quantity, asset_price) VALUES (1169, 2261, '2026-07-01', 'Pipeline update', '102.30', '[{"type":"paragraph","children":[{"text":"The clinical pipeline progressed without material delays."}]}]', '[{"type":"paragraph","children":[{"text":"Risk remains concentrated in the next trial readout."}]}]', '88-125', '6.20', '24.50', '1.80', '18', '96.20');
+INSERT INTO Record (id, companyId, date, price, content, review, strategy, retro, targets) VALUES (1170, 2300, '2026-07-28', '48.20', '[{"type":"paragraph","children":[{"text":"The company is being researched as a potential holding, but no position has been opened."}]},{"type":"paragraph","children":[{"text":"Recurring revenue and customer retention support the thesis while the valuation still requires disciplined entry levels."}]}]', '[{"type":"paragraph","children":[{"text":"Recent execution was steady, although evidence of durable operating leverage is still limited."}]}]', '[{"type":"paragraph","children":[{"text":"Continue monitoring results and initiate a position only if growth quality remains intact within the target range."}]}]', '[{"type":"paragraph","children":[{"text":"This research-only record intentionally has no associated trades or dividends."}]}]', '42-55');
+
+
+-- Research-only company: periods and a record, intentionally without trades or dividends.
+INSERT INTO Period (id, companyId, name, ending_month, report_date, research) VALUES (2501, 2300, '26Q1', '2603', '2026-05-07', '[{"type":"paragraph","children":[{"text":"Initial research focused on recurring revenue, customer retention, and the path toward sustainable operating leverage."}]},{"type":"paragraph","children":[{"text":"The main risks are valuation compression, slower enterprise spending, and rising customer-acquisition costs."}]}]');
+INSERT INTO Period (id, companyId, name, ending_month, research) VALUES (2502, 2300, '26Q2', '2606', '[{"type":"paragraph","children":[{"text":"Monitor the next report for stable retention, improving free cash flow, and evidence that growth is not dependent on higher sales spending."}]}]');
 
 
 -- Quarterly financial history and adjusted EPS for NVDA and AMD.
