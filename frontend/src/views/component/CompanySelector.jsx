@@ -1,28 +1,9 @@
 import React, {useEffect, useState} from "react";
 import {Grid, List, ListItem, ListItemButton, ListItemText, ListSubheader, MenuItem, Select} from "@mui/material";
 import {recordEvent} from "../../service/utils";
+import {COMPANY_LIST_TITLES, getCompanyListKeys, getCompanyListTitle} from "../../service/CompanyListService";
 
-export const BUILT_IN_LIST_TITLES = {
-    owned: "Owned",
-    researched: "Researched",
-    recent: "Recent",
-    all: "All",
-}
-
-const BUILT_IN_LIST_KEYS = ["owned", "recent", "researched"]
-
-function getCompanyListKeys(data) {
-    if (!data) return []
-
-    return Object.keys(data).sort((first, second) => {
-        const firstIndex = BUILT_IN_LIST_KEYS.indexOf(first)
-        const secondIndex = BUILT_IN_LIST_KEYS.indexOf(second)
-        const firstOrder = first === "all" ? 4 : firstIndex === -1 ? 3 : firstIndex
-        const secondOrder = second === "all" ? 4 : secondIndex === -1 ? 3 : secondIndex
-
-        return firstOrder - secondOrder || (first < second ? -1 : first > second ? 1 : 0)
-    })
-}
+export const BUILT_IN_LIST_TITLES = COMPANY_LIST_TITLES
 
 export const CompanySelector = (props) => {
     const data = props.companyLists ?? {all: []}
@@ -32,7 +13,7 @@ export const CompanySelector = (props) => {
 
     useEffect(() => {
         if (data && props.onCustomTagsChange) {
-            props.onCustomTagsChange(getCompanyListKeys(data).filter(key => !BUILT_IN_LIST_TITLES[key]))
+            props.onCustomTagsChange(getCompanyListKeys(data).filter(key => !COMPANY_LIST_TITLES[key]))
         }
     }, [data, props.onCustomTagsChange])
 
@@ -70,7 +51,7 @@ export const CompanySelector = (props) => {
     }
 
     function getListTitle(listKey) {
-        return BUILT_IN_LIST_TITLES[listKey] ?? listKey
+        return getCompanyListTitle(listKey)
     }
 
     function getSecondaryValue(company, listKey) {

@@ -249,6 +249,8 @@ export const MainBar = props => {
             setValue: props.setCompanySelectorValue,
             valueKey: "ticker",
             label: "companies",
+            companyLists: props.companyLists,
+            defaultCompanyList: "all",
         },
         {
             key: "currency",
@@ -389,6 +391,8 @@ export const MainBar = props => {
                                         setValue={selector.setValue}
                                         valueKey={selector.valueKey}
                                         label={selector.label}
+                                        companyLists={selector.companyLists}
+                                        defaultCompanyList={selector.defaultCompanyList}
                                     />
                                 ))}
                                 {visiblePageNavigationButtons.length > 0 &&

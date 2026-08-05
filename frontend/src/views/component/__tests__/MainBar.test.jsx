@@ -5,7 +5,14 @@ const mockNavigate = jest.fn();
 const mockUseLocation = jest.fn();
 
 jest.mock("../MainBarSelect", () => ({
-    MainBarSelect: ({label}) => <div>selector:{label}</div>,
+    MainBarSelect: ({label, companyLists, defaultCompanyList}) => (
+        <div
+            data-company-lists={companyLists ? Object.keys(companyLists).join(",") : ""}
+            data-default-company-list={defaultCompanyList ?? ""}
+        >
+            selector:{label}
+        </div>
+    ),
 }));
 
 jest.mock("react-router-dom", () => {
@@ -61,6 +68,8 @@ describe("MainBar", () => {
 
         expect(screen.getByText("selector:all")).toBeInTheDocument();
         expect(screen.getByText("selector:companies")).toBeInTheDocument();
+        expect(screen.getByText("selector:companies")).toHaveAttribute("data-company-lists", "all");
+        expect(screen.getByText("selector:companies")).toHaveAttribute("data-default-company-list", "all");
         expect(screen.getByText("selector:currencies")).toBeInTheDocument();
         expect(screen.getByText("selector:years")).toBeInTheDocument();
         expect(screen.getByText("selector:sectors")).toBeInTheDocument();
