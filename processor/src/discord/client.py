@@ -12,6 +12,7 @@ TEXT_CHANNEL_TYPES = {0, 5}
 RATE_LIMIT_MAX_RETRIES = 3
 RATE_LIMIT_MAX_WAIT_SECONDS = 30.0
 RATE_LIMIT_SAFETY_MARGIN_SECONDS = 0.05
+SUPPRESS_NOTIFICATIONS_FLAG = 1 << 12
 
 logger = logging.getLogger(__name__)
 
@@ -160,12 +161,17 @@ class DiscordClient:
         payload: dict[str, object],
     ) -> Response:
         url = f"{DISCORD_API_URL}/channels/{channel_id}/messages"
+        message_payload = dict(payload)
+        flags = message_payload.get("flags", 0)
+        if not isinstance(flags, int):
+            raise DiscordClientError("Discord message flags must be an integer")
+        message_payload["flags"] = flags | SUPPRESS_NOTIFICATIONS_FLAG
         try:
             response = self._request_with_rate_limit_retry(
                 lambda: self.session.post(
                     url,
                     headers=self._headers(),
-                    json=payload,
+                    json=message_payload,
                     timeout=self.timeout,
                 ),
                 operation="message",

@@ -5,7 +5,11 @@ import pytest
 from requests import Session
 from requests.exceptions import Timeout
 
-from discord.client import DiscordClient, DiscordClientError
+from discord.client import (
+    SUPPRESS_NOTIFICATIONS_FLAG,
+    DiscordClient,
+    DiscordClientError,
+)
 
 API_URL = "https://discord.com/api/v10"
 WEBHOOK_URL = "https://discord.com/api/webhooks"
@@ -53,6 +57,10 @@ def discord_client():
 def test_post_resolves_channel_name_and_caches_channel_id(discord_client):
     client, session = discord_client
     payload = {"content": "test"}
+    silent_payload = {
+        "content": "test",
+        "flags": SUPPRESS_NOTIFICATIONS_FLAG,
+    }
 
     client.post("btc", payload)
     client.post("#btc", payload)
@@ -66,16 +74,17 @@ def test_post_resolves_channel_name_and_caches_channel_id(discord_client):
         call(
             f"{API_URL}/channels/btc-id/messages",
             headers=HEADERS,
-            json=payload,
+            json=silent_payload,
             timeout=3.0,
         ),
         call(
             f"{API_URL}/channels/btc-id/messages",
             headers=HEADERS,
-            json=payload,
+            json=silent_payload,
             timeout=3.0,
         ),
     ]
+    assert payload == {"content": "test"}
 
 
 def test_channel_exists_checks_name_without_posting(discord_client):
@@ -115,9 +124,24 @@ def test_post_if_channel_exists_posts_to_resolved_channel(discord_client):
     session.post.assert_called_once_with(
         f"{API_URL}/channels/btc-id/messages",
         headers=HEADERS,
-        json=payload,
+        json={
+            "content": "test",
+            "flags": SUPPRESS_NOTIFICATIONS_FLAG,
+        },
         timeout=3.0,
     )
+
+
+def test_channel_post_preserves_existing_message_flags(discord_client):
+    client, session = discord_client
+    payload = {"content": "test", "flags": 1 << 2}
+
+    client.post("btc", payload)
+
+    assert session.post.call_args.kwargs["json"]["flags"] == (
+        (1 << 2) | SUPPRESS_NOTIFICATIONS_FLAG
+    )
+    assert payload["flags"] == 1 << 2
 
 
 @pytest.mark.parametrize(
