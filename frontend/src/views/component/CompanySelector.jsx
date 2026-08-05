@@ -4,10 +4,25 @@ import {Loader} from "./Loader";
 import {Grid, List, ListItem, ListItemButton, ListItemText, ListSubheader, MenuItem, Select} from "@mui/material";
 import {recordEvent} from "../../service/utils";
 
-const BUILT_IN_LIST_TITLES = {
+export const BUILT_IN_LIST_TITLES = {
     owned: "Owned",
-    period: "Period",
-    record: "Record",
+    researched: "Researched",
+    recent: "Recent",
+}
+
+const BUILT_IN_LIST_KEYS = ["owned", "recent", "researched"]
+
+function getCompanyListKeys(data) {
+    if (!data) return []
+
+    return Object.keys(data).sort((first, second) => {
+        const firstIndex = BUILT_IN_LIST_KEYS.indexOf(first)
+        const secondIndex = BUILT_IN_LIST_KEYS.indexOf(second)
+        const firstOrder = firstIndex === -1 ? BUILT_IN_LIST_KEYS.length : firstIndex
+        const secondOrder = secondIndex === -1 ? BUILT_IN_LIST_KEYS.length : secondIndex
+
+        return firstOrder - secondOrder || (first < second ? -1 : first > second ? 1 : 0)
+    })
 }
 
 export const CompanySelector = (props) => {
@@ -15,7 +30,13 @@ export const CompanySelector = (props) => {
     const {data, loaded, error} = useData("/company/lists" + (refresh ? "?refresh" + refresh : ""))
     const [activeList, setActiveList] = useState(null)
 
-    const listKeys = data ? Object.keys(data) : []
+    const listKeys = getCompanyListKeys(data)
+
+    useEffect(() => {
+        if (data && props.onCustomTagsChange) {
+            props.onCustomTagsChange(getCompanyListKeys(data).filter(key => !BUILT_IN_LIST_TITLES[key]))
+        }
+    }, [data, props.onCustomTagsChange])
 
     useEffect(() => {
         if (!props.companySelectorValue) {
@@ -32,7 +53,7 @@ export const CompanySelector = (props) => {
                 return previousList
             }
 
-            const availableListKeys = Object.keys(data)
+            const availableListKeys = getCompanyListKeys(data)
             return availableListKeys.find((listKey) => data[listKey].some(
                 company => company.id === props.companySelectorValue.id
             )) ?? availableListKeys[0] ?? null
@@ -58,7 +79,7 @@ export const CompanySelector = (props) => {
         switch (listKey) {
             case "owned":
                 return company.latestPurchaseDate
-            case "period":
+            case "researched":
                 return company.latestPeriodEndingMonth
             default:
                 return company.latestRecordDate

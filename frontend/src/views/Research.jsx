@@ -1,4 +1,4 @@
-import {Badge, Box, Button, Card, CardContent, Grid, Stack} from "@mui/material";
+import {Badge, Box, Button, Card, CardContent, Grid, IconButton, Stack, Tooltip} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {Loader} from "./component/Loader";
 import {backend} from "../properties";
@@ -10,7 +10,7 @@ import {AssetBox} from "./component/AssetBox";
 import {DateTime} from "./component/DateTime";
 import {Record} from "./component/Record";
 import {Period} from "./component/Period";
-import {CompanySelector} from "./component/CompanySelector";
+import {BUILT_IN_LIST_TITLES, CompanySelector} from "./component/CompanySelector";
 import {PeriodFinancials} from "./component/PeriodFinancials";
 import {PeriodEstimatesOverview} from "./component/PeriodEstimatesOverview";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
@@ -22,6 +22,7 @@ import {AddRecordDialog} from "../dialog/AddRecordDialog";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
 import {RESEARCH_TAB} from "./component/MainBar";
+import {AddTagDialog} from "../dialog/AddTagDialog";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 const researchCardStyle = {
@@ -49,6 +50,8 @@ export const Research = props => {
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
     const [openEditFinancialDialog, setOpenEditFinancialDialog] = useState(null)
     const [openAddEstimateDialog, setOpenAddEstimateDialog] = useState(null)
+    const [openAddTagDialog, setOpenAddTagDialog] = useState(false)
+    const [tagSuggestions, setTagSuggestions] = useState([])
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
 
     function fetchData(companyChanged) {
@@ -98,7 +101,7 @@ export const Research = props => {
 
     return (
         <>
-            <CompanySelector refresh={refresh} {...props}/>
+            <CompanySelector refresh={refresh} onCustomTagsChange={setTagSuggestions} {...props}/>
             {props.companySelectorValue && !loaded && <Loader error={error}/>}
             {props.companySelectorValue && loaded && data.company.ticker !== undefined &&
                 <Grid container direction="row" sx={{width: "100%", justifyContent: "center", alignItems: "flex-start"}}>
@@ -113,6 +116,50 @@ export const Research = props => {
                                     {data.company.ticker}
                                 </Box>
                                 {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
+                                <Box
+                                    sx={{
+                                        color: "text.secondary",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        flexWrap: "wrap",
+                                        columnGap: "6px",
+                                        fontSize: 14,
+                                        minHeight: "20px",
+                                        minWidth: "20px",
+                                        width: "fit-content",
+                                        "& .add-tag-button": {
+                                            opacity: {xs: 1, sm: 0},
+                                            pointerEvents: {xs: "auto", sm: "none"},
+                                            transition: "opacity 120ms ease-in-out",
+                                        },
+                                        "&:hover .add-tag-button": {
+                                            opacity: 1,
+                                            pointerEvents: "auto",
+                                        },
+                                    }}
+                                >
+                                    {(data.company.tags ?? [])
+                                        .filter(tag => !BUILT_IN_LIST_TITLES[tag])
+                                        .map(tag => <Box component="span" key={tag}>#{tag}</Box>)}
+                                    <Tooltip title="Add tag">
+                                        <IconButton
+                                            className="add-tag-button"
+                                            aria-label="Add tag"
+                                            size="small"
+                                            onClick={() => setOpenAddTagDialog(true)}
+                                            sx={{padding: 0}}
+                                        >
+                                            <ControlPointIcon sx={{color: "lightgreen", fontSize: 16}}/>
+                                        </IconButton>
+                                    </Tooltip>
+                                </Box>
+                                <AddTagDialog
+                                    open={openAddTagDialog}
+                                    handleClose={() => setOpenAddTagDialog(false)}
+                                    triggerRefresh={triggerRefresh}
+                                    companyId={data.company.id}
+                                    suggestions={tagSuggestions}
+                                />
 
                                 <PeriodFinancials
                                     sx={{marginTop: "20px"}}

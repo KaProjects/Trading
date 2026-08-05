@@ -20,6 +20,7 @@ import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
+import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.dto.CompanyValuesDto;
 import org.kaleta.rest.validation.ValueOfEnum;
@@ -108,9 +109,9 @@ public class CompanyEndpoints
         dto.forEach((tag, companies) -> companies.sort(switch (tag) {
             case "owned" -> Comparator.comparing(CompanyWithStats::getLatestPurchaseDate,
                     Comparator.nullsLast(Comparator.reverseOrder()));
-            case "period" -> Comparator.comparing(CompanyWithStats::getLatestPeriodEndingMonth,
+            case "researched" -> Comparator.comparing(CompanyWithStats::getLatestPeriodEndingMonth,
                     Comparator.nullsLast(Comparator.reverseOrder()));
-            case "record" -> Comparator.comparing(CompanyWithStats::getLatestRecordDate,
+            case "recent" -> Comparator.comparing(CompanyWithStats::getLatestRecordDate,
                     Comparator.nullsLast(Comparator.reverseOrder()));
             default -> Comparator.comparing(CompanyWithStats::getTicker);
         }));
@@ -133,6 +134,15 @@ public class CompanyEndpoints
     public Response createCompany(@NotNull @Valid CompanyCreateDto dto)
     {
         companyService.create(dto);
+        return Response.status(Response.Status.CREATED).build();
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/tag")
+    public Response addTag(@NotNull @Valid CompanyTagCreateDto dto)
+    {
+        companyService.addTag(dto);
         return Response.status(Response.Status.CREATED).build();
     }
 }

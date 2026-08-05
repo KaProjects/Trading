@@ -12,12 +12,14 @@ import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
+import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,10 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class CompanyService
 {
+    private static final Comparator<String> COMPANY_LIST_ORDER = Comparator
+            .comparingInt(CompanyService::companyListOrder)
+            .thenComparing(Comparator.naturalOrder());
+
     @Inject
     CompanyDao companyDao;
     @Inject
@@ -67,7 +73,7 @@ public class CompanyService
 
     public Map<String, List<CompanyWithStats>> getCompaniesByTag()
     {
-        Map<String, List<CompanyWithStats>> companiesByTag = new TreeMap<>();
+        Map<String, List<CompanyWithStats>> companiesByTag = new TreeMap<>(COMPANY_LIST_ORDER);
         YearMonth periodCutoff = YearMonth.now().minusYears(1);
         LocalDate recordCutoff = LocalDate.now().minusYears(1);
 
@@ -78,16 +84,26 @@ public class CompanyService
             }
             if (company.getLatestPeriodEndingMonth() != null
                     && !company.getLatestPeriodEndingMonth().isBefore(periodCutoff)) {
-                companiesByTag.computeIfAbsent("period", ignored -> new ArrayList<>()).add(company);
+                companiesByTag.computeIfAbsent("researched", ignored -> new ArrayList<>()).add(company);
             }
             if (company.getLatestRecordDate() != null
                     && !company.getLatestRecordDate().toLocalDate().isBefore(recordCutoff)) {
-                companiesByTag.computeIfAbsent("record", ignored -> new ArrayList<>()).add(company);
+                companiesByTag.computeIfAbsent("recent", ignored -> new ArrayList<>()).add(company);
             }
             company.getTags().stream().distinct().forEach(tag ->
                     companiesByTag.computeIfAbsent(tag, ignored -> new ArrayList<>()).add(company));
         }
         return companiesByTag;
+    }
+
+    private static int companyListOrder(String tag)
+    {
+        return switch (tag) {
+            case "owned" -> 0;
+            case "recent" -> 1;
+            case "researched" -> 2;
+            default -> 3;
+        };
     }
 
     public List<org.kaleta.model.Company> getRecentlyOwnedCompanies()
@@ -128,6 +144,16 @@ public class CompanyService
         newCompany.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
 
         companyDao.create(newCompany);
+    }
+
+    public void addTag(CompanyTagCreateDto dto)
+    {
+        Company company = findEntity(dto.getCompanyId());
+
+        if (!company.getTags().contains(dto.getValue())) {
+            company.getTags().add(dto.getValue());
+            companyDao.save(company);
+        }
     }
 
     public org.kaleta.model.Company from(Company entity){

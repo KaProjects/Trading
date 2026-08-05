@@ -13,8 +13,12 @@ jest.mock("../component/Loader", () => ({
     ),
 }));
 jest.mock("../component/CompanySelector", () => ({
+    BUILT_IN_LIST_TITLES: {owned: "Owned", recent: "Recent", researched: "Researched"},
     CompanySelector: (props) => (
-        <div data-testid="company-selector">company-selector:{props.refresh}</div>
+        <div data-testid="company-selector">
+            company-selector:{props.refresh}
+            <button onClick={() => props.onCustomTagsChange(["growth", "income"])}>provide-tags</button>
+        </div>
     ),
 }));
 jest.mock("../component/PeriodFinancials", () => ({
@@ -53,6 +57,11 @@ jest.mock("../../dialog/AddEstimateDialog", () => ({
     AddEstimateDialog: (props) => props.open
         ? <div>add-estimate-dialog:{props.period.id}</div>
         : null
+}));
+jest.mock("../../dialog/AddTagDialog", () => ({
+    AddTagDialog: (props) => props.open
+        ? <div>add-tag-dialog:{props.companyId}:{props.suggestions.join(",")}</div>
+        : null,
 }));
 jest.mock("../component/SnackbarErrorAlert", () => ({
     SnackbarErrorAlert: (props) => (
@@ -104,6 +113,7 @@ function createResearchData(overrides = {}) {
             ticker: "AAPL",
             currency: "$",
             sector: {key: "TECH", name: "Technology"},
+            tags: ["growth", "owned", "recent", "researched"],
         },
         financials: [{period: "25FY"}],
         ttm: {
@@ -184,6 +194,8 @@ describe("Research", () => {
 
         expect(screen.getByText("Research")).toBeInTheDocument();
         expect(screen.getByText("Technology")).toBeInTheDocument();
+        expect(screen.getByText("#growth")).toBeInTheDocument();
+        expect(screen.queryByText("#owned")).not.toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
         expect(screen.getByTestId("period-estimates-overview")).toHaveTextContent("estimate-overview:14");
         expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
@@ -192,6 +204,18 @@ describe("Research", () => {
         expect(screen.getByText("asset:3@100$")).toBeInTheDocument();
         expect(screen.getByText("period:period-1")).toBeInTheDocument();
         expect(screen.getByText("record:record-1")).toBeInTheDocument();
+    });
+
+    test("opens add tag with custom list suggestions", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("AAPL");
+        fireEvent.click(screen.getByText("provide-tags"));
+        fireEvent.click(screen.getByRole("button", {name: "Add tag"}));
+
+        expect(screen.getByText("add-tag-dialog:company-1:growth,income")).toBeInTheDocument();
     });
 
     test("opens financials dialog from the overview", async () => {

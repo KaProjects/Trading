@@ -18,6 +18,7 @@ import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
+import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.mockito.ArgumentCaptor;
@@ -225,7 +226,7 @@ public class CompanyServiceTest
         company3.setLatestPurchaseDate(Date.valueOf("2024-01-01"));
         company3.setLatestRecordDate(Date.valueOf(recordCutoff.plusMonths(1)));
         company3.setLatestPeriodEndingMonth(periodCutoff.plusMonths(1));
-        company3.setTags(List.of("period"));
+        company3.setTags(List.of("researched"));
 
         CompanyWithStats company4 = new CompanyWithStats();
         company4.setId(4L);
@@ -236,12 +237,13 @@ public class CompanyServiceTest
 
         Map<String, List<CompanyWithStats>> companiesByTag = companyService.getCompaniesByTag();
 
-        assertThat(companiesByTag.keySet(), is(java.util.Set.of("ai", "growth", "owned", "period", "record")));
+        assertThat(companiesByTag.keySet().stream().toList(),
+                is(List.of("owned", "recent", "researched", "ai", "growth")));
         assertThat(companiesByTag.get("ai"), is(List.of(company1)));
         assertThat(companiesByTag.get("growth"), is(List.of(company1, company2)));
         assertThat(companiesByTag.get("owned"), is(List.of(company1, company3)));
-        assertThat(companiesByTag.get("period"), is(List.of(company1, company3, company3)));
-        assertThat(companiesByTag.get("record"), is(List.of(company1, company3)));
+        assertThat(companiesByTag.get("researched"), is(List.of(company1, company3, company3)));
+        assertThat(companiesByTag.get("recent"), is(List.of(company1, company3)));
     }
 
     @Test
@@ -395,6 +397,40 @@ public class CompanyServiceTest
 
         assertThat(exception.getMessage(), is("company with ticker 'NVDA' already exists!"));
         verify(companyDao, never()).create(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void addTag()
+    {
+        Company entity = Generator.generateCompany(1L);
+        entity.setTags(new java.util.ArrayList<>(List.of("growth")));
+        when(companyDao.get(entity.getId())).thenReturn(entity);
+
+        CompanyTagCreateDto dto = new CompanyTagCreateDto();
+        dto.setCompanyId(entity.getId());
+        dto.setValue("ai");
+
+        companyService.addTag(dto);
+
+        assertThat(entity.getTags(), is(List.of("growth", "ai")));
+        verify(companyDao).save(entity);
+    }
+
+    @Test
+    void addTag_existingTagIsIgnored()
+    {
+        Company entity = Generator.generateCompany(1L);
+        entity.setTags(new java.util.ArrayList<>(List.of("growth")));
+        when(companyDao.get(entity.getId())).thenReturn(entity);
+
+        CompanyTagCreateDto dto = new CompanyTagCreateDto();
+        dto.setCompanyId(entity.getId());
+        dto.setValue("growth");
+
+        companyService.addTag(dto);
+
+        assertThat(entity.getTags(), is(List.of("growth")));
+        verify(companyDao, never()).save(entity);
     }
 
     @Test

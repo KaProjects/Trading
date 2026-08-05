@@ -42,17 +42,17 @@ function createData(overrides = {}) {
         owned: [
             {id: "company-3", ticker: "TSLA", latestPurchaseDate: "2024-04-20"},
         ],
-        period: [
+        recent: [
+            {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-03-15"},
+        ],
+        researched: [
             {id: "company-4", ticker: "CEZ", latestPeriodEndingMonth: "2025-01"},
-        ],
-        record: [
-            {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-03-15"},
-        ],
-        Semiconductors: [
-            {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-03-15"},
         ],
         Energy: [
             {id: "company-6", ticker: "XOM", latestRecordDate: "2024-01-20"},
+        ],
+        Semiconductors: [
+            {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-03-15"},
         ],
         ...overrides,
     };
@@ -99,13 +99,45 @@ describe("CompanySelector", () => {
 
         expect(mockUseData).toHaveBeenCalledWith("/company/lists?refresh123");
         expect(await screen.findByText("Owned")).toBeInTheDocument();
-        expect(screen.getByText("Period")).toBeInTheDocument();
-        expect(screen.getByText("Record")).toBeInTheDocument();
+        expect(screen.getByText("Researched")).toBeInTheDocument();
+        expect(screen.getByText("Recent")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.getByText("Energy")).toBeInTheDocument();
         expect(screen.getAllByText("NVDA")).toHaveLength(2);
         expect(screen.getByText("TSLA")).toBeInTheDocument();
         expect(screen.getByText("CEZ")).toBeInTheDocument();
+    });
+
+    test("provides only custom list keys as tag suggestions", async () => {
+        mockUseData.mockReturnValue({
+            data: createData(),
+            loaded: true,
+            error: null,
+        });
+        const onCustomTagsChange = jest.fn();
+
+        render(<CompanySelector {...createProps({onCustomTagsChange})}/>);
+
+        await waitFor(() => expect(onCustomTagsChange).toHaveBeenCalledWith(["Energy", "Semiconductors"]));
+    });
+
+    test("orders built-in lists first and custom lists naturally", async () => {
+        mockUseData.mockReturnValue({
+            data: createData(),
+            loaded: true,
+            error: null,
+        });
+
+        render(<CompanySelector {...createProps()}/>);
+
+        await screen.findByText("Owned");
+        expect(screen.getAllByRole("list").map(list => list.firstChild.textContent)).toEqual([
+            "Owned",
+            "Recent",
+            "Researched",
+            "Energy",
+            "Semiconductors",
+        ]);
     });
 
     test("selects a company and retains only the source list", async () => {
@@ -159,7 +191,7 @@ describe("CompanySelector", () => {
             companySelectorValue: {id: "company-1", ticker: "NVDA"},
         })}/>);
 
-        expect(await screen.findByRole("combobox", {name: "Company list"})).toHaveTextContent("Record");
+        expect(await screen.findByRole("combobox", {name: "Company list"})).toHaveTextContent("Recent");
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.queryByText("TSLA")).not.toBeInTheDocument();
     });
@@ -180,7 +212,7 @@ describe("CompanySelector", () => {
         rerender(<CompanySelector {...createProps({companySelectorValue: null})}/>);
 
         expect(await screen.findByText("Owned")).toBeInTheDocument();
-        expect(screen.getByText("Period")).toBeInTheDocument();
+        expect(screen.getByText("Researched")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.queryByRole("combobox", {name: "Company list"})).not.toBeInTheDocument();
     });

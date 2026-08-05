@@ -9,6 +9,31 @@ INSERT INTO Company (id, ticker, currency, sector) VALUES (2261, 'EFG', '£', 'H
 INSERT INTO Company (id, ticker, currency, sector) VALUES (2300, 'NTRD', '$', 'SOFTWARE');
 
 
+-- Reusable custom company lists. Each development company belongs to two or three tags.
+INSERT INTO Tag (companyId, value) VALUES (2213, 'growth');
+INSERT INTO Tag (companyId, value) VALUES (2213, 'watchlist');
+INSERT INTO Tag (companyId, value) VALUES (2212, 'growth');
+INSERT INTO Tag (companyId, value) VALUES (2212, 'turnaround');
+INSERT INTO Tag (companyId, value) VALUES (2212, 'watchlist');
+INSERT INTO Tag (companyId, value) VALUES (2214, 'value');
+INSERT INTO Tag (companyId, value) VALUES (2214, 'turnaround');
+INSERT INTO Tag (companyId, value) VALUES (2214, 'watchlist');
+INSERT INTO Tag (companyId, value) VALUES (2073, 'growth');
+INSERT INTO Tag (companyId, value) VALUES (2073, 'watchlist');
+INSERT INTO Tag (companyId, value) VALUES (1873, 'income');
+INSERT INTO Tag (companyId, value) VALUES (1873, 'value');
+INSERT INTO Tag (companyId, value) VALUES (1240, 'income');
+INSERT INTO Tag (companyId, value) VALUES (1240, 'value');
+INSERT INTO Tag (companyId, value) VALUES (1240, 'watchlist');
+INSERT INTO Tag (companyId, value) VALUES (1504, 'growth');
+INSERT INTO Tag (companyId, value) VALUES (1504, 'turnaround');
+INSERT INTO Tag (companyId, value) VALUES (2261, 'growth');
+INSERT INTO Tag (companyId, value) VALUES (2261, 'watchlist');
+INSERT INTO Tag (companyId, value) VALUES (2300, 'growth');
+INSERT INTO Tag (companyId, value) VALUES (2300, 'turnaround');
+INSERT INTO Tag (companyId, value) VALUES (2300, 'watchlist');
+
+
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (2068, 2213, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5', 'PATRIA_STANDARD');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (1145, 2213, '10', '2018-04-05', '10', '50', '2018-06-05', '0', '0');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (2276, 2213, '5', '2023-11-11', '400.5', '14.5', '2024-01-05', '500', '50', 'PATRIA_MARGIN');

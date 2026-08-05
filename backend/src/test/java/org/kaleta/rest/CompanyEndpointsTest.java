@@ -17,6 +17,7 @@ import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
+import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.dto.CompanyValuesDto;
 
@@ -225,6 +226,47 @@ class CompanyEndpointsTest
         Assert.postValidationError(path, dto, "must be a valid Ticker");
         dto.setTicker("NVDA");
         Assert.post400(path, dto, "company with ticker '" + dto.getTicker() + "' already exists!");
+    }
+
+    @Test
+    @Order(2)
+    void addCompanyTag()
+    {
+        CompanyTagCreateDto dto = new CompanyTagCreateDto();
+        dto.setCompanyId(1842L);
+        dto.setValue("watchlist");
+
+        Assert.post201(path + "/tag", dto);
+
+        assertThat(companyDao.get(dto.getCompanyId()).getTags(), hasItem("watchlist"));
+    }
+
+    @Test
+    @Order(2)
+    void addCompanyTag_invalidParameters()
+    {
+        CompanyTagCreateDto dto = new CompanyTagCreateDto();
+        dto.setCompanyId(2287L);
+        dto.setValue("growth");
+
+        Assert.postValidationError(path + "/tag", null, NOT_NULL);
+
+        dto.setCompanyId(null);
+        Assert.postValidationError(path + "/tag", dto, NOT_NULL);
+        dto.setCompanyId(0L);
+        Assert.postValidationError(path + "/tag", dto, VALID_ID);
+        dto.setCompanyId(2287L);
+
+        dto.setValue(null);
+        Assert.postValidationError(path + "/tag", dto, "must not be blank");
+        dto.setValue("   ");
+        Assert.postValidationError(path + "/tag", dto, "must not be blank", "must not contain whitespace");
+        dto.setValue("high growth");
+        Assert.postValidationError(path + "/tag", dto, "must not contain whitespace");
+        dto.setValue("high\tgrowth");
+        Assert.postValidationError(path + "/tag", dto, "must not contain whitespace");
+        dto.setValue("x".repeat(31));
+        Assert.postValidationError(path + "/tag", dto, "size must be between 0 and 30");
     }
 
     @Test
