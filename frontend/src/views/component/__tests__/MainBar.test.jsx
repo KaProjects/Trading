@@ -32,7 +32,7 @@ function createProps(overrides = {}) {
         setOpenEditCompany: jest.fn(),
         activeSelectorValue: "",
         setActiveSelectorValue: jest.fn(),
-        companies: [{id: "company-1", ticker: "NVDA"}],
+        companyLists: {all: [{id: "company-1", ticker: "NVDA"}]},
         companySelectorValue: "",
         setCompanySelectorValue: jest.fn(),
         currencies: ["$", "EUR"],
@@ -195,7 +195,7 @@ describe("MainBar", () => {
         const setSectorSelectorValue = jest.fn();
 
         render(<MainBar {...createProps({
-            companies: [company],
+            companyLists: {all: [company]},
             sectors: [sector],
             setCompanySelectorValue,
             setActiveSelectorValue,
@@ -225,7 +225,7 @@ describe("MainBar", () => {
         const setActiveSelectorValue = jest.fn();
 
         render(<MainBar {...createProps({
-            companies: [company],
+            companyLists: {all: [company]},
             activeSelectorValue: "only active",
             setActiveSelectorValue,
         })} />);
@@ -247,7 +247,7 @@ describe("MainBar", () => {
         const setResearchTabsIndex = jest.fn();
 
         render(<MainBar {...createProps({
-            companies: [company],
+            companyLists: {all: [company]},
             setResearchTabsIndex,
         })} />);
 
@@ -271,7 +271,7 @@ describe("MainBar", () => {
         const setCompanySelectorValue = jest.fn();
 
         render(<MainBar {...createProps({
-            companies: [company],
+            companyLists: {all: [company]},
             setCompanySelectorValue,
         })} />);
 

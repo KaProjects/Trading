@@ -29,7 +29,8 @@ import {useData} from "../service/BackendService";
 import {formatDate, formatDecimals, formatError} from "../service/FormattingService";
 import {Loader} from "./component/Loader";
 
-export const AdminPortfolio = ({companies = [], portfolios = []}) => {
+export const AdminPortfolio = ({companyLists = {all: []}, portfolios = []}) => {
+    const companies = companyLists.all ?? [];
     const [companyId, setCompanyId] = useState("");
     const [portfolioKey, setPortfolioKey] = useState("");
     const [selectedTradeIds, setSelectedTradeIds] = useState([]);

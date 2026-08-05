@@ -12,6 +12,7 @@ jest.mock("../views/component/Loader", () => ({
 jest.mock("../views/component/MainBar", () => ({
     MainBar: (props) => (
         <div>
+            <div>lists:{(props.companyLists.all ?? []).map(company => company.ticker).join(",")}</div>
             <div>company:{props.companySelectorValue?.ticker || ""}</div>
             <div>currency:{props.currencySelectorValue || ""}</div>
             <div>years:{props.years.join(",")}</div>
@@ -53,21 +54,27 @@ jest.mock("../views/Analytics", () => ({
 }));
 
 jest.mock("../views/AdminPortfolio", () => ({
-    AdminPortfolio: (props) => <div>admin-portfolios:{props.portfolios.map(portfolio => portfolio.key).join(",")}</div>,
+    AdminPortfolio: (props) => (
+        <div>
+            admin-portfolios:{props.portfolios.map(portfolio => portfolio.key).join(",")}
+            ;companies:{props.companyLists.all.map(company => company.ticker).join(",")}
+        </div>
+    ),
 }));
 
 describe("App", () => {
     beforeEach(() => {
         window.history.pushState({}, "", "/");
-        axios.get.mockResolvedValue({
-            data: {
-                companies: [{id: "company-1", ticker: "NVDA"}],
-                currencies: ["$"],
-                sectors: [{key: "TECH", name: "Technology"}],
-                portfolios: [{key: "PATRIA_STANDARD", name: "Patria - Standard", abbreviation: "P"}],
-                years: ["2024", "2023"],
-            },
-        });
+        axios.get.mockImplementation(url => Promise.resolve({
+            data: url.endsWith("/company/lists")
+                ? {all: [{id: "company-1", ticker: "NVDA"}]}
+                : {
+                    currencies: ["$"],
+                    sectors: [{key: "TECH", name: "Technology"}],
+                    portfolios: [{key: "PATRIA_STANDARD", name: "Patria - Standard", abbreviation: "P"}],
+                    years: ["2024", "2023"],
+                },
+        }));
     });
 
     test("loads the hidden admin portfolio route directly", async () => {
@@ -75,7 +82,7 @@ describe("App", () => {
 
         render(<App/>);
 
-        expect(await screen.findByText("admin-portfolios:PATRIA_STANDARD")).toBeInTheDocument();
+        expect(await screen.findByText(/admin-portfolios:PATRIA_STANDARD/)).toHaveTextContent("companies:NVDA");
     });
 
     test("resets currency and sector when actual company is selected", async () => {

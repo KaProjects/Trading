@@ -27,6 +27,7 @@ export const Companies = props => {
 
     function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
+        props.refreshCompanyLists?.()
     }
 
     function headerStyle(index){

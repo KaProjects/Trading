@@ -51,11 +51,12 @@ export const Trades = props => {
     }
 
     function selectCompany(ticker) {
-        props.companies.forEach((company) => {if (company.ticker === ticker) {props.setCompanySelectorValue(company)}})
+        props.companyLists.all.forEach((company) => {if (company.ticker === ticker) {props.setCompanySelectorValue(company)}})
     }
 
     function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
+        props.refreshCompanyLists?.()
     }
 
     return (

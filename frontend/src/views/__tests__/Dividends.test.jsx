@@ -21,7 +21,7 @@ jest.mock("../component/Loader", () => ({
 jest.mock("../../dialog/AddDividendDialog", () => ({
     AddDividendDialog: (props) => (
         <div>
-            <div>recently-owned:{props.recentlyOwnedCompanies.map(company => company.ticker).join(",")}</div>
+            <div>companies:{props.companyLists.all.map(company => company.ticker).join(",")}</div>
             <button onClick={props.triggerRefresh}>add-dividend-dialog</button>
         </div>
     )
@@ -35,7 +35,7 @@ function createProps(overrides = {}) {
         currencySelectorValue: "",
         yearSelectorValue: "",
         sectorSelectorValue: null,
-        companies: [],
+        companyLists: {all: []},
         setCompanySelectorValue: jest.fn(),
         ...overrides,
     };
@@ -83,18 +83,11 @@ function createData(overrides = {}) {
 }
 
 function mockLoadedData() {
-    mockUseData.mockImplementation(path => path === "/company/recently-owned"
-        ? {
-            data: [{id: "company-1", ticker: "NVDA"}],
-            loaded: true,
-            error: null,
-        }
-        : {
-            data: createData(),
-            loaded: true,
-            error: null,
-        }
-    );
+    mockUseData.mockReturnValue({
+        data: createData(),
+        loaded: true,
+        error: null,
+    });
 }
 
 describe("Dividends", () => {
@@ -127,8 +120,6 @@ describe("Dividends", () => {
         })}/>);
 
         expect(mockUseData).toHaveBeenCalledWith("/dividend?filter&companyId=company-1&currency=$&year=2024&sector=SEMICONDUCTORS");
-        expect(mockUseData).toHaveBeenCalledWith("/company/recently-owned");
-        expect(screen.getByText("recently-owned:NVDA")).toBeInTheDocument();
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("CEZ")).toBeInTheDocument();
         expect(mockFormatDate).toHaveBeenCalledWith("2022-12-01");
@@ -145,7 +136,7 @@ describe("Dividends", () => {
         const setCompanySelectorValue = jest.fn();
 
         render(<Dividends {...createProps({
-            companies: [nvidia, cez],
+            companyLists: {all: [nvidia, cez]},
             setCompanySelectorValue,
         })}/>);
 

@@ -87,6 +87,7 @@ export const MainBar = props => {
     const navigate = useNavigate()
     const location = useLocation()
     const mainBarRef = useRef(null)
+    const companies = props.companyLists?.all ?? []
     const config = {
         ...DEFAULT_MAIN_BAR_CONFIG,
         ...(MAIN_BAR_CONFIG[location.pathname] ?? {}),
@@ -110,7 +111,7 @@ export const MainBar = props => {
         let consumed = false
 
         if (location.state.companyId) {
-            const company = props.companies.find(company => company.id === location.state.companyId)
+            const company = companies.find(company => company.id === location.state.companyId)
             if (company) {
                 props.setCompanySelectorValue(company);
                 delete remainingState.companyId
@@ -155,7 +156,7 @@ export const MainBar = props => {
             loadNavigationState();
         }
         // eslint-disable-next-line
-    }, [location.pathname, location.state, props.companies, props.sectors]);
+    }, [location.pathname, location.state, props.companyLists, props.sectors]);
 
     useLayoutEffect(() => {
         function updateMainBarHeight() {
@@ -243,7 +244,7 @@ export const MainBar = props => {
         {
             key: "company",
             visible: config.showCompanySelector,
-            values: props.companies,
+            values: companies,
             value: props.companySelectorValue,
             setValue: props.setCompanySelectorValue,
             valueKey: "ticker",

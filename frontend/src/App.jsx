@@ -26,7 +26,7 @@ const PageNotFound = () => (
 export const App = () => {
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState(null);
-    const [companies, setCompanies] = useState([]);
+    const [companyLists, setCompanyLists] = useState({all: []});
     const [currencies, setCurrencies] = useState([]);
     const [sectors, setSectors] = useState([]);
     const [portfolios, setPortfolios] = useState([]);
@@ -44,20 +44,28 @@ export const App = () => {
     const [researchTabsIndex, setResearchTabsIndex] = useState(0);
 
     useEffect(() => {
-        axios.get(backend + "/company/values")
-            .then((response) => {
-                setCompanies(response.data.companies);
-                setCurrencies(response.data.currencies);
-                setSectors(response.data.sectors);
-                setPortfolios(response.data.portfolios ?? []);
-                setYears(response.data.years ?? []);
-                setError(null);
-                setLoaded(true);
-            }).catch((error) => {
-                setError(formatError(error));
-                setLoaded(false);
-            });
+        Promise.all([
+            axios.get(backend + "/company/values"),
+            axios.get(backend + "/company/lists"),
+        ]).then(([valuesResponse, listsResponse]) => {
+            setCompanyLists(listsResponse.data);
+            setCurrencies(valuesResponse.data.currencies);
+            setSectors(valuesResponse.data.sectors);
+            setPortfolios(valuesResponse.data.portfolios ?? []);
+            setYears(valuesResponse.data.years ?? []);
+            setError(null);
+            setLoaded(true);
+        }).catch((error) => {
+            setError(formatError(error));
+            setLoaded(false);
+        });
     }, []);
+
+    function refreshCompanyLists() {
+        axios.get(backend + "/company/lists?refresh" + Date.now())
+            .then(response => setCompanyLists(response.data))
+            .catch(requestError => setError(formatError(requestError)));
+    }
 
     function setCompanySelectorValue(company) {
         setCompanySelectorStateValue(company);
@@ -68,7 +76,8 @@ export const App = () => {
     }
 
     const props = {
-        companies,
+        companyLists,
+        refreshCompanyLists,
         currencies,
         sectors,
         portfolios,

@@ -121,7 +121,7 @@ export const SellTradeDialog = props => {
                         sx={{marginTop: "15px"}}
                 >
                     <MenuItem value=""></MenuItem>
-                    {props.companies.map((company, index) => (
+                    {(props.companyLists?.all ?? []).map((company, index) => (
                         <MenuItem key={index} value={company} >{(company.ticker === undefined) ? company : company.ticker}</MenuItem>
                     ))}
                 </Select>

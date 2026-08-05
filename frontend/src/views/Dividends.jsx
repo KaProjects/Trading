@@ -9,11 +9,6 @@ import {formatDate} from "../service/FormattingService";
 export const Dividends = props => {
     const [refresh, setRefresh] = useState("")
     const {data, loaded, error} = useData("/dividend" + constructQueryParams())
-    const {
-        data: recentlyOwnedCompanies,
-        loaded: recentlyOwnedCompaniesLoaded,
-        error: recentlyOwnedCompaniesError,
-    } = useData("/company/recently-owned")
 
     function constructQueryParams(){
         return "?filter" + (props.companySelectorValue ? "&companyId="+props.companySelectorValue.id : "")
@@ -24,7 +19,7 @@ export const Dividends = props => {
     }
 
     function selectCompany(ticker) {
-        props.companies.forEach((company) => {if (company.ticker === ticker) {props.setCompanySelectorValue(company)}})
+        (props.companyLists?.all ?? []).forEach((company) => {if (company.ticker === ticker) {props.setCompanySelectorValue(company)}})
     }
 
     function triggerRefresh() {
@@ -48,15 +43,14 @@ export const Dividends = props => {
 
     return (
         <>
-        {(!loaded || !recentlyOwnedCompaniesLoaded) &&
-            <Loader error={error || recentlyOwnedCompaniesError}/>
+        {!loaded &&
+            <Loader error={error}/>
         }
-        {loaded && recentlyOwnedCompaniesLoaded &&
+        {loaded &&
             <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto 10px auto", maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
                 <AddDividendDialog
                     {...props}
                     triggerRefresh={triggerRefresh}
-                    recentlyOwnedCompanies={recentlyOwnedCompanies}
                 />
                 <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 520, sm: "unset"}}}>
                     <TableHead>

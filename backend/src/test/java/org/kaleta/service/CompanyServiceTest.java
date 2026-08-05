@@ -8,11 +8,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.CompanyAggregates;
-import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.api.RecordDao;
-import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
@@ -45,10 +43,6 @@ public class CompanyServiceTest
     CompanyDao companyDao;
     @InjectMock
     RecordDao recordDao;
-    @InjectMock
-    TradeDao tradeDao;
-    @InjectMock
-    TradeService tradeService;
 
     @Inject
     CompanyService companyService;
@@ -56,52 +50,7 @@ public class CompanyServiceTest
     @BeforeEach
     void beforeEach()
     {
-        reset(companyDao, recordDao, tradeService);
-    }
-
-    @Test
-    void getCompanies()
-    {
-        Company company1 = Generator.generateCompany(1L);
-        company1.setTicker(" NVDA ");
-        company1.setCurrency(Currency.$);
-        company1.setSector(Sector.SEMICONDUCTORS);
-        company1.setTags(List.of("growth", "ai"));
-
-        Company company2 = Generator.generateCompany(2L);
-        company2.setTicker("AAPL");
-        company2.setCurrency(Currency.€);
-        company2.setSector(null);
-
-        when(companyDao.list()).thenReturn(List.of(company1, company2));
-
-        List<org.kaleta.model.Company> companies = companyService.getCompanies();
-
-        assertThat(companies.size(), is(2));
-        assertModelCompany(companies.get(0), company1);
-        assertModelCompany(companies.get(1), company2);
-    }
-
-    @Test
-    void getCompanies_filteredSorted()
-    {
-        Company company1 = Generator.generateCompany(1L);
-        company1.setTicker("ZZZZ");
-        company1.setCurrency(Currency.$);
-        company1.setSector(Sector.SEMICONDUCTORS);
-
-        Company company2 = Generator.generateCompany(2L);
-        company2.setTicker("AAAA");
-        company2.setCurrency(Currency.$);
-        company2.setSector(Sector.SEMICONDUCTORS);
-
-        when(companyDao.list(Currency.$.name(), Sector.SEMICONDUCTORS.toString())).thenReturn(List.of(company1, company2));
-
-        List<org.kaleta.model.Company> companies = companyService.getCompanies(Currency.$.name(), Sector.SEMICONDUCTORS.toString());
-
-        assertThat(companies.size(), is(2));
-        assertThat(companies.get(0).getId(), is(company2.getId()));
-        assertThat(companies.get(1).getId(), is(company1.getId()));
+        reset(companyDao, recordDao);
     }
 
     @Test
@@ -238,44 +187,13 @@ public class CompanyServiceTest
         Map<String, List<CompanyWithStats>> companiesByTag = companyService.getCompaniesByTag();
 
         assertThat(companiesByTag.keySet().stream().toList(),
-                is(List.of("owned", "recent", "researched", "ai", "growth")));
+                is(List.of("owned", "recent", "researched", "ai", "growth", "all")));
         assertThat(companiesByTag.get("ai"), is(List.of(company1)));
         assertThat(companiesByTag.get("growth"), is(List.of(company1, company2)));
         assertThat(companiesByTag.get("owned"), is(List.of(company1, company3)));
         assertThat(companiesByTag.get("researched"), is(List.of(company1, company3, company3)));
         assertThat(companiesByTag.get("recent"), is(List.of(company1, company3)));
-    }
-
-    @Test
-    void getRecentlyOwnedCompanies()
-    {
-        org.kaleta.model.Company company1 = new org.kaleta.model.Company();
-        company1.setId(1L);
-        company1.setTicker("NVDA");
-
-        org.kaleta.model.Company company2 = new org.kaleta.model.Company();
-        company2.setId(2L);
-        company2.setTicker("SHELL");
-
-        Trades.Trade trade1 = new Trades.Trade();
-        trade1.setId(1L);
-        trade1.setCompany(company1);
-
-        Trades.Trade trade2 = new Trades.Trade();
-        trade2.setId(2L);
-        trade2.setCompany(company2);
-
-        Trades.Trade trade3 = new Trades.Trade();
-        trade3.setId(3L);
-        trade3.setCompany(company1);
-
-        when(tradeService.getRecentlyOwnedTrades()).thenReturn(List.of(trade1, trade2, trade3));
-
-        List<org.kaleta.model.Company> recentlyOwnedCompanies = companyService.getRecentlyOwnedCompanies();
-
-        assertThat(recentlyOwnedCompanies.size(), is(2));
-        assertThat(recentlyOwnedCompanies.get(0), is(company1));
-        assertThat(recentlyOwnedCompanies.get(1), is(company2));
+        assertThat(companiesByTag.get("all"), is(List.of(company1, company2, company3, company4)));
     }
 
     @Test

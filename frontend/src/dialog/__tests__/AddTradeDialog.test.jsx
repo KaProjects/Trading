@@ -72,7 +72,7 @@ function createProps(overrides = {}) {
         setOpenAddTrade: jest.fn(),
         triggerRefresh: jest.fn(),
         companySelectorValue: company,
-        companies: [company],
+        companyLists: {all: [company]},
         portfolios: [
             {key: "PATRIA_STANDARD", name: "Patria - Standard", abbreviation: "P"},
             {key: "REVOLUT_CFD", name: "Revolut - CFD", abbreviation: "Rd"},

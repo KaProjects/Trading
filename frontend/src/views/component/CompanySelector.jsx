@@ -1,6 +1,4 @@
 import React, {useEffect, useState} from "react";
-import {useData} from "../../service/BackendService";
-import {Loader} from "./Loader";
 import {Grid, List, ListItem, ListItemButton, ListItemText, ListSubheader, MenuItem, Select} from "@mui/material";
 import {recordEvent} from "../../service/utils";
 
@@ -8,6 +6,7 @@ export const BUILT_IN_LIST_TITLES = {
     owned: "Owned",
     researched: "Researched",
     recent: "Recent",
+    all: "All",
 }
 
 const BUILT_IN_LIST_KEYS = ["owned", "recent", "researched"]
@@ -18,16 +17,15 @@ function getCompanyListKeys(data) {
     return Object.keys(data).sort((first, second) => {
         const firstIndex = BUILT_IN_LIST_KEYS.indexOf(first)
         const secondIndex = BUILT_IN_LIST_KEYS.indexOf(second)
-        const firstOrder = firstIndex === -1 ? BUILT_IN_LIST_KEYS.length : firstIndex
-        const secondOrder = secondIndex === -1 ? BUILT_IN_LIST_KEYS.length : secondIndex
+        const firstOrder = first === "all" ? 4 : firstIndex === -1 ? 3 : firstIndex
+        const secondOrder = second === "all" ? 4 : secondIndex === -1 ? 3 : secondIndex
 
         return firstOrder - secondOrder || (first < second ? -1 : first > second ? 1 : 0)
     })
 }
 
 export const CompanySelector = (props) => {
-    const {refresh} = props
-    const {data, loaded, error} = useData("/company/lists" + (refresh ? "?refresh" + refresh : ""))
+    const data = props.companyLists ?? {all: []}
     const [activeList, setActiveList] = useState(null)
 
     const listKeys = getCompanyListKeys(data)
@@ -61,7 +59,7 @@ export const CompanySelector = (props) => {
     }, [data, props.companySelectorValue])
 
     function handleCompanyClick(companyId, listKey) {
-        const selectedCompany = props.companies.find((company) => company.id === companyId)
+        const selectedCompany = (props.companyLists.all ?? []).find((company) => company.id === companyId)
 
         if (selectedCompany) {
             props.setCompanySelectorValue(selectedCompany)
@@ -77,12 +75,12 @@ export const CompanySelector = (props) => {
 
     function getSecondaryValue(company, listKey) {
         switch (listKey) {
-            case "owned":
-                return company.latestPurchaseDate
             case "researched":
                 return company.latestPeriodEndingMonth
-            default:
+            case "recent":
                 return company.latestRecordDate
+            default:
+                return undefined
         }
     }
 
@@ -147,16 +145,11 @@ export const CompanySelector = (props) => {
     }
 
     return (
-        <>
-            {!loaded && <Loader error={error}/>}
-            {loaded &&
-                <Grid container direction="row" alignItems="stretch"
-                      justifyContent={activeList ? "flex-start" : "center"}
-                      sx={{width: "100%", ...(activeList ? sidebarSx : {})}}
-                >
-                    {listKeys.map(renderCompanyList)}
-                </Grid>
-            }
-        </>
+        <Grid container direction="row" alignItems="stretch"
+              justifyContent={activeList ? "flex-start" : "center"}
+              sx={{width: "100%", ...(activeList ? sidebarSx : {})}}
+        >
+            {listKeys.map(renderCompanyList)}
+        </Grid>
     )
 }

@@ -50,7 +50,7 @@ describe("AdminPortfolio", () => {
     });
 
     test("lists unassigned trades and filters by company", async () => {
-        render(<AdminPortfolio companies={companies} portfolios={portfolios}/>);
+        render(<AdminPortfolio companyLists={{all: companies}} portfolios={portfolios}/>);
 
         expect(mockUseData).toHaveBeenCalledWith("/admin/portfolio/trades?filter");
         expect(screen.getByText("AMD")).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("AdminPortfolio", () => {
 
     test("confirms and bulk assigns the selected portfolio", async () => {
         axios.put.mockResolvedValue({});
-        render(<AdminPortfolio companies={companies} portfolios={portfolios}/>);
+        render(<AdminPortfolio companyLists={{all: companies}} portfolios={portfolios}/>);
 
         fireEvent.click(screen.getByLabelText("Select trade 101"));
         fireEvent.click(screen.getByLabelText("Select trade 102"));

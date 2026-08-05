@@ -87,6 +87,7 @@ export const Research = props => {
 
     function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
+        props.refreshCompanyLists?.()
     }
 
     function deleteRecord(recordId) {
@@ -101,7 +102,7 @@ export const Research = props => {
 
     return (
         <>
-            <CompanySelector refresh={refresh} onCustomTagsChange={setTagSuggestions} {...props}/>
+            <CompanySelector onCustomTagsChange={setTagSuggestions} {...props}/>
             {props.companySelectorValue && !loaded && <Loader error={error}/>}
             {props.companySelectorValue && loaded && data.company.ticker !== undefined &&
                 <Grid container direction="row" sx={{width: "100%", justifyContent: "center", alignItems: "flex-start"}}>

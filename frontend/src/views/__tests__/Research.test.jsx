@@ -13,7 +13,7 @@ jest.mock("../component/Loader", () => ({
     ),
 }));
 jest.mock("../component/CompanySelector", () => ({
-    BUILT_IN_LIST_TITLES: {owned: "Owned", recent: "Recent", researched: "Researched"},
+    BUILT_IN_LIST_TITLES: {owned: "Owned", recent: "Recent", researched: "Researched", all: "All"},
     CompanySelector: (props) => (
         <div data-testid="company-selector">
             company-selector:{props.refresh}

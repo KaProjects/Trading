@@ -23,7 +23,6 @@ import org.mockito.ArgumentCaptor;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -269,41 +268,6 @@ public class TradeServiceTest
         assertBigDecimals(trades.getAggregates().getSellTotal(), new BigDecimal("0.00"));
         assertThat(trades.getAggregates().getProfit(), is(nullValue()));
         assertThat(trades.getAggregates().getProfitPercentage(), is(nullValue()));
-    }
-
-    @Test
-    void getRecentlyOwnedTrades()
-    {
-        Company company = Generator.generateCompany(1L);
-        company.setTicker("NVDA");
-        company.setCurrency(Currency.$);
-        org.kaleta.model.Company modelCompany = toModelCompany(company);
-
-        Trade activeTrade = new Trade();
-        activeTrade.setId(10L);
-        activeTrade.setCompany(company);
-        activeTrade.setQuantity(new BigDecimal("2"));
-        activeTrade.setPurchaseDate(Date.valueOf(LocalDate.now().minusYears(2)));
-        activeTrade.setPurchasePrice(new BigDecimal("10"));
-        activeTrade.setPurchaseFees(new BigDecimal("1"));
-
-        Trade recentSoldTrade = soldTrade(11L, company,
-                LocalDate.now().minusMonths(10).toString(), "20", "2",
-                LocalDate.now().minusMonths(9).toString(), "25", "1", "3");
-        Trade oldSoldTrade = soldTrade(12L, company,
-                LocalDate.now().minusYears(2).toString(), "30", "3",
-                LocalDate.now().minusMonths(9).minusDays(1).toString(), "35", "1", "4");
-
-        when(tradeDao.list()).thenReturn(List.of(activeTrade, recentSoldTrade, oldSoldTrade));
-        when(companyService.from(company)).thenReturn(modelCompany);
-
-        List<Trades.Trade> recentlyOwnedTrades = tradeService.getRecentlyOwnedTrades();
-
-        assertThat(recentlyOwnedTrades.size(), is(2));
-        assertThat(
-                recentlyOwnedTrades.stream().map(Trades.Trade::getId).collect(Collectors.toList()),
-                containsInAnyOrder(10L, 11L)
-        );
     }
 
     @Test

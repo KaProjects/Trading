@@ -67,7 +67,7 @@ function createProps(overrides = {}) {
         setOpenSellTrade: jest.fn(),
         triggerRefresh: jest.fn(),
         companySelectorValue: company,
-        companies: [company],
+        companyLists: {all: [company]},
         ...overrides,
     };
 }

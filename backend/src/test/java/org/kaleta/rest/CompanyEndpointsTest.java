@@ -21,7 +21,6 @@ import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.dto.CompanyValuesDto;
 
-import java.sql.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,7 +29,6 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -58,8 +56,6 @@ class CompanyEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyValuesDto.class);
 
-        assertThat(dto.getCompanies().size(), is(26));
-        assertThat(dto.getCompanies().get(0).getTicker(), is("ABCD"));
         assertThat(dto.getSectors().size(), is(Sector.values().length));
         assertThat(dto.getCurrencies().size(), is(Currency.values().length));
         assertThat(dto.getPortfolios().size(), is(Portfolio.values().length));
@@ -67,21 +63,6 @@ class CompanyEndpointsTest
         assertThat(dto.getPortfolios().get(0).getName(), is(Portfolio.PATRIA_DIP.getName()));
         assertThat(dto.getPortfolios().get(0).getAbbreviation(), is("Pd"));
         assertThat(dto.getYears(), is(List.of("2024", "2023", "2022", "2021", "2020", "2018")));
-    }
-
-    @Test
-    @Order(1)
-    void getRecentlyOwnedCompanies()
-    {
-        List<org.kaleta.model.Company> companies = given().when()
-                .get(path + "/recently-owned")
-                .then()
-                .statusCode(200)
-                .contentType(ContentType.JSON)
-                .extract().as(new TypeRef<>() {});
-
-        assertThat(companies.size(), is(6));
-        assertThat(tickersFromCompanies(companies), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
     }
 
     @Test
@@ -96,19 +77,13 @@ class CompanyEndpointsTest
                 .extract().as(new TypeRef<>() {});
 
         List<CompanyWithStats> owned = dto.get("owned");
-        assertThat(dto.size(), is(1));
+        List<CompanyWithStats> all = dto.get("all");
+        assertThat(dto.keySet().stream().toList(), is(List.of("owned", "all")));
         assertThat(owned.size(), is(6));
-        assertThat(owned.get(0).getTicker(), is("CEZ"));
-        assertThat(owned.get(1).getTicker(), is("RR"));
-        assertThat(owned.get(owned.size() - 1).getTicker(), is("SELL"));
-        for (int i = 1; i < owned.size(); i++) {
-            Date previous = owned.get(i - 1).getLatestPurchaseDate();
-            Date current = owned.get(i).getLatestPurchaseDate();
-            assertThat(previous, is(not(nullValue())));
-            assertThat(current, is(not(nullValue())));
-            assertThat(previous.compareTo(current), greaterThanOrEqualTo(0));
-        }
-        assertThat(tickers(owned), hasItems("RCH", "XRSA", "XRSB"));
+        assertThat(tickers(owned), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
+        assertThat(all.size(), is(26));
+        assertThat(all.get(0).getTicker(), is("ABCD"));
+        assertThat(tickers(all), is(tickers(all).stream().sorted().toList()));
     }
 
     @Test
@@ -477,8 +452,4 @@ class CompanyEndpointsTest
         return companies.stream().map(CompanyWithStats::getTicker).collect(Collectors.toList());
     }
 
-    private List<String> tickersFromCompanies(List<org.kaleta.model.Company> companies)
-    {
-        return companies.stream().map(org.kaleta.model.Company::getTicker).collect(Collectors.toList());
-    }
 }

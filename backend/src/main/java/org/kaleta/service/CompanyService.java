@@ -3,7 +3,6 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
@@ -20,7 +19,6 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -35,18 +33,6 @@ public class CompanyService
 
     @Inject
     CompanyDao companyDao;
-    @Inject
-    TradeService tradeService;
-
-    public List<org.kaleta.model.Company> getCompanies()
-    {
-        return companyDao.list().stream().map(this::from).collect(Collectors.toList());
-    }
-
-    public List<org.kaleta.model.Company> getCompanies(String currency, String sector)
-    {
-        return companyDao.list(currency, sector).stream().map(this::from).sorted(org.kaleta.model.Company::compareTo).collect(Collectors.toList());
-    }
 
     public CompanyAggregates getCompaniesWithAggregates(String currency, String sector)
     {
@@ -74,11 +60,13 @@ public class CompanyService
     public Map<String, List<CompanyWithStats>> getCompaniesByTag()
     {
         Map<String, List<CompanyWithStats>> companiesByTag = new TreeMap<>(COMPANY_LIST_ORDER);
+        List<CompanyWithStats> allCompanies = new ArrayList<>();
         YearMonth periodCutoff = YearMonth.now().minusYears(1);
         LocalDate recordCutoff = LocalDate.now().minusYears(1);
 
         for (CompanyWithStats company : companyDao.listWithStats())
         {
+            allCompanies.add(company);
             if (company.getLatestPurchaseDate() != null) {
                 companiesByTag.computeIfAbsent("owned", ignored -> new ArrayList<>()).add(company);
             }
@@ -93,6 +81,7 @@ public class CompanyService
             company.getTags().stream().distinct().forEach(tag ->
                     companiesByTag.computeIfAbsent(tag, ignored -> new ArrayList<>()).add(company));
         }
+        companiesByTag.put("all", allCompanies);
         return companiesByTag;
     }
 
@@ -102,18 +91,9 @@ public class CompanyService
             case "owned" -> 0;
             case "recent" -> 1;
             case "researched" -> 2;
+            case "all" -> 4;
             default -> 3;
         };
-    }
-
-    public List<org.kaleta.model.Company> getRecentlyOwnedCompanies()
-    {
-        Map<Long, org.kaleta.model.Company> recentlyOwnedCompanies = new LinkedHashMap<>();
-        for (Trades.Trade trade : tradeService.getRecentlyOwnedTrades()) {
-            org.kaleta.model.Company company = trade.getCompany();
-            recentlyOwnedCompanies.putIfAbsent(company.getId(), company);
-        }
-        return new ArrayList<>(recentlyOwnedCompanies.values());
     }
 
     public void update(CompanyUpdateDto dto)

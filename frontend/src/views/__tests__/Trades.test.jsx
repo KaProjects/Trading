@@ -40,7 +40,7 @@ function createProps(overrides = {}) {
         currencySelectorValue: "",
         yearSelectorValue: "",
         sectorSelectorValue: null,
-        companies: [],
+        companyLists: {all: []},
         setCompanySelectorValue: jest.fn(),
         ...overrides,
     };
@@ -177,7 +177,7 @@ describe("Trades", () => {
         const setCompanySelectorValue = jest.fn();
 
         render(<Trades {...createProps({
-            companies: [nvidia, shell],
+            companyLists: {all: [nvidia, shell]},
             setCompanySelectorValue,
         })}/>);
 

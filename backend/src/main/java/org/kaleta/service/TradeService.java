@@ -21,7 +21,6 @@ import org.kaleta.rest.error.InvalidInputException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -35,7 +34,6 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class TradeService
 {
-    private static final int RECENTLY_OWNED_MONTHS = 9;
 
     @Inject
     TradeDao tradeDao;
@@ -174,17 +172,6 @@ public class TradeService
         model.setAggregates(computeAggregates(model.getTrades()));
 
         return model;
-    }
-
-    public List<Trades.Trade> getRecentlyOwnedTrades()
-    {
-        LocalDate recentSellDateLimit = LocalDate.now().minusMonths(RECENTLY_OWNED_MONTHS);
-
-        return tradeDao.list().stream()
-                .filter(trade -> trade.getSellDate() == null || !trade.getSellDate().toLocalDate().isBefore(recentSellDateLimit))
-                .map(this::from)
-                .sorted()
-                .collect(Collectors.toList());
     }
 
     public List<String> getYears()
