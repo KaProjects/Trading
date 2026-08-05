@@ -39,6 +39,8 @@ describe("MainBarSelect", () => {
 
         fireEvent.mouseDown(screen.getByRole("combobox"));
 
+        expect(screen.getByRole("option", {name: "clear"})).toHaveAttribute("aria-selected", "false");
+        expect(screen.queryByRole("option", {name: "years"})).not.toBeInTheDocument();
         expect(screen.getByRole("option", {name: "2024"})).toBeInTheDocument();
         expect(screen.getByRole("option", {name: "2025"})).toBeInTheDocument();
     });
@@ -60,6 +62,26 @@ describe("MainBarSelect", () => {
 
         expect(setValue).toHaveBeenCalledWith("2025");
         expect(mockRecordEvent).toHaveBeenCalledWith("/stats#selector:years");
+    });
+
+    test("clears a generic selector while preserving its empty-state label", () => {
+        const setValue = jest.fn();
+        const props = {
+            values: ["only active", "only closed"],
+            value: "only active",
+            setValue,
+            label: "all",
+        };
+        const {rerender} = render(<MainBarSelect {...props}/>);
+
+        fireEvent.mouseDown(screen.getByRole("combobox"));
+        fireEvent.click(screen.getByRole("option", {name: "clear"}));
+
+        expect(setValue).toHaveBeenCalledWith("");
+
+        rerender(<MainBarSelect {...props} value=""/>);
+
+        expect(screen.getByRole("combobox")).toHaveTextContent("all");
     });
 
     test("renders object options using valueKey", () => {

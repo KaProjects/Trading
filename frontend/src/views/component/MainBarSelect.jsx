@@ -5,7 +5,7 @@ import {recordEvent} from "../../service/utils";
 import {getCompanyListKeys, getCompanyListTitle} from "../../service/CompanyListService";
 
 const SUBTLE_DIVIDER = "rgba(0, 0, 0, 0.06)"
-const CLEAR_COMPANY_VALUE = "__clear-company__"
+const CLEAR_VALUE = "__clear-selector__"
 
 export const MainBarSelect = props => {
     const {value, setValue, label, valueKey, companyLists, defaultCompanyList = "all"} = props
@@ -31,11 +31,11 @@ export const MainBarSelect = props => {
     }
 
     function changeValue(newValue) {
-        const nextValue = companyLists
-            ? newValue === CLEAR_COMPANY_VALUE
-                ? ""
-                : (companyLists.all ?? []).find(company => company.id === newValue) ?? ""
-            : newValue
+        const nextValue = newValue === CLEAR_VALUE
+            ? ""
+            : companyLists
+                ? (companyLists.all ?? []).find(company => company.id === newValue) ?? ""
+                : newValue
 
         setValue(nextValue)
         recordEvent(window.location.pathname + "#selector:" + label)
@@ -53,10 +53,10 @@ export const MainBarSelect = props => {
         ]
     }
 
-    function renderClearCompany() {
+    function renderClearOption() {
         return <MenuItem
-            key="company-empty"
-            value={CLEAR_COMPANY_VALUE}
+            key="clear-selector"
+            value={CLEAR_VALUE}
             sx={{
                 justifyContent: "center",
                 fontSize: "13px",
@@ -67,9 +67,9 @@ export const MainBarSelect = props => {
         </MenuItem>
     }
 
-    function renderEmptyCompany() {
-        return <MenuItem key="empty-company" value="" style={{display: "none"}}>
-            {companyPlaceholder}
+    function renderEmptyOption(placeholder) {
+        return <MenuItem key="empty-selector" value="" style={{display: "none"}}>
+            {placeholder}
         </MenuItem>
     }
 
@@ -111,8 +111,8 @@ export const MainBarSelect = props => {
 
         if (selectingList) {
             return [
-                renderClearCompany(),
-                renderEmptyCompany(),
+                renderClearOption(),
+                renderEmptyOption(companyPlaceholder),
                 ...renderSelectedCompany(),
                 listHeader,
                 ...listKeys.map((listKey, index) => (
@@ -136,8 +136,8 @@ export const MainBarSelect = props => {
         }
 
         return [
-            renderClearCompany(),
-            renderEmptyCompany(),
+            renderClearOption(),
+            renderEmptyOption(companyPlaceholder),
             listHeader,
             ...(selectedOption && !values.some(option => option.id === selectedOption.id)
                 ? renderSelectedCompany()
@@ -170,8 +170,15 @@ export const MainBarSelect = props => {
             {companyLists
                 ? renderCompanyListControl()
                 : [
-                    <MenuItem key={`${label}-empty`} value="">{label}</MenuItem>,
-                    ...values.map((option, index) => renderOption(option, index, label, valueKey)),
+                    renderClearOption(),
+                    renderEmptyOption(label),
+                    ...values.map((option, index) => renderOption(
+                        option,
+                        index,
+                        label,
+                        valueKey,
+                        index === 0
+                    )),
                 ]
             }
         </Select>
@@ -199,11 +206,24 @@ function renderCompanyOption(option, index, label, valueKey, isFirst) {
     )
 }
 
-function renderOption(option, index, label, valueKey) {
+function renderOption(option, index, label, valueKey, isFirst) {
     const optionLabel = valueKey ? option[valueKey] : option
 
     return (
-        <MenuItem key={`${label}-${optionLabel}-${index}`} value={option}>
+        <MenuItem
+            key={`${label}-${optionLabel}-${index}`}
+            value={option}
+            sx={{
+                borderTop: isFirst ? `1px solid ${SUBTLE_DIVIDER}` : "none",
+                borderBottom: `1px solid ${SUBTLE_DIVIDER}`,
+                "&.Mui-selected": {
+                    backgroundColor: "transparent",
+                },
+                "&.Mui-selected:hover": {
+                    backgroundColor: "action.hover",
+                },
+            }}
+        >
             {optionLabel}
         </MenuItem>
     )
