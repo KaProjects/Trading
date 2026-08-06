@@ -78,6 +78,9 @@ describe("CompanySelector", () => {
         expect(screen.getAllByText("NVDA")).toHaveLength(3);
         expect(screen.getAllByText("TSLA")).toHaveLength(2);
         expect(screen.getAllByText("CEZ")).toHaveLength(2);
+        screen.getAllByRole("list").forEach(list => {
+            expect(list).toHaveStyle("overflow-y: auto");
+        });
     });
 
     test("provides only custom list keys as tag suggestions", async () => {

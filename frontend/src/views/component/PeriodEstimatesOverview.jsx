@@ -37,8 +37,8 @@ export const PeriodEstimatesOverview = ({overview, onOpen, sx}) => (
     <Paper elevation={0} sx={{
         ...sx,
         maxWidth: "100%",
-        overflowX: "auto",
-        overflowY: "hidden",
+        overflowX: {xs: "auto", sm: "visible"},
+        overflowY: {xs: "hidden", sm: "visible"},
         "& .overview-action": {
             opacity: {xs: 1, sm: 0},
             pointerEvents: {xs: "auto", sm: "none"},

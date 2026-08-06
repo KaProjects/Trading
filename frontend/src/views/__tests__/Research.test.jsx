@@ -23,7 +23,13 @@ jest.mock("../component/CompanySelector", () => ({
 }));
 jest.mock("../component/PeriodFinancials", () => ({
     PeriodFinancials: (props) => (
-        <button data-testid="period-financials" onClick={props.onOpen}>financial-overview</button>
+        <button
+            data-testid="period-financials"
+            data-margin-top-xs={props.sx?.marginTop?.xs}
+            onClick={props.onOpen}
+        >
+            financial-overview
+        </button>
     ),
 }));
 jest.mock("../component/PeriodEstimatesOverview", () => ({
@@ -197,13 +203,20 @@ describe("Research", () => {
         expect(screen.getByText("#growth")).toBeInTheDocument();
         expect(screen.queryByText("#owned")).not.toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
+        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top-xs", "13px");
         expect(screen.getByTestId("period-estimates-overview")).toHaveTextContent("estimate-overview:14");
         expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
         expect(screen.getByText("Market Cap: $1B")).toBeInTheDocument();
         expect(screen.getByText("Dividend Yield: 2%")).toBeInTheDocument();
         expect(screen.getByText("asset:3@100$")).toBeInTheDocument();
+        expect(screen.getByTestId("record-assets")).toHaveStyle("flex-shrink: 0");
         expect(screen.getByText("period:period-1")).toBeInTheDocument();
         expect(screen.getByText("record:record-1")).toBeInTheDocument();
+        expect(screen.getByTestId("period-list")).toHaveStyle("overflow-y: auto");
+        expect(screen.getByTestId("period-list")).toHaveStyle("margin-top: 10px");
+        expect(screen.getByTestId("period-list")).toHaveStyle("padding-top: 5px");
+        expect(screen.getByTestId("record-list")).toHaveStyle("overflow-y: auto");
+        expect(screen.getByTestId("record-list")).toHaveStyle("padding-top: 5px");
     });
 
     test("shows the loader and hides the previous company while a new company is loading", async () => {

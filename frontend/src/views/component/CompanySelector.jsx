@@ -90,6 +90,12 @@ export const CompanySelector = (props) => {
         width: compactListVisible ? "100%" : "auto",
         flexShrink: 0,
         marginTop: "2px",
+        maxHeight: {
+            xs: "calc(100dvh - var(--main-bar-height, 48px) - 8px)",
+            sm: "calc(100dvh - var(--main-bar-height, 48px) - 16px)",
+        },
+        overflowY: "auto",
+        overscrollBehavior: "contain",
         bgcolor: 'background.paper',
         boxShadow: 1,
         borderRadius: 2,

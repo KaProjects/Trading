@@ -45,8 +45,30 @@ const researchCardStyle = {
     borderRadius: 2,
     minWidth: {xs: 0, sm: 700},
     width: {xs: "100%", sm: 800},
-    maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)",
+    maxHeight: {
+        xs: "calc(100dvh - var(--main-bar-height, 48px) - 8px)",
+        sm: "calc(100dvh - var(--main-bar-height, 48px) - 16px)",
+    },
+    flexDirection: "column",
+    overflow: "hidden",
+}
+
+const researchCardContentStyle = {
+    display: "flex",
+    flexDirection: "column",
+    flex: "1 1 auto",
+    minHeight: 0,
+    "&:last-child": {paddingBottom: 2},
+}
+
+const researchCardRowsStyle = {
+    flex: "1 1 auto",
+    minHeight: 0,
+    marginTop: "10px",
+    paddingTop: "5px",
     overflowY: "auto",
+    overscrollBehavior: "contain",
+    "& > .mainContainer:first-of-type": {marginTop: 0},
 }
 
 export const Research = props => {
@@ -149,13 +171,13 @@ export const Research = props => {
                 <Grid container direction="row" sx={{width: "100%", justifyContent: "center", alignItems: "flex-start"}}>
                     <Card sx={{
                         ...researchCardStyle,
-                        display: "block",
+                        display: "flex",
                         [`@media (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {
-                            display: researchTabsIndex === RESEARCH_TAB.research ? "block" : "none",
+                            display: researchTabsIndex === RESEARCH_TAB.research ? "flex" : "none",
                         },
                     }}>
-                        <CardContent>
-                            <Box sx={{position: "relative"}}>
+                        <CardContent sx={researchCardContentStyle}>
+                            <Box sx={{position: "relative", flexShrink: 0}}>
                                 <Box sx={{color: 'text.secondary'}}>Research</Box>
                                 <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
                                     {data.company.ticker}
@@ -166,15 +188,20 @@ export const Research = props => {
                                         color: "text.secondary",
                                         display: "flex",
                                         alignItems: "center",
-                                        flexWrap: "wrap",
+                                        flexWrap: {xs: "nowrap", sm: "wrap"},
                                         columnGap: "6px",
                                         fontSize: 14,
                                         minHeight: "20px",
                                         minWidth: "20px",
-                                        width: "fit-content",
+                                        width: {xs: "100%", sm: "fit-content"},
+                                        maxWidth: "100%",
+                                        overflowX: {xs: "auto", sm: "visible"},
+                                        overflowY: {xs: "hidden", sm: "visible"},
+                                        overscrollBehaviorX: "contain",
                                         "& .add-tag-button": {
                                             opacity: {xs: 1, sm: 0},
                                             pointerEvents: {xs: "auto", sm: "none"},
+                                            flexShrink: 0,
                                             transition: "opacity 120ms ease-in-out",
                                         },
                                         "&:hover .add-tag-button": {
@@ -184,6 +211,7 @@ export const Research = props => {
                                         "& .company-tag": {
                                             display: "inline-flex",
                                             alignItems: "center",
+                                            flexShrink: 0,
                                         },
                                         "& .delete-tag-button": {
                                             opacity: {xs: 1, sm: 0},
@@ -255,12 +283,12 @@ export const Research = props => {
                                 </Dialog>
 
                                 <PeriodFinancials
-                                    sx={{marginTop: "20px"}}
+                                    sx={{marginTop: {xs: "13px", sm: "20px"}}}
                                     ttm={data.ttm}
                                     onOpen={() => setOpenFinancialsDialog(true)}
                                 />
                                 <PeriodEstimatesOverview
-                                    sx={{marginTop: "8px", marginBottom: "20px"}}
+                                    sx={{marginTop: "8px"}}
                                     overview={data.estimateOverview}
                                     onOpen={() => setOpenEarningsProjectionsDialog(true)}
                                 />
@@ -332,28 +360,30 @@ export const Research = props => {
                                 period={openAddEstimateDialog}
                             />
 
-                            {data.periods.map((period) => (
-                                <Period
-                                    key={period.id}
-                                    period={period}
-                                    currency={data.company.currency}
-                                    setAlert={setAlert}
-                                    openDialog={() => setOpenAddFinancialDialog(period)}
-                                    openEditDialog={() => setOpenEditFinancialDialog(period)}
-                                    openEstimateDialog={() => setOpenAddEstimateDialog(period)}
-                                />
-                            ))}
+                            <Box data-testid="period-list" sx={researchCardRowsStyle}>
+                                {data.periods.map((period) => (
+                                    <Period
+                                        key={period.id}
+                                        period={period}
+                                        currency={data.company.currency}
+                                        setAlert={setAlert}
+                                        openDialog={() => setOpenAddFinancialDialog(period)}
+                                        openEditDialog={() => setOpenEditFinancialDialog(period)}
+                                        openEstimateDialog={() => setOpenAddEstimateDialog(period)}
+                                    />
+                                ))}
+                            </Box>
                         </CardContent>
                     </Card>
                     <Card sx={{
                         ...researchCardStyle,
-                        display: "block",
+                        display: "flex",
                         [`@media (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {
-                            display: researchTabsIndex === RESEARCH_TAB.records ? "block" : "none",
+                            display: researchTabsIndex === RESEARCH_TAB.records ? "flex" : "none",
                         },
                     }}>
-                        <CardContent>
-                            <Box sx={{position: "relative"}}>
+                        <CardContent sx={researchCardContentStyle}>
+                            <Box sx={{position: "relative", flexShrink: 0}}>
                                 <Box sx={{color: 'text.secondary'}}>Records</Box>
 
                                 {data.latest &&
@@ -394,13 +424,18 @@ export const Research = props => {
 
                             {data.assets.assets.length > 0 &&
                                 <Stack
+                                    data-testid="record-assets"
                                     direction="row"
                                     spacing={1}
                                     sx={{
-                                        margin: "10px 10px 20px 10px",
+                                        marginTop: "10px",
+                                        marginRight: "10px",
+                                        marginBottom: 0,
+                                        marginLeft: {xs: "3px", sm: "10px"},
                                         maxWidth: "100%",
-                                        overflowX: "auto",
-                                        overflowY: "hidden",
+                                        flexShrink: 0,
+                                        overflowX: {xs: "auto", sm: "visible"},
+                                        overflowY: {xs: "hidden", sm: "visible"},
                                         pb: {xs: 1, sm: 0},
                                         "& > *": {flexShrink: 0},
                                     }}
@@ -411,15 +446,20 @@ export const Research = props => {
                                 </Stack>
                             }
 
-                            {data.records.map((record) => (
-                                <Record
-                                    key={record.id}
-                                    data={record}
-                                    currency={data.company.currency}
-                                    setAlert={setAlert}
-                                    deleteRecord={deleteRecord}
-                                />
-                            ))}
+                            <Box
+                                data-testid="record-list"
+                                sx={{...researchCardRowsStyle, marginTop: {xs: "3px", sm: "10px"}}}
+                            >
+                                {data.records.map((record) => (
+                                    <Record
+                                        key={record.id}
+                                        data={record}
+                                        currency={data.company.currency}
+                                        setAlert={setAlert}
+                                        deleteRecord={deleteRecord}
+                                    />
+                                ))}
+                            </Box>
                         </CardContent>
                     </Card>
                 </Grid>

@@ -94,8 +94,8 @@ export const PeriodFinancials = ({ttm, onOpen, sx}) => (
             marginLeft: {xs: "-5px", sm: 0},
             width: {xs: "calc(100% + 5px)", sm: "100%"},
             maxWidth: {xs: "calc(100% + 5px)", sm: "100%"},
-            overflowX: "auto",
-            overflowY: "hidden",
+            overflowX: {xs: "auto", sm: "visible"},
+            overflowY: {xs: "hidden", sm: "visible"},
             "& .overview-action": {
                 opacity: {xs: 1, sm: 0},
                 pointerEvents: {xs: "auto", sm: "none"},
