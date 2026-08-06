@@ -88,7 +88,7 @@ class InMemoryFirebaseStoreTest
                 snapshot.toString());
 
         assertThat(downloaded.get(), is(false));
-        assertThat(store.findQuarterIds("NVDA").isEmpty(), is(false));
+        assertThat(store.findQuartersMetadata("NVDA").isEmpty(), is(false));
     }
 
     @Test
@@ -112,7 +112,8 @@ class InMemoryFirebaseStoreTest
     void returnsEmptyImportCandidatesWhenFirebaseReadFails()
     {
         FirebaseStore failingStore = mock(FirebaseStore.class);
-        when(failingStore.findQuarterIds("NVDA")).thenThrow(new IllegalStateException("Firebase unavailable"));
+        when(failingStore.findQuartersMetadata("NVDA"))
+                .thenThrow(new IllegalStateException("Firebase unavailable"));
 
         FirebaseService.ImportCandidatesResult result =
                 new FirebaseService(failingStore).getNewerPeriods("NVDA", "24Q4");

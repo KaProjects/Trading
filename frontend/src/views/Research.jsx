@@ -12,7 +12,7 @@ import {
     IconButton,
     Stack,
 } from "@mui/material";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {Loader} from "./component/Loader";
 import {backend} from "../properties";
 import axios from "axios";
@@ -67,12 +67,22 @@ export const Research = props => {
     const [openAddTagDialog, setOpenAddTagDialog] = useState(false)
     const [tagToDelete, setTagToDelete] = useState(null)
     const [tagSuggestions, setTagSuggestions] = useState([])
+    const previousCompanyId = useRef(null)
+    const latestRequestId = useRef(0)
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
 
     function fetchData(companyChanged) {
+        const requestId = ++latestRequestId.current
         if (props.companySelectorValue) {
+            if (companyChanged) {
+                setLoaded(false)
+                setError(null)
+            }
+
             axios.get(backend + "/research/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
                 .then((response) => {
+                    if (requestId !== latestRequestId.current) return
+
                     setData(response.data)
                     setError(null)
 
@@ -82,6 +92,8 @@ export const Research = props => {
                     setLoaded(true)
                 })
                 .catch((error) => {
+                    if (requestId !== latestRequestId.current) return
+
                     setError(formatError(error))
                     setLoaded(false)
                 })
@@ -91,14 +103,12 @@ export const Research = props => {
     }
 
     useEffect(() => {
-        fetchData(true)
+        const companyId = props.companySelectorValue?.id ?? null
+        const companyChanged = previousCompanyId.current !== companyId
+        previousCompanyId.current = companyId
+        fetchData(companyChanged)
         // eslint-disable-next-line
-    }, [props.companySelectorValue])
-
-    useEffect(() => {
-        fetchData(false)
-        // eslint-disable-next-line
-    }, [refresh])
+    }, [props.companySelectorValue?.id, refresh])
 
     function triggerRefresh() {
         setRefresh(new Date().getTime().toString())
@@ -127,11 +137,15 @@ export const Research = props => {
         })
     }
 
+    const selectedCompanyLoaded = props.companySelectorValue
+        && loaded
+        && data?.company?.id === props.companySelectorValue.id
+
     return (
         <>
             <CompanySelector onCustomTagsChange={setTagSuggestions} {...props}/>
-            {props.companySelectorValue && !loaded && <Loader error={error}/>}
-            {props.companySelectorValue && loaded && data.company.ticker !== undefined &&
+            {props.companySelectorValue && !selectedCompanyLoaded && <Loader error={error}/>}
+            {selectedCompanyLoaded && data.company.ticker !== undefined &&
                 <Grid container direction="row" sx={{width: "100%", justifyContent: "center", alignItems: "flex-start"}}>
                     <Card sx={{
                         ...researchCardStyle,

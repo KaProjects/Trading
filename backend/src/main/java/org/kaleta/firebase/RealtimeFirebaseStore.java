@@ -13,13 +13,10 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -50,28 +47,19 @@ public class RealtimeFirebaseStore implements FirebaseStore
     }
 
     @Override
-    public Set<String> findQuarterIds(String ticker)
+    public Map<String, QuarterMetadata> findQuartersMetadata(String ticker)
     {
         DataSnapshot quarters = read(company(ticker)
                 .child(FirebasePath.GEMINI)
                 .child(FirebasePath.QUARTERS));
-        Set<String> result = new LinkedHashSet<>();
+        Map<String, QuarterMetadata> result = new LinkedHashMap<>();
         for (DataSnapshot quarter : quarters.getChildren()) {
-            result.add(quarter.getKey());
+            String revenues = quarter.child("reported_revenues").getValue(String.class);
+            result.put(quarter.getKey(), new QuarterMetadata(
+                    quarter.child("ending_month").getValue(String.class),
+                    revenues != null && !revenues.isBlank()));
         }
-        return Collections.unmodifiableSet(result);
-    }
-
-    @Override
-    public QuarterMetadata findQuarterMetadata(String ticker, String quarterId)
-    {
-        DatabaseReference quarter = company(ticker)
-                .child(FirebasePath.GEMINI)
-                .child(FirebasePath.QUARTERS)
-                .child(quarterId);
-        String endingMonth = read(quarter.child("ending_month"), String.class).orElse(null);
-        String revenues = read(quarter.child("reported_revenues"), String.class).orElse(null);
-        return new QuarterMetadata(endingMonth, revenues != null && !revenues.isBlank());
+        return Map.copyOf(result);
     }
 
     @Override

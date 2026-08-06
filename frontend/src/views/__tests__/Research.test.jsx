@@ -206,6 +206,39 @@ describe("Research", () => {
         expect(screen.getByText("record:record-1")).toBeInTheDocument();
     });
 
+    test("shows the loader and hides the previous company while a new company is loading", async () => {
+        let resolveSecondCompany;
+        axios.get
+            .mockResolvedValueOnce({data: createResearchData()})
+            .mockImplementationOnce(() => new Promise(resolve => {
+                resolveSecondCompany = resolve;
+            }));
+
+        const {rerender} = render(<Research companySelectorValue={companySelectorValue}/>);
+        await screen.findByText("AAPL");
+
+        rerender(<Research companySelectorValue={{id: "company-2"}}/>);
+
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("http://backend/research/company-2"));
+        expect(screen.getByTestId("loader")).toHaveTextContent("loading");
+        expect(screen.queryByText("AAPL")).not.toBeInTheDocument();
+
+        resolveSecondCompany({
+            data: createResearchData({
+                company: {
+                    id: "company-2",
+                    ticker: "MSFT",
+                    currency: "$",
+                    sector: {key: "TECH", name: "Technology"},
+                    tags: [],
+                },
+            }),
+        });
+
+        await screen.findByText("MSFT");
+        expect(screen.queryByTestId("loader")).not.toBeInTheDocument();
+    });
+
     test("opens add tag with custom list suggestions", async () => {
         axios.get.mockResolvedValue({data: createResearchData()});
 

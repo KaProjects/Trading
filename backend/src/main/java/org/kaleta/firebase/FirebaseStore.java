@@ -6,15 +6,12 @@ import org.kaleta.model.FirebaseCompany;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 public interface FirebaseStore
 {
     record QuarterMetadata(String endingMonth, boolean reported) {}
 
-    Set<String> findQuarterIds(String ticker);
-
-    QuarterMetadata findQuarterMetadata(String ticker, String quarterId);
+    Map<String, QuarterMetadata> findQuartersMetadata(String ticker);
 
     Optional<FirebaseCompany.Gemini.Quarter> findQuarter(String ticker, String quarterId);
 

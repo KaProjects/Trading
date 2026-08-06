@@ -21,9 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 @Singleton
 @Startup
@@ -45,25 +45,22 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
-    public Set<String> findQuarterIds(String ticker)
+    public Map<String, QuarterMetadata> findQuartersMetadata(String ticker)
     {
         FirebaseCompany company = companies.get(ticker);
         if (company == null || company.getGemini() == null || company.getGemini().getQuarters() == null) {
-            return Set.of();
+            return Map.of();
         }
-        return Set.copyOf(company.getGemini().getQuarters().keySet());
-    }
-
-    @Override
-    public QuarterMetadata findQuarterMetadata(String ticker, String quarterId)
-    {
-        FirebaseCompany.Gemini.Quarter quarter = findQuarter(ticker, quarterId).orElse(null);
-        if (quarter == null) return new QuarterMetadata(null, false);
-
-        String revenues = quarter.getReported_revenues();
-        return new QuarterMetadata(
-                quarter.getEnding_month(),
-                revenues != null && !revenues.isBlank());
+        return company.getGemini().getQuarters().entrySet().stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey,
+                        entry -> {
+                            FirebaseCompany.Gemini.Quarter quarter = entry.getValue();
+                            String revenues = quarter.getReported_revenues();
+                            return new QuarterMetadata(
+                                    quarter.getEnding_month(),
+                                    revenues != null && !revenues.isBlank());
+                        }));
     }
 
     @Override

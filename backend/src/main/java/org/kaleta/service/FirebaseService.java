@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -56,9 +55,9 @@ public class FirebaseService
     {
         PeriodName latestPeriod = quarterId == null ? null : PeriodName.valueOf(quarterId);
         List<String> warnings = new ArrayList<>();
-        Set<String> quarterIds;
+        Map<String, FirebaseStore.QuarterMetadata> quarters;
         try {
-            quarterIds = firebaseStore.findQuarterIds(ticker);
+            quarters = firebaseStore.findQuartersMetadata(ticker);
         } catch (RuntimeException exception) {
             String warning = ExternalWarnings.unavailable(
                     "Firebase import candidates for " + ticker,
@@ -68,10 +67,11 @@ public class FirebaseService
         }
 
         List<PeriodImportCandidateDto> periods = new ArrayList<>();
-        for (String id : quarterIds) {
+        for (Map.Entry<String, FirebaseStore.QuarterMetadata> quarter : quarters.entrySet()) {
+            String id = quarter.getKey();
             try {
                 if (latestPeriod == null || PeriodName.valueOf(id).compareTo(latestPeriod) > 0) {
-                    periods.add(toImportCandidate(ticker, id));
+                    periods.add(toImportCandidate(id, quarter.getValue()));
                 }
             } catch (RuntimeException exception) {
                 String warning = ExternalWarnings.unavailable(
@@ -87,9 +87,10 @@ public class FirebaseService
         return new ImportCandidatesResult(periods, warnings);
     }
 
-    private PeriodImportCandidateDto toImportCandidate(String ticker, String quarterId)
+    private PeriodImportCandidateDto toImportCandidate(
+            String quarterId,
+            FirebaseStore.QuarterMetadata metadata)
     {
-        FirebaseStore.QuarterMetadata metadata = firebaseStore.findQuarterMetadata(ticker, quarterId);
         PeriodImportCandidateDto candidate = new PeriodImportCandidateDto();
         candidate.setName(quarterId);
         candidate.setEndingMonth(YearMonth.parse("20" + metadata.endingMonth()).toString());
