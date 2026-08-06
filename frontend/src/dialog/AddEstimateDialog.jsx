@@ -70,9 +70,9 @@ const parseEstimates = value => {
     const input = value.trim();
     if (!input) return null;
 
-    const hasNonCommaSeparator = /[\s|\/\\]/.test(input);
+    const hasNonCommaSeparator = /[\s|/\\]/.test(input);
     const tokens = (hasNonCommaSeparator
-        ? input.split(/[\s|\/\\]+/)
+        ? input.split(/[\s|/\\]+/)
         : input.split(","))
         .map(token => token.replace(/^,+|,+$/g, ""))
         .filter(Boolean);

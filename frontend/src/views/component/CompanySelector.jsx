@@ -7,9 +7,11 @@ import {COMPANY_LIST_TITLES, getCompanyListKeys, getCompanyListTitle} from "../.
 export const BUILT_IN_LIST_TITLES = COMPANY_LIST_TITLES
 export const COMPANY_SELECTOR_COMPACT_BREAKPOINT = 600
 export const COMPANY_SELECTOR_SIDEBAR_BREAKPOINT = 1200
+const EMPTY_COMPANY_LISTS = {all: []}
 
 export const CompanySelector = (props) => {
-    const data = props.companyLists ?? {all: []}
+    const data = props.companyLists ?? EMPTY_COMPANY_LISTS
+    const onCustomTagsChange = props.onCustomTagsChange
     const [activeList, setActiveList] = useState(null)
     const isCompactScreen = useMediaQuery(`(max-width:${COMPANY_SELECTOR_COMPACT_BREAKPOINT}px)`)
     const isSidebarHidden = useMediaQuery(`(max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`)
@@ -19,15 +21,17 @@ export const CompanySelector = (props) => {
     const selectedList = activeList ?? (compactListVisible ? listKeys[0] ?? null : null)
 
     useEffect(() => {
-        if (data && props.onCustomTagsChange) {
-            props.onCustomTagsChange(getCompanyListKeys(data).filter(key => !COMPANY_LIST_TITLES[key]))
+        if (data && onCustomTagsChange) {
+            onCustomTagsChange(getCompanyListKeys(data).filter(key => !COMPANY_LIST_TITLES[key]))
         }
-    }, [data, props.onCustomTagsChange])
+    }, [data, onCustomTagsChange])
 
     useEffect(() => {
+        const availableListKeys = getCompanyListKeys(data)
+
         if (!props.companySelectorValue) {
             setActiveList(previousList => isCompactScreen
-                ? previousList && data[previousList] ? previousList : listKeys[0] ?? null
+                ? previousList && data[previousList] ? previousList : availableListKeys[0] ?? null
                 : null
             )
             return
@@ -50,7 +54,6 @@ export const CompanySelector = (props) => {
                 return previousList
             }
 
-            const availableListKeys = getCompanyListKeys(data)
             return availableListKeys.find(containsSelectedCompany) ?? availableListKeys[0] ?? null
         })
     }, [data, isCompactScreen, props.companySelectorValue, props.companyListSelectorValue])

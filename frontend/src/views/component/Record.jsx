@@ -1,7 +1,7 @@
 import {formatDate, formatDecimals, formatError} from "../../service/FormattingService";
 import {Button, Dialog, DialogActions, DialogTitle, Stack, Tooltip} from "@mui/material";
 import {RecordAssetAggregate} from "./RecordAssetAggregate";
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import axios from "axios";
 import {backend} from "../../properties";
 import {EditableTypography} from "./EditableTypography";
