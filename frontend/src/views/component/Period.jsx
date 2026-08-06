@@ -140,7 +140,7 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
                         <EstimatesPlusIcon/>
                     </Button>
                 </Tooltip>
-                {period.reportDate &&
+                {period.financial &&
                     <Tooltip title="Edit Period" placement="left">
                         <Button onClick={() => openEditDialog(period)}>
                             <EditNoteIcon/>

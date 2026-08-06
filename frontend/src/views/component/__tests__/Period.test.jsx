@@ -183,5 +183,6 @@ describe("Period", () => {
 
         expect(openDialog).toHaveBeenCalled();
         expect(screen.queryByText(/^Estimates:/)).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Edit Period"})).not.toBeInTheDocument();
     });
 });
