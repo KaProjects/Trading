@@ -83,7 +83,7 @@ export const RecordAssetAggregate = ({asset, currency, update}) => {
                     ? <Box sx={{color: "text.secondary", fontWeight: 500, fontSize: 14}}>edited</Box>
                     : <Box
                         data-testid="record-asset-profit"
-                        sx={{color: profitColor(asset.profitValue), fontWeight: 500, fontSize: 14, whiteSpace: "nowrap", mt: "-3px"}}
+                        sx={{color: profitColor(asset.profitValue), opacity: 0.78, fontWeight: 500, fontSize: 14, whiteSpace: "nowrap", mt: "-3px"}}
                     >
                             {formatProfitValue(asset.profitValue, currency)}
                             {" "}

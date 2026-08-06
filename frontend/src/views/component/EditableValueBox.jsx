@@ -37,10 +37,10 @@ export const EditableValueBox = ({
                     slotProps={{popper: {modifiers: [{name: 'offset', options: {offset: [0, -13],},},],},}}
                 >
                     <Button sx={{
-                                color: 'text.primary',
+                                color: 'text.secondary',
                                 borderRadius: 2,
-                                boxShadow: "1px 1px 1px #eeeeee",
-                                border: "1px solid #eeeeee",
+                                boxShadow: "1px 1px 1px rgba(0, 0, 0, 0.025)",
+                                border: "1px solid rgba(0, 0, 0, 0.04)",
                                 height: secondary ? "auto" : "25px",
                                 minHeight: "25px",
                                 py: secondary ? 0.25 : 0,

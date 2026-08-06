@@ -46,7 +46,7 @@ export const CompanySelector = (props) => {
                 company => company.id === props.companySelectorValue.id
             )
 
-            if (props.companyListSelectorValue && containsSelectedCompany(props.companyListSelectorValue)) {
+            if (props.companyListSelectorValue && data[props.companyListSelectorValue]) {
                 return props.companyListSelectorValue
             }
 

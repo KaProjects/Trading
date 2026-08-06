@@ -33,6 +33,11 @@ describe("EditableValueBox", () => {
         const button = screen.getByRole("button");
         expect(button).toHaveTextContent("$123");
         expect(button).toHaveAttribute("aria-disabled", "true");
+        expect(button).toHaveStyle({
+            color: "rgba(0, 0, 0, 0.6)",
+            border: "1px solid rgba(0, 0, 0, 0.04)",
+            boxShadow: "1px 1px 1px rgba(0, 0, 0, 0.025)",
+        });
 
         fireEvent.click(button);
 

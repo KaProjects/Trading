@@ -17,6 +17,7 @@ describe("RecordAssetAggregate", () => {
         expect(screen.getByTestId("record-asset-aggregate")).toHaveStyle("margin: 3px 0 2px 0");
         expect(screen.getByTestId("record-asset-profit")).toHaveTextContent("+75.38$ (+25.13%)");
         expect(screen.getByTestId("record-asset-profit")).toHaveStyle("margin-top: -3px");
+        expect(screen.getByTestId("record-asset-profit")).toHaveStyle("opacity: 0.78");
         expect(screen.getByTestId("record-asset-profit-percent")).toHaveStyle("font-size: 12px");
         expect(screen.getByRole("button")).toHaveTextContent("+75.38$ (+25.13%)");
         expect(screen.queryByText("Count")).not.toBeInTheDocument();

@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 
 const mockRecordEvent = jest.fn();
@@ -137,6 +137,30 @@ describe("CompanySelector", () => {
         fireEvent.click(screen.getByRole("option", {name: "Energy"}));
 
         expect(screen.getByRole("combobox", {name: "Company list"})).toHaveTextContent("Energy");
+        expect(screen.getByText("XOM")).toBeInTheDocument();
+        expect(screen.queryByText("TSLA")).not.toBeInTheDocument();
+    });
+
+    test("keeps an explicitly selected shared list even when it does not contain the selected company", async () => {
+        const ControlledSelector = () => {
+            const [companyListSelectorValue, setCompanyListSelectorValue] = useState("owned");
+
+            return <CompanySelector {...createProps({
+                companySelectorValue: {id: "company-3", ticker: "TSLA"},
+                companyListSelectorValue,
+                setCompanyListSelectorValue,
+            })}/>;
+        };
+
+        render(<ControlledSelector/>);
+
+        const listSelector = await screen.findByRole("combobox", {name: "Company list"});
+        expect(listSelector).toHaveTextContent("Owned");
+
+        fireEvent.mouseDown(listSelector);
+        fireEvent.click(screen.getByRole("option", {name: "Energy"}));
+
+        await waitFor(() => expect(screen.getByRole("combobox", {name: "Company list"})).toHaveTextContent("Energy"));
         expect(screen.getByText("XOM")).toBeInTheDocument();
         expect(screen.queryByText("TSLA")).not.toBeInTheDocument();
     });
