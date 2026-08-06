@@ -73,13 +73,17 @@ describe("Record", () => {
         );
 
         expect(screen.getByText("09.05.2026")).toBeInTheDocument();
-        expect(screen.getByTestId("record-summary")).toHaveStyle("gap: 5px");
+        expect(screen.getByTestId("record-summary")).toHaveStyle("display: grid");
+        expect(screen.getByTestId("record-summary")).toHaveStyle("column-gap: 5px");
+        expect(screen.getByTestId("record-summary")).toHaveStyle("row-gap: 1px");
+        expect(screen.getByTestId("record-targets-item")).toHaveStyle("width: 0");
+        expect(screen.getByTestId("record-targets-item")).toHaveStyle("overflow: visible");
         expect(screen.getByText("Price:$123")).toBeInTheDocument();
         expect(screen.getByTestId("editable-value-Price")).toHaveAttribute("aria-disabled", "true");
         expect(screen.getByText("Price to financials ratios:1 / 2 / 3 / 4")).toBeInTheDocument();
         expect(screen.getByTestId("editable-value-Price to financials ratios")).toHaveAttribute("aria-disabled", "true");
         expect(screen.getByText("Dividend yield:5%")).toBeInTheDocument();
-        expect(screen.getByTestId("editable-value-Dividend yield")).toHaveAttribute("data-empty-valid", "true");
+        expect(screen.getByTestId("editable-value-Dividend yield")).toHaveAttribute("aria-disabled", "true");
         expect(screen.getByText("Targets:T$")).toBeInTheDocument();
         expect(screen.getByTestId("editable-value-Price").compareDocumentPosition(
             screen.getByTestId("editable-value-Targets")
@@ -87,6 +91,9 @@ describe("Record", () => {
         expect(screen.getByText("Strategy:")).toBeInTheDocument();
         expect(screen.getByText("Content:")).toBeInTheDocument();
         expect(screen.getByText("aggregate:3@100$:23:69")).toBeInTheDocument();
+        expect(screen.getByText("aggregate:3@100$:23:69").compareDocumentPosition(
+            screen.getByTestId("editable-value-Price")
+        ) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     test("keeps empty targets visible", () => {
@@ -112,7 +119,7 @@ describe("Record", () => {
         expect(screen.getByTestId("editable-value-Targets")).not.toHaveStyle("pointer-events: none");
     });
 
-    test("keeps empty dividend yield visible", () => {
+    test("hides empty dividend yield", () => {
         render(
             <Record
                 data={{
@@ -131,8 +138,7 @@ describe("Record", () => {
             />
         );
 
-        expect(screen.getByTestId("editable-value-Dividend yield")).not.toHaveStyle("opacity: 0");
-        expect(screen.getByTestId("editable-value-Dividend yield")).not.toHaveStyle("pointer-events: none");
+        expect(screen.queryByTestId("editable-value-Dividend yield")).not.toBeInTheDocument();
     });
 
     test("does not render financial ratios when all four values are missing", () => {
@@ -242,7 +248,7 @@ describe("Record", () => {
         await waitFor(() => expect(screen.getByText("Targets:Updated target$")).toBeInTheDocument());
     });
 
-    test("updates dividend yield through axios and refreshes local record state", async () => {
+    test("does not edit dividend yield", () => {
         render(
             <Record
                 data={{
@@ -263,11 +269,8 @@ describe("Record", () => {
 
         fireEvent.click(screen.getByText("Dividend yield:5%"));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
-            expect.stringContaining("/record"),
-            {id: "record-1", dividendYield: "6.25"}
-        ));
-        await waitFor(() => expect(screen.getByText("Dividend yield:6.25%")).toBeInTheDocument());
+        expect(axios.put).not.toHaveBeenCalled();
+        expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     });
 
     test("does not render asset when record has no asset", () => {
@@ -293,6 +296,26 @@ describe("Record", () => {
         );
 
         expect(screen.queryByText(/aggregate:/)).not.toBeInTheDocument();
+    });
+
+    test("does not render an incomplete asset aggregate", () => {
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    dividendYield: 5,
+                    targets: "T",
+                    asset: {quantity: 3, purchasePrice: null},
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        expect(screen.queryByText(/aggregate:/)).not.toBeInTheDocument();
+        expect(screen.getByTestId("editable-value-Price")).toBeInTheDocument();
     });
 
     test("does not render editor sections with default content", () => {

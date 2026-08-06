@@ -65,7 +65,8 @@ export const RecordAssetAggregate = ({asset, currency, update}) => {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                margin: "3px 0 2px 0",
+                margin: 0,
+                minHeight: "51px",
                 width: "fit-content",
                 maxWidth: "100%",
                 lineHeight: 1.25,
@@ -75,6 +76,8 @@ export const RecordAssetAggregate = ({asset, currency, update}) => {
                 value={`${asset.quantity}@${asset.purchasePrice}`}
                 suffix={currency}
                 label="Asset aggregate"
+                style={{minHeight: "51px"}}
+                buttonStyle={{height: "51px", minHeight: "51px"}}
                 valueStyle={{fontSize: 17, fontWeight: 500}}
                 formatValue={formatAssetValue}
                 validate={validateAssetValue}

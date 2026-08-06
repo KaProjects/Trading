@@ -10,6 +10,7 @@ export const EditableValueBox = ({
     suffix,
     label,
     style,
+    buttonStyle,
     valueStyle,
     formatValue,
     validate,
@@ -48,6 +49,7 @@ export const EditableValueBox = ({
                                 lineHeight: 1.2,
                                 textTransform: 'none',
                                 cursor: disabled ? "default" : "pointer",
+                                ...buttonStyle,
                             }}
                             aria-disabled={disabled}
                             onClick={() => {

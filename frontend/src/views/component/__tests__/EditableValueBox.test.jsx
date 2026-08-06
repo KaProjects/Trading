@@ -61,6 +61,20 @@ describe("EditableValueBox", () => {
         expect(button).toHaveTextContent("+75$ (+25%)");
     });
 
+    test("applies a custom button size", () => {
+        render(
+            <EditableValueBox
+                value={"3@100"}
+                label={"Asset aggregate"}
+                validate={() => ""}
+                update={jest.fn()}
+                buttonStyle={{height: "51px", minHeight: "51px"}}
+            />
+        );
+
+        expect(screen.getByRole("button")).toHaveStyle("height: 51px; min-height: 51px");
+    });
+
     test("formats only the displayed value and keeps the raw value for editing", () => {
         render(
             <EditableValueBox

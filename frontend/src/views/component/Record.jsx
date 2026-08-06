@@ -1,5 +1,5 @@
 import {formatDate, formatDecimals, formatError} from "../../service/FormattingService";
-import {Button, Dialog, DialogActions, DialogTitle, Stack, Tooltip} from "@mui/material";
+import {Box, Button, Dialog, DialogActions, DialogTitle, Stack, Tooltip} from "@mui/material";
 import {RecordAssetAggregate} from "./RecordAssetAggregate";
 import React, {useState} from "react";
 import axios from "axios";
@@ -38,6 +38,10 @@ function hasFinancialRatios(record) {
         record.priceToOperatingIncome,
         record.priceToNetIncome,
     ].some(hasValue);
+}
+
+function hasAssetAggregate(asset) {
+    return asset && hasValue(asset.quantity) && hasValue(asset.purchasePrice);
 }
 
 function formatFinancialRatios(value) {
@@ -115,10 +119,6 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
         return updateRecord({id: record.id, price: value})
     }
 
-    function updateDividendYield(value) {
-        return updateRecord({id: record.id, dividendYield: value})
-    }
-
     function updateFinancialRatios(value) {
         const [priceToRevenues, priceToGrossProfit, priceToOperatingIncome, priceToNetIncome]
             = value.split("/").map(ratio => ratio.trim());
@@ -155,59 +155,104 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
         return (record.content && record.content !== JSON.stringify(defaultContent())) || contentSectionAdded
     }
 
+    const showAssetAggregate = hasAssetAggregate(record.asset);
+    const showFinancialRatios = hasFinancialRatios(record);
+    const showDividendYield = hasValue(record.dividendYield);
+    const summaryColumns = [
+        showAssetAggregate && "asset",
+        "price",
+        showFinancialRatios && "ratios",
+        showDividendYield && "dividend",
+    ].filter(Boolean);
+    const summarySecondRow = summaryColumns
+        .map(column => column === "asset" ? "asset" : column === "price" ? "targets" : ".")
+        .join(" ");
+
     return (
         <BorderedSection title={formatDate(record.date)} style={{color: 'text.primary'}}>
 
-            <Stack
-                data-testid="record-summary"
-                direction="row"
-                justifyContent="flex-start"
-                alignItems="stretch"
-                sx={{flexWrap: {xs: "wrap", sm: "nowrap"}, gap: "5px"}}
+            <Box
+                data-testid="record-summary-scroll"
+                sx={{
+                    maxWidth: "100%",
+                    overflowX: {xs: "auto", sm: "visible"},
+                    overflowY: {xs: "hidden", sm: "visible"},
+                    overscrollBehaviorX: "contain",
+                    pb: {xs: 0.5, sm: 0},
+                }}
             >
-                <EditableValueBox
-                    value={record.price}
-                    prefix={currency}
-                    label="Price"
-                    formatValue={(value) => formatDecimals(Number(value), 0, 4)}
-                    validate={(value) => validateNumber(value, false, 10, 4, false)}
-                    update={updatePrice}
-                    disabled
-                />
-                <EditableValueBox
-                    value={record.targets}
-                    suffix={currency}
-                    label={"Targets"}
-                    validate={() => ""}
-                    update={(value) => updateTargets(value)}
-                />
-                {hasFinancialRatios(record) &&
-                    <EditableValueBox
-                        value={financialRatiosValue(record)}
-                        label="Price to financials ratios"
-                        formatValue={formatFinancialRatios}
-                        validate={validateFinancialRatios}
-                        update={updateFinancialRatios}
-                        disabled
-                    />
-                }
-                <EditableValueBox
-                    value={record.dividendYield}
-                    suffix="%"
-                    label="Dividend yield"
-                    formatValue={(value) => formatDecimals(Number(value), 0, 2)}
-                    validate={(value) => validateNumber(value, true, 5, 2, false)}
-                    update={updateDividendYield}
-                />
-            </Stack>
-
-            {record.asset &&
-                <RecordAssetAggregate
-                    asset={record.asset}
-                    currency={currency}
-                    update={(quantity, purchasePrice) => updateAsset(quantity, purchasePrice)}
-                />
-            }
+                <Box
+                    data-testid="record-summary"
+                    sx={{
+                        display: "grid",
+                        gridTemplateAreas: `"${summaryColumns.join(" ")}" "${summarySecondRow}"`,
+                        gridTemplateColumns: `repeat(${summaryColumns.length}, max-content)`,
+                        gridTemplateRows: "max-content max-content",
+                        columnGap: "5px",
+                        rowGap: "1px",
+                        alignItems: "start",
+                        width: "max-content",
+                    }}
+                >
+                    {showAssetAggregate &&
+                        <Box data-testid="record-asset-item" sx={{gridArea: "asset"}}>
+                            <RecordAssetAggregate
+                                asset={record.asset}
+                                currency={currency}
+                                update={(quantity, purchasePrice) => updateAsset(quantity, purchasePrice)}
+                            />
+                        </Box>
+                    }
+                    <Box data-testid="record-price-item" sx={{gridArea: "price"}}>
+                        <EditableValueBox
+                            value={record.price}
+                            prefix={currency}
+                            label="Price"
+                            formatValue={(value) => formatDecimals(Number(value), 0, 4)}
+                            validate={(value) => validateNumber(value, false, 10, 4, false)}
+                            update={updatePrice}
+                            disabled
+                        />
+                    </Box>
+                    <Box
+                        data-testid="record-targets-item"
+                        sx={{gridArea: "targets", width: 0, minWidth: 0, overflow: "visible"}}
+                    >
+                        <Box sx={{width: "max-content"}}>
+                            <EditableValueBox
+                                value={record.targets}
+                                suffix={currency}
+                                label={"Targets"}
+                                validate={() => ""}
+                                update={(value) => updateTargets(value)}
+                            />
+                        </Box>
+                    </Box>
+                    {showFinancialRatios &&
+                        <Box data-testid="record-ratios-item" sx={{gridArea: "ratios"}}>
+                            <EditableValueBox
+                                value={financialRatiosValue(record)}
+                                label="Price to financials ratios"
+                                formatValue={formatFinancialRatios}
+                                validate={validateFinancialRatios}
+                                update={updateFinancialRatios}
+                                disabled
+                            />
+                        </Box>
+                    }
+                    {showDividendYield &&
+                        <Box data-testid="record-dividend-item" sx={{gridArea: "dividend"}}>
+                            <EditableValueBox
+                                value={record.dividendYield}
+                                suffix="%"
+                                label="Dividend yield"
+                                formatValue={(value) => formatDecimals(Number(value), 0, 2)}
+                                disabled
+                            />
+                        </Box>
+                    }
+                </Box>
+            </Box>
             {record.title &&
                 <EditableTypography
                     value={record.title}
@@ -222,7 +267,7 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                     label={"Review"}
                     content={record.review}
                     update={(value) => updateReview(value)}
-                style={{marginTop: "5px"}}
+                    style={{marginTop: {xs: "5px", sm: "8px"}}}
                 />
             }
             {showStrategySection() &&
