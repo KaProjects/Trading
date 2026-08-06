@@ -119,6 +119,26 @@ describe("Record", () => {
         expect(screen.getByTestId("editable-value-Targets")).not.toHaveStyle("pointer-events: none");
     });
 
+    test("keeps the summary gap when strategy is the first editor section", () => {
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    targets: "T",
+                    strategy: "Initial strategy",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        expect(screen.queryByText("Review:")).not.toBeInTheDocument();
+        expect(screen.getByText("Strategy:")).toBeInTheDocument();
+        expect(screen.getByTestId("record-editor-sections")).toHaveStyle("margin-top: 5px");
+    });
+
     test("hides empty dividend yield", () => {
         render(
             <Record

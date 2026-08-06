@@ -158,6 +158,11 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
     const showAssetAggregate = hasAssetAggregate(record.asset);
     const showFinancialRatios = hasFinancialRatios(record);
     const showDividendYield = hasValue(record.dividendYield);
+    const showReview = showReviewSection();
+    const showStrategy = showStrategySection();
+    const showRetro = showRetroSection();
+    const showContent = showContentSection();
+    const showEditorSections = showReview || showStrategy || showRetro || showContent;
     const summaryColumns = [
         showAssetAggregate && "asset",
         "price",
@@ -262,34 +267,40 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                     style={{margin: "12px 15px 0 5px"}}
                 />
             }
-            {showReviewSection() &&
-                <RecordEditorSection
-                    label={"Review"}
-                    content={record.review}
-                    update={(value) => updateReview(value)}
-                    style={{marginTop: {xs: "5px", sm: "8px"}}}
-                />
-            }
-            {showStrategySection() &&
-                <RecordEditorSection
-                    label={"Strategy"}
-                    content={record.strategy}
-                    update={(value) => updateStrategy(value)}
-                />
-            }
-            {showRetroSection() &&
-                <RecordEditorSection
-                    label={"Retrospective"}
-                    content={record.retro}
-                    update={(value) => updateRetro(value)}
-                />
-            }
-            {showContentSection() &&
-                <RecordEditorSection
-                    label={"Content"}
-                    content={record.content}
-                    update={(value) => updateContent(value)}
-                />
+            {showEditorSections &&
+                <Box
+                    data-testid="record-editor-sections"
+                    sx={{marginTop: "5px", "@media (min-width: 600px)": {marginTop: "8px"}}}
+                >
+                    {showReview &&
+                        <RecordEditorSection
+                            label={"Review"}
+                            content={record.review}
+                            update={(value) => updateReview(value)}
+                        />
+                    }
+                    {showStrategy &&
+                        <RecordEditorSection
+                            label={"Strategy"}
+                            content={record.strategy}
+                            update={(value) => updateStrategy(value)}
+                        />
+                    }
+                    {showRetro &&
+                        <RecordEditorSection
+                            label={"Retrospective"}
+                            content={record.retro}
+                            update={(value) => updateRetro(value)}
+                        />
+                    }
+                    {showContent &&
+                        <RecordEditorSection
+                            label={"Content"}
+                            content={record.content}
+                            update={(value) => updateContent(value)}
+                        />
+                    }
+                </Box>
             }
 
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
@@ -303,28 +314,28 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                        "& svg": {width: "20px", height: "20px", display: "block",},
                    }}
             >
-                {!showReviewSection() &&
+                {!showReview &&
                     <Tooltip title="Add review section" placement="left">
                         <Button onClick={() => setReviewSectionAdded(true)}>
                             <ReviewPlusIcon/>
                         </Button>
                     </Tooltip>
                 }
-                {!showStrategySection() &&
+                {!showStrategy &&
                     <Tooltip title="Add strategy section" placement="left">
                         <Button onClick={() => setStrategySectionAdded(true)}>
                             <StrategyPlusIcon/>
                         </Button>
                     </Tooltip>
                 }
-                {!showRetroSection() &&
+                {!showRetro &&
                     <Tooltip title="Add retro section" placement="left">
                         <Button onClick={() => setRetroSectionAdded(true)}>
                             <RetroPlusIcon/>
                         </Button>
                     </Tooltip>
                 }
-                {!showContentSection() &&
+                {!showContent &&
                     <Tooltip title="Add content section" placement="left">
                         <Button onClick={() => setContentSectionAdded(true)}>
                             <ContentPlusIcon/>
