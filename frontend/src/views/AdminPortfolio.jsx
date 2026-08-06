@@ -142,9 +142,17 @@ export const AdminPortfolio = ({companyLists = {all: []}, portfolios = []}) => {
                 >
                     Assign portfolio
                 </Button>
+
+                {alert &&
+                    <Alert
+                        severity={alert.severity}
+                        sx={{alignSelf: {sm: "flex-end"}, py: 0}}
+                    >
+                        {alert.message}
+                    </Alert>
+                }
             </Stack>
 
-            {alert && <Alert severity={alert.severity} sx={{mb: 2}}>{alert.message}</Alert>}
             {!loaded && <Loader error={error}/>}
 
             {loaded &&

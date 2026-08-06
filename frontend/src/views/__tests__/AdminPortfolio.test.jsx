@@ -127,7 +127,9 @@ describe("AdminPortfolio", () => {
             tradeIds: [102],
             portfolio: "PATRIA_MARGIN",
         }));
-        expect(await screen.findByText("Portfolio assigned successfully.")).toBeInTheDocument();
+        const successAlert = await screen.findByRole("alert");
+        expect(successAlert).toHaveTextContent("Portfolio assigned successfully.");
+        expect(successAlert.parentElement).toBe(screen.getByRole("button", {name: "Assign portfolio"}).parentElement);
         await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
         expect(document.getElementById("admin-portfolio-company-label").parentElement.querySelector("input"))
             .toHaveValue("");
