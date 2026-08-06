@@ -111,7 +111,7 @@ export const AddPeriodFinancialDialog = props => {
 
                         {warnings.length > 0 &&
                             <Alert severity="warning">
-                                <AlertTitle>Some Polygon.io data could not be loaded</AlertTitle>
+                                <AlertTitle>Some external data could not be loaded</AlertTitle>
                                 {warnings.map(warning => <Box key={warning}>{warning}</Box>)}
                             </Alert>
                         }

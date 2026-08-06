@@ -81,7 +81,9 @@ public class ResearchEndpoints
         List<Record> records = recordService.getBy(companyId);
         dto.getRecords().addAll(records);
 
-        Latest latest = latestService.getSyncedFor(companyId);
+        LatestService.SyncResult latestResult = latestService.getSyncedForWithWarnings(companyId);
+        Latest latest = latestResult.latest();
+        dto.getWarnings().addAll(latestResult.warnings());
 
         // backup if external service fails
         if (latest == null && !records.isEmpty()) {
@@ -108,7 +110,10 @@ public class ResearchEndpoints
                 .findFirst()
                 .map(period -> period.getName().toString())
                 .orElse(null);
-        dto.setImportablePeriods(firebaseService.getNewerPeriods(company.getTicker(), latestPeriodId));
+        FirebaseService.ImportCandidatesResult importCandidates =
+                firebaseService.getNewerPeriods(company.getTicker(), latestPeriodId);
+        dto.setImportablePeriods(importCandidates.periods());
+        dto.getWarnings().addAll(importCandidates.warnings());
 
         return Response.ok().entity(dto).build();
     }

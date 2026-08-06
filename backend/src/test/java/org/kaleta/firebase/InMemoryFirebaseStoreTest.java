@@ -94,16 +94,18 @@ class InMemoryFirebaseStoreTest
     @Test
     void readsNewerPeriodsInDescendingOrder()
     {
-        List<PeriodImportCandidateDto> periods = firebaseService.getNewerPeriods("NVDA", "24Q4");
+        FirebaseService.ImportCandidatesResult result = firebaseService.getNewerPeriods("NVDA", "24Q4");
+        List<PeriodImportCandidateDto> periods = result.periods();
 
         assertThat(periods.size(), is(2));
+        assertThat(result.warnings(), is(empty()));
         assertThat(periods.get(0).getName(), is("25Q2"));
         assertThat(periods.get(0).getEndingMonth(), is("2025-07"));
         assertThat(periods.get(0).getIsReported(), is(true));
         assertThat(periods.get(1).getName(), is("25Q1"));
         assertThat(firebaseService.getPeriod("NVDA", "25Q1").getEndingMonth(), is("2025-04"));
         assertThat(firebaseService.getPeriod("NVDA", "25Q1").getAdjustedEps(), is("1.28"));
-        assertThat(firebaseService.getNewerPeriods("AMD", "24Q4"), is(empty()));
+        assertThat(firebaseService.getNewerPeriods("AMD", "24Q4").periods(), is(empty()));
     }
 
     @Test
@@ -112,7 +114,12 @@ class InMemoryFirebaseStoreTest
         FirebaseStore failingStore = mock(FirebaseStore.class);
         when(failingStore.findQuarterIds("NVDA")).thenThrow(new IllegalStateException("Firebase unavailable"));
 
-        assertThat(new FirebaseService(failingStore).getNewerPeriods("NVDA", "24Q4"), is(empty()));
+        FirebaseService.ImportCandidatesResult result =
+                new FirebaseService(failingStore).getNewerPeriods("NVDA", "24Q4");
+
+        assertThat(result.periods(), is(empty()));
+        assertThat(result.warnings(), is(List.of(
+                "Firebase import candidates for NVDA could not be loaded: Firebase unavailable")));
     }
 
     @Test

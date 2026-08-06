@@ -53,7 +53,8 @@ class TradeEndpointsTest
     @BeforeEach
     void before()
     {
-        when(latestService.getSyncedFor(any())).thenReturn(null);
+        when(latestService.getSyncedForWithWarnings(any()))
+                .thenReturn(new LatestService.SyncResult(null, List.of()));
     }
 
     @Test
@@ -129,7 +130,8 @@ class TradeEndpointsTest
         Latest latest = new Latest();
         latest.setDatetime(LocalDateTime.of(2026, 5, 9, 14, 35));
         latest.setPrice(new BigDecimal("321.45"));
-        when(latestService.getSyncedFor(any())).thenReturn(latest);
+        when(latestService.getSyncedForWithWarnings(any()))
+                .thenReturn(new LatestService.SyncResult(latest, List.of()));
 
         Trades dto = given().when()
                 .get("/trade?active=true")
@@ -144,6 +146,25 @@ class TradeEndpointsTest
         assertBigDecimals(dto.getTrades().get(0).getSellTotal(), new BigDecimal("369457.06"));
         assertBigDecimals(dto.getTrades().get(0).getProfit(), new BigDecimal("-206142.3"));
         assertBigDecimals(dto.getTrades().get(0).getProfitPercentage(), new BigDecimal("-35.8100"));
+    }
+
+    @Test
+    void getTradesFilterActive_externalFailureReturnsWarning()
+    {
+        when(latestService.getSyncedForWithWarnings(any()))
+                .thenReturn(new LatestService.SyncResult(
+                        null,
+                        List.of("Finnhub quote could not be loaded: daily limit exceeded")));
+
+        Trades dto = given().when()
+                .get("/trade?active=true")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(Trades.class);
+
+        assertThat(dto.getWarnings(), is(List.of(
+                "Finnhub quote could not be loaded: daily limit exceeded")));
     }
 
     @Test

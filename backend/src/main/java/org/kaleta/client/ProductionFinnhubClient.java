@@ -1,5 +1,6 @@
 package org.kaleta.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -43,17 +44,31 @@ public class ProductionFinnhubClient implements FinnhubClient
             if (response.statusCode() == 200) {
                 return objectMapper.readValue(response.body(), FinnhubQuote.class);
             } else {
-                throw new RequestFailureException("request failed: " +  response.statusCode());
+                throw new RequestFailureException(errorMessage(response));
             }
         }
         catch (InterruptedException exception)
         {
             Thread.currentThread().interrupt();
-            throw new RequestFailureException(exception);
+            throw new RequestFailureException("Finnhub request was interrupted", exception);
         }
         catch (IOException exception)
         {
-            throw new RequestFailureException(exception);
+            throw new RequestFailureException("Finnhub request failed: " + exception.getMessage(), exception);
         }
+    }
+
+    private String errorMessage(HttpResponse<String> response)
+    {
+        String reason = null;
+        try {
+            JsonNode body = objectMapper.readTree(response.body());
+            reason = body.path("error").asText(null);
+            if (reason == null) reason = body.path("message").asText(null);
+        } catch (Exception ignored) {
+        }
+
+        String message = "Finnhub returned HTTP " + response.statusCode();
+        return reason == null || reason.isBlank() ? message : message + ": " + reason;
     }
 }

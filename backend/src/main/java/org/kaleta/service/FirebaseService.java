@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -33,6 +34,17 @@ public class FirebaseService
         this.firebaseStore = firebaseStore;
     }
 
+    public record ImportCandidatesResult(
+            List<PeriodImportCandidateDto> periods,
+            List<String> warnings)
+    {
+        public ImportCandidatesResult
+        {
+            periods = List.copyOf(periods);
+            warnings = List.copyOf(warnings);
+        }
+    }
+
     public void pushAssets(Trades activeTrades)
     {
         firebaseStore.replaceAssets(activeTrades.getTrades().stream()
@@ -40,19 +52,39 @@ public class FirebaseService
                 .collect(Collectors.toList()));
     }
 
-    public List<PeriodImportCandidateDto> getNewerPeriods(String ticker, String quarterId)
+    public ImportCandidatesResult getNewerPeriods(String ticker, String quarterId)
     {
+        PeriodName latestPeriod = quarterId == null ? null : PeriodName.valueOf(quarterId);
+        List<String> warnings = new ArrayList<>();
+        Set<String> quarterIds;
         try {
-            return firebaseStore.findQuarterIds(ticker).stream()
-                    .filter(id -> quarterId == null
-                            || PeriodName.valueOf(id).compareTo(PeriodName.valueOf(quarterId)) > 0)
-                    .sorted(Comparator.comparing(PeriodName::valueOf).reversed())
-                    .map(id -> toImportCandidate(ticker, id))
-                    .collect(Collectors.toList());
+            quarterIds = firebaseStore.findQuarterIds(ticker);
         } catch (RuntimeException exception) {
-            Log.warn("Firebase import candidates could not be loaded", exception);
-            return new ArrayList<>();
+            String warning = ExternalWarnings.unavailable(
+                    "Firebase import candidates for " + ticker,
+                    exception);
+            Log.warn(warning, exception);
+            return new ImportCandidatesResult(List.of(), List.of(warning));
         }
+
+        List<PeriodImportCandidateDto> periods = new ArrayList<>();
+        for (String id : quarterIds) {
+            try {
+                if (latestPeriod == null || PeriodName.valueOf(id).compareTo(latestPeriod) > 0) {
+                    periods.add(toImportCandidate(ticker, id));
+                }
+            } catch (RuntimeException exception) {
+                String warning = ExternalWarnings.unavailable(
+                        "Firebase period " + id + " for " + ticker,
+                        exception);
+                Log.warn(warning, exception);
+                warnings.add(warning);
+            }
+        }
+        periods.sort(Comparator.comparing(
+                candidate -> PeriodName.valueOf(candidate.getName()),
+                Comparator.reverseOrder()));
+        return new ImportCandidatesResult(periods, warnings);
     }
 
     private PeriodImportCandidateDto toImportCandidate(String ticker, String quarterId)

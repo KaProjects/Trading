@@ -1,5 +1,6 @@
 package org.kaleta.service;
 
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.kaleta.client.PolygonClient;
@@ -14,6 +15,7 @@ import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -46,10 +48,11 @@ public class ImportService
     {
         Company company = companyService.getCompany(companyId);
         String ticker = company.getTicker();
-        PeriodImportDto firebaseData = loadFirebasePeriod(ticker, quarterId);
-        PeriodImportDataDto result = firebaseData == null
-                ? new PeriodImportDataDto()
-                : createPeriodData(firebaseData);
+        PeriodImportDataDto result = new PeriodImportDataDto();
+        PeriodImportDto firebaseData = loadFirebasePeriod(result, ticker, quarterId);
+        if (firebaseData != null) {
+            populatePeriodData(result, firebaseData);
+        }
 
         loadPolygonFinancials(result, ticker, quarterId);
         if (firebaseData != null) {
@@ -74,18 +77,27 @@ public class ImportService
         String ticker = company.getTicker();
         String currentQuarter = period.getName().toString();
         EstimateImportDto result = new EstimateImportDto();
-        result.setCurrent(getEstimate(ticker, currentQuarter, 0));
-        result.setNext1(getEstimate(ticker, currentQuarter, 1));
-        result.setNext2(getEstimate(ticker, currentQuarter, 2));
-        result.setNext3(getEstimate(ticker, currentQuarter, 3));
+        result.setCurrent(getEstimate(result, ticker, currentQuarter, 0));
+        result.setNext1(getEstimate(result, ticker, currentQuarter, 1));
+        result.setNext2(getEstimate(result, ticker, currentQuarter, 2));
+        result.setNext3(getEstimate(result, ticker, currentQuarter, 3));
         return result;
     }
 
-    private EstimateImportDto.Quarter getEstimate(String ticker, String quarterId, int offset)
+    private EstimateImportDto.Quarter getEstimate(
+            EstimateImportDto result,
+            String ticker,
+            String quarterId,
+            int offset)
     {
+        String shiftedQuarter = arithmeticService.shiftQuarter(quarterId, offset);
         try {
-            return firebaseService.getLatestEstimate(ticker, arithmeticService.shiftQuarter(quarterId, offset));
-        } catch (Exception ignored) {
+            return firebaseService.getLatestEstimate(ticker, shiftedQuarter);
+        } catch (Exception exception) {
+            addWarning(
+                    result.getWarnings(),
+                    "Firebase/Finnhub estimate " + shiftedQuarter + " for " + ticker,
+                    exception);
             return null;
         }
     }
@@ -98,9 +110,8 @@ public class ImportService
                 || periodType == PeriodType.Q4;
     }
 
-    private PeriodImportDataDto createPeriodData(PeriodImportDto firebaseData)
+    private void populatePeriodData(PeriodImportDataDto result, PeriodImportDto firebaseData)
     {
-        PeriodImportDataDto result = new PeriodImportDataDto();
         result.setName(firebaseData.getName());
         result.setEndingMonth(firebaseData.getEndingMonth());
         result.setReportDate(firebaseData.getReportDate());
@@ -116,14 +127,20 @@ public class ImportService
         firebase.setNetIncome(firebaseData.getNetIncome());
         firebase.setDividend(firebaseData.getDividend());
         firebase.setAdjustedEps(firebaseData.getAdjustedEps());
-        return result;
     }
 
-    private PeriodImportDto loadFirebasePeriod(String ticker, String quarterId)
+    private PeriodImportDto loadFirebasePeriod(
+            PeriodImportDataDto result,
+            String ticker,
+            String quarterId)
     {
         try {
             return firebaseService.getPeriod(ticker, quarterId);
-        } catch (Exception ignored) {
+        } catch (Exception exception) {
+            addWarning(
+                    result.getWarnings(),
+                    "Firebase period " + quarterId + " for " + ticker,
+                    exception);
             return null;
         }
     }
@@ -135,8 +152,11 @@ public class ImportService
     {
         try {
             result.getPolygon().setAdjustedEps(firebaseService.getLatestActualEps(ticker, quarterId));
-        } catch (Exception ignored) {
-            // Import values are optional suggestions.
+        } catch (Exception exception) {
+            addWarning(
+                    result.getWarnings(),
+                    "Firebase/Finnhub EPS for " + quarterId + " and " + ticker,
+                    exception);
         }
     }
 
@@ -159,8 +179,11 @@ public class ImportService
             polygon.setGrossProfit(toMillions(values.grossProfit()));
             polygon.setOperatingIncome(toMillions(values.operatingIncome()));
             polygon.setNetIncome(toMillions(values.netIncome()));
-        } catch (Exception ignored) {
-            // Import values are optional suggestions.
+        } catch (Exception exception) {
+            addWarning(
+                    result.getWarnings(),
+                    "Polygon.io financial data for " + quarterId + " and " + ticker,
+                    exception);
         }
     }
 
@@ -183,9 +206,19 @@ public class ImportService
             PeriodImportDataDto.Source polygon = result.getPolygon();
             polygon.setPriceHigh(toString(priceRange.get().high()));
             polygon.setPriceLow(toString(priceRange.get().low()));
-        } catch (Exception ignored) {
-            // Import values are optional suggestions.
+        } catch (Exception exception) {
+            addWarning(
+                    result.getWarnings(),
+                    "Polygon.io price data for " + ticker,
+                    exception);
         }
+    }
+
+    private void addWarning(List<String> warnings, String source, Exception exception)
+    {
+        String warning = ExternalWarnings.unavailable(source, exception);
+        Log.warn(warning, exception);
+        warnings.add(warning);
     }
 
     private String toMillions(BigDecimal value)

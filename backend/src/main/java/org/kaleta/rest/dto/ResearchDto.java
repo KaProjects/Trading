@@ -26,6 +26,7 @@ public class ResearchDto
     private PriceIndicators indicators;
     private Assets assets;
     private List<PeriodImportCandidateDto> importablePeriods = new ArrayList<>();
+    private List<String> warnings = new ArrayList<>();
 
     @Data
     public static class PeriodDto extends Periods.Period {

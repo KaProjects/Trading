@@ -272,7 +272,7 @@ describe("ImportPeriodDialog", () => {
 
         fireEvent.click(await screen.findByText("24Q1"));
 
-        expect(await screen.findByText("Some Polygon.io data could not be loaded")).toBeInTheDocument();
+        expect(await screen.findByText("Some external data could not be loaded")).toBeInTheDocument();
         expect(screen.getByText(
             "Polygon.io financial data could not be loaded: rate limit exceeded"
         )).toBeInTheDocument();

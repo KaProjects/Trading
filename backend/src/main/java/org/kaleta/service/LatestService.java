@@ -15,11 +15,20 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
 public class LatestService
 {
+    public record SyncResult(Latest latest, List<String> warnings)
+    {
+        public SyncResult
+        {
+            warnings = List.copyOf(warnings);
+        }
+    }
+
     @Inject
     LatestDao latestDao;
     @Inject
@@ -27,9 +36,10 @@ public class LatestService
     @Inject
     CompanyService companyService;
 
-    public Latest getSyncedFor(Long companyId)
+    public SyncResult getSyncedForWithWarnings(Long companyId)
     {
         Company company = companyService.findEntity(companyId);
+        List<String> warnings = new ArrayList<>();
 
         FinnhubQuote finnhubQuote = null;
         if (company.getCurrency().equals(Currency.$)){
@@ -38,8 +48,12 @@ public class LatestService
                 if (quote != null && !(quote.getC().equals("0") ||  quote.getT().equals("0"))) {
                     finnhubQuote = quote;
                 }
-            } catch (RequestFailureException e){
-                Log.info(e);
+            } catch (RequestFailureException exception){
+                String warning = ExternalWarnings.unavailable(
+                        "Finnhub quote for " + company.getTicker(),
+                        exception);
+                Log.warn(warning, exception);
+                warnings.add(warning);
             }
         }
 
@@ -67,12 +81,12 @@ public class LatestService
                 latest.setDatetime(datetime);
                 latestDao.save(latest);
             }
-            return latest;
+            return new SyncResult(latest, warnings);
         } else {
             if (latests.isEmpty()) {
-                return null;
+                return new SyncResult(null, warnings);
             } else {
-                return latests.get(0);
+                return new SyncResult(latests.get(0), warnings);
             }
         }
     }

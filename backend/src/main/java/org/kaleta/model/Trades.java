@@ -12,6 +12,7 @@ public class Trades
 {
     private List<Trade> trades = new ArrayList<>();
     private Aggregates aggregates;
+    private List<String> warnings = new ArrayList<>();
 
     @Data
     public static class Trade implements Comparable<Trade>{

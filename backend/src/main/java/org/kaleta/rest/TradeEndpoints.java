@@ -72,24 +72,31 @@ public class TradeEndpoints
 
         if (active != null && active)
         {
-            Map<Company, Latest> synced = new HashMap<>();
+            Map<Company, LatestService.SyncResult> synced = new HashMap<>();
 
             for (Trades.Trade trade : trades.getTrades())
             {
-                synced.computeIfAbsent(trade.getCompany(), company -> latestService.getSyncedFor(company.getId()));
+                LatestService.SyncResult syncResult = synced.computeIfAbsent(
+                        trade.getCompany(),
+                        company -> latestService.getSyncedForWithWarnings(company.getId()));
+                Latest latest = syncResult.latest();
 
-                if (synced.containsKey(trade.getCompany()))
+                if (latest != null)
                 {
-                    trade.setSellDate(new Date(synced.get(trade.getCompany()).getDatetime()
+                    trade.setSellDate(new Date(latest.getDatetime()
                             .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()));
                     trade.setSellQuantity(trade.getPurchaseQuantity());
-                    trade.setSellPrice(synced.get(trade.getCompany()).getPrice());
+                    trade.setSellPrice(latest.getPrice());
                     trade.setSellFees(trade.getPurchaseFees());
                     trade.setSellTotal(arithmeticService.sellTotal(trade.getSellPrice(), trade.getSellQuantity(), trade.getSellFees()));
                     trade.setProfit(trade.getSellTotal().subtract(trade.getPurchaseTotal()));
                     trade.setProfitPercentage(arithmeticService.profitPercentage(trade.getPurchaseTotal(), trade.getSellTotal()));
                 }
             }
+            synced.values().stream()
+                    .flatMap(result -> result.warnings().stream())
+                    .distinct()
+                    .forEach(trades.getWarnings()::add);
         }
         return Response.ok(trades).build();
     }

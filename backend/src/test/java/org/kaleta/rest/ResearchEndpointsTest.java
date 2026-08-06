@@ -59,7 +59,8 @@ public class ResearchEndpointsTest
         reset(finnhubClient, polygonClient, firebaseService);
         when(finnhubClient.quote(any())).thenReturn(null);
         when(firebaseService.getPeriod(anyString(), anyString())).thenReturn(null);
-        when(firebaseService.getNewerPeriods(anyString(), nullable(String.class))).thenReturn(List.of());
+        when(firebaseService.getNewerPeriods(anyString(), nullable(String.class)))
+                .thenReturn(new FirebaseService.ImportCandidatesResult(List.of(), List.of()));
     }
 
     @Test
@@ -163,6 +164,7 @@ public class ResearchEndpointsTest
         assertBigDecimals(dto.getAssets().getAggregate().getPurchasePrice(), new BigDecimal("150"));
         assertBigDecimals(dto.getAssets().getAggregate().getProfitValue(), new BigDecimal("32520"));
         assertBigDecimals(dto.getAssets().getAggregate().getProfitPercent(), new BigDecimal("722.67"));
+        assertThat(dto.getWarnings(), is(List.of()));
 
         verify(firebaseService).getNewerPeriods("RCH", "25Q1");
     }
@@ -174,7 +176,8 @@ public class ResearchEndpointsTest
         candidate.setName("25Q2");
         candidate.setEndingMonth("2025-07");
         candidate.setIsReported(false);
-        when(firebaseService.getNewerPeriods("RCH", "25Q1")).thenReturn(List.of(candidate));
+        when(firebaseService.getNewerPeriods("RCH", "25Q1"))
+                .thenReturn(new FirebaseService.ImportCandidatesResult(List.of(candidate), List.of()));
 
         ResearchDto dto = given().when()
                 .get("/research/2281")
@@ -188,6 +191,30 @@ public class ResearchEndpointsTest
         assertThat(dto.getImportablePeriods().get(0).getEndingMonth(), is("2025-07"));
         assertThat(dto.getImportablePeriods().get(0).getIsReported(), is(false));
         verify(firebaseService).getNewerPeriods("RCH", "25Q1");
+    }
+
+    @Test
+    void get_externalFailuresReturnWarningsAndAvailableData() throws RequestFailureException
+    {
+        when(finnhubClient.quote("RCH"))
+                .thenThrow(new RequestFailureException("daily limit exceeded"));
+        when(firebaseService.getNewerPeriods("RCH", "25Q1"))
+                .thenReturn(new FirebaseService.ImportCandidatesResult(
+                        List.of(),
+                        List.of("Firebase import candidates for RCH could not be loaded: permission denied")));
+
+        ResearchDto dto = given().when()
+                .get("/research/2281")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(ResearchDto.class);
+
+        assertThat(dto.getLatest(), is(notNullValue()));
+        assertThat(dto.getImportablePeriods(), is(List.of()));
+        assertThat(dto.getWarnings(), containsInAnyOrder(
+                "Finnhub quote for RCH could not be loaded: daily limit exceeded",
+                "Firebase import candidates for RCH could not be loaded: permission denied"));
     }
 
     @Test
@@ -249,7 +276,7 @@ public class ResearchEndpointsTest
     }
 
     @Test
-    void importPeriod_sourceFailureReturnsAvailableSuggestionsWithoutWarning() throws RequestFailureException
+    void importPeriod_sourceFailureReturnsAvailableSuggestionsWithWarnings() throws RequestFailureException
     {
         Long companyId = 2281L;
         when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData());
@@ -272,7 +299,9 @@ public class ResearchEndpointsTest
         assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
         assertThat(dto.getPolygon().getAdjustedEps(), is(nullValue()));
         assertThat(dto.getPolygon().getPriceHigh(), is("140.25"));
-        assertThat(dto.getWarnings().size(), is(0));
+        assertThat(dto.getWarnings(), containsInAnyOrder(
+                "Polygon.io financial data for 25Q2 and RCH could not be loaded: rate limit exceeded",
+                "Firebase/Finnhub EPS for 25Q2 and RCH could not be loaded: Finnhub unavailable"));
     }
 
     @Test
@@ -302,7 +331,8 @@ public class ResearchEndpointsTest
         assertThat(dto.getPolygon().getRevenue(), is("20"));
         assertThat(dto.getPolygon().getAdjustedEps(), is("1.27"));
         assertThat(dto.getPolygon().getPriceHigh(), is(nullValue()));
-        assertThat(dto.getWarnings().size(), is(0));
+        assertThat(dto.getWarnings(), is(List.of(
+                "Firebase period 25Q2 for RCH could not be loaded: Gemini unavailable")));
         verify(polygonClient).getFinancials("RCH", "2025", "Q2");
         verify(firebaseService).getLatestActualEps("RCH", "25Q2");
     }
@@ -361,11 +391,12 @@ public class ResearchEndpointsTest
         Map<String, Object> fields = response.jsonPath().getMap("");
         EstimateImportDto dto = response.as(EstimateImportDto.class);
 
-        assertThat(fields.keySet(), containsInAnyOrder("current", "next1", "next2", "next3"));
+        assertThat(fields.keySet(), containsInAnyOrder("current", "next1", "next2", "next3", "warnings"));
         assertThat(dto.getCurrent().getEps(), is("5"));
         assertThat(dto.getNext1().getEps(), is("6"));
         assertThat(dto.getNext2().getEps(), is("7"));
         assertThat(dto.getNext3().getEps(), is("8"));
+        assertThat(dto.getWarnings(), is(List.of()));
     }
 
     @Test
@@ -387,6 +418,8 @@ public class ResearchEndpointsTest
         assertThat(dto.getNext1(), is(nullValue()));
         assertThat(dto.getNext2(), is(nullValue()));
         assertThat(dto.getNext3(), is(nullValue()));
+        assertThat(dto.getWarnings(), is(List.of(
+                "Firebase/Finnhub estimate 25Q1 for RCH could not be loaded: Finnhub unavailable")));
     }
 
     @Test
