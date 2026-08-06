@@ -4,6 +4,7 @@ import lombok.Getter;
 
 public enum Portfolio
 {
+    FIDELITY_ORCL("Fidelity - ORCL", "Fo"),
     PATRIA_STANDARD("Patria - Standard", "P"),
     PATRIA_MARGIN("Patria - Margin", "Pm"),
     PATRIA_DIP("Patria - DIP", "Pd"),

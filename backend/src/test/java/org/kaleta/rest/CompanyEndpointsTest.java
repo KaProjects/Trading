@@ -59,9 +59,9 @@ class CompanyEndpointsTest
         assertThat(dto.getSectors().size(), is(Sector.values().length));
         assertThat(dto.getCurrencies().size(), is(Currency.values().length));
         assertThat(dto.getPortfolios().size(), is(Portfolio.values().length));
-        assertThat(dto.getPortfolios().get(0).getKey(), is(Portfolio.PATRIA_DIP.toString()));
-        assertThat(dto.getPortfolios().get(0).getName(), is(Portfolio.PATRIA_DIP.getName()));
-        assertThat(dto.getPortfolios().get(0).getAbbreviation(), is("Pd"));
+        assertThat(dto.getPortfolios().get(0).getKey(), is(Portfolio.FIDELITY_ORCL.toString()));
+        assertThat(dto.getPortfolios().get(0).getName(), is("Fidelity - ORCL"));
+        assertThat(dto.getPortfolios().get(0).getAbbreviation(), is("Fo"));
         assertThat(dto.getYears(), is(List.of("2024", "2023", "2022", "2021", "2020", "2018")));
     }
 

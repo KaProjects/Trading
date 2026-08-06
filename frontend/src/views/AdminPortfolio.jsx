@@ -30,7 +30,6 @@ import {formatDate, formatDecimals, formatError} from "../service/FormattingServ
 import {Loader} from "./component/Loader";
 
 export const AdminPortfolio = ({companyLists = {all: []}, portfolios = []}) => {
-    const companies = companyLists.all ?? [];
     const [companyId, setCompanyId] = useState("");
     const [portfolioKey, setPortfolioKey] = useState("");
     const [selectedTradeIds, setSelectedTradeIds] = useState([]);
@@ -38,10 +37,18 @@ export const AdminPortfolio = ({companyLists = {all: []}, portfolios = []}) => {
     const [refresh, setRefresh] = useState("");
     const [alert, setAlert] = useState(null);
 
-    const query = "/admin/portfolio/trades?filter"
-        + (companyId ? "&companyId=" + companyId : "")
-        + (refresh ? "&refresh=" + refresh : "");
+    const query = "/admin/portfolio/trades?filter" + (refresh ? "&refresh=" + refresh : "");
     const {data, loaded, error} = useData(query);
+    const trades = data ?? [];
+    const companyIds = new Set(trades.map(trade => trade.company.id));
+    const companies = (companyLists.all ?? []).filter(company => companyIds.has(company.id));
+    const visibleTrades = companyId
+        ? trades.filter(trade => trade.company.id === companyId)
+        : trades;
+    const visibleTradeIds = visibleTrades.map(trade => trade.id);
+    const allVisibleSelected = visibleTradeIds.length > 0
+        && visibleTradeIds.every(tradeId => selectedTradeIds.includes(tradeId));
+    const someVisibleSelected = visibleTradeIds.some(tradeId => selectedTradeIds.includes(tradeId));
     const selectedPortfolio = useMemo(
         () => portfolios.find(portfolio => portfolio.key === portfolioKey),
         [portfolioKey, portfolios]
@@ -61,12 +68,25 @@ export const AdminPortfolio = ({companyLists = {all: []}, portfolios = []}) => {
         setAlert(null);
     }
 
+    function toggleAllTrades() {
+        setSelectedTradeIds(current => {
+            if (allVisibleSelected) {
+                const visibleIds = new Set(visibleTradeIds);
+                return current.filter(tradeId => !visibleIds.has(tradeId));
+            }
+            return [...new Set([...current, ...visibleTradeIds])];
+        });
+        setAlert(null);
+    }
+
     function assignPortfolio() {
         axios.put(backend + "/admin/portfolio", {
             tradeIds: selectedTradeIds,
             portfolio: portfolioKey,
         }).then(() => {
             setConfirmOpen(false);
+            setCompanyId("");
+            setPortfolioKey("");
             setSelectedTradeIds([]);
             setAlert({severity: "success", message: "Portfolio assigned successfully."});
             setRefresh(Date.now().toString());
@@ -77,7 +97,6 @@ export const AdminPortfolio = ({companyLists = {all: []}, portfolios = []}) => {
         });
     }
 
-    const trades = data ?? [];
     const assignmentDisabled = selectedTradeIds.length === 0 || !portfolioKey;
 
     return (
@@ -106,6 +125,7 @@ export const AdminPortfolio = ({companyLists = {all: []}, portfolios = []}) => {
                         value={portfolioKey}
                         onChange={event => {setPortfolioKey(event.target.value);setAlert(null);}}
                     >
+                        <MenuItem value=""></MenuItem>
                         {portfolios.map(portfolio => (
                             <MenuItem key={portfolio.key} value={portfolio.key}>
                                 {portfolio.name} ({portfolio.abbreviation})
@@ -132,17 +152,27 @@ export const AdminPortfolio = ({companyLists = {all: []}, portfolios = []}) => {
                     <Table size="small" stickyHeader aria-label="Trades without portfolio">
                         <TableHead>
                             <TableRow>
-                                <TableCell padding="checkbox"></TableCell>
-                                <TableCell>ID</TableCell>
+                                <TableCell padding="checkbox">
+                                    <Checkbox
+                                        checked={allVisibleSelected}
+                                        indeterminate={someVisibleSelected && !allVisibleSelected}
+                                        disabled={visibleTradeIds.length === 0}
+                                        onChange={toggleAllTrades}
+                                        inputProps={{"aria-label": "Select all trades"}}
+                                    />
+                                </TableCell>
                                 <TableCell>Company</TableCell>
-                                <TableCell>Purchase date</TableCell>
                                 <TableCell align="right">Quantity</TableCell>
-                                <TableCell align="right">Price</TableCell>
+                                <TableCell>Purchase date</TableCell>
+                                <TableCell align="right">Purchase price</TableCell>
+                                <TableCell align="right">Purchase fees</TableCell>
                                 <TableCell>Sale date</TableCell>
+                                <TableCell align="right">Sale price</TableCell>
+                                <TableCell align="right">Sale fees</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {trades.map(trade => (
+                            {visibleTrades.map(trade => (
                                 <TableRow key={trade.id} hover selected={selectedTradeIds.includes(trade.id)}>
                                     <TableCell padding="checkbox">
                                         <Checkbox
@@ -151,17 +181,19 @@ export const AdminPortfolio = ({companyLists = {all: []}, portfolios = []}) => {
                                             inputProps={{"aria-label": `Select trade ${trade.id}`}}
                                         />
                                     </TableCell>
-                                    <TableCell>{trade.id}</TableCell>
                                     <TableCell>{trade.company.ticker}</TableCell>
-                                    <TableCell>{formatDate(trade.purchaseDate)}</TableCell>
                                     <TableCell align="right">{trade.purchaseQuantity}</TableCell>
+                                    <TableCell>{formatDate(trade.purchaseDate)}</TableCell>
                                     <TableCell align="right">{formatDecimals(trade.purchasePrice, 0, 4)}</TableCell>
+                                    <TableCell align="right">{formatDecimals(trade.purchaseFees, 0, 2)}</TableCell>
                                     <TableCell>{formatDate(trade.sellDate)}</TableCell>
+                                    <TableCell align="right">{formatDecimals(trade.sellPrice, 0, 4)}</TableCell>
+                                    <TableCell align="right">{formatDecimals(trade.sellFees, 0, 2)}</TableCell>
                                 </TableRow>
                             ))}
-                            {trades.length === 0 &&
+                            {visibleTrades.length === 0 &&
                                 <TableRow>
-                                    <TableCell colSpan={7} align="center">No trades without portfolio.</TableCell>
+                                    <TableCell colSpan={9} align="center">No trades without portfolio.</TableCell>
                                 </TableRow>
                             }
                         </TableBody>
