@@ -1,9 +1,13 @@
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import axios from "axios";
-import {EarningsProjectionsDialog} from "../EarningsProjectionsDialog";
+
+const mockUseMediaQuery = jest.fn(() => false);
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({backend: "http://backend"}));
+jest.mock("@mui/material/useMediaQuery", () => (...args) => mockUseMediaQuery(...args));
+
+import {EarningsProjectionsDialog} from "../EarningsProjectionsDialog";
 
 const latestPeriod = {
     id: "period-1",
@@ -22,6 +26,7 @@ const latestPeriod = {
 
 beforeEach(() => {
     axios.post.mockReset();
+    mockUseMediaQuery.mockReturnValue(false);
 });
 
 test("projects prices and P/E ratios from an editable target price", () => {
@@ -37,7 +42,7 @@ test("projects prices and P/E ratios from an editable target price", () => {
         />
     );
 
-    expect(screen.getByRole("heading", {name: "NVDA - 26Q2 - E&P Projections"})).toBeInTheDocument();
+    expect(screen.getByRole("heading", {name: "NVDA - 26Q2 - Earnings and Prices Projections"})).toBeInTheDocument();
     expect(screen.getByLabelText("Past 4")).toHaveValue("1");
     expect(screen.getByLabelText("Current")).toHaveValue("11");
     expect(screen.getByLabelText("Next 3")).toHaveValue("14");
@@ -109,6 +114,22 @@ test("projects prices and P/E ratios from an editable target price", () => {
 
     fireEvent.click(screen.getByRole("button", {name: "Close"}));
     expect(handleClose).toHaveBeenCalled();
+});
+
+test("uses the abbreviated title on narrow screens", () => {
+    mockUseMediaQuery.mockReturnValue(true);
+
+    render(
+        <EarningsProjectionsDialog
+            open
+            handleClose={jest.fn()}
+            ticker="NVDA"
+            currentPrice={100}
+            latestPeriod={latestPeriod}
+        />
+    );
+
+    expect(screen.getByRole("heading", {name: "NVDA - 26Q2 - E&P Projections"})).toBeInTheDocument();
 });
 
 test("persists changed current and forward estimates after confirmation", async () => {

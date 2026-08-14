@@ -20,6 +20,7 @@ import {
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import axios from "axios";
 import React, {useEffect, useRef, useState} from "react";
 import {backend} from "../properties";
@@ -185,6 +186,7 @@ export const EarningsProjectionsDialog = ({
     latestPeriod,
     previousPeriod,
 }) => {
+    const isNarrowScreen = useMediaQuery("(max-width:599.95px)");
     const [targetPrice, setTargetPrice] = useState("");
     const [targetPe, setTargetPe] = useState("30");
     const [forecastAdjustment, setForecastAdjustment] = useState("0");
@@ -363,7 +365,9 @@ export const EarningsProjectionsDialog = ({
                 transition: {onEntered: updateTableScrollFades},
             }}
         >
-            <DialogTitle>{ticker} - {periodName || "-"} - E&amp;P Projections</DialogTitle>
+            <DialogTitle>
+                {ticker} - {periodName || "-"} - {isNarrowScreen ? "E&P Projections" : "Earnings and Prices Projections"}
+            </DialogTitle>
             <DialogContent sx={{padding: 2, display: "flex", flex: "1 1 0", flexDirection: "column", overflow: "hidden", minHeight: 0}}>
                 <Box
                     data-testid="estimate-settings-scroll"
