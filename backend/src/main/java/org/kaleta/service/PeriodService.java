@@ -133,6 +133,10 @@ public class PeriodService
     {
         List<Period> periods = periodDao.list(companyId);
         periods.sort((a, b) -> -a.getEndingMonth().compareTo(b.getEndingMonth()));
+        List<Period> reportedPeriods = periods.stream()
+                .filter(period -> period.getRevenue() != null)
+                .collect(Collectors.toList());
+        List<Period> calculationPeriods = latestConsecutiveQuarterPeriods(reportedPeriods);
 
         Periods model = new Periods();
 
@@ -146,11 +150,10 @@ public class PeriodService
             model.getPeriods().add(periodModel);
         }
 
-        computeFinancialGrowth(model.getFinancials());
+        computeFinancialGrowth(model.getFinancials().subList(0, calculationPeriods.size()));
 
         Period ttm = computeTtm(
-                periods.stream()
-                        .filter(p -> p.getRevenue() != null)
+                calculationPeriods.stream()
                         .limit(4)
                         .collect(Collectors.toList()));
         if (ttm != null){
@@ -298,6 +301,40 @@ public class PeriodService
         return previous != null
                 && current.compareTo(BigDecimal.ZERO) >= 0
                 && previous.compareTo(BigDecimal.ZERO) >= 0;
+    }
+
+    private List<Period> latestConsecutiveQuarterPeriods(List<Period> periods)
+    {
+        if (periods.isEmpty() || periods.stream().anyMatch(period -> !isQuarter(period.getName().getType()))) {
+            return periods;
+        }
+
+        List<Period> consecutivePeriods = new ArrayList<>();
+        consecutivePeriods.add(periods.get(0));
+        for (int i = 1; i < periods.size(); i++) {
+            Period newer = periods.get(i - 1);
+            Period older = periods.get(i);
+            if (!areConsecutiveQuarters(newer.getName(), older.getName())) {
+                break;
+            }
+            consecutivePeriods.add(older);
+        }
+        return consecutivePeriods;
+    }
+
+    private boolean isQuarter(PeriodType type)
+    {
+        return type == PeriodType.Q1
+                || type == PeriodType.Q2
+                || type == PeriodType.Q3
+                || type == PeriodType.Q4;
+    }
+
+    private boolean areConsecutiveQuarters(PeriodName newer, PeriodName older)
+    {
+        int newerIndex = newer.getYear().getValue() * 4 + newer.getType().getNumber();
+        int olderIndex = older.getYear().getValue() * 4 + older.getType().getNumber();
+        return newerIndex - olderIndex == 1;
     }
 
     private Period computeTtm(List<Period> periods)

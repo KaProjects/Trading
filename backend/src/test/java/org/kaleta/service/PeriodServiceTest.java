@@ -555,6 +555,35 @@ public class PeriodServiceTest
     }
 
     @Test
+    void getBy_financialGrowthAndTtm_stopsAtQuarterGap()
+    {
+        Company company = Generator.generateCompany();
+        Period period1 = Generator.generatePeriod(company, PeriodName.valueOf("26Q3"), YearMonth.of(2026, 9), "300", "150", "90", "30", "6");
+        Period period2 = Generator.generatePeriod(company, PeriodName.valueOf("26Q2"), YearMonth.of(2026, 6), "200", "100", "60", "20", "4");
+        Period period3 = Generator.generatePeriod(company, false, PeriodName.valueOf("26Q1"), YearMonth.of(2026, 3));
+        Period period4 = Generator.generatePeriod(company, PeriodName.valueOf("25Q4"), YearMonth.of(2025, 12), "100", "50", "30", "10", "2");
+        Period period5 = Generator.generatePeriod(company, PeriodName.valueOf("25Q3"), YearMonth.of(2025, 9), "80", "40", "24", "8", "1");
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period1, period2, period3, period4, period5)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getFinancials().size(), is(4));
+        assertMetricGrowth(periods.getFinancials().get(0).getRevenue(), new BigDecimal("50"), null);
+        assertMetricGrowth(periods.getFinancials().get(1).getRevenue(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(2).getRevenue(), null, null);
+        assertMetricGrowth(periods.getFinancials().get(3).getRevenue(), null, null);
+
+        assertThat(periods.getTtm(), is(notNullValue()));
+        assertBigDecimals(periods.getTtm().getRevenue(), new BigDecimal("1000"));
+        assertBigDecimals(periods.getTtm().getGrossProfit(), new BigDecimal("500"));
+        assertBigDecimals(periods.getTtm().getOperatingIncome(), new BigDecimal("300"));
+        assertBigDecimals(periods.getTtm().getNetIncome(), new BigDecimal("100"));
+        assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("20"));
+        assertBigDecimals(periods.getTtm().getShares(), period1.getShares());
+    }
+
+    @Test
     void getBy_financialGrowth_negativeValues()
     {
         Company company = Generator.generateCompany();
