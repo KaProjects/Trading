@@ -18,6 +18,7 @@ import axios from "axios";
 import {
     EMPTY_PERIOD_FINANCIAL_VALUES,
     PeriodFinancialFields,
+    toNullableFinancialValues,
 } from "./component/PeriodFinancialFields";
 
 export const ImportPeriodDialog = props => {
@@ -55,7 +56,7 @@ export const ImportPeriodDialog = props => {
     function createPeriod() {
         const endpoint = period.isReported ? "/period/import" : "/period/import/unreported"
         const data = period.isReported
-            ? {...period, companyId: company.id}
+            ? {...toNullableFinancialValues(period), companyId: company.id}
             : {companyId: company.id, name: period.name, endingMonth: period.endingMonth}
 
         axios.post(backend + endpoint, data)

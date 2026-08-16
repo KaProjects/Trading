@@ -38,6 +38,7 @@ const FINANCIAL_FIELDS = [
         key: "shares",
         id: "company-financial-shares",
         label: "Shares (in Millions)",
+        required: true,
         integerConstraint: 8,
         decimalConstraint: 2,
         allowNegative: false,
@@ -46,6 +47,7 @@ const FINANCIAL_FIELDS = [
         key: "revenue",
         id: "company-financial-revenue",
         label: "Revenue (in Millions)",
+        required: true,
         integerConstraint: 8,
         decimalConstraint: 2,
         allowNegative: false,
@@ -70,6 +72,7 @@ const FINANCIAL_FIELDS = [
         key: "netIncome",
         id: "company-financial-net-income",
         label: "Net Income (in Millions)",
+        required: true,
         integerConstraint: 8,
         decimalConstraint: 2,
         allowNegative: true,
@@ -145,6 +148,7 @@ const FinancialField = ({field, values, setValues, suggestions, setSuggestions, 
                 id={field.id}
                 value={values[field.key]}
                 label={field.label}
+                required={field.required === true}
                 sx={{minWidth: 230}}
                 onChange={(event) => {
                     setValues(previous => ({
@@ -155,7 +159,7 @@ const FinancialField = ({field, values, setValues, suggestions, setSuggestions, 
                 }}
                 validate={() => validateNumber(
                     values[field.key],
-                    false,
+                    !field.required,
                     field.integerConstraint,
                     field.decimalConstraint,
                     field.allowNegative,
@@ -221,4 +225,8 @@ export const PeriodFinancialFields = ({
             ))}
         </Box>
     </Box>
+)
+
+export const toNullableFinancialValues = values => Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [key, value === "" ? null : value])
 )

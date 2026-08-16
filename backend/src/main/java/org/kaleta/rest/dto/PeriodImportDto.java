@@ -22,6 +22,7 @@ public class PeriodImportDto
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d$", message = "must match YYYY-MM")
     private String endingMonth;
 
+    @NotNull
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")
     private String reportDate;
 
@@ -29,11 +30,9 @@ public class PeriodImportDto
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String shares;
 
-    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String priceLow;
 
-    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String priceHigh;
 
@@ -41,11 +40,9 @@ public class PeriodImportDto
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String revenue;
 
-    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String grossProfit;
 
-    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String operatingIncome;
 
@@ -53,11 +50,9 @@ public class PeriodImportDto
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String netIncome;
 
-    @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String dividend;
 
-    @NotNull
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
     private String adjustedEps;
 

@@ -195,6 +195,44 @@ describe("AddPeriodFinancialDialog", () => {
         expect(props.handleClose).not.toHaveBeenCalled();
     });
 
+    test("requires core financials and submits empty optional fields as null", async () => {
+        axios.put.mockResolvedValue({});
+
+        render(<AddPeriodFinancialDialog {...createProps()}/>);
+
+        await screen.findByText("Gemini");
+        expect(screen.getByLabelText("Report Date")).toBeRequired();
+        expect(screen.getByLabelText("Shares (in Millions)")).toBeRequired();
+        expect(screen.getByLabelText("Revenue (in Millions)")).toBeRequired();
+        expect(screen.getByLabelText("Net Income (in Millions)")).toBeRequired();
+        expect(screen.getByLabelText("Gross Profit (in Millions)")).not.toBeRequired();
+        expect(screen.getByLabelText("Operating Income (in Millions)")).not.toBeRequired();
+        expect(screen.getByLabelText("Dividend (in Millions)")).not.toBeRequired();
+        expect(screen.getByLabelText("Adjusted EPS")).not.toBeRequired();
+        expect(screen.getByLabelText("Highest Price")).not.toBeRequired();
+        expect(screen.getByLabelText("Lowest Price")).not.toBeRequired();
+
+        fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
+        fireEvent.change(screen.getByLabelText("Shares (in Millions)"), {target: {value: "10"}});
+        fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "20"}});
+        fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "5"}});
+        fireEvent.click(screen.getByRole("button", {name: "Create"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/period/financial", {
+            id: "period-1",
+            reportDate: "2024-02-15",
+            shares: "10",
+            revenue: "20",
+            netIncome: "5",
+            grossProfit: null,
+            operatingIncome: null,
+            dividend: null,
+            adjustedEps: null,
+            priceHigh: null,
+            priceLow: null,
+        }));
+    });
+
     test("opens with empty suggestion columns when no import data is available", async () => {
         axios.get.mockResolvedValue({data: {firebase: {}, polygon: {}, warnings: []}});
 
@@ -238,7 +276,7 @@ describe("AddPeriodFinancialDialog", () => {
 
         fireEvent.click(screen.getByRole("button", {name: "Update"}));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/period", {
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/period/financial", {
             id: "period-1",
             reportDate: "2024-02-15",
             shares: "123",

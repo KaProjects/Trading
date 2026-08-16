@@ -212,6 +212,37 @@ describe("ImportPeriodDialog", () => {
         expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     });
 
+    test("imports a reported period with empty optional financial fields", async () => {
+        axios.post.mockResolvedValue({});
+
+        render(<ImportPeriodDialog {...createProps()}/>);
+
+        fireEvent.click(await screen.findByText("24Q1"));
+        await screen.findByLabelText("Name");
+
+        fireEvent.change(screen.getByLabelText("Shares (in Millions)"), {target: {value: "10"}});
+        fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "20"}});
+        fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "5"}});
+        fireEvent.click(screen.getByRole("button", {name: "Create"}));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/period/import", {
+            companyId: "company-1",
+            name: "24Q1",
+            isReported: true,
+            endingMonth: "2024-03",
+            reportDate: "2024-02-15",
+            shares: "10",
+            revenue: "20",
+            netIncome: "5",
+            grossProfit: null,
+            operatingIncome: null,
+            dividend: null,
+            adjustedEps: null,
+            priceHigh: null,
+            priceLow: null,
+        }));
+    });
+
     test("opens an unreported period without loading suggestions and can return to the list", async () => {
         render(<ImportPeriodDialog {...createProps()}/>);
 

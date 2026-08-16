@@ -132,14 +132,8 @@ class PeriodEndpointsTest
         dto.setEndingMonth("2015-10");
         dto.setReportDate("2015-11-11");
         dto.setShares("12345.67");
-        dto.setPriceLow("20.1234");
-        dto.setPriceHigh("26.5678");
         dto.setRevenue("22.5");
-        dto.setGrossProfit("-5");
-        dto.setOperatingIncome("-10");
         dto.setNetIncome("-5");
-        dto.setDividend("2");
-        dto.setAdjustedEps("-1.25");
 
         Assert.post201(path + "/import", dto);
 
@@ -151,15 +145,15 @@ class PeriodEndpointsTest
         assertThat(period.getEndingMonth(), is(YearMonth.parse(dto.getEndingMonth())));
         assertThat(period.getReportDate(), is(Date.valueOf(dto.getReportDate())));
         assertBigDecimals(period.getShares(), new BigDecimal(dto.getShares()));
-        assertBigDecimals(period.getPriceHigh(), new BigDecimal(dto.getPriceHigh()));
-        assertBigDecimals(period.getPriceLow(), new BigDecimal(dto.getPriceLow()));
+        assertThat(period.getPriceHigh(), is(nullValue()));
+        assertThat(period.getPriceLow(), is(nullValue()));
         assertThat(period.getResearch(), is(nullValue()));
         assertBigDecimals(period.getRevenue(), new BigDecimal(dto.getRevenue()));
-        assertBigDecimals(period.getGrossProfit(), new BigDecimal(dto.getGrossProfit()));
-        assertBigDecimals(period.getOperatingIncome(), new BigDecimal(dto.getOperatingIncome()));
+        assertThat(period.getGrossProfit(), is(nullValue()));
+        assertThat(period.getOperatingIncome(), is(nullValue()));
         assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
-        assertBigDecimals(period.getDividend(), new BigDecimal(dto.getDividend()));
-        assertBigDecimals(period.getAdjustedEps(), new BigDecimal(dto.getAdjustedEps()));
+        assertThat(period.getDividend(), is(nullValue()));
+        assertThat(period.getAdjustedEps(), is(nullValue()));
     }
 
     @Test
@@ -304,6 +298,8 @@ class PeriodEndpointsTest
         dto.setReportDate("1.1.2020");
         Assert.postValidationError(path + "/import", dto, MATCH_DATE_FORMAT);
         dto.setReportDate(null);
+        Assert.postValidationError(path + "/import", dto, NOT_NULL);
+        dto.setReportDate(validReportDate);
 
         dto.setShares("");
         Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
@@ -354,7 +350,6 @@ class PeriodEndpointsTest
         dto.setGrossProfit("10.123");
         Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
         dto.setGrossProfit(null);
-        Assert.postValidationError(path + "/import", dto, NOT_NULL);
         dto.setGrossProfit(validGrossProfit);
 
         dto.setOperatingIncome("");
@@ -370,7 +365,6 @@ class PeriodEndpointsTest
         dto.setOperatingIncome("10.123");
         Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
         dto.setOperatingIncome(null);
-        Assert.postValidationError(path + "/import", dto, NOT_NULL);
         dto.setOperatingIncome(validOperatingIncome);
 
         dto.setNetIncome("");
@@ -404,7 +398,6 @@ class PeriodEndpointsTest
         dto.setDividend("-1");
         Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_false);
         dto.setDividend(null);
-        Assert.postValidationError(path + "/import", dto, NOT_NULL);
         dto.setDividend(validDividend);
 
         dto.setAdjustedEps("");
@@ -420,7 +413,6 @@ class PeriodEndpointsTest
         dto.setAdjustedEps("10.123");
         Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_4_2_true);
         dto.setAdjustedEps(null);
-        Assert.postValidationError(path + "/import", dto, NOT_NULL);
         dto.setAdjustedEps(validAdjustedEps);
 
         dto.setPriceLow("");
@@ -438,7 +430,6 @@ class PeriodEndpointsTest
         dto.setPriceLow("-1");
         Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
         dto.setPriceLow(null);
-        Assert.postValidationError(path + "/import", dto, NOT_NULL);
         dto.setPriceLow(validPriceLow);
 
         dto.setPriceHigh("");
@@ -456,7 +447,6 @@ class PeriodEndpointsTest
         dto.setPriceHigh("-1");
         Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_4_false);
         dto.setPriceHigh(null);
-        Assert.postValidationError(path + "/import", dto, NOT_NULL);
     }
 
     @Test
@@ -670,14 +660,8 @@ class PeriodEndpointsTest
         dto.setId(id);
         dto.setReportDate("2020-12-15");
         dto.setShares("12345");
-        dto.setPriceLow("20.5");
-        dto.setPriceHigh("26.5");
         dto.setRevenue("22.5");
-        dto.setGrossProfit("5");
-        dto.setOperatingIncome("10");
         dto.setNetIncome("5");
-        dto.setDividend("2");
-        dto.setAdjustedEps("1.75");
 
         Assert.put204(path + "/financial", dto);
 
@@ -689,14 +673,14 @@ class PeriodEndpointsTest
         assertThat(period.getEndingMonth(), is(YearMonth.of(2025, 3)));
         assertThat(period.getReportDate(), is(Date.valueOf(dto.getReportDate())));
         assertBigDecimals(period.getShares(), new BigDecimal(dto.getShares()));
-        assertBigDecimals(period.getPriceHigh(), new BigDecimal(dto.getPriceHigh()));
-        assertBigDecimals(period.getPriceLow(), new BigDecimal(dto.getPriceLow()));
+        assertThat(period.getPriceHigh(), is(nullValue()));
+        assertThat(period.getPriceLow(), is(nullValue()));
         assertBigDecimals(period.getRevenue(), new BigDecimal(dto.getRevenue()));
-        assertBigDecimals(period.getGrossProfit(), new BigDecimal(dto.getGrossProfit()));
-        assertBigDecimals(period.getOperatingIncome(), new BigDecimal(dto.getOperatingIncome()));
+        assertThat(period.getGrossProfit(), is(nullValue()));
+        assertThat(period.getOperatingIncome(), is(nullValue()));
         assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
-        assertBigDecimals(period.getDividend(), new BigDecimal(dto.getDividend()));
-        assertBigDecimals(period.getAdjustedEps(), new BigDecimal(dto.getAdjustedEps()));
+        assertThat(period.getDividend(), is(nullValue()));
+        assertThat(period.getAdjustedEps(), is(nullValue()));
     }
 
     @Test
@@ -767,7 +751,6 @@ class PeriodEndpointsTest
         dto.setRevenue("22.5");
 
         dto.setGrossProfit(null);
-        Assert.putValidationError(path + "/financial", dto, NOT_NULL);
         dto.setGrossProfit("x");
         Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_true);
         dto.setGrossProfit(".1");
@@ -781,7 +764,6 @@ class PeriodEndpointsTest
         dto.setGrossProfit("5");
 
         dto.setOperatingIncome(null);
-        Assert.putValidationError(path + "/financial", dto, NOT_NULL);
         dto.setOperatingIncome("x");
         Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_true);
         dto.setOperatingIncome(".1");
@@ -809,7 +791,6 @@ class PeriodEndpointsTest
         dto.setNetIncome("5");
 
         dto.setDividend(null);
-        Assert.putValidationError(path + "/financial", dto, NOT_NULL);
         dto.setDividend("x");
         Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_false);
         dto.setDividend(".1");
@@ -837,7 +818,6 @@ class PeriodEndpointsTest
         dto.setAdjustedEps("1");
 
         dto.setPriceLow(null);
-        Assert.putValidationError(path + "/financial", dto, NOT_NULL);
         dto.setPriceLow("x");
         Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_4_false);
         dto.setPriceLow(".1");
@@ -853,7 +833,6 @@ class PeriodEndpointsTest
         dto.setPriceLow("20.5");
 
         dto.setPriceHigh(null);
-        Assert.putValidationError(path + "/financial", dto, NOT_NULL);
         dto.setPriceHigh("x");
         Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_4_false);
         dto.setPriceHigh(".1");

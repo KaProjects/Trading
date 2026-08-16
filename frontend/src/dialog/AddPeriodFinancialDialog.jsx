@@ -18,6 +18,7 @@ import {DialogDatePicker} from "./component/DialogDatePicker";
 import {
     EMPTY_PERIOD_FINANCIAL_VALUES,
     PeriodFinancialFields,
+    toNullableFinancialValues,
 } from "./component/PeriodFinancialFields";
 
 const EMPTY_FINANCIAL = {
@@ -71,9 +72,9 @@ export const AddPeriodFinancialDialog = props => {
     }, [open, period, edit])
 
     function createFinancial() {
-        axios.put(backend + (edit ? "/period" : "/period/financial"), {
+        axios.put(backend + "/period/financial", {
             id: period.id,
-            ...financial,
+            ...toNullableFinancialValues(financial),
         })
             .then(() => {
                 triggerRefresh()

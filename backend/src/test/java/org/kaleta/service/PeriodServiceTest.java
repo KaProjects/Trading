@@ -401,6 +401,14 @@ public class PeriodServiceTest
         });
         dto.setAdjustedEps(String.valueOf(Generator.randomBigDecimal(9999, 2)));
         updateAndAssertPeriod(dto, period, null);
+
+        dto.setPriceLow(null);
+        dto.setPriceHigh(null);
+        dto.setGrossProfit(null);
+        dto.setOperatingIncome(null);
+        dto.setDividend(null);
+        dto.setAdjustedEps(null);
+        updateAndAssertPeriod(dto, period, null);
     }
 
     @Test
@@ -472,6 +480,40 @@ public class PeriodServiceTest
         assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("60"));
 
         assertBigDecimals(periods.getTtm().getShares(), period1.getShares());
+    }
+
+    @Test
+    void getBy_optionalFinancials()
+    {
+        Company company = Generator.generateCompany();
+        Period period = Generator.generatePeriod(
+                company,
+                PeriodName.valueOf("25Q2"),
+                YearMonth.of(2025, 7),
+                "1000",
+                "300",
+                "200",
+                "100",
+                "20");
+        period.setGrossProfit(null);
+        period.setOperatingIncome(null);
+        period.setDividend(null);
+
+        when(periodDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(period)));
+
+        Periods periods = periodService.getBy(company.getId());
+
+        assertThat(periods.getFinancials().size(), is(1));
+        Periods.Financial financial = periods.getFinancials().get(0);
+        assertThat(financial.getGrossProfit().getValue(), is(nullValue()));
+        assertThat(financial.getGrossProfit().getMargin(), is(nullValue()));
+        assertThat(financial.getOperatingIncome().getValue(), is(nullValue()));
+        assertThat(financial.getOperatingIncome().getMargin(), is(nullValue()));
+        assertThat(periods.getTtm().getGrossProfit().getValue(), is(nullValue()));
+        assertThat(periods.getTtm().getOperatingIncome().getValue(), is(nullValue()));
+        assertThat(periods.getTtm().getDividend(), is(nullValue()));
+        assertBigDecimals(periods.getTtm().getRevenue().getValue(), new BigDecimal("4000"));
+        assertBigDecimals(periods.getTtm().getNetIncome().getValue(), new BigDecimal("400"));
     }
 
     @Test
@@ -989,15 +1031,14 @@ public class PeriodServiceTest
             assertThat(captor.getValue().getResearch(), is(period.getResearch()));
             assertThat(captor.getValue().getReportDate(), is(Date.valueOf(dto.getReportDate())));
             assertThat(captor.getValue().getShares(), is(new BigDecimal(dto.getShares())));
-            assertThat(captor.getValue().getPriceHigh(), is(new BigDecimal(dto.getPriceHigh())));
-            assertThat(captor.getValue().getPriceLow(), is(new BigDecimal(dto.getPriceLow())));
+            assertThat(captor.getValue().getPriceHigh(), is(Utils.createNullableBigDecimal(dto.getPriceHigh())));
+            assertThat(captor.getValue().getPriceLow(), is(Utils.createNullableBigDecimal(dto.getPriceLow())));
             assertThat(captor.getValue().getRevenue(), is(new BigDecimal(dto.getRevenue())));
-            assertThat(captor.getValue().getGrossProfit(), is(new BigDecimal(dto.getGrossProfit())));
-            assertThat(captor.getValue().getOperatingIncome(), is(new BigDecimal(dto.getOperatingIncome())));
+            assertThat(captor.getValue().getGrossProfit(), is(Utils.createNullableBigDecimal(dto.getGrossProfit())));
+            assertThat(captor.getValue().getOperatingIncome(), is(Utils.createNullableBigDecimal(dto.getOperatingIncome())));
             assertThat(captor.getValue().getNetIncome(), is(new BigDecimal(dto.getNetIncome())));
-            assertThat(captor.getValue().getDividend(), is(new BigDecimal(dto.getDividend())));
-            assertThat(captor.getValue().getAdjustedEps(),
-                    (dto.getAdjustedEps() == null) ? is(period.getAdjustedEps()) : is(new BigDecimal(dto.getAdjustedEps())));
+            assertThat(captor.getValue().getDividend(), is(Utils.createNullableBigDecimal(dto.getDividend())));
+            assertThat(captor.getValue().getAdjustedEps(), is(Utils.createNullableBigDecimal(dto.getAdjustedEps())));
 
             clearInvocations(periodDao);
         } else {
