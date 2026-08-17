@@ -18,11 +18,6 @@ public interface TradeDao extends EntityCompanyDao<Trade>
                      String portfolio);
 
     /**
-     * @return trades without an assigned portfolio, optionally filtered by company
-     */
-    List<Trade> listWithoutPortfolio(Long companyId);
-
-    /**
      * saves all the instance of the specified trades
      */
     void saveAll(List<Trade> trades);

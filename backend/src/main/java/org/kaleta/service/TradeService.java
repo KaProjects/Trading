@@ -3,7 +3,6 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import jakarta.transaction.Transactional;
 import org.kaleta.model.Asset;
 import org.kaleta.model.Assets;
 import org.kaleta.model.PeriodFrequency;
@@ -13,7 +12,6 @@ import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Trade;
-import org.kaleta.rest.dto.PortfolioAssignmentDto;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.rest.error.InvalidInputException;
@@ -25,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,37 +51,6 @@ public class TradeService
         newTrade.setPortfolio(dto.getPortfolio() == null ? null : Portfolio.valueOf(dto.getPortfolio()));
 
         tradeDao.create(newTrade);
-    }
-
-    public List<Trades.Trade> getTradesWithoutPortfolio(Long companyId)
-    {
-        return tradeDao.listWithoutPortfolio(companyId).stream().map(this::from).collect(Collectors.toList());
-    }
-
-    @Transactional
-    public void assignPortfolio(PortfolioAssignmentDto dto)
-    {
-        Portfolio portfolio = Portfolio.valueOf(dto.getPortfolio());
-        List<Trade> trades = new ArrayList<>();
-
-        for (Long tradeId : new LinkedHashSet<>(dto.getTradeIds()))
-        {
-            Trade trade;
-            try {
-                trade = tradeDao.get(tradeId);
-            } catch (NoResultException e) {
-                throw new InvalidInputException("trade with id '" + tradeId + "' is not available for portfolio assignment");
-            }
-
-            if (trade.getPortfolio() != null) {
-                throw new InvalidInputException("trade with id '" + tradeId + "' is not available for portfolio assignment");
-            }
-
-            trade.setPortfolio(portfolio);
-            trades.add(trade);
-        }
-
-        tradeDao.saveAll(trades);
     }
 
     public void sellTrade(TradeSellDto dto)

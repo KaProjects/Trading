@@ -20,19 +20,6 @@ public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDa
     }
 
     @Override
-    public List<Trade> listWithoutPortfolio(Long companyId)
-    {
-        String companyCondition = companyId == null ? "" : " AND t.company.id=:companyId";
-        TypedQuery<Trade> query = entityManager.createQuery(
-                selectQuery + "WHERE t.portfolio IS NULL" + companyCondition
-                        + " ORDER BY t.company.ticker, t.purchaseDate DESC, t.id DESC",
-                Trade.class
-        );
-        if (companyId != null) query.setParameter("companyId", companyId);
-        return query.getResultList();
-    }
-
-    @Override
     public List<Trade> list(Boolean active, Long companyId, String currency, String purchaseYear, String sellYear, String sector)
     {
         return list(active, companyId, currency, purchaseYear, sellYear, sector, null);
