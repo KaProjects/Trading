@@ -56,6 +56,21 @@ Or, if you don't have GraalVM installed, you can run the native executable build
 
 You can then execute your native executable with: `./target/trader-researcher-1.0.0-SNAPSHOT-runner`
 
+To build a Linux AMD64 native container on an ARM Mac and deploy it to the NAS
+without an image registry, run:
+
+```shell script
+./build_deploy.sh prod --nas-native
+```
+
+The build uses Docker Buildx with `linux/amd64`, verifies the resulting image,
+and streams it to `Stanley@192.168.1.122` through SSH. It then recreates the
+remote container with the NAS low-memory limits automatically. The SSH client
+prompts for a password when key-based authentication is not configured.
+Override the target using `NAS_USER` and `NAS_HOST`. On the first deployment, set
+`NAS_FIREBASE_CREDENTIALS_PATH` to the Firebase credential file's absolute path
+on the NAS; later deployments reuse the existing container's mount.
+
 If you want to learn more about building native executables, please consult https://quarkus.io/guides/maven-tooling.
 
 ## Related Guides
