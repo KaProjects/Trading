@@ -88,6 +88,19 @@ const comparisonData = {
         capex: "-60",
         freeCashFlow: "70",
     },
+    alphaVantage: {
+        shares: null,
+        revenue: "22",
+        grossProfit: "32",
+        operatingIncome: "42",
+        netIncome: "52",
+        dividend: "0.6",
+        adjustedEps: null,
+        priceHigh: null,
+        priceLow: null,
+        capex: "62",
+        freeCashFlow: "72",
+    },
     warnings: [],
 };
 
@@ -121,7 +134,7 @@ describe("AddPeriodFinancialDialog", () => {
         axios.get.mockResolvedValue({data: comparisonData});
     });
 
-    test("loads Gemini and third-party suggestions and submits updated financial data", async () => {
+    test("loads suggestions from all sources and submits updated financial data", async () => {
         axios.put.mockResolvedValue({});
 
         const props = createProps();
@@ -132,13 +145,14 @@ describe("AddPeriodFinancialDialog", () => {
             "http://backend/research/company-1/import/period/24Q1"
         ));
         expect(await screen.findByText("Gemini")).toBeInTheDocument();
-        expect(screen.getByText("External")).toBeInTheDocument();
+        expect(screen.getByText("Polygon.io")).toBeInTheDocument();
+        expect(screen.getByText("Alpha Vantage")).toBeInTheDocument();
         expect(screen.getByLabelText("Report Date")).toHaveValue("");
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("");
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("");
 
         fireEvent.click(screen.getByRole("button", {
-            name: "Use External value for Shares (in Millions)",
+            name: "Use Polygon.io value for Shares (in Millions)",
         }));
         fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("10");
@@ -146,13 +160,13 @@ describe("AddPeriodFinancialDialog", () => {
             name: "Use Gemini value for Revenue (in Millions)",
         }));
         fireEvent.click(screen.getByRole("button", {
-            name: "Use External value for Adjusted EPS",
+            name: "Use Polygon.io value for Adjusted EPS",
         }));
         fireEvent.click(screen.getByRole("button", {
             name: "Use Gemini value for CapEx (in Millions)",
         }));
         fireEvent.click(screen.getByRole("button", {
-            name: "Use External value for Free Cash Flow (in Millions)",
+            name: "Use Alpha Vantage value for Free Cash Flow (in Millions)",
         }));
         fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "3"}});
         fireEvent.change(screen.getByLabelText("Operating Income (in Millions)"), {target: {value: "4"}});
@@ -176,7 +190,7 @@ describe("AddPeriodFinancialDialog", () => {
             dividend: "0.5",
             adjustedEps: "1.18",
             capex: "-61",
-            freeCashFlow: "70",
+            freeCashFlow: "72",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();
@@ -250,12 +264,13 @@ describe("AddPeriodFinancialDialog", () => {
     });
 
     test("opens with empty suggestion columns when no import data is available", async () => {
-        axios.get.mockResolvedValue({data: {firebase: {}, polygon: {}, warnings: []}});
+        axios.get.mockResolvedValue({data: {firebase: {}, polygon: {}, alphaVantage: {}, warnings: []}});
 
         render(<AddPeriodFinancialDialog {...createProps()}/>);
 
         expect(await screen.findByText("Gemini")).toBeInTheDocument();
-        expect(screen.getByText("External")).toBeInTheDocument();
+        expect(screen.getByText("Polygon.io")).toBeInTheDocument();
+        expect(screen.getByText("Alpha Vantage")).toBeInTheDocument();
         expect(screen.getByLabelText("Report Date")).toHaveValue("");
         expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("");
         expect(mockFormatError).not.toHaveBeenCalled();

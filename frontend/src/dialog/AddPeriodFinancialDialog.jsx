@@ -30,7 +30,7 @@ export const AddPeriodFinancialDialog = props => {
     const {handleClose, open, period, company, triggerRefresh, edit = false} = props
 
     const [financial, setFinancial] = useState(EMPTY_FINANCIAL)
-    const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}})
+    const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}, alphaVantage: {}})
     const [warnings, setWarnings] = useState([])
     const [alert, setAlert] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -40,7 +40,7 @@ export const AddPeriodFinancialDialog = props => {
 
         if (edit) {
             setFinancial(financialFromPeriod(period))
-            setSuggestions({firebase: {}, polygon: {}})
+            setSuggestions({firebase: {}, polygon: {}, alphaVantage: {}})
             setWarnings([])
             setAlert(null)
             setLoading(false)
@@ -48,7 +48,7 @@ export const AddPeriodFinancialDialog = props => {
         }
 
         setFinancial(EMPTY_FINANCIAL)
-        setSuggestions({firebase: {}, polygon: {}})
+        setSuggestions({firebase: {}, polygon: {}, alphaVantage: {}})
         setWarnings([])
         setAlert(null)
         setLoading(true)
@@ -60,6 +60,7 @@ export const AddPeriodFinancialDialog = props => {
                 setSuggestions({
                     firebase: data.firebase ?? {},
                     polygon: data.polygon ?? {},
+                    alphaVantage: data.alphaVantage ?? {},
                 })
                 setWarnings(data.warnings ?? [])
                 setLoading(false)

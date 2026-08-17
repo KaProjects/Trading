@@ -25,7 +25,7 @@ export const ImportPeriodDialog = props => {
     const {company, periods = [], open, handleClose, triggerRefresh} = props
 
     const [period, setPeriod] = useState(null)
-    const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}})
+    const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}, alphaVantage: {}})
     const [warnings, setWarnings] = useState([])
     const [alert, setAlert] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -37,7 +37,7 @@ export const ImportPeriodDialog = props => {
 
     function resetSelection() {
         setPeriod(null)
-        setSuggestions({firebase: {}, polygon: {}})
+        setSuggestions({firebase: {}, polygon: {}, alphaVantage: {}})
         setWarnings([])
         setAlert(null)
         setLoading(false)
@@ -73,7 +73,7 @@ export const ImportPeriodDialog = props => {
 
         if (!candidate.isReported) {
             setPeriod(editablePeriod(candidate))
-            setSuggestions({firebase: {}, polygon: {}})
+            setSuggestions({firebase: {}, polygon: {}, alphaVantage: {}})
             return
         }
 
@@ -87,6 +87,7 @@ export const ImportPeriodDialog = props => {
                 setSuggestions({
                     firebase: response.data.firebase ?? {},
                     polygon: response.data.polygon ?? {},
+                    alphaVantage: response.data.alphaVantage ?? {},
                 })
                 setWarnings(response.data.warnings ?? [])
                 setLoading(false)

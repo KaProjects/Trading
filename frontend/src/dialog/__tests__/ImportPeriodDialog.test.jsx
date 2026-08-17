@@ -119,6 +119,19 @@ function createImportData(overrides = {}) {
             capex: "-60",
             freeCashFlow: "70",
         },
+        alphaVantage: {
+            shares: null,
+            revenue: "22",
+            grossProfit: "32",
+            operatingIncome: "42",
+            netIncome: "52",
+            dividend: "62",
+            adjustedEps: null,
+            priceHigh: null,
+            priceLow: null,
+            capex: "62",
+            freeCashFlow: "72",
+        },
         warnings: [],
         ...overrides,
     };
@@ -136,7 +149,7 @@ describe("ImportPeriodDialog", () => {
         axios.get.mockResolvedValue({data: createImportData()});
     });
 
-    test("loads a reported period with separate Gemini and third-party suggestions", async () => {
+    test("loads a reported period with separate suggestions from all sources", async () => {
         axios.post.mockResolvedValue({});
 
         const props = createProps();
@@ -155,17 +168,18 @@ describe("ImportPeriodDialog", () => {
         expect(screen.getByLabelText("Ending Month")).toHaveValue("2024-03");
         expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
         expect(screen.getByText("Gemini")).toBeInTheDocument();
-        expect(screen.getByText("External")).toBeInTheDocument();
+        expect(screen.getByText("Polygon.io")).toBeInTheDocument();
+        expect(screen.getByText("Alpha Vantage")).toBeInTheDocument();
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("");
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("");
 
         fireEvent.click(await screen.findByRole("button", {
-            name: "Use External value for Shares (in Millions)",
+            name: "Use Polygon.io value for Shares (in Millions)",
         }));
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("10");
 
         fireEvent.click(screen.getByRole("button", {
-            name: "Use External value for Adjusted EPS",
+            name: "Use Polygon.io value for Adjusted EPS",
         }));
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("1.18");
 
@@ -173,7 +187,7 @@ describe("ImportPeriodDialog", () => {
             name: "Use Gemini value for CapEx (in Millions)",
         }));
         fireEvent.click(screen.getByRole("button", {
-            name: "Use External value for Free Cash Flow (in Millions)",
+            name: "Use Alpha Vantage value for Free Cash Flow (in Millions)",
         }));
 
         fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "20"}});
@@ -202,7 +216,7 @@ describe("ImportPeriodDialog", () => {
             priceHigh: "140.25",
             priceLow: "90.75",
             capex: "-61",
-            freeCashFlow: "70",
+            freeCashFlow: "72",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();
@@ -268,7 +282,8 @@ describe("ImportPeriodDialog", () => {
         expect(screen.queryByLabelText("Report Date")).not.toBeInTheDocument();
         expect(axios.get).not.toHaveBeenCalled();
         expect(screen.queryByText("Gemini")).not.toBeInTheDocument();
-        expect(screen.queryByText("External")).not.toBeInTheDocument();
+        expect(screen.queryByText("Polygon.io")).not.toBeInTheDocument();
+        expect(screen.queryByText("Alpha Vantage")).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByText("Back"));
 
@@ -330,7 +345,7 @@ describe("ImportPeriodDialog", () => {
         }));
         expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("21");
         expect(screen.getByRole("button", {
-            name: "Use External value for Highest Price",
+            name: "Use Polygon.io value for Highest Price",
         })).toBeInTheDocument();
     });
 

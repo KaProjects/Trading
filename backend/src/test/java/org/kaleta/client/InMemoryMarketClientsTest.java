@@ -2,6 +2,8 @@ package org.kaleta.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.kaleta.client.dto.AlphaVantageCashFlow;
+import org.kaleta.client.dto.AlphaVantageIncomeStatement;
 import org.kaleta.client.dto.FinnhubQuote;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonPriceRange;
@@ -53,5 +55,27 @@ class InMemoryMarketClientsTest
         assertThat(quote.getC(), is("158.25"));
         assertThat(quote.getT(), is("1784901600"));
         assertThat(client.quote("UNKNOWN"), is(nullValue()));
+    }
+
+    @Test
+    void alphaVantageReadsStatementsFromTestFixture()
+    {
+        InMemoryAlphaVantageClient client = new InMemoryAlphaVantageClient(
+                objectMapper,
+                "src/test/resources/alphaVantageTestData.json");
+
+        Optional<AlphaVantageIncomeStatement> income = client.getIncomeStatement(
+                "amd", "26Q2", "2026-06");
+        Optional<AlphaVantageCashFlow> cashFlow = client.getCashFlow(
+                "amd", "26Q2", "2026-06");
+
+        assertThat(income.isPresent(), is(true));
+        assertThat(income.orElseThrow().revenue(), comparesEqualTo(new BigDecimal("11536000000")));
+        assertThat(income.orElseThrow().netIncome(), comparesEqualTo(new BigDecimal("2297000000")));
+        assertThat(cashFlow.isPresent(), is(true));
+        assertThat(cashFlow.orElseThrow().capex(), comparesEqualTo(new BigDecimal("180000000")));
+        assertThat(cashFlow.orElseThrow().freeCashFlow(), comparesEqualTo(new BigDecimal("1650000000")));
+        assertThat(client.getCashFlow("AMD", "26Q2", "2026-05"), is(Optional.empty()));
+        assertThat(client.getIncomeStatement("UNKNOWN", "26Q2", "2026-06"), is(Optional.empty()));
     }
 }

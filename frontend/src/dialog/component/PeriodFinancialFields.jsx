@@ -19,13 +19,14 @@ export const EMPTY_PERIOD_FINANCIAL_VALUES = {
 
 const SOURCE_STYLE = {
     firebase: {label: "Gemini", color: "success"},
-    polygon: {label: "External", color: "info"},
+    polygon: {label: "Polygon.io", color: "info"},
+    alphaVantage: {label: "Alpha Vantage", color: "warning"},
 }
 
 const FINANCIAL_GRID_STYLE = {
     display: "grid",
-    gridTemplateColumns: "minmax(230px, 1fr) 120px 120px",
-    columnGap: 2,
+    gridTemplateColumns: "minmax(230px, 1fr) repeat(3, 92px)",
+    columnGap: 1,
     alignItems: "center",
 }
 
@@ -133,7 +134,7 @@ const SourceSuggestion = ({source, fieldLabel, value, apply}) => {
     const hasValue = value !== null && value !== undefined && value !== ""
 
     return (
-        <Box sx={{minWidth: 120}}>
+        <Box sx={{minWidth: 92}}>
             {hasValue &&
                 <Tooltip title={`Use ${SOURCE_STYLE[source].label} value for ${fieldLabel}`}>
                     <Button
@@ -196,6 +197,12 @@ const FinancialField = ({field, values, setValues, suggestions, setSuggestions, 
                         fieldLabel={field.label}
                         value={suggestions.polygon?.[field.key]}
                         apply={() => applySuggestion("polygon")}
+                    />
+                    <SourceSuggestion
+                        source="alphaVantage"
+                        fieldLabel={field.label}
+                        value={suggestions.alphaVantage?.[field.key]}
+                        apply={() => applySuggestion("alphaVantage")}
                     />
                 </>
             }

@@ -14,6 +14,7 @@ public class PeriodImportDataDto
     private Boolean isReported;
     private Source firebase = new Source();
     private Source polygon = new Source();
+    private Source alphaVantage = new Source();
     private List<String> warnings = new ArrayList<>();
 
     @Data

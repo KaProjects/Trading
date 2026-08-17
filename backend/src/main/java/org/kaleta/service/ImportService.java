@@ -3,7 +3,10 @@ package org.kaleta.service;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.kaleta.client.AlphaVantageClient;
 import org.kaleta.client.PolygonClient;
+import org.kaleta.client.dto.AlphaVantageCashFlow;
+import org.kaleta.client.dto.AlphaVantageIncomeStatement;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonPriceRange;
 import org.kaleta.model.Company;
@@ -27,6 +30,7 @@ public class ImportService
     private final PeriodService periodService;
     private final FirebaseService firebaseService;
     private final PolygonClient polygonClient;
+    private final AlphaVantageClient alphaVantageClient;
     private final ArithmeticService arithmeticService;
 
     @Inject
@@ -35,12 +39,14 @@ public class ImportService
             PeriodService periodService,
             FirebaseService firebaseService,
             PolygonClient polygonClient,
+            AlphaVantageClient alphaVantageClient,
             ArithmeticService arithmeticService)
     {
         this.companyService = companyService;
         this.periodService = periodService;
         this.firebaseService = firebaseService;
         this.polygonClient = polygonClient;
+        this.alphaVantageClient = alphaVantageClient;
         this.arithmeticService = arithmeticService;
     }
 
@@ -52,6 +58,7 @@ public class ImportService
         PeriodImportDto firebaseData = loadFirebasePeriod(result, ticker, quarterId);
         if (firebaseData != null) {
             populatePeriodData(result, firebaseData);
+            loadAlphaVantageData(result, ticker, quarterId, firebaseData.getEndingMonth());
         }
 
         loadPolygonFinancials(result, ticker, quarterId);
@@ -185,6 +192,67 @@ public class ImportService
             addWarning(
                     result.getWarnings(),
                     "Polygon.io financial data for " + quarterId + " and " + ticker,
+                    exception);
+        }
+    }
+
+    private void loadAlphaVantageData(
+            PeriodImportDataDto result,
+            String ticker,
+            String periodName,
+            String endingMonth)
+    {
+        if (endingMonth == null || endingMonth.isBlank()) return;
+
+        loadAlphaVantageCashFlow(result, ticker, periodName, endingMonth);
+        loadAlphaVantageIncomeStatement(result, ticker, periodName, endingMonth);
+    }
+
+    private void loadAlphaVantageIncomeStatement(
+            PeriodImportDataDto result,
+            String ticker,
+            String periodName,
+            String endingMonth)
+    {
+        try {
+            Optional<AlphaVantageIncomeStatement> statement = alphaVantageClient
+                    .getIncomeStatement(ticker, periodName, endingMonth);
+            if (statement.isEmpty()) return;
+
+            AlphaVantageIncomeStatement values = statement.get();
+            PeriodImportDataDto.Source source = result.getAlphaVantage();
+            source.setRevenue(toMillions(values.revenue()));
+            source.setGrossProfit(toMillions(values.grossProfit()));
+            source.setOperatingIncome(toMillions(values.operatingIncome()));
+            source.setNetIncome(toMillions(values.netIncome()));
+        } catch (Exception exception) {
+            addWarning(
+                    result.getWarnings(),
+                    "Alpha Vantage income statement for " + periodName + " and " + ticker,
+                    exception);
+        }
+    }
+
+    private void loadAlphaVantageCashFlow(
+            PeriodImportDataDto result,
+            String ticker,
+            String periodName,
+            String endingMonth)
+    {
+        try {
+            Optional<AlphaVantageCashFlow> cashFlow = alphaVantageClient
+                    .getCashFlow(ticker, periodName, endingMonth);
+            if (cashFlow.isEmpty()) return;
+
+            AlphaVantageCashFlow values = cashFlow.get();
+            PeriodImportDataDto.Source source = result.getAlphaVantage();
+            source.setDividend(toMillions(values.dividend()));
+            source.setCapex(toMillions(values.capex()));
+            source.setFreeCashFlow(toMillions(values.freeCashFlow()));
+        } catch (Exception exception) {
+            addWarning(
+                    result.getWarnings(),
+                    "Alpha Vantage cash flow for " + periodName + " and " + ticker,
                     exception);
         }
     }

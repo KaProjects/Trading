@@ -1,0 +1,57 @@
+{
+  "incomeStatements": {
+    "AMD": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "revenue": 11536000000,
+        "grossProfit": 6203000000,
+        "operatingIncome": 1990000000,
+        "netIncome": 2297000000
+      }
+    },
+    "INTC": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "revenue": 16128000000,
+        "grossProfit": 6509000000,
+        "operatingIncome": 1796000000,
+        "netIncome": -11033000000
+      }
+    },
+    "NVDA": {
+      "27Q1": {
+        "endingMonth": "2026-04",
+        "revenue": 81615000000,
+        "grossProfit": 61157000000,
+        "operatingIncome": 53536000000,
+        "netIncome": 58321000000
+      }
+    }
+  },
+  "cashFlows": {
+    "AMD": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "dividend": 0,
+        "capex": 180000000,
+        "freeCashFlow": 1650000000
+      }
+    },
+    "INTC": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "dividend": 650000000,
+        "capex": 5000000000,
+        "freeCashFlow": -2000000000
+      }
+    },
+    "NVDA": {
+      "27Q1": {
+        "endingMonth": "2026-04",
+        "dividend": 250000000,
+        "capex": 1100000000,
+        "freeCashFlow": 28750000000
+      }
+    }
+  }
+}

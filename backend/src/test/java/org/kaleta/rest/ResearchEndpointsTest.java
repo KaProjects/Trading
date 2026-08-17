@@ -6,9 +6,12 @@ import io.quarkus.test.junit.mockito.MockitoConfig;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.kaleta.client.AlphaVantageClient;
 import org.kaleta.client.FinnhubClient;
 import org.kaleta.client.PolygonClient;
 import org.kaleta.client.RequestFailureException;
+import org.kaleta.client.dto.AlphaVantageCashFlow;
+import org.kaleta.client.dto.AlphaVantageIncomeStatement;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonPriceRange;
 import org.kaleta.framework.Assert;
@@ -38,6 +41,7 @@ import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,13 +54,15 @@ public class ResearchEndpointsTest
     @InjectMock
     PolygonClient polygonClient;
     @InjectMock
+    AlphaVantageClient alphaVantageClient;
+    @InjectMock
     @MockitoConfig(convertScopes = true)
     FirebaseService firebaseService;
 
     @BeforeEach
     void before() throws RequestFailureException
     {
-        reset(finnhubClient, polygonClient, firebaseService);
+        reset(finnhubClient, polygonClient, alphaVantageClient, firebaseService);
         when(finnhubClient.quote(any())).thenReturn(null);
         when(firebaseService.getPeriod(anyString(), anyString())).thenReturn(null);
         when(firebaseService.getNewerPeriods(anyString(), nullable(String.class)))
@@ -246,6 +252,17 @@ public class ResearchEndpointsTest
                 .thenReturn(Optional.of(new PolygonPriceRange(
                         new BigDecimal("140.25"),
                         new BigDecimal("90.75"))));
+        when(alphaVantageClient.getIncomeStatement("RCH", "25Q2", "2025-07"))
+                .thenReturn(Optional.of(new AlphaVantageIncomeStatement(
+                        new BigDecimal("21000000"),
+                        new BigDecimal("31000000"),
+                        new BigDecimal("41000000"),
+                        new BigDecimal("51000000"))));
+        when(alphaVantageClient.getCashFlow("RCH", "25Q2", "2025-07"))
+                .thenReturn(Optional.of(new AlphaVantageCashFlow(
+                        new BigDecimal("7000000"),
+                        new BigDecimal("12000000"),
+                        new BigDecimal("22000000"))));
 
         PeriodImportDataDto dto = given().when()
                 .get("/research/" + companyId + "/import/period/25Q2")
@@ -272,11 +289,21 @@ public class ResearchEndpointsTest
         assertThat(dto.getPolygon().getAdjustedEps(), is("1.27"));
         assertThat(dto.getPolygon().getPriceHigh(), is("140.25"));
         assertThat(dto.getPolygon().getPriceLow(), is("90.75"));
+        assertThat(dto.getAlphaVantage().getRevenue(), is("21"));
+        assertThat(dto.getAlphaVantage().getGrossProfit(), is("31"));
+        assertThat(dto.getAlphaVantage().getOperatingIncome(), is("41"));
+        assertThat(dto.getAlphaVantage().getNetIncome(), is("51"));
+        assertThat(dto.getAlphaVantage().getDividend(), is("7"));
+        assertThat(dto.getAlphaVantage().getCapex(), is("12"));
+        assertThat(dto.getAlphaVantage().getFreeCashFlow(), is("22"));
         assertThat(dto.getWarnings().size(), is(0));
         verify(firebaseService).getPeriod("RCH", "25Q2");
         verify(firebaseService).getLatestActualEps("RCH", "25Q2");
         verify(polygonClient).getFinancials("RCH", "2025", "Q2");
         verify(polygonClient).getPriceRange("RCH", "2025-05-28", "2025-08-27");
+        var alphaVantageOrder = inOrder(alphaVantageClient);
+        alphaVantageOrder.verify(alphaVantageClient).getCashFlow("RCH", "25Q2", "2025-07");
+        alphaVantageOrder.verify(alphaVantageClient).getIncomeStatement("RCH", "25Q2", "2025-07");
     }
 
     @Test
@@ -292,6 +319,13 @@ public class ResearchEndpointsTest
                 .thenReturn(Optional.of(new PolygonPriceRange(
                         new BigDecimal("140.25"),
                         new BigDecimal("90.75"))));
+        when(alphaVantageClient.getIncomeStatement("RCH", "25Q2", "2025-07"))
+                .thenThrow(new RequestFailureException("daily limit reached"));
+        when(alphaVantageClient.getCashFlow("RCH", "25Q2", "2025-07"))
+                .thenReturn(Optional.of(new AlphaVantageCashFlow(
+                        new BigDecimal("7000000"),
+                        new BigDecimal("12000000"),
+                        new BigDecimal("22000000"))));
 
         PeriodImportDataDto dto = given().when()
                 .get("/research/" + companyId + "/import/period/25Q2")
@@ -303,8 +337,12 @@ public class ResearchEndpointsTest
         assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
         assertThat(dto.getPolygon().getAdjustedEps(), is(nullValue()));
         assertThat(dto.getPolygon().getPriceHigh(), is("140.25"));
+        assertThat(dto.getAlphaVantage().getRevenue(), is(nullValue()));
+        assertThat(dto.getAlphaVantage().getDividend(), is("7"));
+        assertThat(dto.getAlphaVantage().getFreeCashFlow(), is("22"));
         assertThat(dto.getWarnings(), containsInAnyOrder(
                 "Polygon.io financial data for 25Q2 and RCH could not be loaded: rate limit exceeded",
+                "Alpha Vantage income statement for 25Q2 and RCH could not be loaded: daily limit reached",
                 "Firebase/Finnhub EPS for 25Q2 and RCH could not be loaded: Finnhub unavailable"));
     }
 
@@ -357,6 +395,8 @@ public class ResearchEndpointsTest
         assertThat(dto.getFirebase().getRevenue(), is(nullValue()));
         assertThat(dto.getPolygon(), is(notNullValue()));
         assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
+        assertThat(dto.getAlphaVantage(), is(notNullValue()));
+        assertThat(dto.getAlphaVantage().getRevenue(), is(nullValue()));
         assertThat(dto.getWarnings().size(), is(0));
     }
 
