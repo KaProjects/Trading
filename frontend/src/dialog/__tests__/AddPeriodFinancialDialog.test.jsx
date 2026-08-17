@@ -119,6 +119,7 @@ function createProps(overrides = {}) {
                 year: "2024",
                 type: "Q1",
             },
+            endingMonth: "2024-03",
             reportDate: "2024-02-15",
             previousReportDate: "2023-11-15",
         },
@@ -276,7 +277,7 @@ describe("AddPeriodFinancialDialog", () => {
         expect(mockFormatError).not.toHaveBeenCalled();
     });
 
-    test("edits a reported period without loading suggestions", async () => {
+    test("edits a reported period with suggestions without replacing saved values", async () => {
         axios.put.mockResolvedValue({});
         const props = createProps({
             period: {
@@ -291,23 +292,35 @@ describe("AddPeriodFinancialDialog", () => {
                     netIncome: {value: 51},
                     dividend: 0.5,
                     adjustedEps: 1.21,
-                    capex: {value: -61},
-                    freeCashFlow: {value: 71},
+                    capex: {value: null},
+                    freeCashFlow: {value: null},
                 },
             },
         });
 
         render(<AddPeriodFinancialDialog {...props} edit/>);
 
-        expect(axios.get).not.toHaveBeenCalled();
-        expect(screen.queryByText("Gemini")).not.toBeInTheDocument();
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
+            "http://backend/research/company-1/import/period/24Q1?endingMonth=2024-03"
+        ));
+        expect(await screen.findByText("Gemini")).toBeInTheDocument();
+        expect(screen.getByText("Polygon.io")).toBeInTheDocument();
+        expect(screen.getByText("Alpha Vantage")).toBeInTheDocument();
         expect(screen.getByRole("heading", {name: "Edit Period for NVDA 24Q1"})).toBeInTheDocument();
         expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("123");
-        expect(screen.getByLabelText("CapEx (in Millions)")).toHaveValue("-61");
-        expect(screen.getByLabelText("Free Cash Flow (in Millions)")).toHaveValue("71");
+        expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("21");
+        expect(screen.getByLabelText("CapEx (in Millions)")).toHaveValue("");
+        expect(screen.getByLabelText("Free Cash Flow (in Millions)")).toHaveValue("");
         expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
         expect(screen.queryByLabelText("Ending Month")).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Alpha Vantage value for CapEx (in Millions)",
+        }));
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Alpha Vantage value for Free Cash Flow (in Millions)",
+        }));
 
         fireEvent.click(screen.getByRole("button", {name: "Update"}));
 
@@ -323,8 +336,8 @@ describe("AddPeriodFinancialDialog", () => {
             adjustedEps: "1.21",
             priceHigh: "125",
             priceLow: "95",
-            capex: "-61",
-            freeCashFlow: "71",
+            capex: "62",
+            freeCashFlow: "72",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();

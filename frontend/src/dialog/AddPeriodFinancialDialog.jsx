@@ -38,23 +38,17 @@ export const AddPeriodFinancialDialog = props => {
     useEffect(() => {
         if (!open || !period) return
 
-        if (edit) {
-            setFinancial(financialFromPeriod(period))
-            setSuggestions({firebase: {}, polygon: {}, alphaVantage: {}})
-            setWarnings([])
-            setAlert(null)
-            setLoading(false)
-            return
-        }
-
-        setFinancial(EMPTY_FINANCIAL)
+        setFinancial(edit ? financialFromPeriod(period) : EMPTY_FINANCIAL)
         setSuggestions({firebase: {}, polygon: {}, alphaVantage: {}})
         setWarnings([])
         setAlert(null)
         setLoading(true)
 
         const quarterId = formatPeriodName(period.name)
-        axios.get(`${backend}/research/${company.id}/import/period/${quarterId}`)
+        const endingMonthQuery = edit && period.endingMonth
+            ? `?endingMonth=${encodeURIComponent(period.endingMonth)}`
+            : ""
+        axios.get(`${backend}/research/${company.id}/import/period/${quarterId}${endingMonthQuery}`)
             .then(response => {
                 const data = response.data
                 setSuggestions({
@@ -124,7 +118,6 @@ export const AddPeriodFinancialDialog = props => {
                             suggestions={suggestions}
                             setSuggestions={setSuggestions}
                             clearAlert={() => setAlert(null)}
-                            showSuggestions={!edit}
                         />
                     </>
                 }

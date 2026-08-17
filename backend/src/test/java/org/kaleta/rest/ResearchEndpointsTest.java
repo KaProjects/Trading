@@ -347,7 +347,7 @@ public class ResearchEndpointsTest
     }
 
     @Test
-    void importPeriod_missingGeminiStillLoadsExternalSuggestions() throws RequestFailureException
+    void importPeriod_missingGeminiUsesProvidedEndingMonthForExternalSuggestions() throws RequestFailureException
     {
         Long companyId = 2281L;
         when(firebaseService.getPeriod("RCH", "25Q2"))
@@ -359,10 +359,21 @@ public class ResearchEndpointsTest
                         null,
                         null,
                         null)));
+        when(alphaVantageClient.getCashFlow("RCH", "25Q2", "2025-07"))
+                .thenReturn(Optional.of(new AlphaVantageCashFlow(
+                        new BigDecimal("7000000"),
+                        new BigDecimal("12000000"),
+                        new BigDecimal("22000000"))));
+        when(alphaVantageClient.getIncomeStatement("RCH", "25Q2", "2025-07"))
+                .thenReturn(Optional.of(new AlphaVantageIncomeStatement(
+                        new BigDecimal("21000000"),
+                        new BigDecimal("31000000"),
+                        new BigDecimal("41000000"),
+                        new BigDecimal("51000000"))));
         when(firebaseService.getLatestActualEps("RCH", "25Q2")).thenReturn("1.27");
 
         PeriodImportDataDto dto = given().when()
-                .get("/research/" + companyId + "/import/period/25Q2")
+                .get("/research/" + companyId + "/import/period/25Q2?endingMonth=2025-07")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -373,9 +384,14 @@ public class ResearchEndpointsTest
         assertThat(dto.getPolygon().getRevenue(), is("20"));
         assertThat(dto.getPolygon().getAdjustedEps(), is("1.27"));
         assertThat(dto.getPolygon().getPriceHigh(), is(nullValue()));
+        assertThat(dto.getAlphaVantage().getRevenue(), is("21"));
+        assertThat(dto.getAlphaVantage().getCapex(), is("12"));
+        assertThat(dto.getAlphaVantage().getFreeCashFlow(), is("22"));
         assertThat(dto.getWarnings(), is(List.of(
                 "Firebase period 25Q2 for RCH could not be loaded: Gemini unavailable")));
         verify(polygonClient).getFinancials("RCH", "2025", "Q2");
+        verify(alphaVantageClient).getCashFlow("RCH", "25Q2", "2025-07");
+        verify(alphaVantageClient).getIncomeStatement("RCH", "25Q2", "2025-07");
         verify(firebaseService).getLatestActualEps("RCH", "25Q2");
     }
 
@@ -410,6 +426,9 @@ public class ResearchEndpointsTest
         Assert.getValidationError(
                 "/research/" + companyId + "/import/period/INVALID",
                 "must be a valid PeriodName");
+        Assert.getValidationError(
+                "/research/" + companyId + "/import/period/25Q2?endingMonth=2025",
+                "must match YYYY-MM");
     }
 
     @Test

@@ -2,10 +2,12 @@ package org.kaleta.rest;
 
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.model.Company;
@@ -123,9 +125,11 @@ public class ResearchEndpoints
     @Path("/{companyId}/import/period/{quarterId}")
     public Response importPeriod(
             @NotNull @ValidId @PathParam("companyId") Long companyId,
-            @NotNull @ValidPeriodName @PathParam("quarterId") String quarterId)
+            @NotNull @ValidPeriodName @PathParam("quarterId") String quarterId,
+            @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d$", message = "must match YYYY-MM")
+            @QueryParam("endingMonth") String endingMonth)
     {
-        PeriodImportDataDto data = importService.getPeriod(companyId, quarterId);
+        PeriodImportDataDto data = importService.getPeriod(companyId, quarterId, endingMonth);
         return Response.ok().entity(data).build();
     }
 

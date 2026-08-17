@@ -50,7 +50,7 @@ public class ImportService
         this.arithmeticService = arithmeticService;
     }
 
-    public PeriodImportDataDto getPeriod(Long companyId, String quarterId)
+    public PeriodImportDataDto getPeriod(Long companyId, String quarterId, String endingMonth)
     {
         Company company = companyService.getCompany(companyId);
         String ticker = company.getTicker();
@@ -58,8 +58,11 @@ public class ImportService
         PeriodImportDto firebaseData = loadFirebasePeriod(result, ticker, quarterId);
         if (firebaseData != null) {
             populatePeriodData(result, firebaseData);
-            loadAlphaVantageData(result, ticker, quarterId, firebaseData.getEndingMonth());
+            if (endingMonth == null || endingMonth.isBlank()) {
+                endingMonth = firebaseData.getEndingMonth();
+            }
         }
+        loadAlphaVantageData(result, ticker, quarterId, endingMonth);
 
         loadPolygonFinancials(result, ticker, quarterId);
         if (firebaseData != null) {
