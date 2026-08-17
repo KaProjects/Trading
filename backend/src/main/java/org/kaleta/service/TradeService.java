@@ -6,6 +6,7 @@ import jakarta.persistence.NoResultException;
 import org.kaleta.model.Asset;
 import org.kaleta.model.Assets;
 import org.kaleta.model.PeriodFrequency;
+import org.kaleta.model.TradeSaleSummary;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
@@ -53,13 +54,13 @@ public class TradeService
         tradeDao.create(newTrade);
     }
 
-    public void sellTrade(TradeSellDto dto)
+    public TradeSaleSummary sellTrade(TradeSellDto dto)
     {
         if (dto.getTrades().isEmpty()) throw new IllegalArgumentException("no trades specified");
         Company company = companyService.findEntity(dto.getCompanyId());
 
         List<Trade> trades = new ArrayList<>();
-        BigDecimal totalSellQuantity = new BigDecimal(0);
+        BigDecimal totalSellQuantity = BigDecimal.ZERO;
         for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {
             try {
@@ -80,6 +81,12 @@ public class TradeService
         }
 
         Date date = Date.valueOf(dto.getDate());
+        BigDecimal sellPrice = new BigDecimal(dto.getPrice());
+        BigDecimal sellFees = new BigDecimal(dto.getFees());
+        BigDecimal totalPurchaseValue = BigDecimal.ZERO;
+        BigDecimal totalFees = BigDecimal.ZERO;
+        BigDecimal totalPurchase = BigDecimal.ZERO;
+        BigDecimal totalSell = BigDecimal.ZERO;
 
         for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {
@@ -106,11 +113,27 @@ public class TradeService
                 trade.setPurchaseFees(trade.getPurchaseFees().subtract(residualFees));
             }
             trade.setSellDate(date);
-            trade.setSellPrice(new BigDecimal(dto.getPrice()));
-            trade.setSellFees(new BigDecimal(dto.getFees()).multiply(sellQuantity).divide(totalSellQuantity, 2, RoundingMode.HALF_UP));
+            trade.setSellPrice(sellPrice);
+            trade.setSellFees(sellFees.multiply(sellQuantity).divide(totalSellQuantity, 2, RoundingMode.HALF_UP));
+
+            BigDecimal purchaseTotal = arithmeticService.purchaseTotal(
+                    trade.getPurchasePrice(), trade.getQuantity(), trade.getPurchaseFees());
+            BigDecimal sellTotal = arithmeticService.sellTotal(
+                    trade.getSellPrice(), trade.getQuantity(), trade.getSellFees());
+            totalPurchaseValue = totalPurchaseValue.add(trade.getPurchasePrice().multiply(trade.getQuantity()));
+            totalFees = totalFees.add(trade.getPurchaseFees()).add(trade.getSellFees());
+            totalPurchase = totalPurchase.add(purchaseTotal);
+            totalSell = totalSell.add(sellTotal);
         }
 
         tradeDao.saveAll(trades);
+
+        return new TradeSaleSummary(
+                totalSellQuantity,
+                totalPurchaseValue.divide(totalSellQuantity, 5, RoundingMode.HALF_UP),
+                totalFees,
+                totalSell.subtract(totalPurchase),
+                arithmeticService.profitPercentage(totalPurchase, totalSell));
     }
 
     public Assets getAssets(Long companyId, BigDecimal currentPrice)

@@ -1,5 +1,7 @@
 package org.kaleta.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
@@ -7,6 +9,7 @@ import org.kaleta.Utils;
 import org.kaleta.model.Assets;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
+import org.kaleta.model.TradeSaleSummary;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Latest;
@@ -16,8 +19,10 @@ import org.kaleta.rest.dto.RecordUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +41,8 @@ public class RecordService
     PeriodService periodService;
     @Inject
     TradeService tradeService;
+    @Inject
+    ObjectMapper objectMapper;
 
     public void create(RecordCreateDto dto)
     {
@@ -62,13 +69,28 @@ public class RecordService
 
     public void createCurrent(Long companyId, String titlePrefix, String date, String price)
     {
+        createCurrent(companyId, titlePrefix, date, price, null);
+    }
+
+    public void createCurrent(Long companyId, String titlePrefix, String date, String price,
+                              TradeSaleSummary sale)
+    {
         Company company = companyService.findEntity(companyId);
         Periods periods = periodService.getBy(companyId);
 
         Record newRecord = new Record();
 
         newRecord.setCompany(company);
-        newRecord.setStrategy(titlePrefix + "@" + price + company.getCurrency());
+        String strategy = titlePrefix + "@" + price + company.getCurrency();
+        List<String> strategyDetails = new ArrayList<>();
+        if (sale != null) {
+            String currency = company.getCurrency().toString();
+            strategyDetails.add("- " + formatDecimal(sale.quantity(), 5) + "@"
+                    + formatDecimal(sale.averagePurchasePrice(), 5) + currency
+                    + " - " + formatDecimal(sale.fees(), 2) + currency
+                    + " = " + formatPerformance(sale.profit(), sale.profitPercentage(), currency));
+        }
+        newRecord.setStrategy(createBulletedList(strategy, strategyDetails));
 
         newRecord.setDate(Date.valueOf(date));
         newRecord.setPrice(new BigDecimal(price));
@@ -94,6 +116,50 @@ public class RecordService
         }
 
         recordDao.create(newRecord);
+    }
+
+    private String formatPerformance(BigDecimal profit, BigDecimal profitPercentage, String currency)
+    {
+        if (profitPercentage == null && profit == null) return "";
+        if (profitPercentage == null) return formatSigned(profit, 2) + currency;
+        if (profit == null) return "(" + formatSigned(profitPercentage, 2) + "%)";
+        return formatSigned(profit, 2) + currency + " (" + formatSigned(profitPercentage, 2) + "%)";
+    }
+
+    private String formatSigned(BigDecimal value, int maxScale)
+    {
+        BigDecimal rounded = value.setScale(maxScale, RoundingMode.HALF_UP).stripTrailingZeros();
+        return (rounded.signum() >= 0 ? "+" : "") + rounded.toPlainString();
+    }
+
+    private String formatDecimal(BigDecimal value, int maxScale)
+    {
+        return value.setScale(maxScale, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
+    }
+
+    private String createBulletedList(String text, List<String> innerTexts)
+    {
+        ObjectNode textNode = objectMapper.createObjectNode().put("text", text);
+
+        ObjectNode listItem = objectMapper.createObjectNode().put("type", "list-item");
+        listItem.set("children", objectMapper.createArrayNode().add(textNode));
+
+        if (!innerTexts.isEmpty()) {
+            ObjectNode innerList = objectMapper.createObjectNode().put("type", "bulleted-list");
+            innerList.set("children", objectMapper.createArrayNode());
+            for (String innerText : innerTexts) {
+                ObjectNode innerTextNode = objectMapper.createObjectNode().put("text", innerText);
+                ObjectNode innerListItem = objectMapper.createObjectNode().put("type", "list-item");
+                innerListItem.set("children", objectMapper.createArrayNode().add(innerTextNode));
+                innerList.withArray("children").add(innerListItem);
+            }
+            listItem.withArray("children").add(innerList);
+        }
+
+        ObjectNode bulletedList = objectMapper.createObjectNode().put("type", "bulleted-list");
+        bulletedList.set("children", objectMapper.createArrayNode().add(listItem));
+
+        return objectMapper.createArrayNode().add(bulletedList).toString();
     }
 
     public void update(RecordUpdateDto dto)

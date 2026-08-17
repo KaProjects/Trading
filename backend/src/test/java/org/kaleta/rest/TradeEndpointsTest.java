@@ -8,10 +8,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Assert;
 import org.kaleta.model.Trades;
+import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Portfolio;
+import org.kaleta.persistence.entity.Record;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
@@ -46,6 +48,8 @@ class TradeEndpointsTest
 
     @Inject
     TradeDao tradeDao;
+    @Inject
+    RecordDao recordDao;
 
     @InjectMock
     LatestService latestService;
@@ -392,6 +396,11 @@ class TradeEndpointsTest
         assertThat(trade.getSellDate(), is(nullValue()));
         assertThat(trade.getSellPrice(), is(nullValue()));
         assertThat(trade.getSellFees(), is(nullValue()));
+
+        List<Record> records = recordDao.list(dto.getCompanyId());
+        assertThat(records.size(), is(1));
+        assertThat(records.get(0).getStrategy(), is(
+                "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"bought 10@100.5$\"}]}]}]"));
     }
 
     @Test
@@ -543,6 +552,11 @@ class TradeEndpointsTest
         assertThat(trades.get(3).getSellDate(), is(nullValue()));
         assertThat(trades.get(3).getSellPrice(), is(nullValue()));
         assertThat(trades.get(3).getSellFees(), is(nullValue()));
+
+        List<Record> records = recordDao.list(dto.getCompanyId());
+        assertThat(records.size(), is(1));
+        assertThat(records.get(0).getStrategy(), is(
+                "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"sold 7.5@600$\"},{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"- 7.5@466.66667$ - 28.33$ = +971.67$ (+27.66%)\"}]}]}]}]}]"));
     }
 
     @Test

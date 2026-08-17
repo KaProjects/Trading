@@ -22,4 +22,31 @@ describe("ContentEditor", () => {
 
         expect(container.querySelector('[contenteditable="true"]')).not.toBeNull();
     });
+
+    test("renders nested sale details", () => {
+        const content = [{
+            type: "bulleted-list",
+            children: [{
+                type: "list-item",
+                children: [
+                    {text: "sold 7.5@600$"},
+                    {
+                        type: "bulleted-list",
+                        children: [{
+                            type: "list-item",
+                            children: [{text: "- 7.5@466.66667$ - 28.33$ = +971.67$ (+27.66%)"}],
+                        }],
+                    },
+                ],
+            }],
+        }];
+
+        const {container} = render(
+            <ContentEditor content={JSON.stringify(content)} update={jest.fn()}/>
+        );
+
+        expect(screen.getByText("sold 7.5@600$")).toBeInTheDocument();
+        expect(screen.getByText("- 7.5@466.66667$ - 28.33$ = +971.67$ (+27.66%)")).toBeInTheDocument();
+        expect(container.querySelectorAll("ul")).toHaveLength(2);
+    });
 });

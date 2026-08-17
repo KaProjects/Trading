@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.Assets;
 import org.kaleta.model.PeriodFrequency;
+import org.kaleta.model.TradeSaleSummary;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
@@ -445,6 +446,47 @@ public class TradeServiceTest
         Trade malformed = copy(validTrade);
         malformed.setId(4_294_967_295L);
         sellAndAssertTrade(company.getId(), validDate, validPrice, validFees, validDtoTrades, List.of(malformed), List.of(copy(expectedTrade)), InvalidInputException.class);
+    }
+
+    @Test
+    void sell_returnsAggregateSummary()
+    {
+        Company company = Generator.generateCompany();
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+
+        Trade firstTrade = trade(company, 101L, "0.1", "100", "1");
+        Trade secondTrade = trade(company, 102L, "0.2", "200", "2");
+        when(tradeDao.get(firstTrade.getId())).thenReturn(firstTrade);
+        when(tradeDao.get(secondTrade.getId())).thenReturn(secondTrade);
+
+        TradeSellDto dto = new TradeSellDto();
+        dto.setCompanyId(company.getId());
+        dto.setDate("2027-07-24");
+        dto.setPrice("300");
+        dto.setFees("3");
+        dto.setTrades(List.of(
+                new TradeSellDto.Trade(firstTrade.getId(), "0.1"),
+                new TradeSellDto.Trade(secondTrade.getId(), "0.2")));
+
+        TradeSaleSummary summary = tradeService.sellTrade(dto);
+
+        assertBigDecimals(summary.quantity(), new BigDecimal("0.3"));
+        assertBigDecimals(summary.averagePurchasePrice(), new BigDecimal("166.66667"));
+        assertBigDecimals(summary.fees(), new BigDecimal("6"));
+        assertBigDecimals(summary.profit(), new BigDecimal("34"));
+        assertBigDecimals(summary.profitPercentage(), new BigDecimal("64.15"));
+    }
+
+    private Trade trade(Company company, Long id, String quantity, String price, String fees)
+    {
+        Trade trade = new Trade();
+        trade.setId(id);
+        trade.setCompany(company);
+        trade.setQuantity(new BigDecimal(quantity));
+        trade.setPurchaseDate(Date.valueOf("2027-01-01"));
+        trade.setPurchasePrice(new BigDecimal(price));
+        trade.setPurchaseFees(new BigDecimal(fees));
+        return trade;
     }
 
     private Trade copy(Trade origin)

@@ -11,6 +11,7 @@ import org.kaleta.framework.Generator;
 import org.kaleta.model.Assets;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
+import org.kaleta.model.TradeSaleSummary;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
@@ -244,7 +245,7 @@ public class RecordServiceTest
         verify(recordDao).create(captor.capture());
 
         assertThat(captor.getValue().getTitle(), is(Matchers.nullValue()));
-        assertThat(captor.getValue().getStrategy(), is("snapshot@123$"));
+        assertThat(captor.getValue().getStrategy(), is(bulletedList("snapshot@123$")));
         assertThat(captor.getValue().getDate(), is(Date.valueOf("2030-01-01")));
         assertBigDecimals(captor.getValue().getPrice(), new BigDecimal("123"));
         assertThat(captor.getValue().getPriceToRevenues(), is(Matchers.nullValue()));
@@ -254,6 +255,36 @@ public class RecordServiceTest
         assertThat(captor.getValue().getDividendYield(), is(Matchers.nullValue()));
         assertThat(captor.getValue().getSumAssetQuantity(), is(Matchers.nullValue()));
         assertThat(captor.getValue().getAvgAssetPrice(), is(Matchers.nullValue()));
+    }
+
+    @Test
+    void createCurrent_withSalePerformance()
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+        when(periodService.getBy(company.getId())).thenReturn(new Periods());
+        when(tradeService.getAssets(company.getId(), new BigDecimal("123"))).thenReturn(new Assets());
+
+        recordService.createCurrent(
+                company.getId(),
+                "sold 1",
+                "2030-01-01",
+                "123",
+                new TradeSaleSummary(
+                        BigDecimal.ONE,
+                        new BigDecimal("100.123456"),
+                        new BigDecimal("6.789"),
+                        new BigDecimal("-45.678"),
+                        new BigDecimal("-12.345")));
+
+        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+        verify(recordDao).create(captor.capture());
+
+        assertThat(captor.getValue().getStrategy(), is(
+                bulletedList(
+                        "sold 1@123$",
+                        "- 1@100.12346$ - 6.79$ = -45.68$ (-12.35%)")));
     }
 
     private void createCurrentAndAssertRecord(Long cid, String t, String d, String p,
@@ -269,7 +300,8 @@ public class RecordServiceTest
 
             assertThat(captor.getValue().getCompany().getId(), is(cid));
             assertThat(captor.getValue().getTitle(), is(Matchers.nullValue()));
-            assertThat(captor.getValue().getStrategy(), Matchers.startsWith((t == null) ? "null" : t));
+            assertThat(captor.getValue().getStrategy(), is(bulletedList(
+                    String.valueOf(t) + "@" + p + captor.getValue().getCompany().getCurrency())));
             assertThat(captor.getValue().getDate(), is(Date.valueOf(d)));
             assertBigDecimals(captor.getValue().getPrice(), new BigDecimal(p));
 
@@ -283,6 +315,25 @@ public class RecordServiceTest
         } else {
             assertThrows(expectedException, () -> recordService.createCurrent(cid, t, d, p));
         }
+    }
+
+    private static String bulletedList(String text)
+    {
+        return "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\""
+                + text + "\"}]}]}]";
+    }
+
+    private static String bulletedList(String text, String... innerTexts)
+    {
+        StringBuilder innerList = new StringBuilder();
+        for (String innerText : innerTexts) {
+            if (!innerList.isEmpty()) innerList.append(",");
+            innerList.append("{\"type\":\"list-item\",\"children\":[{\"text\":\"")
+                    .append(innerText)
+                    .append("\"}]}");
+        }
+        return "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\""
+                + text + "\"},{\"type\":\"bulleted-list\",\"children\":[" + innerList + "]}]}]}]";
     }
 
     private void updateAndAssertRecord(RecordUpdateDto dto, Record record, Class<? extends Exception> expectedException)

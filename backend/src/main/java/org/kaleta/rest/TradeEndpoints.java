@@ -14,6 +14,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.model.Company;
+import org.kaleta.model.TradeSaleSummary;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
@@ -30,11 +31,11 @@ import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Date;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.DoubleStream;
 
 @Path("/trade")
 public class TradeEndpoints
@@ -124,13 +125,22 @@ public class TradeEndpoints
     @Path("/")
     public Response sellTrade(@Valid @NotNull TradeSellDto tradeSellDto)
     {
-        tradeService.sellTrade(tradeSellDto);
+        TradeSaleSummary sale = tradeService.sellTrade(tradeSellDto);
         firebaseService.pushAssets(tradeService.getBy(true, null, null, null, null, null));
 
-        double quantity = tradeSellDto.getTrades().stream().flatMapToDouble(trade -> DoubleStream.of(Double.parseDouble(trade.getQuantity()))).sum();
-        String recordTitle = "sold " + new BigDecimal(quantity);
-        recordService.createCurrent(tradeSellDto.getCompanyId(), recordTitle,tradeSellDto.getDate(), tradeSellDto.getPrice());
+        String recordTitle = "sold " + formatDecimal(sale.quantity(), 5);
+        recordService.createCurrent(
+                tradeSellDto.getCompanyId(),
+                recordTitle,
+                tradeSellDto.getDate(),
+                formatDecimal(new BigDecimal(tradeSellDto.getPrice()), 5),
+                sale);
 
         return Response.noContent().build();
+    }
+
+    private String formatDecimal(BigDecimal value, int maxScale)
+    {
+        return value.setScale(maxScale, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 }
