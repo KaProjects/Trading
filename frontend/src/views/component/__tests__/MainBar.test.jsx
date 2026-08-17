@@ -5,12 +5,33 @@ const mockNavigate = jest.fn();
 const mockUseLocation = jest.fn();
 
 jest.mock("../MainBarSelect", () => ({
-    MainBarSelect: ({label, companyLists, defaultCompanyList}) => (
-        <div
-            data-company-lists={companyLists ? Object.keys(companyLists).join(",") : ""}
-            data-default-company-list={defaultCompanyList ?? ""}
-        >
-            selector:{label}
+    MainBarSelect: ({
+        label,
+        companyLists,
+        defaultCompanyList,
+        companyListValue,
+        setCompanyListValue,
+        values,
+        value,
+        setValue,
+    }) => (
+        <div>
+            <button
+                data-company-lists={companyLists ? Object.keys(companyLists).join(",") : ""}
+                data-default-company-list={defaultCompanyList ?? ""}
+                onClick={() => setValue(values?.[0] ?? "")}
+            >
+                <span>selector:{label}</span>
+                <span data-testid={`selector-value-${label}`}>{value?.ticker ?? value ?? ""}</span>
+            </button>
+            {companyLists && <>
+                <span data-testid="company-list-value">{companyListValue}</span>
+                <button onClick={() => setCompanyListValue("researched")}>select-list:researched</button>
+                {companyLists.owned?.[0] && <button onClick={() => {
+                    setCompanyListValue("owned");
+                    setValue(companyLists.owned[0]);
+                }}>select-company-from-list:owned</button>}
+            </>}
         </div>
     ),
 }));
@@ -42,6 +63,8 @@ function createProps(overrides = {}) {
         companyLists: {all: [{id: "company-1", ticker: "NVDA"}]},
         companySelectorValue: "",
         setCompanySelectorValue: jest.fn(),
+        companyListSelectorValue: "all",
+        setCompanyListSelectorValue: jest.fn(),
         currencies: ["$", "EUR"],
         currencySelectorValue: "",
         setCurrencySelectorValue: jest.fn(),
@@ -68,8 +91,8 @@ describe("MainBar", () => {
 
         expect(screen.getByText("selector:all")).toBeInTheDocument();
         expect(screen.getByText("selector:companies")).toBeInTheDocument();
-        expect(screen.getByText("selector:companies")).toHaveAttribute("data-company-lists", "all");
-        expect(screen.getByText("selector:companies")).toHaveAttribute("data-default-company-list", "all");
+        expect(screen.getByText("selector:companies").closest("button")).toHaveAttribute("data-company-lists", "all");
+        expect(screen.getByText("selector:companies").closest("button")).toHaveAttribute("data-default-company-list", "all");
         expect(screen.getByText("selector:currencies")).toBeInTheDocument();
         expect(screen.getByText("selector:years")).toBeInTheDocument();
         expect(screen.getByText("selector:sectors")).toBeInTheDocument();
@@ -218,7 +241,11 @@ describe("MainBar", () => {
         expect(setCurrencySelectorValue).toHaveBeenCalledWith("$");
         expect(setYearSelectorValue).toHaveBeenCalledWith("2024");
         expect(setSectorSelectorValue).toHaveBeenCalledWith(sector);
-        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/trades",
+            search: "?company=NVDA",
+            hash: undefined,
+        }, {
             replace: true,
             state: {},
         });
@@ -240,7 +267,11 @@ describe("MainBar", () => {
         })} />);
 
         await waitFor(() => expect(setActiveSelectorValue).toHaveBeenCalledWith(""));
-        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/trades",
+            search: "?company=NVDA",
+            hash: undefined,
+        }, {
             replace: true,
             state: {},
         });
@@ -261,7 +292,11 @@ describe("MainBar", () => {
         })} />);
 
         await waitFor(() => expect(setResearchTabsIndex).toHaveBeenCalledWith(1));
-        expect(mockNavigate).toHaveBeenCalledWith("/research", {
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/research",
+            search: "?company=NVDA",
+            hash: undefined,
+        }, {
             replace: true,
             state: {},
         });
@@ -285,7 +320,11 @@ describe("MainBar", () => {
         })} />);
 
         await waitFor(() => expect(setCompanySelectorValue).toHaveBeenCalledWith(company));
-        expect(mockNavigate).toHaveBeenCalledWith("/research", {
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/research",
+            search: "?company=NVDA",
+            hash: undefined,
+        }, {
             replace: true,
             state: {showFinancials: true},
         });
@@ -327,10 +366,19 @@ describe("MainBar", () => {
     });
 
     test("navigates between data routes with current selector state", () => {
-        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            search: "?company=NVDA&list=owned",
+            state: null,
+        });
 
         render(<MainBar {...createProps({
+            companyLists: {
+                all: [{id: "company-1", ticker: "NVDA"}],
+                owned: [{id: "company-1", ticker: "NVDA"}],
+            },
             companySelectorValue: {id: "company-1", ticker: "NVDA"},
+            companyListSelectorValue: "owned",
             currencySelectorValue: "$",
             yearSelectorValue: "2024",
             sectorSelectorValue: {key: "TECH", name: "Technology"},
@@ -338,13 +386,284 @@ describe("MainBar", () => {
 
         fireEvent.click(screen.getByRole("button", {name: "go to trades"}));
 
-        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/trades",
+            search: "?company=NVDA&list=owned",
+        }, {
             state: {
-                companyId: "company-1",
                 currency: "$",
                 year: "2024",
                 sector: "TECH",
             },
         });
+    });
+
+    test("preserves the Research list from the URL when navigating back from another data route", () => {
+        mockUseLocation.mockReturnValue({
+            pathname: "/trades",
+            search: "?company=NVDA&list=owned",
+            state: null,
+        });
+
+        render(<MainBar {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+            companyListSelectorValue: "all",
+        })}/>);
+
+        fireEvent.click(screen.getByRole("button", {name: "go to research"}));
+
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/research",
+            search: "?company=NVDA&list=owned",
+        }, {
+            state: {
+                currency: "",
+                year: "",
+                sector: undefined,
+            },
+        });
+    });
+
+    test("selects company from the URL query parameter", async () => {
+        const company = {id: "company-1", ticker: "NVDA"};
+        const setCompanySelectorValue = jest.fn();
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            search: "?company=NVDA",
+            state: null,
+        });
+
+        render(<MainBar {...createProps({
+            companyLists: {all: [company]},
+            setCompanySelectorValue,
+        })}/>);
+
+        await waitFor(() => expect(setCompanySelectorValue).toHaveBeenCalledWith(company));
+    });
+
+    test("updates selected company when browser history changes the query parameter", async () => {
+        const nvidia = {id: "company-1", ticker: "NVDA"};
+        const amd = {id: "company-2", ticker: "AMD"};
+        mockUseLocation.mockReturnValue({
+            pathname: "/trades",
+            search: "?company=NVDA",
+            state: null,
+        });
+
+        const Harness = () => {
+            const [company, setCompany] = React.useState("");
+            return <MainBar {...createProps({
+                companyLists: {all: [nvidia, amd]},
+                companySelectorValue: company,
+                setCompanySelectorValue: setCompany,
+            })}/>;
+        };
+
+        const {rerender} = render(<Harness/>);
+        await waitFor(() => expect(screen.getByTestId("selector-value-companies")).toHaveTextContent("NVDA"));
+
+        mockUseLocation.mockReturnValue({
+            pathname: "/trades",
+            search: "?company=AMD",
+            state: null,
+        });
+        rerender(<Harness/>);
+
+        await waitFor(() => expect(screen.getByTestId("selector-value-companies")).toHaveTextContent("AMD"));
+    });
+
+    test("adds selected company ticker to the URL while preserving other query parameters", async () => {
+        const company = {id: "company-1", ticker: "NVDA"};
+        const companyLists = {all: [company]};
+        mockUseLocation.mockReturnValue({
+            pathname: "/dividends",
+            search: "?source=companies",
+            state: {preserved: true},
+        });
+
+        const Harness = () => {
+            const [selectedCompany, setSelectedCompany] = React.useState("");
+            return <MainBar {...createProps({
+                companyLists,
+                companySelectorValue: selectedCompany,
+                setCompanySelectorValue: setSelectedCompany,
+            })}/>;
+        };
+
+        render(<Harness/>);
+        fireEvent.click(screen.getByText("selector:companies"));
+
+        await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/dividends",
+            search: "?source=companies&company=NVDA",
+            hash: undefined,
+        }, {
+            state: {preserved: true},
+        }));
+    });
+
+    test("restores the Research company list from the URL query parameter", async () => {
+        const company = {id: "company-1", ticker: "NVDA"};
+        const setCompanyListSelectorValue = jest.fn();
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            search: "?company=NVDA&list=owned",
+            state: null,
+        });
+
+        render(<MainBar {...createProps({
+            companyLists: {all: [company], owned: [company]},
+            companySelectorValue: company,
+            setCompanyListSelectorValue,
+        })}/>);
+
+        await waitFor(() => expect(setCompanyListSelectorValue).toHaveBeenCalledWith("owned"));
+    });
+
+    test("updates the Research company list when browser history changes the query parameter", async () => {
+        const company = {id: "company-1", ticker: "NVDA"};
+        const companyLists = {all: [company], owned: [company], recent: [company]};
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            search: "?company=NVDA&list=owned",
+            state: null,
+        });
+
+        const Harness = () => {
+            const [companyList, setCompanyList] = React.useState("all");
+            return <MainBar {...createProps({
+                companyLists,
+                companySelectorValue: company,
+                companyListSelectorValue: companyList,
+                setCompanyListSelectorValue: setCompanyList,
+            })}/>;
+        };
+
+        const {rerender} = render(<Harness/>);
+        await waitFor(() => expect(screen.getByTestId("company-list-value")).toHaveTextContent("owned"));
+
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            search: "?company=NVDA&list=recent",
+            state: null,
+        });
+        rerender(<Harness/>);
+
+        await waitFor(() => expect(screen.getByTestId("company-list-value")).toHaveTextContent("recent"));
+    });
+
+    test("adds the selected Research company list to the URL while preserving other query parameters", async () => {
+        const company = {id: "company-1", ticker: "NVDA"};
+        const companyLists = {all: [company], researched: [company]};
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            search: "?company=NVDA&source=companies",
+            state: {preserved: true},
+        });
+
+        const Harness = () => {
+            const [companyList, setCompanyList] = React.useState("all");
+            return <MainBar {...createProps({
+                companyLists,
+                companySelectorValue: company,
+                companyListSelectorValue: companyList,
+                setCompanyListSelectorValue: setCompanyList,
+            })}/>;
+        };
+
+        render(<Harness/>);
+        fireEvent.click(screen.getByText("select-list:researched"));
+
+        await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/research",
+            search: "?company=NVDA&source=companies&list=researched",
+            hash: undefined,
+        }, {
+            state: {preserved: true},
+        }));
+    });
+
+    test("selects a Research company and its list with one click", async () => {
+        const company = {id: "company-1", ticker: "NVDA"};
+        const companyLists = {all: [company], owned: [company]};
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            search: "",
+            state: null,
+        });
+
+        const Harness = () => {
+            const [selectedCompany, setSelectedCompany] = React.useState("");
+            const [companyList, setCompanyList] = React.useState("all");
+            return <MainBar {...createProps({
+                companyLists,
+                companySelectorValue: selectedCompany,
+                setCompanySelectorValue: setSelectedCompany,
+                companyListSelectorValue: companyList,
+                setCompanyListSelectorValue: setCompanyList,
+            })}/>;
+        };
+
+        render(<Harness/>);
+        fireEvent.click(screen.getByText("select-company-from-list:owned"));
+
+        await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+        expect(mockNavigate.mock.calls.every(([target]) => (
+            target.search === "?company=NVDA&list=owned"
+        ))).toBe(true);
+        expect(screen.getByTestId("selector-value-companies")).toHaveTextContent("NVDA");
+        expect(screen.getByTestId("company-list-value")).toHaveTextContent("owned");
+    });
+
+    test("removes an unknown Research company list from the URL and selects all companies", async () => {
+        const company = {id: "company-1", ticker: "NVDA"};
+        const setCompanyListSelectorValue = jest.fn();
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            search: "?company=NVDA&list=deleted-list&source=bookmark",
+            state: {preserved: true},
+        });
+
+        render(<MainBar {...createProps({
+            companyLists: {all: [company], owned: [company]},
+            companySelectorValue: company,
+            companyListSelectorValue: "owned",
+            setCompanyListSelectorValue,
+        })}/>);
+
+        await waitFor(() => expect(setCompanyListSelectorValue).toHaveBeenCalledWith("all"));
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/research",
+            search: "?company=NVDA&source=bookmark",
+            hash: undefined,
+        }, {
+            replace: true,
+            state: {preserved: true},
+        });
+    });
+
+    test("does not synchronize a company list query parameter outside Research", () => {
+        const company = {id: "company-1", ticker: "NVDA"};
+        const companyLists = {all: [company], researched: [company]};
+        mockUseLocation.mockReturnValue({
+            pathname: "/trades",
+            search: "?company=NVDA",
+            state: null,
+        });
+
+        const Harness = () => {
+            const [companyList, setCompanyList] = React.useState("all");
+            return <MainBar {...createProps({
+                companyLists,
+                companySelectorValue: company,
+                companyListSelectorValue: companyList,
+                setCompanyListSelectorValue: setCompanyList,
+            })}/>;
+        };
+
+        render(<Harness/>);
+        fireEvent.click(screen.getByText("select-list:researched"));
+
+        expect(mockNavigate).not.toHaveBeenCalled();
     });
 });

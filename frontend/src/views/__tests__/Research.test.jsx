@@ -2,9 +2,15 @@ import React from "react";
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import axios from "axios";
 
+const mockUseLocation = jest.fn();
+
 jest.mock("axios");
 jest.mock("../../properties", () => ({
     backend: "http://backend",
+}));
+jest.mock("react-router-dom", () => ({
+    ...jest.requireActual("react-router-dom"),
+    useLocation: () => mockUseLocation(),
 }));
 
 jest.mock("../component/Loader", () => ({
@@ -182,6 +188,44 @@ describe("Research", () => {
         axios.put.mockReset();
         axios.delete.mockReset();
         mockFormatError.mockReset();
+        mockUseLocation.mockReturnValue({pathname: "/research", search: ""});
+    });
+
+    test("shows only the loader until the company from the URL is selected and loaded", async () => {
+        const selectedCompany = {id: "company-1", ticker: "AAPL"};
+        let resolveRequest;
+        axios.get.mockImplementation(() => new Promise(resolve => {
+            resolveRequest = resolve;
+        }));
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            search: "?company=AAPL&list=owned",
+        });
+
+        const {rerender} = render(<Research companySelectorValue=""/>);
+
+        expect(screen.getByTestId("loader")).toHaveTextContent("loading");
+        expect(screen.getByTestId("company-selector")).not.toBeVisible();
+        expect(axios.get).not.toHaveBeenCalled();
+
+        rerender(<Research companySelectorValue={selectedCompany}/>);
+
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("http://backend/research/company-1"));
+        expect(screen.getByTestId("loader")).toHaveTextContent("loading");
+        expect(screen.getByTestId("company-selector")).not.toBeVisible();
+
+        resolveRequest({data: createResearchData()});
+
+        await screen.findByText("AAPL");
+        expect(screen.getByTestId("company-selector")).toBeVisible();
+        expect(screen.queryByTestId("loader")).not.toBeInTheDocument();
+    });
+
+    test("shows company lists immediately without a company query parameter", () => {
+        render(<Research companySelectorValue=""/>);
+
+        expect(screen.getByTestId("company-selector")).toBeInTheDocument();
+        expect(screen.queryByTestId("loader")).not.toBeInTheDocument();
     });
 
     test("fetches data and renders the research view", async () => {

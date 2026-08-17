@@ -171,9 +171,11 @@ describe("Companies", () => {
         fireEvent.click(within(totalTradesCell).getByRole("button"));
 
         expect(mockRecordEvent).toHaveBeenCalledWith("/companies#redirect:/trades");
-        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/trades",
+            search: "?company=NVDA",
+        }, {
             state: {
-                companyId: "company-1",
                 tradeState: "",
             },
         });
@@ -188,8 +190,11 @@ describe("Companies", () => {
         fireEvent.mouseEnter(activeTradesCell);
         fireEvent.click(within(activeTradesCell).getByRole("button"));
 
-        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
-            state: {companyId: "company-1", tradeState: "only active"},
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/trades",
+            search: "?company=NVDA",
+        }, {
+            state: {tradeState: "only active"},
         });
     });
 
@@ -202,8 +207,11 @@ describe("Companies", () => {
         fireEvent.mouseEnter(dividendsCell);
         fireEvent.click(within(dividendsCell).getByRole("button"));
 
-        expect(mockNavigate).toHaveBeenCalledWith("/dividends", {
-            state: {companyId: "company-1"},
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/dividends",
+            search: "?company=NVDA",
+        }, {
+            state: {},
         });
     });
 
@@ -216,14 +224,20 @@ describe("Companies", () => {
 
         fireEvent.mouseEnter(companyCells[6]);
         fireEvent.click(within(companyCells[6]).getByRole("button"));
-        expect(mockNavigate).toHaveBeenLastCalledWith("/research", {
-            state: {companyId: "company-1", researchTab: 1},
+        expect(mockNavigate).toHaveBeenLastCalledWith({
+            pathname: "/research",
+            search: "?company=NVDA",
+        }, {
+            state: {researchTab: 1},
         });
 
         fireEvent.mouseEnter(companyCells[7]);
         fireEvent.click(within(companyCells[7]).getByRole("button"));
-        expect(mockNavigate).toHaveBeenLastCalledWith("/research", {
-            state: {companyId: "company-1", researchTab: 0},
+        expect(mockNavigate).toHaveBeenLastCalledWith({
+            pathname: "/research",
+            search: "?company=NVDA",
+        }, {
+            state: {researchTab: 0},
         });
     });
 

@@ -1,5 +1,5 @@
 import './style/App.css';
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
 import {backend} from "./properties";
 import axios from "axios";
@@ -68,13 +68,13 @@ export const App = () => {
             .catch(requestError => setError(formatError(requestError)));
     }
 
-    function setCompanySelectorValue(company) {
+    const setCompanySelectorValue = useCallback((company) => {
         setCompanySelectorStateValue(company);
         if (company?.id) {
             setCurrencySelectorValue("");
             setSectorSelectorValue("");
         }
-    }
+    }, []);
 
     const props = {
         companyLists,

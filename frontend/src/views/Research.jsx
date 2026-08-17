@@ -37,6 +37,7 @@ import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
 import {RESEARCH_SPLIT_BREAKPOINT, RESEARCH_TAB} from "./component/MainBar";
 import {AddTagDialog} from "../dialog/AddTagDialog";
+import {useLocation} from "react-router-dom";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 const researchCardStyle = {
@@ -72,6 +73,7 @@ const researchCardRowsStyle = {
 }
 
 export const Research = props => {
+    const location = useLocation()
     const [refresh, setRefresh] = useState("")
 
     const [data, setData] = useState(null)
@@ -162,13 +164,24 @@ export const Research = props => {
     const selectedCompanyLoaded = props.companySelectorValue
         && loaded
         && data?.company?.id === props.companySelectorValue.id
+    const companyFromUrl = new URLSearchParams(location.search ?? "").get("company")
+    const selectedCompanyMatchesUrl = props.companySelectorValue?.ticker?.toLowerCase()
+        === companyFromUrl?.toLowerCase()
+    const waitingForUrlCompany = Boolean(companyFromUrl) && !selectedCompanyMatchesUrl
+    const waitingForSelectedCompany = Boolean(props.companySelectorValue) && !selectedCompanyLoaded
+    const loading = waitingForUrlCompany || waitingForSelectedCompany
 
     return (
         <>
-            <CompanySelector onCustomTagsChange={setTagSuggestions} {...props}/>
-            {props.companySelectorValue && !selectedCompanyLoaded && <Loader error={error}/>}
-            {selectedCompanyLoaded && data.company.ticker !== undefined &&
-                <Grid container direction="row" sx={{width: "100%", justifyContent: "center", alignItems: "flex-start"}}>
+            {loading && <Loader error={waitingForUrlCompany ? null : error}/>}
+            <Box
+                data-testid="research-content"
+                hidden={loading}
+                sx={{display: loading ? "none" : "contents"}}
+            >
+                <CompanySelector onCustomTagsChange={setTagSuggestions} {...props}/>
+                {selectedCompanyLoaded && data.company.ticker !== undefined &&
+                    <Grid container direction="row" sx={{width: "100%", justifyContent: "center", alignItems: "flex-start"}}>
                     <Card sx={{
                         ...researchCardStyle,
                         display: "flex",
@@ -462,9 +475,10 @@ export const Research = props => {
                             </Box>
                         </CardContent>
                     </Card>
-                </Grid>
-            }
-            <SnackbarErrorAlert error={alert} open={alert !== null} onClose={() => setAlert(null)}/>
+                    </Grid>
+                }
+                <SnackbarErrorAlert error={alert} open={alert !== null} onClose={() => setAlert(null)}/>
+            </Box>
         </>
     )
 }
