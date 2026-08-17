@@ -20,7 +20,7 @@ INSERT INTO Company (id, ticker, currency) VALUES (1563, 'XFQ', '$');
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (5, 2213, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (6, 1041, '10', '2018-04-05', '10', '50', '2018-05-05', '0', '0');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (1, 1927, '5', '2023-11-11', '400.5', '14.5', '2024-01-05', '500', '50');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (1, 1927, '5', '2023-11-11', '400.5', '14.5', '2024-01-05', '500', '50', 'PATRIA_MARGIN');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (2, 1425, '100', '2021-05-10', '20.1', '18', '2023-12-31', '30.4', '30.5');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (3, 2229, '10', '2022-11-01', '200000', '25');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (4, 1531, '1150.1234', '2023-04-05', '500.25', '250.12');

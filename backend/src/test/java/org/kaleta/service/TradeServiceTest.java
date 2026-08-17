@@ -271,6 +271,18 @@ public class TradeServiceTest
     }
 
     @Test
+    void getBy_portfolio()
+    {
+        String portfolio = Portfolio.PATRIA_MARGIN.name();
+        when(tradeDao.list(null, null, null, null, null, null, portfolio)).thenReturn(List.of());
+
+        Trades trades = tradeService.getBy(null, null, null, null, null, null, portfolio);
+
+        assertThat(trades.getTrades().isEmpty(), is(true));
+        verify(tradeDao).list(null, null, null, null, null, null, portfolio);
+    }
+
+    @Test
     void getYears()
     {
         Company company = Generator.generateCompany(1L);

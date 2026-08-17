@@ -40,6 +40,7 @@ function createProps(overrides = {}) {
         currencySelectorValue: "",
         yearSelectorValue: "",
         sectorSelectorValue: null,
+        portfolioSelectorValue: null,
         companyLists: {all: []},
         setCompanySelectorValue: jest.fn(),
         ...overrides,
@@ -144,9 +145,10 @@ describe("Trades", () => {
             currencySelectorValue: "$",
             yearSelectorValue: "2024",
             sectorSelectorValue: {key: "SEMICONDUCTORS"},
+            portfolioSelectorValue: {key: "PATRIA_MARGIN"},
         })}/>);
 
-        expect(mockUseData).toHaveBeenCalledWith("/trade?filter&active=false&companyId=company-1&currency=$&year=2024&sector=SEMICONDUCTORS");
+        expect(mockUseData).toHaveBeenCalledWith("/trade?filter&active=false&companyId=company-1&currency=$&year=2024&sector=SEMICONDUCTORS&portfolio=PATRIA_MARGIN");
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("SHELL")).toBeInTheDocument();
         expect(screen.getByText("@")).toBeInTheDocument();

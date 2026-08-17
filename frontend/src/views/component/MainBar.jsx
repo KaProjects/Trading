@@ -30,6 +30,7 @@ const DEFAULT_MAIN_BAR_CONFIG = {
     showCurrencySelector: false,
     showYearSelector: false,
     showSectorSelector: false,
+    showPortfolioSelector: false,
     showAddTradeButton: false,
     showSellTradeButton: false,
     showAddDividendButton: false,
@@ -63,6 +64,7 @@ const MAIN_BAR_CONFIG = {
         showCurrencySelector: true,
         showYearSelector: true,
         showSectorSelector: true,
+        showPortfolioSelector: true,
         showAddTradeButton: true,
         showSellTradeButton: true,
     },
@@ -501,6 +503,15 @@ export const MainBar = props => {
             setValue: props.setSectorSelectorValue,
             valueKey: "name",
             label: "sectors",
+        },
+        {
+            key: "portfolio",
+            visible: config.showPortfolioSelector,
+            values: props.portfolios,
+            value: props.portfolioSelectorValue,
+            setValue: props.setPortfolioSelectorValue,
+            valueKey: "name",
+            label: "portfolios",
         },
     ]
 

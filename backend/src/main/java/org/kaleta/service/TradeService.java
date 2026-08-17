@@ -162,9 +162,19 @@ public class TradeService
         return model;
     }
 
-    public Trades getBy(Boolean active, Long company, String currency, String purchaseYear, String sellYear, String sector){
-        List<Trade> trades = tradeDao.list(active, company, currency, purchaseYear, sellYear, sector);
+    public Trades getBy(Boolean active, Long company, String currency, String purchaseYear, String sellYear, String sector)
+    {
+        return toModel(tradeDao.list(active, company, currency, purchaseYear, sellYear, sector));
+    }
 
+    public Trades getBy(Boolean active, Long company, String currency, String purchaseYear, String sellYear, String sector,
+                        String portfolio)
+    {
+        return toModel(tradeDao.list(active, company, currency, purchaseYear, sellYear, sector, portfolio));
+    }
+
+    private Trades toModel(List<Trade> trades)
+    {
         Trades model = new Trades();
 
         model.setTrades(trades.stream().map(this::from).sorted(Trades.Trade::compareTo).collect(Collectors.toList()));

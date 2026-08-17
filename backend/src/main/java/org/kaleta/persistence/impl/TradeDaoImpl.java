@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.TypedQuery;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
 
@@ -34,6 +35,13 @@ public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDa
     @Override
     public List<Trade> list(Boolean active, Long companyId, String currency, String purchaseYear, String sellYear, String sector)
     {
+        return list(active, companyId, currency, purchaseYear, sellYear, sector, null);
+    }
+
+    @Override
+    public List<Trade> list(Boolean active, Long companyId, String currency, String purchaseYear, String sellYear, String sector,
+                            String portfolio)
+    {
         String joinWord = " WHERE ";
         String activeCondition = "";
         if (active != null){
@@ -63,6 +71,12 @@ public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDa
             joinWord = " AND ";
         }
 
+        String portfolioCondition = "";
+        if (portfolio != null){
+            portfolioCondition = joinWord + "t.portfolio=:portfolio";
+            joinWord = " AND ";
+        }
+
         String yearCondition = "";
         if (purchaseYear != null){
             if (sellYear != null){
@@ -81,11 +95,13 @@ public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDa
                 + companyCondition
                 + currencyCondition
                 + sectorCondition
+                + portfolioCondition
                 + yearCondition, Trade.class);
 
         if (companyId != null ) query.setParameter("companyId", companyId);
         if (currency != null ) query.setParameter("currency", Currency.valueOf(currency));
         if (sector != null ) query.setParameter("sector", Sector.valueOf(sector));
+        if (portfolio != null ) query.setParameter("portfolio", Portfolio.valueOf(portfolio));
         if (purchaseYear != null ) query.setParameter("purchaseYear", purchaseYear);
         if (sellYear != null ) query.setParameter("sellYear", sellYear);
 

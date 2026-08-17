@@ -12,6 +12,12 @@ public interface TradeDao extends EntityCompanyDao<Trade>
     List<Trade> list(Boolean active, Long companyId, String currency, String purchaseYear, String sellYear, String sector);
 
     /**
+     * @return lists of trades that match provided filters (null filter = all values)
+     */
+    List<Trade> list(Boolean active, Long companyId, String currency, String purchaseYear, String sellYear, String sector,
+                     String portfolio);
+
+    /**
      * @return trades without an assigned portfolio, optionally filtered by company
      */
     List<Trade> listWithoutPortfolio(Long companyId);

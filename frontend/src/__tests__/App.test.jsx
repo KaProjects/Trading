@@ -17,10 +17,12 @@ jest.mock("../views/component/MainBar", () => ({
             <div>currency:{props.currencySelectorValue || ""}</div>
             <div>years:{props.years.join(",")}</div>
             <div>sector:{props.sectorSelectorValue?.name || ""}</div>
+            <div>portfolio:{props.portfolioSelectorValue?.name || ""}</div>
             <button onClick={() => props.setCurrencySelectorValue("$")}>set currency</button>
             <button onClick={() => props.setSectorSelectorValue({key: "TECH", name: "Technology"})}>set sector</button>
             <button onClick={() => props.setCompanySelectorValue({id: "company-1", ticker: "NVDA"})}>set company</button>
             <button onClick={() => props.setCompanySelectorValue("")}>clear company</button>
+            <button onClick={() => props.setPortfolioSelectorValue(props.portfolios[0])}>set portfolio</button>
         </div>
     ),
 }));
@@ -116,5 +118,14 @@ describe("App", () => {
         expect(screen.getByText("company:")).toBeInTheDocument();
         expect(screen.getByText("currency:$")).toBeInTheDocument();
         expect(screen.getByText("sector:Technology")).toBeInTheDocument();
+    });
+
+    test("stores the selected trade portfolio", async () => {
+        render(<App/>);
+
+        await waitFor(() => expect(screen.getByText("home")).toBeInTheDocument());
+        fireEvent.click(screen.getByText("set portfolio"));
+
+        expect(screen.getByText("portfolio:Patria - Standard")).toBeInTheDocument();
     });
 });

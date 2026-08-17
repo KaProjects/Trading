@@ -74,6 +74,9 @@ function createProps(overrides = {}) {
         sectors: [{name: "Technology"}],
         sectorSelectorValue: "",
         setSectorSelectorValue: jest.fn(),
+        portfolios: [{key: "PATRIA_STANDARD", name: "Patria - Standard"}],
+        portfolioSelectorValue: "",
+        setPortfolioSelectorValue: jest.fn(),
         ...overrides,
     };
 }
@@ -96,6 +99,7 @@ describe("MainBar", () => {
         expect(screen.getByText("selector:currencies")).toBeInTheDocument();
         expect(screen.getByText("selector:years")).toBeInTheDocument();
         expect(screen.getByText("selector:sectors")).toBeInTheDocument();
+        expect(screen.getByText("selector:portfolios")).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "sell trade"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "add trade"})).toBeInTheDocument();
         expect(screen.queryByRole("button", {name: "go to trades"})).not.toBeInTheDocument();
@@ -115,6 +119,7 @@ describe("MainBar", () => {
         expect(screen.getByText("selector:all")).toBeInTheDocument();
         expect(screen.getByText("selector:companies")).toBeInTheDocument();
         expect(screen.getByText("selector:years")).toBeInTheDocument();
+        expect(screen.getByText("selector:portfolios")).toBeInTheDocument();
         expect(screen.queryByText("selector:currencies")).not.toBeInTheDocument();
         expect(screen.queryByText("selector:sectors")).not.toBeInTheDocument();
     });

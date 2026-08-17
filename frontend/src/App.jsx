@@ -37,6 +37,7 @@ export const App = () => {
     const [currencySelectorValue, setCurrencySelectorValue] = useState("");
     const [yearSelectorValue, setYearSelectorValue] = useState("");
     const [sectorSelectorValue, setSectorSelectorValue] = useState("");
+    const [portfolioSelectorValue, setPortfolioSelectorValue] = useState("");
     const [openAddTrade, setOpenAddTrade] = useState(false);
     const [openSellTrade, setOpenSellTrade] = useState(false);
     const [openAddDividend, setOpenAddDividend] = useState(false);
@@ -97,6 +98,8 @@ export const App = () => {
         setYearSelectorValue,
         sectorSelectorValue,
         setSectorSelectorValue,
+        portfolioSelectorValue,
+        setPortfolioSelectorValue,
 
         openAddTrade,
         setOpenAddTrade,

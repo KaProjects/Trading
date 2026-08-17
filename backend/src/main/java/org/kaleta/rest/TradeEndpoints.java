@@ -17,6 +17,7 @@ import org.kaleta.model.Company;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
@@ -66,9 +67,12 @@ public class TradeEndpoints
             String currency,
             @ValueOfEnum(enumClass = Sector.class)
             @QueryParam("sector")
-            String sector
+            String sector,
+            @ValueOfEnum(enumClass = Portfolio.class)
+            @QueryParam("portfolio")
+            String portfolio
     ) {
-        Trades trades = tradeService.getBy(active, companyId, currency, year, year, sector);
+        Trades trades = tradeService.getBy(active, companyId, currency, year, year, sector, portfolio);
 
         if (active != null && active)
         {

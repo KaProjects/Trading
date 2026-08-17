@@ -69,6 +69,8 @@ class TradeEndpointsTest
         Assert.getValidationError(path + "?year=202", "must match YYYY");
 
         Assert.getValidationError(path + "?sector=X", "must be any of Sector");
+
+        Assert.getValidationError(path + "?portfolio=X", "must be any of Portfolio");
     }
 
     @Test
@@ -209,6 +211,24 @@ class TradeEndpointsTest
         assertBigDecimals(dto.getAggregates().getSellTotal(), new BigDecimal("2450.00"));
         assertBigDecimals(dto.getAggregates().getProfit(), new BigDecimal("433.00"));
         assertBigDecimals(dto.getAggregates().getProfitPercentage(), new BigDecimal("21.47"));
+    }
+
+    @Test
+    void getTradesFilterPortfolio()
+    {
+        Trades dto = given().when()
+                .get("/trade?portfolio=" + Portfolio.PATRIA_MARGIN)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", Trades.class);
+
+        assertThat(dto.getTrades().size(), is(1));
+        assertThat(dto.getTrades().get(0).getCompany().getTicker(), is("NVDA"));
+        assertThat(dto.getTrades().get(0).getPortfolio().getKey(), is(Portfolio.PATRIA_MARGIN.name()));
+        assertThat(dto.getAggregates().getCompanies(), is(1));
+        assertThat(dto.getAggregates().getCurrencies(), is(1));
+        assertThat(dto.getAggregates().getPortfolios(), is(1));
     }
 
     @Test

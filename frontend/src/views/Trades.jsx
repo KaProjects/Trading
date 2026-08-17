@@ -20,6 +20,7 @@ export const Trades = props => {
             + (props.currencySelectorValue ? "&currency=" + props.currencySelectorValue : "")
             + (props.yearSelectorValue ? "&year=" + props.yearSelectorValue : "")
             + (props.sectorSelectorValue ? "&sector=" + props.sectorSelectorValue.key : "")
+            + (props.portfolioSelectorValue ? "&portfolio=" + props.portfolioSelectorValue.key : "")
             + (refresh ? "&refresh" + refresh : "")
     }
 
