@@ -72,6 +72,8 @@ const comparisonData = {
         adjustedEps: "1.21",
         priceHigh: "141",
         priceLow: "91",
+        capex: "-61",
+        freeCashFlow: "71",
     },
     polygon: {
         shares: "10",
@@ -83,6 +85,8 @@ const comparisonData = {
         adjustedEps: "1.18",
         priceHigh: "140.25",
         priceLow: "90.75",
+        capex: "-60",
+        freeCashFlow: "70",
     },
     warnings: [],
 };
@@ -144,6 +148,12 @@ describe("AddPeriodFinancialDialog", () => {
         fireEvent.click(screen.getByRole("button", {
             name: "Use External value for Adjusted EPS",
         }));
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Gemini value for CapEx (in Millions)",
+        }));
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use External value for Free Cash Flow (in Millions)",
+        }));
         fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "3"}});
         fireEvent.change(screen.getByLabelText("Operating Income (in Millions)"), {target: {value: "4"}});
         fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "5"}});
@@ -165,6 +175,8 @@ describe("AddPeriodFinancialDialog", () => {
             netIncome: "5",
             dividend: "0.5",
             adjustedEps: "1.18",
+            capex: "-61",
+            freeCashFlow: "70",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();
@@ -211,6 +223,8 @@ describe("AddPeriodFinancialDialog", () => {
         expect(screen.getByLabelText("Adjusted EPS")).not.toBeRequired();
         expect(screen.getByLabelText("Highest Price")).not.toBeRequired();
         expect(screen.getByLabelText("Lowest Price")).not.toBeRequired();
+        expect(screen.getByLabelText("CapEx (in Millions)")).not.toBeRequired();
+        expect(screen.getByLabelText("Free Cash Flow (in Millions)")).not.toBeRequired();
 
         fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
         fireEvent.change(screen.getByLabelText("Shares (in Millions)"), {target: {value: "10"}});
@@ -230,6 +244,8 @@ describe("AddPeriodFinancialDialog", () => {
             adjustedEps: null,
             priceHigh: null,
             priceLow: null,
+            capex: null,
+            freeCashFlow: null,
         }));
     });
 
@@ -260,6 +276,8 @@ describe("AddPeriodFinancialDialog", () => {
                     netIncome: {value: 51},
                     dividend: 0.5,
                     adjustedEps: 1.21,
+                    capex: {value: -61},
+                    freeCashFlow: {value: 71},
                 },
             },
         });
@@ -271,6 +289,8 @@ describe("AddPeriodFinancialDialog", () => {
         expect(screen.getByRole("heading", {name: "Edit Period for NVDA 24Q1"})).toBeInTheDocument();
         expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("123");
+        expect(screen.getByLabelText("CapEx (in Millions)")).toHaveValue("-61");
+        expect(screen.getByLabelText("Free Cash Flow (in Millions)")).toHaveValue("71");
         expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
         expect(screen.queryByLabelText("Ending Month")).not.toBeInTheDocument();
 
@@ -288,6 +308,8 @@ describe("AddPeriodFinancialDialog", () => {
             adjustedEps: "1.21",
             priceHigh: "125",
             priceLow: "95",
+            capex: "-61",
+            freeCashFlow: "71",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();

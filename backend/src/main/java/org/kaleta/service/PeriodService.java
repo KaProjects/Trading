@@ -63,6 +63,8 @@ public class PeriodService
         period.setOperatingIncome(Utils.createNullableBigDecimal(dto.getOperatingIncome()));
         period.setNetIncome(Utils.createNullableBigDecimal(dto.getNetIncome()));
         period.setDividend(Utils.createNullableBigDecimal(dto.getDividend()));
+        period.setCapex(Utils.createNullableBigDecimal(dto.getCapex()));
+        period.setFreeCashFlow(Utils.createNullableBigDecimal(dto.getFreeCashFlow()));
         period.setAdjustedEps(Utils.createNullableBigDecimal(dto.getAdjustedEps()));
 
         periodDao.create(period);
@@ -99,6 +101,8 @@ public class PeriodService
         if (dto.getOperatingIncome() != null) period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
         if (dto.getNetIncome() != null) period.setNetIncome(new BigDecimal(dto.getNetIncome()));
         if (dto.getDividend() != null) period.setDividend(new BigDecimal(dto.getDividend()));
+        if (dto.getCapex() != null) period.setCapex(new BigDecimal(dto.getCapex()));
+        if (dto.getFreeCashFlow() != null) period.setFreeCashFlow(new BigDecimal(dto.getFreeCashFlow()));
         if (dto.getAdjustedEps() != null) period.setAdjustedEps(new BigDecimal(dto.getAdjustedEps()));
 
         periodDao.save(period);
@@ -123,6 +127,8 @@ public class PeriodService
         period.setOperatingIncome(Utils.createNullableBigDecimal(dto.getOperatingIncome()));
         period.setNetIncome(new BigDecimal(dto.getNetIncome()));
         period.setDividend(Utils.createNullableBigDecimal(dto.getDividend()));
+        period.setCapex(Utils.createNullableBigDecimal(dto.getCapex()));
+        period.setFreeCashFlow(Utils.createNullableBigDecimal(dto.getFreeCashFlow()));
         period.setAdjustedEps(Utils.createNullableBigDecimal(dto.getAdjustedEps()));
 
         periodDao.save(period);
@@ -210,12 +216,16 @@ public class PeriodService
         financial.getGrossProfit().setValue(period.getGrossProfit());
         financial.getOperatingIncome().setValue(period.getOperatingIncome());
         financial.getNetIncome().setValue(period.getNetIncome());
+        financial.getCapex().setValue(period.getCapex());
+        financial.getFreeCashFlow().setValue(period.getFreeCashFlow());
 
         if (period.getRevenue().compareTo(BigDecimal.ZERO) != 0) {
             financial.getRevenue().setMargin(new BigDecimal(100));
             financial.getGrossProfit().setMargin(computeMargin(period.getGrossProfit(), period.getRevenue()));
             financial.getOperatingIncome().setMargin(computeMargin(period.getOperatingIncome(), period.getRevenue()));
             financial.getNetIncome().setMargin(computeMargin(period.getNetIncome(), period.getRevenue()));
+            financial.getCapex().setMargin(computeMargin(period.getCapex(), period.getRevenue()));
+            financial.getFreeCashFlow().setMargin(computeMargin(period.getFreeCashFlow(), period.getRevenue()));
         }
 
         financial.setDividend(period.getDividend());
@@ -270,6 +280,14 @@ public class PeriodService
                     current.getNetIncome(),
                     previousPeriod == null ? null : previousPeriod.getNetIncome(),
                     previousYear == null ? null : previousYear.getNetIncome());
+            computeMetricGrowth(
+                    current.getCapex(),
+                    previousPeriod == null ? null : previousPeriod.getCapex(),
+                    previousYear == null ? null : previousYear.getCapex());
+            computeMetricGrowth(
+                    current.getFreeCashFlow(),
+                    previousPeriod == null ? null : previousPeriod.getFreeCashFlow(),
+                    previousYear == null ? null : previousYear.getFreeCashFlow());
         }
     }
 
@@ -351,6 +369,8 @@ public class PeriodService
         ttm.setOperatingIncome(computeTtmValue(ttmQuarters, Period::getOperatingIncome));
         ttm.setNetIncome(computeTtmValue(ttmQuarters, Period::getNetIncome));
         ttm.setDividend(computeTtmValue(ttmQuarters, Period::getDividend));
+        ttm.setCapex(computeTtmValue(ttmQuarters, Period::getCapex));
+        ttm.setFreeCashFlow(computeTtmValue(ttmQuarters, Period::getFreeCashFlow));
         ttm.setShares(quarters.get(0).getShares());
         return ttm;
     }
@@ -383,6 +403,8 @@ public class PeriodService
                     quarter.setOperatingIncome(divideNullable(period.getOperatingIncome(), new BigDecimal(4)));
                     quarter.setNetIncome(period.getNetIncome().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
                     quarter.setDividend(divideNullable(period.getDividend(), new BigDecimal(4)));
+                    quarter.setCapex(divideNullable(period.getCapex(), new BigDecimal(4)));
+                    quarter.setFreeCashFlow(divideNullable(period.getFreeCashFlow(), new BigDecimal(4)));
                     quarter.setShares(period.getShares());
                     quarters.add(quarter);
                     quarters.add(quarter);
@@ -395,6 +417,8 @@ public class PeriodService
                     quarter.setOperatingIncome(divideNullable(period.getOperatingIncome(), new BigDecimal(2)));
                     quarter.setNetIncome(period.getNetIncome().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
                     quarter.setDividend(divideNullable(period.getDividend(), new BigDecimal(2)));
+                    quarter.setCapex(divideNullable(period.getCapex(), new BigDecimal(2)));
+                    quarter.setFreeCashFlow(divideNullable(period.getFreeCashFlow(), new BigDecimal(2)));
                     quarter.setShares(period.getShares());
                     quarters.add(quarter);
                     quarters.add(quarter);

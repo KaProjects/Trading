@@ -157,5 +157,7 @@ function financialFromPeriod(period) {
         adjustedEps: value(financial.adjustedEps),
         priceHigh: value(period.priceHigh),
         priceLow: value(period.priceLow),
+        capex: value(financial.capex?.value),
+        freeCashFlow: value(financial.freeCashFlow?.value),
     }
 }

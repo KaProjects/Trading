@@ -96,7 +96,7 @@ INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1840, 1490
 
 -- for ResearchEndpointsTest.get test
 INSERT INTO Company (id, ticker, currency) VALUES (2281, 'RCH', '$');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares) VALUES (1837, 2281, '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20', '1.25', '100');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, capex, fcf, adjusted_eps, shares) VALUES (1837, 2281, '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20', '-40', '60', '1.25', '100');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES (2182, 2281, '25Q1', '2504');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares) VALUES (1338, 2281, '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10', '90');
 INSERT INTO Estimate (id, periodId, datetime, current, next1) VALUES (4, 2182, '2026-08-02 14:30:00', '1.62', '1.85');

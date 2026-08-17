@@ -20,9 +20,19 @@ import {
     isNotAValue,
 } from "../../service/FormattingService";
 
-const headers = ["Period", "Revenue", "Gross Profit", "Operating Income", "Net Income", "Dividend"];
+const headers = [
+    "Period",
+    "Revenue",
+    "Gross Profit",
+    "Operating Income",
+    "Net Income",
+    "Dividend",
+    "CapEx",
+    "FCF",
+];
 
 const formatDividend = (value) => value === 0 || isNotAValue(value) ? "-" : formatMillions(value) || "-";
+const formatFinancialValue = (value) => isNotAValue(value) ? "-" : formatMillions(value) || "-";
 
 const FinancialSummaryItem = ({value, label, margin, first = false}) => (
     <Box sx={{marginLeft: first ? {xs: 0, sm: "5px"} : "10px", flexShrink: 0}}>
@@ -64,7 +74,7 @@ export const FinancialsTable = ({financials, fontSize = 14, scrollable = false})
         overflow: "auto",
         ...(scrollable && {flex: 1, minHeight: 0}),
     }}>
-        <Table size="small" aria-label="financials table" stickyHeader sx={{minWidth: 650}}>
+        <Table size="small" aria-label="financials table" stickyHeader sx={{minWidth: 850}}>
             <TableHead>
                 <TableRow>
                     {headers.map(column => <TableCell key={column} sx={{fontSize, textAlign: "center"}}>{column}</TableCell>)}
@@ -75,10 +85,12 @@ export const FinancialsTable = ({financials, fontSize = 14, scrollable = false})
                     <TableRow key={formatPeriodName(financial.period)}>
                         <FinancialTableCell value={formatPeriodName(financial.period)} fontSize={fontSize}/>
                         <FinancialTableCell value={formatMillions(financial.revenue.value)} margin={financial.revenue.margin} yoy={financial.revenue.yoy} qoq={financial.revenue.qoq} fontSize={fontSize}/>
-                        <FinancialTableCell value={formatMillions(financial.grossProfit.value)} margin={financial.grossProfit.margin} yoy={financial.grossProfit.yoy} qoq={financial.grossProfit.qoq} fontSize={fontSize}/>
-                        <FinancialTableCell value={formatMillions(financial.operatingIncome.value)} margin={financial.operatingIncome.margin} yoy={financial.operatingIncome.yoy} qoq={financial.operatingIncome.qoq} fontSize={fontSize}/>
+                        <FinancialTableCell value={formatFinancialValue(financial.grossProfit.value)} margin={financial.grossProfit.margin} yoy={financial.grossProfit.yoy} qoq={financial.grossProfit.qoq} fontSize={fontSize}/>
+                        <FinancialTableCell value={formatFinancialValue(financial.operatingIncome.value)} margin={financial.operatingIncome.margin} yoy={financial.operatingIncome.yoy} qoq={financial.operatingIncome.qoq} fontSize={fontSize}/>
                         <FinancialTableCell value={formatMillions(financial.netIncome.value)} margin={financial.netIncome.margin} yoy={financial.netIncome.yoy} qoq={financial.netIncome.qoq} fontSize={fontSize}/>
                         <FinancialTableCell value={formatDividend(financial.dividend)} fontSize={fontSize}/>
+                        <FinancialTableCell value={formatFinancialValue(financial.capex.value)} margin={financial.capex.margin} yoy={financial.capex.yoy} qoq={financial.capex.qoq} fontSize={fontSize}/>
+                        <FinancialTableCell value={formatFinancialValue(financial.freeCashFlow.value)} margin={financial.freeCashFlow.margin} yoy={financial.freeCashFlow.yoy} qoq={financial.freeCashFlow.qoq} fontSize={fontSize}/>
                     </TableRow>
                 ))}
             </TableBody>
@@ -123,9 +135,16 @@ export const PeriodFinancials = ({ttm, onOpen, sx}) => (
             {ttm &&
                 <>
                     <FinancialSummaryItem first value={ttm.revenue.value} label="revenue" margin={ttm.revenue.margin}/>
-                    <FinancialSummaryItem value={ttm.grossProfit.value} label="gross profit" margin={ttm.grossProfit.margin}/>
-                    <FinancialSummaryItem value={ttm.operatingIncome.value} label="op. income" margin={ttm.operatingIncome.margin}/>
+                    {!isNotAValue(ttm.grossProfit?.value) &&
+                        <FinancialSummaryItem value={ttm.grossProfit.value} label="gross profit" margin={ttm.grossProfit.margin}/>
+                    }
+                    {!isNotAValue(ttm.operatingIncome?.value) &&
+                        <FinancialSummaryItem value={ttm.operatingIncome.value} label="op. income" margin={ttm.operatingIncome.margin}/>
+                    }
                     <FinancialSummaryItem value={ttm.netIncome.value} label="net income" margin={ttm.netIncome.margin}/>
+                    {!isNotAValue(ttm.freeCashFlow?.value) &&
+                        <FinancialSummaryItem value={ttm.freeCashFlow.value} label="fcf" margin={ttm.freeCashFlow.margin}/>
+                    }
                     <Button className="overview-action" aria-label="Open financials" sx={{minWidth: 0, height: "36px", color: "primary.main", flexShrink: 0}} onClick={onOpen}>
                         <FinancialsIcon width="24" height="24"/>
                     </Button>

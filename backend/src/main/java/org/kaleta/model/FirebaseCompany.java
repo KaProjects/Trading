@@ -75,6 +75,8 @@ public class FirebaseCompany
             private String reported_operating_income;
             private String reported_revenues;
             private String reported_shares;
+            private String reported_capex;
+            private String reported_fcf;
 
             public boolean isInFutureOf(String quarterId)
             {
@@ -118,6 +120,12 @@ public class FirebaseCompany
                 }
                 if (this.reported_div != null && !this.reported_div.isBlank()) {
                     period.setDividend(new BigDecimal(this.reported_div).toString());
+                }
+                if (this.reported_capex != null && !this.reported_capex.isBlank()) {
+                    period.setCapex(new BigDecimal(this.reported_capex).toString());
+                }
+                if (this.reported_fcf != null && !this.reported_fcf.isBlank()) {
+                    period.setFreeCashFlow(new BigDecimal(this.reported_fcf).toString());
                 }
                 if (this.reported_eps != null && !this.reported_eps.isBlank()) {
                     period.setAdjustedEps(new BigDecimal(this.reported_eps).toString());

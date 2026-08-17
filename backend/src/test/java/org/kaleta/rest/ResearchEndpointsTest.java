@@ -97,6 +97,8 @@ public class ResearchEndpointsTest
         assertThat(dto.getEstimateOverview().getNext3().getValue(), is(nullValue()));
         assertThat(dto.getFinancials().size(), is(2));
         assertThat(dto.getFinancials().get(0).getPeriod(), is(PeriodName.valueOf("24Q4")));
+        assertBigDecimals(dto.getFinancials().get(0).getCapex().getValue(), new BigDecimal("-40"));
+        assertBigDecimals(dto.getFinancials().get(0).getFreeCashFlow().getValue(), new BigDecimal("60"));
         assertBigDecimals(dto.getFinancials().get(0).getAdjustedEps(), new BigDecimal("1.25"));
         assertThat(dto.getFinancials().get(1).getPeriod(), is(PeriodName.valueOf("24Q3")));
         assertThat(dto.getFinancials().get(1).getAdjustedEps(), is(nullValue()));
@@ -259,6 +261,8 @@ public class ResearchEndpointsTest
         assertThat(dto.getFirebase().getShares(), is("101"));
         assertThat(dto.getFirebase().getRevenue(), is("201"));
         assertThat(dto.getFirebase().getDividend(), is("6"));
+        assertThat(dto.getFirebase().getCapex(), is("-11"));
+        assertThat(dto.getFirebase().getFreeCashFlow(), is("21"));
         assertThat(dto.getFirebase().getAdjustedEps(), is("1.25"));
         assertThat(dto.getPolygon().getShares(), is("10"));
         assertThat(dto.getPolygon().getRevenue(), is("20"));
@@ -468,6 +472,8 @@ public class ResearchEndpointsTest
         data.setOperatingIncome("51");
         data.setNetIncome("31");
         data.setDividend("6");
+        data.setCapex("-11");
+        data.setFreeCashFlow("21");
         data.setAdjustedEps("1.25");
         data.setPriceHigh("151.5");
         data.setPriceLow("81.5");

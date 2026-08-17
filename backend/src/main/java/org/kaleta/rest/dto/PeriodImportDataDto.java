@@ -27,6 +27,8 @@ public class PeriodImportDataDto
         private String operatingIncome;
         private String netIncome;
         private String dividend;
+        private String capex;
+        private String freeCashFlow;
         private String adjustedEps;
     }
 }

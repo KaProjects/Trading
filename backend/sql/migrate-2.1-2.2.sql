@@ -1,0 +1,5 @@
+
+
+ALTER TABLE Period ADD COLUMN capex DECIMAL(8, 2);
+ALTER TABLE Period ADD COLUMN fcf DECIMAL(8, 2);
+

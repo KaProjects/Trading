@@ -139,6 +139,8 @@ public class FirebaseService
         quarter.setReported_operating_income(toString(period.getOperatingIncome()));
         quarter.setReported_net_income(toString(period.getNetIncome()));
         quarter.setReported_div(toString(period.getDividend()));
+        quarter.setReported_capex(toString(period.getCapex()));
+        quarter.setReported_fcf(toString(period.getFreeCashFlow()));
         quarter.setReported_eps(toString(period.getAdjustedEps()));
 
         firebaseStore.updateQuarter(ticker, quarterId, quarter);

@@ -13,6 +13,8 @@ export const EMPTY_PERIOD_FINANCIAL_VALUES = {
     adjustedEps: "",
     priceHigh: "",
     priceLow: "",
+    capex: "",
+    freeCashFlow: "",
 }
 
 const SOURCE_STYLE = {
@@ -108,6 +110,22 @@ const FINANCIAL_FIELDS = [
         integerConstraint: 10,
         decimalConstraint: 4,
         allowNegative: false,
+    },
+    {
+        key: "capex",
+        id: "company-financial-capex",
+        label: "CapEx (in Millions)",
+        integerConstraint: 8,
+        decimalConstraint: 2,
+        allowNegative: true,
+    },
+    {
+        key: "freeCashFlow",
+        id: "company-financial-free-cash-flow",
+        label: "Free Cash Flow (in Millions)",
+        integerConstraint: 8,
+        decimalConstraint: 2,
+        allowNegative: true,
     },
 ]
 

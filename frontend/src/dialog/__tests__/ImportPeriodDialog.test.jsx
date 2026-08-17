@@ -103,6 +103,8 @@ function createImportData(overrides = {}) {
             adjustedEps: "1.21",
             priceHigh: "141",
             priceLow: "91",
+            capex: "-61",
+            freeCashFlow: "71",
         },
         polygon: {
             shares: "10",
@@ -114,6 +116,8 @@ function createImportData(overrides = {}) {
             adjustedEps: "1.18",
             priceHigh: "140.25",
             priceLow: "90.75",
+            capex: "-60",
+            freeCashFlow: "70",
         },
         warnings: [],
         ...overrides,
@@ -165,6 +169,13 @@ describe("ImportPeriodDialog", () => {
         }));
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("1.18");
 
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Gemini value for CapEx (in Millions)",
+        }));
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use External value for Free Cash Flow (in Millions)",
+        }));
+
         fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "20"}});
         fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "30"}});
         fireEvent.change(screen.getByLabelText("Operating Income (in Millions)"), {target: {value: "40"}});
@@ -190,6 +201,8 @@ describe("ImportPeriodDialog", () => {
             adjustedEps: "1.18",
             priceHigh: "140.25",
             priceLow: "90.75",
+            capex: "-61",
+            freeCashFlow: "70",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();
@@ -240,6 +253,8 @@ describe("ImportPeriodDialog", () => {
             adjustedEps: null,
             priceHigh: null,
             priceLow: null,
+            capex: null,
+            freeCashFlow: null,
         }));
     });
 
@@ -294,6 +309,8 @@ describe("ImportPeriodDialog", () => {
                 adjustedEps: null,
                 priceHigh: "140.25",
                 priceLow: "90.75",
+                capex: null,
+                freeCashFlow: null,
             },
             warnings: ["Polygon.io financial data could not be loaded: rate limit exceeded"],
         });

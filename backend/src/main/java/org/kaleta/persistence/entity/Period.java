@@ -57,6 +57,12 @@ public class Period extends AbstractEntityCompany
     @Column(name = "dividend")
     private BigDecimal dividend;
 
+    @Column(name = "capex")
+    private BigDecimal capex;
+
+    @Column(name = "fcf")
+    private BigDecimal freeCashFlow;
+
     @Column(name = "adjusted_eps")
     private BigDecimal adjustedEps;
 }

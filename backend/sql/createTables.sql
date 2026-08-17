@@ -73,6 +73,8 @@ CREATE TABLE Period
     oper_income  DECIMAL(8, 2),
     net_income   DECIMAL(8, 2),
     dividend     DECIMAL(8, 2),
+    capex        DECIMAL(8, 2),
+    fcf          DECIMAL(8, 2),
     adjusted_eps DECIMAL(6, 2),
     companyId    INT UNSIGNED  NOT NULL,
     CONSTRAINT `fk_periodCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)

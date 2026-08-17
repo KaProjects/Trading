@@ -134,6 +134,8 @@ class PeriodEndpointsTest
         dto.setShares("12345.67");
         dto.setRevenue("22.5");
         dto.setNetIncome("-5");
+        dto.setCapex("-7.25");
+        dto.setFreeCashFlow("4.5");
 
         Assert.post201(path + "/import", dto);
 
@@ -153,6 +155,8 @@ class PeriodEndpointsTest
         assertThat(period.getOperatingIncome(), is(nullValue()));
         assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
         assertThat(period.getDividend(), is(nullValue()));
+        assertBigDecimals(period.getCapex(), new BigDecimal(dto.getCapex()));
+        assertBigDecimals(period.getFreeCashFlow(), new BigDecimal(dto.getFreeCashFlow()));
         assertThat(period.getAdjustedEps(), is(nullValue()));
     }
 
@@ -181,6 +185,8 @@ class PeriodEndpointsTest
         assertThat(period.getOperatingIncome(), is(nullValue()));
         assertThat(period.getNetIncome(), is(nullValue()));
         assertThat(period.getDividend(), is(nullValue()));
+        assertThat(period.getCapex(), is(nullValue()));
+        assertThat(period.getFreeCashFlow(), is(nullValue()));
         assertThat(period.getAdjustedEps(), is(nullValue()));
     }
 
@@ -242,6 +248,8 @@ class PeriodEndpointsTest
         String validOperatingIncome = "-10";
         String validNetIncome = "-5";
         String validDividend = "2";
+        String validCapex = "-3";
+        String validFreeCashFlow = "4";
         String validAdjustedEps = "-1.25";
 
         Assert.postValidationError(path + "/import", null, NOT_NULL);
@@ -259,6 +267,8 @@ class PeriodEndpointsTest
         dto.setOperatingIncome(validOperatingIncome);
         dto.setNetIncome(validNetIncome);
         dto.setDividend(validDividend);
+        dto.setCapex(validCapex);
+        dto.setFreeCashFlow(validFreeCashFlow);
         dto.setAdjustedEps(validAdjustedEps);
 
         dto.setCompanyId(null);
@@ -400,6 +410,24 @@ class PeriodEndpointsTest
         dto.setDividend(null);
         dto.setDividend(validDividend);
 
+        dto.setCapex("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setCapex("1234567");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setCapex("10.123");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setCapex(null);
+        dto.setCapex(validCapex);
+
+        dto.setFreeCashFlow("x");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setFreeCashFlow("1234567");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setFreeCashFlow("10.123");
+        Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_6_2_true);
+        dto.setFreeCashFlow(null);
+        dto.setFreeCashFlow(validFreeCashFlow);
+
         dto.setAdjustedEps("");
         Assert.postValidationError(path + "/import", dto, BIG_DECIMAL_4_2_true);
         dto.setAdjustedEps("x");
@@ -468,6 +496,8 @@ class PeriodEndpointsTest
         dto.setOperatingIncome("10");
         dto.setNetIncome("5");
         dto.setDividend("2");
+        dto.setCapex("-3");
+        dto.setFreeCashFlow("4");
         dto.setAdjustedEps("-1.25");
 
         Assert.put204(path, dto);
@@ -488,6 +518,8 @@ class PeriodEndpointsTest
         assertBigDecimals(period.getOperatingIncome(), new BigDecimal(dto.getOperatingIncome()));
         assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
         assertBigDecimals(period.getDividend(), new BigDecimal(dto.getDividend()));
+        assertBigDecimals(period.getCapex(), new BigDecimal(dto.getCapex()));
+        assertBigDecimals(period.getFreeCashFlow(), new BigDecimal(dto.getFreeCashFlow()));
         assertBigDecimals(period.getAdjustedEps(), new BigDecimal(dto.getAdjustedEps()));
     }
 
@@ -610,6 +642,22 @@ class PeriodEndpointsTest
         Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_false);
         dto.setDividend(null);
 
+        dto.setCapex("x");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
+        dto.setCapex("1234567");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
+        dto.setCapex("10.123");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
+        dto.setCapex(null);
+
+        dto.setFreeCashFlow("x");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
+        dto.setFreeCashFlow("1234567");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
+        dto.setFreeCashFlow("10.123");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_6_2_true);
+        dto.setFreeCashFlow(null);
+
         dto.setAdjustedEps("x");
         Assert.putValidationError(path, dto, BIG_DECIMAL_4_2_true);
         dto.setAdjustedEps(".1");
@@ -662,6 +710,8 @@ class PeriodEndpointsTest
         dto.setShares("12345");
         dto.setRevenue("22.5");
         dto.setNetIncome("5");
+        dto.setCapex("-3");
+        dto.setFreeCashFlow("4");
 
         Assert.put204(path + "/financial", dto);
 
@@ -680,6 +730,8 @@ class PeriodEndpointsTest
         assertThat(period.getOperatingIncome(), is(nullValue()));
         assertBigDecimals(period.getNetIncome(), new BigDecimal(dto.getNetIncome()));
         assertThat(period.getDividend(), is(nullValue()));
+        assertBigDecimals(period.getCapex(), new BigDecimal(dto.getCapex()));
+        assertBigDecimals(period.getFreeCashFlow(), new BigDecimal(dto.getFreeCashFlow()));
         assertThat(period.getAdjustedEps(), is(nullValue()));
     }
 
@@ -698,6 +750,8 @@ class PeriodEndpointsTest
         dto.setOperatingIncome("10");
         dto.setNetIncome("5");
         dto.setDividend("2");
+        dto.setCapex("-3");
+        dto.setFreeCashFlow("4");
         dto.setAdjustedEps("1.75");
 
         Assert.putValidationError(path + "/financial", dto, NOT_NULL);
@@ -804,6 +858,22 @@ class PeriodEndpointsTest
         dto.setDividend("-1");
         Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_false);
         dto.setDividend("2");
+
+        dto.setCapex("x");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_true);
+        dto.setCapex("1234567");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_true);
+        dto.setCapex("10.123");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_true);
+        dto.setCapex(null);
+
+        dto.setFreeCashFlow("x");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_true);
+        dto.setFreeCashFlow("1234567");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_true);
+        dto.setFreeCashFlow("10.123");
+        Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_6_2_true);
+        dto.setFreeCashFlow(null);
 
         dto.setAdjustedEps("x");
         Assert.putValidationError(path + "/financial", dto, BIG_DECIMAL_4_2_true);

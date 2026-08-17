@@ -126,6 +126,8 @@ public class ImportService
         firebase.setOperatingIncome(firebaseData.getOperatingIncome());
         firebase.setNetIncome(firebaseData.getNetIncome());
         firebase.setDividend(firebaseData.getDividend());
+        firebase.setCapex(firebaseData.getCapex());
+        firebase.setFreeCashFlow(firebaseData.getFreeCashFlow());
         firebase.setAdjustedEps(firebaseData.getAdjustedEps());
     }
 

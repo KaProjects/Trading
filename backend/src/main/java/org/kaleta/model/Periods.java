@@ -40,6 +40,8 @@ public class Periods
         private final Metric grossProfit = new Metric();
         private final Metric operatingIncome = new Metric();
         private final Metric netIncome = new Metric();
+        private final Metric capex = new Metric();
+        private final Metric freeCashFlow = new Metric();
 
         private BigDecimal dividend;
         private BigDecimal adjustedEps;

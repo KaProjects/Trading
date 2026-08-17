@@ -6,6 +6,7 @@ const ttm = {
     grossProfit: {value: 600, margin: 40},
     operatingIncome: {value: 300, margin: 20},
     netIncome: {value: 150, margin: 10},
+    freeCashFlow: {value: 120, margin: 8},
 };
 
 const financials = [{
@@ -15,6 +16,8 @@ const financials = [{
     operatingIncome: {value: 300, margin: 20, yoy: -10},
     netIncome: {value: 150, margin: 10, qoq: 0},
     dividend: 25,
+    capex: {value: -50, margin: -3},
+    freeCashFlow: {value: 100, margin: 7, yoy: 10, qoq: 5},
 }];
 
 describe("PeriodFinancials", () => {
@@ -25,9 +28,35 @@ describe("PeriodFinancials", () => {
         expect(screen.getByText("1.5B")).toBeInTheDocument();
         expect(screen.getByText("op. income")).toBeInTheDocument();
         expect(screen.getByText("net income")).toBeInTheDocument();
+        expect(screen.getByText("fcf")).toBeInTheDocument();
+        expect(screen.getByText("120M")).toBeInTheDocument();
         expect(screen.queryByText("Dividend")).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", {name: "Open financials"}));
         expect(onOpen).toHaveBeenCalled();
+    });
+
+    test("omits free cash flow from the summary when it has no value", () => {
+        render(<PeriodFinancials
+            ttm={{...ttm, freeCashFlow: {value: null, margin: null}}}
+            onOpen={jest.fn()}
+        />);
+
+        expect(screen.queryByText("fcf")).not.toBeInTheDocument();
+    });
+
+    test("omits optional profit values from the summary when they are absent", () => {
+        render(<PeriodFinancials
+            ttm={{
+                ...ttm,
+                grossProfit: {value: null, margin: null},
+                operatingIncome: {value: null, margin: null},
+            }}
+            onOpen={jest.fn()}
+        />);
+
+        expect(screen.queryByText("gross profit")).not.toBeInTheDocument();
+        expect(screen.queryByText("op. income")).not.toBeInTheDocument();
+        expect(screen.getByText("net income")).toBeInTheDocument();
     });
 
     test("renders the detailed financial table separately", () => {
@@ -35,8 +64,11 @@ describe("PeriodFinancials", () => {
 
         expect(screen.getByText("Period")).toBeInTheDocument();
         expect(screen.getByText("Revenue")).toBeInTheDocument();
+        expect(screen.getByText("CapEx")).toBeInTheDocument();
+        expect(screen.getByText("FCF")).toBeInTheDocument();
         expect(screen.getByText("25FY")).toBeInTheDocument();
         expect(screen.getByText("+50% / +20%")).toBeInTheDocument();
+        expect(screen.getByText("+10% / +5%")).toBeInTheDocument();
     });
 
     test("shows a dash when a dividend is zero or absent", () => {
@@ -44,6 +76,26 @@ describe("PeriodFinancials", () => {
             {...financials[0], period: {year: "2025", type: "Q1"}, dividend: 0},
             {...financials[0], period: {year: "2024", type: "Q4"}, dividend: null},
         ]}/>);
+
+        expect(screen.getAllByText("-")).toHaveLength(2);
+    });
+
+    test("shows a dash when CapEx or free cash flow is absent", () => {
+        render(<FinancialsTable financials={[{
+            ...financials[0],
+            capex: {value: null, margin: null},
+            freeCashFlow: {value: null, margin: null},
+        }]}/>);
+
+        expect(screen.getAllByText("-")).toHaveLength(2);
+    });
+
+    test("shows a dash when gross profit or operating income is absent", () => {
+        render(<FinancialsTable financials={[{
+            ...financials[0],
+            grossProfit: {value: null, margin: null},
+            operatingIncome: {value: null, margin: null},
+        }]}/>);
 
         expect(screen.getAllByText("-")).toHaveLength(2);
     });
