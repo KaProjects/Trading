@@ -545,6 +545,19 @@ export const MainBar = props => {
     const visibleActionButtons = actionButtons.filter((button) => button.visible)
     const visibleSelectors = selectors.filter((selector) => selector.visible)
     const visiblePageNavigationButtons = pageNavigationButtons.filter((button) => button.visible)
+    const wrapPageControls = ["/trades", "/dividends", "/companies"].includes(location.pathname)
+    const actionButtonElements = visibleActionButtons.map((button) => (
+        <MainBarIconButton
+            key={button.key}
+            tooltip={button.tooltip}
+            ariaLabel={button.ariaLabel}
+            onClick={button.onClick}
+            icon={button.icon}
+            color={button.color}
+            buttonSx={{width: 45, height: 30}}
+            iconSx={{width: 23, height: 23}}
+        />
+    ))
 
     return (
         <Box sx={{flexGrow: 1}}>
@@ -558,7 +571,7 @@ export const MainBar = props => {
                         Trading
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
-                    <Box sx={{ display: { xs: 'block', md: 'flex' } }}>
+                    <Box sx={{display: {xs: "block", md: "flex"}, minWidth: 0, maxWidth: "100%"}}>
                         {config.showStatsTabs &&
                             <Tabs value={props.statsTabsIndex}
                                   onChange={(event, value) => props.setStatsTabsIndex(value)}
@@ -589,20 +602,9 @@ export const MainBar = props => {
                                 ))}
                             </Tabs>
                         }
-                        {visibleActionButtons.length > 0 &&
+                        {visibleActionButtons.length > 0 && !wrapPageControls &&
                             <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
-                                {visibleActionButtons.map((button) => (
-                                    <MainBarIconButton
-                                        key={button.key}
-                                        tooltip={button.tooltip}
-                                        ariaLabel={button.ariaLabel}
-                                        onClick={button.onClick}
-                                        icon={button.icon}
-                                        color={button.color}
-                                        buttonSx={{width: 45, height: 30}}
-                                        iconSx={{width: 23, height: 23}}
-                                    />
-                                ))}
+                                {actionButtonElements}
                             </Box>
                         }
                         {showResearchExternalLinks &&
@@ -620,8 +622,18 @@ export const MainBar = props => {
                                 ))}
                             </Box>
                         }
-                        {(visibleSelectors.length > 0 || visiblePageNavigationButtons.length > 0) &&
-                            <Box sx={{display: "flex", alignItems: "center", flexWrap: "nowrap", maxWidth: "100%", overflowX: "auto"}}>
+                        {((wrapPageControls && visibleActionButtons.length > 0)
+                            || visibleSelectors.length > 0
+                            || visiblePageNavigationButtons.length > 0) &&
+                            <Box role="group" aria-label="page controls" sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                flexWrap: wrapPageControls ? {xs: "wrap", md: "nowrap"} : "nowrap",
+                                justifyContent: wrapPageControls ? {xs: "center", md: "flex-start"} : "flex-start",
+                                maxWidth: "100%",
+                                overflowX: wrapPageControls ? {xs: "visible", md: "auto"} : "auto",
+                            }}>
+                                {wrapPageControls && actionButtonElements}
                                 {visibleSelectors.map((selector) => (
                                     <MainBarSelect
                                         key={selector.key}

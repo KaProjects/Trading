@@ -105,6 +105,35 @@ describe("MainBar", () => {
         expect(screen.queryByRole("button", {name: "go to trades"})).not.toBeInTheDocument();
         expect(screen.getByRole("button", {name: "go to dividends"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "go to research"})).toBeInTheDocument();
+
+        const pageControls = screen.getByRole("group", {name: "page controls"});
+        expect(pageControls).toContainElement(screen.getByRole("button", {name: "sell trade"}));
+        expect(pageControls).toContainElement(screen.getByRole("button", {name: "add trade"}));
+        expect(pageControls).toContainElement(screen.getByText("selector:all").closest("button"));
+        expect(pageControls).toContainElement(screen.getByRole("button", {name: "go to dividends"}));
+    });
+
+    test("renders dividend action, selectors and redirects in shared page controls", () => {
+        mockUseLocation.mockReturnValue({pathname: "/dividends"});
+
+        render(<MainBar {...createProps()} />);
+
+        const pageControls = screen.getByRole("group", {name: "page controls"});
+        expect(pageControls).toContainElement(screen.getByRole("button", {name: "add dividend"}));
+        expect(pageControls).toContainElement(screen.getByText("selector:companies").closest("button"));
+        expect(pageControls).toContainElement(screen.getByRole("button", {name: "go to trades"}));
+        expect(pageControls).toContainElement(screen.getByRole("button", {name: "go to research"}));
+    });
+
+    test("renders company action and selectors in shared page controls", () => {
+        mockUseLocation.mockReturnValue({pathname: "/companies"});
+
+        render(<MainBar {...createProps()} />);
+
+        const pageControls = screen.getByRole("group", {name: "page controls"});
+        expect(pageControls).toContainElement(screen.getByRole("button", {name: "add company"}));
+        expect(pageControls).toContainElement(screen.getByText("selector:currencies").closest("button"));
+        expect(pageControls).toContainElement(screen.getByText("selector:sectors").closest("button"));
     });
 
     test("hides currency and sector selectors when company is selected", () => {
