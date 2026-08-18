@@ -49,7 +49,7 @@ const dialogDatePickerModule = {
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     ...jest.requireActual("../../service/FormattingService"),
@@ -143,7 +143,7 @@ describe("AddPeriodFinancialDialog", () => {
         render(<AddPeriodFinancialDialog {...props}/>);
 
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
-            "http://backend/research/company-1/import/period/24Q1"
+            "/api/research/company-1/import/period/24Q1"
         ));
         expect(await screen.findByText("Gemini")).toBeInTheDocument();
         expect(screen.getByText("Polygon.io")).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe("AddPeriodFinancialDialog", () => {
 
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/period/financial", {
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/period/financial", {
             id: "period-1",
             reportDate: "2024-02-15",
             priceLow: "95",
@@ -247,7 +247,7 @@ describe("AddPeriodFinancialDialog", () => {
         fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "5"}});
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/period/financial", {
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/period/financial", {
             id: "period-1",
             reportDate: "2024-02-15",
             shares: "10",
@@ -301,7 +301,7 @@ describe("AddPeriodFinancialDialog", () => {
         render(<AddPeriodFinancialDialog {...props} edit/>);
 
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
-            "http://backend/research/company-1/import/period/24Q1?endingMonth=2024-03"
+            "/api/research/company-1/import/period/24Q1?endingMonth=2024-03"
         ));
         expect(await screen.findByText("Gemini")).toBeInTheDocument();
         expect(screen.getByText("Polygon.io")).toBeInTheDocument();
@@ -324,7 +324,7 @@ describe("AddPeriodFinancialDialog", () => {
 
         fireEvent.click(screen.getByRole("button", {name: "Update"}));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/period/financial", {
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/period/financial", {
             id: "period-1",
             reportDate: "2024-02-15",
             shares: "123",

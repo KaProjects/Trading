@@ -6,7 +6,7 @@ const mockFormatError = jest.fn(() => ({title: "Save failed", message: "Trade co
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
@@ -79,7 +79,7 @@ describe("EditTradeDialog", () => {
         fireEvent.change(screen.getByLabelText("Quantity"), {target: {value: "6.25"}});
         fireEvent.click(screen.getByRole("button", {name: "Save"}));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/trade/trade-1", {
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/trade/trade-1", {
             purchaseDate: "2024-01-11",
             quantity: "6.25",
             purchasePrice: "400.5",
@@ -116,7 +116,7 @@ describe("EditTradeDialog", () => {
         fireEvent.click(screen.getByRole("option", {name: "Revolut - Standard"}));
         fireEvent.click(screen.getByRole("button", {name: "Save"}));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/trade/trade-2", {
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/trade/trade-2", {
             purchaseDate: "2023-03-15",
             quantity: "8",
             purchasePrice: "28",

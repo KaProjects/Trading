@@ -6,7 +6,7 @@ const mockFormatError = jest.fn(() => ({title: "Save failed", message: "Tag coul
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
@@ -41,7 +41,7 @@ describe("AddTagDialog", () => {
         fireEvent.change(screen.getByRole("combobox", {name: /Tag/}), {target: {value: "growth"}});
         fireEvent.click(screen.getByText("Add"));
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/company/tag", {
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/company/tag", {
             companyId: "company-1",
             value: "growth",
         }));

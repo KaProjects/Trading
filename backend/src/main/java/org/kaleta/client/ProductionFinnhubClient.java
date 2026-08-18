@@ -17,18 +17,19 @@ import java.net.http.HttpResponse;
 @IfBuildProperty(name = "finnhub.mode", stringValue = "real", enableIfMissing = true)
 public class ProductionFinnhubClient implements FinnhubClient
 {
-    private static final String API_PATH = "https://finnhub.io/api/v1/";
-
     private final HttpClient client;
     private final ObjectMapper objectMapper;
+    private final String apiUrl;
     private final String authQuery;
 
     public ProductionFinnhubClient(
             ObjectMapper objectMapper,
+            @ConfigProperty(name = "finnhub.api.url") String apiUrl,
             @ConfigProperty(name = "finnhub.apikey") String apiKey)
     {
         this.client = HttpClient.newHttpClient();
         this.objectMapper = objectMapper;
+        this.apiUrl = apiUrl.endsWith("/") ? apiUrl : apiUrl + "/";
         this.authQuery = "&token=" + apiKey;
     }
 
@@ -36,7 +37,7 @@ public class ProductionFinnhubClient implements FinnhubClient
     public FinnhubQuote quote(String ticker) throws RequestFailureException
     {
         HttpRequest request = HttpRequest.newBuilder().GET()
-                .uri(URI.create(API_PATH + "quote?symbol=" + ticker + authQuery)).build();
+                .uri(URI.create(apiUrl + "quote?symbol=" + ticker + authQuery)).build();
         try
         {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());

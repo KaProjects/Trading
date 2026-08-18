@@ -5,7 +5,7 @@ import axios from "axios";
 const mockFormatError = jest.fn(() => ({title: "Request failed", message: "Import was not completed"}));
 
 jest.mock("axios");
-jest.mock("../../properties", () => ({backend: "http://backend"}));
+jest.mock("../../properties", () => ({backend: "/api"}));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
 }));
@@ -74,7 +74,7 @@ describe("DividendImport", () => {
 
         await waitFor(() => expect(axios.post).toHaveBeenNthCalledWith(
             1,
-            "http://backend/dividend/import/preview",
+            "/api/dividend/import/preview",
             DIVIDEND_IMPORT_TEMPLATE,
             {headers: {"Content-Type": "text/csv"}},
         ));
@@ -86,7 +86,7 @@ describe("DividendImport", () => {
 
         await waitFor(() => expect(axios.post).toHaveBeenNthCalledWith(
             2,
-            "http://backend/dividend/import",
+            "/api/dividend/import",
             {
                 rows: validPreview.rows.map(({net, ...row}) => row),
             },

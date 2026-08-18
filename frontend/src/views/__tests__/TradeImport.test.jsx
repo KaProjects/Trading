@@ -6,7 +6,7 @@ const mockFormatError = jest.fn(() => ({title: "Request failed", message: "Impor
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
@@ -92,7 +92,7 @@ describe("TradeImport", () => {
 
         await waitFor(() => expect(axios.post).toHaveBeenNthCalledWith(
             1,
-            "http://backend/trade/import/preview",
+            "/api/trade/import/preview",
             TRADE_IMPORT_TEMPLATE,
             {headers: {"Content-Type": "text/csv"}},
         ));
@@ -102,7 +102,7 @@ describe("TradeImport", () => {
 
         fireEvent.click(screen.getByRole("button", {name: "Import 2 trades"}));
 
-        await waitFor(() => expect(axios.post).toHaveBeenNthCalledWith(2, "http://backend/trade/import", {
+        await waitFor(() => expect(axios.post).toHaveBeenNthCalledWith(2, "/api/trade/import", {
             rows: validPreview.rows.map(({allocations, remainingQuantity, ...row}) => row),
         }));
         expect(await screen.findByText("2 trades imported successfully.")).toBeInTheDocument();

@@ -49,7 +49,7 @@ const dialogDatePickerModule = {
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
@@ -114,7 +114,7 @@ describe("AddRecordDialog", () => {
         fireEvent.change(screen.getByLabelText("price targets"), {target: {value: ""}});
         fireEvent.click(screen.getByText("Create"));
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/record", {
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/record", {
             companyId: "company-1",
             date: "2024-03-15",
             price: "120.5",

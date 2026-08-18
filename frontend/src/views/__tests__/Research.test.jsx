@@ -6,7 +6,7 @@ const mockUseLocation = jest.fn();
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("react-router-dom", () => ({
     ...jest.requireActual("react-router-dom"),
@@ -210,7 +210,7 @@ describe("Research", () => {
 
         rerender(<Research companySelectorValue={selectedCompany}/>);
 
-        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("http://backend/research/company-1"));
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("/api/research/company-1"));
         expect(screen.getByTestId("loader")).toHaveTextContent("loading");
         expect(screen.getByTestId("company-selector")).not.toBeVisible();
 
@@ -239,7 +239,7 @@ describe("Research", () => {
 
         expect(screen.getByTestId("loader")).toBeInTheDocument();
 
-        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("http://backend/research/company-1"));
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("/api/research/company-1"));
         await waitFor(() => expect(screen.getByText("AAPL")).toBeInTheDocument());
 
         expect(screen.getByText("Research")).toBeInTheDocument();
@@ -276,7 +276,7 @@ describe("Research", () => {
 
         rerender(<Research companySelectorValue={{id: "company-2"}}/>);
 
-        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("http://backend/research/company-2"));
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("/api/research/company-2"));
         expect(screen.getByTestId("loader")).toHaveTextContent("loading");
         expect(screen.queryByText("AAPL")).not.toBeInTheDocument();
 
@@ -322,7 +322,7 @@ describe("Research", () => {
         fireEvent.click(screen.getByRole("button", {name: "Remove"}));
 
         await waitFor(() => expect(axios.delete).toHaveBeenCalledWith(
-            "http://backend/company/company-1/tag",
+            "/api/company/company-1/tag",
             {params: {value: "growth"}},
         ));
         await waitFor(() => expect(refreshCompanyLists).toHaveBeenCalled());
@@ -437,7 +437,7 @@ describe("Research", () => {
 
         fireEvent.click(screen.getByText("delete:record-1"));
 
-        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("http://backend/record/record-1"));
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/record/record-1"));
         await waitFor(() => expect(screen.queryByText("record:record-1")).not.toBeInTheDocument());
         expect(screen.getByText("record:record-2")).toBeInTheDocument();
     });

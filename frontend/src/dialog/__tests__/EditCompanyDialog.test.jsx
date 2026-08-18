@@ -27,7 +27,7 @@ const dialogTextFieldModule = {
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
@@ -76,7 +76,7 @@ describe("EditCompanyDialog", () => {
         selectOption(1, "Semiconductors");
         fireEvent.click(screen.getByText("Create"));
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/company", {
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/company", {
             ticker: "NVDA",
             currency: "€",
             sector: "SEMICONDUCTORS",
@@ -103,7 +103,7 @@ describe("EditCompanyDialog", () => {
 
         fireEvent.click(screen.getByText("Edit"));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/company", {
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/company", {
             id: "company-1",
             ticker: "NVDA",
             currency: "$",

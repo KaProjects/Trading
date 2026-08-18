@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 @IfBuildProperty(name = "alphavantage.mode", stringValue = "real", enableIfMissing = true)
 public class ProductionAlphaVantageClient implements AlphaVantageClient
 {
-    private static final String API_URL = "https://www.alphavantage.co/query";
     private static final long REQUEST_INTERVAL_MILLIS = 1_100;
 
     private final HttpClient client;
@@ -43,9 +42,10 @@ public class ProductionAlphaVantageClient implements AlphaVantageClient
     @Inject
     public ProductionAlphaVantageClient(
             ObjectMapper objectMapper,
+            @ConfigProperty(name = "alphavantage.api.url") String apiUrl,
             @ConfigProperty(name = "alphavantage.apikey") String apiKey)
     {
-        this(objectMapper, apiKey, API_URL, REQUEST_INTERVAL_MILLIS);
+        this(objectMapper, apiKey, apiUrl, REQUEST_INTERVAL_MILLIS);
     }
 
     ProductionAlphaVantageClient(ObjectMapper objectMapper, String apiKey, String apiUrl)

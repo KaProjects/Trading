@@ -178,8 +178,7 @@ frontend_component_tests() {
 frontend_build() {
   require_frontend_environment || return $?
   cd "$FRONTEND_DIR" || return 1
-  REACT_APP_BACKEND_URL="${REACT_APP_BACKEND_URL:-http://127.0.0.1:9090}" \
-    npm run build
+  npm run build
 }
 
 print_summary() {

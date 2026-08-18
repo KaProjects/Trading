@@ -4,7 +4,7 @@ import axios from "axios";
 const mockUseMediaQuery = jest.fn(() => false);
 
 jest.mock("axios");
-jest.mock("../../properties", () => ({backend: "http://backend"}));
+jest.mock("../../properties", () => ({backend: "/api"}));
 jest.mock("@mui/material/useMediaQuery", () => (...args) => mockUseMediaQuery(...args));
 
 import {EarningsProjectionsDialog} from "../EarningsProjectionsDialog";
@@ -169,7 +169,7 @@ test("persists changed current and forward estimates after confirmation", async 
         String(date.getMonth() + 1).padStart(2, "0"),
         String(date.getDate()).padStart(2, "0"),
     ].join("-");
-    await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/estimate/period-1", {
+    await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/estimate/period-1", {
         date: expectedDate,
         current: "12",
         next1: "7",

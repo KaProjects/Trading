@@ -49,7 +49,7 @@ const dialogDatePickerModule = {
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     ...jest.requireActual("../../service/FormattingService"),
@@ -161,7 +161,7 @@ describe("ImportPeriodDialog", () => {
         fireEvent.click(screen.getByText("24Q1"));
 
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
-            "http://backend/research/company-1/import/period/24Q1"
+            "/api/research/company-1/import/period/24Q1"
         ));
         expect(await screen.findByLabelText("Name")).toHaveValue("24Q1");
         expect(screen.getByRole("heading", {name: "Import Period 24Q1"})).toBeInTheDocument();
@@ -200,7 +200,7 @@ describe("ImportPeriodDialog", () => {
 
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/period/import", {
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/period/import", {
             companyId: "company-1",
             name: "24Q1",
             isReported: true,
@@ -252,7 +252,7 @@ describe("ImportPeriodDialog", () => {
         fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "5"}});
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/period/import", {
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/period/import", {
             companyId: "company-1",
             name: "24Q1",
             isReported: true,
@@ -301,7 +301,7 @@ describe("ImportPeriodDialog", () => {
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
         await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
-            "http://backend/period/import/unreported",
+            "/api/period/import/unreported",
             {
                 companyId: "company-1",
                 name: "24Q2",

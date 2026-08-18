@@ -1,3 +1,0 @@
-.gitattributes !filter !diff
-
-build_deploy.sh filter=git-crypt diff=git-crypt

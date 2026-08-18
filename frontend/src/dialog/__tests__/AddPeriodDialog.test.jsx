@@ -49,7 +49,7 @@ const dialogDatePickerModule = {
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
@@ -86,7 +86,7 @@ describe("AddPeriodDialog", () => {
         fireEvent.change(screen.getByTestId("trader-period-end-month"), {target: {value: "2024-03"}});
         fireEvent.click(screen.getByText("Create"));
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/period", {
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/period", {
             companyId: "company-1",
             name: "24Q1",
             endingMonth: "2024-03",

@@ -5,7 +5,7 @@ import axios from "axios";
 const mockFormatError = jest.fn(() => ({title: "Load failed", message: "Estimate data could not be loaded"}));
 
 jest.mock("axios");
-jest.mock("../../properties", () => ({backend: "http://backend"}));
+jest.mock("../../properties", () => ({backend: "/api"}));
 jest.mock("../../service/FormattingService", () => ({
     ...jest.requireActual("../../service/FormattingService"),
     formatError: (...args) => mockFormatError(...args),
@@ -65,7 +65,7 @@ describe("AddEstimateDialog", () => {
         axios.post.mockReset();
         mockFormatError.mockClear();
         axios.get.mockImplementation(url => Promise.resolve({
-            data: url === "http://backend/estimate/period-1" ? history : imported,
+            data: url === "/api/estimate/period-1" ? history : imported,
         }));
         axios.post.mockResolvedValue({});
     });
@@ -76,8 +76,8 @@ describe("AddEstimateDialog", () => {
 
         expect(await screen.findByText("02.08.2026")).toBeInTheDocument();
         expect(screen.getByText("01.08.2026")).toBeInTheDocument();
-        expect(axios.get).toHaveBeenCalledWith("http://backend/estimate/period-1");
-        expect(axios.get).toHaveBeenCalledWith("http://backend/research/company-1/import/estimate/period-1");
+        expect(axios.get).toHaveBeenCalledWith("/api/estimate/period-1");
+        expect(axios.get).toHaveBeenCalledWith("/api/research/company-1/import/estimate/period-1");
 
         expect(screen.getByTestId("external-estimates"))
             .toHaveTextContent("External estimates: [ 1.62 (10.08.2026) | 1.86 (10.11.2026) | - | 2.76 (10.05.2027) ]");
@@ -93,7 +93,7 @@ describe("AddEstimateDialog", () => {
         fireEvent.click(screen.getByRole("button", {name: "Add"}));
 
         await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
-            "http://backend/estimate/period-1",
+            "/api/estimate/period-1",
             {
                 date: "2026-08-03",
                 current: "1.62",
@@ -138,7 +138,7 @@ describe("AddEstimateDialog", () => {
 
     test("shows per-value placeholders and disables external use unless current and next 1 are present", async () => {
         axios.get.mockImplementation(url => Promise.resolve({
-            data: url === "http://backend/estimate/period-1"
+            data: url === "/api/estimate/period-1"
                 ? history
                 : {
                     current: {eps: "1.9", date: "2026-08-10"},
@@ -157,7 +157,7 @@ describe("AddEstimateDialog", () => {
 
     test("shows four dashes and disables external use when no estimates are imported", async () => {
         axios.get.mockImplementation(url => Promise.resolve({
-            data: url === "http://backend/estimate/period-1" ? history : {},
+            data: url === "/api/estimate/period-1" ? history : {},
         }));
 
         render(<AddEstimateDialog {...createProps()}/>);
