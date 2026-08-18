@@ -68,8 +68,9 @@ class ProductionAlphaVantageClientTest
         server.start();
         client = new ProductionAlphaVantageClient(
                 new ObjectMapper(),
+                "http://localhost:" + server.getAddress().getPort() + "/query",
                 "test-key",
-                "http://localhost:" + server.getAddress().getPort() + "/query");
+                true);
     }
 
     @AfterEach

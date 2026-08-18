@@ -6,11 +6,28 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_DIR="$(cd "$SCRIPT_DIR/../deploy" && pwd)"
 USE_PROD_DB=0
 
-[[ -f "$DEPLOY_DIR/.env.dev" ]] && {
-  set -a
-  . "$DEPLOY_DIR/.env.dev"
-  set +a
+load_env_file() {
+  local env_file="$1"
+  local line
+  local key
+  local value
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    [[ -n "$line" ]] || continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ "$line" == *=* ]] || continue
+
+    key="${line%%=*}"
+    value="${line#*=}"
+    key="${key#"${key%%[![:space:]]*}"}"
+    key="${key%"${key##*[![:space:]]}"}"
+
+    export "$key=$value"
+  done < "$env_file"
 }
+
+[[ -f "$DEPLOY_DIR/.env.dev" ]] && load_env_file "$DEPLOY_DIR/.env.dev"
 
 usage() {
   printf 'Usage: %s [--db-prod]\n' "${0##*/}" >&2

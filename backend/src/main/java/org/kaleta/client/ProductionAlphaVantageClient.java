@@ -48,7 +48,7 @@ public class ProductionAlphaVantageClient implements AlphaVantageClient
         this(objectMapper, apiKey, apiUrl, REQUEST_INTERVAL_MILLIS);
     }
 
-    ProductionAlphaVantageClient(ObjectMapper objectMapper, String apiKey, String apiUrl)
+    ProductionAlphaVantageClient(ObjectMapper objectMapper, String apiUrl, String apiKey, boolean testMode)
     {
         this(objectMapper, apiKey, apiUrl, 0);
     }
