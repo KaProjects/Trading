@@ -27,6 +27,18 @@ It correctly bundles React in production mode and optimizes the build for the be
 The build is minified and the filenames include the hashes.\
 Your app is ready to be deployed!
 
+### `./build_deploy.sh prod`
+
+Builds the production container and recreates it in the local Docker daemon.
+
+### `./build_deploy.sh prod --push-nas`
+
+Builds a Linux AMD64 production image, verifies its platform, streams it to the
+NAS over SSH without an image registry, and recreates the remote frontend
+container. The target defaults to `Stanley@192.168.1.122`; override it with
+`NAS_USER` and `NAS_HOST`. `FRONTEND_HOST_PORT` controls the remote host port,
+and `REACT_APP_BACKEND_URL` controls the backend URL embedded in the build.
+
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
 ### `npm run eject`

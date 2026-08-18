@@ -63,13 +63,22 @@ without an image registry, run:
 ./build_deploy.sh prod --nas-native
 ```
 
-The build uses Docker Buildx with `linux/amd64`, verifies the resulting image,
-and streams it to `Stanley@192.168.1.122` through SSH. It then recreates the
-remote container with the NAS low-memory limits automatically. The SSH client
-prompts for a password when key-based authentication is not configured.
-Override the target using `NAS_USER` and `NAS_HOST`. On the first deployment, set
-`NAS_FIREBASE_CREDENTIALS_PATH` to the Firebase credential file's absolute path
-on the NAS; later deployments reuse the existing container's mount.
+To build and deploy the standard JVM image through the same registry-free NAS
+flow, run:
+
+```shell script
+./build_deploy.sh prod --push-nas
+```
+
+Both builds use Docker Buildx with `linux/amd64`, verify the resulting image,
+and stream it to `Stanley@192.168.1.122` through SSH. They then recreate the
+remote container. `--nas-native` implies `--push-nas` and applies the NAS
+low-memory limits automatically. Add `--low-memory` to a JVM deployment when
+those limits are wanted there as well. The SSH client prompts for a password
+when key-based authentication is not configured. Override the target using
+`NAS_USER` and `NAS_HOST`. On the first deployment, set
+`NAS_FIREBASE_CREDENTIALS_PATH` to the Firebase credential file's absolute
+path on the NAS; later deployments reuse the existing container's mount.
 
 If you want to learn more about building native executables, please consult https://quarkus.io/guides/maven-tooling.
 
