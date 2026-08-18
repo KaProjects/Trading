@@ -13,18 +13,23 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.rest.dto.DividendCreateDto;
+import org.kaleta.rest.dto.DividendImportDto;
+import org.kaleta.rest.dto.DividendImportPreviewDto;
 import org.kaleta.model.Dividends;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.rest.validation.ValueOfEnum;
 import org.kaleta.service.DividendService;
+import org.kaleta.service.DividendImportService;
 
 @Path("/dividend")
 public class DividendEndpoints
 {
     @Inject
     DividendService dividendService;
+    @Inject
+    DividendImportService dividendImportService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -54,5 +59,27 @@ public class DividendEndpoints
     {
         dividendService.createDividend(dividendCreateDto);
         return Response.status(Response.Status.CREATED).build();
+    }
+
+    @POST
+    @Consumes("text/csv")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/import/preview")
+    public Response previewDividendImport(@NotNull String csv)
+    {
+        return Response.ok(dividendImportService.preview(csv)).build();
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/import")
+    public Response importDividends(@Valid @NotNull DividendImportDto dividendImportDto)
+    {
+        DividendImportPreviewDto preview = dividendImportService.importDividends(dividendImportDto);
+        if (!preview.isValid()) {
+            return Response.status(Response.Status.CONFLICT).entity(preview).build();
+        }
+        return Response.status(Response.Status.CREATED).entity(preview).build();
     }
 }
