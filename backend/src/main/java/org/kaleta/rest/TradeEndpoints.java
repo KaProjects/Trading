@@ -22,6 +22,8 @@ import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.TradeCreateDto;
+import org.kaleta.rest.dto.TradeImportDto;
+import org.kaleta.rest.dto.TradeImportPreviewDto;
 import org.kaleta.rest.dto.TradeSellDto;
 import org.kaleta.rest.dto.TradeUpdateDto;
 import org.kaleta.rest.validation.ValidId;
@@ -31,6 +33,7 @@ import org.kaleta.service.FirebaseService;
 import org.kaleta.service.LatestService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
+import org.kaleta.service.TradeImportService;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -44,6 +47,8 @@ public class TradeEndpoints
 {
     @Inject
     TradeService tradeService;
+    @Inject
+    TradeImportService tradeImportService;
     @Inject
     FirebaseService firebaseService;
     @Inject
@@ -120,6 +125,30 @@ public class TradeEndpoints
         recordService.createCurrent(tradeCreateDto.getCompanyId(), recordTitle,tradeCreateDto.getDate(), tradeCreateDto.getPrice());
 
         return Response.status(Response.Status.CREATED).build();
+    }
+
+    @POST
+    @Consumes("text/csv")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/import/preview")
+    public Response previewTradeImport(@NotNull String csv)
+    {
+        return Response.ok(tradeImportService.preview(csv)).build();
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/import")
+    public Response importTrades(@Valid @NotNull TradeImportDto tradeImportDto)
+    {
+        TradeImportPreviewDto preview = tradeImportService.importTrades(tradeImportDto);
+        if (!preview.isValid()) {
+            return Response.status(Response.Status.CONFLICT).entity(preview).build();
+        }
+
+        firebaseService.pushAssets(tradeService.getBy(true, null, null, null, null, null));
+        return Response.status(Response.Status.CREATED).entity(preview).build();
     }
 
     @PUT
