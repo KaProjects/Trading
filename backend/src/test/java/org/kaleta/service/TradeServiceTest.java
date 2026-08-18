@@ -17,6 +17,7 @@ import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
+import org.kaleta.rest.dto.TradeUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.mockito.ArgumentCaptor;
 
@@ -184,6 +185,7 @@ public class TradeServiceTest
         assertThat(trades.getTrades().size(), is(2));
 
         assertThat(trades.getTrades().get(0).getId(), is(10L));
+        assertThat(trades.getTrades().get(0).isActive(), is(true));
         assertThat(trades.getTrades().get(0).getCompany().getTicker(), is("SHELL"));
         assertThat(trades.getTrades().get(0).getCompany().getCurrency(), is(Currency.€));
         assertThat(trades.getTrades().get(0).getPortfolio(), is(nullValue()));
@@ -201,6 +203,7 @@ public class TradeServiceTest
         assertThat(trades.getTrades().get(0).getProfitPercentage(), is(nullValue()));
 
         assertThat(trades.getTrades().get(1).getId(), is(11L));
+        assertThat(trades.getTrades().get(1).isActive(), is(false));
         assertThat(trades.getTrades().get(1).getCompany().getTicker(), is("NVDA"));
         assertThat(trades.getTrades().get(1).getCompany().getCurrency(), is(Currency.$));
         assertThat(trades.getTrades().get(1).getPortfolio().getKey(), is(Portfolio.PATRIA_MARGIN.toString()));
@@ -475,6 +478,108 @@ public class TradeServiceTest
         assertBigDecimals(summary.fees(), new BigDecimal("6"));
         assertBigDecimals(summary.profit(), new BigDecimal("34"));
         assertBigDecimals(summary.profitPercentage(), new BigDecimal("64.15"));
+    }
+
+    @Test
+    void updateTrade_active()
+    {
+        Company company = Generator.generateCompany();
+        Trade trade = trade(company, 101L, "5", "100", "2");
+        trade.setPortfolio(Portfolio.PATRIA_STANDARD);
+        when(tradeDao.get(trade.getId())).thenReturn(trade);
+
+        TradeUpdateDto dto = updateDto();
+        dto.setPortfolio(Portfolio.REVOLUT_STANDARD.toString());
+
+        tradeService.updateTrade(trade.getId(), dto);
+
+        verify(tradeDao).save(trade);
+        assertThat(trade.getCompany(), is(company));
+        assertThat(trade.getPurchaseDate(), is(Date.valueOf("2027-02-03")));
+        assertBigDecimals(trade.getQuantity(), new BigDecimal("6.25"));
+        assertBigDecimals(trade.getPurchasePrice(), new BigDecimal("110.5"));
+        assertBigDecimals(trade.getPurchaseFees(), new BigDecimal("3.25"));
+        assertThat(trade.getPortfolio(), is(Portfolio.REVOLUT_STANDARD));
+        assertThat(trade.getSellDate(), is(nullValue()));
+        assertThat(trade.getSellPrice(), is(nullValue()));
+        assertThat(trade.getSellFees(), is(nullValue()));
+    }
+
+    @Test
+    void updateTrade_sold()
+    {
+        Company company = Generator.generateCompany();
+        Trade trade = sell(trade(company, 102L, "5", "100", "2"), "2027-03-01", "125", "3");
+        trade.setPortfolio(Portfolio.PATRIA_STANDARD);
+        when(tradeDao.get(trade.getId())).thenReturn(trade);
+
+        TradeUpdateDto dto = updateDto();
+        dto.setSellDate("2027-04-05");
+        dto.setSellPrice("130.75");
+        dto.setSellFees("4.5");
+        dto.setPortfolio(null);
+
+        tradeService.updateTrade(trade.getId(), dto);
+
+        verify(tradeDao).save(trade);
+        assertThat(trade.getCompany(), is(company));
+        assertThat(trade.getPurchaseDate(), is(Date.valueOf("2027-02-03")));
+        assertBigDecimals(trade.getQuantity(), new BigDecimal("6.25"));
+        assertBigDecimals(trade.getPurchasePrice(), new BigDecimal("110.5"));
+        assertBigDecimals(trade.getPurchaseFees(), new BigDecimal("3.25"));
+        assertThat(trade.getPortfolio(), is(nullValue()));
+        assertThat(trade.getSellDate(), is(Date.valueOf("2027-04-05")));
+        assertBigDecimals(trade.getSellPrice(), new BigDecimal("130.75"));
+        assertBigDecimals(trade.getSellFees(), new BigDecimal("4.5"));
+    }
+
+    @Test
+    void updateTrade_invalidState()
+    {
+        Company company = Generator.generateCompany();
+        Trade activeTrade = trade(company, 103L, "5", "100", "2");
+        Trade soldTrade = sell(trade(company, 104L, "5", "100", "2"), "2027-03-01", "125", "3");
+        when(tradeDao.get(activeTrade.getId())).thenReturn(activeTrade);
+        when(tradeDao.get(soldTrade.getId())).thenReturn(soldTrade);
+        doThrow(new NoResultException()).when(tradeDao).get(105L);
+
+        TradeUpdateDto activeDto = updateDto();
+        activeDto.setSellDate("2027-04-05");
+        activeDto.setSellPrice("130.75");
+        activeDto.setSellFees("4.5");
+        InvalidInputException activeException = assertThrows(
+                InvalidInputException.class,
+                () -> tradeService.updateTrade(activeTrade.getId(), activeDto));
+        assertThat(activeException.getMessage(), is("sale fields cannot be provided for active trade"));
+
+        TradeUpdateDto soldDto = updateDto();
+        InvalidInputException soldException = assertThrows(
+                InvalidInputException.class,
+                () -> tradeService.updateTrade(soldTrade.getId(), soldDto));
+        assertThat(soldException.getMessage(), is("sellDate, sellPrice and sellFees are required for sold trade"));
+
+        soldDto.setSellDate("2027-01-01");
+        soldDto.setSellPrice("130.75");
+        soldDto.setSellFees("4.5");
+        InvalidInputException dateException = assertThrows(
+                InvalidInputException.class,
+                () -> tradeService.updateTrade(soldTrade.getId(), soldDto));
+        assertThat(dateException.getMessage(), is("sellDate cannot be before purchaseDate"));
+
+        InvalidInputException missingException = assertThrows(
+                InvalidInputException.class,
+                () -> tradeService.updateTrade(105L, updateDto()));
+        assertThat(missingException.getMessage(), is("trade with id '105' not found"));
+    }
+
+    private TradeUpdateDto updateDto()
+    {
+        TradeUpdateDto dto = new TradeUpdateDto();
+        dto.setPurchaseDate("2027-02-03");
+        dto.setQuantity("6.25");
+        dto.setPurchasePrice("110.5");
+        dto.setPurchaseFees("3.25");
+        return dto;
     }
 
     private Trade trade(Company company, Long id, String quantity, String price, String fees)

@@ -18,6 +18,7 @@ import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
+import org.kaleta.rest.dto.TradeUpdateDto;
 import org.kaleta.service.LatestService;
 
 import java.math.BigDecimal;
@@ -88,6 +89,7 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dto.getTrades().size(), is(14));
+        assertThat(dto.getTrades().get(0).isActive(), is(false));
         assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-11-11"));
         assertThat(dto.getTrades().get(1).getPurchaseDate().toString(), is("2023-04-05"));
         assertThat(dto.getTrades().get(2).getPurchaseDate().toString(), is("2022-11-01"));
@@ -113,6 +115,7 @@ class TradeEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", Trades.class);
         assertThat(dto.getTrades().size(), is(9));
+        assertThat(dto.getTrades().get(0).isActive(), is(true));
         assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-04-05"));
         assertThat(dto.getTrades().get(0).getCompany().getTicker(), is("CEZ"));
         assertBigDecimals(dto.getTrades().get(0).getPurchaseTotal(), new BigDecimal("575599.4"));
@@ -147,6 +150,7 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dto.getTrades().get(0).getSellDate().toString(), is("2026-05-09"));
+        assertThat(dto.getTrades().get(0).isActive(), is(true));
         assertBigDecimals(dto.getTrades().get(0).getSellPrice(), new BigDecimal("321.45"));
         assertBigDecimals(dto.getTrades().get(0).getSellFees(), dto.getTrades().get(0).getPurchaseFees());
         assertBigDecimals(dto.getTrades().get(0).getSellTotal(), new BigDecimal("369457.06"));
@@ -664,5 +668,126 @@ class TradeEndpointsTest
 
         dto.setCompanyId(1565L);
         Assert.put400(path, dto, "provided companyId and trade='" + validTradeId + "' companyId doesn't match");
+    }
+
+    @Test
+    void updateTrade()
+    {
+        Trades.Trade original = given().when()
+                .get(path + "?companyId=1927")
+                .then()
+                .statusCode(200)
+                .extract().as(Trades.class)
+                .getTrades().get(0);
+
+        try {
+            TradeUpdateDto dto = validTradeUpdateDto();
+            dto.setPortfolio(Portfolio.REVOLUT_STANDARD.toString());
+
+            Assert.put204(path + "/1", dto);
+
+            Trades.Trade updated = given().when()
+                    .get(path + "?companyId=1927")
+                    .then()
+                    .statusCode(200)
+                    .extract().as(Trades.class)
+                    .getTrades().get(0);
+            assertThat(updated.getCompany().getId(), is(1927L));
+            assertThat(updated.getPurchaseDate().toString(), is(dto.getPurchaseDate()));
+            assertBigDecimals(updated.getPurchaseQuantity(), new BigDecimal(dto.getQuantity()));
+            assertBigDecimals(updated.getPurchasePrice(), new BigDecimal(dto.getPurchasePrice()));
+            assertBigDecimals(updated.getPurchaseFees(), new BigDecimal(dto.getPurchaseFees()));
+            assertThat(updated.getPortfolio().getKey(), is(Portfolio.REVOLUT_STANDARD.toString()));
+            assertThat(updated.getSellDate().toString(), is(dto.getSellDate()));
+            assertBigDecimals(updated.getSellPrice(), new BigDecimal(dto.getSellPrice()));
+            assertBigDecimals(updated.getSellFees(), new BigDecimal(dto.getSellFees()));
+        } finally {
+            TradeUpdateDto restore = new TradeUpdateDto();
+            restore.setPurchaseDate(original.getPurchaseDate().toString());
+            restore.setQuantity(original.getPurchaseQuantity().toPlainString());
+            restore.setPurchasePrice(original.getPurchasePrice().toPlainString());
+            restore.setPurchaseFees(original.getPurchaseFees().toPlainString());
+            restore.setPortfolio(original.getPortfolio() == null ? null : original.getPortfolio().getKey());
+            restore.setSellDate(original.getSellDate().toString());
+            restore.setSellPrice(original.getSellPrice().toPlainString());
+            restore.setSellFees(original.getSellFees().toPlainString());
+            Assert.put204(path + "/1", restore);
+        }
+    }
+
+    @Test
+    void updateTrade_invalidParameters()
+    {
+        TradeUpdateDto dto = validTradeUpdateDto();
+
+        Assert.putValidationError(path + "/1", null, NOT_NULL);
+        Assert.putValidationError(path + "/0", dto, VALID_ID);
+
+        dto.setPurchaseDate(null);
+        Assert.putValidationError(path + "/1", dto, NOT_NULL);
+        dto.setPurchaseDate("");
+        Assert.putValidationError(path + "/1", dto, MATCH_DATE_FORMAT);
+        dto.setPurchaseDate("2024-02-01");
+
+        dto.setQuantity(null);
+        Assert.putValidationError(path + "/1", dto, NOT_NULL);
+        dto.setQuantity("12345");
+        Assert.putValidationError(path + "/1", dto, BIG_DECIMAL_4_4_false);
+        dto.setQuantity("6.25");
+
+        dto.setPurchasePrice(null);
+        Assert.putValidationError(path + "/1", dto, NOT_NULL);
+        dto.setPurchasePrice("1234567");
+        Assert.putValidationError(path + "/1", dto, BIG_DECIMAL_6_4_false);
+        dto.setPurchasePrice("410.25");
+
+        dto.setPurchaseFees(null);
+        Assert.putValidationError(path + "/1", dto, NOT_NULL);
+        dto.setPurchaseFees("1234");
+        Assert.putValidationError(path + "/1", dto, BIG_DECIMAL_3_2_false);
+        dto.setPurchaseFees("15.25");
+
+        dto.setPortfolio("INVALID");
+        Assert.putValidationError(path + "/1", dto, "must be any of Portfolio");
+        dto.setPortfolio(Portfolio.PATRIA_MARGIN.toString());
+
+        dto.setSellDate("");
+        Assert.putValidationError(path + "/1", dto, MATCH_DATE_FORMAT);
+        dto.setSellDate("2024-03-01");
+
+        dto.setSellPrice("");
+        Assert.putValidationError(path + "/1", dto, BIG_DECIMAL_6_4_false);
+        dto.setSellPrice("510.75");
+
+        dto.setSellFees("");
+        Assert.putValidationError(path + "/1", dto, BIG_DECIMAL_3_2_false);
+        dto.setSellFees("16.5");
+
+        Assert.put400(path + "/4294967295", dto, "trade with id '4294967295' not found");
+        Assert.put400(path + "/3", dto, "sale fields cannot be provided for active trade");
+
+        dto.setSellDate(null);
+        dto.setSellPrice(null);
+        dto.setSellFees(null);
+        Assert.put400(path + "/1", dto, "sellDate, sellPrice and sellFees are required for sold trade");
+
+        dto.setSellDate("2024-01-01");
+        dto.setSellPrice("510.75");
+        dto.setSellFees("16.5");
+        Assert.put400(path + "/1", dto, "sellDate cannot be before purchaseDate");
+    }
+
+    private TradeUpdateDto validTradeUpdateDto()
+    {
+        TradeUpdateDto dto = new TradeUpdateDto();
+        dto.setPurchaseDate("2024-02-01");
+        dto.setQuantity("6.25");
+        dto.setPurchasePrice("410.25");
+        dto.setPurchaseFees("15.25");
+        dto.setPortfolio(Portfolio.PATRIA_MARGIN.toString());
+        dto.setSellDate("2024-03-01");
+        dto.setSellPrice("510.75");
+        dto.setSellFees("16.5");
+        return dto;
     }
 }

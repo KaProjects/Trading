@@ -31,6 +31,15 @@ jest.mock("../../dialog/SellTradeDialog", () => ({
     )
 }));
 
+jest.mock("../../dialog/EditTradeDialog", () => ({
+    EditTradeDialog: (props) => (
+        <div data-testid="edit-trade-dialog">
+            {props.openEditTrade ? props.openEditTrade.id : "closed"}
+            {props.openEditTrade && <button onClick={props.triggerRefresh}>refresh-edited-trade</button>}
+        </div>
+    )
+}));
+
 import {Trades} from "../Trades";
 
 function createProps(overrides = {}) {
@@ -52,6 +61,7 @@ function createData(overrides = {}) {
         trades: [
             {
                 id: "trade-1",
+                active: false,
                 ticker: "NVDA",
                 currency: "$",
                 company: {
@@ -78,6 +88,7 @@ function createData(overrides = {}) {
             },
             {
                 id: "trade-2",
+                active: true,
                 ticker: "SHELL",
                 currency: "€",
                 company: {
@@ -186,6 +197,26 @@ describe("Trades", () => {
         fireEvent.doubleClick(screen.getByText("NVDA"));
 
         expect(setCompanySelectorValue).toHaveBeenCalledWith(nvidia);
+    });
+
+    test("shows a stable edit action on ticker hover and opens the selected trade", () => {
+        mockUseData.mockReturnValue({
+            data: createData(),
+            loaded: true,
+            error: null,
+        });
+
+        render(<Trades {...createProps()}/>);
+
+        const tickerCell = screen.getByText("NVDA").closest("td");
+        expect(tickerCell).toHaveStyle({textAlign: "left"});
+        expect(screen.queryByRole("button", {name: "Edit NVDA trade"})).not.toBeInTheDocument();
+        expect(tickerCell.querySelector("div > div")).toHaveStyle({width: "20px"});
+
+        fireEvent.mouseEnter(tickerCell);
+        fireEvent.click(screen.getByRole("button", {name: "Edit NVDA trade"}));
+
+        expect(screen.getByTestId("edit-trade-dialog")).toHaveTextContent("trade-1");
     });
 
     test("refreshes the data path when dialog triggers refresh", async () => {

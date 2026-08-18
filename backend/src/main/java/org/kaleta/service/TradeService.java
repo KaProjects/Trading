@@ -15,6 +15,7 @@ import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
+import org.kaleta.rest.dto.TradeUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.math.BigDecimal;
@@ -136,6 +137,46 @@ public class TradeService
                 arithmeticService.profitPercentage(totalPurchase, totalSell));
     }
 
+    public void updateTrade(Long tradeId, TradeUpdateDto dto)
+    {
+        Trade trade;
+        try {
+            trade = tradeDao.get(tradeId);
+        } catch (NoResultException exception) {
+            throw new InvalidInputException("trade with id '" + tradeId + "' not found");
+        }
+
+        boolean active = trade.getSellDate() == null;
+        boolean anySaleValue = dto.getSellDate() != null || dto.getSellPrice() != null || dto.getSellFees() != null;
+        boolean allSaleValues = dto.getSellDate() != null && dto.getSellPrice() != null && dto.getSellFees() != null;
+
+        if (active && anySaleValue) {
+            throw new InvalidInputException("sale fields cannot be provided for active trade");
+        }
+        if (!active && !allSaleValues) {
+            throw new InvalidInputException("sellDate, sellPrice and sellFees are required for sold trade");
+        }
+
+        Date purchaseDate = Date.valueOf(dto.getPurchaseDate());
+        Date sellDate = active ? null : Date.valueOf(dto.getSellDate());
+        if (sellDate != null && sellDate.before(purchaseDate)) {
+            throw new InvalidInputException("sellDate cannot be before purchaseDate");
+        }
+
+        trade.setPurchaseDate(purchaseDate);
+        trade.setQuantity(new BigDecimal(dto.getQuantity()));
+        trade.setPurchasePrice(new BigDecimal(dto.getPurchasePrice()));
+        trade.setPurchaseFees(new BigDecimal(dto.getPurchaseFees()));
+        trade.setPortfolio(dto.getPortfolio() == null ? null : Portfolio.valueOf(dto.getPortfolio()));
+        if (!active) {
+            trade.setSellDate(sellDate);
+            trade.setSellPrice(new BigDecimal(dto.getSellPrice()));
+            trade.setSellFees(new BigDecimal(dto.getSellFees()));
+        }
+
+        tradeDao.save(trade);
+    }
+
     public Assets getAssets(Long companyId, BigDecimal currentPrice)
     {
         List<Asset> assets = new ArrayList<>();
@@ -216,6 +257,7 @@ public class TradeService
     {
         Trades.Trade trade = new Trades.Trade();
         trade.setId(entity.getId());
+        trade.setActive(entity.getSellDate() == null);
         trade.setCompany(companyService.from(entity.getCompany()));
         if (entity.getPortfolio() != null) {
             trade.setPortfolio(new Trades.Portfolio(entity.getPortfolio()));

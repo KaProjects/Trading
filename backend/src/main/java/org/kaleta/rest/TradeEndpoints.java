@@ -9,6 +9,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
@@ -22,6 +23,7 @@ import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
+import org.kaleta.rest.dto.TradeUpdateDto;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.rest.validation.ValueOfEnum;
 import org.kaleta.service.ArithmeticService;
@@ -136,6 +138,18 @@ public class TradeEndpoints
                 formatDecimal(new BigDecimal(tradeSellDto.getPrice()), 5),
                 sale);
 
+        return Response.noContent().build();
+    }
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/{tradeId}")
+    public Response updateTrade(
+            @ValidId @PathParam("tradeId") Long tradeId,
+            @Valid @NotNull TradeUpdateDto tradeUpdateDto)
+    {
+        tradeService.updateTrade(tradeId, tradeUpdateDto);
+        firebaseService.pushAssets(tradeService.getBy(true, null, null, null, null, null));
         return Response.noContent().build();
     }
 

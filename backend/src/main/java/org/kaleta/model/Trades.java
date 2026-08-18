@@ -17,6 +17,7 @@ public class Trades
     @Data
     public static class Trade implements Comparable<Trade>{
         private Long id;
+        private boolean active;
         private Company company;
         private Portfolio portfolio;
 
