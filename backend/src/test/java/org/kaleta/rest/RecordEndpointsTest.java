@@ -57,24 +57,31 @@ class RecordEndpointsTest
         dto.setAvgAssetPrice(Generator.randomBigDecimal(999999,4).toString());
         dto.setTargets("some targets");
 
+        int initialCount = recordDao.list(1565L).size();
+
         Assert.post201(path, dto);
 
         List<Record> records = recordDao.list(1565L);
-        assertThat(records.size(), is(1));
-        assertThat(records.get(0).getCompany().getTicker(), is("CRE"));
-        assertThat(records.get(0).getDate(), is(Utils.nullableDateValueOf(dto.getDate())));
-        assertThat(records.get(0).getTitle(), is(nullValue()));
-        assertThat(records.get(0).getPrice(), is(new BigDecimal(dto.getPrice())));
-        assertBigDecimals(records.get(0).getPriceToRevenues(), new BigDecimal(dto.getPriceToRevenues()));
-        assertBigDecimals(records.get(0).getPriceToGrossProfit(), new BigDecimal(dto.getPriceToGrossProfit()));
-        assertBigDecimals(records.get(0).getPriceToOperatingIncome(), new BigDecimal(dto.getPriceToOperatingIncome()));
-        assertBigDecimals(records.get(0).getPriceToNetIncome(), new BigDecimal(dto.getPriceToNetIncome()));
-        assertBigDecimals(records.get(0).getDividendYield(), new BigDecimal(dto.getDividendYield()));
-        assertBigDecimals(records.get(0).getAvgAssetPrice(), new BigDecimal(dto.getAvgAssetPrice()));
-        assertBigDecimals(records.get(0).getSumAssetQuantity(), new BigDecimal(dto.getSumAssetQuantity()));
-        assertThat(records.get(0).getContent(), is(nullValue()));
-        assertThat(records.get(0).getStrategy(), is(nullValue()));
-        assertThat(records.get(0).getTargets(), is(dto.getTargets()));
+        assertThat(records.size(), is(initialCount + 1));
+        Record record = records.stream()
+                .filter(item -> item.getDate().equals(Utils.nullableDateValueOf(dto.getDate())))
+                .filter(item -> item.getPrice().compareTo(new BigDecimal(dto.getPrice())) == 0)
+                .max((left, right) -> left.getId().compareTo(right.getId()))
+                .orElseThrow();
+        assertThat(record.getCompany().getTicker(), is("CRE"));
+        assertThat(record.getDate(), is(Utils.nullableDateValueOf(dto.getDate())));
+        assertThat(record.getTitle(), is(nullValue()));
+        assertThat(record.getPrice(), is(new BigDecimal(dto.getPrice())));
+        assertBigDecimals(record.getPriceToRevenues(), new BigDecimal(dto.getPriceToRevenues()));
+        assertBigDecimals(record.getPriceToGrossProfit(), new BigDecimal(dto.getPriceToGrossProfit()));
+        assertBigDecimals(record.getPriceToOperatingIncome(), new BigDecimal(dto.getPriceToOperatingIncome()));
+        assertBigDecimals(record.getPriceToNetIncome(), new BigDecimal(dto.getPriceToNetIncome()));
+        assertBigDecimals(record.getDividendYield(), new BigDecimal(dto.getDividendYield()));
+        assertBigDecimals(record.getAvgAssetPrice(), new BigDecimal(dto.getAvgAssetPrice()));
+        assertBigDecimals(record.getSumAssetQuantity(), new BigDecimal(dto.getSumAssetQuantity()));
+        assertThat(record.getContent(), is(nullValue()));
+        assertThat(record.getStrategy(), is(nullValue()));
+        assertThat(record.getTargets(), is(dto.getTargets()));
     }
 
     @Test

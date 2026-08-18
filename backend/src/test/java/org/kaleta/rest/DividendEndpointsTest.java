@@ -84,13 +84,20 @@ class DividendEndpointsTest
         dto.setDividend("100.50");
         dto.setTax("10.50");
 
+        int initialCount = dividendDao.list(dto.getCompanyId(), null, null, null).size();
+
         Assert.post201(PATH, dto);
 
         List<Dividend> dividends = dividendDao.list(dto.getCompanyId(), null, null, null);
 
-        assertThat(dividends.size(), is(1));
+        assertThat(dividends.size(), is(initialCount + 1));
 
-        Dividend dividend = dividends.get(0);
+        Dividend dividend = dividends.stream()
+                .filter(item -> item.getDate().toString().equals(dto.getDate()))
+                .filter(item -> item.getDividend().compareTo(new BigDecimal(dto.getDividend())) == 0)
+                .filter(item -> item.getTax().compareTo(new BigDecimal(dto.getTax())) == 0)
+                .max((left, right) -> left.getId().compareTo(right.getId()))
+                .orElseThrow();
         assertThat(dividend.getId(), is(notNullValue()));
         assertThat(dividend.getCompany().getTicker(), is("CRE"));
         assertThat(dividend.getDate().toString(), is(dto.getDate()));

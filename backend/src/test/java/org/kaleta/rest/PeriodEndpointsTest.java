@@ -48,11 +48,17 @@ class PeriodEndpointsTest
         dto.setEndingMonth("2015-10");
         dto.setReportDate("2015-11-11");
 
+        int initialCount = periodDao.list(dto.getCompanyId()).size();
+
         Assert.post201(path, dto);
 
         List<Period> periods = periodDao.list(dto.getCompanyId());
-        assertThat(periods.size(), is(1));
-        Period period = periods.get(0);
+        assertThat(periods.size(), is(initialCount + 1));
+        Period period = periods.stream()
+                .filter(item -> item.getName().equals(PeriodName.valueOf(dto.getName())))
+                .filter(item -> item.getEndingMonth().equals(YearMonth.parse(dto.getEndingMonth())))
+                .max((left, right) -> left.getId().compareTo(right.getId()))
+                .orElseThrow();
         assertThat(period.getCompany().getTicker(), is("CRE"));
         assertThat(period.getName(), is(PeriodName.valueOf(dto.getName())));
         assertThat(period.getEndingMonth(), is(YearMonth.parse(dto.getEndingMonth())));

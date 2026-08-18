@@ -385,11 +385,19 @@ class TradeEndpointsTest
         dto.setQuantity("10");
         dto.setFees("15");
 
+        int initialTradeCount = tradeDao.list(dto.getCompanyId()).size();
+        int initialRecordCount = recordDao.list(dto.getCompanyId()).size();
+
         Assert.post201(path, dto);
 
         List<Trade> trades = tradeDao.list(dto.getCompanyId());
-        assertThat(trades.size(), is(1));
-        Trade trade = trades.get(0);
+        assertThat(trades.size(), is(initialTradeCount + 1));
+        Trade trade = trades.stream()
+                .filter(item -> item.getPurchaseDate().equals(Date.valueOf(dto.getDate())))
+                .filter(item -> item.getPurchasePrice().compareTo(new BigDecimal(dto.getPrice())) == 0)
+                .filter(item -> item.getQuantity().compareTo(new BigDecimal(dto.getQuantity())) == 0)
+                .max(Comparator.comparing(Trade::getId))
+                .orElseThrow();
         assertThat(trade.getCompany().getTicker(), is("CRE"));
         assertThat(trade.getCompany().getCurrency(), is(Currency.$));
         assertThat(trade.getPurchaseDate(), is(Date.valueOf(dto.getDate())));
@@ -402,8 +410,14 @@ class TradeEndpointsTest
         assertThat(trade.getSellFees(), is(nullValue()));
 
         List<Record> records = recordDao.list(dto.getCompanyId());
-        assertThat(records.size(), is(1));
-        assertThat(records.get(0).getStrategy(), is(
+        assertThat(records.size(), is(initialRecordCount + 1));
+        Record record = records.stream()
+                .filter(item -> item.getDate().equals(Date.valueOf(dto.getDate())))
+                .filter(item -> item.getPrice().compareTo(new BigDecimal(dto.getPrice())) == 0)
+                .filter(item -> item.getStrategy() != null)
+                .max(Comparator.comparing(Record::getId))
+                .orElseThrow();
+        assertThat(record.getStrategy(), is(
                 "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"bought 10@100.5$\"}]}]}]"));
     }
 

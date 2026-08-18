@@ -5,6 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_DIR="$(cd "$SCRIPT_DIR/../deploy" && pwd)"
 USE_PROD_DB=0
+DEV_FRONTEND_ORIGIN="${DEV_FRONTEND_ORIGIN:-http://localhost:3000}"
+DEV_HTTP_PORT="${DEV_HTTP_PORT:-9090}"
 
 load_env_file() {
   local env_file="$1"
@@ -27,7 +29,7 @@ load_env_file() {
   done < "$env_file"
 }
 
-[[ -f "$DEPLOY_DIR/.env.dev" ]] && load_env_file "$DEPLOY_DIR/.env.dev"
+[[ -f "$DEPLOY_DIR/.env.prod" ]] && load_env_file "$DEPLOY_DIR/.env.prod"
 
 usage() {
   printf 'Usage: %s [--db-prod]\n' "${0##*/}" >&2
@@ -101,7 +103,7 @@ resolve_firebase_credentials() {
 require_production_config() {
   local variable
 
-  for variable in DB_KIND JDBC_URL DB_USERNAME DB_PASSWORD FRONTEND_ORIGIN HTTP_PORT FIREBASE_DB_URL FIREBASE_PROJECT_ID FINNHUB_API_URL POLYGON_API_URL ALPHAVANTAGE_API_URL; do
+  for variable in DB_KIND JDBC_URL DB_USERNAME DB_PASSWORD FIREBASE_DB_URL FIREBASE_PROJECT_ID FINNHUB_API_URL POLYGON_API_URL ALPHAVANTAGE_API_URL; do
     if [[ -z "${!variable:-}" ]]; then
       printf 'Missing required --db-prod configuration: %s\n' "$variable" >&2
       return 1
@@ -121,8 +123,8 @@ if [[ $USE_PROD_DB -eq 1 ]]; then
   printf 'WARNING: Development mode is using the production database and real external clients.\n'
   exec env \
     FIREBASE_CREDENTIALS_PATH="$firebase_credentials_path" \
-    FRONTEND_ORIGIN="$FRONTEND_ORIGIN" \
-    HTTP_PORT="$HTTP_PORT" \
+    FRONTEND_ORIGIN="$DEV_FRONTEND_ORIGIN" \
+    HTTP_PORT="$DEV_HTTP_PORT" \
     ./mvnw -Pdev-output clean compile quarkus:dev -Ddebug
 fi
 

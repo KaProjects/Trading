@@ -26,7 +26,7 @@ load_env_file() {
   done < "$env_file"
 }
 
-[[ -f "$DEPLOY_DIR/.env.dev" ]] && load_env_file "$DEPLOY_DIR/.env.dev"
+[[ -f "$DEPLOY_DIR/.env.prod" ]] && load_env_file "$DEPLOY_DIR/.env.prod"
 
 usage() {
   printf 'Usage: %s\n' "${0##*/}" >&2
