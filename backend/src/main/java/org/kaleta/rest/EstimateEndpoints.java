@@ -11,9 +11,14 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestResponse;
+import org.kaleta.model.PeriodEstimates;
 import org.kaleta.rest.dto.EstimateCreateDto;
+import org.kaleta.rest.dto.EstimateDto;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.service.EstimateService;
+
+import java.util.List;
 
 @Path("/estimate")
 public class EstimateEndpoints
@@ -24,19 +29,19 @@ public class EstimateEndpoints
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{periodId}")
-    public Response getAll(@NotNull @ValidId @PathParam("periodId") Long periodId)
+    public List<EstimateDto> getAll(@NotNull @ValidId @PathParam("periodId") Long periodId)
     {
-        return Response.ok(estimateService.getAll(periodId)).build();
+        return estimateService.getAll(periodId);
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{periodId}/latest")
-    public Response getLatest(@NotNull @ValidId @PathParam("periodId") Long periodId)
+    public RestResponse<PeriodEstimates> getLatest(@NotNull @ValidId @PathParam("periodId") Long periodId)
     {
         return estimateService.getLatest(periodId)
-                .map(estimate -> Response.ok(estimate).build())
-                .orElseGet(() -> Response.noContent().build());
+                .map(RestResponse::ok)
+                .orElseGet(RestResponse::noContent);
     }
 
     @POST

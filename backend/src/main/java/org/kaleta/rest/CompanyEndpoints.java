@@ -53,7 +53,7 @@ public class CompanyEndpoints
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/values")
-    public Response getCompanyValues()
+    public CompanyValuesDto getCompanyValues()
     {
         CompanyValuesDto dto = new CompanyValuesDto();
 
@@ -70,13 +70,13 @@ public class CompanyEndpoints
         years.addAll(dividendService.getYears());
         dto.setYears(List.copyOf(years));
 
-        return Response.ok(dto).build();
+        return dto;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response getCompaniesWithAggregates(
+    public CompanyAggregates getCompaniesWithAggregates(
             @ValueOfEnum(enumClass = CompanyAggregates.Sort.class)
             @QueryParam("sort")
             String sort,
@@ -89,13 +89,13 @@ public class CompanyEndpoints
     ) {
         CompanyAggregates dto = companyService.getCompaniesWithAggregates(currency, sector);
         dto.sort((sort == null) ? CompanyAggregates.Sort.TICKER : CompanyAggregates.Sort.valueOf(sort));
-        return Response.ok().entity(dto).build();
+        return dto;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/lists")
-    public Response getCompaniesByTag()
+    public Map<String, List<CompanyWithStats>> getCompaniesByTag()
     {
         Map<String, List<CompanyWithStats>> dto = companyService.getCompaniesByTag();
         dto.forEach((tag, companies) -> companies.sort(switch (tag) {
@@ -106,7 +106,7 @@ public class CompanyEndpoints
             default -> Comparator.comparing(CompanyWithStats::getTicker);
         }));
 
-        return Response.ok(dto).build();
+        return dto;
     }
 
     @PUT

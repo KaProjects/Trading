@@ -12,6 +12,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.kaleta.rest.dto.DividendCreateDto;
 import org.kaleta.rest.dto.DividendImportDto;
 import org.kaleta.rest.dto.DividendImportPreviewDto;
@@ -34,7 +35,7 @@ public class DividendEndpoints
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response getDividends(
+    public Dividends getDividends(
             @Pattern(regexp = "^\\d\\d\\d\\d$", message = "must match YYYY")
             @QueryParam("year")
             String year,
@@ -48,8 +49,7 @@ public class DividendEndpoints
             @QueryParam("sector")
             String sector
     ) {
-        Dividends model = dividendService.getBy(companyId, currency, year, sector);
-        return Response.ok(model).build();
+        return dividendService.getBy(companyId, currency, year, sector);
     }
 
     @POST
@@ -65,21 +65,21 @@ public class DividendEndpoints
     @Consumes("text/csv")
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/import/preview")
-    public Response previewDividendImport(@NotNull String csv)
+    public DividendImportPreviewDto previewDividendImport(@NotNull String csv)
     {
-        return Response.ok(dividendImportService.preview(csv)).build();
+        return dividendImportService.preview(csv);
     }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/import")
-    public Response importDividends(@Valid @NotNull DividendImportDto dividendImportDto)
+    public RestResponse<DividendImportPreviewDto> importDividends(@Valid @NotNull DividendImportDto dividendImportDto)
     {
         DividendImportPreviewDto preview = dividendImportService.importDividends(dividendImportDto);
         if (!preview.isValid()) {
-            return Response.status(Response.Status.CONFLICT).entity(preview).build();
+            return RestResponse.ResponseBuilder.create(Response.Status.CONFLICT, preview).build();
         }
-        return Response.status(Response.Status.CREATED).entity(preview).build();
+        return RestResponse.ResponseBuilder.create(Response.Status.CREATED, preview).build();
     }
 }

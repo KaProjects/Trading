@@ -14,6 +14,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.kaleta.model.Company;
 import org.kaleta.model.TradeSaleSummary;
 import org.kaleta.model.Trades;
@@ -61,7 +62,7 @@ public class TradeEndpoints
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response getTrades(
+    public Trades getTrades(
             @QueryParam("active")
             Boolean active,
             @Pattern(regexp = "^\\d\\d\\d\\d$", message = "must match YYYY")
@@ -110,7 +111,7 @@ public class TradeEndpoints
                     .distinct()
                     .forEach(trades.getWarnings()::add);
         }
-        return Response.ok(trades).build();
+        return trades;
     }
 
     @POST
@@ -131,24 +132,24 @@ public class TradeEndpoints
     @Consumes("text/csv")
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/import/preview")
-    public Response previewTradeImport(@NotNull String csv)
+    public TradeImportPreviewDto previewTradeImport(@NotNull String csv)
     {
-        return Response.ok(tradeImportService.preview(csv)).build();
+        return tradeImportService.preview(csv);
     }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/import")
-    public Response importTrades(@Valid @NotNull TradeImportDto tradeImportDto)
+    public RestResponse<TradeImportPreviewDto> importTrades(@Valid @NotNull TradeImportDto tradeImportDto)
     {
         TradeImportPreviewDto preview = tradeImportService.importTrades(tradeImportDto);
         if (!preview.isValid()) {
-            return Response.status(Response.Status.CONFLICT).entity(preview).build();
+            return RestResponse.ResponseBuilder.create(Response.Status.CONFLICT, preview).build();
         }
 
         firebaseService.pushAssets(tradeService.getBy(true, null, null, null, null, null));
-        return Response.status(Response.Status.CREATED).entity(preview).build();
+        return RestResponse.ResponseBuilder.create(Response.Status.CREATED, preview).build();
     }
 
     @PUT

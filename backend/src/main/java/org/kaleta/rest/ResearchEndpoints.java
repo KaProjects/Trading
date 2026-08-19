@@ -9,7 +9,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import org.kaleta.model.Company;
 import org.kaleta.model.Periods;
 import org.kaleta.model.Record;
@@ -57,7 +56,7 @@ public class ResearchEndpoints
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{companyId}")
-    public Response get(@NotNull @ValidId @PathParam("companyId") Long companyId)
+    public ResearchDto get(@NotNull @ValidId @PathParam("companyId") Long companyId)
     {
         ResearchDto dto = new ResearchDto();
         Company company = companyService.getCompany(companyId);
@@ -117,30 +116,29 @@ public class ResearchEndpoints
         dto.setImportablePeriods(importCandidates.periods());
         dto.getWarnings().addAll(importCandidates.warnings());
 
-        return Response.ok().entity(dto).build();
+        return dto;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{companyId}/import/period/{quarterId}")
-    public Response importPeriod(
+    public PeriodImportDataDto importPeriod(
             @NotNull @ValidId @PathParam("companyId") Long companyId,
             @NotNull @ValidPeriodName @PathParam("quarterId") String quarterId,
             @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d$", message = "must match YYYY-MM")
             @QueryParam("endingMonth") String endingMonth)
     {
-        PeriodImportDataDto data = importService.getPeriod(companyId, quarterId, endingMonth);
-        return Response.ok().entity(data).build();
+        return importService.getPeriod(companyId, quarterId, endingMonth);
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{companyId}/import/estimate/{periodId}")
-    public Response importEstimate(
+    public org.kaleta.rest.dto.EstimateImportDto importEstimate(
             @NotNull @ValidId @PathParam("companyId") Long companyId,
             @NotNull @ValidId @PathParam("periodId") Long periodId)
     {
-        return Response.ok().entity(importService.getEstimate(companyId, periodId)).build();
+        return importService.getEstimate(companyId, periodId);
     }
 
 }
