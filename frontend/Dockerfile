@@ -1,7 +1,6 @@
 FROM node:23.11.0-alpine3.21 as build-stage
 WORKDIR /app
 COPY frontend /app
-ARG REACT_APP_POLYGON_API_KEY=''
 RUN npm install
 RUN npm run build
 

@@ -87,5 +87,4 @@ activate_development_node() {
 cd "$SCRIPT_DIR"
 
 activate_development_node || exit $?
-exec env REACT_APP_POLYGON_API_KEY="${REACT_APP_POLYGON_API_KEY:-${POLYGON_API_KEY:-}}" \
-  npm start
+exec npm start
