@@ -1,9 +1,15 @@
-FROM golang:1.26-alpine AS build
+FROM golang:1.26-alpine AS source
 
 WORKDIR /src
 
 COPY go.mod ./
 COPY *.go ./
+
+FROM source AS test
+
+RUN go test ./...
+
+FROM source AS build
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -trimpath \

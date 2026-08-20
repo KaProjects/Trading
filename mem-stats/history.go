@@ -71,6 +71,10 @@ type statisticsStore interface {
 	Finalize(historyRecord) error
 }
 
+type historyReader interface {
+	ListFinalized() ([]historyRecord, error)
+}
+
 type csvStatisticsStore struct {
 	path string
 
@@ -111,6 +115,30 @@ func (store *csvStatisticsStore) LoadActive() (map[string]historyRecord, error) 
 		}
 	}
 	return active, nil
+}
+
+func (store *csvStatisticsStore) ListFinalized() ([]historyRecord, error) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	if err := store.loadLocked(); err != nil {
+		return nil, err
+	}
+
+	records := make([]historyRecord, 0, len(store.records))
+	for _, record := range store.records {
+		if record.ID == activeRecordID(record.ContainerName) {
+			continue
+		}
+		records = append(records, cloneHistoryRecord(record))
+	}
+	sort.Slice(records, func(left, right int) bool {
+		if records[left].ObservedUntil.Equal(records[right].ObservedUntil) {
+			return records[left].ID > records[right].ID
+		}
+		return records[left].ObservedUntil.After(records[right].ObservedUntil)
+	})
+	return records, nil
 }
 
 func (store *csvStatisticsStore) Checkpoint(records []historyRecord) error {
@@ -275,9 +303,14 @@ func (store *csvStatisticsStore) availableFinalIDLocked(requestedID string) stri
 func cloneHistoryRecords(records map[string]historyRecord) map[string]historyRecord {
 	clone := make(map[string]historyRecord, len(records))
 	for id, record := range records {
-		clone[id] = record
+		clone[id] = cloneHistoryRecord(record)
 	}
 	return clone
+}
+
+func cloneHistoryRecord(record historyRecord) historyRecord {
+	record.Histogram = append([]histogramBucket(nil), record.Histogram...)
+	return record
 }
 
 func activeRecordID(containerName string) string {

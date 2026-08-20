@@ -10,30 +10,6 @@ usage from the Docker Engine API. It keeps only streaming aggregates in memory:
 Raw observations are not persisted. Aggregate state is checkpointed to
 `data/history.csv` every hour by default.
 
-## Deploy
-
-Use the encrypted deployment script to build the image, replace the existing
-container, and follow its logs:
-
-```sh
-./build_deploy.sh
-```
-
-The monitor starts with itself as the only target when no container
-configuration exists. It takes the first sample immediately and uses a
-one-minute interval by default.
-
-The deployment script provides the published HTTP port. Alternatively, set
-`PORT` explicitly before using Docker Compose:
-
-```sh
-export PORT="<published-port>"
-export MEM_STATS_CONTAINER_NAME="<monitor-container-name>"
-docker compose up -d --build
-```
-
-Open `http://localhost:${PORT}`.
-
 ## Manage containers
 
 Add and remove containers from the HTML report, or call the endpoints directly:
