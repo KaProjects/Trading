@@ -10,15 +10,18 @@ import {ReactComponent as TradesRedirectIcon} from "../../assets/icons/trades-re
 import {ReactComponent as DividendsRedirectIcon} from "../../assets/icons/dividends-redirect.svg";
 import {ReactComponent as ResearchRedirectIcon} from "../../assets/icons/research-redirect.svg";
 import {getCompanyListKeys} from "../../service/CompanyListService";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import {COMPANY_SELECTOR_SIDEBAR_BREAKPOINT} from "./CompanySelector";
 
 export const ACTIVE_STATES = ["only active", "only closed"];
 export const RESEARCH_TAB = {
     research: 0,
     records: 1,
+    todo: 2,
 };
 export const RESEARCH_SPLIT_BREAKPOINT = 2000;
 const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly"];
-const RESEARCH_TAB_LABELS = ["Research", "Records"];
+const RESEARCH_TAB_LABELS = ["Research", "Records", "Todo"];
 const DATA_ROUTES = ["/trades", "/dividends", "/research"];
 const COMPANY_QUERY_PARAMETER = "company";
 const COMPANY_LIST_QUERY_PARAMETER = "list";
@@ -104,6 +107,9 @@ export const MainBar = props => {
     const companyTickers = companies.map(company => company.ticker).join(",")
     const companyListKeys = getCompanyListKeys(props.companyLists)
     const companyListKeysSignature = JSON.stringify(companyListKeys)
+    const showTodoTab = useMediaQuery(`(max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`)
+    const selectedResearchTab = props.researchTabsIndex
+    const setSelectedResearchTab = props.setResearchTabsIndex
     const config = {
         ...DEFAULT_MAIN_BAR_CONFIG,
         ...(MAIN_BAR_CONFIG[location.pathname] ?? {}),
@@ -123,6 +129,12 @@ export const MainBar = props => {
         selectedCompanyRef.current = props.companySelectorValue
         selectedCompanyListRef.current = props.companyListSelectorValue
     }, [props.companySelectorValue, props.companyListSelectorValue])
+
+    useEffect(() => {
+        if (!showTodoTab && selectedResearchTab === RESEARCH_TAB.todo) {
+            setSelectedResearchTab(RESEARCH_TAB.research)
+        }
+    }, [showTodoTab, selectedResearchTab, setSelectedResearchTab])
 
     function searchWithCompany(ticker, search = location.search) {
         const searchParams = new URLSearchParams(search ?? "")
@@ -587,9 +599,10 @@ export const MainBar = props => {
                                 ))}
                             </Tabs>
                         }
-                        {config.showResearchTabs && props.companySelectorValue &&
+                        {config.showResearchTabs && (props.companySelectorValue || showTodoTab) &&
                             <Tabs value={props.researchTabsIndex}
                                   onChange={(event, value) => props.setResearchTabsIndex(value)}
+                                  variant={showTodoTab ? "fullWidth" : "standard"}
                                   slotProps={{indicator: {style: {backgroundColor: "white"}}}}
                                   textColor="inherit"
                                   sx={{
@@ -597,8 +610,16 @@ export const MainBar = props => {
                                       [`@media (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {display: "flex"},
                                   }}
                             >
-                                {RESEARCH_TAB_LABELS.map((tab) => (
-                                    <Tab key={tab} label={tab}/>
+                                {RESEARCH_TAB_LABELS.map((tab, index) => (
+                                    <Tab
+                                        key={tab}
+                                        label={tab}
+                                        sx={index === RESEARCH_TAB.todo ? {
+                                            [`@media (min-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT + 1}px)`]: {
+                                                display: "none",
+                                            },
+                                        } : undefined}
+                                    />
                                 ))}
                             </Tabs>
                         }

@@ -3,3 +3,10 @@
 ALTER TABLE Period ADD COLUMN capex DECIMAL(8, 2);
 ALTER TABLE Period ADD COLUMN fcf DECIMAL(8, 2);
 
+CREATE TABLE Todo
+(
+    id        INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    content   TEXT         NOT NULL,
+    createdAt DATETIME     NOT NULL,
+    companyId INT UNSIGNED
+);

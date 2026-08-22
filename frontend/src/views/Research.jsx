@@ -24,7 +24,11 @@ import {AssetBox} from "./component/AssetBox";
 import {DateTime} from "./component/DateTime";
 import {Record} from "./component/Record";
 import {Period} from "./component/Period";
-import {BUILT_IN_LIST_TITLES, CompanySelector} from "./component/CompanySelector";
+import {
+    BUILT_IN_LIST_TITLES,
+    COMPANY_SELECTOR_SIDEBAR_BREAKPOINT,
+    CompanySelector,
+} from "./component/CompanySelector";
 import {PeriodFinancials} from "./component/PeriodFinancials";
 import {PeriodEstimatesOverview} from "./component/PeriodEstimatesOverview";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
@@ -38,6 +42,7 @@ import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
 import {RESEARCH_SPLIT_BREAKPOINT, RESEARCH_TAB} from "./component/MainBar";
 import {AddTagDialog} from "../dialog/AddTagDialog";
 import {useLocation} from "react-router-dom";
+import {TodoList} from "./component/TodoList";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 const researchCardStyle = {
@@ -94,6 +99,7 @@ export const Research = props => {
     const previousCompanyId = useRef(null)
     const latestRequestId = useRef(0)
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
+    const todoTabSelected = researchTabsIndex === RESEARCH_TAB.todo
 
     function fetchData(companyChanged) {
         const requestId = ++latestRequestId.current
@@ -177,16 +183,33 @@ export const Research = props => {
             <Box
                 data-testid="research-content"
                 hidden={loading}
-                sx={{display: loading ? "none" : "contents"}}
+                sx={{display: loading ? "none" : "block", position: "relative", minHeight: "1px"}}
             >
-                <CompanySelector onCustomTagsChange={setTagSuggestions} {...props}/>
+                <TodoList
+                    {...props}
+                    active={todoTabSelected}
+                    onCompanySelected={() => props.setResearchTabsIndex?.(RESEARCH_TAB.research)}
+                />
+                <Box sx={{
+                    [`@media (max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`]: {
+                        display: todoTabSelected ? "none" : "block",
+                    },
+                    [`@media (min-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT + 1}px)`]: {
+                        paddingRight: "216px",
+                    },
+                }}>
+                    <CompanySelector onCustomTagsChange={setTagSuggestions} {...props}/>
+                </Box>
                 {selectedCompanyLoaded && data.company.ticker !== undefined &&
                     <Grid container direction="row" sx={{width: "100%", justifyContent: "center", alignItems: "flex-start"}}>
                     <Card sx={{
                         ...researchCardStyle,
                         display: "flex",
-                        [`@media (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {
+                        [`@media (max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`]: {
                             display: researchTabsIndex === RESEARCH_TAB.research ? "flex" : "none",
+                        },
+                        [`@media (min-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT + 1}px) and (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {
+                            display: researchTabsIndex === RESEARCH_TAB.records ? "none" : "flex",
                         },
                     }}>
                         <CardContent sx={researchCardContentStyle}>
@@ -391,7 +414,10 @@ export const Research = props => {
                     <Card sx={{
                         ...researchCardStyle,
                         display: "flex",
-                        [`@media (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {
+                        [`@media (max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`]: {
+                            display: researchTabsIndex === RESEARCH_TAB.records ? "flex" : "none",
+                        },
+                        [`@media (min-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT + 1}px) and (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {
                             display: researchTabsIndex === RESEARCH_TAB.records ? "flex" : "none",
                         },
                     }}>

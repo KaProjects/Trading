@@ -20,10 +20,19 @@ jest.mock("../component/Loader", () => ({
 }));
 jest.mock("../component/CompanySelector", () => ({
     BUILT_IN_LIST_TITLES: {owned: "Owned", recent: "Recent", researched: "Researched", all: "All"},
+    COMPANY_SELECTOR_SIDEBAR_BREAKPOINT: 1200,
     CompanySelector: (props) => (
         <div data-testid="company-selector">
             company-selector:{props.refresh}
             <button onClick={() => props.onCustomTagsChange(["growth", "income"])}>provide-tags</button>
+        </div>
+    ),
+}));
+jest.mock("../component/TodoList", () => ({
+    TodoList: props => (
+        <div data-testid="todo-list" data-active={String(props.active)}>
+            todos:{props.companySelectorValue?.id ?? "none"}
+            <button onClick={props.onCompanySelected}>select-todo-company</button>
         </div>
     ),
 }));
@@ -225,7 +234,25 @@ describe("Research", () => {
         render(<Research companySelectorValue=""/>);
 
         expect(screen.getByTestId("company-selector")).toBeInTheDocument();
+        expect(screen.getByTestId("todo-list")).toHaveTextContent("todos:none");
+        expect(screen.getByTestId("todo-list")).toHaveAttribute("data-active", "false");
         expect(screen.queryByTestId("loader")).not.toBeInTheDocument();
+    });
+
+    test("shows the Todo tab and returns to Research after selecting its company", () => {
+        const setResearchTabsIndex = jest.fn();
+
+        render(
+            <Research
+                companySelectorValue=""
+                researchTabsIndex={2}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />
+        );
+
+        expect(screen.getByTestId("todo-list")).toHaveAttribute("data-active", "true");
+        fireEvent.click(screen.getByText("select-todo-company"));
+        expect(setResearchTabsIndex).toHaveBeenCalledWith(0);
     });
 
     test("fetches data and renders the research view", async () => {

@@ -3,6 +3,9 @@ import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 
 const mockNavigate = jest.fn();
 const mockUseLocation = jest.fn();
+const mockUseMediaQuery = jest.fn(() => false);
+
+jest.mock("@mui/material/useMediaQuery", () => (...args) => mockUseMediaQuery(...args));
 
 jest.mock("../MainBarSelect", () => ({
     MainBarSelect: ({
@@ -85,6 +88,8 @@ describe("MainBar", () => {
     beforeEach(() => {
         mockNavigate.mockReset();
         mockUseLocation.mockReturnValue({pathname: "/", state: null});
+        mockUseMediaQuery.mockReset();
+        mockUseMediaQuery.mockReturnValue(false);
     });
 
     test("renders trade selectors and action buttons on trades route", () => {
@@ -238,6 +243,32 @@ describe("MainBar", () => {
 
         expect(screen.queryByRole("tab", {name: "Research"})).not.toBeInTheDocument();
         expect(screen.queryByRole("tab", {name: "Records"})).not.toBeInTheDocument();
+    });
+
+    test("renders the Todo tab on a narrow Research view without a selected company", () => {
+        mockUseMediaQuery.mockReturnValue(true);
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+        const setResearchTabsIndex = jest.fn();
+
+        render(<MainBar {...createProps({setResearchTabsIndex})}/>);
+
+        expect(screen.getByRole("tab", {name: "Research", hidden: true})).toBeInTheDocument();
+        expect(screen.getByRole("tab", {name: "Records", hidden: true})).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("tab", {name: "Todo", hidden: true}));
+        expect(setResearchTabsIndex).toHaveBeenCalledWith(2);
+    });
+
+    test("returns to the Research tab when the Todo tab is no longer available", async () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+        const setResearchTabsIndex = jest.fn();
+
+        render(<MainBar {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+            researchTabsIndex: 2,
+            setResearchTabsIndex,
+        })}/>);
+
+        await waitFor(() => expect(setResearchTabsIndex).toHaveBeenCalledWith(0));
     });
 
     test("restores selector values from navigation state", async () => {

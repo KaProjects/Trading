@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS Todo;
 DROP TABLE IF EXISTS Tag;
 DROP TABLE IF EXISTS Estimate;
 DROP TABLE IF EXISTS Latest;
@@ -104,4 +105,11 @@ CREATE TABLE Tag
     value        VARCHAR(30)     NOT NULL,
     companyId    INT UNSIGNED    NOT NULL,
     CONSTRAINT `fk_tagCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
+);
+CREATE TABLE Todo
+(
+    id        INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    content   TEXT         NOT NULL,
+    createdAt DATETIME     NOT NULL,
+    companyId INT UNSIGNED
 );
