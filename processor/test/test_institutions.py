@@ -31,6 +31,7 @@ def test_registry_resolves_aliases_to_canonical_institution():
             "bofa-securities": "BofA Securities",
         },
         enabled=True,
+        trusted=False,
     )
     registry = InstitutionRegistry({
         "bank-of-america": bank_of_america,
@@ -58,6 +59,16 @@ def test_registry_creates_enabled_institution_for_unknown_name():
     assert registry.new_institutions == {
         "northland-securities": institution,
     }
+
+
+def test_institution_without_trusted_field_defaults_to_untrusted():
+    institution = InstitutionRecord.model_validate({
+        "name": "Northland Securities",
+        "aliases": {},
+        "enabled": True,
+    })
+
+    assert institution.trusted is False
 
 
 def test_registry_rejects_alias_assigned_to_multiple_institutions():

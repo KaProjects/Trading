@@ -10,6 +10,7 @@ from gemini.models import (
     Info,
     Quarter as GeminiQuarter,
     Target,
+    TargetReport,
 )
 from myfinnhub.models import (
     Company as FinnhubCompany,
@@ -201,6 +202,19 @@ def gemini_price_targets(
                 ),
             ))
     return targets
+
+
+def gemini_target_report(target: Target) -> TargetReport:
+    return TargetReport(
+        overview=(
+            f"{target.institution} set a ${target.price} price target for "
+            f"{target.ticker}."
+        ),
+        key_takeaways=[
+            f"The published rating is {target.rating or 'not provided'}.",
+            f"The target action was announced on {target.date.isoformat()}.",
+        ],
+    )
 
 
 def _finnhub_earnings(

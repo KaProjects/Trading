@@ -17,6 +17,7 @@ from gemini.models import (
     ReportDate,
     ReportDates,
     Target,
+    TargetReport,
     Targets,
 )
 from gemini.service import FirebaseService
@@ -351,6 +352,7 @@ class TestStockDataRetriever:
             "inline": False,
         }
         assert len(embed["fields"]) == 2
+        runner.client.get_target_report.assert_not_called()
         runner.errors.report.assert_not_called()
 
     @patch("utils.is_past_date", return_value=False)
@@ -500,6 +502,163 @@ class TestStockDataRetriever:
         runner.service.upsert_target.assert_not_called()
         runner.discord.post_if_channel_exists.assert_not_called()
         runner.discord.post_eventlog.assert_not_called()
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_trusted_institution_target_is_enriched_before_persistence(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        runner.service.get_companies.return_value = {
+            "AMD": make_company(
+                "AMD",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+            ),
+        }
+        runner.service.get_institutions.return_value = {
+            "baird": InstitutionRecord(
+                name="Baird",
+                aliases={"baird": "Baird"},
+                enabled=True,
+                trusted=True,
+            ),
+        }
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-07-21",
+            price="250",
+            rating="Outperform",
+            source="https://research.example.com/amd",
+        )
+        report = TargetReport(
+            overview="Baird expects stronger data-center demand.",
+            key_takeaways=[
+                "The price target was increased to $250.",
+                "Baird maintained its Outperform rating.",
+            ],
+        )
+        enriched_target = target.model_copy(update={"report": report})
+        runner.client.get_price_targets.return_value = Targets(
+            targets=[target]
+        )
+        runner.client.get_target_report.return_value = enriched_target
+
+        runner.run()
+
+        runner.client.get_target_report.assert_called_once_with(target)
+        runner.service.upsert_target.assert_called_once_with(
+            "AMD",
+            CompanyTarget(
+                institution="Baird",
+                date="2026-07-21",
+                price="250",
+                rating="Outperform",
+                source="https://research.example.com/amd",
+                report=report,
+            ),
+        )
+        embed = runner.discord.post_eventlog.call_args.args[0]["embeds"][0]
+        assert len(embed["fields"]) == 2
+        assert embed["description"] == (
+            "**Overview**\n\n"
+            "Baird expects stronger data-center demand.\n\n"
+            "**Key takeaways**\n"
+            "• The price target was increased to $250.\n"
+            "• Baird maintained its Outperform rating.\n\n"
+            "\u200b"
+        )
+
+    def test_price_target_truncates_oversized_discord_description(
+        self,
+        caplog,
+    ):
+        report = TargetReport.model_construct(
+            overview="x" * 4096,
+            key_takeaways=["Takeaway"],
+        )
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-07-21",
+            price="250",
+            rating="Outperform",
+            source="https://research.example.com/amd",
+            report=report,
+        )
+
+        with caplog.at_level(
+            logging.WARNING,
+            logger="gemini.discord_templates",
+        ):
+            payload = discord_templates.price_target(target)
+
+        description = payload["embeds"][0]["description"]
+        assert len(description) == 4096
+        assert description.endswith("...")
+        assert (
+            "Truncated Discord target report description for "
+            "AMD / Baird / 2026-07-21 / $250"
+        ) in caplog.text
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_failed_trusted_target_enrichment_is_not_persisted(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        runner.service.get_companies.return_value = {
+            "AMD": make_company(
+                "AMD",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+            ),
+        }
+        runner.service.get_institutions.return_value = {
+            "baird": InstitutionRecord(
+                name="Baird",
+                aliases={"baird": "Baird"},
+                enabled=True,
+                trusted=True,
+            ),
+        }
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-07-21",
+            price="250",
+            rating="Outperform",
+            source="https://research.example.com/amd",
+        )
+        runner.client.get_price_targets.return_value = Targets(
+            targets=[target]
+        )
+        exception = RuntimeError("Gemini unavailable")
+        runner.client.get_target_report.side_effect = exception
+
+        runner.run()
+
+        runner.service.upsert_target.assert_not_called()
+        runner.discord.post_if_channel_exists.assert_not_called()
+        runner.discord.post_eventlog.assert_not_called()
+        runner.errors.report.assert_called_once_with(
+            exception,
+            logger=runner.log,
+            source=runner.name,
+            operation="retrieve_price_target_report",
+            context={
+                "ticker": "AMD",
+                "institution": "Baird",
+                "date": "2026-07-21",
+            },
+        )
 
     def test_price_target_uses_compact_ticker_channel_payload(self, runner):
         target = Target(

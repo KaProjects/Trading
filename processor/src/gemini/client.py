@@ -5,7 +5,16 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel
 
-from gemini.models import Company, Quarter, ReportDates, Targets
+from gemini.models import (
+    Company,
+    Quarter,
+    ReportDates,
+    TARGET_REPORT_OVERVIEW_MAX_LENGTH,
+    TARGET_REPORT_TAKEAWAY_MAX_LENGTH,
+    Target,
+    TargetReport,
+    Targets,
+)
 
 logger = logging.getLogger(__name__)
 GEMINI_RETRY_ATTEMPTS = 5
@@ -37,6 +46,8 @@ class GeminiClient:
         self,
         prompt: str,
         response_model: type[BaseModel],
+        *,
+        validation_context: dict[str, object] | None = None,
     ):
         response = self.client.models.generate_content(
             model=self.model,
@@ -47,7 +58,10 @@ class GeminiClient:
                 "response_json_schema": response_model.model_json_schema(),
             },
         )
-        return response_model.model_validate_json(response.text)
+        return response_model.model_validate_json(
+            response.text,
+            context=validation_context,
+        )
 
     def get_initial_stock_data(self, ticker: str) -> Company:
         prompt = f"""
@@ -191,3 +205,40 @@ class GeminiClient:
         An empty targets list is the correct result when nothing qualifies.
         """
         return self.__ask(prompt, Targets)
+
+    def get_target_report(self, target: Target) -> Target:
+        data = target.model_dump(mode="json", exclude={"report"})
+        prompt = f"""
+        {target.institution} recently issued a ${target.price} price target for
+        {target.ticker}.
+
+        Continue researching the context and significance of this price-target
+        action using the complete target data below:
+        {data}
+
+        Determine the institution's stated rationale, material company or industry
+        developments supporting the target, significant catalysts, assumptions,
+        and risks. Include only information directly relevant to understanding this
+        specific target action. Distinguish verified facts from analyst opinions,
+        do not infer an unstated rationale, and do not repeat claims that cannot be
+        supported by reliable public sources.
+
+        Return a TargetReport containing a concise, self-contained overview and
+        between one and four independently useful key takeaways, ordered from most
+        to least important. Limit the overview to
+        {TARGET_REPORT_OVERVIEW_MAX_LENGTH} characters and each takeaway to
+        {TARGET_REPORT_TAKEAWAY_MAX_LENGTH} characters. Do not repeat the overview
+        in the takeaways. Each takeaway must communicate one distinct, concrete
+        point in plain text without a bullet prefix.
+        """
+        report = self.__ask(
+            prompt,
+            TargetReport,
+            validation_context={
+                "target": (
+                    f"{target.ticker} / {target.institution} / "
+                    f"{target.date.isoformat()} / ${target.price}"
+                ),
+            },
+        )
+        return target.model_copy(update={"report": report})

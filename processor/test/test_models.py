@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 from decimal import Decimal
 
@@ -12,6 +13,7 @@ from gemini.models import (
     ReportDate,
     ReportDates,
     Target,
+    TargetReport,
     Targets,
 )
 from myfinnhub.models import Company as FinnhubCompany
@@ -126,6 +128,27 @@ def test_target_schema_describes_every_output_field():
 
     targets_schema = Targets.model_json_schema()
     assert targets_schema["properties"]["targets"]["description"]
+
+    report_schema = TargetReport.model_json_schema()
+    assert report_schema["properties"]["overview"]["description"]
+    assert report_schema["properties"]["key_takeaways"]["description"]
+    assert report_schema["properties"]["key_takeaways"]["maxItems"] == 4
+
+
+def test_target_report_keeps_only_four_highest_ranked_takeaways(caplog):
+    with caplog.at_level(logging.WARNING, logger="gemini.models"):
+        report = TargetReport(
+            overview="Overview",
+            key_takeaways=[f"Takeaway {index}" for index in range(1, 7)],
+        )
+
+    assert report.key_takeaways == [
+        "Takeaway 1",
+        "Takeaway 2",
+        "Takeaway 3",
+        "Takeaway 4",
+    ]
+    assert "Omitted 2 excess target report takeaways" in caplog.text
 
 
 def test_quarter_schema_describes_every_output_field_and_unit():

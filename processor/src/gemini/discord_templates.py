@@ -1,5 +1,10 @@
+import logging
+
 from gemini.models import Quarter, Target
 
+logger = logging.getLogger(__name__)
+DISCORD_EMBED_DESCRIPTION_MAX_LENGTH = 4096
+DISCORD_SPACER = "\u200b"
 QUARTER_REPORTER_USERNAME = "Quarterly Results Reporter"
 QUARTER_REPORTER_AVATAR_URL = (
     "https://cdn-icons-png.flaticon.com/512/1390/1390704.png"
@@ -73,6 +78,7 @@ def price_target(target: Target) -> dict[str, object]:
                     "inline": False,
                 },
             ],
+            **_target_report_description(target),
         }],
     }
 
@@ -82,17 +88,50 @@ def ticker_price_target(target: Target) -> dict[str, object]:
         "embeds": [{
             "title": f"🎯 new price target ${target.price}",
             "color": 0xF1C40F,
-            "fields": [{
-                "name": target.institution,
-                "value": (
-                    f"{target.rating or 'Not provided'}\n"
-                    f"{target.date.isoformat()}\n"
-                    f"source: {target.source}"
-                ),
-                "inline": False,
-            }],
+            "fields": [
+                {
+                    "name": target.institution,
+                    "value": (
+                        f"{target.rating or 'Not provided'}\n"
+                        f"{target.date.isoformat()}\n"
+                        f"source: {target.source}"
+                    ),
+                    "inline": False,
+                },
+            ],
+            **_target_report_description(target),
         }],
     }
+
+
+def _target_report_description(target: Target) -> dict[str, str]:
+    if target.report is None:
+        return {}
+
+    takeaways = "\n".join(
+        f"• {takeaway}"
+        for takeaway in target.report.key_takeaways
+    )
+    description = (
+        f"**Overview**\n\n{target.report.overview}\n\n"
+        f"**Key takeaways**\n{takeaways}\n\n{DISCORD_SPACER}"
+    )
+    if len(description) > DISCORD_EMBED_DESCRIPTION_MAX_LENGTH:
+        logger.warning(
+            "Truncated Discord target report description for %s / %s / %s / "
+            "$%s from %d to %d characters",
+            target.ticker,
+            target.institution,
+            target.date.isoformat(),
+            target.price,
+            len(description),
+            DISCORD_EMBED_DESCRIPTION_MAX_LENGTH,
+        )
+        description = (
+            description[:DISCORD_EMBED_DESCRIPTION_MAX_LENGTH - 3]
+            + "..."
+        )
+    return {"description": description}
 
 
 def upcoming_earnings(

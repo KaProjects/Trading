@@ -176,9 +176,11 @@ def test_fake_gemini_price_targets_execute_without_network(caplog):
         runner.run()
 
     assert "FAKE GET Gemini institutional price targets" in caplog.text
+    assert "FAKE GET Gemini price target report" in caplog.text
     assert "gemini/targets/" in caplog.text
     assert '"institution":' in caplog.text
     assert '"price":' in caplog.text
+    assert '"overview":' in caplog.text
     assert any(
         company is not None and company.targets
         for company in runner.service.companies.values()

@@ -10,7 +10,10 @@ from cmc.models import BitcoinQuote, FearAndGreedReading
 from dev import data
 from error_reporting import ErrorReporter
 from firebase_repository import parse_company_snapshot
-from gemini.institutions import InstitutionRegistry
+from gemini.institutions import (
+    InstitutionRegistry,
+    normalize_institution_name,
+)
 from gemini.models import (
     Company as GeminiCompany,
     CompanyTarget,
@@ -18,6 +21,7 @@ from gemini.models import (
     Quarter as GeminiQuarter,
     ReportDate,
     ReportDates,
+    Target,
     Targets,
 )
 from gemini.service import create_target_id, required_company_fields
@@ -131,6 +135,17 @@ class FakeGeminiClient:
         _log_operation("FAKE GET", "Gemini institutional price targets")
         return result
 
+    def get_target_report(self, target: Target) -> Target:
+        result = target.model_copy(
+            deep=True,
+            update={"report": data.gemini_target_report(target)},
+        )
+        _log_operation(
+            "FAKE GET",
+            f"Gemini price target report [{target.ticker}]",
+        )
+        return result
+
 
 class FakeFinnhubClient:
     def __init__(self) -> None:
@@ -206,6 +221,12 @@ class FakeGeminiFirebaseService:
                 continue
             for target in company.targets.values():
                 registry.resolve_or_create(target.institution)
+        trusted_name = "Northstar Global Research"
+        trusted_id = normalize_institution_name(trusted_name)
+        trusted_institution = registry.resolve_or_create(trusted_name)
+        registry.institutions[trusted_id] = trusted_institution.model_copy(
+            update={"trusted": True},
+        )
         self.institutions = registry.institutions
 
     def get_companies(self) -> dict[str, GeminiCompany | None]:

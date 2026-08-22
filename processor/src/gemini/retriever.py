@@ -13,6 +13,7 @@ from gemini.institutions import InstitutionRegistry
 from gemini.models import (
     Company,
     CompanyTarget,
+    InstitutionRecord,
     Quarter,
     ReportDate,
     ReportDates,
@@ -160,7 +161,7 @@ class StockDataRetrieverRunner:
             end_date,
         )
 
-        resolved_targets: list[tuple[Target, bool]] = []
+        resolved_targets: list[tuple[Target, InstitutionRecord]] = []
         for target in targets.targets:
             institution = institutions.resolve_or_create(
                 target.institution
@@ -169,7 +170,7 @@ class StockDataRetrieverRunner:
                 target.model_copy(
                     update={"institution": institution.name}
                 ),
-                institution.enabled,
+                institution,
             ))
 
         if institutions.new_institutions:
@@ -181,12 +182,12 @@ class StockDataRetrieverRunner:
             institutions,
         )
 
-        for target, institution_enabled in sorted(
+        for target, institution in sorted(
             resolved_targets,
             key=lambda resolved: resolved[0].date,
             reverse=True,
         ):
-            if not institution_enabled:
+            if not institution.enabled:
                 continue
 
             target_key = self._price_target_key(
@@ -205,6 +206,11 @@ class StockDataRetrieverRunner:
             ):
                 continue
 
+            if institution.trusted:
+                target = self._enrich_price_target(target)
+                if target is None:
+                    continue
+
             if self._persist_price_target(target):
                 ticker_target_dates[target_key] = target.date
                 self._notify_price_target(target)
@@ -217,6 +223,17 @@ class StockDataRetrieverRunner:
                 end_date=end_date,
             )
         )
+
+    def _enrich_price_target(self, target: Target) -> Target | None:
+        try:
+            return self.client.get_target_report(target)
+        except Exception as exception:
+            self.report_error(
+                exception,
+                operation="retrieve_price_target_report",
+                context=self._price_target_context(target),
+            )
+            return None
 
     def _persist_price_target(self, target: Target) -> bool:
         try:

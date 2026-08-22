@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import date
 from decimal import Decimal
 from unittest.mock import patch
@@ -12,7 +13,7 @@ from gemini.client import (
     GEMINI_RETRYABLE_HTTP_STATUS_CODES,
     GeminiClient,
 )
-from gemini.models import Quarter, Target, Targets
+from gemini.models import Quarter, Target, TargetReport, Targets
 
 
 def make_quarter(**overrides):
@@ -110,6 +111,102 @@ def test_get_price_targets_returns_python_objects_and_uses_targets_schema():
     )
     assert request.kwargs["config"]["response_json_schema"] == (
         Targets.model_json_schema()
+    )
+
+
+def test_get_target_report_appends_structured_report_to_original_target():
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = """
+        {
+          "overview": "Baird raised its outlook after stronger demand.",
+          "key_takeaways": [
+            "The new target reflects higher revenue expectations.",
+            "The Outperform rating was maintained."
+          ]
+        }
+        """
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-07-24",
+            price="250",
+            rating="Outperform",
+            source="https://research.example.com/amd",
+        )
+
+        result = client.get_target_report(target)
+
+    report = TargetReport(
+        overview="Baird raised its outlook after stronger demand.",
+        key_takeaways=[
+            "The new target reflects higher revenue expectations.",
+            "The Outperform rating was maintained.",
+        ],
+    )
+    assert result == target.model_copy(update={"report": report})
+    assert target.report is None
+    request = constructor.return_value.models.generate_content.call_args
+    assert (
+        "Baird recently issued a $250 price target for\n        AMD."
+        in request.kwargs["contents"]
+    )
+    assert "'ticker': 'AMD'" in request.kwargs["contents"]
+    assert "between one and four" in request.kwargs["contents"]
+    assert "ordered from most\n        to least important" in request.kwargs[
+        "contents"
+    ]
+    assert "1000 characters" in request.kwargs["contents"]
+    assert "240 characters" in request.kwargs["contents"]
+    assert request.kwargs["config"]["response_json_schema"] == (
+        TargetReport.model_json_schema()
+    )
+
+
+def test_get_target_report_truncates_overflow_and_logs_target(caplog):
+    response = {
+        "overview": "o" * 1005,
+        "key_takeaways": [
+            "t" * 245,
+            "Second",
+            "Third",
+            "Fourth",
+            "Fifth",
+            "Sixth",
+        ],
+    }
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            json.dumps(response)
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-07-24",
+            price="250",
+            rating="Outperform",
+            source="https://research.example.com/amd",
+        )
+
+        with caplog.at_level(logging.WARNING, logger="gemini.models"):
+            result = client.get_target_report(target)
+
+    assert result.report is not None
+    assert len(result.report.overview) == 1000
+    assert result.report.overview.endswith("...")
+    assert len(result.report.key_takeaways) == 4
+    assert len(result.report.key_takeaways[0]) == 240
+    assert result.report.key_takeaways[0].endswith("...")
+    target_context = "AMD / Baird / 2026-07-24 / $250"
+    assert f"Truncated target report overview for {target_context}" in caplog.text
+    assert (
+        f"Omitted 2 excess target report takeaways for {target_context}"
+        in caplog.text
+    )
+    assert (
+        f"Truncated target report takeaway 1 for {target_context}"
+        in caplog.text
     )
 
 

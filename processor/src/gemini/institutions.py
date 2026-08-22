@@ -51,6 +51,7 @@ class InstitutionRegistry:
             name=observed_name,
             aliases={alias_key: observed_name},
             enabled=True,
+            trusted=False,
         )
         self.institutions[alias_key] = institution
         self.new_institutions[alias_key] = institution

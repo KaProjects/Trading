@@ -1,3 +1,4 @@
+import logging
 from datetime import date as Date
 from decimal import Decimal
 from typing import Annotated
@@ -7,11 +8,17 @@ from pydantic import (
     ConfigDict,
     Field,
     StringConstraints,
+    ValidationInfo,
     field_validator,
     model_validator,
 )
 
 from domain_types import QuarterId, Ticker
+
+logger = logging.getLogger(__name__)
+TARGET_REPORT_OVERVIEW_MAX_LENGTH = 1000
+TARGET_REPORT_TAKEAWAY_MAX_LENGTH = 240
+TARGET_REPORT_TAKEAWAYS_MAX_COUNT = 4
 
 EndingMonth = Annotated[
     str,
@@ -29,6 +36,34 @@ Source = Annotated[
     str,
     StringConstraints(min_length=1, max_length=2048, strip_whitespace=True),
 ]
+ReportOverview = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=TARGET_REPORT_OVERVIEW_MAX_LENGTH,
+        strip_whitespace=True,
+    ),
+]
+ReportTakeaway = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=TARGET_REPORT_TAKEAWAY_MAX_LENGTH,
+        strip_whitespace=True,
+    ),
+]
+
+
+def _truncate_with_dots(value: str, max_length: int) -> str:
+    return value[:max_length - 3] + "..."
+
+
+def _target_from_validation(info: ValidationInfo) -> str:
+    if isinstance(info.context, dict):
+        target = info.context.get("target")
+        if isinstance(target, str):
+            return target
+    return "unknown target"
 
 
 class Info(BaseModel):
@@ -131,6 +166,86 @@ class Quarter(BaseModel):
         return None if value == "" else value
 
 
+class TargetReport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    overview: ReportOverview = Field(
+        description=(
+            "Concise overview of the research relevant to this institutional "
+            "price-target action."
+        ),
+    )
+    key_takeaways: list[ReportTakeaway] = Field(
+        min_length=1,
+        max_length=TARGET_REPORT_TAKEAWAYS_MAX_COUNT,
+        description=(
+            "Most important facts and conclusions, with one self-contained "
+            "message per list item."
+        ),
+    )
+
+    @field_validator("overview", mode="before")
+    @classmethod
+    def truncate_overview(cls, value, info: ValidationInfo):
+        if not isinstance(value, str):
+            return value
+        value = value.strip()
+        if len(value) <= TARGET_REPORT_OVERVIEW_MAX_LENGTH:
+            return value
+        logger.warning(
+            "Truncated target report overview for %s from %d to %d characters",
+            _target_from_validation(info),
+            len(value),
+            TARGET_REPORT_OVERVIEW_MAX_LENGTH,
+        )
+        return _truncate_with_dots(
+            value,
+            TARGET_REPORT_OVERVIEW_MAX_LENGTH,
+        )
+
+    @field_validator("key_takeaways", mode="before")
+    @classmethod
+    def normalize_key_takeaways(cls, value, info: ValidationInfo):
+        if not isinstance(value, list):
+            return value
+
+        target = _target_from_validation(info)
+        if len(value) > TARGET_REPORT_TAKEAWAYS_MAX_COUNT:
+            logger.warning(
+                "Omitted %d excess target report takeaways for %s "
+                "(received %d, maximum %d)",
+                len(value) - TARGET_REPORT_TAKEAWAYS_MAX_COUNT,
+                target,
+                len(value),
+                TARGET_REPORT_TAKEAWAYS_MAX_COUNT,
+            )
+
+        normalized = []
+        for index, takeaway in enumerate(
+            value[:TARGET_REPORT_TAKEAWAYS_MAX_COUNT],
+            start=1,
+        ):
+            if not isinstance(takeaway, str):
+                normalized.append(takeaway)
+                continue
+            takeaway = takeaway.strip()
+            if len(takeaway) > TARGET_REPORT_TAKEAWAY_MAX_LENGTH:
+                logger.warning(
+                    "Truncated target report takeaway %d for %s from %d to "
+                    "%d characters",
+                    index,
+                    target,
+                    len(takeaway),
+                    TARGET_REPORT_TAKEAWAY_MAX_LENGTH,
+                )
+                takeaway = _truncate_with_dots(
+                    takeaway,
+                    TARGET_REPORT_TAKEAWAY_MAX_LENGTH,
+                )
+            normalized.append(takeaway)
+        return normalized
+
+
 class CompanyTarget(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
@@ -166,6 +281,13 @@ class CompanyTarget(BaseModel):
             "when a direct URL is unavailable."
         ),
     )
+    report: TargetReport | None = Field(
+        default=None,
+        description=(
+            "Additional Gemini research for targets issued by trusted "
+            "institutions, or null when no report was requested."
+        ),
+    )
 
 
 class InstitutionRecord(BaseModel):
@@ -174,6 +296,7 @@ class InstitutionRecord(BaseModel):
     name: InstitutionName
     aliases: dict[str, InstitutionName] = Field(default_factory=dict)
     enabled: bool = True
+    trusted: bool = False
 
 
 class Target(CompanyTarget):
