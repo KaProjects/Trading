@@ -573,7 +573,45 @@ class TestStockDataRetriever:
             "\u200b"
         )
 
-    def test_price_target_truncates_oversized_discord_description(
+    def test_price_target_persists_normalized_report_that_fits_discord(
+        self,
+        runner,
+    ):
+        report = TargetReport(
+            overview="x" * 1005,
+            key_takeaways=[
+                "t" * 505,
+                "u" * 505,
+                "v" * 505,
+                "w" * 505,
+                "Fifth",
+            ],
+        )
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-07-21",
+            price="250",
+            rating="Outperform",
+            source="https://research.example.com/amd",
+            report=report,
+        )
+
+        assert runner._persist_price_target(target) is True
+        persisted_target = runner.service.upsert_target.call_args.args[1]
+        assert persisted_target.report == report
+        assert len(persisted_target.report.overview) == 1000
+        assert len(persisted_target.report.key_takeaways) == 4
+        assert len(persisted_target.report.key_takeaways[0]) == 500
+
+        payload = discord_templates.price_target(target)
+        description = payload["embeds"][0]["description"]
+        assert len(description) == 3048
+        assert "x" * 997 + "..." in description
+        assert "t" * 497 + "..." in description
+        assert "Fifth" not in description
+
+    def test_price_target_defensively_truncates_discord_description(
         self,
         caplog,
     ):

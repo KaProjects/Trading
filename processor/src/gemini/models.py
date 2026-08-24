@@ -17,7 +17,7 @@ from domain_types import QuarterId, Ticker
 
 logger = logging.getLogger(__name__)
 TARGET_REPORT_OVERVIEW_MAX_LENGTH = 1000
-TARGET_REPORT_TAKEAWAY_MAX_LENGTH = 240
+TARGET_REPORT_TAKEAWAY_MAX_LENGTH = 500
 TARGET_REPORT_TAKEAWAYS_MAX_COUNT = 4
 
 EndingMonth = Annotated[
@@ -34,7 +34,7 @@ Rating = Annotated[
 ]
 Source = Annotated[
     str,
-    StringConstraints(min_length=1, max_length=2048, strip_whitespace=True),
+    StringConstraints(min_length=1, max_length=1024, strip_whitespace=True),
 ]
 ReportOverview = Annotated[
     str,
@@ -193,7 +193,8 @@ class TargetReport(BaseModel):
         if len(value) <= TARGET_REPORT_OVERVIEW_MAX_LENGTH:
             return value
         logger.warning(
-            "Truncated target report overview for %s from %d to %d characters",
+            "Target report overview exceeds character limit for %s "
+            "(actual=%d, limit=%d); truncating",
             _target_from_validation(info),
             len(value),
             TARGET_REPORT_OVERVIEW_MAX_LENGTH,
@@ -212,12 +213,12 @@ class TargetReport(BaseModel):
         target = _target_from_validation(info)
         if len(value) > TARGET_REPORT_TAKEAWAYS_MAX_COUNT:
             logger.warning(
-                "Omitted %d excess target report takeaways for %s "
-                "(received %d, maximum %d)",
-                len(value) - TARGET_REPORT_TAKEAWAYS_MAX_COUNT,
+                "Target report takeaway count exceeds limit for %s "
+                "(actual=%d, limit=%d); omitting %d excess takeaways",
                 target,
                 len(value),
                 TARGET_REPORT_TAKEAWAYS_MAX_COUNT,
+                len(value) - TARGET_REPORT_TAKEAWAYS_MAX_COUNT,
             )
 
         normalized = []
@@ -231,8 +232,8 @@ class TargetReport(BaseModel):
             takeaway = takeaway.strip()
             if len(takeaway) > TARGET_REPORT_TAKEAWAY_MAX_LENGTH:
                 logger.warning(
-                    "Truncated target report takeaway %d for %s from %d to "
-                    "%d characters",
+                    "Target report takeaway %d exceeds character limit for "
+                    "%s (actual=%d, limit=%d); truncating",
                     index,
                     target,
                     len(takeaway),

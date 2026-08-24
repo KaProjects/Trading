@@ -125,6 +125,7 @@ def test_target_schema_describes_every_output_field():
         "source",
     ):
         assert target_schema["properties"][field_name]["description"]
+    assert target_schema["properties"]["source"]["maxLength"] == 1024
 
     targets_schema = Targets.model_json_schema()
     assert targets_schema["properties"]["targets"]["description"]
@@ -132,23 +133,33 @@ def test_target_schema_describes_every_output_field():
     report_schema = TargetReport.model_json_schema()
     assert report_schema["properties"]["overview"]["description"]
     assert report_schema["properties"]["key_takeaways"]["description"]
+    assert report_schema["properties"]["overview"]["maxLength"] == 1000
     assert report_schema["properties"]["key_takeaways"]["maxItems"] == 4
+    assert (
+        report_schema["properties"]["key_takeaways"]["items"]["maxLength"]
+        == 500
+    )
 
 
-def test_target_report_keeps_only_four_highest_ranked_takeaways(caplog):
+def test_target_report_normalizes_oversized_gemini_response(caplog):
+    overview = "o" * 1005
+    takeaways = ["t" * 505] + [
+        f"Takeaway {index}" for index in range(2, 7)
+    ]
     with caplog.at_level(logging.WARNING, logger="gemini.models"):
         report = TargetReport(
-            overview="Overview",
-            key_takeaways=[f"Takeaway {index}" for index in range(1, 7)],
+            overview=overview,
+            key_takeaways=takeaways,
         )
 
-    assert report.key_takeaways == [
-        "Takeaway 1",
-        "Takeaway 2",
-        "Takeaway 3",
-        "Takeaway 4",
-    ]
-    assert "Omitted 2 excess target report takeaways" in caplog.text
+    assert len(report.overview) == 1000
+    assert report.overview.endswith("...")
+    assert len(report.key_takeaways) == 4
+    assert len(report.key_takeaways[0]) == 500
+    assert report.key_takeaways[0].endswith("...")
+    assert "actual=1005, limit=1000" in caplog.text
+    assert "actual=6, limit=4" in caplog.text
+    assert "actual=505, limit=500" in caplog.text
 
 
 def test_quarter_schema_describes_every_output_field_and_unit():

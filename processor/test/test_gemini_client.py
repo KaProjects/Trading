@@ -157,7 +157,7 @@ def test_get_target_report_appends_structured_report_to_original_target():
         "contents"
     ]
     assert "1000 characters" in request.kwargs["contents"]
-    assert "240 characters" in request.kwargs["contents"]
+    assert "500 characters" in request.kwargs["contents"]
     assert request.kwargs["config"]["response_json_schema"] == (
         TargetReport.model_json_schema()
     )
@@ -167,7 +167,7 @@ def test_get_target_report_truncates_overflow_and_logs_target(caplog):
     response = {
         "overview": "o" * 1005,
         "key_takeaways": [
-            "t" * 245,
+            "t" * 505,
             "Second",
             "Third",
             "Fourth",
@@ -196,18 +196,13 @@ def test_get_target_report_truncates_overflow_and_logs_target(caplog):
     assert len(result.report.overview) == 1000
     assert result.report.overview.endswith("...")
     assert len(result.report.key_takeaways) == 4
-    assert len(result.report.key_takeaways[0]) == 240
+    assert len(result.report.key_takeaways[0]) == 500
     assert result.report.key_takeaways[0].endswith("...")
     target_context = "AMD / Baird / 2026-07-24 / $250"
-    assert f"Truncated target report overview for {target_context}" in caplog.text
-    assert (
-        f"Omitted 2 excess target report takeaways for {target_context}"
-        in caplog.text
-    )
-    assert (
-        f"Truncated target report takeaway 1 for {target_context}"
-        in caplog.text
-    )
+    assert target_context in caplog.text
+    assert "actual=1005, limit=1000" in caplog.text
+    assert "actual=6, limit=4" in caplog.text
+    assert "actual=505, limit=500" in caplog.text
 
 
 @pytest.mark.parametrize("missing_value", [None, "", "omitted"])
