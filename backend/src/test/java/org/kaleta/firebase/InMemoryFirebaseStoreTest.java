@@ -109,6 +109,38 @@ class InMemoryFirebaseStoreTest
     }
 
     @Test
+    void readsTargetsIncludingNestedReport()
+    {
+        FirebaseService.TargetsResult result = firebaseService.getTargets("NVDA");
+
+        assertThat(result.warnings(), is(empty()));
+        assertThat(result.targets().size(), is(1));
+        FirebaseCompany.Gemini.Target target = result.targets().getFirst();
+        assertThat(target.getDate(), is("2026-07-24"));
+        assertThat(target.getInstitution(), is("Example Capital"));
+        assertThat(target.getPrice(), is("210"));
+        assertThat(target.getReport().getOverview(), is("Demand and margins remain strong."));
+        assertThat(target.getReport().getKey_takeaways(), is(List.of(
+                "Revenue expectations increased.",
+                "Execution remains the primary risk.")));
+        assertThat(firebaseService.getTargets("AMD").targets(), is(empty()));
+    }
+
+    @Test
+    void returnsEmptyTargetsAndWarningWhenFirebaseReadFails()
+    {
+        FirebaseStore failingStore = mock(FirebaseStore.class);
+        when(failingStore.findTargets("NVDA"))
+                .thenThrow(new IllegalStateException("Firebase unavailable"));
+
+        FirebaseService.TargetsResult result = new FirebaseService(failingStore).getTargets("NVDA");
+
+        assertThat(result.targets(), is(empty()));
+        assertThat(result.warnings(), is(List.of(
+                "Firebase targets for NVDA could not be loaded: Firebase unavailable")));
+    }
+
+    @Test
     void returnsEmptyImportCandidatesWhenFirebaseReadFails()
     {
         FirebaseStore failingStore = mock(FirebaseStore.class);

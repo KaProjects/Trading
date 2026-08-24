@@ -8,6 +8,7 @@ import org.kaleta.model.PeriodEstimates;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
 import org.kaleta.model.Record;
+import org.kaleta.model.TargetStats;
 import org.kaleta.persistence.entity.Latest;
 
 import java.util.ArrayList;
@@ -31,11 +32,13 @@ public class ResearchDto
     @Data
     public static class PeriodDto extends Periods.Period {
         private PeriodEstimates estimate;
+        private TargetStats targetStats = TargetStats.empty();
     }
 
     public void addPeriod(
             Periods.Period period,
-            PeriodEstimates estimate)
+            PeriodEstimates estimate,
+            TargetStats targetStats)
     {
         PeriodDto dto = new PeriodDto();
         dto.setId(period.getId());
@@ -49,6 +52,7 @@ public class ResearchDto
         dto.setResearch(period.getResearch());
         dto.setFinancial(period.getFinancial());
         dto.setEstimate(estimate);
+        dto.setTargetStats(targetStats);
         periods.add(dto);
     }
 }

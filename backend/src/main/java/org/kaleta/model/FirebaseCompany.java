@@ -10,6 +10,7 @@ import org.kaleta.rest.dto.PeriodImportDto;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -55,6 +56,15 @@ public class FirebaseCompany
             private String price;
             private String rating;
             private String source;
+            private Report report;
+
+            @Data
+            @RegisterForReflection
+            public static class Report
+            {
+                private String overview;
+                private List<String> key_takeaways;
+            }
         }
 
         @Data

@@ -8,7 +8,14 @@
             "institution": "Example Capital",
             "price": "210",
             "rating": "Buy",
-            "source": "example"
+            "source": "example",
+            "report": {
+              "overview": "Demand and margins remain strong.",
+              "key_takeaways": [
+                "Revenue expectations increased.",
+                "Execution remains the primary risk."
+              ]
+            }
           }
         },
         "quarters": {

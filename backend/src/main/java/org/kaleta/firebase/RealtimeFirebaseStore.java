@@ -34,6 +34,7 @@ public class RealtimeFirebaseStore implements FirebaseStore
         private static final String ASSET = "asset";
         private static final String GEMINI = "gemini";
         private static final String QUARTERS = "quarters";
+        private static final String TARGETS = "targets";
         private static final String FINNHUB_EARNINGS = "fhe";
     }
 
@@ -77,6 +78,14 @@ public class RealtimeFirebaseStore implements FirebaseStore
         return readChildren(company(ticker)
                 .child(FirebasePath.FINNHUB_EARNINGS)
                 .child(quarterId), FirebaseCompany.FinnhubEarnings.class);
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.Gemini.Target> findTargets(String ticker)
+    {
+        return readChildren(company(ticker)
+                .child(FirebasePath.GEMINI)
+                .child(FirebasePath.TARGETS), FirebaseCompany.Gemini.Target.class);
     }
 
     @Override

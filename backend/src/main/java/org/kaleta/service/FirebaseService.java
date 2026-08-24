@@ -44,6 +44,17 @@ public class FirebaseService
         }
     }
 
+    public record TargetsResult(
+            List<FirebaseCompany.Gemini.Target> targets,
+            List<String> warnings)
+    {
+        public TargetsResult
+        {
+            targets = List.copyOf(targets);
+            warnings = List.copyOf(warnings);
+        }
+    }
+
     public void pushAssets(Trades activeTrades)
     {
         firebaseStore.replaceAssets(activeTrades.getTrades().stream()
@@ -85,6 +96,23 @@ public class FirebaseService
                 candidate -> PeriodName.valueOf(candidate.getName()),
                 Comparator.reverseOrder()));
         return new ImportCandidatesResult(periods, warnings);
+    }
+
+    public TargetsResult getTargets(String ticker)
+    {
+        try {
+            return new TargetsResult(
+                    firebaseStore.findTargets(ticker).values().stream()
+                            .filter(java.util.Objects::nonNull)
+                            .toList(),
+                    List.of());
+        } catch (RuntimeException exception) {
+            String warning = ExternalWarnings.unavailable(
+                    "Firebase targets for " + ticker,
+                    exception);
+            Log.warn(warning, exception);
+            return new TargetsResult(List.of(), List.of(warning));
+        }
     }
 
     private PeriodImportCandidateDto toImportCandidate(

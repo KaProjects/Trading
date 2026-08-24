@@ -79,6 +79,14 @@ jest.mock("../../dialog/AddEstimateDialog", () => ({
         ? <div>add-estimate-dialog:{props.period.id}</div>
         : null
 }));
+jest.mock("../../dialog/TargetDialog", () => ({
+    TargetDialog: (props) => props.open
+        ? <div>
+            <span>target-dialog:{props.company.id}:{props.period.id}</span>
+            <button onClick={props.triggerRefresh}>refresh-targets</button>
+        </div>
+        : null,
+}));
 jest.mock("../../dialog/AddTagDialog", () => ({
     AddTagDialog: (props) => props.open
         ? <div>add-tag-dialog:{props.companyId}:{props.suggestions.join(",")}</div>
@@ -104,11 +112,13 @@ jest.mock("../component/Record", () => ({
     )
 }));
 jest.mock("../component/Period", () => ({
-    Period: ({period, openDialog, openEstimateDialog}) => (
+    Period: ({period, openDialog, openEstimateDialog, openTargetDialog, targetCandidateCount, targetCandidateFailed}) => (
         <div>
             <span>period:{period.id}</span>
+            <span>target-candidates:{period.id}:{targetCandidateCount}:{targetCandidateFailed ? "failed" : "ok"}</span>
             <button onClick={openDialog}>open-period-dialog:{period.id}</button>
             <button onClick={openEstimateDialog}>open-estimate-dialog:{period.id}</button>
+            <button onClick={openTargetDialog}>open-target-dialog:{period.id}</button>
         </div>
     )
 }));
@@ -292,11 +302,17 @@ describe("Research", () => {
 
     test("shows the loader and hides the previous company while a new company is loading", async () => {
         let resolveSecondCompany;
-        axios.get
-            .mockResolvedValueOnce({data: createResearchData()})
-            .mockImplementationOnce(() => new Promise(resolve => {
+        axios.get.mockImplementation(url => {
+            if (url === "/api/research/company-1") {
+                return Promise.resolve({data: createResearchData()});
+            }
+            if (url.includes("/target/company/")) {
+                return Promise.resolve({data: {counts: {}, warnings: []}});
+            }
+            return new Promise(resolve => {
                 resolveSecondCompany = resolve;
-            }));
+            });
+        });
 
         const {rerender} = render(<Research companySelectorValue={companySelectorValue}/>);
         await screen.findByText("AAPL");
@@ -401,6 +417,54 @@ describe("Research", () => {
         fireEvent.click(screen.getByText("open-estimate-dialog:period-1"));
 
         expect(screen.getByText("add-estimate-dialog:period-1")).toBeInTheDocument();
+    });
+
+    test("opens the target dialog for a period", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("open-target-dialog:period-1");
+        fireEvent.click(screen.getByText("open-target-dialog:period-1"));
+
+        expect(screen.getByText("target-dialog:company-1:period-1")).toBeInTheDocument();
+        const countUrl = "/api/target/company/company-1/sync/counts";
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith(countUrl));
+        fireEvent.click(screen.getByText("refresh-targets"));
+        await waitFor(() => expect(axios.get.mock.calls.filter(([url]) => url === countUrl)).toHaveLength(2));
+    });
+
+    test("loads target candidate counts asynchronously and passes them to periods", async () => {
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({
+                data: {
+                    counts: {"period-1": 3, "period-2": 0},
+                    failedPeriodIds: ["period-2"],
+                    warnings: ["Firebase target data was only partially available"],
+                },
+            })
+            : Promise.resolve({data: createResearchData()}));
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        expect(await screen.findByText("target-candidates:period-1:3:ok")).toBeInTheDocument();
+        expect(screen.getByText("target-candidates:period-2:0:failed")).toBeInTheDocument();
+        expect(screen.queryByText("Some expected target data could not be loaded")).not.toBeInTheDocument();
+        expect(screen.queryByText("Firebase target data was only partially available")).not.toBeInTheDocument();
+        expect(axios.get).toHaveBeenCalledWith("/api/target/company/company-1/sync/counts");
+    });
+
+    test("marks every period when target candidate counts cannot be loaded without showing an alert", async () => {
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.reject(new Error("candidate request failed"))
+            : Promise.resolve({data: createResearchData()}));
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        expect(await screen.findByText("target-candidates:period-1:0:failed")).toBeInTheDocument();
+        expect(screen.getByText("target-candidates:period-2:0:failed")).toBeInTheDocument();
+        expect(screen.getByTestId("snackbar")).toHaveTextContent("null|false");
+        expect(mockFormatError).not.toHaveBeenCalled();
     });
 
     test("shows the import count and opens the dialog with lightweight period names", async () => {

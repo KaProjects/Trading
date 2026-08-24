@@ -39,6 +39,7 @@ import {EarningsProjectionsDialog} from "../dialog/EarningsProjectionsDialog";
 import {AddRecordDialog} from "../dialog/AddRecordDialog";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
+import {TargetDialog} from "../dialog/TargetDialog";
 import {RESEARCH_SPLIT_BREAKPOINT, RESEARCH_TAB} from "./component/MainBar";
 import {AddTagDialog} from "../dialog/AddTagDialog";
 import {useLocation} from "react-router-dom";
@@ -93,9 +94,12 @@ export const Research = props => {
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
     const [openEditFinancialDialog, setOpenEditFinancialDialog] = useState(null)
     const [openAddEstimateDialog, setOpenAddEstimateDialog] = useState(null)
+    const [openTargetDialog, setOpenTargetDialog] = useState(null)
     const [openAddTagDialog, setOpenAddTagDialog] = useState(false)
     const [tagToDelete, setTagToDelete] = useState(null)
     const [tagSuggestions, setTagSuggestions] = useState([])
+    const [targetCandidateCounts, setTargetCandidateCounts] = useState({})
+    const [failedTargetCandidatePeriods, setFailedTargetCandidatePeriods] = useState(new Set())
     const previousCompanyId = useRef(null)
     const latestRequestId = useRef(0)
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
@@ -107,6 +111,8 @@ export const Research = props => {
             if (companyChanged) {
                 setLoaded(false)
                 setError(null)
+                setTargetCandidateCounts({})
+                setFailedTargetCandidatePeriods(new Set())
             }
 
             axios.get(backend + "/research/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
@@ -119,7 +125,12 @@ export const Research = props => {
                     if (companyChanged) setOpenFinancialsDialog(false)
                     if (companyChanged) setOpenEarningsProjectionsDialog(false)
                     if (companyChanged) setOpenAddEstimateDialog(null)
+                    if (companyChanged) setOpenTargetDialog(null)
                     setLoaded(true)
+                    fetchTargetCandidateCounts(
+                        props.companySelectorValue.id,
+                        response.data.periods ?? [],
+                        requestId)
                 })
                 .catch((error) => {
                     if (requestId !== latestRequestId.current) return
@@ -129,7 +140,32 @@ export const Research = props => {
                 })
         } else {
             setLoaded(false)
+            setTargetCandidateCounts({})
+            setFailedTargetCandidatePeriods(new Set())
         }
+    }
+
+    function fetchTargetCandidateCounts(companyId, periods, requestId) {
+        axios.get(`${backend}/target/company/${companyId}/sync/counts`)
+            .then(response => {
+                if (requestId !== latestRequestId.current) return
+                if (response.data?.counts === undefined
+                    && response.data?.failedPeriodIds === undefined
+                    && response.data?.warnings === undefined) return
+
+                setTargetCandidateCounts(response.data?.counts ?? {})
+                const failedPeriodIds = response.data?.failedPeriodIds
+                    ?? ((response.data?.warnings?.length ?? 0) > 0
+                        ? periods.map(period => period.id)
+                        : [])
+                setFailedTargetCandidatePeriods(new Set(failedPeriodIds.map(String)))
+            })
+            .catch(() => {
+                if (requestId !== latestRequestId.current) return
+
+                setTargetCandidateCounts({})
+                setFailedTargetCandidatePeriods(new Set(periods.map(period => String(period.id))))
+            })
     }
 
     useEffect(() => {
@@ -395,6 +431,13 @@ export const Research = props => {
                                 company={props.companySelectorValue}
                                 period={openAddEstimateDialog}
                             />
+                            <TargetDialog
+                                open={openTargetDialog !== null}
+                                handleClose={() => setOpenTargetDialog(null)}
+                                triggerRefresh={triggerRefresh}
+                                company={props.companySelectorValue}
+                                period={openTargetDialog}
+                            />
 
                             <Box data-testid="period-list" sx={researchCardRowsStyle}>
                                 {data.periods.map((period) => (
@@ -406,6 +449,9 @@ export const Research = props => {
                                         openDialog={() => setOpenAddFinancialDialog(period)}
                                         openEditDialog={() => setOpenEditFinancialDialog(period)}
                                         openEstimateDialog={() => setOpenAddEstimateDialog(period)}
+                                        openTargetDialog={() => setOpenTargetDialog(period)}
+                                        targetCandidateCount={targetCandidateCounts[period.id] ?? 0}
+                                        targetCandidateFailed={failedTargetCandidatePeriods.has(String(period.id))}
                                     />
                                 ))}
                             </Box>

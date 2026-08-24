@@ -34,6 +34,18 @@ INSERT INTO Tag (companyId, value) VALUES (2300, 'turnaround');
 INSERT INTO Tag (companyId, value) VALUES (2300, 'watchlist');
 
 
+-- Research to-dos are interleaved by creation date to exercise oldest-first ordering.
+INSERT INTO Todo (content, createdAt, companyId) VALUES ('Review #NVDA Blackwell ramp and gross-margin outlook after the next results.', '2026-08-12 08:30:00', 2213);
+INSERT INTO Todo (content, createdAt, companyId) VALUES ('Compare #AMD EPYC share gains with data-center revenue growth.', '2026-08-13 09:15:00', 2212);
+INSERT INTO Todo (content, createdAt, companyId) VALUES ('Check #INTC foundry customer milestones and manufacturing roadmap execution.', '2026-08-14 10:00:00', 2214);
+INSERT INTO Todo (content, createdAt, companyId) VALUES ('Revisit #NVDA networking growth and inference demand assumptions.', '2026-08-16 08:45:00', 2213);
+INSERT INTO Todo (content, createdAt, companyId) VALUES ('Review #AMD accelerator adoption and ROCm ecosystem progress.', '2026-08-18 11:30:00', 2212);
+INSERT INTO Todo (content, createdAt, companyId) VALUES ('Update #INTC capital-expenditure and free-cash-flow expectations.', '2026-08-19 13:20:00', 2214);
+INSERT INTO Todo (content, createdAt, companyId) VALUES ('Refresh #NVDA valuation range using the latest earnings estimates.', '2026-08-21 14:10:00', 2213);
+INSERT INTO Todo (content, createdAt, companyId) VALUES ('Reassess #AMD margins and product mix before updating the strategy.', '2026-08-22 15:00:00', 2212);
+INSERT INTO Todo (content, createdAt, companyId) VALUES ('Review #INTC gross-margin recovery and external foundry commitments.', '2026-08-23 16:40:00', 2214);
+
+
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (2068, 2213, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5', 'PATRIA_STANDARD');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (1145, 2213, '10', '2018-04-05', '10', '50', '2018-06-05', '0', '0');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (2276, 2213, '5', '2023-11-11', '400.5', '14.5', '2024-01-05', '500', '50', 'PATRIA_MARGIN');
@@ -166,3 +178,57 @@ INSERT INTO Latest (id, companyId, datetime, price) VALUES (1433, 1873, '2026-07
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1434, 1240, '2026-07-24 16:00:00', '1950');
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1435, 1504, '2026-07-24 16:00:00', '56.80');
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1436, 2261, '2026-07-24 16:00:00', '102.30');
+
+
+-- Persisted analyst targets used by the research target summary and dialog.
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1254, '2025-12-10', 'Northstar Research', '170', 'Hold', 'Demand remains healthy while valuation is elevated.', 'Watch data-center order growth.');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (1254, '2026-01-15', 'Example Capital', '185', 'Buy', 'The product cycle supports continued earnings growth.', 'Margins remain resilient.', 'Execution is the main risk.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1254, '2026-02-20', 'Summit Securities', '200', 'Outperform');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1255, '2026-03-10', 'Example Capital', '190', 'Buy', 'Existing Firebase identity used to demonstrate idempotent synchronization.', 'The duplicate candidate is not imported twice.');
+
+-- Additional Nvidia targets across the latest four reported periods.
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1252, '2025-06-12', 'Morgan Stanley', '172.50', 'Overweight', 'Data-center demand remains the primary growth driver.', 'Monitor supply availability.');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1252, '2025-07-10', 'Citi', '180', 'Buy', 'Accelerated-computing adoption supports estimate revisions.', 'Networking adds another growth path.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1252, '2025-08-12', 'Goldman Sachs', '178', 'Neutral');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1253, '2025-09-09', 'JPMorgan', '188', 'Overweight', 'The product roadmap remains ahead of competing platforms.', 'Valuation leaves less room for execution misses.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1253, '2025-10-14', 'UBS', '195', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1254, '2025-12-05', 'Barclays', '210', 'Overweight', 'Cloud capital spending supports continued revenue growth.', 'Watch customer concentration.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1254, '2026-01-29', 'BofA Securities', '225', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1255, '2026-03-18', 'Wells Fargo', '205', 'Overweight', 'Inference demand broadens the addressable market.', 'Gross margin remains a key sensitivity.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1255, '2026-04-21', 'Mizuho', '215', 'Outperform');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (1255, '2026-05-12', 'Truist Securities', '220', 'Buy', 'Enterprise adoption and networking support the outlook.', 'Software adoption is improving.', 'Export restrictions remain a risk.');
+
+-- AMD targets across the latest four reported periods.
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1258, '2025-06-03', 'Jefferies', '145', 'Buy', 'Server share gains support the earnings outlook.', 'Track EPYC adoption.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1258, '2025-07-17', 'Morgan Stanley', '155', 'Equal Weight');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1258, '2025-07-31', 'Citi', '160', 'Buy', 'Data-center growth offsets a more cyclical client business.', 'Accelerator execution is the main variable.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2337, '2025-08-22', 'Goldman Sachs', '175', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2337, '2025-10-13', 'UBS', '182', 'Neutral', 'The roadmap is competitive but expectations are elevated.', 'Watch software ecosystem adoption.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1259, '2025-11-18', 'BofA Securities', '190', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1259, '2026-01-12', 'Barclays', '200', 'Overweight', 'Improving product mix supports margin expansion.', 'Client demand remains cyclical.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1260, '2026-02-20', 'Wells Fargo', '185', 'Overweight');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1260, '2026-03-26', 'Mizuho', '195', 'Outperform', 'Server momentum and accelerator optionality support the target.', 'Execution must translate into free cash flow.');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (1260, '2026-04-21', 'JPMorgan', '205', 'Overweight', 'Share gains remain durable across cloud and enterprise.', 'The accelerator pipeline is expanding.', 'Competition may pressure pricing.');
+
+-- Intel targets across the latest four reported periods.
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2401, '2025-05-08', 'BofA Securities', '22', 'Underperform', 'Foundry investment continues to weigh on profitability.', 'Monitor cash burn.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2401, '2025-06-03', 'Citi', '24', 'Neutral');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2401, '2025-07-15', 'JPMorgan', '25', 'Neutral', 'Product execution is improving while the turnaround remains early.', 'Foundry utilization is the key milestone.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2402, '2025-08-13', 'Morgan Stanley', '26', 'Equal Weight');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2402, '2025-09-29', 'Bernstein', '28', 'Market Perform', 'A stronger product roadmap is offset by capital intensity.', 'Track gross-margin recovery.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2403, '2025-11-06', 'UBS', '30', 'Neutral');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2403, '2026-01-08', 'Mizuho', '32', 'Neutral', 'The restructuring improves focus but execution risk remains.', 'Foundry customer wins are required.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1269, '2026-02-10', 'BofA Securities', '25', 'Underperform');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1269, '2026-03-12', 'Citi', '27', 'Neutral', 'Cost reductions provide support while revenue growth remains uncertain.', 'Watch operating cash flow.');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (1269, '2026-04-15', 'JPMorgan', '29', 'Neutral', 'Execution against the manufacturing roadmap drives the valuation.', 'Product competitiveness is stabilizing.', 'Capital requirements remain elevated.');
+
+-- NTRD targets demonstrate low-price formatting across reported and unreported periods.
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2501, '2026-02-12', 'Lakeview Research', '0.85', 'Hold', 'Retention remains stable while the company is still proving operating leverage.', 'Monitor customer acquisition costs.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2501, '2026-03-05', 'Pioneer Capital', '1.00', 'Neutral');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2501, '2026-04-02', 'Summit Analytics', '1.15', 'Buy', 'Recurring revenue supports a cautiously improving outlook.', 'Free cash flow is the next milestone.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2501, '2026-04-28', 'Harbor Securities', '1.35', 'Outperform');
+
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2502, '2026-05-12', 'Lakeview Research', '6.40', 'Buy', 'Improving retention and cost discipline support a higher valuation range.', 'Confirm operating leverage in the next report.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2502, '2026-06-03', 'Pioneer Capital', '6.90', 'Overweight');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2502, '2026-07-08', 'Summit Analytics', '7.50', 'Outperform', 'Growth quality is improving as recurring revenue becomes more predictable.', 'Watch sales efficiency.');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (2502, '2026-08-01', 'Harbor Securities', '8.20', 'Buy', 'The business is approaching sustainable free cash flow.', 'Retention remains the core indicator.', 'Valuation assumes continued execution.');

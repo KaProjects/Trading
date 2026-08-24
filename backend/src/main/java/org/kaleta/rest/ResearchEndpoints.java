@@ -14,6 +14,7 @@ import org.kaleta.model.Periods;
 import org.kaleta.model.Record;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.model.PeriodEstimates;
+import org.kaleta.model.TargetStats;
 import org.kaleta.rest.dto.PeriodImportDataDto;
 import org.kaleta.rest.dto.ResearchDto;
 import org.kaleta.rest.validation.ValidPeriodName;
@@ -27,6 +28,7 @@ import org.kaleta.service.LatestService;
 import org.kaleta.service.PeriodService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
+import org.kaleta.service.TargetService;
 
 import java.util.List;
 import java.util.Map;
@@ -52,6 +54,8 @@ public class ResearchEndpoints
     ImportService importService;
     @Inject
     EstimateService estimateService;
+    @Inject
+    TargetService targetService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -65,10 +69,11 @@ public class ResearchEndpoints
         Periods periodsModel = periodService.getBy(companyId);
         dto.setFinancials(periodsModel.getFinancials());
         dto.setTtm(periodsModel.getTtm());
-        Map<Long, PeriodEstimates> estimates = estimateService.getLatestByPeriodIds(
-                periodsModel.getPeriods().stream()
-                        .map(Periods.Period::getId)
-                        .toList());
+        List<Long> periodIds = periodsModel.getPeriods().stream()
+                .map(Periods.Period::getId)
+                .toList();
+        Map<Long, PeriodEstimates> estimates = estimateService.getLatestByPeriodIds(periodIds);
+        Map<Long, TargetStats> targetStats = targetService.getStatistics(periodIds);
         periodsModel.getPeriods().stream()
                 .findFirst()
                 .map(Periods.Period::getId)
@@ -76,7 +81,10 @@ public class ResearchEndpoints
                 .map(estimateService::createOverview)
                 .ifPresent(dto::setEstimateOverview);
         periodsModel.getPeriods().forEach(period -> {
-            dto.addPeriod(period, estimates.get(period.getId()));
+            dto.addPeriod(
+                    period,
+                    estimates.get(period.getId()),
+                    targetStats.getOrDefault(period.getId(), TargetStats.empty()));
         });
 
         List<Record> records = recordService.getBy(companyId);

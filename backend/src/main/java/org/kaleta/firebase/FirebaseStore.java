@@ -17,6 +17,8 @@ public interface FirebaseStore
 
     Map<String, FirebaseCompany.FinnhubEarnings> findEarnings(String ticker, String quarterId);
 
+    Map<String, FirebaseCompany.Gemini.Target> findTargets(String ticker);
+
     void replaceAssets(List<FirebaseAsset> assets);
 
     void updateQuarter(String ticker, String quarterId, FirebaseCompany.Gemini.Quarter quarter);

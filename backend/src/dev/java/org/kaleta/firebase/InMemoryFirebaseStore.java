@@ -84,6 +84,16 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public Map<String, FirebaseCompany.Gemini.Target> findTargets(String ticker)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getGemini() == null || company.getGemini().getTargets() == null) {
+            return Map.of();
+        }
+        return Map.copyOf(company.getGemini().getTargets());
+    }
+
+    @Override
     public void replaceAssets(List<FirebaseAsset> newAssets)
     {
         assets.clear();

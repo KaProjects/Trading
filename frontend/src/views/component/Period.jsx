@@ -1,6 +1,6 @@
 import {BorderedSection} from "./BorderedSection";
 import React from "react";
-import {Box, Button, Stack, Typography} from "@mui/material";
+import {Badge, Box, Button, Stack, Typography} from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import {formatDate, formatDecimals, formatError, formatMillions, formatPercent, formatPeriodName} from "../../service/FormattingService";
 import axios from "axios";
@@ -9,8 +9,10 @@ import {ContentEditor} from "./ContentEditor";
 import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financials-plus.svg";
 import {ReactComponent as EstimatesPlusIcon} from "../../assets/icons/estimates-plus.svg";
 import EditNoteIcon from "@mui/icons-material/EditNote";
+import TrackChangesIcon from "@mui/icons-material/TrackChanges";
+import {PeriodTargetSummary} from "./PeriodTargetSummary";
 
-export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog}) => {
+export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openTargetDialog, targetCandidateCount, targetCandidateFailed}) => {
 
     function formatEndingMonth(endingMonth) {
         if (endingMonth === null || endingMonth === undefined) return "";
@@ -117,6 +119,7 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
                     </Box>
                 </>
             }
+            <PeriodTargetSummary stats={period.targetStats} currency={currency}/>
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
                        position: "absolute", top: "6px", right: "8px", zIndex: 1, opacity: 0, pointerEvents: "none",
@@ -138,6 +141,32 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
                 <Tooltip title="Add Estimates" placement="left">
                     <Button onClick={() => openEstimateDialog?.(period)}>
                         <EstimatesPlusIcon/>
+                    </Button>
+                </Tooltip>
+                <Tooltip
+                    title={targetCandidateFailed
+                        ? "Manage Targets (availability could not be checked)"
+                        : targetCandidateCount > 0
+                        ? `Manage Targets (${targetCandidateCount} available to import)`
+                        : "Manage Targets"}
+                    placement="left"
+                >
+                    <Button aria-label="Manage Targets" onClick={() => openTargetDialog?.(period)}>
+                        <Badge
+                            badgeContent={targetCandidateFailed ? "!" : targetCandidateCount}
+                            color={targetCandidateFailed ? "error" : "success"}
+                            sx={{
+                                "& .MuiBadge-badge": {
+                                    minWidth: "12px",
+                                    height: "12px",
+                                    padding: 0,
+                                    fontSize: "0.55rem",
+                                    lineHeight: 1,
+                                },
+                            }}
+                        >
+                            <TrackChangesIcon/>
+                        </Badge>
                     </Button>
                 </Tooltip>
                 {period.financial &&

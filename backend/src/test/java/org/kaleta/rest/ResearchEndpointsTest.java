@@ -42,6 +42,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -95,6 +96,13 @@ public class ResearchEndpointsTest
         assertThat(dto.getPeriods().get(0).getEstimate().getNext3(), is(nullValue()));
         assertThat(dto.getPeriods().get(1).getEstimate(), is(nullValue()));
         assertThat(dto.getPeriods().get(2).getEstimate(), is(nullValue()));
+        assertThat(dto.getPeriods().get(0).getTargetStats().count(), is(0L));
+        assertThat(dto.getPeriods().get(0).getTargetStats().minimum(), is(nullValue()));
+        assertThat(dto.getPeriods().get(1).getTargetStats().count(), is(3L));
+        assertBigDecimals(dto.getPeriods().get(1).getTargetStats().minimum(), new BigDecimal("120"));
+        assertBigDecimals(dto.getPeriods().get(1).getTargetStats().average(), new BigDecimal("146.83"));
+        assertBigDecimals(dto.getPeriods().get(1).getTargetStats().maximum(), new BigDecimal("175"));
+        assertThat(dto.getPeriods().get(2).getTargetStats().count(), is(0L));
         assertThat(dto.getEstimateOverview(), is(notNullValue()));
         assertThat(dto.getEstimateOverview().getTtm().getValue(), is(nullValue()));
         assertThat(dto.getEstimateOverview().getCurrent().getValue(), is(nullValue()));
@@ -175,6 +183,7 @@ public class ResearchEndpointsTest
         assertThat(dto.getWarnings(), is(List.of()));
 
         verify(firebaseService).getNewerPeriods("RCH", "25Q1");
+        verify(firebaseService, never()).getTargets(anyString());
     }
 
     @Test

@@ -21,6 +21,7 @@ describe("Period", () => {
     test("renders title and financial details", () => {
         const openEditDialog = jest.fn();
         const openEstimateDialog = jest.fn();
+        const openTargetDialog = jest.fn();
         render(
             <Period
                 period={{
@@ -46,12 +47,20 @@ describe("Period", () => {
                         next2: null,
                         next3: 2.76,
                     },
+                    targetStats: {
+                        count: 3,
+                        minimum: 120,
+                        average: 145.5,
+                        maximum: 175,
+                    },
                 }}
                 currency={"$"}
                 setAlert={jest.fn()}
                 openDialog={jest.fn()}
                 openEditDialog={openEditDialog}
                 openEstimateDialog={openEstimateDialog}
+                openTargetDialog={openTargetDialog}
+                targetCandidateCount={3}
             />
         );
 
@@ -61,12 +70,19 @@ describe("Period", () => {
         expect(screen.getByText("Revenue: 300M | Gross P.: 200M | Op. Inc.: 100M | Net Income: 50M")).toBeInTheDocument();
         expect(screen.getByTestId("period-estimates"))
             .toHaveTextContent("Estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76");
+        expect(screen.getByTestId("period-target-summary"))
+            .toHaveTextContent("Targets: 3@(175-120)~146$");
         expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", {name: "Add Estimates"}));
         expect(openEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
         fireEvent.click(screen.getByRole("button", {name: "Edit Period"}));
         expect(openEditDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
+        const manageTargets = screen.getByRole("button", {name: "Manage Targets"});
+        expect(manageTargets).toHaveTextContent("3");
+        expect(screen.getByText("3")).toHaveClass("MuiBadge-colorSuccess");
+        fireEvent.click(manageTargets);
+        expect(openTargetDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
     });
 
     test("updates research through axios", async () => {
@@ -121,6 +137,31 @@ describe("Period", () => {
             .toHaveTextContent("Estimates: - | - | - | - => 1.62 | - | - | -");
         expect(screen.getByRole("button", {name: "Add Financials"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Manage Targets"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Manage Targets"})).not.toHaveTextContent(/[1-9]/);
+        expect(screen.queryByTestId("period-target-summary")).not.toBeInTheDocument();
+    });
+
+    test("shows an error badge instead of an import count when availability cannot be checked", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+                targetCandidateCount={4}
+                targetCandidateFailed
+            />
+        );
+
+        const manageTargets = screen.getByRole("button", {name: "Manage Targets"});
+        expect(manageTargets).toHaveTextContent("!");
+        expect(manageTargets).not.toHaveTextContent("4");
+        expect(screen.getByText("!")).toHaveClass("MuiBadge-colorError");
     });
 
     test("renders past estimates before the current estimate", () => {
