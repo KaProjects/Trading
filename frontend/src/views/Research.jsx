@@ -480,7 +480,7 @@ export const Research = props => {
                                 </>
                                 }
 
-                                <Button sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddRecordDialog(true)}>
+                                <Button aria-label="Add record" sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddRecordDialog(true)}>
                                     <ControlPointIcon sx={{color: 'lightgreen',}}/>
                                 </Button>
                                 <AddRecordDialog
@@ -490,6 +490,7 @@ export const Research = props => {
                                     companyId={props.companySelectorValue.id}
                                     indicators={data.indicators}
                                     assets={data.assets}
+                                    targetStats={data.periods[0]?.targetStats}
                                 />
                             </Box>
 
@@ -503,6 +504,7 @@ export const Research = props => {
                                         <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PG: {formatDecimals(data.indicators.ttm.marketCapToGrossProfit, 0, 2)}</Box>
                                         <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PO: {formatDecimals(data.indicators.ttm.marketCapToOperatingIncome, 0, 2)}</Box>
                                         <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PE: {formatDecimals(data.indicators.ttm.marketCapToNetIncome, 0, 2)}</Box>
+                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PCF: {formatDecimals(data.indicators.ttm.marketCapToFreeCashFlow, 0, 2)}</Box>
                                     </Stack>
                                 </Box>
                             }

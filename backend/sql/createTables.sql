@@ -54,6 +54,7 @@ CREATE TABLE Record
     p_gross         DECIMAL(6, 2),
     p_oper          DECIMAL(6, 2),
     p_net           DECIMAL(6, 2),
+    p_fcf           DECIMAL(6, 2),
     dy              DECIMAL(5, 2),
     asset_quantity  DECIMAL(8, 4),
     asset_price     DECIMAL(10, 4),

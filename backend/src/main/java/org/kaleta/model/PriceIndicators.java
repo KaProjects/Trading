@@ -20,6 +20,7 @@ public class PriceIndicators
         private BigDecimal marketCapToGrossProfit;
         private BigDecimal marketCapToOperatingIncome;
         private BigDecimal marketCapToNetIncome;
+        private BigDecimal marketCapToFreeCashFlow;
         private BigDecimal dividendYield;
     }
 }

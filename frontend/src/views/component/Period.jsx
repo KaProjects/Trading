@@ -89,10 +89,14 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
                     </Typography>
                     <Typography sx={{color: 'text.secondary', fontSize: 14}}>
                         {"Shares: " + formatMillions(period.shares)
-                            + " | H: " + formatPrice(period.priceHigh, currency)
-                            + " | L: " + formatPrice(period.priceLow, currency)
+                            + " | CapEx: " + formatMillions(period.financial.capex?.value)
+                            + " | FCF: " + formatMillions(period.financial.freeCashFlow?.value)
                             + " | Dividend: " + formatMillions(period.financial.dividend)
                             + " | Adj. Eps: " + formatDecimals(period.financial.adjustedEps, 0, 2)}
+                    </Typography>
+                    <Typography sx={{color: 'text.secondary', fontSize: 14}}>
+                        {"H: " + formatPrice(period.priceHigh, currency)
+                            + " | L: " + formatPrice(period.priceLow, currency)}
                     </Typography>
                 </>
             }

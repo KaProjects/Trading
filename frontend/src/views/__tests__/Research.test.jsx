@@ -61,7 +61,9 @@ jest.mock("../../dialog/EarningsProjectionsDialog", () => ({
         : null,
 }));
 jest.mock("../../dialog/AddRecordDialog", () => ({
-    AddRecordDialog: (props) => props.open ? <div>add-record-dialog</div> : null
+    AddRecordDialog: (props) => props.open
+        ? <div>add-record-dialog:{props.targetStats?.minimum}-{props.targetStats?.maximum}</div>
+        : null
 }));
 jest.mock("../../dialog/AddPeriodDialog", () => ({
     AddPeriodDialog: (props) => props.open ? <div>add-period-dialog</div> : null
@@ -165,6 +167,7 @@ function createResearchData(overrides = {}) {
             {
                 id: "period-1",
                 name: "26Q2",
+                targetStats: {count: 3, minimum: 105, average: 122, maximum: 140},
                 estimate: {
                     past4: 1,
                     past3: 2,
@@ -184,6 +187,7 @@ function createResearchData(overrides = {}) {
             datetime: "2026-05-09T10:11:12",
         },
         indicators: {
+            price: 123.45,
             marketCap: 1000,
             ttm: {
                 dividendYield: 2,
@@ -191,6 +195,7 @@ function createResearchData(overrides = {}) {
                 marketCapToGrossProfit: 4,
                 marketCapToOperatingIncome: 5,
                 marketCapToNetIncome: 6,
+                marketCapToFreeCashFlow: 7,
             },
         },
         assets: {
@@ -289,6 +294,7 @@ describe("Research", () => {
         expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
         expect(screen.getByText("Market Cap: $1B")).toBeInTheDocument();
         expect(screen.getByText("Dividend Yield: 2%")).toBeInTheDocument();
+        expect(screen.getByText("PCF: 7")).toBeInTheDocument();
         expect(screen.getByText("asset:3@100$")).toBeInTheDocument();
         expect(screen.getByTestId("record-assets")).toHaveStyle("flex-shrink: 0");
         expect(screen.getByText("period:period-1")).toBeInTheDocument();
@@ -396,6 +402,17 @@ describe("Research", () => {
         await screen.findByTestId("period-financials");
         fireEvent.click(screen.getByTestId("period-financials"));
         expect(screen.getByText("financials-dialog:AAPL:1")).toBeInTheDocument();
+    });
+
+    test("opens the record dialog with target statistics from the latest period", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("AAPL");
+        fireEvent.click(screen.getByRole("button", {name: "Add record"}));
+
+        expect(screen.getByText("add-record-dialog:105-140")).toBeInTheDocument();
     });
 
     test("opens earnings projections dialog from the estimates overview", async () => {

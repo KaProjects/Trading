@@ -60,6 +60,7 @@ describe("Record", () => {
                     priceToGrossProfit: 2,
                     priceToOperatingIncome: 3,
                     priceToNetIncome: 4,
+                    priceToFreeCashFlow: 5,
                     dividendYield: 5,
                     targets: "T",
                     strategy: "S",
@@ -80,7 +81,7 @@ describe("Record", () => {
         expect(screen.getByTestId("record-targets-item")).toHaveStyle("overflow: visible");
         expect(screen.getByText("Price:$123")).toBeInTheDocument();
         expect(screen.getByTestId("editable-value-Price")).toHaveAttribute("aria-disabled", "true");
-        expect(screen.getByText("Price to financials ratios:1 / 2 / 3 / 4")).toBeInTheDocument();
+        expect(screen.getByText("Price to financials ratios:1 / 2 / 3 / 4 / 5")).toBeInTheDocument();
         expect(screen.getByTestId("editable-value-Price to financials ratios")).toHaveAttribute("aria-disabled", "true");
         expect(screen.getByText("Dividend yield:5%")).toBeInTheDocument();
         expect(screen.getByTestId("editable-value-Dividend yield")).toHaveAttribute("aria-disabled", "true");
@@ -161,7 +162,7 @@ describe("Record", () => {
         expect(screen.queryByTestId("editable-value-Dividend yield")).not.toBeInTheDocument();
     });
 
-    test("does not render financial ratios when all four values are missing", () => {
+    test("does not render financial ratios when all five values are missing", () => {
         render(
             <Record
                 data={{
@@ -177,6 +178,24 @@ describe("Record", () => {
         );
 
         expect(screen.queryByTestId("editable-value-Price to financials ratios")).not.toBeInTheDocument();
+    });
+
+    test("renders a free-cash-flow ratio when the other ratios are missing", () => {
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    priceToFreeCashFlow: 7.5,
+                    targets: "T",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        expect(screen.getByText("Price to financials ratios:- / - / - / - / 7.5")).toBeInTheDocument();
     });
 
     test("keeps targets visible when they are set", () => {

@@ -56,6 +56,7 @@ public class RecordService
         newRecord.setPriceToGrossProfit(Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
         newRecord.setPriceToOperatingIncome(Utils.createNullableBigDecimal(dto.getPriceToOperatingIncome()));
         newRecord.setPriceToNetIncome(Utils.createNullableBigDecimal(dto.getPriceToNetIncome()));
+        newRecord.setPriceToFreeCashFlow(Utils.createNullableBigDecimal(dto.getPriceToFreeCashFlow()));
 
         newRecord.setDividendYield(Utils.createNullableBigDecimal(dto.getDividendYield()));
 
@@ -104,6 +105,7 @@ public class RecordService
             newRecord.setPriceToGrossProfit(indicators.getTtm().getMarketCapToGrossProfit());
             newRecord.setPriceToOperatingIncome(indicators.getTtm().getMarketCapToOperatingIncome());
             newRecord.setPriceToNetIncome(indicators.getTtm().getMarketCapToNetIncome());
+            newRecord.setPriceToFreeCashFlow(indicators.getTtm().getMarketCapToFreeCashFlow());
 
             newRecord.setDividendYield(indicators.getTtm().getDividendYield());
         }
@@ -185,6 +187,7 @@ public class RecordService
         if (dto.getPriceToGrossProfit() != null) record.setPriceToGrossProfit(Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
         if (dto.getPriceToOperatingIncome() != null) record.setPriceToOperatingIncome(Utils.createNullableBigDecimal(dto.getPriceToOperatingIncome()));
         if (dto.getPriceToNetIncome() != null) record.setPriceToNetIncome(Utils.createNullableBigDecimal(dto.getPriceToNetIncome()));
+        if (dto.getPriceToFreeCashFlow() != null) record.setPriceToFreeCashFlow(Utils.createNullableBigDecimal(dto.getPriceToFreeCashFlow()));
         if (dto.getSumAssetQuantity() != null) record.setSumAssetQuantity(Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
         if (dto.getAvgAssetPrice() != null) record.setAvgAssetPrice(Utils.createNullableBigDecimal(dto.getAvgAssetPrice()));
 
@@ -224,6 +227,7 @@ public class RecordService
         record.setPriceToGrossProfit(recordEntity.getPriceToGrossProfit());
         record.setPriceToOperatingIncome(recordEntity.getPriceToOperatingIncome());
         record.setPriceToNetIncome(recordEntity.getPriceToNetIncome());
+        record.setPriceToFreeCashFlow(recordEntity.getPriceToFreeCashFlow());
 
         record.setDividendYield(recordEntity.getDividendYield());
 

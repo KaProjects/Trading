@@ -52,6 +52,7 @@ class RecordEndpointsTest
         dto.setPriceToGrossProfit(Generator.randomBigDecimal(9999,2).toString());
         dto.setPriceToOperatingIncome(Generator.randomBigDecimal(9999,2).toString());
         dto.setPriceToNetIncome(Generator.randomBigDecimal(9999,2).toString());
+        dto.setPriceToFreeCashFlow(Generator.randomBigDecimal(9999,2).toString());
         dto.setDividendYield(Generator.randomBigDecimal(999,2).toString());
         dto.setSumAssetQuantity(Generator.randomBigDecimal(9999,4).toString());
         dto.setAvgAssetPrice(Generator.randomBigDecimal(999999,4).toString());
@@ -76,6 +77,7 @@ class RecordEndpointsTest
         assertBigDecimals(record.getPriceToGrossProfit(), new BigDecimal(dto.getPriceToGrossProfit()));
         assertBigDecimals(record.getPriceToOperatingIncome(), new BigDecimal(dto.getPriceToOperatingIncome()));
         assertBigDecimals(record.getPriceToNetIncome(), new BigDecimal(dto.getPriceToNetIncome()));
+        assertBigDecimals(record.getPriceToFreeCashFlow(), new BigDecimal(dto.getPriceToFreeCashFlow()));
         assertBigDecimals(record.getDividendYield(), new BigDecimal(dto.getDividendYield()));
         assertBigDecimals(record.getAvgAssetPrice(), new BigDecimal(dto.getAvgAssetPrice()));
         assertBigDecimals(record.getSumAssetQuantity(), new BigDecimal(dto.getSumAssetQuantity()));
@@ -94,6 +96,7 @@ class RecordEndpointsTest
         String validPg = Generator.randomBigDecimal(9999,2).toString();
         String validPo = Generator.randomBigDecimal(9999,2).toString();
         String validPe = Generator.randomBigDecimal(9999,2).toString();
+        String validPfcf = Generator.randomBigDecimal(9999,2).toString();
         String validDy = Generator.randomBigDecimal(999,2).toString();
         String validQ = Generator.randomBigDecimal(9999,4).toString();
         String validPp = Generator.randomBigDecimal(999999,4).toString();
@@ -108,6 +111,7 @@ class RecordEndpointsTest
         dto.setPriceToGrossProfit(validPg);
         dto.setPriceToOperatingIncome(validPo);
         dto.setPriceToNetIncome(validPe);
+        dto.setPriceToFreeCashFlow(validPfcf);
         dto.setDividendYield(validDy);
         dto.setSumAssetQuantity(validQ);
         dto.setAvgAssetPrice(validPp);
@@ -194,6 +198,18 @@ class RecordEndpointsTest
         Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
         dto.setPriceToNetIncome(validPe);
 
+        dto.setPriceToFreeCashFlow("x");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setPriceToFreeCashFlow(".1");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setPriceToFreeCashFlow("1.");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setPriceToFreeCashFlow("12345");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setPriceToFreeCashFlow("10.123");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setPriceToFreeCashFlow(validPfcf);
+
         dto.setDividendYield("x");
         Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setDividendYield(".1");
@@ -252,6 +268,7 @@ class RecordEndpointsTest
         String newPriceToGrossProfit = "2.5";
         String newPriceToOperatingIncome = "-3.75";
         String newPriceToNetIncome = "4.25";
+        String newPriceToFreeCashFlow = "5.75";
         String newSumAssetQuantity = "12.5";
         String newAvgAssetPrice = "123.45";
 
@@ -269,6 +286,7 @@ class RecordEndpointsTest
         dto.setPriceToGrossProfit(newPriceToGrossProfit);
         dto.setPriceToOperatingIncome(newPriceToOperatingIncome);
         dto.setPriceToNetIncome(newPriceToNetIncome);
+        dto.setPriceToFreeCashFlow(newPriceToFreeCashFlow);
         dto.setSumAssetQuantity(newSumAssetQuantity);
         dto.setAvgAssetPrice(newAvgAssetPrice);
 
@@ -290,6 +308,7 @@ class RecordEndpointsTest
         assertBigDecimals(records.get(0).getPriceToGrossProfit(), new BigDecimal(newPriceToGrossProfit));
         assertBigDecimals(records.get(0).getPriceToOperatingIncome(), new BigDecimal(newPriceToOperatingIncome));
         assertBigDecimals(records.get(0).getPriceToNetIncome(), new BigDecimal(newPriceToNetIncome));
+        assertBigDecimals(records.get(0).getPriceToFreeCashFlow(), new BigDecimal(newPriceToFreeCashFlow));
         assertBigDecimals(records.get(0).getSumAssetQuantity(), new BigDecimal(newSumAssetQuantity));
         assertBigDecimals(records.get(0).getAvgAssetPrice(), new BigDecimal(newAvgAssetPrice));
 

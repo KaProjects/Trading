@@ -40,6 +40,8 @@ describe("Period", () => {
                         grossProfit: {value: 200},
                         operatingIncome: {value: 100},
                         netIncome: {value: 50},
+                        capex: {value: 40},
+                        freeCashFlow: {value: 70},
                     },
                     estimate: {
                         current: 1.62,
@@ -65,8 +67,9 @@ describe("Period", () => {
         );
 
         expect(screen.getByText("25FY - ending: 12/25 - report: 15.02.2026")).toBeInTheDocument();
-        expect(screen.getByText("Shares: 123M | H: 20$ | L: 10$ | Dividend: 12M | Adj. Eps: 1.62"))
+        expect(screen.getByText("Shares: 123M | CapEx: 40M | FCF: 70M | Dividend: 12M | Adj. Eps: 1.62"))
             .toBeInTheDocument();
+        expect(screen.getByText("H: 20$ | L: 10$")).toBeInTheDocument();
         expect(screen.getByText("Revenue: 300M | Gross P.: 200M | Op. Inc.: 100M | Net Income: 50M")).toBeInTheDocument();
         expect(screen.getByTestId("period-estimates"))
             .toHaveTextContent("Estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76");

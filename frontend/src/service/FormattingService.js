@@ -21,11 +21,21 @@ export function formatMillions(millions) {
 
     const num = Number(millions);
 
-    if (num >= 1000) {
+    if (Math.abs(num) >= 1000) {
         return formatDecimals(num / 1000, 0, 2) + "B";
     } else {
         return formatDecimals(num, 0, 2) + "M";
     }
+}
+
+export function formatTargetStats(stats) {
+    if (!stats || stats.count < 1) return "";
+
+    const formatTarget = (value) => value < 10
+        ? formatDecimals(value, 1, 1)
+        : formatDecimals(value, 0, 0);
+
+    return `${stats.count}@(${formatTarget(stats.maximum)}-${formatTarget(stats.minimum)})~${formatTarget(stats.average)}`;
 }
 
 export function formatDecimals(number, min= 0, max = 0) {

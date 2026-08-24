@@ -3,6 +3,7 @@ import {
     formatDecimals,
     formatError,
     formatMillions,
+    formatTargetStats,
     formatPercent,
     formatPeriodName,
     isNotAValue,
@@ -39,6 +40,18 @@ describe('FormattingService', () => {
         expect(formatMillions(1234)).toBe("1.23B");
         expect(formatMillions(1235)).toBe("1.24B");
         expect(formatMillions(1111235)).toBe("1,111.24B");
+        expect(formatMillions(-123)).toBe("-123M");
+        expect(formatMillions(-1234)).toBe("-1.23B");
+        expect(formatMillions(-1235)).toBe("-1.24B");
+    })
+
+    test("formatTargetStats", () => {
+        expect(formatTargetStats(null)).toBe("");
+        expect(formatTargetStats({count: 0})).toBe("");
+        expect(formatTargetStats({count: 5, minimum: 120, average: 145.5, maximum: 175}))
+            .toBe("5@(175-120)~146");
+        expect(formatTargetStats({count: 3, minimum: 9.44, average: 9.75, maximum: 10}))
+            .toBe("3@(10-9.4)~9.8");
     })
 
     test("formatDecimals", () => {

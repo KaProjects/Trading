@@ -60,6 +60,7 @@ public class ArithmeticServiceTest
         financial.getGrossProfit().setValue(new BigDecimal("5000"));
         financial.getOperatingIncome().setValue(new BigDecimal("2000"));
         financial.getNetIncome().setValue(new BigDecimal("1000"));
+        financial.getFreeCashFlow().setValue(new BigDecimal("2500"));
         financial.setDividend(new BigDecimal("100"));
 
         PriceIndicators.Financial ttmRatios = arithmeticService.computeFinancialRatios(marketCap, financial);
@@ -68,6 +69,7 @@ public class ArithmeticServiceTest
         assertBigDecimals(ttmRatios.getMarketCapToGrossProfit(), new BigDecimal("200"));
         assertBigDecimals(ttmRatios.getMarketCapToOperatingIncome(), new BigDecimal("500"));
         assertBigDecimals(ttmRatios.getMarketCapToNetIncome(), new BigDecimal("1000"));
+        assertBigDecimals(ttmRatios.getMarketCapToFreeCashFlow(), new BigDecimal("400"));
         assertBigDecimals(ttmRatios.getDividendYield(), new BigDecimal("0.01"));
     }
 
@@ -89,6 +91,7 @@ public class ArithmeticServiceTest
         financial.getGrossProfit().setValue(new BigDecimal("-5000"));
         financial.getOperatingIncome().setValue(new BigDecimal("-2000"));
         financial.getNetIncome().setValue(new BigDecimal("-1000"));
+        financial.getFreeCashFlow().setValue(BigDecimal.ZERO);
         financial.setDividend(new BigDecimal("-100"));
 
         PriceIndicators.Financial ttmRatios = arithmeticService.computeFinancialRatios(marketCap, financial);
@@ -97,6 +100,7 @@ public class ArithmeticServiceTest
         assertThat(ttmRatios.getMarketCapToGrossProfit(), is(nullValue()));
         assertThat(ttmRatios.getMarketCapToOperatingIncome(), is(nullValue()));
         assertThat(ttmRatios.getMarketCapToNetIncome(), is(nullValue()));
+        assertThat(ttmRatios.getMarketCapToFreeCashFlow(), is(nullValue()));
         assertThat(ttmRatios.getDividendYield(), is(nullValue()));
     }
 
@@ -135,6 +139,7 @@ public class ArithmeticServiceTest
         Company company = Generator.generateCompany();
         Latest latest = Generator.generateLatest(company);
         Periods.Financial ttm = Generator.generatePeriodsFinancial();
+        ttm.getFreeCashFlow().setValue(new BigDecimal("2500"));
 
         PriceIndicators indicators = arithmeticService.computeIndicators(latest, ttm);
 
@@ -150,6 +155,7 @@ public class ArithmeticServiceTest
         assertBigDecimals(indicators.getTtm().getMarketCapToGrossProfit(), expected.getMarketCapToGrossProfit());
         assertBigDecimals(indicators.getTtm().getMarketCapToOperatingIncome(), expected.getMarketCapToOperatingIncome());
         assertBigDecimals(indicators.getTtm().getMarketCapToNetIncome(), expected.getMarketCapToNetIncome());
+        assertBigDecimals(indicators.getTtm().getMarketCapToFreeCashFlow(), expected.getMarketCapToFreeCashFlow());
         assertBigDecimals(indicators.getTtm().getDividendYield(), expected.getDividendYield());
     }
 
@@ -163,6 +169,7 @@ public class ArithmeticServiceTest
         ttm.getGrossProfit().setValue(new BigDecimal("-5000"));
         ttm.getOperatingIncome().setValue(new BigDecimal("-2000"));
         ttm.getNetIncome().setValue(new BigDecimal("-1000"));
+        ttm.getFreeCashFlow().setValue(new BigDecimal("-500"));
         ttm.setDividend(new BigDecimal("-100"));
 
         PriceIndicators indicators = arithmeticService.computeIndicators(latest, ttm);
@@ -177,6 +184,7 @@ public class ArithmeticServiceTest
         assertBigDecimals(indicators.getTtm().getMarketCapToGrossProfit(), null);
         assertBigDecimals(indicators.getTtm().getMarketCapToOperatingIncome(), null);
         assertBigDecimals(indicators.getTtm().getMarketCapToNetIncome(), null);
+        assertBigDecimals(indicators.getTtm().getMarketCapToFreeCashFlow(), null);
         assertBigDecimals(indicators.getTtm().getDividendYield(), null);
     }
 
@@ -193,6 +201,7 @@ public class ArithmeticServiceTest
         ttm.getGrossProfit().setValue(new BigDecimal("80"));
         ttm.getOperatingIncome().setValue(new BigDecimal("60"));
         ttm.getNetIncome().setValue(new BigDecimal("40"));
+        ttm.getFreeCashFlow().setValue(new BigDecimal("20"));
         ttm.setDividend(new BigDecimal("2000000000"));
 
         PriceIndicators indicators = arithmeticService.computeIndicators(latest, ttm);
@@ -207,6 +216,7 @@ public class ArithmeticServiceTest
         assertBigDecimals(indicators.getTtm().getMarketCapToGrossProfit(), new BigDecimal("9999.99"));
         assertBigDecimals(indicators.getTtm().getMarketCapToOperatingIncome(), new BigDecimal("9999.99"));
         assertBigDecimals(indicators.getTtm().getMarketCapToNetIncome(), new BigDecimal("9999.99"));
+        assertBigDecimals(indicators.getTtm().getMarketCapToFreeCashFlow(), new BigDecimal("9999.99"));
         assertBigDecimals(indicators.getTtm().getDividendYield(), new BigDecimal("999.99"));
     }
 

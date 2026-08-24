@@ -66,26 +66,28 @@ public class RecordServiceTest
         String pg = Generator.randomBigDecimal(9999, 2).toString();
         String po = Generator.randomBigDecimal(9999, 2).toString();
         String pe = Generator.randomBigDecimal(9999, 2).toString();
+        String pfcf = Generator.randomBigDecimal(9999, 2).toString();
         String dy = Generator.randomBigDecimal(999, 2).toString();
         String q = Generator.randomBigDecimal(9999, 4).toString();
         String pp = Generator.randomBigDecimal(999999, 4).toString();
         String tg = "targets";
 
-        createAndAssertRecord(d, t, p, ps, pg, po, pe, dy, q, pp, tg, null);
-        createAndAssertRecord(d, t, p, null, null, null, null, null, null, null, null, null);
+        createAndAssertRecord(d, t, p, ps, pg, po, pe, pfcf, dy, q, pp, tg, null);
+        createAndAssertRecord(d, t, p, null, null, null, null, null, null, null, null, null, null);
 
-        createAndAssertRecord(null, t, p, ps, pg, po, pe, dy, q, pp, tg, IllegalArgumentException.class);
-        invalidDates().forEach(date -> createAndAssertRecord(date, t, p, ps, pg, po, pe, dy, q, pp, tg, IllegalArgumentException.class));
+        createAndAssertRecord(null, t, p, ps, pg, po, pe, pfcf, dy, q, pp, tg, IllegalArgumentException.class);
+        invalidDates().forEach(date -> createAndAssertRecord(date, t, p, ps, pg, po, pe, pfcf, dy, q, pp, tg, IllegalArgumentException.class));
 
-        createAndAssertRecord(d, t, null, ps, pg, po, pe, dy, q, pp, tg, NullPointerException.class);
-        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, ibd, ps, pg, po, pe, dy, q, pp, tg, IllegalArgumentException.class));
-        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ibd, pg, po, pe, dy, q, pp, tg, IllegalArgumentException.class));
-        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, ibd, po, pe, dy, q, pp, tg, IllegalArgumentException.class));
-        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, ibd, pe, dy, q, pp, tg, IllegalArgumentException.class));
-        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, ibd, dy, q, pp, tg, IllegalArgumentException.class));
-        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, pe, ibd, q, pp, tg, IllegalArgumentException.class));
-        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, pe, dy, ibd, pp, tg, IllegalArgumentException.class));
-        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, pe, dy, q, ibd, tg, IllegalArgumentException.class));
+        createAndAssertRecord(d, t, null, ps, pg, po, pe, pfcf, dy, q, pp, tg, NullPointerException.class);
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, ibd, ps, pg, po, pe, pfcf, dy, q, pp, tg, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ibd, pg, po, pe, pfcf, dy, q, pp, tg, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, ibd, po, pe, pfcf, dy, q, pp, tg, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, ibd, pe, pfcf, dy, q, pp, tg, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, ibd, pfcf, dy, q, pp, tg, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, pe, ibd, dy, q, pp, tg, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, pe, pfcf, ibd, q, pp, tg, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, pe, pfcf, dy, ibd, pp, tg, IllegalArgumentException.class));
+        invalidBigDecimals().forEach(ibd -> createAndAssertRecord(d, t, p, ps, pg, po, pe, pfcf, dy, q, ibd, tg, IllegalArgumentException.class));
     }
 
     @Test
@@ -141,6 +143,7 @@ public class RecordServiceTest
         dto.setPriceToGrossProfit("2.5");
         dto.setPriceToOperatingIncome("-3.75");
         dto.setPriceToNetIncome("4.25");
+        dto.setPriceToFreeCashFlow("5.75");
         updateAndAssertRecord(dto, record, null);
 
         dto.setSumAssetQuantity("12.5");
@@ -158,6 +161,7 @@ public class RecordServiceTest
         Record record3 = Generator.generateRecord(company, "2025-12-15");
         record3.setReview("latest review");
         record3.setRetro("latest retro");
+        record3.setPriceToFreeCashFlow(new BigDecimal("17.25"));
 
         when(companyService.findEntity(company.getId())).thenReturn(company);
         when(recordDao.list(company.getId())).thenReturn(new ArrayList<>(List.of(record1, record2, record3)));
@@ -167,6 +171,7 @@ public class RecordServiceTest
         assertThat(records.get(0).getId(), is(record3.getId()));
         assertThat(records.get(0).getReview(), is("latest review"));
         assertThat(records.get(0).getRetro(), is("latest retro"));
+        assertBigDecimals(records.get(0).getPriceToFreeCashFlow(), new BigDecimal("17.25"));
         assertThat(records.get(1).getId(), is(record1.getId()));
         assertThat(records.get(2).getId(), is(record2.getId()));
     }
@@ -201,6 +206,7 @@ public class RecordServiceTest
 
         Periods periods = new Periods();
         periods.setTtm(Generator.generatePeriodsFinancial());
+        periods.getTtm().getFreeCashFlow().setValue(new BigDecimal("2500"));
         when(periodService.getBy(company.getId())).thenReturn(periods);
 
         Assets assets = new Assets();
@@ -252,6 +258,7 @@ public class RecordServiceTest
         assertThat(captor.getValue().getPriceToGrossProfit(), is(Matchers.nullValue()));
         assertThat(captor.getValue().getPriceToOperatingIncome(), is(Matchers.nullValue()));
         assertThat(captor.getValue().getPriceToNetIncome(), is(Matchers.nullValue()));
+        assertThat(captor.getValue().getPriceToFreeCashFlow(), is(Matchers.nullValue()));
         assertThat(captor.getValue().getDividendYield(), is(Matchers.nullValue()));
         assertThat(captor.getValue().getSumAssetQuantity(), is(Matchers.nullValue()));
         assertThat(captor.getValue().getAvgAssetPrice(), is(Matchers.nullValue()));
@@ -309,6 +316,7 @@ public class RecordServiceTest
             assertBigDecimals(captor.getValue().getPriceToGrossProfit(), expectedRatios.getTtm().getMarketCapToGrossProfit());
             assertBigDecimals(captor.getValue().getPriceToOperatingIncome(), expectedRatios.getTtm().getMarketCapToOperatingIncome());
             assertBigDecimals(captor.getValue().getPriceToNetIncome(), expectedRatios.getTtm().getMarketCapToNetIncome());
+            assertBigDecimals(captor.getValue().getPriceToFreeCashFlow(), expectedRatios.getTtm().getMarketCapToFreeCashFlow());
             assertBigDecimals(captor.getValue().getDividendYield(), expectedRatios.getTtm().getDividendYield());
 
             clearInvocations(recordDao);
@@ -362,6 +370,7 @@ public class RecordServiceTest
             assertBigDecimals(captor.getValue().getPriceToGrossProfit(), (dto.getPriceToGrossProfit() == null) ? record.getPriceToGrossProfit() : Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
             assertBigDecimals(captor.getValue().getPriceToOperatingIncome(), (dto.getPriceToOperatingIncome() == null) ? record.getPriceToOperatingIncome() : Utils.createNullableBigDecimal(dto.getPriceToOperatingIncome()));
             assertBigDecimals(captor.getValue().getPriceToNetIncome(), (dto.getPriceToNetIncome() == null) ? record.getPriceToNetIncome() : Utils.createNullableBigDecimal(dto.getPriceToNetIncome()));
+            assertBigDecimals(captor.getValue().getPriceToFreeCashFlow(), (dto.getPriceToFreeCashFlow() == null) ? record.getPriceToFreeCashFlow() : Utils.createNullableBigDecimal(dto.getPriceToFreeCashFlow()));
             assertBigDecimals(captor.getValue().getSumAssetQuantity(), (dto.getSumAssetQuantity() == null) ? record.getSumAssetQuantity() : Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
             assertBigDecimals(captor.getValue().getAvgAssetPrice(), (dto.getAvgAssetPrice() == null) ? record.getAvgAssetPrice() : Utils.createNullableBigDecimal(dto.getAvgAssetPrice()));
 
@@ -372,7 +381,7 @@ public class RecordServiceTest
     }
 
     private void createAndAssertRecord(String date, String title, String price,
-                                       String ps, String pg, String po, String pe, String dy,
+                                       String ps, String pg, String po, String pe, String pfcf, String dy,
                                        String q, String pp, String targets,
                                        Class<? extends Exception> expectedException)
     {
@@ -387,6 +396,7 @@ public class RecordServiceTest
         dto.setPriceToGrossProfit(pg);
         dto.setPriceToOperatingIncome(po);
         dto.setPriceToNetIncome(pe);
+        dto.setPriceToFreeCashFlow(pfcf);
         dto.setDividendYield(dy);
         dto.setSumAssetQuantity(q);
         dto.setAvgAssetPrice(pp);
@@ -407,6 +417,7 @@ public class RecordServiceTest
             assertBigDecimals(captor.getValue().getPriceToGrossProfit(), Utils.createNullableBigDecimal(pg));
             assertBigDecimals(captor.getValue().getPriceToOperatingIncome(), Utils.createNullableBigDecimal(po));
             assertBigDecimals(captor.getValue().getPriceToNetIncome(), Utils.createNullableBigDecimal(pe));
+            assertBigDecimals(captor.getValue().getPriceToFreeCashFlow(), Utils.createNullableBigDecimal(pfcf));
 
             assertBigDecimals(captor.getValue().getDividendYield(), Utils.createNullableBigDecimal(dy));
 

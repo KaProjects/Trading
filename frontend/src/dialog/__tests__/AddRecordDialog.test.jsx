@@ -53,6 +53,7 @@ jest.mock("../../properties", () => ({
 }));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
+    formatTargetStats: (stats) => `${stats.count}@(${stats.maximum}-${stats.minimum})~${stats.average}`,
 }));
 jest.mock("../component/DialogTextField", () => dialogTextFieldModule);
 jest.mock("../component/DialogDatePicker", () => dialogDatePickerModule);
@@ -73,6 +74,7 @@ function createProps(overrides = {}) {
                 marketCapToGrossProfit: 8.1,
                 marketCapToOperatingIncome: 10.2,
                 marketCapToNetIncome: 12.3,
+                marketCapToFreeCashFlow: 14.4,
                 dividendYield: 1.4,
             },
         },
@@ -81,6 +83,12 @@ function createProps(overrides = {}) {
                 quantity: 4,
                 purchasePrice: 100.25,
             },
+        },
+        targetStats: {
+            count: 3,
+            minimum: 105,
+            average: 122,
+            maximum: 140,
         },
         ...overrides,
     };
@@ -102,12 +110,15 @@ describe("AddRecordDialog", () => {
         expect(screen.getByTestId("trader-record-date")).toHaveValue("2024-03-15");
         expect(screen.getByLabelText("Price")).toHaveValue("120.5");
         expect(screen.getByLabelText("PS")).toHaveValue("6.7");
+        expect(screen.getByLabelText("PCF")).toHaveValue("14.4");
         expect(screen.getByLabelText("assets quantity sum")).toHaveValue("4");
+        expect(screen.getByLabelText("price targets")).toHaveValue("3@(140-105)~122");
 
         fireEvent.change(screen.getByLabelText("PS"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("PG"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("PO"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("PE"), {target: {value: ""}});
+        fireEvent.change(screen.getByLabelText("PCF"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("DY"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("assets quantity sum"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("assets avg purchase price"), {target: {value: ""}});
@@ -122,6 +133,7 @@ describe("AddRecordDialog", () => {
             priceToGrossProfit: null,
             priceToOperatingIncome: null,
             priceToNetIncome: null,
+            priceToFreeCashFlow: null,
             dividendYield: null,
             sumAssetQuantity: null,
             avgAssetPrice: null,
@@ -129,6 +141,36 @@ describe("AddRecordDialog", () => {
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();
+    });
+
+    test("warns when the prefilled date changes and clears every prefilled value except the date", () => {
+        const props = createProps();
+
+        render(<AddRecordDialog {...props}/>);
+
+        fireEvent.change(screen.getByTestId("trader-record-date"), {target: {value: "2024-02-01"}});
+
+        expect(screen.getByText(
+            "Prefilled values are based on 2024-03-15 and may not be valid for the selected date."
+        )).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Clear"}));
+
+        expect(screen.getByTestId("trader-record-date")).toHaveValue("2024-02-01");
+        [
+            "Price",
+            "PS",
+            "PG",
+            "PO",
+            "PE",
+            "PCF",
+            "DY",
+            "assets quantity sum",
+            "assets avg purchase price",
+            "price targets",
+        ].forEach(label => expect(screen.getByLabelText(label)).toHaveValue(""));
+        expect(screen.queryByText(/Prefilled values are based on/)).not.toBeInTheDocument();
+        expect(axios.post).not.toHaveBeenCalled();
     });
 
     test("shows formatted error when create fails", async () => {

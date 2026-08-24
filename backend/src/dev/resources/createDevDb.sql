@@ -140,6 +140,25 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gro
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1269, 2214, '26Q1', '2603', '2026-04-23', '13100', '5000', '-100', '-140', '130', '0.12', '4140', '38', '19');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES (2411, 2214, '26Q2', '2606');
 
+-- Consecutive cash-flow history used by TTM financials and record P/FCF calculations.
+UPDATE Period SET capex = '45', fcf = '235' WHERE id = 1251;
+UPDATE Period SET capex = '52', fcf = '285' WHERE id = 1252;
+UPDATE Period SET capex = '60', fcf = '345' WHERE id = 1253;
+UPDATE Period SET capex = '68', fcf = '425' WHERE id = 1254;
+UPDATE Period SET capex = '78', fcf = '510' WHERE id = 1255;
+
+UPDATE Period SET capex = '75', fcf = '120' WHERE id = 1257;
+UPDATE Period SET capex = '82', fcf = '145' WHERE id = 1258;
+UPDATE Period SET capex = '90', fcf = '175' WHERE id = 2337;
+UPDATE Period SET capex = '98', fcf = '220' WHERE id = 1259;
+UPDATE Period SET capex = '108', fcf = '275' WHERE id = 1260;
+
+UPDATE Period SET capex = '3200', fcf = '-2500' WHERE id = 2410;
+UPDATE Period SET capex = '3400', fcf = '-2750' WHERE id = 2401;
+UPDATE Period SET capex = '3100', fcf = '-2100' WHERE id = 2402;
+UPDATE Period SET capex = '2800', fcf = '-1250' WHERE id = 2403;
+UPDATE Period SET capex = '2600', fcf = '-900' WHERE id = 1269;
+
 -- Intel analyst snapshots exercise reported and unreported estimate states.
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1410, 2410, '2025-04-15 09:00:00', '-0.15', '-0.02', '0.18', '0.12');
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1411, 2401, '2025-07-20 09:00:00', '-0.02', '0.20', '0.12', '0.15');

@@ -16,7 +16,7 @@ import {ReactComponent as DeleteIcon} from "../../assets/icons/delete.svg";
 import {EditableValueBox} from "./EditableValueBox";
 import {validateNumber} from "../../service/ValidationService";
 
-const FINANCIAL_RATIO_LABELS = ["PS", "PG", "PO", "PE"];
+const FINANCIAL_RATIO_LABELS = ["PS", "PG", "PO", "PE", "PCF"];
 
 function financialRatiosValue(record) {
     return [
@@ -24,6 +24,7 @@ function financialRatiosValue(record) {
         record.priceToGrossProfit,
         record.priceToOperatingIncome,
         record.priceToNetIncome,
+        record.priceToFreeCashFlow,
     ].map(value => value ?? "").join("/");
 }
 
@@ -37,6 +38,7 @@ function hasFinancialRatios(record) {
         record.priceToGrossProfit,
         record.priceToOperatingIncome,
         record.priceToNetIncome,
+        record.priceToFreeCashFlow,
     ].some(hasValue);
 }
 
@@ -53,7 +55,7 @@ function formatFinancialRatios(value) {
 
 function validateFinancialRatios(value) {
     const ratios = value.split("/").map(ratio => ratio.trim());
-    if (ratios.length !== 4) return "Use format PS/PG/PO/PE";
+    if (ratios.length !== 5) return "Use format PS/PG/PO/PE/PCF";
 
     for (let index = 0; index < ratios.length; index++) {
         const error = validateNumber(ratios[index], false, 6, 2, index > 0);
@@ -120,7 +122,7 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
     }
 
     function updateFinancialRatios(value) {
-        const [priceToRevenues, priceToGrossProfit, priceToOperatingIncome, priceToNetIncome]
+        const [priceToRevenues, priceToGrossProfit, priceToOperatingIncome, priceToNetIncome, priceToFreeCashFlow]
             = value.split("/").map(ratio => ratio.trim());
         return updateRecord({
             id: record.id,
@@ -128,6 +130,7 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
             priceToGrossProfit,
             priceToOperatingIncome,
             priceToNetIncome,
+            priceToFreeCashFlow,
         })
     }
 
