@@ -55,6 +55,8 @@ def make_complete_quarter(**overrides):
         "reported_gross_profit": "500",
         "reported_operating_income": "300",
         "reported_net_income": "200",
+        "reported_capex": "75",
+        "reported_free_cash_flow": "180",
         "reported_div": "0",
         "reported_shares": "100",
         "price_min": "90",
@@ -281,6 +283,8 @@ class TestStockDataRetriever:
             reported_gross_profit="500",
             reported_operating_income="300",
             reported_net_income="200",
+            reported_capex="75",
+            reported_free_cash_flow="180",
             reported_div="0",
             reported_shares="100",
             price_min="90",
@@ -507,7 +511,7 @@ class TestStockDataRetriever:
             "company_id": "ASML",
             "currency": "€",
             "quarter_id": "25Q4",
-            "missing_field_count": 7,
+            "missing_field_count": 9,
         }
         assert "reported_gross_profit" in warning_call.args[0]
         assert raw_response in warning_call.args[0]
@@ -1553,12 +1557,19 @@ class TestStockDataRetriever:
 
     def test_quarter_payload_restores_webhook_identity(self, runner):
         payload = discord_templates.quarter_report(
-            make_quarter(quarter_id="26Q2"),
+            make_quarter(
+                quarter_id="26Q2",
+                reported_capex="75",
+                reported_free_cash_flow="180",
+            ),
             "AAPL",
         )
 
         assert payload["username"] == "Quarterly Results Reporter"
         assert payload["avatar_url"].endswith("/1390/1390704.png")
+        financials = payload["embeds"][0]["fields"][0]["value"]
+        assert "**CapEx:** 75.0M" in financials
+        assert "**Free Cash Flow:** 180.0M" in financials
 
     @patch("gemini.retriever.datetime")
     def test_check_report_dates_next_week_logs_error_when_not_sunday(self, mock_datetime, runner):

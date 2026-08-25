@@ -30,6 +30,8 @@ REPORTED_QUARTER_DATA_FIELDS = (
     "reported_gross_profit",
     "reported_operating_income",
     "reported_net_income",
+    "reported_capex",
+    "reported_free_cash_flow",
     "reported_div",
     "reported_shares",
     "price_min",

@@ -171,13 +171,25 @@ class GeminiClient:
         for that exact quarter. Treat official labels such as "total net sales" as
         revenues and "income from operations" as operating income when applicable.
 
-        Then, for all already reported quarters, retrieve reported data: revenues, gross profit, operating income, net income, number of shares of the company and dividends.
+        Then, for all already reported quarters, retrieve reported data: revenues,
+        gross profit, operating income, net income, capital expenditures, free
+        cash flow, number of shares of the company, and dividends.
         Return financial totals in millions of the reporting currency stored in
         info.currency and the number of shares in millions of shares. For example,
         return 16130 for 16.13 billion in that reporting currency and 5104 for
         5.104 billion shares; never return absolute monetary or share amounts.
         Return EPS in the reporting currency per share. Return stock prices in
         the requested ticker's trading currency per share.
+
+        reported_capex must represent capital expenditures for the individual
+        fiscal quarter as a positive cash outflow amount. reported_free_cash_flow
+        must represent free cash flow for the individual fiscal quarter. Prefer
+        an explicitly reported free cash flow value; otherwise calculate it as
+        cash flow from operating activities minus positive capital expenditures.
+        Never use a year-to-date value as a quarterly value. When a cash-flow
+        statement provides cumulative values, derive the standalone quarter by
+        subtracting the previous cumulative period and use figures from the same
+        accounting period and currency.
 
         Then, for all already reported quarters, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
@@ -332,13 +344,25 @@ class GeminiClient:
         Verify the data of the report are already available, if not, don't change anything and return the same data.
         
         Otherwise, collect the report data according to this template {data}, fill empty values, don't change anything else.
-        Specifically, we are looking for reported: revenues, gross profit, operating income, net income, number of shares of the company and dividends.
+        Specifically, we are looking for reported: revenues, gross profit,
+        operating income, net income, capital expenditures, free cash flow,
+        number of shares of the company, and dividends.
         The company's original financial reporting currency is {currency}. Return
         financial totals in millions of {currency} without converting them to USD,
         and return the number of shares in millions of shares. For example, return
         16130 for 16.13 billion {currency} and 5104 for 5.104 billion shares; never
         return absolute monetary or share amounts. Return EPS in {currency} per
         share. Return stock prices in the ticker's trading currency per share.
+
+        reported_capex must represent capital expenditures for this individual
+        fiscal quarter as a positive cash outflow amount. reported_free_cash_flow
+        must represent free cash flow for this individual fiscal quarter. Prefer
+        an explicitly reported free cash flow value; otherwise calculate it as
+        cash flow from operating activities minus positive capital expenditures.
+        Never use a year-to-date value as a quarterly value. When a cash-flow
+        statement provides cumulative values, derive the standalone quarter by
+        subtracting the previous cumulative period and use figures from the same
+        accounting period and currency.
         
         For price_min and price_max, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).

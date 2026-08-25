@@ -48,6 +48,8 @@ def complete_quarter_data():
         "reported_gross_profit": "77.1",
         "reported_operating_income": "39.9",
         "reported_net_income": "-110.6",
+        "reported_capex": "45.2",
+        "reported_free_cash_flow": "-72.4",
         "reported_div": "0",
         "reported_shares": "283.59",
         "price_min": "24.03",
@@ -69,6 +71,8 @@ def initial_company_data():
         "reported_gross_profit": "500",
         "reported_operating_income": "300",
         "reported_net_income": "200",
+        "reported_capex": "75",
+        "reported_free_cash_flow": "180",
         "reported_div": "0",
         "reported_shares": "100",
         "price_min": "90",
@@ -183,6 +187,9 @@ def test_initial_company_accepts_null_financials_with_valid_structure():
     assert "detailed financial statements" in prompt
     assert "rounded narrative summaries" in prompt
     assert "A value missing from a summary page is not evidence" in prompt
+    assert "reported_capex must represent capital expenditures" in prompt
+    assert "reported_free_cash_flow" in prompt
+    assert "Never use a year-to-date value as a quarterly value" in prompt
 
 
 def test_initial_company_rejects_missing_report_date_with_raw_response():
@@ -410,6 +417,8 @@ def test_get_quarter_report_accepts_complete_response():
 
     assert result.quarter != original
     assert result.quarter.reported_gross_profit == Decimal("77.1")
+    assert result.quarter.reported_capex == Decimal("45.2")
+    assert result.quarter.reported_free_cash_flow == Decimal("-72.4")
     assert result.quarter.reported_div == Decimal("0")
     prompt = (
         constructor.return_value.models.generate_content.call_args.kwargs[
@@ -421,6 +430,8 @@ def test_get_quarter_report_accepts_complete_response():
     assert "reported_revenues and reported_net_income must be populated" in (
         prompt
     )
+    assert "reported_capex must represent capital expenditures" in prompt
+    assert "Never use a year-to-date value as a quarterly value" in prompt
 
 
 def test_get_quarter_report_rejects_missing_structure_with_raw_response():

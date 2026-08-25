@@ -181,6 +181,8 @@ def test_quarter_schema_describes_every_output_field_and_unit():
         "reported_gross_profit",
         "reported_operating_income",
         "reported_net_income",
+        "reported_capex",
+        "reported_free_cash_flow",
         "reported_div",
     ):
         assert (

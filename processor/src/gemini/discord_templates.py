@@ -182,6 +182,8 @@ def _quarter_report_embed(
                     f"**Gross Profit:** {format_financial(quarter.reported_gross_profit)}\n"
                     f"**Oper. Income:** {format_financial(quarter.reported_operating_income)}\n"
                     f"**Net Income:** {format_financial(quarter.reported_net_income)}\n"
+                    f"**CapEx:** {format_financial(quarter.reported_capex)}\n"
+                    f"**Free Cash Flow:** {format_financial(quarter.reported_free_cash_flow)}\n"
                     f"**Divs:** {format_financial(quarter.reported_div)}\n"
                     f"**Shares:** {format_financial(quarter.reported_shares)}\n"
                     f"**EPS:** {quarter.reported_eps}"

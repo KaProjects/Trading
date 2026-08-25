@@ -162,6 +162,21 @@ class Quarter(BaseModel):
             "reporting currency."
         ),
     )
+    reported_capex: Decimal | None = Field(
+        default=None,
+        description=(
+            "Capital expenditures for the individual fiscal quarter in "
+            "millions of the company's original reporting currency, stored "
+            "as a positive cash outflow amount."
+        ),
+    )
+    reported_free_cash_flow: Decimal | None = Field(
+        default=None,
+        description=(
+            "Free cash flow for the individual fiscal quarter in millions "
+            "of the company's original reporting currency."
+        ),
+    )
     reported_div: Decimal | None = Field(
         default=None,
         description=(
@@ -200,6 +215,8 @@ class Quarter(BaseModel):
         "reported_gross_profit",
         "reported_operating_income",
         "reported_net_income",
+        "reported_capex",
+        "reported_free_cash_flow",
         "reported_div",
         "reported_shares",
         "price_min",
@@ -419,6 +436,19 @@ class InitialQuarter(Quarter):
         description=(
             "Reported net income in millions of the company's original "
             "reporting currency, or null."
+        )
+    )
+    reported_capex: Decimal | None = Field(
+        description=(
+            "Capital expenditures for the individual fiscal quarter in "
+            "millions of the company's original reporting currency, stored "
+            "as a positive cash outflow amount, or null."
+        )
+    )
+    reported_free_cash_flow: Decimal | None = Field(
+        description=(
+            "Free cash flow for the individual fiscal quarter in millions "
+            "of the company's original reporting currency, or null."
         )
     )
     reported_div: Decimal | None = Field(
