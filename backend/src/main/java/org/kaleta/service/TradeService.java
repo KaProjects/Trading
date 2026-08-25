@@ -177,6 +177,16 @@ public class TradeService
         tradeDao.save(trade);
     }
 
+    public void deleteTrade(Long tradeId)
+    {
+        try {
+            tradeDao.get(tradeId);
+        } catch (NoResultException exception) {
+            throw new InvalidInputException("trade with id '" + tradeId + "' not found");
+        }
+        tradeDao.delete(tradeId);
+    }
+
     public Assets getAssets(Long companyId, BigDecimal currentPrice)
     {
         List<Asset> assets = new ArrayList<>();

@@ -2,6 +2,7 @@ package org.kaleta.persistence.impl;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.TypedQuery;
+import jakarta.transaction.Transactional;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Portfolio;
@@ -17,6 +18,16 @@ public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDa
     protected Class<Trade> getEntityClass()
     {
         return Trade.class;
+    }
+
+    @Transactional
+    @Override
+    public void delete(Long tradeId)
+    {
+        Trade managed = entityManager.find(Trade.class, tradeId);
+        if (managed != null) {
+            entityManager.remove(managed);
+        }
     }
 
     @Override

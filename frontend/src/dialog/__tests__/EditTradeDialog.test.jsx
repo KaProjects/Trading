@@ -1,5 +1,5 @@
 import React from "react";
-import {fireEvent, render, screen, waitFor} from "@testing-library/react";
+import {fireEvent, render, screen, waitFor, within} from "@testing-library/react";
 import axios from "axios";
 
 const mockFormatError = jest.fn(() => ({title: "Save failed", message: "Trade could not be saved"}));
@@ -48,6 +48,7 @@ function createProps(trade) {
 
 describe("EditTradeDialog", () => {
     beforeEach(() => {
+        axios.delete.mockReset();
         axios.put.mockReset();
         mockFormatError.mockReset();
         mockFormatError.mockReturnValue({title: "Save failed", message: "Trade could not be saved"});
@@ -149,5 +150,63 @@ describe("EditTradeDialog", () => {
         fireEvent.change(screen.getByLabelText("Quantity"), {target: {value: "6"}});
 
         expect(screen.queryByText("Trade could not be saved")).not.toBeInTheDocument();
+    });
+
+    test("deletes a trade only after confirmation", async () => {
+        axios.delete.mockResolvedValue({});
+        const props = createProps({
+            id: "trade-4",
+            active: true,
+            company: {ticker: "NVDA"},
+            purchaseDate: "2024-01-10",
+            purchaseQuantity: 5,
+            purchasePrice: 100,
+            purchaseFees: 1,
+        });
+
+        render(<EditTradeDialog {...props}/>);
+
+        const editDialog = screen.getByRole("dialog", {name: "Edit NVDA Trade"});
+        fireEvent.click(within(editDialog).getByRole("button", {name: "Delete"}));
+
+        let confirmation = screen.getByRole("dialog", {name: "Delete NVDA trade?"});
+        fireEvent.click(within(confirmation).getByRole("button", {name: "Cancel"}));
+        expect(axios.delete).not.toHaveBeenCalled();
+
+        fireEvent.click(within(editDialog).getByRole("button", {name: "Delete"}));
+        confirmation = screen.getByRole("dialog", {name: "Delete NVDA trade?"});
+        fireEvent.click(within(confirmation).getByRole("button", {name: "Delete"}));
+
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/trade/trade-4"));
+        expect(props.triggerRefresh).toHaveBeenCalled();
+        expect(props.setOpenEditTrade).toHaveBeenCalledWith(null);
+    });
+
+    test("keeps the edit dialog open and shows an alert when deletion fails", async () => {
+        const error = new Error("delete failed");
+        axios.delete.mockRejectedValue(error);
+        mockFormatError.mockReturnValue({title: "Delete failed", message: "Trade could not be deleted"});
+        const props = createProps({
+            id: "trade-5",
+            active: true,
+            company: {ticker: "AMD"},
+            purchaseDate: "2024-01-10",
+            purchaseQuantity: 5,
+            purchasePrice: 100,
+            purchaseFees: 1,
+        });
+
+        render(<EditTradeDialog {...props}/>);
+
+        const editDialog = screen.getByRole("dialog", {name: "Edit AMD Trade"});
+        fireEvent.click(within(editDialog).getByRole("button", {name: "Delete"}));
+        const confirmation = screen.getByRole("dialog", {name: "Delete AMD trade?"});
+        fireEvent.click(within(confirmation).getByRole("button", {name: "Delete"}));
+
+        expect(await screen.findByText("Trade could not be deleted")).toBeInTheDocument();
+        expect(mockFormatError).toHaveBeenCalledWith(error);
+        expect(props.triggerRefresh).not.toHaveBeenCalled();
+        expect(props.setOpenEditTrade).not.toHaveBeenCalled();
+        expect(screen.getByRole("dialog", {name: "Edit AMD Trade"})).toBeInTheDocument();
     });
 });

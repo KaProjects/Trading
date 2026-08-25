@@ -37,6 +37,7 @@ export const EditTradeDialog = props => {
     const [sellDate, setSellDate] = useState("")
     const [sellPrice, setSellPrice] = useState("")
     const [sellFees, setSellFees] = useState("")
+    const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
 
     useEffect(() => {
         if (!trade) return
@@ -50,6 +51,7 @@ export const EditTradeDialog = props => {
         setSellDate(active ? "" : inputValue(trade.sellDate))
         setSellPrice(active ? "" : inputValue(trade.sellPrice))
         setSellFees(active ? "" : inputValue(trade.sellFees))
+        setOpenDeleteDialog(false)
     }, [trade, active])
 
     function updateTrade() {
@@ -72,91 +74,124 @@ export const EditTradeDialog = props => {
             .catch(error => setAlert(formatError(error)))
     }
 
+    function deleteTrade() {
+        axios.delete(backend + "/trade/" + trade.id)
+            .then(() => {
+                setOpenDeleteDialog(false)
+                props.triggerRefresh()
+                handleClose()
+            })
+            .catch(error => {
+                setOpenDeleteDialog(false)
+                setAlert(formatError(error))
+            })
+    }
+
     return (
         <Dialog
             open={!!trade}
-            onClose={handleClose}
-            slotProps={{paper: {component: "form", onSubmit: event => {event.preventDefault();updateTrade()},}}}
+            onClose={() => openDeleteDialog ? setOpenDeleteDialog(false) : handleClose()}
+            slotProps={{paper: {component: "form", onSubmit: event => {
+                event.preventDefault()
+                if (!openDeleteDialog) updateTrade()
+            },}}}
         >
-            <DialogTitle>Edit {trade?.company?.ticker} Trade</DialogTitle>
-            <DialogContent>
-                <Typography variant="subtitle2" sx={{marginTop: "8px"}}>Purchase</Typography>
-                <DialogDatePicker
-                    id="trader-edit-trade-purchase-date"
-                    label="Purchase date"
-                    value={purchaseDate}
-                    onChange={event => {setPurchaseDate(event.target.value);setAlert(null);}}
-                />
-                <DialogTextField
-                    id="trader-edit-trade-quantity"
-                    label="Quantity"
-                    value={quantity}
-                    onChange={event => {setQuantity(event.target.value);setAlert(null);}}
-                    validate={() => validateNumber(quantity, false, 8, 4, false)}
-                />
-                <DialogTextField
-                    id="trader-edit-trade-purchase-price"
-                    label="Purchase price"
-                    value={purchasePrice}
-                    onChange={event => {setPurchasePrice(event.target.value);setAlert(null);}}
-                    validate={() => validateNumber(purchasePrice, false, 10, 4, false)}
-                />
-                <DialogTextField
-                    id="trader-edit-trade-purchase-fees"
-                    label="Purchase fees"
-                    value={purchaseFees}
-                    onChange={event => {setPurchaseFees(event.target.value);setAlert(null);}}
-                    validate={() => validateNumber(purchaseFees, false, 5, 2, false)}
-                />
-                <FormControl fullWidth variant="standard" sx={{marginTop: "20px"}}>
-                    <InputLabel id="trader-edit-trade-portfolio-label">Portfolio</InputLabel>
-                    <Select
-                        labelId="trader-edit-trade-portfolio-label"
-                        value={portfolio}
-                        onChange={event => {setPortfolio(event.target.value);setAlert(null);}}
-                    >
-                        <MenuItem value=""></MenuItem>
-                        {(props.portfolios ?? []).map(item => (
-                            <MenuItem key={item.key} value={item.key}>{item.name}</MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-                {!active &&
-                    <>
-                        <Divider sx={{marginTop: "16px"}}/>
-                        <Typography variant="subtitle2" sx={{marginTop: "12px"}}>Sale</Typography>
+            {openDeleteDialog
+                ? <>
+                    <DialogTitle>Delete {trade?.company?.ticker} trade?</DialogTitle>
+                    <DialogContent>
+                        <Typography>This permanently deletes the trade.</Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button type="button" onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
+                        <Button type="button" color="error" onClick={deleteTrade}>Delete</Button>
+                    </DialogActions>
+                </>
+                : <>
+                    <DialogTitle>Edit {trade?.company?.ticker} Trade</DialogTitle>
+                    <DialogContent>
+                        <Typography variant="subtitle2" sx={{marginTop: "8px"}}>Purchase</Typography>
                         <DialogDatePicker
-                            id="trader-edit-trade-sell-date"
-                            label="Sell date"
-                            value={sellDate}
-                            onChange={event => {setSellDate(event.target.value);setAlert(null);}}
+                            id="trader-edit-trade-purchase-date"
+                            label="Purchase date"
+                            value={purchaseDate}
+                            onChange={event => {setPurchaseDate(event.target.value);setAlert(null);}}
                         />
                         <DialogTextField
-                            id="trader-edit-trade-sell-price"
-                            label="Sell price"
-                            value={sellPrice}
-                            onChange={event => {setSellPrice(event.target.value);setAlert(null);}}
-                            validate={() => validateNumber(sellPrice, false, 10, 4, false)}
+                            id="trader-edit-trade-quantity"
+                            label="Quantity"
+                            value={quantity}
+                            onChange={event => {setQuantity(event.target.value);setAlert(null);}}
+                            validate={() => validateNumber(quantity, false, 8, 4, false)}
                         />
                         <DialogTextField
-                            id="trader-edit-trade-sell-fees"
-                            label="Sell fees"
-                            value={sellFees}
-                            onChange={event => {setSellFees(event.target.value);setAlert(null);}}
-                            validate={() => validateNumber(sellFees, false, 5, 2, false)}
+                            id="trader-edit-trade-purchase-price"
+                            label="Purchase price"
+                            value={purchasePrice}
+                            onChange={event => {setPurchasePrice(event.target.value);setAlert(null);}}
+                            validate={() => validateNumber(purchasePrice, false, 10, 4, false)}
                         />
-                    </>
-                }
-            </DialogContent>
-            {alert &&
-                <Alert severity="error" variant="filled">
-                    <AlertTitle>{alert.title}</AlertTitle>{alert.message}
-                </Alert>
+                        <DialogTextField
+                            id="trader-edit-trade-purchase-fees"
+                            label="Purchase fees"
+                            value={purchaseFees}
+                            onChange={event => {setPurchaseFees(event.target.value);setAlert(null);}}
+                            validate={() => validateNumber(purchaseFees, false, 5, 2, false)}
+                        />
+                        <FormControl fullWidth variant="standard" sx={{marginTop: "20px"}}>
+                            <InputLabel id="trader-edit-trade-portfolio-label">Portfolio</InputLabel>
+                            <Select
+                                labelId="trader-edit-trade-portfolio-label"
+                                value={portfolio}
+                                onChange={event => {setPortfolio(event.target.value);setAlert(null);}}
+                            >
+                                <MenuItem value=""></MenuItem>
+                                {(props.portfolios ?? []).map(item => (
+                                    <MenuItem key={item.key} value={item.key}>{item.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                        {!active &&
+                            <>
+                                <Divider sx={{marginTop: "16px"}}/>
+                                <Typography variant="subtitle2" sx={{marginTop: "12px"}}>Sale</Typography>
+                                <DialogDatePicker
+                                    id="trader-edit-trade-sell-date"
+                                    label="Sell date"
+                                    value={sellDate}
+                                    onChange={event => {setSellDate(event.target.value);setAlert(null);}}
+                                />
+                                <DialogTextField
+                                    id="trader-edit-trade-sell-price"
+                                    label="Sell price"
+                                    value={sellPrice}
+                                    onChange={event => {setSellPrice(event.target.value);setAlert(null);}}
+                                    validate={() => validateNumber(sellPrice, false, 10, 4, false)}
+                                />
+                                <DialogTextField
+                                    id="trader-edit-trade-sell-fees"
+                                    label="Sell fees"
+                                    value={sellFees}
+                                    onChange={event => {setSellFees(event.target.value);setAlert(null);}}
+                                    validate={() => validateNumber(sellFees, false, 5, 2, false)}
+                                />
+                            </>
+                        }
+                    </DialogContent>
+                    {alert &&
+                        <Alert severity="error" variant="filled">
+                            <AlertTitle>{alert.title}</AlertTitle>{alert.message}
+                        </Alert>
+                    }
+                    <DialogActions>
+                        <Button type="button" color="error" onClick={() => setOpenDeleteDialog(true)} sx={{marginRight: "auto"}}>
+                            Delete
+                        </Button>
+                        <Button type="button" onClick={handleClose}>Cancel</Button>
+                        <Button type="submit">Save</Button>
+                    </DialogActions>
+                </>
             }
-            <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit">Save</Button>
-            </DialogActions>
         </Dialog>
     )
 }

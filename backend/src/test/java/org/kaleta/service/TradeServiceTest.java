@@ -40,6 +40,7 @@ import static org.kaleta.framework.InvalidValues.invalidBigDecimals;
 import static org.kaleta.framework.InvalidValues.invalidDates;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -570,6 +571,24 @@ public class TradeServiceTest
                 InvalidInputException.class,
                 () -> tradeService.updateTrade(105L, updateDto()));
         assertThat(missingException.getMessage(), is("trade with id '105' not found"));
+    }
+
+    @Test
+    void deleteTrade()
+    {
+        Trade trade = trade(Generator.generateCompany(), 106L, "5", "100", "2");
+        when(tradeDao.get(trade.getId())).thenReturn(trade);
+        doThrow(new NoResultException()).when(tradeDao).get(107L);
+
+        tradeService.deleteTrade(trade.getId());
+
+        verify(tradeDao).delete(trade.getId());
+
+        InvalidInputException exception = assertThrows(
+                InvalidInputException.class,
+                () -> tradeService.deleteTrade(107L));
+        assertThat(exception.getMessage(), is("trade with id '107' not found"));
+        verify(tradeDao, never()).delete(107L);
     }
 
     private TradeUpdateDto updateDto()

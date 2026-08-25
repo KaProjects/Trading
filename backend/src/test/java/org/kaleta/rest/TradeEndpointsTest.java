@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
+import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Assert;
@@ -31,6 +32,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_3_2_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_4_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_4_false;
@@ -789,6 +791,36 @@ class TradeEndpointsTest
         dto.setSellPrice("510.75");
         dto.setSellFees("16.5");
         Assert.put400(path + "/1", dto, "sellDate cannot be before purchaseDate");
+    }
+
+    @Test
+    void deleteTrade()
+    {
+        Trade source = tradeDao.get(3L);
+        Trade duplicate = new Trade();
+        duplicate.setCompany(source.getCompany());
+        duplicate.setQuantity(source.getQuantity());
+        duplicate.setPurchaseDate(source.getPurchaseDate());
+        duplicate.setPurchasePrice(source.getPurchasePrice());
+        duplicate.setPurchaseFees(source.getPurchaseFees());
+        duplicate.setPortfolio(source.getPortfolio());
+        tradeDao.create(duplicate);
+
+        try {
+            given().when().delete(path + "/" + duplicate.getId())
+                    .then().statusCode(200);
+
+            assertThrows(NoResultException.class, () -> tradeDao.get(duplicate.getId()));
+        } finally {
+            tradeDao.delete(duplicate.getId());
+        }
+    }
+
+    @Test
+    void deleteTrade_invalidParameters()
+    {
+        Assert.deleteValidationError(path + "/0", VALID_ID);
+        Assert.delete400(path + "/4294967295", "trade with id '4294967295' not found");
     }
 
     private TradeUpdateDto validTradeUpdateDto()

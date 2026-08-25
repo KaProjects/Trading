@@ -21,4 +21,9 @@ public interface TradeDao extends EntityCompanyDao<Trade>
      * saves all the instance of the specified trades
      */
     void saveAll(List<Trade> trades);
+
+    /**
+     * removes the trade specified by id.
+     */
+    void delete(Long tradeId);
 }

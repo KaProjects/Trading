@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -181,6 +182,15 @@ public class TradeEndpoints
         tradeService.updateTrade(tradeId, tradeUpdateDto);
         firebaseService.pushAssets(tradeService.getBy(true, null, null, null, null, null));
         return Response.noContent().build();
+    }
+
+    @DELETE
+    @Path("/{tradeId}")
+    public Response deleteTrade(@NotNull @ValidId @PathParam("tradeId") Long tradeId)
+    {
+        tradeService.deleteTrade(tradeId);
+        firebaseService.pushAssets(tradeService.getBy(true, null, null, null, null, null));
+        return Response.ok().build();
     }
 
     private String formatDecimal(BigDecimal value, int maxScale)
