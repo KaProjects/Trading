@@ -52,6 +52,7 @@ test("projects prices and P/E ratios from an editable target price", () => {
     expect(screen.getByText("+100%")).toBeInTheDocument();
     expect(screen.getAllByText("+25%")).toHaveLength(2);
     expect(screen.getByText("+60%")).toBeInTheDocument();
+    expect(screen.getByText("(+400%)")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", {name: "Price"})).toBeInTheDocument();
     expect(screen.getByLabelText("Target price")).toHaveValue(100);
     expect(screen.getByLabelText("Target price").value).toBe("100.00");
@@ -95,6 +96,7 @@ test("projects prices and P/E ratios from an editable target price", () => {
     fireEvent.change(screen.getByLabelText("Past 4"), {target: {value: "31"}});
     expect(screen.getByLabelText("target ~ ttm P/E")).toHaveTextContent("5.00");
     expect(screen.getByLabelText("target ~ current P/E")).toHaveTextContent("10.00");
+    expect(screen.getByText("(+25%)")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Past 4"), {target: {value: "31,5"}});
     expect(screen.getByLabelText("Past 4")).toHaveValue("31");
     fireEvent.change(screen.getByLabelText("Past 4"), {target: {value: "31.5"}});

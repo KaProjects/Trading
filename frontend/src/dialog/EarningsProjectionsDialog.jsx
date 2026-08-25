@@ -285,6 +285,13 @@ export const EarningsProjectionsDialog = ({
             : (current / previous - 1) * 100;
         return [key, change];
     }));
+    const previousFourEarnings = baseRollingEarnings[0];
+    const nextFourEarnings = baseRollingEarnings[4];
+    const yearOverYearChange = previousFourEarnings === null
+        || nextFourEarnings === null
+        || previousFourEarnings === 0
+        ? null
+        : (nextFourEarnings / previousFourEarnings - 1) * 100;
     const allPersistedValuesValid = persistedEstimateKeys.every(key =>
         validateNumber(estimateValues[key] ?? "", false, 6, 2, true) === "");
     const persistedValuesChanged = persistedEstimateKeys.some(key =>
@@ -395,6 +402,7 @@ export const EarningsProjectionsDialog = ({
                             const rollingChange = showRollingChange
                                 ? formatPercent(rollingChanges[field.key], true, 1) || "-"
                                 : " ";
+                            const showYearOverYearChange = field.key === "next3" && !missing;
                             return (
                                 <TextField
                                 key={field.key}
@@ -413,7 +421,16 @@ export const EarningsProjectionsDialog = ({
                                     }
                                 }}
                                 error={missing}
-                                helperText={missing ? "Required" : rollingChange}
+                                helperText={missing
+                                    ? "Required"
+                                    : showYearOverYearChange
+                                        ? <>
+                                            <Box component="span" sx={{display: "block"}}>{rollingChange}</Box>
+                                            <Box component="span" sx={{display: "block", whiteSpace: "nowrap"}}>
+                                                ({formatPercent(yearOverYearChange, true, 1) || "-"})
+                                            </Box>
+                                        </>
+                                        : rollingChange}
                                 inputProps={{inputMode: "decimal"}}
                                 sx={{
                                     "& .MuiInputBase-input": {textAlign: "center", paddingBottom: "2px"},
