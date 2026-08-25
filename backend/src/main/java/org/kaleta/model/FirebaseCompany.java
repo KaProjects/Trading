@@ -43,6 +43,7 @@ public class FirebaseCompany
         public static class Info
         {
             private String current_quarter_id;
+            private String currency = "$";
             private String last_update;
             private String ticker;
         }

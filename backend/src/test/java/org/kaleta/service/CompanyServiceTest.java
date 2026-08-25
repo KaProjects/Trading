@@ -6,6 +6,8 @@ import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.kaleta.client.AlphaVantageClient;
+import org.kaleta.client.dto.AlphaVantageTicker;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.entity.CompanyWithStats;
@@ -21,6 +23,7 @@ import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.mockito.ArgumentCaptor;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -43,6 +46,8 @@ public class CompanyServiceTest
     CompanyDao companyDao;
     @InjectMock
     RecordDao recordDao;
+    @InjectMock
+    AlphaVantageClient alphaVantageClient;
 
     @Inject
     CompanyService companyService;
@@ -50,7 +55,7 @@ public class CompanyServiceTest
     @BeforeEach
     void beforeEach()
     {
-        reset(companyDao, recordDao);
+        reset(companyDao, recordDao, alphaVantageClient);
     }
 
     @Test
@@ -59,6 +64,7 @@ public class CompanyServiceTest
         CompanyWithAggregates company1 = new CompanyWithAggregates();
         company1.setId(1L);
         company1.setTicker("ZZZZ");
+        company1.setAlphaVantageTicker("ZZZZ.AMS");
         company1.setCurrency(Currency.$);
         company1.setSector(Sector.SEMICONDUCTORS);
         company1.setTotalTrades(5);
@@ -89,6 +95,7 @@ public class CompanyServiceTest
         CompanyAggregates.Company first = companies.getCompanies().get(0);
         assertThat(first.getId(), is(1L));
         assertThat(first.getTicker(), is("ZZZZ"));
+        assertThat(first.getAlphaVantageTicker(), is("ZZZZ.AMS"));
         assertThat(first.getCurrency(), is(Currency.$));
         assertThat(first.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(first.getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
@@ -122,6 +129,27 @@ public class CompanyServiceTest
         org.kaleta.model.Company company = companyService.getCompany(entity.getId());
 
         assertModelCompany(company, entity);
+    }
+
+    @Test
+    void findAlphaVantageTickers_filtersByCurrencyAndEquityAndSortsExactTickerFirst()
+            throws Exception
+    {
+        when(alphaVantageClient.searchTickers("ASML")).thenReturn(List.of(
+                new AlphaVantageTicker("ASML", "ASML ADR", "Equity", "United States",
+                        "USD", new BigDecimal("1.0000")),
+                new AlphaVantageTicker("ASME.FRK", "ASML", "Equity", "Frankfurt",
+                        "EUR", new BigDecimal("0.6000")),
+                new AlphaVantageTicker("ASML.AMS", "ASML", "Equity", "Amsterdam",
+                        "EUR", new BigDecimal("0.7000")),
+                new AlphaVantageTicker("ASMLX", "ASML Fund", "Mutual Fund", "United States",
+                        "EUR", new BigDecimal("0.9000"))));
+
+        List<AlphaVantageTicker> result = companyService.findAlphaVantageTickers(
+                "ASML", Currency.€.name());
+
+        assertThat(result.stream().map(AlphaVantageTicker::symbol).toList(),
+                is(List.of("ASML.AMS", "ASME.FRK")));
     }
 
     @Test
@@ -209,6 +237,7 @@ public class CompanyServiceTest
         dto.setId(entity.getId());
         dto.setCurrency(Currency.€.name());
         dto.setSector(Sector.SOFTWARE.toString());
+        dto.setAlphaVantageTicker("ASML.AMS");
 
         companyService.update(dto);
 
@@ -218,6 +247,7 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getId(), is(entity.getId()));
         assertThat(captor.getValue().getCurrency(), is(Currency.€));
         assertThat(captor.getValue().getSector(), is(Sector.SOFTWARE));
+        assertThat(captor.getValue().getAlphaVantageTicker(), is("ASML.AMS"));
     }
 
     @Test
@@ -288,6 +318,7 @@ public class CompanyServiceTest
         dto.setTicker("AAPL");
         dto.setCurrency(Currency.€.name());
         dto.setSector(null);
+        dto.setAlphaVantageTicker("AAPL.DEX");
 
         companyService.create(dto);
 
@@ -297,6 +328,7 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getTicker(), is("AAPL"));
         assertThat(captor.getValue().getCurrency(), is(Currency.€));
         assertThat(captor.getValue().getSector(), is(nullValue()));
+        assertThat(captor.getValue().getAlphaVantageTicker(), is("AAPL.DEX"));
     }
 
     @Test
@@ -400,6 +432,7 @@ public class CompanyServiceTest
         Company entity = new Company();
         entity.setId(1L);
         entity.setTicker(" NVDA ");
+        entity.setAlphaVantageTicker("NVDA.DEX");
         entity.setCurrency(Currency.$);
         entity.setSector(Sector.SEMICONDUCTORS);
 
@@ -407,6 +440,7 @@ public class CompanyServiceTest
 
         assertThat(company.getId(), is(1L));
         assertThat(company.getTicker(), is("NVDA"));
+        assertThat(company.getAlphaVantageTicker(), is("NVDA.DEX"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(company.getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
@@ -433,6 +467,7 @@ public class CompanyServiceTest
     {
         assertThat(actual.getId(), is(expected.getId()));
         assertThat(actual.getTicker(), is(expected.getTicker()));
+        assertThat(actual.getAlphaVantageTicker(), is(expected.getAlphaVantageTicker()));
         assertThat(actual.getCurrency(), is(expected.getCurrency()));
         assertThat(actual.getTags(), is(expected.getTags()));
         if (expected.getSector() == null) {

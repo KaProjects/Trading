@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Generator;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.EstimateImportDto;
@@ -46,6 +47,7 @@ class ImportServiceTest
         reset(companyService, periodService, firebaseService);
         company = Generator.generateCompany(100L);
         company.setTicker("NVDA");
+        company.setCurrency(Currency.$);
         period = Generator.generatePeriod(
                 company,
                 false,
@@ -59,6 +61,7 @@ class ImportServiceTest
     @Test
     void getEstimate()
     {
+        when(firebaseService.getReportingCurrency("NVDA")).thenReturn("$");
         EstimateImportDto.Quarter current = quarter("5", "2026-05-01");
         EstimateImportDto.Quarter next1 = quarter("6", "2026-08-01");
         EstimateImportDto.Quarter next3 = quarter("8", "2027-02-01");
@@ -76,6 +79,31 @@ class ImportServiceTest
         verify(firebaseService).getLatestEstimate("NVDA", "26Q2");
         verify(firebaseService).getLatestEstimate("NVDA", "26Q3");
         verify(firebaseService).getLatestEstimate("NVDA", "26Q4");
+    }
+
+    @Test
+    void getEstimate_withoutGeminiCurrencyUsesFinnhubSuggestions()
+    {
+        EstimateImportDto.Quarter current = quarter("5", "2026-05-01");
+        when(firebaseService.getLatestEstimate("NVDA", "26Q1")).thenReturn(current);
+
+        EstimateImportDto result = importService.getEstimate(company.getId(), period.getId());
+
+        assertThat(result.getCurrent(), is(current));
+        assertThat(result.getWarnings().isEmpty(), is(true));
+    }
+
+    @Test
+    void getEstimate_withMismatchedGeminiCurrencyRejectsFinnhubSuggestions()
+    {
+        when(firebaseService.getReportingCurrency("NVDA")).thenReturn("€");
+
+        EstimateImportDto result = importService.getEstimate(company.getId(), period.getId());
+
+        assertThat(result.getCurrent(), is(nullValue()));
+        assertThat(result.getWarnings(), is(java.util.List.of(
+                "Firebase/Gemini financial data for 26Q1 and NVDA was ignored because reported currency € "
+                        + "does not match the company's configured currency $")));
     }
 
     @Test

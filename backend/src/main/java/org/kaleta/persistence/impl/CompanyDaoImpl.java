@@ -82,6 +82,7 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
                 "SELECT "
                         + "c.id, "
                         + "c.ticker, "
+                        + "c.alphaVantageTicker, "
                         + "c.currency, "
                         + "c.sector, "
                         + "COALESCE(t.total_trades, 0), "
@@ -126,6 +127,7 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
                 "SELECT "
                         + "c.id, "
                         + "c.ticker, "
+                        + "c.alphaVantageTicker, "
                         + "c.currency, "
                         + "c.sector, "
                         + "p.latest_ending_month, "
@@ -154,8 +156,8 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
         for (Object[] values : result) {
             Long companyId = ((Number) values[0]).longValue();
             CompanyWithStats company = companies.computeIfAbsent(companyId, ignored -> mapCompanyWithStats(values));
-            if (values[7] != null) {
-                company.getTags().add(asString(values[7]));
+            if (values[8] != null) {
+                company.getTags().add(asString(values[8]));
             }
         }
         return List.copyOf(companies.values());
@@ -174,15 +176,16 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
         CompanyWithAggregates company = new CompanyWithAggregates();
         company.setId(((Number) values[0]).longValue());
         company.setTicker(asString(values[1]).trim());
-        company.setCurrency(Currency.valueOf(asString(values[2])));
-        if (values[3] != null) {
-            company.setSector(Sector.valueOf(asString(values[3])));
+        company.setAlphaVantageTicker(nullableString(values[2]));
+        company.setCurrency(Currency.valueOf(asString(values[3])));
+        if (values[4] != null) {
+            company.setSector(Sector.valueOf(asString(values[4])));
         }
-        company.setTotalTrades(toInt(values[4]));
-        company.setActiveTrades(toInt(values[5]));
-        company.setDividends(toInt(values[6]));
-        company.setRecords(toInt(values[7]));
-        company.setPeriods(toInt(values[8]));
+        company.setTotalTrades(toInt(values[5]));
+        company.setActiveTrades(toInt(values[6]));
+        company.setDividends(toInt(values[7]));
+        company.setRecords(toInt(values[8]));
+        company.setPeriods(toInt(values[9]));
         return company;
     }
 
@@ -191,13 +194,14 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
         CompanyWithStats company = new CompanyWithStats();
         company.setId(((Number) values[0]).longValue());
         company.setTicker(asString(values[1]).trim());
-        company.setCurrency(Currency.valueOf(asString(values[2])));
-        if (values[3] != null) {
-            company.setSector(Sector.valueOf(asString(values[3])));
+        company.setAlphaVantageTicker(nullableString(values[2]));
+        company.setCurrency(Currency.valueOf(asString(values[3])));
+        if (values[4] != null) {
+            company.setSector(Sector.valueOf(asString(values[4])));
         }
-        company.setLatestPeriodEndingMonth(toYearMonth(values[4]));
-        company.setLatestRecordDate(toDate(values[5]));
-        company.setLatestPurchaseDate(toDate(values[6]));
+        company.setLatestPeriodEndingMonth(toYearMonth(values[5]));
+        company.setLatestRecordDate(toDate(values[6]));
+        company.setLatestPurchaseDate(toDate(values[7]));
         return company;
     }
 
@@ -209,6 +213,11 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
     private String asString(Object value)
     {
         return String.valueOf(value);
+    }
+
+    private String nullableString(Object value)
+    {
+        return value == null ? null : asString(value).trim();
     }
 
     private Date toDate(Object value)

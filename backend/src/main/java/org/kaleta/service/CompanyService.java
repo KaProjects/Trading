@@ -4,6 +4,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import jakarta.transaction.Transactional;
+import org.kaleta.client.AlphaVantageClient;
+import org.kaleta.client.RequestFailureException;
+import org.kaleta.client.dto.AlphaVantageTicker;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
@@ -36,6 +39,34 @@ public class CompanyService
 
     @Inject
     CompanyDao companyDao;
+    @Inject
+    AlphaVantageClient alphaVantageClient;
+
+    public List<AlphaVantageTicker> findAlphaVantageTickers(String ticker, String currency)
+    {
+        Currency expectedCurrency = Currency.valueOf(currency);
+        try {
+            return alphaVantageClient.searchTickers(ticker).stream()
+                    .filter(candidate -> "Equity".equalsIgnoreCase(candidate.type()))
+                    .filter(candidate -> expectedCurrency.getIsoCode().equalsIgnoreCase(candidate.currency()))
+                    .sorted(Comparator
+                            .comparingInt((AlphaVantageTicker candidate) ->
+                                    baseSymbol(candidate.symbol()).equalsIgnoreCase(ticker) ? 0 : 1)
+                            .thenComparing(
+                                    AlphaVantageTicker::matchScore,
+                                    Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(AlphaVantageTicker::symbol))
+                    .toList();
+        } catch (RequestFailureException exception) {
+            throw new InvalidInputException("Alpha Vantage ticker search failed: " + exception.getMessage());
+        }
+    }
+
+    private static String baseSymbol(String symbol)
+    {
+        int suffix = symbol.indexOf('.');
+        return suffix < 0 ? symbol : symbol.substring(0, suffix);
+    }
 
     public CompanyAggregates getCompaniesWithAggregates(String currency, String sector)
     {
@@ -110,6 +141,7 @@ public class CompanyService
 
         company.setCurrency(Currency.valueOf(dto.getCurrency()));
         company.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
+        company.setAlphaVantageTicker(dto.getAlphaVantageTicker());
 
         companyDao.save(company);
     }
@@ -123,6 +155,7 @@ public class CompanyService
 
         Company newCompany = new Company();
         newCompany.setTicker(dto.getTicker());
+        newCompany.setAlphaVantageTicker(dto.getAlphaVantageTicker());
         newCompany.setCurrency(Currency.valueOf(dto.getCurrency()));
         newCompany.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
 
@@ -171,6 +204,7 @@ public class CompanyService
         org.kaleta.model.Company company = new org.kaleta.model.Company();
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
+        company.setAlphaVantageTicker(entity.getAlphaVantageTicker());
         company.setCurrency(entity.getCurrency());
         company.setTags(new ArrayList<>(entity.getTags()));
         if (entity.getSector() != null) {
@@ -184,6 +218,7 @@ public class CompanyService
         CompanyAggregates.Company company = new CompanyAggregates.Company();
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
+        company.setAlphaVantageTicker(entity.getAlphaVantageTicker());
         company.setCurrency(entity.getCurrency());
         if (entity.getSector() != null) {
             company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));

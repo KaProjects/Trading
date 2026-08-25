@@ -64,6 +64,16 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public Optional<FirebaseCompany.Gemini.Info> findGeminiInfo(String ticker)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getGemini() == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(company.getGemini().getInfo());
+    }
+
+    @Override
     public Optional<FirebaseCompany.Gemini.Quarter> findQuarter(String ticker, String quarterId)
     {
         FirebaseCompany company = companies.get(ticker);

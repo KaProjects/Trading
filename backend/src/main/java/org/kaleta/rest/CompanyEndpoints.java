@@ -20,6 +20,7 @@ import jakarta.ws.rs.core.Response;
 import org.kaleta.model.Company;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.model.Trades;
+import org.kaleta.client.dto.AlphaVantageTicker;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Portfolio;
@@ -107,6 +108,18 @@ public class CompanyEndpoints
         }));
 
         return dto;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/alpha-vantage/tickers")
+    public List<AlphaVantageTicker> getAlphaVantageTickers(
+            @NotNull @org.kaleta.rest.validation.ValidTicker
+            @QueryParam("ticker") String ticker,
+            @NotNull @ValueOfEnum(enumClass = Currency.class)
+            @QueryParam("currency") String currency)
+    {
+        return companyService.findAlphaVantageTickers(ticker, currency);
     }
 
     @PUT

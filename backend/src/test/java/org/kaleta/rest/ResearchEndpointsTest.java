@@ -248,6 +248,7 @@ public class ResearchEndpointsTest
     {
         Long companyId = 2281L;
         PeriodImportDto firebaseData = firebaseData();
+        when(firebaseService.getReportingCurrency("RCH")).thenReturn("$");
         when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData);
         when(firebaseService.getLatestActualEps("RCH", "25Q2")).thenReturn("1.27");
         when(polygonClient.getFinancials("RCH", "2025", "Q2")).thenReturn(Optional.of(
@@ -256,22 +257,26 @@ public class ResearchEndpointsTest
                         new BigDecimal("20000000"),
                         new BigDecimal("30000000"),
                         new BigDecimal("40000000"),
-                        new BigDecimal("50000000"))));
+                        new BigDecimal("50000000"),
+                        "USD")));
         when(polygonClient.getPriceRange("RCH", "2025-05-28", "2025-08-27"))
                 .thenReturn(Optional.of(new PolygonPriceRange(
                         new BigDecimal("140.25"),
-                        new BigDecimal("90.75"))));
+                        new BigDecimal("90.75"),
+                        "USD")));
         when(alphaVantageClient.getIncomeStatement("RCH", "25Q2", "2025-07"))
                 .thenReturn(Optional.of(new AlphaVantageIncomeStatement(
                         new BigDecimal("21000000"),
                         new BigDecimal("31000000"),
                         new BigDecimal("41000000"),
-                        new BigDecimal("51000000"))));
+                        new BigDecimal("51000000"),
+                        "USD")));
         when(alphaVantageClient.getCashFlow("RCH", "25Q2", "2025-07"))
                 .thenReturn(Optional.of(new AlphaVantageCashFlow(
                         new BigDecimal("7000000"),
                         new BigDecimal("12000000"),
-                        new BigDecimal("22000000"))));
+                        new BigDecimal("22000000"),
+                        "USD")));
 
         PeriodImportDataDto dto = given().when()
                 .get("/research/" + companyId + "/import/period/25Q2")
@@ -316,6 +321,224 @@ public class ResearchEndpointsTest
     }
 
     @Test
+    void importPeriod_withMismatchedGeminiCurrencyRejectsFirebaseAndFinnhubFinancials()
+    {
+        Long companyId = 2281L;
+        when(firebaseService.getReportingCurrency("RCH")).thenReturn("€");
+        when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData());
+        when(firebaseService.getLatestActualEps("RCH", "25Q2")).thenReturn("1.27");
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(PeriodImportDataDto.class);
+
+        assertThat(dto.getName(), is("25Q2"));
+        assertThat(dto.getEndingMonth(), is("2025-07"));
+        assertThat(dto.getFirebase().getRevenue(), is(nullValue()));
+        assertThat(dto.getFirebase().getAdjustedEps(), is(nullValue()));
+        assertThat(dto.getPolygon().getAdjustedEps(), is(nullValue()));
+        assertThat(dto.getWarnings(), is(List.of(
+                "Firebase/Gemini financial data for 25Q2 and RCH was ignored because reported currency € "
+                        + "does not match the company's configured currency $")));
+        verify(firebaseService, never()).getLatestActualEps("RCH", "25Q2");
+    }
+
+    @Test
+    void importPeriod_acceptsPolygonFinancialsButRejectsUsdPricesForNonUsdCompany()
+            throws RequestFailureException
+    {
+        Long companyId = 1425L;
+        when(firebaseService.getPeriod("SHELL", "25Q2")).thenReturn(firebaseData());
+        when(polygonClient.getFinancials("SHELL", "2025", "Q2")).thenReturn(Optional.of(
+                new PolygonFinancials(
+                        new BigDecimal("10000000"),
+                        new BigDecimal("20000000"),
+                        new BigDecimal("30000000"),
+                        new BigDecimal("40000000"),
+                        new BigDecimal("50000000"),
+                        "EUR")));
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(PeriodImportDataDto.class);
+
+        assertThat(dto.getPolygon().getShares(), is("10"));
+        assertThat(dto.getPolygon().getRevenue(), is("20"));
+        assertThat(dto.getPolygon().getNetIncome(), is("50"));
+        assertThat(dto.getPolygon().getPriceHigh(), is(nullValue()));
+        assertThat(dto.getPolygon().getPriceLow(), is(nullValue()));
+        assertThat(dto.getWarnings(), is(List.of(
+                "Polygon.io price data for SHELL was ignored because reported currency USD "
+                        + "does not match the company's configured currency EUR")));
+        verify(polygonClient, never()).getPriceRange("SHELL", "2025-05-28", "2025-08-27");
+    }
+
+    @Test
+    void importPeriod_ignoresPolygonSuggestionsInDifferentCurrency() throws RequestFailureException
+    {
+        Long companyId = 2281L;
+        when(firebaseService.getPeriod("RCH", "25Q2")).thenReturn(firebaseData());
+        when(polygonClient.getFinancials("RCH", "2025", "Q2")).thenReturn(Optional.of(
+                new PolygonFinancials(
+                        new BigDecimal("10000000"),
+                        new BigDecimal("20000000"),
+                        new BigDecimal("30000000"),
+                        new BigDecimal("40000000"),
+                        new BigDecimal("50000000"),
+                        "EUR")));
+        when(polygonClient.getPriceRange("RCH", "2025-05-28", "2025-08-27"))
+                .thenReturn(Optional.of(new PolygonPriceRange(
+                        new BigDecimal("140.25"),
+                        new BigDecimal("90.75"),
+                        "EUR")));
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(PeriodImportDataDto.class);
+
+        assertThat(dto.getPolygon().getShares(), is(nullValue()));
+        assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
+        assertThat(dto.getPolygon().getNetIncome(), is(nullValue()));
+        assertThat(dto.getPolygon().getPriceHigh(), is(nullValue()));
+        assertThat(dto.getPolygon().getPriceLow(), is(nullValue()));
+        assertThat(dto.getWarnings(), containsInAnyOrder(
+                "Polygon.io financial data for 25Q2 and RCH was ignored because reported currency EUR "
+                        + "does not match the company's configured currency USD",
+                "Polygon.io price data for RCH was ignored because reported currency EUR "
+                        + "does not match the company's configured currency USD"));
+    }
+
+    @Test
+    void importPeriod_ignoresPolygonSuggestionsWithoutCurrency() throws RequestFailureException
+    {
+        Long companyId = 2281L;
+        when(polygonClient.getFinancials("RCH", "2025", "Q2")).thenReturn(Optional.of(
+                new PolygonFinancials(
+                        new BigDecimal("10000000"),
+                        new BigDecimal("20000000"),
+                        new BigDecimal("30000000"),
+                        new BigDecimal("40000000"),
+                        new BigDecimal("50000000"),
+                        null)));
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(PeriodImportDataDto.class);
+
+        assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
+        assertThat(dto.getWarnings(), is(List.of(
+                "Polygon.io financial data for 25Q2 and RCH was ignored because Polygon.io did not provide "
+                        + "its reported currency; expected USD")));
+    }
+
+    @Test
+    void importPeriod_acceptsAlphaVantageSuggestionsInCompanyCurrency() throws RequestFailureException
+    {
+        Long companyId = 1425L;
+        when(alphaVantageClient.getIncomeStatement("SHELL", "25Q2", "2025-07"))
+                .thenReturn(Optional.of(new AlphaVantageIncomeStatement(
+                        new BigDecimal("21000000"),
+                        new BigDecimal("31000000"),
+                        new BigDecimal("41000000"),
+                        new BigDecimal("51000000"),
+                        "EUR")));
+        when(alphaVantageClient.getCashFlow("SHELL", "25Q2", "2025-07"))
+                .thenReturn(Optional.of(new AlphaVantageCashFlow(
+                        new BigDecimal("7000000"),
+                        new BigDecimal("12000000"),
+                        new BigDecimal("22000000"),
+                        "EUR")));
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2?endingMonth=2025-07")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(PeriodImportDataDto.class);
+
+        assertThat(dto.getAlphaVantage().getRevenue(), is("21"));
+        assertThat(dto.getAlphaVantage().getNetIncome(), is("51"));
+        assertThat(dto.getAlphaVantage().getDividend(), is("7"));
+        assertThat(dto.getAlphaVantage().getCapex(), is("12"));
+        assertThat(dto.getAlphaVantage().getFreeCashFlow(), is("22"));
+        assertThat(dto.getWarnings(), is(List.of()));
+    }
+
+    @Test
+    void importPeriod_ignoresAlphaVantageSuggestionsInDifferentCurrency() throws RequestFailureException
+    {
+        Long companyId = 2281L;
+        when(alphaVantageClient.getIncomeStatement("RCH", "25Q2", "2025-07"))
+                .thenReturn(Optional.of(new AlphaVantageIncomeStatement(
+                        new BigDecimal("21000000"),
+                        new BigDecimal("31000000"),
+                        new BigDecimal("41000000"),
+                        new BigDecimal("51000000"),
+                        "EUR")));
+        when(alphaVantageClient.getCashFlow("RCH", "25Q2", "2025-07"))
+                .thenReturn(Optional.of(new AlphaVantageCashFlow(
+                        new BigDecimal("7000000"),
+                        new BigDecimal("12000000"),
+                        new BigDecimal("22000000"),
+                        "EUR")));
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2?endingMonth=2025-07")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(PeriodImportDataDto.class);
+
+        assertThat(dto.getAlphaVantage().getRevenue(), is(nullValue()));
+        assertThat(dto.getAlphaVantage().getNetIncome(), is(nullValue()));
+        assertThat(dto.getAlphaVantage().getDividend(), is(nullValue()));
+        assertThat(dto.getAlphaVantage().getCapex(), is(nullValue()));
+        assertThat(dto.getAlphaVantage().getFreeCashFlow(), is(nullValue()));
+        assertThat(dto.getWarnings(), containsInAnyOrder(
+                "Alpha Vantage income statement for 25Q2 and RCH was ignored because reported currency EUR "
+                        + "does not match the company's configured currency USD",
+                "Alpha Vantage cash flow for 25Q2 and RCH was ignored because reported currency EUR "
+                        + "does not match the company's configured currency USD"));
+    }
+
+    @Test
+    void importPeriod_ignoresAlphaVantageSuggestionsWithoutCurrency() throws RequestFailureException
+    {
+        Long companyId = 2281L;
+        when(alphaVantageClient.getIncomeStatement("RCH", "25Q2", "2025-07"))
+                .thenReturn(Optional.of(new AlphaVantageIncomeStatement(
+                        new BigDecimal("21000000"),
+                        new BigDecimal("31000000"),
+                        new BigDecimal("41000000"),
+                        new BigDecimal("51000000"),
+                        null)));
+
+        PeriodImportDataDto dto = given().when()
+                .get("/research/" + companyId + "/import/period/25Q2?endingMonth=2025-07")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(PeriodImportDataDto.class);
+
+        assertThat(dto.getAlphaVantage().getRevenue(), is(nullValue()));
+        assertThat(dto.getWarnings(), is(List.of(
+                "Alpha Vantage income statement for 25Q2 and RCH was ignored because Alpha Vantage did not "
+                        + "provide its reported currency; expected USD")));
+    }
+
+    @Test
     void importPeriod_sourceFailureReturnsAvailableSuggestionsWithWarnings() throws RequestFailureException
     {
         Long companyId = 2281L;
@@ -327,14 +550,16 @@ public class ResearchEndpointsTest
         when(polygonClient.getPriceRange("RCH", "2025-05-28", "2025-08-27"))
                 .thenReturn(Optional.of(new PolygonPriceRange(
                         new BigDecimal("140.25"),
-                        new BigDecimal("90.75"))));
+                        new BigDecimal("90.75"),
+                        "USD")));
         when(alphaVantageClient.getIncomeStatement("RCH", "25Q2", "2025-07"))
                 .thenThrow(new RequestFailureException("daily limit reached"));
         when(alphaVantageClient.getCashFlow("RCH", "25Q2", "2025-07"))
                 .thenReturn(Optional.of(new AlphaVantageCashFlow(
                         new BigDecimal("7000000"),
                         new BigDecimal("12000000"),
-                        new BigDecimal("22000000"))));
+                        new BigDecimal("22000000"),
+                        "USD")));
 
         PeriodImportDataDto dto = given().when()
                 .get("/research/" + companyId + "/import/period/25Q2")
@@ -367,18 +592,21 @@ public class ResearchEndpointsTest
                         new BigDecimal("20000000"),
                         null,
                         null,
-                        null)));
+                        null,
+                        "USD")));
         when(alphaVantageClient.getCashFlow("RCH", "25Q2", "2025-07"))
                 .thenReturn(Optional.of(new AlphaVantageCashFlow(
                         new BigDecimal("7000000"),
                         new BigDecimal("12000000"),
-                        new BigDecimal("22000000"))));
+                        new BigDecimal("22000000"),
+                        "USD")));
         when(alphaVantageClient.getIncomeStatement("RCH", "25Q2", "2025-07"))
                 .thenReturn(Optional.of(new AlphaVantageIncomeStatement(
                         new BigDecimal("21000000"),
                         new BigDecimal("31000000"),
                         new BigDecimal("41000000"),
-                        new BigDecimal("51000000"))));
+                        new BigDecimal("51000000"),
+                        "USD")));
         when(firebaseService.getLatestActualEps("RCH", "25Q2")).thenReturn("1.27");
 
         PeriodImportDataDto dto = given().when()

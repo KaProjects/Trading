@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 public record AlphaVantageCashFlow(
         BigDecimal dividend,
         BigDecimal capex,
-        BigDecimal freeCashFlow)
+        BigDecimal freeCashFlow,
+        String reportedCurrency)
 {
 }

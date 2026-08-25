@@ -30,6 +30,7 @@ public class CompanyAggregates
         {
             this.setId(company.getId());
             this.setTicker(company.getTicker());
+            this.setAlphaVantageTicker(company.getAlphaVantageTicker());
             this.setCurrency(company.getCurrency());
             this.setSector(company.getSector());
         }

@@ -22,7 +22,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 @ApplicationScoped
 @IfBuildProperty(name = "polygon.mode", stringValue = "real", enableIfMissing = true)
@@ -62,11 +65,13 @@ public class ProductionPolygonClient implements PolygonClient
         if (timeframe != null) endpoint.append("&timeframe=").append(timeframe);
 
         FinancialsResponse response = get(URI.create(endpoint.toString()), FinancialsResponse.class);
-        return optionalList(response.results()).stream()
+        Optional<FinancialResult> matchingResult = optionalList(response.results()).stream()
                 .filter(result -> fiscalYear.equals(result.fiscalYear())
                         && fiscalPeriod.equals(result.fiscalPeriod()))
-                .findFirst()
-                .map(ProductionPolygonClient::toFinancials);
+                .findFirst();
+        return matchingResult.isEmpty()
+                ? Optional.empty()
+                : Optional.of(toFinancials(matchingResult.get()));
     }
 
     @Override
@@ -94,7 +99,8 @@ public class ProductionPolygonClient implements PolygonClient
                 .min(Comparator.naturalOrder())
                 .orElse(null);
         if (high == null && low == null) return Optional.empty();
-        return Optional.of(new PolygonPriceRange(high, low));
+
+        return Optional.of(new PolygonPriceRange(high, low, "USD"));
     }
 
     private <T> T get(URI uri, Class<T> responseType) throws RequestFailureException
@@ -132,7 +138,7 @@ public class ProductionPolygonClient implements PolygonClient
         return reason == null || reason.isBlank() ? message : message + ": " + reason;
     }
 
-    private static PolygonFinancials toFinancials(FinancialResult result)
+    private static PolygonFinancials toFinancials(FinancialResult result) throws RequestFailureException
     {
         IncomeStatement statement = result.financials() == null
                 ? null
@@ -142,12 +148,46 @@ public class ProductionPolygonClient implements PolygonClient
                 value(statement == null ? null : statement.revenues()),
                 value(statement == null ? null : statement.grossProfit()),
                 value(statement == null ? null : statement.operatingIncomeLoss()),
-                value(statement == null ? null : statement.netIncomeLoss()));
+                value(statement == null ? null : statement.netIncomeLoss()),
+                reportedCurrency(statement));
+    }
+
+    private static String reportedCurrency(IncomeStatement statement) throws RequestFailureException
+    {
+        if (statement == null) return null;
+
+        Set<String> currencies = new TreeSet<>();
+        Metric[] monetaryMetrics = {
+                statement.revenues(),
+                statement.grossProfit(),
+                statement.operatingIncomeLoss(),
+                statement.netIncomeLoss()
+        };
+        for (Metric metric : monetaryMetrics) {
+            if (metric == null || metric.value() == null) continue;
+            String currency = normalizeCurrency(metric.unit());
+            if (currency == null) return null;
+            currencies.add(currency);
+        }
+
+        if (currencies.size() > 1) {
+            throw new RequestFailureException(
+                    "Polygon.io financial metrics use inconsistent currencies: "
+                            + String.join(", ", currencies));
+        }
+        return currencies.stream().findFirst().orElse(null);
     }
 
     private static BigDecimal value(Metric metric)
     {
         return metric == null ? null : metric.value();
+    }
+
+    private static String normalizeCurrency(String currency)
+    {
+        return currency == null || currency.isBlank()
+                ? null
+                : currency.trim().toUpperCase(Locale.ROOT);
     }
 
     private static String encode(String value)
@@ -195,7 +235,7 @@ public class ProductionPolygonClient implements PolygonClient
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     @RegisterForReflection
-    private record Metric(BigDecimal value)
+    private record Metric(BigDecimal value, String unit)
     {
     }
 
@@ -212,4 +252,5 @@ public class ProductionPolygonClient implements PolygonClient
             @JsonProperty("l") BigDecimal low)
     {
     }
+
 }

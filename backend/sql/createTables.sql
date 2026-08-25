@@ -11,10 +11,11 @@ DROP TABLE IF EXISTS Company;
 
 CREATE TABLE Company
 (
-    id       INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    ticker   CHAR(5)     NOT NULL,
-    currency CHAR(1)     NOT NULL,
-    sector   VARCHAR(30)
+    id                   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    ticker               CHAR(5)      NOT NULL,
+    alphaVantageTicker   VARCHAR(30),
+    currency             CHAR(1)      NOT NULL,
+    sector               VARCHAR(30)
 );
 CREATE TABLE Dividend
 (

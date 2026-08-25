@@ -8,6 +8,8 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.AlphaVantageCashFlow;
 import org.kaleta.client.dto.AlphaVantageIncomeStatement;
+import org.kaleta.client.dto.AlphaVantageQuote;
+import org.kaleta.client.dto.AlphaVantageTicker;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -21,6 +23,8 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -82,7 +86,8 @@ public class ProductionAlphaVantageClient implements AlphaVantageClient
                 decimal(value, "totalRevenue"),
                 decimal(value, "grossProfit"),
                 decimal(value, "operatingIncome"),
-                decimal(value, "netIncome")));
+                decimal(value, "netIncome"),
+                value.path("reportedCurrency").asText(null)));
     }
 
     @Override
@@ -105,7 +110,48 @@ public class ProductionAlphaVantageClient implements AlphaVantageClient
         return Optional.of(new AlphaVantageCashFlow(
                 dividend == null ? null : dividend.abs(),
                 capex,
-                freeCashFlow));
+                freeCashFlow,
+                value.path("reportedCurrency").asText(null)));
+    }
+
+    @Override
+    public List<AlphaVantageTicker> searchTickers(String ticker) throws RequestFailureException
+    {
+        JsonNode matches = get("SYMBOL_SEARCH", "keywords", ticker).path("bestMatches");
+        if (!matches.isArray()) return List.of();
+
+        List<AlphaVantageTicker> result = new ArrayList<>();
+        for (JsonNode match : matches) {
+            String symbol = text(match, "1. symbol");
+            if (symbol == null) continue;
+            result.add(new AlphaVantageTicker(
+                    symbol,
+                    text(match, "2. name"),
+                    text(match, "3. type"),
+                    text(match, "4. region"),
+                    text(match, "8. currency"),
+                    optionalDecimal(match, "9. matchScore")));
+        }
+        return List.copyOf(result);
+    }
+
+    @Override
+    public Optional<AlphaVantageQuote> getQuote(String ticker) throws RequestFailureException
+    {
+        JsonNode quote = get("GLOBAL_QUOTE", ticker).path("Global Quote");
+        if (!quote.isObject() || quote.isEmpty()) return Optional.empty();
+
+        BigDecimal price = decimal(quote, "05. price");
+        String dateValue = text(quote, "07. latest trading day");
+        if (price == null || dateValue == null || price.signum() <= 0) return Optional.empty();
+
+        try {
+            return Optional.of(new AlphaVantageQuote(price, LocalDate.parse(dateValue)));
+        } catch (DateTimeParseException exception) {
+            throw new RequestFailureException(
+                    "Alpha Vantage returned invalid latest trading day '" + dateValue + "'",
+                    exception);
+        }
     }
 
     private Optional<JsonNode> getReport(
@@ -144,9 +190,15 @@ public class ProductionAlphaVantageClient implements AlphaVantageClient
 
     private JsonNode get(String function, String ticker) throws RequestFailureException
     {
+        return get(function, "symbol", ticker);
+    }
+
+    private JsonNode get(String function, String argumentName, String argumentValue)
+            throws RequestFailureException
+    {
         URI uri = URI.create(apiUrl
                 + "?function=" + encode(function)
-                + "&symbol=" + encode(ticker)
+                + "&" + encode(argumentName) + "=" + encode(argumentValue)
                 + "&apikey=" + encode(apiKey));
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(15))
@@ -235,6 +287,23 @@ public class ProductionAlphaVantageClient implements AlphaVantageClient
                     "Alpha Vantage returned invalid value '" + value + "' for " + field,
                     exception);
         }
+    }
+
+    private static BigDecimal optionalDecimal(JsonNode value, String field)
+    {
+        String text = text(value, field);
+        if (text == null) return null;
+        try {
+            return new BigDecimal(text);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static String text(JsonNode value, String field)
+    {
+        String text = value.path(field).asText(null);
+        return text == null || text.isBlank() ? null : text;
     }
 
     private static BigDecimal normalizeCapex(BigDecimal capex)

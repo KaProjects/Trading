@@ -57,6 +57,7 @@ function createProps(overrides = {}) {
 
 describe("EditCompanyDialog", () => {
     beforeEach(() => {
+        axios.get.mockReset();
         axios.post.mockReset();
         axios.put.mockReset();
         mockFormatError.mockClear();
@@ -79,6 +80,7 @@ describe("EditCompanyDialog", () => {
         await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/company", {
             ticker: "NVDA",
             currency: "€",
+            alphaVantageTicker: null,
             sector: "SEMICONDUCTORS",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
@@ -107,9 +109,54 @@ describe("EditCompanyDialog", () => {
             id: "company-1",
             ticker: "NVDA",
             currency: "$",
+            alphaVantageTicker: null,
             sector: "SEMICONDUCTORS",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.setOpenEditCompany).toHaveBeenCalledWith(null);
+    });
+
+    test("searches and selects a currency-matching Alpha Vantage ticker", async () => {
+        axios.get.mockResolvedValue({
+            data: [
+                {
+                    symbol: "ASML.AMS",
+                    name: "ASML Holding N.V.",
+                    region: "Amsterdam",
+                    currency: "EUR",
+                },
+                {
+                    symbol: "ASME.FRK",
+                    name: "ASML Holding NV",
+                    region: "Frankfurt",
+                    currency: "EUR",
+                },
+            ],
+        });
+        axios.post.mockResolvedValue({});
+
+        const props = createProps({openEditCompany: {}});
+        render(<EditCompanyDialog {...props}/>);
+
+        fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "ASML"}});
+        selectOption(0, "€");
+        fireEvent.click(screen.getByRole("button", {name: "Find Alpha Vantage tickers"}));
+
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
+            "/api/company/alpha-vantage/tickers",
+            {params: {ticker: "ASML", currency: "€"}}
+        ));
+
+        fireEvent.mouseDown(screen.getByLabelText("Alpha Vantage ticker"));
+        fireEvent.click(screen.getByRole("option", {
+            name: "ASML.AMS — ASML Holding N.V. (Amsterdam)",
+        }));
+        fireEvent.click(screen.getByText("Create"));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/company", {
+            ticker: "ASML",
+            currency: "€",
+            alphaVantageTicker: "ASML.AMS",
+        }));
     });
 });

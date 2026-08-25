@@ -1,6 +1,7 @@
 INSERT INTO Company (id, ticker, currency, sector) VALUES (2213, 'NVDA', '$', 'HARDWARE');
 INSERT INTO Company (id, ticker, currency, sector) VALUES (2212, 'AMD', '$', 'HARDWARE');
 INSERT INTO Company (id, ticker, currency, sector) VALUES (2214, 'INTC', '$', 'HARDWARE');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2301, 'ASML', '€', 'HARDWARE');
 INSERT INTO Company (id, ticker, currency, sector) VALUES (2073, 'AA', '€', 'SOFTWARE');
 INSERT INTO Company (id, ticker, currency, sector) VALUES (1873, 'BBC', '$', 'FINANCE');
 INSERT INTO Company (id, ticker, currency, sector) VALUES (1240, 'CX', 'K', 'ETF');

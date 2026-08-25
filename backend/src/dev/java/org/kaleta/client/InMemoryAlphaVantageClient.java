@@ -8,12 +8,16 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.AlphaVantageCashFlow;
 import org.kaleta.client.dto.AlphaVantageIncomeStatement;
+import org.kaleta.client.dto.AlphaVantageQuote;
+import org.kaleta.client.dto.AlphaVantageTicker;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -26,6 +30,8 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
 {
     private final Map<String, Map<String, IncomeStatementEntry>> incomeStatements;
     private final Map<String, Map<String, CashFlowEntry>> cashFlows;
+    private final Map<String, List<AlphaVantageTicker>> tickerSearches;
+    private final Map<String, QuoteEntry> quotes;
 
     @Inject
     public InMemoryAlphaVantageClient(
@@ -35,6 +41,8 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
         AlphaVantageData data = load(objectMapper, dataFile);
         this.incomeStatements = data.incomeStatements() == null ? Map.of() : data.incomeStatements();
         this.cashFlows = data.cashFlows() == null ? Map.of() : data.cashFlows();
+        this.tickerSearches = data.tickerSearches() == null ? Map.of() : data.tickerSearches();
+        this.quotes = data.quotes() == null ? Map.of() : data.quotes();
     }
 
     @Override
@@ -63,6 +71,19 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
         return Optional.of(entry.toDto());
     }
 
+    @Override
+    public List<AlphaVantageTicker> searchTickers(String ticker)
+    {
+        return List.copyOf(tickerSearches.getOrDefault(normalize(ticker), List.of()));
+    }
+
+    @Override
+    public Optional<AlphaVantageQuote> getQuote(String ticker)
+    {
+        QuoteEntry quote = quotes.get(normalize(ticker));
+        return quote == null ? Optional.empty() : Optional.of(quote.toDto());
+    }
+
     private AlphaVantageData load(ObjectMapper objectMapper, String dataFile)
     {
         Path path = Path.of(dataFile).toAbsolutePath().normalize();
@@ -82,7 +103,9 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
 
     private record AlphaVantageData(
             Map<String, Map<String, IncomeStatementEntry>> incomeStatements,
-            Map<String, Map<String, CashFlowEntry>> cashFlows)
+            Map<String, Map<String, CashFlowEntry>> cashFlows,
+            Map<String, List<AlphaVantageTicker>> tickerSearches,
+            Map<String, QuoteEntry> quotes)
     {
     }
 
@@ -91,11 +114,17 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
             BigDecimal revenue,
             BigDecimal grossProfit,
             BigDecimal operatingIncome,
-            BigDecimal netIncome)
+            BigDecimal netIncome,
+            String reportedCurrency)
     {
         private AlphaVantageIncomeStatement toDto()
         {
-            return new AlphaVantageIncomeStatement(revenue, grossProfit, operatingIncome, netIncome);
+            return new AlphaVantageIncomeStatement(
+                    revenue,
+                    grossProfit,
+                    operatingIncome,
+                    netIncome,
+                    reportedCurrency);
         }
     }
 
@@ -103,11 +132,20 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
             String endingMonth,
             BigDecimal dividend,
             BigDecimal capex,
-            BigDecimal freeCashFlow)
+            BigDecimal freeCashFlow,
+            String reportedCurrency)
     {
         private AlphaVantageCashFlow toDto()
         {
-            return new AlphaVantageCashFlow(dividend, capex, freeCashFlow);
+            return new AlphaVantageCashFlow(dividend, capex, freeCashFlow, reportedCurrency);
+        }
+    }
+
+    private record QuoteEntry(BigDecimal price, String date)
+    {
+        private AlphaVantageQuote toDto()
+        {
+            return new AlphaVantageQuote(price, LocalDate.parse(date));
         }
     }
 }

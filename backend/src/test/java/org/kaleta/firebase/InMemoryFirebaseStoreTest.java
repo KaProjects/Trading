@@ -109,6 +109,13 @@ class InMemoryFirebaseStoreTest
     }
 
     @Test
+    void readsGeminiReportingCurrency()
+    {
+        assertThat(firebaseService.getReportingCurrency("NVDA"), is("$"));
+        assertThat(firebaseService.getReportingCurrency("AMD"), is(nullValue()));
+    }
+
+    @Test
     void readsTargetsIncludingNestedReport()
     {
         FirebaseService.TargetsResult result = firebaseService.getTargets("NVDA");

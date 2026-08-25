@@ -2,6 +2,12 @@
   "company": {
     "NVDA": {
       "gemini": {
+        "info": {
+          "ticker": "NVDA",
+          "currency": "$",
+          "last_update": "2026-08-25",
+          "current_quarter_id": "25Q2"
+        },
         "targets": {
           "2026-07-24-test": {
             "date": "2026-07-24",

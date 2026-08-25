@@ -10,6 +10,7 @@ import org.kaleta.client.dto.AlphaVantageIncomeStatement;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonPriceRange;
 import org.kaleta.model.Company;
+import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodType;
 import org.kaleta.rest.dto.EstimateImportDto;
@@ -55,20 +56,29 @@ public class ImportService
         Company company = companyService.getCompany(companyId);
         String ticker = company.getTicker();
         PeriodImportDataDto result = new PeriodImportDataDto();
+        String firebaseCurrency = loadFirebaseCurrency(result.getWarnings(), ticker);
+        boolean useFirebaseFinancials = hasMatchingFirebaseCurrency(
+                result.getWarnings(), ticker, quarterId, firebaseCurrency, company.getCurrency());
         PeriodImportDto firebaseData = loadFirebasePeriod(result, ticker, quarterId);
         if (firebaseData != null) {
-            populatePeriodData(result, firebaseData);
+            populatePeriodMetadata(result, firebaseData);
+            if (useFirebaseFinancials) {
+                populateFirebaseFinancials(result, firebaseData);
+            }
             if (endingMonth == null || endingMonth.isBlank()) {
                 endingMonth = firebaseData.getEndingMonth();
             }
         }
-        loadAlphaVantageData(result, ticker, quarterId, endingMonth);
+        Currency companyCurrency = company.getCurrency();
+        loadAlphaVantageData(result, ticker, companyCurrency, quarterId, endingMonth);
 
-        loadPolygonFinancials(result, ticker, quarterId);
+        loadPolygonFinancials(result, ticker, companyCurrency, quarterId);
         if (firebaseData != null) {
-            loadPolygonPrices(result, ticker, firebaseData);
+            loadPolygonPrices(result, ticker, companyCurrency, firebaseData);
         }
-        loadExternalAdjustedEps(result, ticker, quarterId);
+        if (useFirebaseFinancials) {
+            loadExternalAdjustedEps(result, ticker, quarterId);
+        }
         return result;
     }
 
@@ -87,6 +97,11 @@ public class ImportService
         String ticker = company.getTicker();
         String currentQuarter = period.getName().toString();
         EstimateImportDto result = new EstimateImportDto();
+        String firebaseCurrency = loadFirebaseCurrency(result.getWarnings(), ticker);
+        if (!hasMatchingFirebaseCurrency(
+                result.getWarnings(), ticker, currentQuarter, firebaseCurrency, company.getCurrency())) {
+            return result;
+        }
         result.setCurrent(getEstimate(result, ticker, currentQuarter, 0));
         result.setNext1(getEstimate(result, ticker, currentQuarter, 1));
         result.setNext2(getEstimate(result, ticker, currentQuarter, 2));
@@ -120,13 +135,16 @@ public class ImportService
                 || periodType == PeriodType.Q4;
     }
 
-    private void populatePeriodData(PeriodImportDataDto result, PeriodImportDto firebaseData)
+    private void populatePeriodMetadata(PeriodImportDataDto result, PeriodImportDto firebaseData)
     {
         result.setName(firebaseData.getName());
         result.setEndingMonth(firebaseData.getEndingMonth());
         result.setReportDate(firebaseData.getReportDate());
         result.setIsReported(firebaseData.getIsReported());
+    }
 
+    private void populateFirebaseFinancials(PeriodImportDataDto result, PeriodImportDto firebaseData)
+    {
         PeriodImportDataDto.Source firebase = result.getFirebase();
         firebase.setShares(firebaseData.getShares());
         firebase.setPriceLow(firebaseData.getPriceLow());
@@ -139,6 +157,38 @@ public class ImportService
         firebase.setCapex(firebaseData.getCapex());
         firebase.setFreeCashFlow(firebaseData.getFreeCashFlow());
         firebase.setAdjustedEps(firebaseData.getAdjustedEps());
+    }
+
+    private String loadFirebaseCurrency(List<String> warnings, String ticker)
+    {
+        try {
+            return firebaseService.getReportingCurrency(ticker);
+        } catch (Exception exception) {
+            addWarning(warnings, "Firebase reporting currency for " + ticker, exception);
+            return null;
+        }
+    }
+
+    private boolean hasMatchingFirebaseCurrency(
+            List<String> warnings,
+            String ticker,
+            String periodName,
+            String firebaseCurrency,
+            Currency companyCurrency)
+    {
+        if (firebaseCurrency == null || firebaseCurrency.isBlank()) {
+            return true;
+        }
+        if (companyCurrency.name().equals(firebaseCurrency.trim())) {
+            return true;
+        }
+
+        String warning = "Firebase/Gemini financial data for " + periodName + " and " + ticker
+                + " was ignored because reported currency " + firebaseCurrency
+                + " does not match the company's configured currency " + companyCurrency;
+        Log.warn(warning);
+        warnings.add(warning);
+        return false;
     }
 
     private PeriodImportDto loadFirebasePeriod(
@@ -175,6 +225,7 @@ public class ImportService
     private void loadPolygonFinancials(
             PeriodImportDataDto result,
             String ticker,
+            Currency companyCurrency,
             String quarterId)
     {
         String fiscalYear = "20" + quarterId.substring(0, 2);
@@ -185,6 +236,15 @@ public class ImportService
             if (financials.isEmpty()) return;
 
             PolygonFinancials values = financials.get();
+            String sourceName = "Polygon.io financial data for " + quarterId + " and " + ticker;
+            if (!hasMatchingCurrency(
+                    result.getWarnings(),
+                    sourceName,
+                    "Polygon.io",
+                    values.reportedCurrency(),
+                    companyCurrency)) {
+                return;
+            }
             PeriodImportDataDto.Source polygon = result.getPolygon();
             polygon.setShares(toMillions(values.shares()));
             polygon.setRevenue(toMillions(values.revenue()));
@@ -202,18 +262,20 @@ public class ImportService
     private void loadAlphaVantageData(
             PeriodImportDataDto result,
             String ticker,
+            Currency companyCurrency,
             String periodName,
             String endingMonth)
     {
         if (endingMonth == null || endingMonth.isBlank()) return;
 
-        loadAlphaVantageCashFlow(result, ticker, periodName, endingMonth);
-        loadAlphaVantageIncomeStatement(result, ticker, periodName, endingMonth);
+        loadAlphaVantageCashFlow(result, ticker, companyCurrency, periodName, endingMonth);
+        loadAlphaVantageIncomeStatement(result, ticker, companyCurrency, periodName, endingMonth);
     }
 
     private void loadAlphaVantageIncomeStatement(
             PeriodImportDataDto result,
             String ticker,
+            Currency companyCurrency,
             String periodName,
             String endingMonth)
     {
@@ -223,6 +285,15 @@ public class ImportService
             if (statement.isEmpty()) return;
 
             AlphaVantageIncomeStatement values = statement.get();
+            String sourceName = "Alpha Vantage income statement for " + periodName + " and " + ticker;
+            if (!hasMatchingCurrency(
+                    result.getWarnings(),
+                    sourceName,
+                    "Alpha Vantage",
+                    values.reportedCurrency(),
+                    companyCurrency)) {
+                return;
+            }
             PeriodImportDataDto.Source source = result.getAlphaVantage();
             source.setRevenue(toMillions(values.revenue()));
             source.setGrossProfit(toMillions(values.grossProfit()));
@@ -239,6 +310,7 @@ public class ImportService
     private void loadAlphaVantageCashFlow(
             PeriodImportDataDto result,
             String ticker,
+            Currency companyCurrency,
             String periodName,
             String endingMonth)
     {
@@ -248,6 +320,15 @@ public class ImportService
             if (cashFlow.isEmpty()) return;
 
             AlphaVantageCashFlow values = cashFlow.get();
+            String sourceName = "Alpha Vantage cash flow for " + periodName + " and " + ticker;
+            if (!hasMatchingCurrency(
+                    result.getWarnings(),
+                    sourceName,
+                    "Alpha Vantage",
+                    values.reportedCurrency(),
+                    companyCurrency)) {
+                return;
+            }
             PeriodImportDataDto.Source source = result.getAlphaVantage();
             source.setDividend(toMillions(values.dividend()));
             source.setCapex(toMillions(values.capex()));
@@ -260,12 +341,46 @@ public class ImportService
         }
     }
 
+    private boolean hasMatchingCurrency(
+            List<String> warnings,
+            String source,
+            String provider,
+            String reportedCurrency,
+            Currency companyCurrency)
+    {
+        String expectedCurrency = companyCurrency.getIsoCode();
+        if (reportedCurrency != null
+                && expectedCurrency.equalsIgnoreCase(reportedCurrency.trim())) {
+            return true;
+        }
+
+        String reason = reportedCurrency == null || reportedCurrency.isBlank()
+                ? provider + " did not provide its reported currency; expected " + expectedCurrency
+                : "reported currency " + reportedCurrency + " does not match the company's configured currency "
+                        + expectedCurrency;
+        String warning = source + " was ignored because " + reason;
+        Log.warn(warning);
+        warnings.add(warning);
+        return false;
+    }
+
     private void loadPolygonPrices(
             PeriodImportDataDto result,
             String ticker,
+            Currency companyCurrency,
             PeriodImportDto firebaseData)
     {
         if (firebaseData.getPreviousReportDate() == null || firebaseData.getReportDate() == null) {
+            return;
+        }
+
+        String sourceName = "Polygon.io price data for " + ticker;
+        if (!hasMatchingCurrency(
+                result.getWarnings(),
+                sourceName,
+                "Polygon.io",
+                "USD",
+                companyCurrency)) {
             return;
         }
 
@@ -276,9 +391,18 @@ public class ImportService
                     firebaseData.getReportDate());
             if (priceRange.isEmpty()) return;
 
+            PolygonPriceRange values = priceRange.get();
+            if (!hasMatchingCurrency(
+                    result.getWarnings(),
+                    sourceName,
+                    "Polygon.io",
+                    values.reportedCurrency(),
+                    companyCurrency)) {
+                return;
+            }
             PeriodImportDataDto.Source polygon = result.getPolygon();
-            polygon.setPriceHigh(toString(priceRange.get().high()));
-            polygon.setPriceLow(toString(priceRange.get().low()));
+            polygon.setPriceHigh(toString(values.high()));
+            polygon.setPriceLow(toString(values.low()));
         } catch (Exception exception) {
             addWarning(
                     result.getWarnings(),

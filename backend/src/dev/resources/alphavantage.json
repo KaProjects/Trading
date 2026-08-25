@@ -6,7 +6,8 @@
         "revenue": 11536000000,
         "grossProfit": 6203000000,
         "operatingIncome": 1990000000,
-        "netIncome": 2297000000
+        "netIncome": 2297000000,
+        "reportedCurrency": "USD"
       }
     },
     "INTC": {
@@ -15,7 +16,8 @@
         "revenue": 16128000000,
         "grossProfit": 6509000000,
         "operatingIncome": 1796000000,
-        "netIncome": -11033000000
+        "netIncome": -11033000000,
+        "reportedCurrency": "USD"
       }
     },
     "NVDA": {
@@ -24,7 +26,8 @@
         "revenue": 81615000000,
         "grossProfit": 61157000000,
         "operatingIncome": 53536000000,
-        "netIncome": 58321000000
+        "netIncome": 58321000000,
+        "reportedCurrency": "USD"
       }
     }
   },
@@ -34,7 +37,8 @@
         "endingMonth": "2026-06",
         "dividend": 0,
         "capex": 180000000,
-        "freeCashFlow": 1650000000
+        "freeCashFlow": 1650000000,
+        "reportedCurrency": "USD"
       }
     },
     "INTC": {
@@ -42,7 +46,8 @@
         "endingMonth": "2026-06",
         "dividend": 650000000,
         "capex": 5000000000,
-        "freeCashFlow": -2000000000
+        "freeCashFlow": -2000000000,
+        "reportedCurrency": "USD"
       }
     },
     "NVDA": {
@@ -50,8 +55,43 @@
         "endingMonth": "2026-04",
         "dividend": 250000000,
         "capex": 1100000000,
-        "freeCashFlow": 28750000000
+        "freeCashFlow": 28750000000,
+        "reportedCurrency": "USD"
       }
+    }
+  },
+  "tickerSearches": {
+    "ASML": [
+      {
+        "symbol": "ASML",
+        "name": "ASML Holding NV",
+        "type": "Equity",
+        "region": "United States",
+        "currency": "USD",
+        "matchScore": 1.0
+      },
+      {
+        "symbol": "ASML.AMS",
+        "name": "ASML Holding N.V.",
+        "type": "Equity",
+        "region": "Amsterdam",
+        "currency": "EUR",
+        "matchScore": 0.7273
+      },
+      {
+        "symbol": "ASME.FRK",
+        "name": "ASML Holding NV",
+        "type": "Equity",
+        "region": "Frankfurt",
+        "currency": "EUR",
+        "matchScore": 0.6
+      }
+    ]
+  },
+  "quotes": {
+    "ASML.AMS": {
+      "price": 1489.8,
+      "date": "2026-08-24"
     }
   }
 }

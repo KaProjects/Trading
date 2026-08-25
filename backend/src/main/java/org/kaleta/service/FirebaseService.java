@@ -133,6 +133,13 @@ public class FirebaseService
                 .orElse(null);
     }
 
+    public String getReportingCurrency(String ticker)
+    {
+        return firebaseStore.findGeminiInfo(ticker)
+                .map(FirebaseCompany.Gemini.Info::getCurrency)
+                .orElse(null);
+    }
+
     public EstimateImportDto.Quarter getLatestEstimate(String ticker, String quarterId)
     {
         FirebaseCompany.FinnhubEarnings latest = getLatestEarnings(ticker, quarterId);
