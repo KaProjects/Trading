@@ -12,6 +12,9 @@ import jakarta.ws.rs.core.MediaType;
 import org.kaleta.model.CompanyStats;
 import org.kaleta.model.PeriodFrequency;
 import org.kaleta.model.PeriodStats;
+import org.kaleta.model.ProfitLossStats;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.rest.validation.ValueOfEnum;
@@ -85,5 +88,25 @@ public class StatsEndpoints
     ) {
         PeriodStats model = statsService.getByPeriod(PeriodFrequency.YEARLY, companyId, sector);
         return model;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/profit-loss")
+    public ProfitLossStats getProfitLoss(
+            @ValidId
+            @QueryParam("companyId")
+            Long companyId,
+            @ValueOfEnum(enumClass = Currency.class)
+            @QueryParam("currency")
+            String currency,
+            @ValueOfEnum(enumClass = Sector.class)
+            @QueryParam("sector")
+            String sector,
+            @ValueOfEnum(enumClass = Portfolio.class)
+            @QueryParam("portfolio")
+            String portfolio
+    ) {
+        return statsService.getProfitLoss(companyId, currency, sector, portfolio);
     }
 }

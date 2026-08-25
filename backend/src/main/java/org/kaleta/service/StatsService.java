@@ -7,6 +7,7 @@ import org.kaleta.model.CompanyStats;
 import org.kaleta.model.Dividends;
 import org.kaleta.model.PeriodFrequency;
 import org.kaleta.model.PeriodStats;
+import org.kaleta.model.ProfitLossStats;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Currency;
 
@@ -144,6 +145,71 @@ public class StatsService
         model.setAggregates(computePeriodAggregates(model.getPeriods()));
 
         return model;
+    }
+
+    public ProfitLossStats getProfitLoss(Long companyId, String currency, String sector, String portfolio)
+    {
+        List<Trades.Trade> trades = tradeService
+                .getBy(false, companyId, currency, null, null, sector, portfolio)
+                .getTrades();
+        List<Dividends.Dividend> dividends = portfolio == null
+                ? dividendService.getBy(companyId, currency, null, sector).getDividends()
+                : List.of();
+
+        Currency resultCurrency = currency == null ? Currency.$ : Currency.valueOf(currency);
+        ProfitLossStats model = new ProfitLossStats();
+        model.setCurrency(resultCurrency);
+        model.setTradesCount(trades.size());
+        model.setDividendsCount(dividends.size());
+        model.setDividendsExcluded(portfolio != null);
+
+        for (Trades.Trade trade : trades) {
+            ProfitLossStats.Point point = new ProfitLossStats.Point();
+            point.setType(ProfitLossStats.Type.TRADE);
+            point.setSourceId(trade.getId());
+            point.setDate(trade.getSellDate());
+            point.setTicker(trade.getCompany().getTicker());
+            point.setAmount(normalizeProfitLossAmount(
+                    trade.getProfit(), trade.getCompany().getCurrency(), currency == null));
+            model.getPoints().add(point);
+        }
+
+        for (Dividends.Dividend dividend : dividends) {
+            ProfitLossStats.Point point = new ProfitLossStats.Point();
+            point.setType(ProfitLossStats.Type.DIVIDEND);
+            point.setSourceId(dividend.getId());
+            point.setDate(dividend.getDate());
+            point.setTicker(dividend.getCompany().getTicker());
+            point.setAmount(normalizeProfitLossAmount(
+                    dividend.getNet(), dividend.getCompany().getCurrency(), currency == null));
+            model.getPoints().add(point);
+        }
+
+        model.getPoints().sort(Comparator
+                .comparing(ProfitLossStats.Point::getDate)
+                .thenComparing(ProfitLossStats.Point::getType)
+                .thenComparing(
+                        ProfitLossStats.Point::getSourceId,
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+
+        BigDecimal cumulativeProfit = BigDecimal.ZERO;
+        for (int index = 0; index < model.getPoints().size(); index++) {
+            ProfitLossStats.Point point = model.getPoints().get(index);
+            cumulativeProfit = cumulativeProfit.add(point.getAmount());
+            point.setEventNumber(index + 1);
+            point.setCumulativeProfit(cumulativeProfit);
+        }
+
+        return model;
+    }
+
+    private BigDecimal normalizeProfitLossAmount(
+            BigDecimal amount, Currency sourceCurrency, boolean convertToUsd)
+    {
+        if (convertToUsd) {
+            amount = amount.multiply(sourceCurrency.toUsd());
+        }
+        return amount.setScale(2, RoundingMode.HALF_UP);
     }
 
     private boolean isFuturePeriod(PeriodFrequency frequency, String period, LocalDate today)

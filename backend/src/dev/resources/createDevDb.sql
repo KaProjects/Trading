@@ -71,6 +71,69 @@ INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purch
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1874, 2214, '1150.1234', '2025-04-15', '300.25', '250.12');
 
 
+-- Closed trade history for cumulative P/L chart and selector scenarios.
+-- This early loss pushes the USD-normalized cumulative result below zero.
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3001, 2213, '10', '2018-05-07', '50', '5', '2018-05-20', '20', '5', 'PATRIA_STANDARD');
+
+-- Thirty additional trades cover every development company and all portfolios.
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3002, 2212, '12', '2018-07-10', '25', '4.50', '2018-10-15', '31', '4.50', 'PATRIA_MARGIN');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3003, 2214, '20', '2018-11-05', '48', '4.95', '2019-02-20', '42', '4.95', 'PATRIA_DIP');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3004, 2301, '3', '2019-02-12', '155', '5.50', '2019-06-18', '180', '5.50', 'REVOLUT_STANDARD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3005, 2073, '18', '2019-07-08', '42', '4.50', '2019-11-12', '49', '4.50', 'REVOLUT_CFD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3006, 1873, '8', '2019-12-03', '72', '3', '2020-03-09', '68', '3', 'FIDELITY_ORCL');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3007, 1240, '30', '2020-03-16', '850', '10', '2020-07-22', '980', '10', 'PATRIA_STANDARD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3008, 1504, '25', '2020-08-04', '28', '5', '2020-11-30', '36', '5', 'PATRIA_MARGIN');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3009, 2261, '10', '2020-12-08', '64', '4', '2021-03-17', '58', '4', 'PATRIA_DIP');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3010, 2300, '40', '2021-04-12', '4.20', '3', '2021-07-14', '6.10', '3', 'REVOLUT_STANDARD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3011, 2213, '15', '2021-08-09', '52', '5', '2021-11-19', '61', '5', 'REVOLUT_CFD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3012, 2212, '18', '2021-12-13', '42', '4.50', '2022-03-24', '38', '4.50', 'FIDELITY_ORCL');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3013, 2214, '30', '2022-04-11', '50', '5.50', '2022-07-28', '57', '5.50', 'PATRIA_STANDARD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3014, 2301, '4', '2022-08-08', '210', '5', '2022-11-15', '238', '5', 'PATRIA_MARGIN');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3015, 2073, '12', '2022-12-05', '55', '4', '2023-03-21', '63', '4', 'PATRIA_DIP');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3016, 1873, '7', '2023-04-17', '88', '5', '2023-07-18', '103', '5', 'REVOLUT_STANDARD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3017, 1240, '20', '2023-08-07', '1150', '9', '2023-11-22', '1030', '9', 'REVOLUT_CFD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3018, 1504, '35', '2023-12-04', '31', '5', '2024-03-14', '44', '5', 'FIDELITY_ORCL');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3019, 2261, '14', '2024-03-25', '76', '5', '2024-06-20', '91', '5', 'PATRIA_STANDARD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3020, 2300, '60', '2024-07-08', '5.50', '4', '2024-09-25', '4.80', '4', 'PATRIA_MARGIN');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3021, 2213, '20', '2024-09-30', '95', '6.50', '2024-12-12', '120', '6.50', 'PATRIA_DIP');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3022, 2212, '25', '2024-12-16', '82', '7.50', '2025-02-26', '103', '7.50', 'REVOLUT_STANDARD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3023, 2214, '45', '2025-02-17', '62', '6.50', '2025-05-08', '49', '6.50', 'REVOLUT_CFD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3024, 2301, '5', '2025-04-14', '320', '6.50', '2025-07-17', '370', '6.50', 'FIDELITY_ORCL');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3025, 2073, '16', '2025-06-09', '68', '5.50', '2025-09-23', '80', '5.50', 'PATRIA_STANDARD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3026, 1873, '10', '2025-08-11', '110', '6.50', '2025-11-13', '127', '6.50', 'PATRIA_MARGIN');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3027, 1240, '18', '2025-10-06', '1400', '10', '2026-01-22', '1680', '10', 'PATRIA_DIP');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3028, 1504, '50', '2025-12-01', '39', '6.50', '2026-03-05', '52', '6.50', 'REVOLUT_STANDARD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3029, 2261, '12', '2026-01-05', '89', '6', '2026-03-31', '112', '6', 'REVOLUT_CFD');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3030, 2300, '75', '2026-02-09', '7.20', '5', '2026-05-28', '9.80', '5', 'FIDELITY_ORCL');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (3031, 2213, '30', '2026-04-06', '130', '7.50', '2026-07-30', '158', '7.50', 'PATRIA_STANDARD');
+
+-- Temporary high-volume fixture for visually testing the P/L chart with 200 additional closed trades.
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees,
+                   sell_date, sell_price, sell_fees, portfolio)
+SELECT 4000 + synthetic_trade.X,
+       2213,
+       1 + MOD(synthetic_trade.X, 12),
+       DATEADD('DAY', synthetic_trade.X * 5, DATE '2020-01-01'),
+       75 + MOD(synthetic_trade.X, 35),
+       1.50,
+       DATEADD('DAY', synthetic_trade.X * 5 + 20 + MOD(synthetic_trade.X, 30), DATE '2020-01-01'),
+       CASE
+           WHEN MOD(synthetic_trade.X, 4) = 0 THEN 65 + MOD(synthetic_trade.X, 25)
+           WHEN MOD(synthetic_trade.X, 7) = 0 THEN 72 + MOD(synthetic_trade.X, 20)
+           ELSE 82 + MOD(synthetic_trade.X, 45)
+       END,
+       1.50,
+       CASE MOD(synthetic_trade.X, 6)
+           WHEN 0 THEN 'FIDELITY_ORCL'
+           WHEN 1 THEN 'PATRIA_STANDARD'
+           WHEN 2 THEN 'PATRIA_MARGIN'
+           WHEN 3 THEN 'PATRIA_DIP'
+           WHEN 4 THEN 'REVOLUT_STANDARD'
+           ELSE 'REVOLUT_CFD'
+       END
+FROM SYSTEM_RANGE(1, 200) AS synthetic_trade;
+
+
 INSERT INTO Record (id, companyId, date, price, content, review, strategy, retro, targets, p_rev, p_gross, p_oper, p_net, dy, asset_quantity, asset_price) VALUES (1871, 2213, '2023-12-11', '400.5', '[{"type":"paragraph","children":[{"text":"Started a tracking position as accelerated-computing demand moved from an early thesis into reported growth."}]}]', '[{"type":"paragraph","children":[{"text":"The entry captured the long-term opportunity, but the valuation already required strong execution."}]}]', '[{"type":"paragraph","children":[{"text":"Keep this as a small discovery position and add only after validating data-center growth and supply availability."}]}]', '[{"type":"paragraph","children":[{"text":"The position was useful for following the thesis, although the initial notes should have defined clearer add levels."}]}]', '~100', '1', '2', '3', '4', '5', '10', '20');
 INSERT INTO Record (id, companyId, date, price, content, review, strategy, retro) VALUES (2066, 2213, '2023-11-11', '400.5', '[{"type":"paragraph","children":[{"text":"Opened the position while hyperscaler AI infrastructure spending continued to expand."}]}]', '[{"type":"paragraph","children":[{"text":"Demand signals were constructive, but customer concentration and export restrictions remained important risks."}]}]', '[{"type":"paragraph","children":[{"text":"Use earnings revisions and gross-margin durability as the main checkpoints before increasing exposure."}]}]', '[{"type":"paragraph","children":[{"text":"The thesis was directionally correct; the record would have benefited from explicit valuation ranges."}]}]');
 INSERT INTO Record (id, companyId, date, price, content, review, strategy, retro) VALUES (2225, 2213, '2023-10-11', '400.5', '[{"type":"paragraph","children":[{"text":"Documented the first NVIDIA entry around the transition from gaming-led results to data-center-led growth."}]}]', '[{"type":"paragraph","children":[{"text":"The product advantage was visible, while visibility beyond the first infrastructure buildout remained limited."}]}]', '[{"type":"paragraph","children":[{"text":"Track networking attach rates, software adoption, and competition rather than relying only on GPU unit demand."}]}]', '[{"type":"paragraph","children":[{"text":"Early research focused too much on revenue and not enough on cash conversion and ecosystem strength."}]}]');

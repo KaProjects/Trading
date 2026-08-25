@@ -19,7 +19,7 @@
     "react-is": "18.2.0",
     "react-router-dom": "^6.4.3",
     "react-scripts": "5.0.1",
-    "recharts": "^2.2.0",
+    "recharts": "^3.10.1",
     "slate": "^0.101.5",
     "slate-history": "^0.100.0",
     "slate-react": "^0.101.5"

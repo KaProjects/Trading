@@ -31,7 +31,11 @@ export const PeriodStats = props => {
             }
         }
         if (type === STATS_TYPES.quarterly){
-            if ((rIndex + (isCurrentYear ? (4 - new Date().getMonth()) : 1)) % 4 === 0){
+            const currentPeriod = data.periods[rIndex]?.period
+            const nextPeriod = data.periods[rIndex + 1]?.period
+            const isLastRowOfYear = currentPeriod
+                && (!nextPeriod || currentPeriod.substring(0, 4) !== nextPeriod.substring(0, 4))
+            if (isLastRowOfYear){
                 style = Object.assign(style, {borderBottom: "1px solid black"})
             }
         }

@@ -9,6 +9,7 @@ import org.kaleta.model.CompanyStats;
 import org.kaleta.model.Dividends;
 import org.kaleta.model.PeriodFrequency;
 import org.kaleta.model.PeriodStats;
+import org.kaleta.model.ProfitLossStats;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Currency;
 
@@ -24,6 +25,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -148,6 +151,99 @@ class StatsServiceTest
     }
 
     @Test
+    void getProfitLoss_convertsToUsdAndOrdersChronologically()
+    {
+        org.kaleta.model.Company usdCompany = company(1L, "NVDA", Currency.$);
+        org.kaleta.model.Company eurCompany = company(2L, "SHELL", Currency.€);
+        Trades trades = new Trades();
+        trades.setTrades(List.of(
+                profitTrade(3L, usdCompany, "2024-03-01", "25"),
+                profitTrade(2L, eurCompany, "2024-01-01", "-50"),
+                profitTrade(1L, eurCompany, "2024-01-01", "20")
+        ));
+        Dividends dividends = new Dividends();
+        dividends.setDividends(List.of(
+                profitDividend(8L, eurCompany, "2024-01-01", "5"),
+                profitDividend(7L, eurCompany, "2023-12-15", "10")
+        ));
+        when(tradeService.getBy(false, null, null, null, null, null, null)).thenReturn(trades);
+        when(dividendService.getBy(null, null, null, null)).thenReturn(dividends);
+
+        ProfitLossStats stats = statsService.getProfitLoss(null, null, null, null);
+
+        assertThat(stats.getCurrency(), is(Currency.$));
+        assertThat(stats.getTradesCount(), is(3));
+        assertThat(stats.getDividendsCount(), is(2));
+        assertThat(stats.isDividendsExcluded(), is(false));
+        assertThat(stats.getPoints().size(), is(5));
+        assertProfitLossPoint(stats.getPoints().get(0), 1, ProfitLossStats.Type.DIVIDEND,
+                7L, "2023-12-15", "11.00", "11.00");
+        assertProfitLossPoint(stats.getPoints().get(1), 2, ProfitLossStats.Type.TRADE,
+                1L, "2024-01-01", "22.00", "33.00");
+        assertProfitLossPoint(stats.getPoints().get(2), 3, ProfitLossStats.Type.TRADE,
+                2L, "2024-01-01", "-55.00", "-22.00");
+        assertProfitLossPoint(stats.getPoints().get(3), 4, ProfitLossStats.Type.DIVIDEND,
+                8L, "2024-01-01", "5.50", "-16.50");
+        assertProfitLossPoint(stats.getPoints().get(4), 5, ProfitLossStats.Type.TRADE,
+                3L, "2024-03-01", "25.00", "8.50");
+    }
+
+    @Test
+    void getProfitLoss_keepsSelectedCurrencyValues()
+    {
+        org.kaleta.model.Company company = company(2L, "SHELL", Currency.€);
+        Trades trades = new Trades();
+        trades.setTrades(List.of(
+                profitTrade(2L, company, "2024-02-01", "-50"),
+                profitTrade(1L, company, "2024-01-01", "20")
+        ));
+        Dividends dividends = new Dividends();
+        dividends.setDividends(List.of(
+                profitDividend(7L, company, "2024-01-15", "10")
+        ));
+        when(tradeService.getBy(false, 2L, "€", null, null, "ENERGY_MINERALS", null))
+                .thenReturn(trades);
+        when(dividendService.getBy(2L, "€", null, "ENERGY_MINERALS")).thenReturn(dividends);
+
+        ProfitLossStats stats = statsService.getProfitLoss(2L, "€", "ENERGY_MINERALS", null);
+
+        assertThat(stats.getCurrency(), is(Currency.€));
+        assertThat(stats.getTradesCount(), is(2));
+        assertThat(stats.getDividendsCount(), is(1));
+        assertThat(stats.isDividendsExcluded(), is(false));
+        assertThat(stats.getPoints().size(), is(3));
+        assertProfitLossPoint(stats.getPoints().get(0), 1, ProfitLossStats.Type.TRADE,
+                1L, "2024-01-01", "20.00", "20.00");
+        assertProfitLossPoint(stats.getPoints().get(1), 2, ProfitLossStats.Type.DIVIDEND,
+                7L, "2024-01-15", "10.00", "30.00");
+        assertProfitLossPoint(stats.getPoints().get(2), 3, ProfitLossStats.Type.TRADE,
+                2L, "2024-02-01", "-50.00", "-20.00");
+        verify(tradeService).getBy(
+                false, 2L, "€", null, null, "ENERGY_MINERALS", null);
+        verify(dividendService).getBy(2L, "€", null, "ENERGY_MINERALS");
+    }
+
+    @Test
+    void getProfitLoss_excludesDividendsForPortfolioFilter()
+    {
+        org.kaleta.model.Company company = company(1L, "NVDA", Currency.$);
+        Trades trades = new Trades();
+        trades.setTrades(List.of(profitTrade(1L, company, "2024-01-01", "20")));
+        when(tradeService.getBy(false, null, null, null, null, null, "PATRIA_MARGIN"))
+                .thenReturn(trades);
+
+        ProfitLossStats stats = statsService.getProfitLoss(null, null, null, "PATRIA_MARGIN");
+
+        assertThat(stats.getTradesCount(), is(1));
+        assertThat(stats.getDividendsCount(), is(0));
+        assertThat(stats.isDividendsExcluded(), is(true));
+        assertThat(stats.getPoints().size(), is(1));
+        assertProfitLossPoint(stats.getPoints().get(0), 1, ProfitLossStats.Type.TRADE,
+                1L, "2024-01-01", "20.00", "20.00");
+        verifyNoInteractions(dividendService);
+    }
+
+    @Test
     void getByPeriod_monthly_discardsFuturePeriods()
     {
         org.kaleta.model.Company company = company(1L, "NVDA", Currency.$);
@@ -242,6 +338,45 @@ class StatsServiceTest
         trade.setPurchaseTotal(new BigDecimal(purchaseTotal));
         trade.setSellTotal(new BigDecimal(sellTotal));
         return trade;
+    }
+
+    private static Trades.Trade profitTrade(
+            Long id,
+            org.kaleta.model.Company company,
+            String sellDate,
+            String profit)
+    {
+        Trades.Trade trade = new Trades.Trade();
+        trade.setId(id);
+        trade.setCompany(company);
+        trade.setSellDate(Date.valueOf(sellDate));
+        trade.setProfit(new BigDecimal(profit));
+        return trade;
+    }
+
+    private static void assertProfitLossPoint(
+            ProfitLossStats.Point point,
+            Integer eventNumber,
+            ProfitLossStats.Type type,
+            Long sourceId,
+            String date,
+            String amount,
+            String cumulativeProfit)
+    {
+        assertThat(point.getEventNumber(), is(eventNumber));
+        assertThat(point.getType(), is(type));
+        assertThat(point.getSourceId(), is(sourceId));
+        assertThat(point.getDate(), is(Date.valueOf(date)));
+        assertBigDecimals(point.getAmount(), new BigDecimal(amount));
+        assertBigDecimals(point.getCumulativeProfit(), new BigDecimal(cumulativeProfit));
+    }
+
+    private static Dividends.Dividend profitDividend(
+            Long id, org.kaleta.model.Company company, String date, String net)
+    {
+        Dividends.Dividend dividend = dividend(company, date, net);
+        dividend.setId(id);
+        return dividend;
     }
 
     private static Dividends.Dividend dividend(org.kaleta.model.Company company, String date, String net)

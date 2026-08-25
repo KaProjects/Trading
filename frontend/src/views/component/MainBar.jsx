@@ -20,7 +20,7 @@ export const RESEARCH_TAB = {
     todo: 2,
 };
 export const RESEARCH_SPLIT_BREAKPOINT = 2000;
-const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly"];
+const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly", "P/L"];
 const RESEARCH_TAB_LABELS = ["Research", "Records", "Todo"];
 const DATA_ROUTES = ["/trades", "/dividends", "/research"];
 const COMPANY_QUERY_PARAMETER = "company";
@@ -118,6 +118,8 @@ export const MainBar = props => {
     if (location.pathname === "/stats") {
         config.showCompanySelector = props.statsTabsIndex !== 0
         config.showYearSelector = props.statsTabsIndex === 0
+        config.showCurrencySelector = props.statsTabsIndex === 4
+        config.showPortfolioSelector = props.statsTabsIndex === 4
     }
 
     if (props.companySelectorValue) {

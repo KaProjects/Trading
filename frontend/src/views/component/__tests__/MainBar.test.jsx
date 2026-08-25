@@ -173,9 +173,22 @@ describe("MainBar", () => {
         expect(screen.getByRole("tab", {name: "Monthly"})).toBeInTheDocument();
         expect(screen.getByRole("tab", {name: "Quarterly"})).toBeInTheDocument();
         expect(screen.getByRole("tab", {name: "Yearly"})).toBeInTheDocument();
+        expect(screen.getByRole("tab", {name: "P/L"})).toBeInTheDocument();
         expect(screen.getByText("selector:years")).toBeInTheDocument();
         expect(screen.getByText("selector:sectors")).toBeInTheDocument();
         expect(screen.queryByText("selector:companies")).not.toBeInTheDocument();
+    });
+
+    test("renders P/L filters on stats route", () => {
+        mockUseLocation.mockReturnValue({pathname: "/stats"});
+
+        render(<MainBar {...createProps({statsTabsIndex: 4})}/>);
+
+        expect(screen.getByText("selector:companies")).toBeInTheDocument();
+        expect(screen.getByText("selector:currencies")).toBeInTheDocument();
+        expect(screen.getByText("selector:sectors")).toBeInTheDocument();
+        expect(screen.getByText("selector:portfolios")).toBeInTheDocument();
+        expect(screen.queryByText("selector:years")).not.toBeInTheDocument();
     });
 
     test("handles navigation, tab change and action buttons", () => {

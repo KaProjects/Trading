@@ -137,10 +137,38 @@ describe("PeriodStats", () => {
         expect(screen.getAllByText("433")).toHaveLength(2);
     });
 
-    test("renders quarterly separator styling on the last quarter row", () => {
+    test("renders quarterly separator between Q1 and the previous year's Q4", () => {
         mockUseData.mockReturnValue({
             data: createPeriodData({
                 periods: [
+                    {
+                        period: "2025-Q4",
+                        tradesCount: 0,
+                        tradesProfitSum: 0,
+                        tradesProfitPercentage: null,
+                        dividendSum: 0,
+                    },
+                    {
+                        period: "2025-Q3",
+                        tradesCount: 0,
+                        tradesProfitSum: 0,
+                        tradesProfitPercentage: null,
+                        dividendSum: 0,
+                    },
+                    {
+                        period: "2025-Q2",
+                        tradesCount: 0,
+                        tradesProfitSum: 0,
+                        tradesProfitPercentage: null,
+                        dividendSum: 0,
+                    },
+                    {
+                        period: "2025-Q1",
+                        tradesCount: 1,
+                        tradesProfitSum: 433,
+                        tradesProfitPercentage: 21.47,
+                        dividendSum: 0,
+                    },
                     {
                         period: "2024-Q4",
                         tradesCount: 0,
@@ -164,14 +192,14 @@ describe("PeriodStats", () => {
                     },
                     {
                         period: "2024-Q1",
-                        tradesCount: 1,
-                        tradesProfitSum: 433,
-                        tradesProfitPercentage: 21.47,
+                        tradesCount: 0,
+                        tradesProfitSum: 0,
+                        tradesProfitPercentage: null,
                         dividendSum: 0,
                     },
                 ],
                 aggregates: {
-                    periods: 4,
+                    periods: 8,
                     tradesCount: 1,
                     tradesProfitSum: 433,
                     tradesProfitPercentage: 21.47,
@@ -184,8 +212,12 @@ describe("PeriodStats", () => {
 
         const {container} = render(<PeriodStats {...createProps()}/>);
 
-        const lastDataRowFirstCell = container.querySelector("tbody tr:nth-child(4) td");
-        expect(lastDataRowFirstCell).toHaveStyle("border-bottom: 1px solid black");
+        const currentYearQ1 = container.querySelector("tbody tr:nth-child(4) td");
+        const previousYearQ4 = container.querySelector("tbody tr:nth-child(5) td");
+        expect(currentYearQ1).toHaveTextContent("2025/Q1");
+        expect(currentYearQ1).toHaveStyle("border-bottom: 1px solid black");
+        expect(previousYearQ4).toHaveTextContent("2024/Q4");
+        expect(previousYearQ4).not.toHaveStyle("border-bottom: 1px solid black");
     });
 
     test("renders monthly period stats with formatted month labels and year separator styling", () => {
