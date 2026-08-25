@@ -7,8 +7,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.AlphaVantageCashFlow;
+import org.kaleta.client.dto.AlphaVantageEarnings;
 import org.kaleta.client.dto.AlphaVantageIncomeStatement;
+import org.kaleta.client.dto.AlphaVantagePriceRange;
 import org.kaleta.client.dto.AlphaVantageQuote;
+import org.kaleta.client.dto.AlphaVantageShares;
 import org.kaleta.client.dto.AlphaVantageTicker;
 
 import java.io.IOException;
@@ -24,7 +27,9 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -154,6 +159,85 @@ public class ProductionAlphaVantageClient implements AlphaVantageClient
         }
     }
 
+    @Override
+    public Optional<AlphaVantagePriceRange> getPriceRange(
+            String ticker,
+            String from,
+            String to) throws RequestFailureException
+    {
+        LocalDate fromDate = parseDate(from, "price range start");
+        LocalDate toDate = parseDate(to, "price range end");
+        if (fromDate.isAfter(toDate)) {
+            throw new RequestFailureException(
+                    "Alpha Vantage price range start must not be after its end");
+        }
+
+        Map<String, String> additionalParameters = fromDate.isBefore(LocalDate.now().minusDays(120))
+                ? Map.of("outputsize", "full")
+                : Map.of();
+        JsonNode timeSeries = get(
+                "TIME_SERIES_DAILY",
+                "symbol",
+                ticker,
+                additionalParameters).path("Time Series (Daily)");
+        if (!timeSeries.isObject() || timeSeries.isEmpty()) return Optional.empty();
+
+        BigDecimal high = null;
+        BigDecimal low = null;
+        Iterator<Map.Entry<String, JsonNode>> days = timeSeries.properties().iterator();
+        while (days.hasNext()) {
+            Map.Entry<String, JsonNode> day = days.next();
+            LocalDate date;
+            try {
+                date = LocalDate.parse(day.getKey());
+            } catch (DateTimeParseException ignored) {
+                continue;
+            }
+            if (date.isBefore(fromDate) || date.isAfter(toDate)) continue;
+
+            BigDecimal dailyHigh = decimal(day.getValue(), "2. high");
+            BigDecimal dailyLow = decimal(day.getValue(), "3. low");
+            if (dailyHigh != null && (high == null || dailyHigh.compareTo(high) > 0)) high = dailyHigh;
+            if (dailyLow != null && (low == null || dailyLow.compareTo(low) < 0)) low = dailyLow;
+        }
+        return high == null && low == null
+                ? Optional.empty()
+                : Optional.of(new AlphaVantagePriceRange(high, low));
+    }
+
+    @Override
+    public Optional<AlphaVantageShares> getShares(
+            String ticker,
+            String periodName,
+            String endingMonth) throws RequestFailureException
+    {
+        Optional<JsonNode> report = getReport("BALANCE_SHEET", ticker, periodName, endingMonth);
+        if (report.isEmpty()) return Optional.empty();
+
+        JsonNode value = report.get();
+        BigDecimal shares = decimal(value, "commonStockSharesOutstanding");
+        return shares == null
+                ? Optional.empty()
+                : Optional.of(new AlphaVantageShares(
+                        shares,
+                        value.path("reportedCurrency").asText(null)));
+    }
+
+    @Override
+    public Optional<AlphaVantageEarnings> getEarnings(
+            String ticker,
+            String periodName,
+            String endingMonth) throws RequestFailureException
+    {
+        Optional<JsonNode> report = getEarningsReport(ticker, periodName, endingMonth);
+        if (report.isEmpty()) return Optional.empty();
+
+        BigDecimal reportedEps = decimal(report.get(), "reportedEPS");
+        return reportedEps == null
+                ? Optional.empty()
+                : Optional.of(new AlphaVantageEarnings(reportedEps));
+    }
+
     private Optional<JsonNode> getReport(
             String function,
             String ticker,
@@ -188,6 +272,45 @@ public class ProductionAlphaVantageClient implements AlphaVantageClient
         return Optional.empty();
     }
 
+    private Optional<JsonNode> getEarningsReport(
+            String ticker,
+            String periodName,
+            String endingMonth) throws RequestFailureException
+    {
+        String reportsField;
+        if (periodName != null && periodName.matches("\\d{2}FY")) {
+            reportsField = "annualEarnings";
+        } else if (periodName != null && periodName.matches("\\d{2}Q[1-4]")) {
+            reportsField = "quarterlyEarnings";
+        } else {
+            return Optional.empty();
+        }
+
+        YearMonth expectedEndingMonth;
+        try {
+            expectedEndingMonth = YearMonth.parse(endingMonth);
+        } catch (DateTimeParseException exception) {
+            throw new RequestFailureException(
+                    "Invalid ending month '" + endingMonth + "' for Alpha Vantage request",
+                    exception);
+        }
+
+        JsonNode reports = get("EARNINGS", ticker).path(reportsField);
+        if (!reports.isArray()) return Optional.empty();
+
+        for (JsonNode report : reports) {
+            String fiscalDate = report.path("fiscalDateEnding").asText(null);
+            if (fiscalDate == null) continue;
+            try {
+                if (YearMonth.from(LocalDate.parse(fiscalDate)).equals(expectedEndingMonth)) {
+                    return Optional.of(report);
+                }
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+        return Optional.empty();
+    }
+
     private JsonNode get(String function, String ticker) throws RequestFailureException
     {
         return get(function, "symbol", ticker);
@@ -196,10 +319,22 @@ public class ProductionAlphaVantageClient implements AlphaVantageClient
     private JsonNode get(String function, String argumentName, String argumentValue)
             throws RequestFailureException
     {
-        URI uri = URI.create(apiUrl
-                + "?function=" + encode(function)
-                + "&" + encode(argumentName) + "=" + encode(argumentValue)
-                + "&apikey=" + encode(apiKey));
+        return get(function, argumentName, argumentValue, Map.of());
+    }
+
+    private JsonNode get(
+            String function,
+            String argumentName,
+            String argumentValue,
+            Map<String, String> additionalParameters) throws RequestFailureException
+    {
+        StringBuilder uriValue = new StringBuilder(apiUrl)
+                .append("?function=").append(encode(function))
+                .append("&").append(encode(argumentName)).append("=").append(encode(argumentValue));
+        additionalParameters.forEach((name, value) -> uriValue
+                .append("&").append(encode(name)).append("=").append(encode(value)));
+        uriValue.append("&apikey=").append(encode(apiKey));
+        URI uri = URI.create(uriValue.toString());
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(15))
                 .GET()
@@ -297,6 +432,17 @@ public class ProductionAlphaVantageClient implements AlphaVantageClient
             return new BigDecimal(text);
         } catch (NumberFormatException ignored) {
             return null;
+        }
+    }
+
+    private static LocalDate parseDate(String value, String field) throws RequestFailureException
+    {
+        try {
+            return LocalDate.parse(value);
+        } catch (DateTimeParseException exception) {
+            throw new RequestFailureException(
+                    "Invalid " + field + " '" + value + "' for Alpha Vantage request",
+                    exception);
         }
     }
 

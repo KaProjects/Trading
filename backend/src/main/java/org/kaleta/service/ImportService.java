@@ -6,7 +6,10 @@ import jakarta.inject.Inject;
 import org.kaleta.client.AlphaVantageClient;
 import org.kaleta.client.PolygonClient;
 import org.kaleta.client.dto.AlphaVantageCashFlow;
+import org.kaleta.client.dto.AlphaVantageEarnings;
 import org.kaleta.client.dto.AlphaVantageIncomeStatement;
+import org.kaleta.client.dto.AlphaVantagePriceRange;
+import org.kaleta.client.dto.AlphaVantageShares;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonPriceRange;
 import org.kaleta.model.Company;
@@ -70,10 +73,30 @@ public class ImportService
             }
         }
         Currency companyCurrency = company.getCurrency();
-        loadAlphaVantageData(result, ticker, companyCurrency, quarterId, endingMonth);
+        boolean useConfiguredAlphaVantageTicker = companyCurrency != Currency.$
+                && company.getAlphaVantageTicker() != null
+                && !company.getAlphaVantageTicker().isBlank();
+        if (companyCurrency != Currency.$ && !useConfiguredAlphaVantageTicker) {
+            result.getWarnings().add(
+                    "Alpha Vantage ticker for non-USD company " + ticker + " is not configured. "
+                            + "Configure it in the company edit dialog to load all Alpha Vantage suggestions.");
+        }
+        String alphaVantageTicker = useConfiguredAlphaVantageTicker
+                ? company.getAlphaVantageTicker()
+                : ticker;
+        loadAlphaVantageData(result, alphaVantageTicker, companyCurrency, quarterId, endingMonth);
+        if (useConfiguredAlphaVantageTicker) {
+            loadAlphaVantagePeriodData(
+                    result,
+                    alphaVantageTicker,
+                    companyCurrency,
+                    quarterId,
+                    endingMonth,
+                    firebaseData);
+        }
 
         loadPolygonFinancials(result, ticker, companyCurrency, quarterId);
-        if (firebaseData != null) {
+        if (firebaseData != null && companyCurrency == Currency.$) {
             loadPolygonPrices(result, ticker, companyCurrency, firebaseData);
         }
         if (useFirebaseFinancials) {
@@ -270,6 +293,101 @@ public class ImportService
 
         loadAlphaVantageCashFlow(result, ticker, companyCurrency, periodName, endingMonth);
         loadAlphaVantageIncomeStatement(result, ticker, companyCurrency, periodName, endingMonth);
+    }
+
+    private void loadAlphaVantagePeriodData(
+            PeriodImportDataDto result,
+            String ticker,
+            Currency companyCurrency,
+            String periodName,
+            String endingMonth,
+            PeriodImportDto firebaseData)
+    {
+        if (endingMonth != null && !endingMonth.isBlank()) {
+            loadAlphaVantageShares(result, ticker, companyCurrency, periodName, endingMonth);
+            loadAlphaVantageEarnings(result, ticker, periodName, endingMonth);
+        }
+        if (firebaseData != null) {
+            loadAlphaVantagePrices(result, ticker, firebaseData);
+        }
+    }
+
+    private void loadAlphaVantageShares(
+            PeriodImportDataDto result,
+            String ticker,
+            Currency companyCurrency,
+            String periodName,
+            String endingMonth)
+    {
+        try {
+            Optional<AlphaVantageShares> shares = alphaVantageClient
+                    .getShares(ticker, periodName, endingMonth);
+            if (shares.isEmpty()) return;
+
+            AlphaVantageShares values = shares.get();
+            String sourceName = "Alpha Vantage shares for " + periodName + " and " + ticker;
+            if (!hasMatchingCurrency(
+                    result.getWarnings(),
+                    sourceName,
+                    "Alpha Vantage",
+                    values.reportedCurrency(),
+                    companyCurrency)) {
+                return;
+            }
+            result.getAlphaVantage().setShares(toMillions(values.shares()));
+        } catch (Exception exception) {
+            addWarning(
+                    result.getWarnings(),
+                    "Alpha Vantage shares for " + periodName + " and " + ticker,
+                    exception);
+        }
+    }
+
+    private void loadAlphaVantageEarnings(
+            PeriodImportDataDto result,
+            String ticker,
+            String periodName,
+            String endingMonth)
+    {
+        try {
+            Optional<AlphaVantageEarnings> earnings = alphaVantageClient
+                    .getEarnings(ticker, periodName, endingMonth);
+            earnings.ifPresent(values -> result.getAlphaVantage()
+                    .setAdjustedEps(toString(values.reportedEps())));
+        } catch (Exception exception) {
+            addWarning(
+                    result.getWarnings(),
+                    "Alpha Vantage earnings for " + periodName + " and " + ticker,
+                    exception);
+        }
+    }
+
+    private void loadAlphaVantagePrices(
+            PeriodImportDataDto result,
+            String ticker,
+            PeriodImportDto firebaseData)
+    {
+        if (firebaseData.getPreviousReportDate() == null || firebaseData.getReportDate() == null) {
+            return;
+        }
+
+        try {
+            Optional<AlphaVantagePriceRange> priceRange = alphaVantageClient.getPriceRange(
+                    ticker,
+                    firebaseData.getPreviousReportDate(),
+                    firebaseData.getReportDate());
+            if (priceRange.isEmpty()) return;
+
+            AlphaVantagePriceRange values = priceRange.get();
+            PeriodImportDataDto.Source source = result.getAlphaVantage();
+            source.setPriceHigh(toString(values.high()));
+            source.setPriceLow(toString(values.low()));
+        } catch (Exception exception) {
+            addWarning(
+                    result.getWarnings(),
+                    "Alpha Vantage price data for " + ticker,
+                    exception);
+        }
     }
 
     private void loadAlphaVantageIncomeStatement(

@@ -6,21 +6,31 @@ import io.quarkus.test.junit.mockito.MockitoConfig;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.kaleta.client.AlphaVantageClient;
+import org.kaleta.client.PolygonClient;
+import org.kaleta.client.dto.AlphaVantageEarnings;
+import org.kaleta.client.dto.AlphaVantagePriceRange;
+import org.kaleta.client.dto.AlphaVantageShares;
 import org.kaleta.framework.Generator;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.EstimateImportDto;
+import org.kaleta.rest.dto.PeriodImportDataDto;
+import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.error.InvalidInputException;
 
+import java.math.BigDecimal;
 import java.time.YearMonth;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +44,10 @@ class ImportServiceTest
     @InjectMock
     @MockitoConfig(convertScopes = true)
     FirebaseService firebaseService;
+    @InjectMock
+    AlphaVantageClient alphaVantageClient;
+    @InjectMock
+    PolygonClient polygonClient;
 
     @Inject
     ImportService importService;
@@ -44,7 +58,7 @@ class ImportServiceTest
     @BeforeEach
     void before()
     {
-        reset(companyService, periodService, firebaseService);
+        reset(companyService, periodService, firebaseService, alphaVantageClient, polygonClient);
         company = Generator.generateCompany(100L);
         company.setTicker("NVDA");
         company.setCurrency(Currency.$);
@@ -129,6 +143,66 @@ class ImportServiceTest
                 () -> importService.getEstimate(company.getId(), period.getId()));
 
         assertThat(exception.getMessage(), is("period with id '200' is not a quarter"));
+    }
+
+    @Test
+    void getPeriod_nonUsdUsesConfiguredAlphaVantageTickerForAllSuggestions() throws Exception
+    {
+        org.kaleta.model.Company model = new org.kaleta.model.Company();
+        model.setId(company.getId());
+        model.setTicker("ASML");
+        model.setAlphaVantageTicker("ASML.AMS");
+        model.setCurrency(Currency.€);
+        when(companyService.getCompany(company.getId())).thenReturn(model);
+
+        PeriodImportDto firebaseData = new PeriodImportDto();
+        firebaseData.setName("26Q2");
+        firebaseData.setEndingMonth("2026-06");
+        firebaseData.setPreviousReportDate("2026-04-22");
+        firebaseData.setReportDate("2026-07-22");
+        when(firebaseService.getPeriod("ASML", "26Q2")).thenReturn(firebaseData);
+        when(alphaVantageClient.getShares("ASML.AMS", "26Q2", "2026-06"))
+                .thenReturn(Optional.of(new AlphaVantageShares(
+                        new BigDecimal("393000000"), "EUR")));
+        when(alphaVantageClient.getEarnings("ASML.AMS", "26Q2", "2026-06"))
+                .thenReturn(Optional.of(new AlphaVantageEarnings(new BigDecimal("7.42"))));
+        when(alphaVantageClient.getPriceRange(
+                "ASML.AMS", "2026-04-22", "2026-07-22"))
+                .thenReturn(Optional.of(new AlphaVantagePriceRange(
+                        new BigDecimal("1550.40"), new BigDecimal("1178.20"))));
+
+        PeriodImportDataDto result = importService.getPeriod(company.getId(), "26Q2", null);
+
+        assertThat(result.getAlphaVantage().getShares(), is("393"));
+        assertThat(result.getAlphaVantage().getAdjustedEps(), is("7.42"));
+        assertThat(result.getAlphaVantage().getPriceHigh(), is("1550.4"));
+        assertThat(result.getAlphaVantage().getPriceLow(), is("1178.2"));
+        assertThat(result.getWarnings(), is(java.util.List.of()));
+        verify(alphaVantageClient).getCashFlow("ASML.AMS", "26Q2", "2026-06");
+        verify(alphaVantageClient).getIncomeStatement("ASML.AMS", "26Q2", "2026-06");
+        verify(alphaVantageClient).getShares("ASML.AMS", "26Q2", "2026-06");
+        verify(alphaVantageClient).getEarnings("ASML.AMS", "26Q2", "2026-06");
+        verify(alphaVantageClient).getPriceRange("ASML.AMS", "2026-04-22", "2026-07-22");
+        verify(polygonClient).getFinancials("ASML", "2026", "Q2");
+        verify(polygonClient, never()).getPriceRange("ASML", "2026-04-22", "2026-07-22");
+    }
+
+    @Test
+    void getPeriod_nonUsdWithoutConfiguredAlphaVantageTickerReturnsConfigurationWarning() throws Exception
+    {
+        org.kaleta.model.Company model = new org.kaleta.model.Company();
+        model.setId(company.getId());
+        model.setTicker("ASML");
+        model.setCurrency(Currency.€);
+        when(companyService.getCompany(company.getId())).thenReturn(model);
+
+        PeriodImportDataDto result = importService.getPeriod(company.getId(), "26Q2", "2026-06");
+
+        assertThat(result.getWarnings(), is(java.util.List.of(
+                "Alpha Vantage ticker for non-USD company ASML is not configured. "
+                        + "Configure it in the company edit dialog to load all Alpha Vantage suggestions.")));
+        verify(alphaVantageClient, never()).getShares("ASML", "26Q2", "2026-06");
+        verify(alphaVantageClient, never()).getEarnings("ASML", "26Q2", "2026-06");
     }
 
     private EstimateImportDto.Quarter quarter(String eps, String date)

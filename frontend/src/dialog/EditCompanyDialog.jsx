@@ -158,43 +158,41 @@ export const EditCompanyDialog = props => {
                         <MenuItem key={index} value={sector} >{sector.name}</MenuItem>
                     ))}
                 </Select>
-                <Box sx={{marginTop: "20px"}}>
-                    <Button
-                        type="button"
-                        variant="outlined"
-                        disabled={tickerSearchDisabled}
-                        onClick={findAlphaVantageTickers}
-                        startIcon={tickerSearchLoading ? <CircularProgress size={14}/> : null}
-                    >
-                        Find Alpha Vantage tickers
-                    </Button>
-                    <FormControl fullWidth variant="standard" sx={{marginTop: "12px"}}>
-                        <InputLabel id="alpha-vantage-ticker-label">Alpha Vantage ticker</InputLabel>
-                        <Select
-                            labelId="alpha-vantage-ticker-label"
-                            value={alphaVantageTicker}
-                            disabled={!alphaVantageEnabled}
-                            onChange={event => {
-                                setAlphaVantageTicker(event.target.value)
-                                setAlert(null)
-                            }}
+                {alphaVantageEnabled &&
+                    <Box sx={{marginTop: "20px"}}>
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            disabled={tickerSearchDisabled}
+                            onClick={findAlphaVantageTickers}
+                            startIcon={tickerSearchLoading ? <CircularProgress size={14}/> : null}
                         >
-                            <MenuItem value="">None</MenuItem>
-                            {alphaVantageTickers.map(candidate => (
-                                <MenuItem key={candidate.symbol} value={candidate.symbol}>
-                                    {candidate.symbol}
-                                    {candidate.region ? ` — ${candidate.name} (${candidate.region})` : ""}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                        {currency === "$" &&
-                            <FormHelperText>USD prices use Finnhub.</FormHelperText>
-                        }
-                        {alphaVantageEnabled && tickerSearchCompleted && alphaVantageTickers.length === 0 &&
-                            <FormHelperText>No matching tickers found.</FormHelperText>
-                        }
-                    </FormControl>
-                </Box>
+                            Find Alpha Vantage tickers
+                        </Button>
+                        <FormControl fullWidth variant="standard" sx={{marginTop: "12px"}}>
+                            <InputLabel id="alpha-vantage-ticker-label">Alpha Vantage ticker</InputLabel>
+                            <Select
+                                labelId="alpha-vantage-ticker-label"
+                                value={alphaVantageTicker}
+                                onChange={event => {
+                                    setAlphaVantageTicker(event.target.value)
+                                    setAlert(null)
+                                }}
+                            >
+                                <MenuItem value="">None</MenuItem>
+                                {alphaVantageTickers.map(candidate => (
+                                    <MenuItem key={candidate.symbol} value={candidate.symbol}>
+                                        {candidate.symbol}
+                                        {candidate.region ? ` — ${candidate.name} (${candidate.region})` : ""}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                            {tickerSearchCompleted && alphaVantageTickers.length === 0 &&
+                                <FormHelperText>No matching tickers found.</FormHelperText>
+                            }
+                        </FormControl>
+                    </Box>
+                }
             </DialogContent>
             {alert &&
                 <Alert severity="error" variant="filled">

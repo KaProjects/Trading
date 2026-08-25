@@ -277,6 +277,24 @@ describe("AddPeriodFinancialDialog", () => {
         expect(mockFormatError).not.toHaveBeenCalled();
     });
 
+    test.each([false, true])(
+        "shows Alpha Vantage configuration warnings in the add/edit dialog (edit=%s)",
+        async edit => {
+            const warning = "Alpha Vantage ticker for non-USD company ASML is not configured. "
+                + "Configure it in the company edit dialog to load all Alpha Vantage suggestions.";
+            axios.get.mockResolvedValue({
+                data: {firebase: {}, polygon: {}, alphaVantage: {}, warnings: [warning]},
+            });
+
+            render(<AddPeriodFinancialDialog {...createProps({
+                company: {id: "company-1", ticker: "ASML"},
+            })} edit={edit}/>);
+
+            expect(await screen.findByText(warning)).toBeInTheDocument();
+            expect(screen.getByText("Some external data could not be loaded")).toBeInTheDocument();
+        },
+    );
+
     test("edits a reported period with suggestions without replacing saved values", async () => {
         axios.put.mockResolvedValue({});
         const props = createProps({

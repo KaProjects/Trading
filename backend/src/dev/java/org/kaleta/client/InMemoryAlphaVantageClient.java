@@ -7,8 +7,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.AlphaVantageCashFlow;
+import org.kaleta.client.dto.AlphaVantageEarnings;
 import org.kaleta.client.dto.AlphaVantageIncomeStatement;
+import org.kaleta.client.dto.AlphaVantagePriceRange;
 import org.kaleta.client.dto.AlphaVantageQuote;
+import org.kaleta.client.dto.AlphaVantageShares;
 import org.kaleta.client.dto.AlphaVantageTicker;
 
 import java.io.IOException;
@@ -32,6 +35,9 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
     private final Map<String, Map<String, CashFlowEntry>> cashFlows;
     private final Map<String, List<AlphaVantageTicker>> tickerSearches;
     private final Map<String, QuoteEntry> quotes;
+    private final Map<String, Map<String, PriceRangeEntry>> priceRanges;
+    private final Map<String, Map<String, SharesEntry>> shares;
+    private final Map<String, Map<String, EarningsEntry>> earnings;
 
     @Inject
     public InMemoryAlphaVantageClient(
@@ -43,6 +49,9 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
         this.cashFlows = data.cashFlows() == null ? Map.of() : data.cashFlows();
         this.tickerSearches = data.tickerSearches() == null ? Map.of() : data.tickerSearches();
         this.quotes = data.quotes() == null ? Map.of() : data.quotes();
+        this.priceRanges = data.priceRanges() == null ? Map.of() : data.priceRanges();
+        this.shares = data.shares() == null ? Map.of() : data.shares();
+        this.earnings = data.earnings() == null ? Map.of() : data.earnings();
     }
 
     @Override
@@ -84,6 +93,41 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
         return quote == null ? Optional.empty() : Optional.of(quote.toDto());
     }
 
+    @Override
+    public Optional<AlphaVantagePriceRange> getPriceRange(String ticker, String from, String to)
+    {
+        PriceRangeEntry value = priceRanges
+                .getOrDefault(normalize(ticker), Map.of())
+                .get(rangeKey(from, to));
+        return value == null ? Optional.empty() : Optional.of(value.toDto());
+    }
+
+    @Override
+    public Optional<AlphaVantageShares> getShares(
+            String ticker,
+            String periodName,
+            String endingMonth)
+    {
+        SharesEntry value = shares
+                .getOrDefault(normalize(ticker), Map.of())
+                .get(periodName);
+        if (value == null || !Objects.equals(value.endingMonth(), endingMonth)) return Optional.empty();
+        return Optional.of(value.toDto());
+    }
+
+    @Override
+    public Optional<AlphaVantageEarnings> getEarnings(
+            String ticker,
+            String periodName,
+            String endingMonth)
+    {
+        EarningsEntry value = earnings
+                .getOrDefault(normalize(ticker), Map.of())
+                .get(periodName);
+        if (value == null || !Objects.equals(value.endingMonth(), endingMonth)) return Optional.empty();
+        return Optional.of(value.toDto());
+    }
+
     private AlphaVantageData load(ObjectMapper objectMapper, String dataFile)
     {
         Path path = Path.of(dataFile).toAbsolutePath().normalize();
@@ -101,11 +145,19 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
         return ticker.toUpperCase(Locale.ROOT);
     }
 
+    private String rangeKey(String from, String to)
+    {
+        return from + ":" + to;
+    }
+
     private record AlphaVantageData(
             Map<String, Map<String, IncomeStatementEntry>> incomeStatements,
             Map<String, Map<String, CashFlowEntry>> cashFlows,
             Map<String, List<AlphaVantageTicker>> tickerSearches,
-            Map<String, QuoteEntry> quotes)
+            Map<String, QuoteEntry> quotes,
+            Map<String, Map<String, PriceRangeEntry>> priceRanges,
+            Map<String, Map<String, SharesEntry>> shares,
+            Map<String, Map<String, EarningsEntry>> earnings)
     {
     }
 
@@ -146,6 +198,33 @@ public class InMemoryAlphaVantageClient implements AlphaVantageClient
         private AlphaVantageQuote toDto()
         {
             return new AlphaVantageQuote(price, LocalDate.parse(date));
+        }
+    }
+
+    private record PriceRangeEntry(BigDecimal high, BigDecimal low)
+    {
+        private AlphaVantagePriceRange toDto()
+        {
+            return new AlphaVantagePriceRange(high, low);
+        }
+    }
+
+    private record SharesEntry(
+            String endingMonth,
+            BigDecimal shares,
+            String reportedCurrency)
+    {
+        private AlphaVantageShares toDto()
+        {
+            return new AlphaVantageShares(shares, reportedCurrency);
+        }
+    }
+
+    private record EarningsEntry(String endingMonth, BigDecimal reportedEps)
+    {
+        private AlphaVantageEarnings toDto()
+        {
+            return new AlphaVantageEarnings(reportedEps);
         }
     }
 }

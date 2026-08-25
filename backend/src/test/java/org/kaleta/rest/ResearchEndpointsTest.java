@@ -347,7 +347,7 @@ public class ResearchEndpointsTest
     }
 
     @Test
-    void importPeriod_acceptsPolygonFinancialsButRejectsUsdPricesForNonUsdCompany()
+    void importPeriod_acceptsPolygonFinancialsAndSkipsUsdPricesForNonUsdCompany()
             throws RequestFailureException
     {
         Long companyId = 1425L;
@@ -374,8 +374,8 @@ public class ResearchEndpointsTest
         assertThat(dto.getPolygon().getPriceHigh(), is(nullValue()));
         assertThat(dto.getPolygon().getPriceLow(), is(nullValue()));
         assertThat(dto.getWarnings(), is(List.of(
-                "Polygon.io price data for SHELL was ignored because reported currency USD "
-                        + "does not match the company's configured currency EUR")));
+                "Alpha Vantage ticker for non-USD company SHELL is not configured. "
+                        + "Configure it in the company edit dialog to load all Alpha Vantage suggestions.")));
         verify(polygonClient, never()).getPriceRange("SHELL", "2025-05-28", "2025-08-27");
     }
 
@@ -473,7 +473,9 @@ public class ResearchEndpointsTest
         assertThat(dto.getAlphaVantage().getDividend(), is("7"));
         assertThat(dto.getAlphaVantage().getCapex(), is("12"));
         assertThat(dto.getAlphaVantage().getFreeCashFlow(), is("22"));
-        assertThat(dto.getWarnings(), is(List.of()));
+        assertThat(dto.getWarnings(), is(List.of(
+                "Alpha Vantage ticker for non-USD company SHELL is not configured. "
+                        + "Configure it in the company edit dialog to load all Alpha Vantage suggestions.")));
     }
 
     @Test

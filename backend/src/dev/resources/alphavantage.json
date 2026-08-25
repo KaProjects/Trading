@@ -29,6 +29,46 @@
         "netIncome": 58321000000,
         "reportedCurrency": "USD"
       }
+    },
+    "ASML.AMS": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "revenue": 9326500000,
+        "grossProfit": 5035400000,
+        "operatingIncome": 3456100000,
+        "netIncome": 2917600000,
+        "reportedCurrency": "EUR"
+      }
+    },
+    "AA.PAR": {
+      "25H2": {
+        "endingMonth": "2025-12",
+        "revenue": 1025000000,
+        "grossProfit": 602000000,
+        "operatingIncome": 286000000,
+        "netIncome": 181000000,
+        "reportedCurrency": "EUR"
+      }
+    },
+    "CX.PRG": {
+      "25FY": {
+        "endingMonth": "2025-12",
+        "revenue": 52400000000,
+        "grossProfit": 21400000000,
+        "operatingIncome": 7800000000,
+        "netIncome": 5250000000,
+        "reportedCurrency": "CZK"
+      }
+    },
+    "EFG.LON": {
+      "26H1": {
+        "endingMonth": "2026-06",
+        "revenue": 2480000000,
+        "grossProfit": 1390000000,
+        "operatingIncome": 442000000,
+        "netIncome": 326000000,
+        "reportedCurrency": "GBP"
+      }
     }
   },
   "cashFlows": {
@@ -58,6 +98,42 @@
         "freeCashFlow": 28750000000,
         "reportedCurrency": "USD"
       }
+    },
+    "ASML.AMS": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "dividend": 1061280075,
+        "capex": 305836238,
+        "freeCashFlow": 1436491616,
+        "reportedCurrency": "EUR"
+      }
+    },
+    "AA.PAR": {
+      "25H2": {
+        "endingMonth": "2025-12",
+        "dividend": 18000000,
+        "capex": 72000000,
+        "freeCashFlow": 134000000,
+        "reportedCurrency": "EUR"
+      }
+    },
+    "CX.PRG": {
+      "25FY": {
+        "endingMonth": "2025-12",
+        "dividend": 0,
+        "capex": 3100000000,
+        "freeCashFlow": 6200000000,
+        "reportedCurrency": "CZK"
+      }
+    },
+    "EFG.LON": {
+      "26H1": {
+        "endingMonth": "2026-06",
+        "dividend": 74000000,
+        "capex": 118000000,
+        "freeCashFlow": 291000000,
+        "reportedCurrency": "GBP"
+      }
     }
   },
   "tickerSearches": {
@@ -86,12 +162,160 @@
         "currency": "EUR",
         "matchScore": 0.6
       }
+    ],
+    "AA": [
+      {
+        "symbol": "AA",
+        "name": "AA Software ADR",
+        "type": "Equity",
+        "region": "United States",
+        "currency": "USD",
+        "matchScore": 1.0
+      },
+      {
+        "symbol": "AA.PAR",
+        "name": "AA Software SE",
+        "type": "Equity",
+        "region": "Paris",
+        "currency": "EUR",
+        "matchScore": 0.91
+      }
+    ],
+    "CX": [
+      {
+        "symbol": "CX",
+        "name": "CX Fund ADR",
+        "type": "Equity",
+        "region": "United States",
+        "currency": "USD",
+        "matchScore": 1.0
+      },
+      {
+        "symbol": "CX.PRG",
+        "name": "CX Index Fund",
+        "type": "Equity",
+        "region": "Prague",
+        "currency": "CZK",
+        "matchScore": 0.88
+      }
+    ],
+    "EFG": [
+      {
+        "symbol": "EFG",
+        "name": "EFG Health ADR",
+        "type": "Equity",
+        "region": "United States",
+        "currency": "USD",
+        "matchScore": 1.0
+      },
+      {
+        "symbol": "EFG.LON",
+        "name": "EFG Health plc",
+        "type": "Equity",
+        "region": "United Kingdom",
+        "currency": "GBP",
+        "matchScore": 0.93
+      }
     ]
   },
   "quotes": {
     "ASML.AMS": {
       "price": 1489.8,
       "date": "2026-08-24"
+    },
+    "AA.PAR": {
+      "price": 101.4,
+      "date": "2026-08-24"
+    },
+    "CX.PRG": {
+      "price": 1275.5,
+      "date": "2026-08-24"
+    },
+    "EFG.LON": {
+      "price": 34.8,
+      "date": "2026-08-24"
+    }
+  },
+  "priceRanges": {
+    "ASML.AMS": {
+      "2026-04-22:2026-07-22": {
+        "high": 1550.4,
+        "low": 1178.2
+      }
+    },
+    "AA.PAR": {
+      "2025-08-04:2026-02-02": {
+        "high": 106.8,
+        "low": 72.4
+      }
+    },
+    "CX.PRG": {
+      "2025-02-27:2026-02-26": {
+        "high": 1328.0,
+        "low": 984.5
+      }
+    },
+    "EFG.LON": {
+      "2026-02-10:2026-08-10": {
+        "high": 38.6,
+        "low": 27.9
+      }
+    }
+  },
+  "shares": {
+    "ASML.AMS": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "shares": 393000000,
+        "reportedCurrency": "EUR"
+      }
+    },
+    "AA.PAR": {
+      "25H2": {
+        "endingMonth": "2025-12",
+        "shares": 410000000,
+        "reportedCurrency": "EUR"
+      }
+    },
+    "CX.PRG": {
+      "25FY": {
+        "endingMonth": "2025-12",
+        "shares": 185000000,
+        "reportedCurrency": "CZK"
+      }
+    },
+    "EFG.LON": {
+      "26H1": {
+        "endingMonth": "2026-06",
+        "shares": 250000000,
+        "reportedCurrency": "GBP"
+      }
+    }
+  },
+  "earnings": {
+    "ASML.AMS": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "reportedEps": 7.42
+      }
+    },
+    "AA.PAR": {
+      "25H2": {
+        "endingMonth": "2025-12",
+        "reportedEps": 0.41
+      }
+    },
+    "CX.PRG": {
+      "25FY": {
+        "endingMonth": "2025-12",
+        "reportedEps": 28.38
+      }
+    },
+    "EFG.LON": {
+      "26H1": {
+        "endingMonth": "2026-06",
+        "reportedEps": 1.3
+      }
     }
   }
 }

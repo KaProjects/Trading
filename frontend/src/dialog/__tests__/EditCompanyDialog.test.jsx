@@ -102,6 +102,8 @@ describe("EditCompanyDialog", () => {
         render(<EditCompanyDialog {...props}/>);
 
         expect(screen.queryByLabelText("Ticker")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Find Alpha Vantage tickers"})).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Alpha Vantage ticker")).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByText("Edit"));
 
@@ -114,6 +116,24 @@ describe("EditCompanyDialog", () => {
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.setOpenEditCompany).toHaveBeenCalledWith(null);
+    });
+
+    test("shows Alpha Vantage ticker controls only for non-USD currencies", () => {
+        const props = createProps({openEditCompany: {}});
+        render(<EditCompanyDialog {...props}/>);
+
+        expect(screen.queryByRole("button", {name: "Find Alpha Vantage tickers"})).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Alpha Vantage ticker")).not.toBeInTheDocument();
+
+        selectOption(0, "€");
+
+        expect(screen.getByRole("button", {name: "Find Alpha Vantage tickers"})).toBeInTheDocument();
+        expect(screen.getByLabelText("Alpha Vantage ticker")).toBeInTheDocument();
+
+        selectOption(0, "$");
+
+        expect(screen.queryByRole("button", {name: "Find Alpha Vantage tickers"})).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Alpha Vantage ticker")).not.toBeInTheDocument();
     });
 
     test("searches and selects a currency-matching Alpha Vantage ticker", async () => {

@@ -55,5 +55,30 @@
       "price": 1489.8,
       "date": "2026-08-24"
     }
+  },
+  "priceRanges": {
+    "ASML.AMS": {
+      "2026-04-22:2026-07-22": {
+        "high": 1550.4,
+        "low": 1178.2
+      }
+    }
+  },
+  "shares": {
+    "ASML.AMS": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "shares": 393000000,
+        "reportedCurrency": "EUR"
+      }
+    }
+  },
+  "earnings": {
+    "ASML.AMS": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "reportedEps": 7.42
+      }
+    }
   }
 }

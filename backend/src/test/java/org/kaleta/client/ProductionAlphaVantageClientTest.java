@@ -7,8 +7,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.client.dto.AlphaVantageCashFlow;
+import org.kaleta.client.dto.AlphaVantageEarnings;
 import org.kaleta.client.dto.AlphaVantageIncomeStatement;
+import org.kaleta.client.dto.AlphaVantagePriceRange;
 import org.kaleta.client.dto.AlphaVantageQuote;
+import org.kaleta.client.dto.AlphaVantageShares;
 import org.kaleta.client.dto.AlphaVantageTicker;
 
 import java.io.IOException;
@@ -32,6 +35,9 @@ class ProductionAlphaVantageClientTest
     private String cashFlowResponse;
     private String tickerSearchResponse;
     private String quoteResponse;
+    private String dailyResponse;
+    private String balanceSheetResponse;
+    private String earningsResponse;
     private ProductionAlphaVantageClient client;
 
     @BeforeEach
@@ -91,6 +97,39 @@ class ProductionAlphaVantageClientTest
                     "05. price": "1489.8000",
                     "07. latest trading day": "2026-08-24"
                   }
+                }
+                """;
+        dailyResponse = """
+                {
+                  "Time Series (Daily)": {
+                    "2026-08-25": {"2. high": "1600.00", "3. low": "1590.00"},
+                    "2026-08-24": {"2. high": "1489.80", "3. low": "1450.10"},
+                    "2026-08-23": {"2. high": "1475.25", "3. low": "1400.00"},
+                    "2026-08-22": {"2. high": "1430.50", "3. low": "1410.25"}
+                  }
+                }
+                """;
+        balanceSheetResponse = """
+                {
+                  "annualReports": [],
+                  "quarterlyReports": [
+                    {
+                      "fiscalDateEnding": "2026-06-28",
+                      "reportedCurrency": "EUR",
+                      "commonStockSharesOutstanding": "393000000"
+                    }
+                  ]
+                }
+                """;
+        earningsResponse = """
+                {
+                  "annualEarnings": [],
+                  "quarterlyEarnings": [
+                    {
+                      "fiscalDateEnding": "2026-06-28",
+                      "reportedEPS": "7.42"
+                    }
+                  ]
                 }
                 """;
 
@@ -157,6 +196,26 @@ class ProductionAlphaVantageClientTest
     }
 
     @Test
+    void readsPriceRangeQuarterEndSharesAndReportedEps() throws RequestFailureException
+    {
+        Optional<AlphaVantagePriceRange> range = client.getPriceRange(
+                "ASML.AMS", "2026-08-22", "2026-08-24");
+        Optional<AlphaVantageShares> shares = client.getShares(
+                "ASML.AMS", "26Q2", "2026-06");
+        Optional<AlphaVantageEarnings> earnings = client.getEarnings(
+                "ASML.AMS", "26Q2", "2026-06");
+
+        assertThat(range.isPresent(), is(true));
+        assertThat(range.orElseThrow().high(), comparesEqualTo(new BigDecimal("1489.80")));
+        assertThat(range.orElseThrow().low(), comparesEqualTo(new BigDecimal("1400.00")));
+        assertThat(shares.isPresent(), is(true));
+        assertThat(shares.orElseThrow().shares(), comparesEqualTo(new BigDecimal("393000000")));
+        assertThat(shares.orElseThrow().reportedCurrency(), is("EUR"));
+        assertThat(earnings.isPresent(), is(true));
+        assertThat(earnings.orElseThrow().reportedEps(), comparesEqualTo(new BigDecimal("7.42")));
+    }
+
+    @Test
     void treatsApiInformationPayloadAsFailure()
     {
         incomeResponse = "{\"Information\":\"daily limit reached\"}";
@@ -174,10 +233,16 @@ class ProductionAlphaVantageClientTest
         String body;
         if (query.contains("function=CASH_FLOW")) {
             body = cashFlowResponse;
+        } else if (query.contains("function=BALANCE_SHEET")) {
+            body = balanceSheetResponse;
+        } else if (query.contains("function=EARNINGS")) {
+            body = earningsResponse;
         } else if (query.contains("function=SYMBOL_SEARCH")) {
             body = tickerSearchResponse;
         } else if (query.contains("function=GLOBAL_QUOTE")) {
             body = quoteResponse;
+        } else if (query.contains("function=TIME_SERIES_DAILY")) {
+            body = dailyResponse;
         } else {
             body = incomeResponse;
         }
