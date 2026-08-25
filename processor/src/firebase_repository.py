@@ -46,6 +46,7 @@ def parse_company_snapshot(
         try:
             companies[company_id] = model.model_validate(model_data)
         except ValidationError as exception:
+            companies[company_id] = None
             if error_reporter is None:
                 logger.error(
                     "Ignoring invalid %s data for company %s: %s",

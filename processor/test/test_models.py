@@ -9,6 +9,7 @@ from gemini.models import (
     Company,
     CompanyTarget,
     Info,
+    InitialCompanyResponse,
     Quarter,
     ReportDate,
     ReportDates,
@@ -140,6 +141,11 @@ def test_target_schema_describes_every_output_field():
         == 500
     )
 
+    initial_schema = InitialCompanyResponse.model_json_schema()
+    assert "errors" in initial_schema["required"]
+    assert initial_schema["properties"]["errors"]["description"]
+    assert "currency" in initial_schema["$defs"]["InitialInfo"]["required"]
+
 
 def test_target_report_normalizes_oversized_gemini_response(caplog):
     overview = "o" * 1005
@@ -165,6 +171,7 @@ def test_target_report_normalizes_oversized_gemini_response(caplog):
 def test_quarter_schema_describes_every_output_field_and_unit():
     properties = Quarter.model_json_schema()["properties"]
 
+    assert properties["name"]["minLength"] == 1
     assert all(
         properties[field_name]["description"]
         for field_name in Quarter.model_fields
@@ -176,13 +183,20 @@ def test_quarter_schema_describes_every_output_field_and_unit():
         "reported_net_income",
         "reported_div",
     ):
-        assert "millions of USD" in properties[field_name]["description"]
+        assert (
+            "original reporting currency"
+            in properties[field_name]["description"]
+        )
     assert (
         "millions of shares"
         in properties["reported_shares"]["description"]
     )
-    for field_name in ("reported_eps", "price_min", "price_max"):
-        assert "USD per share" in properties[field_name]["description"]
+    assert (
+        "original reporting currency"
+        in properties["reported_eps"]["description"]
+    )
+    for field_name in ("price_min", "price_max"):
+        assert "trading currency per share" in properties[field_name]["description"]
 
 
 def test_finnhub_models_parse_legacy_numbers_and_validate_keys():

@@ -175,7 +175,7 @@ def test_firebase_validation_error_is_reported_with_company_context():
     ):
         companies = service.get_companies()
 
-    assert companies == {}
+    assert companies == {"AAPL": None}
     error = service.errors.report.call_args.args[0]
     service.errors.report.assert_called_once_with(
         error,

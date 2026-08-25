@@ -7,7 +7,12 @@ import pytest
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from gemini import discord_templates
-from gemini.client import GeminiClient
+from gemini.client import (
+    GeminiClient,
+    InitialCompanyResult,
+    InvalidInitialCompanyResponse,
+    QuarterReportResult,
+)
 from gemini.models import (
     Company,
     CompanyTarget,
@@ -43,20 +48,53 @@ def make_quarter(
     return Quarter(**data)
 
 
+def make_complete_quarter(**overrides):
+    data = {
+        "reported_eps": "1.25",
+        "reported_revenues": "1000",
+        "reported_gross_profit": "500",
+        "reported_operating_income": "300",
+        "reported_net_income": "200",
+        "reported_div": "0",
+        "reported_shares": "100",
+        "price_min": "90",
+        "price_max": "110",
+    }
+    data.update(overrides)
+    return make_quarter(**data)
+
+
 def make_company(
     ticker,
     current_quarter_id,
     quarters,
     targets=None,
+    currency="$",
 ):
     return Company(
         info=Info(
             ticker=ticker,
+            currency=currency,
             last_update="2026-04-01",
             current_quarter_id=current_quarter_id,
         ),
         quarters=quarters,
         targets=targets or {},
+    )
+
+
+def make_initial_result(company, errors=(), raw_response=""):
+    return InitialCompanyResult(
+        company=company,
+        errors=tuple(errors),
+        raw_response=raw_response,
+    )
+
+
+def make_quarter_report_result(quarter, raw_response=""):
+    return QuarterReportResult(
+        quarter=quarter,
+        raw_response=raw_response,
     )
 
 
@@ -85,10 +123,139 @@ class TestStockDataRetriever:
         runner.service.get_companies.return_value = {"AAPL": None}
         quarter = make_quarter(quarter_id="26Q1")
         mock_company = make_company("AAPL", "26Q1", {"26Q1": quarter})
-        runner.client.get_initial_stock_data.return_value = mock_company
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(mock_company)
+        )
         runner.run()
         runner.client.get_initial_stock_data.assert_called_once_with("AAPL")
         runner.service.init_company.assert_called_once_with(id="AAPL", data=mock_company)
+
+    def test_initialization_errors_are_reported_and_company_is_not_persisted(
+        self,
+        runner,
+    ):
+        quarter = make_quarter(quarter_id="26Q3")
+        company = make_company("ASML", "26Q3", {"26Q3": quarter})
+        response = make_initial_result(
+            company,
+            errors=[
+                "26Q2 reported dividend was unavailable.",
+                "26Q1 price range was based on limited public data.",
+            ],
+            raw_response='{"errors":["unavailable data"]}',
+        )
+        runner.service.get_companies.return_value = {"ASML": None}
+        runner.client.get_initial_stock_data.return_value = response
+
+        runner.run()
+
+        runner.service.init_company.assert_not_called()
+        runner.errors.report_error_message.assert_called_once_with(
+            "Gemini initialization failed:\n"
+            "1. 26Q2 reported dividend was unavailable.\n"
+            "2. 26Q1 price range was based on limited public data.\n\n"
+            "================ GEMINI RESPONSE START ================\n"
+            '{"errors":["unavailable data"]}\n'
+            "================= GEMINI RESPONSE END =================",
+            logger=runner.log,
+            source=runner.name,
+            operation="initialize_company",
+            context={
+                "company_id": "ASML",
+                "currency": "$",
+                "error_count": 2,
+            },
+        )
+
+    def test_non_usd_optional_fields_are_warned_and_persisted(
+        self,
+        runner,
+    ):
+        current_quarter = make_quarter(quarter_id="26Q3")
+        reported_quarter = make_quarter(
+            quarter_id="26Q2",
+            reported_revenues="1000",
+            reported_net_income="200",
+        )
+        company = make_company(
+            "ASML",
+            "26Q3",
+            {
+                "26Q3": current_quarter,
+                "26Q2": reported_quarter,
+            },
+            currency="€",
+        )
+        raw_response = '{"errors":["optional data unavailable"]}'
+        runner.service.get_companies.return_value = {"ASML": None}
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(
+                company,
+                errors=["26Q2 optional data unavailable."],
+                raw_response=raw_response,
+            )
+        )
+
+        runner.run()
+
+        runner.service.init_company.assert_called_once_with(
+            id="ASML",
+            data=company,
+        )
+        runner.errors.report_error_message.assert_not_called()
+        runner.errors.report_warning_message.assert_called_once()
+        warning_call = runner.errors.report_warning_message.call_args
+        assert warning_call.kwargs["context"] == {
+            "company_id": "ASML",
+            "currency": "€",
+            "error_count": 2,
+        }
+        assert "26Q2 optional data unavailable" in warning_call.args[0]
+        assert "26Q2.reported_div" in warning_call.args[0]
+        assert raw_response in warning_call.args[0]
+
+    def test_non_usd_missing_required_fields_is_not_persisted(
+        self,
+        runner,
+    ):
+        current_quarter = make_quarter(quarter_id="26Q3")
+        reported_quarter = make_quarter(
+            quarter_id="26Q2",
+            reported_net_income="200",
+        )
+        company = make_company(
+            "ASML",
+            "26Q3",
+            {
+                "26Q3": current_quarter,
+                "26Q2": reported_quarter,
+            },
+            currency="€",
+        )
+        runner.service.get_companies.return_value = {"ASML": None}
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(
+                company,
+                errors=["26Q2 revenue unavailable."],
+                raw_response='{"errors":["revenue unavailable"]}',
+            )
+        )
+
+        runner.run()
+
+        runner.service.init_company.assert_not_called()
+        runner.errors.report_warning_message.assert_not_called()
+        runner.errors.report_error_message.assert_called_once()
+        error_call = runner.errors.report_error_message.call_args
+        assert "Required reported-quarter fields are missing" in (
+            error_call.args[0]
+        )
+        assert "26Q2.reported_revenues" in error_call.args[0]
+        assert error_call.kwargs["context"] == {
+            "company_id": "ASML",
+            "currency": "€",
+            "error_count": 2,
+        }
 
     @patch("utils.is_past_date")
     @patch("gemini.retriever.datetime")
@@ -106,14 +273,71 @@ class TestStockDataRetriever:
         runner.run()
         runner.service.update_report_date.assert_called_once_with(new_report)
 
-    def test_missing_quarter_raises_exception(self, runner):
-        """Test Case: Company exists but the current_quarter_id is invalid."""
-        existing_quarter = make_quarter(quarter_id="26Q1")
-        mock_company = make_company("NVDA", "26Q2", {"26Q1": existing_quarter})
-        runner.service.get_companies.return_value = {"NVDA": mock_company}
+    def test_missing_current_quarter_reinitializes_company(self, runner):
+        existing_quarter = make_quarter(
+            quarter_id="26Q1",
+            reported_eps="1.25",
+            reported_revenues="1000",
+            reported_gross_profit="500",
+            reported_operating_income="300",
+            reported_net_income="200",
+            reported_div="0",
+            reported_shares="100",
+            price_min="90",
+            price_max="110",
+        )
+        incomplete_company = make_company(
+            "NVDA",
+            "26Q2",
+            {"26Q1": existing_quarter},
+        )
+        current_quarter = make_quarter(quarter_id="26Q2")
+        initialized_company = make_company(
+            "NVDA",
+            "26Q2",
+            {
+                "26Q1": existing_quarter,
+                "26Q2": current_quarter,
+            },
+        )
+        runner.service.get_companies.return_value = {
+            "NVDA": incomplete_company,
+        }
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(initialized_company)
+        )
+
         runner.run()
-        runner.log.error.assert_called_once()
-        assert "quarter 26Q2 not found for NVDA" in runner.log.error.call_args[0][0]
+
+        runner.client.get_initial_stock_data.assert_called_once_with("NVDA")
+        runner.service.init_company.assert_called_once_with(
+            id="NVDA",
+            data=initialized_company,
+        )
+
+    def test_invalid_initial_company_response_is_not_retried(
+        self,
+        runner,
+    ):
+        error = InvalidInitialCompanyResponse(
+            ticker="ASML",
+            violations=["quarter response is invalid"],
+            raw_response='{"quarters": []}',
+        )
+        runner.service.get_companies.return_value = {"ASML": None}
+        runner.client.get_initial_stock_data.side_effect = error
+
+        runner.run()
+
+        runner.client.get_initial_stock_data.assert_called_once_with("ASML")
+        runner.service.init_company.assert_not_called()
+        runner.errors.report.assert_called_once_with(
+            error,
+            logger=runner.log,
+            source=runner.name,
+            operation="process_company",
+            context={"company_id": "ASML"},
+        )
 
     @patch("utils.is_past_date")
     @patch("gemini.retriever.datetime")
@@ -124,8 +348,13 @@ class TestStockDataRetriever:
         old_quarter = make_quarter(report_date="2026-04-20")
         mock_company = make_company("NVDA", "25Q4", {"25Q4": old_quarter})
         runner.service.get_companies.return_value = {"NVDA": mock_company}
-        new_reported_quarter = make_quarter(report_date="2026-04-20", reported_eps="5.00")
-        runner.client.get_quarter_report.return_value = new_reported_quarter
+        new_reported_quarter = make_complete_quarter(
+            report_date="2026-04-20",
+            reported_eps="5.00",
+        )
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(new_reported_quarter)
+        )
         next_quarter = make_quarter(
             quarter_id="26Q1",
             report_date="",
@@ -164,11 +393,13 @@ class TestStockDataRetriever:
         old_quarter = make_quarter(report_date="2026-04-20")
         company = make_company("NVDA", "25Q4", {"25Q4": old_quarter})
         runner.service.get_companies.return_value = {"NVDA": company}
-        reported_quarter = make_quarter(
+        reported_quarter = make_complete_quarter(
             report_date="2026-04-20",
             reported_eps="5.00",
         )
-        runner.client.get_quarter_report.return_value = reported_quarter
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(reported_quarter)
+        )
         runner.compose_new_quarter = create_autospec(
             runner.compose_new_quarter,
             return_value=make_quarter(
@@ -213,12 +444,152 @@ class TestStockDataRetriever:
         quarter_data = make_quarter(report_date="2026-04-20")
         mock_company = make_company("NVDA", "25Q4", {"25Q4": quarter_data})
         runner.service.get_companies.return_value = {"NVDA": mock_company}
-        runner.client.get_quarter_report.return_value = quarter_data
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(quarter_data)
+        )
         runner.run()
         runner.service.report_quarter.assert_not_called()
         runner.service.create_quarter.assert_not_called()
         runner.log.error.assert_called_once()
         assert "failed getting report for quarter 25Q4 of NVDA" in runner.log.error.call_args[0][0]
+
+    @patch("utils.is_past_date", return_value=True)
+    @patch("gemini.retriever.datetime")
+    def test_non_usd_partial_quarter_report_is_warned_and_persisted(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        current_quarter = make_quarter(report_date="2026-04-20")
+        company = make_company(
+            "ASML",
+            "25Q4",
+            {"25Q4": current_quarter},
+            currency="€",
+        )
+        reported_quarter = make_quarter(
+            report_date="2026-04-20",
+            reported_revenues="1000",
+            reported_net_income="200",
+        )
+        raw_response = reported_quarter.model_dump_json()
+        runner.service.get_companies.return_value = {"ASML": company}
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(reported_quarter, raw_response)
+        )
+        next_quarter = make_quarter(
+            quarter_id="26Q1",
+            report_date="",
+            ending_month="26-06",
+            previous_report_date="2026-04-20",
+        )
+        runner.compose_new_quarter = create_autospec(
+            runner.compose_new_quarter,
+            return_value=next_quarter,
+        )
+
+        runner.run()
+
+        runner.service.report_quarter.assert_called_once_with(
+            "ASML",
+            reported_quarter,
+        )
+        runner.service.create_quarter.assert_called_once_with(
+            "ASML",
+            next_quarter,
+        )
+        runner.errors.report_error_message.assert_not_called()
+        runner.errors.report_warning_message.assert_called_once()
+        warning_call = runner.errors.report_warning_message.call_args
+        assert warning_call.kwargs["context"] == {
+            "company_id": "ASML",
+            "currency": "€",
+            "quarter_id": "25Q4",
+            "missing_field_count": 7,
+        }
+        assert "reported_gross_profit" in warning_call.args[0]
+        assert raw_response in warning_call.args[0]
+
+    @patch("utils.is_past_date", return_value=True)
+    @patch("gemini.retriever.datetime")
+    def test_non_usd_quarter_report_missing_revenue_is_rejected(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        current_quarter = make_quarter(report_date="2026-04-20")
+        company = make_company(
+            "ASML",
+            "25Q4",
+            {"25Q4": current_quarter},
+            currency="€",
+        )
+        reported_quarter = make_quarter(
+            report_date="2026-04-20",
+            reported_net_income="200",
+        )
+        runner.service.get_companies.return_value = {"ASML": company}
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(
+                reported_quarter,
+                reported_quarter.model_dump_json(),
+            )
+        )
+
+        runner.run()
+
+        runner.service.report_quarter.assert_not_called()
+        runner.service.create_quarter.assert_not_called()
+        runner.errors.report_warning_message.assert_not_called()
+        runner.errors.report_error_message.assert_called_once()
+        error_call = runner.errors.report_error_message.call_args
+        assert "Required quarter report fields are missing" in (
+            error_call.args[0]
+        )
+        assert "reported_revenues" in error_call.args[0]
+        assert error_call.kwargs["context"]["currency"] == "€"
+
+    @patch("utils.is_past_date", return_value=True)
+    @patch("gemini.retriever.datetime")
+    def test_usd_partial_quarter_report_is_rejected(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        current_quarter = make_quarter(report_date="2026-04-20")
+        company = make_company(
+            "NVDA",
+            "25Q4",
+            {"25Q4": current_quarter},
+        )
+        reported_quarter = make_quarter(
+            report_date="2026-04-20",
+            reported_revenues="1000",
+            reported_net_income="200",
+        )
+        runner.service.get_companies.return_value = {"NVDA": company}
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(
+                reported_quarter,
+                reported_quarter.model_dump_json(),
+            )
+        )
+
+        runner.run()
+
+        runner.service.report_quarter.assert_not_called()
+        runner.service.create_quarter.assert_not_called()
+        runner.errors.report_warning_message.assert_not_called()
+        runner.errors.report_error_message.assert_called_once()
+        assert "USD quarter report is incomplete" in (
+            runner.errors.report_error_message.call_args.args[0]
+        )
 
     @patch("utils.is_past_date")
     @patch("gemini.retriever.datetime")
@@ -259,7 +630,9 @@ class TestStockDataRetriever:
         runner.service.get_companies.return_value = {"AAPL": None, "MSFT": existing_company}
         aapl_quarter = make_quarter(quarter_id="26Q1")
         mock_aapl = make_company("AAPL", "26Q1", {"26Q1": aapl_quarter})
-        runner.client.get_initial_stock_data.return_value = mock_aapl
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(mock_aapl)
+        )
         runner.run()
         runner.client.get_initial_stock_data.assert_called_once_with("AAPL")
         runner.service.init_company.assert_called_once_with(id="AAPL", data=mock_aapl)
@@ -1006,7 +1379,7 @@ class TestStockDataRetriever:
         )
         runner.client.get_initial_stock_data.side_effect = [
             error,
-            recovered_company,
+            make_initial_result(recovered_company),
         ]
 
         runner.run()
@@ -1095,7 +1468,9 @@ class TestStockDataRetriever:
         quarter_data = make_quarter(report_date="2026-04-20")
         mock_company = make_company("NVDA", "25Q4", {"25Q4": quarter_data})
         runner.service.get_companies.return_value = {"NVDA": mock_company}
-        runner.client.get_quarter_report.return_value = quarter_data
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(quarter_data)
+        )
         updated_report = ReportDate(ticker="NVDA", quarter="25Q4", report_date="2026-04-28")
         runner.client.revalidate_report_dates.return_value = ReportDates(report_dates=[updated_report])
         runner.run()
@@ -1120,14 +1495,19 @@ class TestStockDataRetriever:
             "NVDA": reported_company,
             "TSLA": future_company
         }
-        reported_quarter = make_quarter(report_date="2026-04-20", reported_eps="5.00")
+        reported_quarter = make_complete_quarter(
+            report_date="2026-04-20",
+            reported_eps="5.00",
+        )
         next_quarter = make_quarter(
             quarter_id="26Q1",
             report_date="",
             ending_month="26-06",
             previous_report_date="2026-04-20",
         )
-        runner.client.get_quarter_report.return_value = reported_quarter
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(reported_quarter)
+        )
         runner.compose_new_quarter = create_autospec(runner.compose_new_quarter, return_value=next_quarter)
         revalidated_report = ReportDate(ticker="TSLA", quarter="26Q1", report_date="2026-05-02")
         runner.client.revalidate_report_dates.return_value = ReportDates(report_dates=[revalidated_report])

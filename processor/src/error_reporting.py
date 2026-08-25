@@ -8,6 +8,7 @@ from discord.client import DiscordClient
 
 TRACEBACK_LIMIT = 3400
 FIELD_VALUE_LIMIT = 800
+ERROR_MESSAGE_DESCRIPTION_LIMIT = 4000
 
 
 def _new_incident_id() -> str:
@@ -75,6 +76,92 @@ class ErrorReporter:
             )
 
         return incident_id
+
+    def report_error_message(
+        self,
+        message: str,
+        *,
+        logger: logging.Logger,
+        source: str,
+        operation: str,
+        context: Mapping[str, object] | None = None,
+    ) -> str:
+        incident_id = self.incident_id_factory()
+        logger.error(
+            "source=%s operation=%s context=%s error=%s",
+            source,
+            operation,
+            self._format_context(context),
+            message,
+        )
+
+        if self.discord is None:
+            return incident_id
+
+        try:
+            self.discord.post_error(
+                self._create_error_message_payload(
+                    message,
+                    incident_id=incident_id,
+                    source=source,
+                    operation=operation,
+                    context=context,
+                )
+            )
+        except Exception as notification_exception:
+            self._log_exception(
+                notification_exception,
+                logger=logger,
+                incident_id=f"{incident_id}-notification",
+                source="ErrorReporter",
+                operation="send_discord_error_message",
+                context={"original_incident_id": incident_id},
+            )
+
+        return incident_id
+
+    def report_warning_message(
+        self,
+        message: str,
+        *,
+        logger: logging.Logger,
+        source: str,
+        operation: str,
+        context: Mapping[str, object] | None = None,
+    ) -> str:
+        warning_id = self.incident_id_factory()
+        logger.warning(
+            "source=%s operation=%s context=%s warning=%s",
+            source,
+            operation,
+            self._format_context(context),
+            message,
+        )
+
+        if self.discord is None:
+            return warning_id
+
+        try:
+            self.discord.post_error(
+                self._create_warning_message_payload(
+                    message,
+                    warning_id=warning_id,
+                    source=source,
+                    operation=operation,
+                    context=context,
+                )
+            )
+        except Exception as notification_exception:
+            self._log_exception(
+                notification_exception,
+                logger=logger,
+                incident_id=f"{warning_id}-notification",
+                source="ErrorReporter",
+                operation="send_discord_warning_message",
+                context={"original_warning_id": warning_id},
+            )
+
+        return warning_id
 
     def _log_exception(
         self,
@@ -168,6 +255,120 @@ class ErrorReporter:
                 ),
                 "description": f"```text\n{traceback_text}\n```",
                 "color": 0xE74C3C,
+                "fields": fields,
+                "timestamp": timestamp.astimezone(timezone.utc).isoformat(),
+            }],
+        }
+
+    def _create_error_message_payload(
+        self,
+        message: str,
+        *,
+        incident_id: str,
+        source: str,
+        operation: str,
+        context: Mapping[str, object] | None,
+    ) -> dict[str, object]:
+        timestamp = self.clock()
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+
+        fields: list[dict[str, object]] = [
+            {
+                "name": "Incident",
+                "value": incident_id,
+                "inline": True,
+            },
+            {
+                "name": "Environment",
+                "value": self._truncate(self.environment, FIELD_VALUE_LIMIT),
+                "inline": True,
+            },
+            {
+                "name": "Operation",
+                "value": self._truncate(operation, FIELD_VALUE_LIMIT),
+                "inline": True,
+            },
+        ]
+        if context:
+            fields.append({
+                "name": "Context",
+                "value": self._truncate(
+                    self._format_context(context),
+                    FIELD_VALUE_LIMIT,
+                ),
+                "inline": False,
+            })
+
+        return {
+            "username": "Trading Processor Error Reporter",
+            "embeds": [{
+                "title": self._truncate(
+                    f"Application error: {source}",
+                    256,
+                ),
+                "description": self._truncate(
+                    message,
+                    ERROR_MESSAGE_DESCRIPTION_LIMIT,
+                ),
+                "color": 0xE74C3C,
+                "fields": fields,
+                "timestamp": timestamp.astimezone(timezone.utc).isoformat(),
+            }],
+        }
+
+    def _create_warning_message_payload(
+        self,
+        message: str,
+        *,
+        warning_id: str,
+        source: str,
+        operation: str,
+        context: Mapping[str, object] | None,
+    ) -> dict[str, object]:
+        timestamp = self.clock()
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+
+        fields: list[dict[str, object]] = [
+            {
+                "name": "Warning",
+                "value": warning_id,
+                "inline": True,
+            },
+            {
+                "name": "Environment",
+                "value": self._truncate(self.environment, FIELD_VALUE_LIMIT),
+                "inline": True,
+            },
+            {
+                "name": "Operation",
+                "value": self._truncate(operation, FIELD_VALUE_LIMIT),
+                "inline": True,
+            },
+        ]
+        if context:
+            fields.append({
+                "name": "Context",
+                "value": self._truncate(
+                    self._format_context(context),
+                    FIELD_VALUE_LIMIT,
+                ),
+                "inline": False,
+            })
+
+        return {
+            "username": "Trading Processor Warning Reporter",
+            "embeds": [{
+                "title": self._truncate(
+                    f"Application warning: {source}",
+                    256,
+                ),
+                "description": self._truncate(
+                    message,
+                    ERROR_MESSAGE_DESCRIPTION_LIMIT,
+                ),
+                "color": 0xF1C40F,
                 "fields": fields,
                 "timestamp": timestamp.astimezone(timezone.utc).isoformat(),
             }],

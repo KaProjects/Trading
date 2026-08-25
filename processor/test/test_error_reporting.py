@@ -97,6 +97,97 @@ def test_discord_notification_failure_is_bounded_and_does_not_escape():
     )
 
 
+def test_report_error_message_logs_without_traceback_and_posts_error_embed():
+    discord = create_autospec(DiscordClient, instance=True)
+    logger = create_autospec(logging.Logger, instance=True)
+    reporter = ErrorReporter(
+        discord,
+        environment="production",
+        incident_id_factory=lambda: "error123",
+        clock=lambda: datetime(
+            2026,
+            8,
+            24,
+            17,
+            30,
+            tzinfo=timezone.utc,
+        ),
+    )
+
+    incident_id = reporter.report_error_message(
+        "Gemini initialization failed:\n1. Revenue was unavailable.",
+        logger=logger,
+        source="StockDataRetriever",
+        operation="initialize_company",
+        context={"company_id": "ASML", "error_count": 1},
+    )
+
+    assert incident_id == "error123"
+    logger.error.assert_called_once()
+    assert "exc_info" not in logger.error.call_args.kwargs
+    discord.post_error.assert_called_once()
+    payload = discord.post_error.call_args.args[0]
+    assert payload["username"] == "Trading Processor Error Reporter"
+    embed = payload["embeds"][0]
+    assert embed["title"] == "Application error: StockDataRetriever"
+    assert "Revenue was unavailable" in embed["description"]
+    assert embed["color"] == 0xE74C3C
+    assert {
+        field["name"]: field["value"]
+        for field in embed["fields"]
+    } == {
+        "Incident": "error123",
+        "Environment": "production",
+        "Operation": "initialize_company",
+        "Context": "company_id='ASML', error_count=1",
+    }
+
+
+def test_report_warning_message_logs_and_posts_to_error_channel():
+    discord = create_autospec(DiscordClient, instance=True)
+    logger = create_autospec(logging.Logger, instance=True)
+    reporter = ErrorReporter(
+        discord,
+        environment="production",
+        incident_id_factory=lambda: "warn1234",
+        clock=lambda: datetime(
+            2026,
+            8,
+            24,
+            17,
+            30,
+            tzinfo=timezone.utc,
+        ),
+    )
+
+    warning_id = reporter.report_warning_message(
+        "Accepted non-USD retrieval errors.",
+        logger=logger,
+        source="StockDataRetriever",
+        operation="initialize_company",
+        context={"company_id": "ASML", "currency": "€"},
+    )
+
+    assert warning_id == "warn1234"
+    logger.warning.assert_called_once()
+    assert "exc_info" not in logger.warning.call_args.kwargs
+    discord.post_error.assert_called_once()
+    payload = discord.post_error.call_args.args[0]
+    assert payload["username"] == "Trading Processor Warning Reporter"
+    embed = payload["embeds"][0]
+    assert embed["title"] == "Application warning: StockDataRetriever"
+    assert embed["color"] == 0xF1C40F
+    assert {
+        field["name"]: field["value"]
+        for field in embed["fields"]
+    } == {
+        "Warning": "warn1234",
+        "Environment": "production",
+        "Operation": "initialize_company",
+        "Context": "company_id='ASML', currency='€'",
+    }
+
+
 def test_long_traceback_is_truncated_to_discord_embed_limit():
     discord = create_autospec(DiscordClient, instance=True)
     reporter = ErrorReporter(

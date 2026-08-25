@@ -24,6 +24,21 @@ from gemini.strings import ErrorMsg, LogMsg
 
 RUNNER_NAME = "StockDataRetriever"
 PRICE_TARGET_DUPLICATE_WINDOW_DAYS = 7
+REPORTED_QUARTER_DATA_FIELDS = (
+    "reported_eps",
+    "reported_revenues",
+    "reported_gross_profit",
+    "reported_operating_income",
+    "reported_net_income",
+    "reported_div",
+    "reported_shares",
+    "price_min",
+    "price_max",
+)
+REQUIRED_REPORTED_QUARTER_FIELDS = frozenset({
+    "reported_revenues",
+    "reported_net_income",
+})
 logger = logging.getLogger(RUNNER_NAME)
 
 
@@ -63,18 +78,22 @@ class StockDataRetrieverRunner:
             report_dates = ReportDates(report_dates=list())
             for company_id in companies:
                 try:
-                    if companies.get(company_id) is None:
-                        company: Company = self.client.get_initial_stock_data(company_id)
-                        self.service.init_company(id=company_id, data=company)
+                    company = companies.get(company_id)
+                    if self._needs_initialization(company):
+                        company = self._initialize_company(company_id)
                         companies[company_id] = company
                     else:
-                        company = companies.get(company_id)
                         current_quarter: Quarter = company.quarters.get(company.info.current_quarter_id)
                         if current_quarter is None:
                             self.log.error(ErrorMsg.QUARTER_NOT_FOUND.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
                         else:
                             if utils.is_past_date(date=current_quarter.report_date_this_quarter):
-                                current_quarter_reported: Quarter = self.client.get_quarter_report(company_id, current_quarter)
+                                quarter_result = self.client.get_quarter_report(
+                                    company_id,
+                                    current_quarter,
+                                    company.info.currency,
+                                )
+                                current_quarter_reported = quarter_result.quarter
                                 if current_quarter == current_quarter_reported:
                                     self.log.error(ErrorMsg.QUARTER_REPORT_FAILED.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
                                     # might be rescheduled
@@ -87,6 +106,52 @@ class StockDataRetrieverRunner:
                                         )
                                         self.service.update_report_date(new_report_dates.report_dates[0])
                                 else:
+                                    report_errors = self._quarter_structure_errors(
+                                        current_quarter,
+                                        current_quarter_reported,
+                                    )
+                                    missing_fields = self._missing_quarter_data_fields(
+                                        current_quarter_reported
+                                    )
+                                    missing_required_fields = sorted(
+                                        field
+                                        for field in missing_fields
+                                        if field
+                                        in REQUIRED_REPORTED_QUARTER_FIELDS
+                                    )
+                                    if missing_required_fields:
+                                        report_errors.append(
+                                            "Required quarter report fields are "
+                                            "missing: "
+                                            + ", ".join(
+                                                missing_required_fields
+                                            )
+                                        )
+                                    if (
+                                        company.info.currency == "$"
+                                        and missing_fields
+                                    ):
+                                        report_errors.append(
+                                            "USD quarter report is incomplete: "
+                                            + ", ".join(missing_fields)
+                                        )
+                                    if report_errors:
+                                        self._report_quarter_report_errors(
+                                            company_id,
+                                            company.info.currency,
+                                            current_quarter.id,
+                                            report_errors,
+                                            quarter_result.raw_response,
+                                        )
+                                        continue
+                                    if missing_fields:
+                                        self._report_quarter_report_warnings(
+                                            company_id,
+                                            company.info.currency,
+                                            current_quarter.id,
+                                            missing_fields,
+                                            quarter_result.raw_response,
+                                        )
                                     self.service.report_quarter(company_id, current_quarter_reported)
                                     new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
                                     self.service.create_quarter(company_id, new_quarter)
@@ -124,6 +189,232 @@ class StockDataRetrieverRunner:
                 exception,
                 operation="run",
             )
+
+    @staticmethod
+    def _needs_initialization(company: Company | None) -> bool:
+        if company is None:
+            return True
+        return company.info.current_quarter_id not in company.quarters
+
+    def _initialize_company(self, company_id: str) -> Company | None:
+        result = self.client.get_initial_stock_data(company_id)
+        company = result.company
+        currency = company.info.currency
+        missing_fields = self._missing_reported_quarter_fields(company)
+        missing_required_fields = sorted(
+            field
+            for field in missing_fields
+            if field.rsplit(".", maxsplit=1)[-1]
+            in REQUIRED_REPORTED_QUARTER_FIELDS
+        )
+        retrieval_errors = list(result.errors)
+
+        if missing_required_fields:
+            retrieval_errors.append(
+                "Required reported-quarter fields are missing: "
+                + ", ".join(missing_required_fields)
+            )
+            self._report_initial_company_errors(
+                company_id,
+                currency,
+                retrieval_errors,
+                result.raw_response,
+            )
+            return None
+
+        if currency == "$" and (retrieval_errors or missing_fields):
+            if missing_fields:
+                retrieval_errors.append(
+                    "USD company has incomplete reported-quarter data: "
+                    + ", ".join(missing_fields)
+                )
+            self._report_initial_company_errors(
+                company_id,
+                currency,
+                retrieval_errors,
+                result.raw_response,
+            )
+            return None
+
+        if currency != "$" and (retrieval_errors or missing_fields):
+            if missing_fields:
+                retrieval_errors.append(
+                    "Accepted unavailable non-USD reported-quarter fields: "
+                    + ", ".join(missing_fields)
+                )
+            self._report_initial_company_warnings(
+                company_id,
+                currency,
+                retrieval_errors,
+                result.raw_response,
+            )
+
+        self.service.init_company(id=company_id, data=company)
+        return company
+
+    @staticmethod
+    def _missing_reported_quarter_fields(company: Company) -> list[str]:
+        current_quarter_id = company.info.current_quarter_id
+        return sorted(
+            f"{quarter.id}.{field}"
+            for quarter in company.quarters.values()
+            if quarter.id != current_quarter_id
+            for field in StockDataRetrieverRunner._missing_quarter_data_fields(
+                quarter
+            )
+        )
+
+    @staticmethod
+    def _missing_quarter_data_fields(quarter: Quarter) -> list[str]:
+        return sorted(
+            field
+            for field in REPORTED_QUARTER_DATA_FIELDS
+            if getattr(quarter, field) is None
+        )
+
+    @staticmethod
+    def _quarter_structure_errors(
+        expected: Quarter,
+        actual: Quarter,
+    ) -> list[str]:
+        errors = []
+        for field in (
+            "id",
+            "name",
+            "ending_month",
+            "report_date_previous_quarter",
+            "report_date_this_quarter",
+        ):
+            expected_value = getattr(expected, field)
+            actual_value = getattr(actual, field)
+            if actual_value is None:
+                errors.append(f"Required quarter field {field} is missing")
+            elif actual_value != expected_value:
+                errors.append(
+                    f"Quarter field {field} changed from "
+                    f"{expected_value!r} to {actual_value!r}"
+                )
+        return errors
+
+    def _report_initial_company_errors(
+        self,
+        company_id: str,
+        currency: str,
+        errors: list[str],
+        raw_response: str,
+    ) -> None:
+        message = "Gemini initialization failed:\n" + "\n".join(
+            f"{index}. {error}"
+            for index, error in enumerate(errors, start=1)
+        )
+        message += (
+            "\n\n================ GEMINI RESPONSE START ================\n"
+            f"{raw_response}\n"
+            "================= GEMINI RESPONSE END ================="
+        )
+        self.errors.report_error_message(
+            message,
+            logger=self.log,
+            source=self.name,
+            operation="initialize_company",
+            context={
+                "company_id": company_id,
+                "currency": currency,
+                "error_count": len(errors),
+            },
+        )
+
+    def _report_initial_company_warnings(
+        self,
+        company_id: str,
+        currency: str,
+        errors: list[str],
+        raw_response: str,
+    ) -> None:
+        message = (
+            "Gemini initialization completed with accepted non-USD "
+            "retrieval errors:\n"
+            + "\n".join(
+                f"{index}. {error}"
+                for index, error in enumerate(errors, start=1)
+            )
+            + "\n\n================ GEMINI RESPONSE START ================\n"
+            + raw_response
+            + "\n================= GEMINI RESPONSE END ================="
+        )
+        self.errors.report_warning_message(
+            message,
+            logger=self.log,
+            source=self.name,
+            operation="initialize_company",
+            context={
+                "company_id": company_id,
+                "currency": currency,
+                "error_count": len(errors),
+            },
+        )
+
+    def _report_quarter_report_errors(
+        self,
+        company_id: str,
+        currency: str,
+        quarter_id: str,
+        errors: list[str],
+        raw_response: str,
+    ) -> None:
+        message = "Gemini quarter report rejected:\n" + "\n".join(
+            f"{index}. {error}"
+            for index, error in enumerate(errors, start=1)
+        )
+        message += (
+            "\n\n================ GEMINI RESPONSE START ================\n"
+            f"{raw_response}\n"
+            "================= GEMINI RESPONSE END ================="
+        )
+        self.errors.report_error_message(
+            message,
+            logger=self.log,
+            source=self.name,
+            operation="retrieve_quarter_report",
+            context={
+                "company_id": company_id,
+                "currency": currency,
+                "quarter_id": quarter_id,
+                "error_count": len(errors),
+            },
+        )
+
+    def _report_quarter_report_warnings(
+        self,
+        company_id: str,
+        currency: str,
+        quarter_id: str,
+        missing_fields: list[str],
+        raw_response: str,
+    ) -> None:
+        message = (
+            "Gemini quarter report completed with accepted non-USD missing "
+            "fields:\n"
+            + "\n".join(
+                f"{index}. {field}"
+                for index, field in enumerate(missing_fields, start=1)
+            )
+            + "\n\n================ GEMINI RESPONSE START ================\n"
+            + raw_response
+            + "\n================= GEMINI RESPONSE END ================="
+        )
+        self.errors.report_warning_message(
+            message,
+            logger=self.log,
+            source=self.name,
+            operation="retrieve_quarter_report",
+            context={
+                "company_id": company_id,
+                "currency": currency,
+                "quarter_id": quarter_id,
+                "missing_field_count": len(missing_fields),
+            },
+        )
 
     def report_error(
         self,

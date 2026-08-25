@@ -1,12 +1,14 @@
 import logging
+from dataclasses import dataclass
 from datetime import date
 
 from google import genai
 from google.genai import types
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from gemini.models import (
     Company,
+    InitialCompanyResponse,
     Quarter,
     ReportDates,
     TARGET_REPORT_OVERVIEW_MAX_LENGTH,
@@ -21,6 +23,75 @@ GEMINI_RETRY_ATTEMPTS = 5
 GEMINI_RETRY_INITIAL_DELAY_SECONDS = 2.0
 GEMINI_RETRY_MAX_DELAY_SECONDS = 30.0
 GEMINI_RETRYABLE_HTTP_STATUS_CODES = [408, 429, 500, 502, 503, 504]
+INITIAL_COMPANY_QUARTER_COUNT = 5
+
+
+def _quarter_ids_ending_at(
+    current_quarter_id: str,
+    count: int,
+) -> list[str]:
+    year = int(current_quarter_id[:2])
+    quarter = int(current_quarter_id[-1])
+    quarter_ids = []
+    for _ in range(count):
+        quarter_ids.append(f"{year:02d}Q{quarter}")
+        quarter -= 1
+        if quarter == 0:
+            quarter = 4
+            year = (year - 1) % 100
+    return quarter_ids
+
+
+class InvalidInitialCompanyResponse(ValueError):
+    def __init__(
+        self,
+        *,
+        ticker: str,
+        violations: list[str],
+        raw_response: str,
+    ) -> None:
+        self.ticker = ticker
+        self.violations = tuple(violations)
+        self.raw_response = raw_response
+        super().__init__(
+            f"Cannot initialize {ticker}: "
+            f"{'; '.join(violations)}\n"
+            "================ GEMINI RESPONSE START ================\n"
+            f"{raw_response}\n"
+            "================= GEMINI RESPONSE END ================="
+        )
+
+
+class InvalidQuarterReportResponse(ValueError):
+    def __init__(
+        self,
+        *,
+        ticker: str,
+        quarter_id: str,
+        validation_error: ValidationError,
+        raw_response: str,
+    ) -> None:
+        self.raw_response = raw_response
+        super().__init__(
+            f"Invalid quarter report response for {ticker} {quarter_id}: "
+            f"{validation_error}\n"
+            "================ GEMINI RESPONSE START ================\n"
+            f"{raw_response}\n"
+            "================= GEMINI RESPONSE END ================="
+        )
+
+
+@dataclass(frozen=True)
+class InitialCompanyResult:
+    company: Company
+    errors: tuple[str, ...]
+    raw_response: str = ""
+
+
+@dataclass(frozen=True)
+class QuarterReportResult:
+    quarter: Quarter
+    raw_response: str = ""
 
 
 class GeminiClient:
@@ -49,7 +120,18 @@ class GeminiClient:
         *,
         validation_context: dict[str, object] | None = None,
     ):
-        response = self.client.models.generate_content(
+        response = self.__request(prompt, response_model)
+        return response_model.model_validate_json(
+            response.text,
+            context=validation_context,
+        )
+
+    def __request(
+        self,
+        prompt: str,
+        response_model: type[BaseModel],
+    ):
+        return self.client.models.generate_content(
             model=self.model,
             contents=prompt,
             config={
@@ -58,12 +140,8 @@ class GeminiClient:
                 "response_json_schema": response_model.model_json_schema(),
             },
         )
-        return response_model.model_validate_json(
-            response.text,
-            context=validation_context,
-        )
 
-    def get_initial_stock_data(self, ticker: str) -> Company:
+    def get_initial_stock_data(self, ticker: str) -> InitialCompanyResult:
         prompt = f"""
         For company with ticker {ticker}, retrieve all required information about the company.
 
@@ -72,21 +150,149 @@ class GeminiClient:
         Double-check that the current quarter report date is later than the date of today, beacause if it's not, it's not the current quarter.
         Double-check the quarters names, ids and dates (important).
 
+        Determine the original currency used in the company's official financial
+        statements and set only its currency symbol in info.currency, for example
+        $, €, or £. Do not return an ISO code and do not convert reported financial
+        values into USD.
+
+        Use primary financial sources in this order for every reported quarter:
+        1. The company's official investor-relations earnings release and detailed
+           quarterly financial statements.
+        2. The company's official downloadable results files, including PDF and
+           spreadsheet tables linked from its investor-relations page.
+        3. Regulatory filings.
+        Use reputable secondary sources only when primary sources are unavailable.
+        Inspect the detailed tables rather than relying on search-result snippets,
+        headlines, rounded narrative summaries, or margin percentages. Prefer an
+        exact figure from an official table over a rounded figure from any summary.
+        A value missing from a summary page is not evidence that it is unavailable.
+        Before returning null for a reported value, search the official quarterly
+        release, its detailed financial statements, and any linked results files
+        for that exact quarter. Treat official labels such as "total net sales" as
+        revenues and "income from operations" as operating income when applicable.
+
         Then, for all already reported quarters, retrieve reported data: revenues, gross profit, operating income, net income, number of shares of the company and dividends.
-        Return financial totals in millions of USD and the number of shares in millions of shares. For example, return 16130 for USD 16.13 billion and 5104 for 5.104 billion shares; never return absolute dollar or share amounts.
-        Return EPS and stock prices in USD per share.
+        Return financial totals in millions of the reporting currency stored in
+        info.currency and the number of shares in millions of shares. For example,
+        return 16130 for 16.13 billion in that reporting currency and 5104 for
+        5.104 billion shares; never return absolute monetary or share amounts.
+        Return EPS in the reporting currency per share. Return stock prices in
+        the requested ticker's trading currency per share.
 
         Then, for all already reported quarters, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
 
-        Already reported quarters should have all the values set (no n/a allowed), for the current quarter let the un-reported values as empty string.
+        Return quarters as an array containing exactly five quarter objects:
+        first the current unreported quarter, then the four immediately preceding
+        quarters from newest to oldest. Never return quarters as an object and
+        never return an empty or shorter array.
+
+        Never omit a quarter because a financial value or price range could not
+        be found. For an unavailable reported financial value or price range,
+        use null for that field and add an error explaining what could not be
+        retrieved and why. For the current unreported quarter, use null for every
+        financial value and price range that has not yet been reported; these
+        expected nulls do not require errors. Quarter identity, ending month,
+        previous report date, and actual or expected report date are structural
+        data and must be present for every quarter. If a structural value is
+        uncertain, use the best-supported value and describe the uncertainty and
+        its reason in errors instead of omitting the quarter.
 
         Lastly, set the basic information for the company, including setting the ID of the current quarter (not yet reported). 
 
-        Key of the quarter is its ID.
-        Set targets to an empty object. Price targets are retrieved separately.
+        The info.current_quarter_id value must exactly match the id of the first
+        quarter in quarters, and that entry must identify the current unreported
+        quarter. Every quarter id must be unique.
+
+        Set errors to an empty list when retrieval completed without issues.
+        Otherwise, add concise errors describing every unavailable reported
+        value, conflicting source, uncertainty, or other retrieval problem and
+        why it occurred. Identify every affected quarter by its YYQX id and name
+        the affected fields whenever applicable. Never leave errors empty when
+        any reported-quarter value is null. An error never permits omitting a
+        quarter or any required structural field.
         """
-        return self.__ask(prompt, Company)
+        response = self.__request(prompt, InitialCompanyResponse)
+        try:
+            initial_company = InitialCompanyResponse.model_validate_json(
+                response.text
+            )
+        except ValidationError as exception:
+            raise InvalidInitialCompanyResponse(
+                ticker=ticker,
+                violations=[f"response validation failed: {exception}"],
+                raw_response=response.text,
+            ) from exception
+        violations = self.__initial_company_violations(
+            ticker,
+            initial_company,
+        )
+        if violations:
+            raise InvalidInitialCompanyResponse(
+                ticker=ticker,
+                violations=violations,
+                raw_response=response.text,
+            )
+        company = Company(
+            info=initial_company.info,
+            quarters={
+                quarter.id: Quarter.model_validate(quarter.model_dump())
+                for quarter in initial_company.quarters
+            },
+        )
+        return InitialCompanyResult(
+            company=company,
+            errors=tuple(initial_company.errors),
+            raw_response=response.text,
+        )
+
+    @staticmethod
+    def __initial_company_violations(
+        ticker: str,
+        response: InitialCompanyResponse,
+    ) -> list[str]:
+        violations = []
+        if response.info.ticker != ticker:
+            violations.append(
+                f"response ticker {response.info.ticker} does not match {ticker}"
+            )
+
+        current_quarter_id = response.info.current_quarter_id
+        quarter_ids = [quarter.id for quarter in response.quarters]
+        if current_quarter_id not in quarter_ids:
+            violations.append(
+                f"current quarter {current_quarter_id} is missing"
+            )
+        elif quarter_ids[0] != current_quarter_id:
+            violations.append(
+                f"current quarter {current_quarter_id} is not first"
+            )
+
+        duplicate_quarters = sorted({
+            quarter_id
+            for quarter_id in quarter_ids
+            if quarter_ids.count(quarter_id) > 1
+        })
+        if duplicate_quarters:
+            violations.append(
+                f"quarter IDs are duplicated: {duplicate_quarters}"
+            )
+
+        expected_quarters = set(
+            _quarter_ids_ending_at(
+                current_quarter_id,
+                INITIAL_COMPANY_QUARTER_COUNT,
+            )
+        )
+        actual_quarters = set(quarter_ids)
+        if actual_quarters != expected_quarters:
+            violations.append(
+                "quarter set is invalid "
+                f"(missing={sorted(expected_quarters - actual_quarters)}, "
+                f"unexpected={sorted(actual_quarters - expected_quarters)})"
+            )
+
+        return violations
 
     def revalidate_report_dates(self, report_dates: ReportDates) -> ReportDates:
         data = report_dates.model_dump(mode="json")
@@ -101,8 +307,25 @@ class GeminiClient:
         """
         return self.__ask(prompt, ReportDates)
 
-    def get_quarter_report(self, company_id, current_quarter: Quarter):
+    def get_quarter_report(
+        self,
+        company_id: str,
+        current_quarter: Quarter,
+        currency: str,
+    ) -> QuarterReportResult:
         data = current_quarter.model_dump(mode="json")
+        if currency == "$":
+            completeness = """
+            All reported financial and price fields must be populated. If any
+            value cannot be found and verified, return every value you did find
+            and use null only for the unavailable values.
+            """
+        else:
+            completeness = """
+            reported_revenues and reported_net_income must be populated. Other
+            reported financial or price fields may be null when they cannot be
+            found and verified. Return every value you did find.
+            """
         prompt = f"""
         For company {company_id} there should be quarter {current_quarter.id} report from {current_quarter.report_date_this_quarter}. 
         Verify the date is really in the past, if not, don't change anything and return the same data.
@@ -110,30 +333,36 @@ class GeminiClient:
         
         Otherwise, collect the report data according to this template {data}, fill empty values, don't change anything else.
         Specifically, we are looking for reported: revenues, gross profit, operating income, net income, number of shares of the company and dividends.
-        Return financial totals in millions of USD and the number of shares in millions of shares. For example, return 16130 for USD 16.13 billion and 5104 for 5.104 billion shares; never return absolute dollar or share amounts.
-        Return EPS and stock prices in USD per share.
+        The company's original financial reporting currency is {currency}. Return
+        financial totals in millions of {currency} without converting them to USD,
+        and return the number of shares in millions of shares. For example, return
+        16130 for 16.13 billion {currency} and 5104 for 5.104 billion shares; never
+        return absolute monetary or share amounts. Return EPS in {currency} per
+        share. Return stock prices in the ticker's trading currency per share.
         
         For price_min and price_max, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
 
-        The data template should now have all the values set; no null, n/a, missing,
-        or empty values are allowed. If any value cannot be found and verified,
-        return the original unfilled data template unchanged. A partially filled
-        template is an invalid response.
+        {completeness}
+
+        Never change or omit the quarter id, name, ending month, previous report
+        date, or current report date from the provided template.
         
         Return the filled template.
         """
-        quarter = self.__ask(prompt, Quarter)
-        if self.__has_missing_values(quarter):
-            return current_quarter
-        return quarter
-
-    @staticmethod
-    def __has_missing_values(quarter: Quarter) -> bool:
-        return any(
-            value is None
-            or (isinstance(value, str) and not value.strip())
-            for value in quarter.model_dump().values()
+        response = self.__request(prompt, Quarter)
+        try:
+            quarter = Quarter.model_validate_json(response.text)
+        except ValidationError as exception:
+            raise InvalidQuarterReportResponse(
+                ticker=company_id,
+                quarter_id=current_quarter.id,
+                validation_error=exception,
+                raw_response=response.text,
+            ) from exception
+        return QuarterReportResult(
+            quarter=quarter,
+            raw_response=response.text,
         )
 
     def get_price_targets(

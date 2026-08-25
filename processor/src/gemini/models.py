@@ -24,6 +24,14 @@ EndingMonth = Annotated[
     str,
     StringConstraints(pattern=r"^\d{2}-(0[1-9]|1[0-2])$"),
 ]
+CurrencySymbol = Annotated[
+    str,
+    StringConstraints(min_length=1, max_length=4, strip_whitespace=True),
+]
+QuarterName = Annotated[
+    str,
+    StringConstraints(min_length=1, strip_whitespace=True),
+]
 InstitutionName = Annotated[
     str,
     StringConstraints(min_length=1, max_length=200, strip_whitespace=True),
@@ -35,6 +43,10 @@ Rating = Annotated[
 Source = Annotated[
     str,
     StringConstraints(min_length=1, max_length=1024, strip_whitespace=True),
+]
+InitialCompanyError = Annotated[
+    str,
+    StringConstraints(min_length=1, strip_whitespace=True),
 ]
 ReportOverview = Annotated[
     str,
@@ -70,14 +82,30 @@ class Info(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     ticker: Ticker = Field(description="ticker of the company")
+    currency: CurrencySymbol = Field(
+        default="$",
+        description=(
+            "Symbol of the currency used in the company's official financial "
+            "statements, for example $, €, or £."
+        ),
+    )
     last_update: Date = Field(description="date of this data creation")
     current_quarter_id: QuarterId = Field(description="in format YYQX")
+
+
+class InitialInfo(Info):
+    currency: CurrencySymbol = Field(
+        description=(
+            "Symbol of the original reporting currency used in the company's "
+            "official financial statements, for example $, €, or £."
+        ),
+    )
 
 
 class Quarter(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(
+    name: QuarterName = Field(
         description="Human-readable fiscal quarter name, for example Q2 2026."
     )
     id: QuarterId = Field(
@@ -101,30 +129,45 @@ class Quarter(BaseModel):
     )
     reported_eps: Decimal | None = Field(
         default=None,
-        description="Reported earnings per share in USD per share.",
+        description=(
+            "Reported earnings per share in the company's original reporting "
+            "currency per share."
+        ),
     )
     reported_revenues: Decimal | None = Field(
         default=None,
         description=(
-            "Reported revenue in millions of USD; for example, 16130 means "
-            "USD 16.13 billion."
+            "Reported revenue in millions of the company's original reporting "
+            "currency; for example, 16130 means 16.13 billion."
         ),
     )
     reported_gross_profit: Decimal | None = Field(
         default=None,
-        description="Reported gross profit in millions of USD.",
+        description=(
+            "Reported gross profit in millions of the company's original "
+            "reporting currency."
+        ),
     )
     reported_operating_income: Decimal | None = Field(
         default=None,
-        description="Reported operating income in millions of USD.",
+        description=(
+            "Reported operating income in millions of the company's original "
+            "reporting currency."
+        ),
     )
     reported_net_income: Decimal | None = Field(
         default=None,
-        description="Reported net income in millions of USD.",
+        description=(
+            "Reported net income in millions of the company's original "
+            "reporting currency."
+        ),
     )
     reported_div: Decimal | None = Field(
         default=None,
-        description="Reported total dividends in millions of USD.",
+        description=(
+            "Reported total dividends in millions of the company's original "
+            "reporting currency."
+        ),
     )
     reported_shares: Decimal | None = Field(
         default=None,
@@ -136,15 +179,17 @@ class Quarter(BaseModel):
     price_min: Decimal | None = Field(
         default=None,
         description=(
-            "Minimum stock price in USD per share between the previous and "
-            "current report dates, excluding both edge dates."
+            "Minimum stock price in the ticker's trading currency per share "
+            "between the previous and current report dates, excluding both "
+            "edge dates."
         ),
     )
     price_max: Decimal | None = Field(
         default=None,
         description=(
-            "Maximum stock price in USD per share between the previous and "
-            "current report dates, excluding both edge dates."
+            "Maximum stock price in the ticker's trading currency per share "
+            "between the previous and current report dates, excluding both "
+            "edge dates."
         ),
     )
 
@@ -337,6 +382,87 @@ class Company(BaseModel):
         if mismatched:
             raise ValueError(f"Quarter keys do not match their IDs: {mismatched}")
         return self
+
+
+class InitialQuarter(Quarter):
+    report_date_this_quarter: Date = Field(
+        description=(
+            "Actual or expected report date for this fiscal quarter, in "
+            "YYYY-MM-DD format."
+        ),
+    )
+    reported_eps: Decimal | None = Field(
+        description=(
+            "Reported earnings per share in the company's original reporting "
+            "currency per share, or null."
+        )
+    )
+    reported_revenues: Decimal | None = Field(
+        description=(
+            "Reported revenue in millions of the company's original reporting "
+            "currency, or null."
+        )
+    )
+    reported_gross_profit: Decimal | None = Field(
+        description=(
+            "Reported gross profit in millions of the company's original "
+            "reporting currency, or null."
+        )
+    )
+    reported_operating_income: Decimal | None = Field(
+        description=(
+            "Reported operating income in millions of the company's original "
+            "reporting currency, or null."
+        )
+    )
+    reported_net_income: Decimal | None = Field(
+        description=(
+            "Reported net income in millions of the company's original "
+            "reporting currency, or null."
+        )
+    )
+    reported_div: Decimal | None = Field(
+        description=(
+            "Reported total dividends in millions of the company's original "
+            "reporting currency, or null."
+        )
+    )
+    reported_shares: Decimal | None = Field(
+        description="Reported number of shares in millions of shares, or null."
+    )
+    price_min: Decimal | None = Field(
+        description=(
+            "Minimum stock price in the ticker's trading currency per share "
+            "between report dates, or null."
+        )
+    )
+    price_max: Decimal | None = Field(
+        description=(
+            "Maximum stock price in the ticker's trading currency per share "
+            "between report dates, or null."
+        )
+    )
+
+
+class InitialCompanyResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    info: InitialInfo
+    quarters: list[InitialQuarter] = Field(
+        min_length=5,
+        max_length=5,
+        description=(
+            "Exactly five fiscal quarters: the current unreported quarter "
+            "followed by its four immediately preceding quarters."
+        ),
+    )
+    errors: list[InitialCompanyError] = Field(
+        description=(
+            "Concise retrieval errors, uncertainties, conflicting sources, "
+            "or unavailable optional values encountered while constructing "
+            "the company data; empty when no issues occurred."
+        ),
+    )
 
 
 class ReportDate(BaseModel):

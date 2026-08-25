@@ -12,8 +12,16 @@ from gemini.client import (
     GEMINI_RETRY_MAX_DELAY_SECONDS,
     GEMINI_RETRYABLE_HTTP_STATUS_CODES,
     GeminiClient,
+    InvalidInitialCompanyResponse,
+    InvalidQuarterReportResponse,
 )
-from gemini.models import Quarter, Target, TargetReport, Targets
+from gemini.models import (
+    InitialCompanyResponse,
+    Quarter,
+    Target,
+    TargetReport,
+    Targets,
+)
 
 
 def make_quarter(**overrides):
@@ -47,6 +55,51 @@ def complete_quarter_data():
     }
 
 
+def initial_company_data():
+    quarter_dates = {
+        "25Q3": ("25-09", "2025-07-16", "2025-10-15"),
+        "25Q4": ("25-12", "2025-10-15", "2026-01-28"),
+        "26Q1": ("26-03", "2026-01-28", "2026-04-15"),
+        "26Q2": ("26-06", "2026-04-15", "2026-07-15"),
+        "26Q3": ("26-09", "2026-07-15", "2026-10-14"),
+    }
+    financial_fields = {
+        "reported_eps": "1.25",
+        "reported_revenues": "1000",
+        "reported_gross_profit": "500",
+        "reported_operating_income": "300",
+        "reported_net_income": "200",
+        "reported_div": "0",
+        "reported_shares": "100",
+        "price_min": "90",
+        "price_max": "110",
+    }
+    quarters = []
+    for quarter_id, dates in reversed(quarter_dates.items()):
+        quarter = {
+            "name": f"Q{quarter_id[-1]} 20{quarter_id[:2]}",
+            "id": quarter_id,
+            "ending_month": dates[0],
+            "report_date_previous_quarter": dates[1],
+            "report_date_this_quarter": dates[2],
+            **financial_fields,
+        }
+        if quarter_id == "26Q3":
+            quarter.update(dict.fromkeys(financial_fields))
+        quarters.append(quarter)
+
+    return {
+        "info": {
+            "ticker": "ASML",
+            "currency": "€",
+            "last_update": "2026-08-24",
+            "current_quarter_id": "26Q3",
+        },
+        "quarters": quarters,
+        "errors": [],
+    }
+
+
 def test_client_configures_retries_for_transient_http_failures():
     with patch("gemini.client.genai.Client", autospec=True) as client:
         GeminiClient(api_key="gemini-key", model="gemini-model")
@@ -65,6 +118,115 @@ def test_client_configures_retries_for_transient_http_failures():
         retry_options.http_status_codes
         == GEMINI_RETRYABLE_HTTP_STATUS_CODES
     )
+
+
+def test_initial_company_error_contains_exact_gemini_response():
+    raw_response = json.dumps({
+        "info": {
+            "ticker": "ASML",
+            "currency": "€",
+            "last_update": "2026-08-24",
+            "current_quarter_id": "26Q3",
+        },
+        "quarters": {},
+        "errors": [
+            "Quarter data could not be retrieved from available sources."
+        ],
+    })
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            raw_response
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        with pytest.raises(InvalidInitialCompanyResponse) as raised:
+            client.get_initial_stock_data("ASML")
+
+    message = str(raised.value)
+    assert raised.value.raw_response == raw_response
+    assert "response validation failed" in message
+    assert "GEMINI RESPONSE START" in message
+    assert raw_response in message
+    assert "GEMINI RESPONSE END" in message
+    constructor.return_value.models.generate_content.assert_called_once()
+
+
+def test_initial_company_accepts_null_financials_with_valid_structure():
+    response_data = initial_company_data()
+    response_data["quarters"][2]["reported_div"] = None
+    response_data["errors"] = [
+        "26Q1 reported dividend was unavailable from public sources."
+    ]
+    raw_response = json.dumps(response_data)
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            raw_response
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        result = client.get_initial_stock_data("ASML")
+
+    assert set(result.company.quarters) == {
+        quarter["id"] for quarter in response_data["quarters"]
+    }
+    assert result.company.quarters["26Q1"].reported_div is None
+    assert result.company.info.currency == "€"
+    assert result.errors == tuple(response_data["errors"])
+    prompt = (
+        constructor.return_value.models.generate_content.call_args.kwargs[
+            "contents"
+        ]
+    )
+    assert "exactly five quarter objects" in prompt
+    assert "use null for that field" in prompt
+    assert "company's official investor-relations earnings release" in prompt
+    assert "detailed financial statements" in prompt
+    assert "rounded narrative summaries" in prompt
+    assert "A value missing from a summary page is not evidence" in prompt
+
+
+def test_initial_company_rejects_missing_report_date_with_raw_response():
+    response_data = initial_company_data()
+    response_data["quarters"][-1]["report_date_this_quarter"] = None
+    raw_response = json.dumps(response_data)
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            raw_response
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        with pytest.raises(InvalidInitialCompanyResponse) as raised:
+            client.get_initial_stock_data("ASML")
+
+    assert "response validation failed" in str(raised.value)
+    assert raised.value.raw_response == raw_response
+    constructor.return_value.models.generate_content.assert_called_once()
+
+
+def test_initial_company_returns_missing_data_for_currency_policy():
+    response_data = initial_company_data()
+    response_data["quarters"][1]["reported_revenues"] = None
+    raw_response = json.dumps(response_data)
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            raw_response
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        result = client.get_initial_stock_data("ASML")
+
+    assert result.company.quarters["26Q2"].reported_revenues is None
+    assert result.errors == ()
+
+
+def test_initial_company_schema_requires_exactly_five_quarters():
+    schema = InitialCompanyResponse.model_json_schema()
+    quarters_schema = schema["properties"]["quarters"]
+
+    assert quarters_schema["type"] == "array"
+    assert quarters_schema["minItems"] == 5
+    assert quarters_schema["maxItems"] == 5
+    assert "patternProperties" not in json.dumps(schema)
 
 
 def test_get_price_targets_returns_python_objects_and_uses_targets_schema():
@@ -206,7 +368,9 @@ def test_get_target_report_truncates_overflow_and_logs_target(caplog):
 
 
 @pytest.mark.parametrize("missing_value", [None, "", "omitted"])
-def test_get_quarter_report_rejects_incomplete_response(missing_value):
+def test_get_quarter_report_returns_incomplete_response_for_runner_policy(
+    missing_value,
+):
     original = make_quarter()
     response_data = complete_quarter_data()
     if missing_value == "omitted":
@@ -220,15 +384,16 @@ def test_get_quarter_report_rejects_incomplete_response(missing_value):
         )
         client = GeminiClient(api_key="gemini-key", model="gemini-model")
 
-        result = client.get_quarter_report("APLD", original)
+        result = client.get_quarter_report("APLD", original, "$")
 
-    assert result is original
+    assert result.quarter.reported_gross_profit is None
+    assert result.raw_response == json.dumps(response_data)
     prompt = (
         constructor.return_value.models.generate_content.call_args.kwargs[
             "contents"
         ]
     )
-    assert "return the original unfilled data template unchanged" in prompt
+    assert "All reported financial and price fields must be populated" in prompt
 
 
 def test_get_quarter_report_accepts_complete_response():
@@ -241,8 +406,40 @@ def test_get_quarter_report_accepts_complete_response():
         )
         client = GeminiClient(api_key="gemini-key", model="gemini-model")
 
-        result = client.get_quarter_report("APLD", original)
+        result = client.get_quarter_report("APLD", original, "€")
 
-    assert result != original
-    assert result.reported_gross_profit == Decimal("77.1")
-    assert result.reported_div == Decimal("0")
+    assert result.quarter != original
+    assert result.quarter.reported_gross_profit == Decimal("77.1")
+    assert result.quarter.reported_div == Decimal("0")
+    prompt = (
+        constructor.return_value.models.generate_content.call_args.kwargs[
+            "contents"
+        ]
+    )
+    assert "reporting currency is €" in prompt
+    assert "without converting them to USD" in prompt
+    assert "reported_revenues and reported_net_income must be populated" in (
+        prompt
+    )
+
+
+def test_get_quarter_report_rejects_missing_structure_with_raw_response():
+    original = make_quarter()
+    response_data = complete_quarter_data()
+    response_data.pop("id")
+    raw_response = json.dumps(response_data)
+
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            raw_response
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        with pytest.raises(InvalidQuarterReportResponse) as raised:
+            client.get_quarter_report("APLD", original, "€")
+
+    assert raised.value.raw_response == raw_response
+    assert "Invalid quarter report response for APLD 26Q4" in str(
+        raised.value
+    )
+    assert raw_response in str(raised.value)

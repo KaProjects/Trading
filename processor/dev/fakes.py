@@ -10,6 +10,7 @@ from cmc.models import BitcoinQuote, FearAndGreedReading
 from dev import data
 from error_reporting import ErrorReporter
 from firebase_repository import parse_company_snapshot
+from gemini.client import InitialCompanyResult, QuarterReportResult
 from gemini.institutions import (
     InstitutionRegistry,
     normalize_institution_name,
@@ -88,10 +89,10 @@ class FakeCoinMarketCapClient:
 
 
 class FakeGeminiClient:
-    def get_initial_stock_data(self, ticker: str) -> GeminiCompany:
+    def get_initial_stock_data(self, ticker: str) -> InitialCompanyResult:
         result = data.gemini_initial_company(ticker)
         _log_operation("FAKE GET", f"Gemini initial stock data [{ticker}]")
-        return result
+        return InitialCompanyResult(company=result, errors=())
 
     def revalidate_report_dates(
         self,
@@ -118,10 +119,14 @@ class FakeGeminiClient:
         self,
         ticker: str,
         current_quarter: GeminiQuarter,
-    ) -> GeminiQuarter:
+        currency: str,
+    ) -> QuarterReportResult:
         result = data.gemini_reported_quarter(current_quarter)
         _log_operation("FAKE GET", f"Gemini quarter report [{ticker}]")
-        return result
+        return QuarterReportResult(
+            quarter=result,
+            raw_response=result.model_dump_json(),
+        )
 
     def get_price_targets(
         self,
