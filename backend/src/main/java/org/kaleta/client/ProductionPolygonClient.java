@@ -9,6 +9,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.PolygonFinancials;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
 
 import java.io.IOException;
@@ -47,6 +48,21 @@ public class ProductionPolygonClient implements PolygonClient
         this.objectMapper = objectMapper;
         this.apiUrl = apiUrl.replaceAll("/+$", "");
         this.apiKey = apiKey;
+    }
+
+    @Override
+    public Optional<PolygonCompanyProfile> getCompanyProfile(String ticker) throws RequestFailureException
+    {
+        URI endpoint = URI.create(apiUrl + "/v3/reference/tickers/" + encode(ticker));
+        TickerDetailsResponse response = get(endpoint, TickerDetailsResponse.class);
+        TickerDetails details = response.results();
+        if (details == null) return Optional.empty();
+
+        return Optional.of(new PolygonCompanyProfile(
+                details.name(),
+                details.description(),
+                details.branding() == null ? null : details.branding().logoUrl(),
+                details.website()));
     }
 
     @Override
@@ -250,6 +266,28 @@ public class ProductionPolygonClient implements PolygonClient
     private record Aggregate(
             @JsonProperty("h") BigDecimal high,
             @JsonProperty("l") BigDecimal low)
+    {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    private record TickerDetailsResponse(TickerDetails results)
+    {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    private record TickerDetails(
+            String name,
+            String description,
+            @JsonProperty("homepage_url") String website,
+            Branding branding)
+    {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    private record Branding(@JsonProperty("logo_url") String logoUrl)
     {
     }
 

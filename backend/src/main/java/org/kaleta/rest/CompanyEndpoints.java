@@ -21,6 +21,7 @@ import org.kaleta.model.Company;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.model.Trades;
 import org.kaleta.client.dto.AlphaVantageTicker;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Portfolio;
@@ -120,6 +121,16 @@ public class CompanyEndpoints
             @QueryParam("currency") String currency)
     {
         return companyService.findAlphaVantageTickers(ticker, currency);
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/polygon/profile")
+    public PolygonCompanyProfile getPolygonCompanyProfile(
+            @NotNull @org.kaleta.rest.validation.ValidTicker
+            @QueryParam("ticker") String ticker)
+    {
+        return companyService.getPolygonCompanyProfile(ticker);
     }
 
     @PUT

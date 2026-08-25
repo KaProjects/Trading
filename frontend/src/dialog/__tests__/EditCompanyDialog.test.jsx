@@ -4,7 +4,7 @@ import axios from "axios";
 
 const mockFormatError = jest.fn(() => ({title: "Save failed", message: "Company could not be saved"}));
 const dialogTextFieldModule = {
-    DialogTextField: ({id, label, value = "", onChange, validate, required = true, ...props}) => {
+    DialogTextField: ({id, label, value = "", onChange, validate, required = true, multiline, minRows, ...props}) => {
         const error = validate ? validate() : "";
 
         return (
@@ -81,6 +81,10 @@ describe("EditCompanyDialog", () => {
             ticker: "NVDA",
             currency: "€",
             alphaVantageTicker: null,
+            name: null,
+            description: null,
+            logoUrl: null,
+            website: null,
             sector: "SEMICONDUCTORS",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
@@ -96,6 +100,10 @@ describe("EditCompanyDialog", () => {
                 ticker: "NVDA",
                 currency: "$",
                 sector: {key: "SEMICONDUCTORS"},
+                name: "NVIDIA Corporation",
+                description: "Accelerated computing company",
+                logoUrl: "https://example.test/nvda.svg",
+                website: "https://www.nvidia.com",
             },
         });
 
@@ -112,13 +120,17 @@ describe("EditCompanyDialog", () => {
             ticker: "NVDA",
             currency: "$",
             alphaVantageTicker: null,
+            name: "NVIDIA Corporation",
+            description: "Accelerated computing company",
+            logoUrl: "https://example.test/nvda.svg",
+            website: "https://www.nvidia.com",
             sector: "SEMICONDUCTORS",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.setOpenEditCompany).toHaveBeenCalledWith(null);
     });
 
-    test("shows Alpha Vantage ticker controls only for non-USD currencies", () => {
+    test("shows Alpha Vantage search only for non-USD currencies and keeps the selector hidden", () => {
         const props = createProps({openEditCompany: {}});
         render(<EditCompanyDialog {...props}/>);
 
@@ -128,12 +140,52 @@ describe("EditCompanyDialog", () => {
         selectOption(0, "€");
 
         expect(screen.getByRole("button", {name: "Find Alpha Vantage tickers"})).toBeInTheDocument();
-        expect(screen.getByLabelText("Alpha Vantage ticker")).toBeInTheDocument();
+        expect(screen.queryByLabelText("Alpha Vantage ticker")).not.toBeInTheDocument();
 
         selectOption(0, "$");
 
         expect(screen.queryByRole("button", {name: "Find Alpha Vantage tickers"})).not.toBeInTheDocument();
         expect(screen.queryByLabelText("Alpha Vantage ticker")).not.toBeInTheDocument();
+    });
+
+    test("loads Polygon company data into editable inputs", async () => {
+        axios.get.mockResolvedValue({
+            data: {
+                name: "NVIDIA Corporation",
+                description: "Accelerated computing company",
+                logoUrl: "https://example.test/nvda.svg",
+                website: "https://www.nvidia.com",
+            },
+        });
+        axios.post.mockResolvedValue({});
+
+        const props = createProps({openEditCompany: {}});
+        render(<EditCompanyDialog {...props}/>);
+
+        fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "NVDA"}});
+        selectOption(0, "$");
+        fireEvent.click(screen.getByRole("button", {name: "Try Load Company Data"}));
+
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
+            "/api/company/polygon/profile",
+            {params: {ticker: "NVDA"}},
+        ));
+        await waitFor(() => expect(screen.getByLabelText("Name")).toHaveValue("NVIDIA Corporation"));
+        expect(screen.getByLabelText("Description")).toHaveValue("Accelerated computing company");
+        expect(screen.getByLabelText("Logo URL")).toHaveValue("https://example.test/nvda.svg");
+        expect(screen.getByLabelText("Website")).toHaveValue("https://www.nvidia.com");
+
+        fireEvent.click(screen.getByText("Create"));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/company", {
+            ticker: "NVDA",
+            currency: "$",
+            alphaVantageTicker: null,
+            name: "NVIDIA Corporation",
+            description: "Accelerated computing company",
+            logoUrl: "https://example.test/nvda.svg",
+            website: "https://www.nvidia.com",
+        }));
     });
 
     test("searches and selects a currency-matching Alpha Vantage ticker", async () => {
@@ -167,6 +219,8 @@ describe("EditCompanyDialog", () => {
             {params: {ticker: "ASML", currency: "€"}}
         ));
 
+        await waitFor(() => expect(screen.getByLabelText("Alpha Vantage ticker")).toBeInTheDocument());
+        expect(screen.queryByRole("button", {name: "Find Alpha Vantage tickers"})).not.toBeInTheDocument();
         fireEvent.mouseDown(screen.getByLabelText("Alpha Vantage ticker"));
         fireEvent.click(screen.getByRole("option", {
             name: "ASML.AMS — ASML Holding N.V. (Amsterdam)",
@@ -177,6 +231,10 @@ describe("EditCompanyDialog", () => {
             ticker: "ASML",
             currency: "€",
             alphaVantageTicker: "ASML.AMS",
+            name: null,
+            description: null,
+            logoUrl: null,
+            website: null,
         }));
     });
 });

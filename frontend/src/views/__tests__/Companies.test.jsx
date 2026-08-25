@@ -48,6 +48,10 @@ function createData(overrides = {}) {
                 id: "company-1",
                 ticker: "NVDA",
                 currency: "$",
+                name: "NVIDIA Corporation",
+                description: "Accelerated computing company",
+                logoUrl: "https://example.test/logos/nvda.svg",
+                website: "https://www.nvidia.com",
                 sector: {key: "SEMICONDUCTORS", name: "Semiconductors"},
                 totalTrades: 11,
                 activeTrades: 7,
@@ -118,6 +122,10 @@ describe("Companies", () => {
         expect(screen.getByText("Ticker")).toBeInTheDocument();
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("SHELL")).toBeInTheDocument();
+        expect(screen.getByRole("img", {name: "NVDA logo"})).toHaveAttribute("src", "https://example.test/logos/nvda.svg");
+        expect(screen.getByText("NVIDIA Corporation")).toBeInTheDocument();
+        expect(screen.getByRole("link", {name: "https://www.nvidia.com"})).toHaveAttribute("href", "https://www.nvidia.com");
+        expect(screen.getByText("Accelerated computing company")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.getByText("Energy Minerals")).toBeInTheDocument();
     });
@@ -222,8 +230,8 @@ describe("Companies", () => {
 
         const companyCells = within(screen.getByText("NVDA").closest("tr")).getAllByRole("cell");
 
-        fireEvent.mouseEnter(companyCells[6]);
-        fireEvent.click(within(companyCells[6]).getByRole("button"));
+        fireEvent.mouseEnter(companyCells[5]);
+        fireEvent.click(within(companyCells[5]).getByRole("button"));
         expect(mockNavigate).toHaveBeenLastCalledWith({
             pathname: "/research",
             search: "?company=NVDA",
@@ -231,8 +239,8 @@ describe("Companies", () => {
             state: {researchTab: 1},
         });
 
-        fireEvent.mouseEnter(companyCells[7]);
-        fireEvent.click(within(companyCells[7]).getByRole("button"));
+        fireEvent.mouseEnter(companyCells[6]);
+        fireEvent.click(within(companyCells[6]).getByRole("button"));
         expect(mockNavigate).toHaveBeenLastCalledWith({
             pathname: "/research",
             search: "?company=NVDA",

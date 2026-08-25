@@ -1,5 +1,9 @@
 
 ALTER TABLE Company ADD COLUMN alphaVantageTicker VARCHAR(30) AFTER ticker;
+ALTER TABLE Company ADD COLUMN name VARCHAR(150) AFTER alphaVantageTicker;
+ALTER TABLE Company ADD COLUMN description TEXT AFTER name;
+ALTER TABLE Company ADD COLUMN logoUrl VARCHAR(500) AFTER description;
+ALTER TABLE Company ADD COLUMN website VARCHAR(500) AFTER logoUrl;
 
 
 ALTER TABLE Period ADD COLUMN capex DECIMAL(8, 2);

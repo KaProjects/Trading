@@ -1,4 +1,12 @@
 {
+  "companyProfiles": {
+    "INTC": {
+      "name": "Intel Corporation",
+      "description": "Intel designs and manufactures semiconductor products and computing platforms.",
+      "logoUrl": "https://example.test/logos/intc.svg",
+      "website": "https://www.intel.com"
+    }
+  },
   "financials": {
     "INTC": {
       "2026Q1": {

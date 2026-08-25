@@ -7,6 +7,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.client.dto.PolygonFinancials;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
 
 import java.io.IOException;
@@ -66,6 +67,17 @@ class ProductionPolygonClientTest
     }
 
     @Test
+    void readsCompanyProfile() throws RequestFailureException
+    {
+        PolygonCompanyProfile profile = client.getCompanyProfile("AMD").orElseThrow();
+
+        assertThat(profile.name(), is("Advanced Micro Devices, Inc."));
+        assertThat(profile.description(), is("AMD designs high-performance computing products."));
+        assertThat(profile.logoUrl(), is("https://example.test/amd.svg"));
+        assertThat(profile.website(), is("https://www.amd.com"));
+    }
+
+    @Test
     void rejectsFinancialsWithInconsistentCurrencies()
     {
         financialsResponse = financialsResponse("USD", "EUR", "USD", "USD");
@@ -85,6 +97,17 @@ class ProductionPolygonClientTest
         String body;
         if (path.contains("/reference/financials")) {
             body = financialsResponse;
+        } else if (path.contains("/v3/reference/tickers/")) {
+            body = """
+                    {
+                      "results": {
+                        "name": "Advanced Micro Devices, Inc.",
+                        "description": "AMD designs high-performance computing products.",
+                        "homepage_url": "https://www.amd.com",
+                        "branding": {"logo_url": "https://example.test/amd.svg"}
+                      }
+                    }
+                    """;
         } else if (path.contains("/aggs/ticker/")) {
             body = "{\"results\":[{\"h\":12.50,\"l\":10.00},{\"h\":13.50,\"l\":11.00}]}";
         } else {

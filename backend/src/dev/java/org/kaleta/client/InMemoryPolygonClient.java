@@ -7,6 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.PolygonFinancials;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
 
 import java.io.IOException;
@@ -24,6 +25,7 @@ public class InMemoryPolygonClient implements PolygonClient
 {
     private final Map<String, Map<String, PolygonFinancials>> financials;
     private final Map<String, Map<String, PolygonPriceRange>> priceRanges;
+    private final Map<String, PolygonCompanyProfile> companyProfiles;
 
     @Inject
     public InMemoryPolygonClient(
@@ -33,6 +35,13 @@ public class InMemoryPolygonClient implements PolygonClient
         PolygonData data = load(objectMapper, dataFile);
         this.financials = data.financials() == null ? Map.of() : data.financials();
         this.priceRanges = data.priceRanges() == null ? Map.of() : data.priceRanges();
+        this.companyProfiles = data.companyProfiles() == null ? Map.of() : data.companyProfiles();
+    }
+
+    @Override
+    public Optional<PolygonCompanyProfile> getCompanyProfile(String ticker)
+    {
+        return Optional.ofNullable(companyProfiles.get(normalize(ticker)));
     }
 
     @Override
@@ -73,7 +82,8 @@ public class InMemoryPolygonClient implements PolygonClient
 
     private record PolygonData(
             Map<String, Map<String, PolygonFinancials>> financials,
-            Map<String, Map<String, PolygonPriceRange>> priceRanges)
+            Map<String, Map<String, PolygonPriceRange>> priceRanges,
+            Map<String, PolygonCompanyProfile> companyProfiles)
     {
     }
 }

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.kaleta.framework.Assert;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.entity.Company;
@@ -67,6 +68,26 @@ class CompanyEndpointsTest
 
     @Test
     @Order(1)
+    void getPolygonCompanyProfile()
+    {
+        PolygonCompanyProfile profile = given()
+                .queryParam("ticker", "INTC")
+                .when().get(path + "/polygon/profile")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().as(PolygonCompanyProfile.class);
+
+        assertThat(profile.name(), is("Intel Corporation"));
+        assertThat(profile.website(), is("https://www.intel.com"));
+
+        Assert.getValidationError(path + "/polygon/profile?ticker=invalid", "must be a valid Ticker");
+        Assert.get400(path + "/polygon/profile?ticker=ZZZZZ",
+                "Polygon.io company data for ticker 'ZZZZZ' was not found");
+    }
+
+    @Test
+    @Order(1)
     void getCompanyLists()
     {
         Map<String, List<CompanyWithStats>> dto = given().when()
@@ -94,6 +115,10 @@ class CompanyEndpointsTest
         dto.setId(1842L);
         dto.setCurrency(Currency.K.toString());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setName("Updated Company");
+        dto.setDescription("Updated description");
+        dto.setLogoUrl("https://example.test/updated.svg");
+        dto.setWebsite("https://example.test/updated");
 
         Assert.put204(path, dto);
 
@@ -102,6 +127,10 @@ class CompanyEndpointsTest
         assertThat(company.getTicker(), is("UPD"));
         assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
         assertThat(company.getSector(), is(Sector.valueOf(dto.getSector())));
+        assertThat(company.getName(), is(dto.getName()));
+        assertThat(company.getDescription(), is(dto.getDescription()));
+        assertThat(company.getLogoUrl(), is(dto.getLogoUrl()));
+        assertThat(company.getWebsite(), is(dto.getWebsite()));
     }
 
     @Test
@@ -152,6 +181,10 @@ class CompanyEndpointsTest
         dto.setTicker("CCCCC");
         dto.setCurrency(Currency.K.toString());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setName("Created Company");
+        dto.setDescription("Created description");
+        dto.setLogoUrl("https://example.test/created.svg");
+        dto.setWebsite("https://example.test/created");
 
         Assert.post201(path, dto);
 
@@ -160,6 +193,10 @@ class CompanyEndpointsTest
         assertThat(company.getId(), is(not(nullValue())));
         assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
         assertThat(company.getSector(), is(Sector.valueOf(dto.getSector())));
+        assertThat(company.getName(), is(dto.getName()));
+        assertThat(company.getDescription(), is(dto.getDescription()));
+        assertThat(company.getLogoUrl(), is(dto.getLogoUrl()));
+        assertThat(company.getWebsite(), is(dto.getWebsite()));
     }
 
     @Test

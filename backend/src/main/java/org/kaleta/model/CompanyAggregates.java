@@ -31,6 +31,10 @@ public class CompanyAggregates
             this.setId(company.getId());
             this.setTicker(company.getTicker());
             this.setAlphaVantageTicker(company.getAlphaVantageTicker());
+            this.setName(company.getName());
+            this.setDescription(company.getDescription());
+            this.setLogoUrl(company.getLogoUrl());
+            this.setWebsite(company.getWebsite());
             this.setCurrency(company.getCurrency());
             this.setSector(company.getSector());
         }

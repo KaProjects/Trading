@@ -251,8 +251,24 @@ export const Research = props => {
                         <CardContent sx={researchCardContentStyle}>
                             <Box sx={{position: "relative", flexShrink: 0}}>
                                 <Box sx={{color: 'text.secondary'}}>Research</Box>
-                                <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
-                                    {data.company.ticker}
+                                <Box sx={{
+                                    color: 'text.primary',
+                                    fontSize: 34,
+                                    fontWeight: 'medium',
+                                    minHeight: "40px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                }}>
+                                    {data.company.logoUrl
+                                        ? <Box
+                                            component="img"
+                                            src={data.company.logoUrl}
+                                            alt={`${data.company.ticker} logo`}
+                                            title={data.company.ticker}
+                                            sx={{maxWidth: "150px", height: "38px", objectFit: "contain", objectPosition: "left center"}}
+                                        />
+                                        : data.company.ticker
+                                    }
                                 </Box>
                                 {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
                                 <Box

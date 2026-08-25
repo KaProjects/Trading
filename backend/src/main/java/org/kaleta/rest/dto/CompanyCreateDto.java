@@ -2,6 +2,7 @@ package org.kaleta.rest.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Sector;
@@ -16,6 +17,16 @@ public class CompanyCreateDto
     private String ticker;
     @Pattern(regexp = "^[A-Z0-9.-]{1,30}$", message = "must be a valid Alpha Vantage ticker")
     private String alphaVantageTicker;
+    @Size(max = 150)
+    private String name;
+    @Size(max = 5000)
+    private String description;
+    @Size(max = 500)
+    @Pattern(regexp = "^https?://\\S+$", message = "must be an HTTP(S) URL")
+    private String logoUrl;
+    @Size(max = 500)
+    @Pattern(regexp = "^https?://\\S+$", message = "must be an HTTP(S) URL")
+    private String website;
     @NotNull
     @ValueOfEnum(enumClass = Currency.class)
     private String currency;

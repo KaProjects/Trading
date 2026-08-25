@@ -1,4 +1,24 @@
 {
+  "companyProfiles": {
+    "NVDA": {
+      "name": "NVIDIA Corporation",
+      "description": "NVIDIA designs accelerated computing platforms, graphics processors, networking products, and related software.",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/NVIDIA_logo.svg/330px-NVIDIA_logo.svg.png",
+      "website": "https://www.nvidia.com"
+    },
+    "AMD": {
+      "name": "Advanced Micro Devices, Inc.",
+      "description": "AMD designs high-performance and adaptive computing products.",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/AMD_Logo.svg/330px-AMD_Logo.svg.png",
+      "website": "https://www.amd.com"
+    },
+    "INTC": {
+      "name": "Intel Corporation",
+      "description": "Intel designs and manufactures semiconductor products and computing platforms.",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Intel_logo_%282020%2C_dark_blue%29.svg/330px-Intel_logo_%282020%2C_dark_blue%29.svg.png",
+      "website": "https://www.intel.com"
+    }
+  },
   "financials": {
     "NVDA": {
       "2026Q1": {

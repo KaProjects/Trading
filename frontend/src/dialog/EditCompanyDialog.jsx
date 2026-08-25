@@ -31,6 +31,11 @@ export const EditCompanyDialog = props => {
     const [currency, setCurrency] = useState("")
     const [sector, setSector] = useState("")
     const [alphaVantageTicker, setAlphaVantageTicker] = useState("")
+    const [name, setName] = useState("")
+    const [description, setDescription] = useState("")
+    const [logoUrl, setLogoUrl] = useState("")
+    const [website, setWebsite] = useState("")
+    const [profileLoading, setProfileLoading] = useState(false)
     const [alphaVantageTickers, setAlphaVantageTickers] = useState([])
     const [tickerSearchLoading, setTickerSearchLoading] = useState(false)
     const [tickerSearchCompleted, setTickerSearchCompleted] = useState(false)
@@ -40,13 +45,18 @@ export const EditCompanyDialog = props => {
             setAlert(null)
             setTicker(company.id ? company.ticker : "")
             setCurrency(company.id ? company.currency : "")
+            setName(company.id ? company.name ?? "" : "")
+            setDescription(company.id ? company.description ?? "" : "")
+            setLogoUrl(company.id ? company.logoUrl ?? "" : "")
+            setWebsite(company.id ? company.website ?? "" : "")
+            setProfileLoading(false)
             const selectedAlphaVantageTicker = company.id ? company.alphaVantageTicker ?? "" : ""
             setAlphaVantageTicker(selectedAlphaVantageTicker)
             setAlphaVantageTickers(selectedAlphaVantageTicker
                 ? [{symbol: selectedAlphaVantageTicker}]
                 : [])
             setTickerSearchLoading(false)
-            setTickerSearchCompleted(false)
+            setTickerSearchCompleted(selectedAlphaVantageTicker !== "")
             if ((company.id && company.sector)){
                 props.sectors.forEach(sector => {
                     if (sector.key === company.sector.key) setSector(sector)
@@ -63,6 +73,10 @@ export const EditCompanyDialog = props => {
             ticker: ticker,
             currency: currency,
             alphaVantageTicker: currency === "$" ? null : alphaVantageTicker || null,
+            name: name.trim() || null,
+            description: description.trim() || null,
+            logoUrl: logoUrl.trim() || null,
+            website: website.trim() || null,
         }
         if (sector) companyData.sector = sector.key
         if (company.id){
@@ -85,6 +99,31 @@ export const EditCompanyDialog = props => {
         setAlphaVantageTicker("")
         setAlphaVantageTickers([])
         setTickerSearchCompleted(false)
+    }
+
+    function resetProfile() {
+        setName("")
+        setDescription("")
+        setLogoUrl("")
+        setWebsite("")
+    }
+
+    function loadPolygonProfile() {
+        setProfileLoading(true)
+        setAlert(null)
+        axios.get(backend + "/company/polygon/profile", {
+            params: {ticker},
+        }).then(response => {
+            const profile = response.data ?? {}
+            setName(profile.name ?? "")
+            setDescription(profile.description ?? "")
+            setLogoUrl(profile.logoUrl ?? "")
+            setWebsite(profile.website ?? "")
+        }).catch(error => {
+            setAlert(formatError(error))
+        }).finally(() => {
+            setProfileLoading(false)
+        })
     }
 
     function findAlphaVantageTickers() {
@@ -111,6 +150,9 @@ export const EditCompanyDialog = props => {
     const tickerSearchDisabled = !alphaVantageEnabled
         || validateTicker(ticker) !== ""
         || tickerSearchLoading
+    const profileLoadingDisabled = currency === ""
+        || validateTicker(ticker) !== ""
+        || profileLoading
 
     return (
         <Dialog
@@ -128,6 +170,7 @@ export const EditCompanyDialog = props => {
                         onChange={(e) => {
                             setTicker(e.target.value)
                             resetAlphaVantageTicker()
+                            resetProfile()
                             setAlert(null)
                         }}
                         validate={() => validateTicker(ticker)}
@@ -158,7 +201,56 @@ export const EditCompanyDialog = props => {
                         <MenuItem key={index} value={sector} >{sector.name}</MenuItem>
                     ))}
                 </Select>
-                {alphaVantageEnabled &&
+                <Box sx={{
+                    marginTop: "20px",
+                    padding: "8px 12px 12px",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: "4px",
+                }}>
+                    <Button
+                        type="button"
+                        variant="outlined"
+                        disabled={profileLoadingDisabled}
+                        onClick={loadPolygonProfile}
+                        startIcon={profileLoading ? <CircularProgress size={14}/> : null}
+                    >
+                        Try Load Company Data
+                    </Button>
+                    <DialogTextField
+                        id="company-name"
+                        value={name}
+                        label="Name"
+                        required={false}
+                        onChange={event => {setName(event.target.value);setAlert(null)}}
+                    />
+                    <DialogTextField
+                        id="company-description"
+                        value={description}
+                        label="Description"
+                        multiline
+                        minRows={3}
+                        required={false}
+                        onChange={event => {setDescription(event.target.value);setAlert(null)}}
+                    />
+                    <DialogTextField
+                        id="company-website"
+                        value={website}
+                        label="Website"
+                        type="url"
+                        required={false}
+                        onChange={event => {setWebsite(event.target.value);setAlert(null)}}
+                    />
+                    <DialogTextField
+                        id="company-logo-url"
+                        value={logoUrl}
+                        label="Logo URL"
+                        type="url"
+                        required={false}
+                        onChange={event => {setLogoUrl(event.target.value);setAlert(null)}}
+                    />
+                </Box>
+                {alphaVantageEnabled && !tickerSearchCompleted &&
                     <Box sx={{marginTop: "20px"}}>
                         <Button
                             type="button"
@@ -169,29 +261,31 @@ export const EditCompanyDialog = props => {
                         >
                             Find Alpha Vantage tickers
                         </Button>
-                        <FormControl fullWidth variant="standard" sx={{marginTop: "12px"}}>
-                            <InputLabel id="alpha-vantage-ticker-label">Alpha Vantage ticker</InputLabel>
-                            <Select
-                                labelId="alpha-vantage-ticker-label"
-                                value={alphaVantageTicker}
-                                onChange={event => {
-                                    setAlphaVantageTicker(event.target.value)
-                                    setAlert(null)
-                                }}
-                            >
-                                <MenuItem value="">None</MenuItem>
-                                {alphaVantageTickers.map(candidate => (
-                                    <MenuItem key={candidate.symbol} value={candidate.symbol}>
-                                        {candidate.symbol}
-                                        {candidate.region ? ` — ${candidate.name} (${candidate.region})` : ""}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                            {tickerSearchCompleted && alphaVantageTickers.length === 0 &&
-                                <FormHelperText>No matching tickers found.</FormHelperText>
-                            }
-                        </FormControl>
                     </Box>
+                }
+                {alphaVantageEnabled && tickerSearchCompleted &&
+                    <FormControl fullWidth variant="standard" sx={{marginTop: "20px"}}>
+                        <InputLabel id="alpha-vantage-ticker-label">Alpha Vantage ticker</InputLabel>
+                        <Select
+                            labelId="alpha-vantage-ticker-label"
+                            value={alphaVantageTicker}
+                            onChange={event => {
+                                setAlphaVantageTicker(event.target.value)
+                                setAlert(null)
+                            }}
+                        >
+                            <MenuItem value="">None</MenuItem>
+                            {alphaVantageTickers.map(candidate => (
+                                <MenuItem key={candidate.symbol} value={candidate.symbol}>
+                                    {candidate.symbol}
+                                    {candidate.region ? ` — ${candidate.name} (${candidate.region})` : ""}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                        {alphaVantageTickers.length === 0 &&
+                            <FormHelperText>No matching tickers found.</FormHelperText>
+                        }
+                    </FormControl>
                 }
             </DialogContent>
             {alert &&

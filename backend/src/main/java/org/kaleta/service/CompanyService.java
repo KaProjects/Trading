@@ -5,8 +5,10 @@ import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import jakarta.transaction.Transactional;
 import org.kaleta.client.AlphaVantageClient;
+import org.kaleta.client.PolygonClient;
 import org.kaleta.client.RequestFailureException;
 import org.kaleta.client.dto.AlphaVantageTicker;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
@@ -41,6 +43,8 @@ public class CompanyService
     CompanyDao companyDao;
     @Inject
     AlphaVantageClient alphaVantageClient;
+    @Inject
+    PolygonClient polygonClient;
 
     public List<AlphaVantageTicker> findAlphaVantageTickers(String ticker, String currency)
     {
@@ -66,6 +70,19 @@ public class CompanyService
     {
         int suffix = symbol.indexOf('.');
         return suffix < 0 ? symbol : symbol.substring(0, suffix);
+    }
+
+    public PolygonCompanyProfile getPolygonCompanyProfile(String ticker)
+    {
+        try {
+            return polygonClient.getCompanyProfile(ticker)
+                    .orElseThrow(() -> new InvalidInputException(
+                            "Polygon.io company data for ticker '" + ticker + "' was not found"));
+        } catch (RequestFailureException exception) {
+            throw new InvalidInputException(
+                    "Polygon.io company data for ticker '" + ticker + "' could not be loaded: "
+                            + exception.getMessage());
+        }
     }
 
     public CompanyAggregates getCompaniesWithAggregates(String currency, String sector)
@@ -142,6 +159,10 @@ public class CompanyService
         company.setCurrency(Currency.valueOf(dto.getCurrency()));
         company.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
         company.setAlphaVantageTicker(dto.getAlphaVantageTicker());
+        company.setName(nullableTrimmed(dto.getName()));
+        company.setDescription(nullableTrimmed(dto.getDescription()));
+        company.setLogoUrl(nullableTrimmed(dto.getLogoUrl()));
+        company.setWebsite(nullableTrimmed(dto.getWebsite()));
 
         companyDao.save(company);
     }
@@ -156,6 +177,10 @@ public class CompanyService
         Company newCompany = new Company();
         newCompany.setTicker(dto.getTicker());
         newCompany.setAlphaVantageTicker(dto.getAlphaVantageTicker());
+        newCompany.setName(nullableTrimmed(dto.getName()));
+        newCompany.setDescription(nullableTrimmed(dto.getDescription()));
+        newCompany.setLogoUrl(nullableTrimmed(dto.getLogoUrl()));
+        newCompany.setWebsite(nullableTrimmed(dto.getWebsite()));
         newCompany.setCurrency(Currency.valueOf(dto.getCurrency()));
         newCompany.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
 
@@ -200,11 +225,20 @@ public class CompanyService
         }
     }
 
+    private static String nullableTrimmed(String value)
+    {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
     public org.kaleta.model.Company from(Company entity){
         org.kaleta.model.Company company = new org.kaleta.model.Company();
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setAlphaVantageTicker(entity.getAlphaVantageTicker());
+        company.setName(entity.getName());
+        company.setDescription(entity.getDescription());
+        company.setLogoUrl(entity.getLogoUrl());
+        company.setWebsite(entity.getWebsite());
         company.setCurrency(entity.getCurrency());
         company.setTags(new ArrayList<>(entity.getTags()));
         if (entity.getSector() != null) {
@@ -219,6 +253,10 @@ public class CompanyService
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setAlphaVantageTicker(entity.getAlphaVantageTicker());
+        company.setName(entity.getName());
+        company.setDescription(entity.getDescription());
+        company.setLogoUrl(entity.getLogoUrl());
+        company.setWebsite(entity.getWebsite());
         company.setCurrency(entity.getCurrency());
         if (entity.getSector() != null) {
             company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));

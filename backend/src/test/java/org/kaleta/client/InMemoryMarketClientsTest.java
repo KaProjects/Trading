@@ -8,6 +8,7 @@ import org.kaleta.client.dto.AlphaVantageQuote;
 import org.kaleta.client.dto.AlphaVantageTicker;
 import org.kaleta.client.dto.FinnhubQuote;
 import org.kaleta.client.dto.PolygonFinancials;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
 
 import java.math.BigDecimal;
@@ -32,6 +33,7 @@ class InMemoryMarketClientsTest
                 "src/test/resources/polygonTestData.json");
 
         Optional<PolygonFinancials> financials = client.getFinancials("intc", "2026", "Q1");
+        Optional<PolygonCompanyProfile> profile = client.getCompanyProfile("intc");
         Optional<PolygonPriceRange> priceRange = client.getPriceRange(
                 "intc",
                 "2026-01-22",
@@ -45,8 +47,27 @@ class InMemoryMarketClientsTest
         assertThat(priceRange.orElseThrow().high(), comparesEqualTo(new BigDecimal("70.33")));
         assertThat(priceRange.orElseThrow().low(), comparesEqualTo(new BigDecimal("40.63")));
         assertThat(priceRange.orElseThrow().reportedCurrency(), is("USD"));
+        assertThat(profile.orElseThrow().name(), is("Intel Corporation"));
+        assertThat(profile.orElseThrow().website(), is("https://www.intel.com"));
+        assertThat(client.getCompanyProfile("UNKNOWN"), is(Optional.empty()));
         assertThat(client.getFinancials("UNKNOWN", "2026", "Q1"), is(Optional.empty()));
         assertThat(client.getPriceRange("INTC", "2000-01-01", "2000-02-01"), is(Optional.empty()));
+    }
+
+    @Test
+    void polygonDevFixtureProvidesCompanyProfiles()
+    {
+        InMemoryPolygonClient client = new InMemoryPolygonClient(
+                objectMapper,
+                "src/dev/resources/polygon.json");
+
+        assertThat(client.getCompanyProfile("NVDA").orElseThrow().name(), is("NVIDIA Corporation"));
+        assertThat(client.getCompanyProfile("AMD").orElseThrow().website(), is("https://www.amd.com"));
+        assertThat(client.getCompanyProfile("INTC").orElseThrow().logoUrl(),
+                is("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/"
+                        + "Intel_logo_%282020%2C_dark_blue%29.svg/"
+                        + "330px-Intel_logo_%282020%2C_dark_blue%29.svg.png"));
+        assertThat(client.getCompanyProfile("ASML"), is(Optional.empty()));
     }
 
     @Test

@@ -7,7 +7,9 @@ import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.client.AlphaVantageClient;
+import org.kaleta.client.PolygonClient;
 import org.kaleta.client.dto.AlphaVantageTicker;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.entity.CompanyWithStats;
@@ -29,6 +31,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -48,6 +51,8 @@ public class CompanyServiceTest
     RecordDao recordDao;
     @InjectMock
     AlphaVantageClient alphaVantageClient;
+    @InjectMock
+    PolygonClient polygonClient;
 
     @Inject
     CompanyService companyService;
@@ -55,7 +60,7 @@ public class CompanyServiceTest
     @BeforeEach
     void beforeEach()
     {
-        reset(companyDao, recordDao, alphaVantageClient);
+        reset(companyDao, recordDao, alphaVantageClient, polygonClient);
     }
 
     @Test
@@ -153,6 +158,19 @@ public class CompanyServiceTest
     }
 
     @Test
+    void getPolygonCompanyProfile() throws Exception
+    {
+        PolygonCompanyProfile profile = new PolygonCompanyProfile(
+                "NVIDIA Corporation",
+                "Accelerated computing company",
+                "https://example.test/nvda.svg",
+                "https://www.nvidia.com");
+        when(polygonClient.getCompanyProfile("NVDA")).thenReturn(Optional.of(profile));
+
+        assertThat(companyService.getPolygonCompanyProfile("NVDA"), is(profile));
+    }
+
+    @Test
     void findEntity()
     {
         Company entity = Generator.generateCompany(1L);
@@ -238,6 +256,10 @@ public class CompanyServiceTest
         dto.setCurrency(Currency.€.name());
         dto.setSector(Sector.SOFTWARE.toString());
         dto.setAlphaVantageTicker("ASML.AMS");
+        dto.setName("ASML Holding N.V.");
+        dto.setDescription("Semiconductor equipment company");
+        dto.setLogoUrl("https://example.test/asml.svg");
+        dto.setWebsite("https://www.asml.com");
 
         companyService.update(dto);
 
@@ -248,6 +270,10 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getCurrency(), is(Currency.€));
         assertThat(captor.getValue().getSector(), is(Sector.SOFTWARE));
         assertThat(captor.getValue().getAlphaVantageTicker(), is("ASML.AMS"));
+        assertThat(captor.getValue().getName(), is("ASML Holding N.V."));
+        assertThat(captor.getValue().getDescription(), is("Semiconductor equipment company"));
+        assertThat(captor.getValue().getLogoUrl(), is("https://example.test/asml.svg"));
+        assertThat(captor.getValue().getWebsite(), is("https://www.asml.com"));
     }
 
     @Test
@@ -282,6 +308,10 @@ public class CompanyServiceTest
         dto.setId(companyId);
         dto.setCurrency(Currency.$.name());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setName("NVIDIA Corporation");
+        dto.setDescription("Accelerated computing company");
+        dto.setLogoUrl("https://example.test/nvda.svg");
+        dto.setWebsite("https://www.nvidia.com");
 
         InvalidInputException exception = assertThrows(InvalidInputException.class, () -> companyService.update(dto));
 
@@ -298,6 +328,10 @@ public class CompanyServiceTest
         dto.setTicker("NVDA");
         dto.setCurrency(Currency.$.name());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setName("NVIDIA Corporation");
+        dto.setDescription("Accelerated computing company");
+        dto.setLogoUrl("https://example.test/nvda.svg");
+        dto.setWebsite("https://www.nvidia.com");
 
         companyService.create(dto);
 
@@ -307,6 +341,10 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getTicker(), is("NVDA"));
         assertThat(captor.getValue().getCurrency(), is(Currency.$));
         assertThat(captor.getValue().getSector(), is(Sector.SEMICONDUCTORS));
+        assertThat(captor.getValue().getName(), is("NVIDIA Corporation"));
+        assertThat(captor.getValue().getDescription(), is("Accelerated computing company"));
+        assertThat(captor.getValue().getLogoUrl(), is("https://example.test/nvda.svg"));
+        assertThat(captor.getValue().getWebsite(), is("https://www.nvidia.com"));
     }
 
     @Test
@@ -435,12 +473,20 @@ public class CompanyServiceTest
         entity.setAlphaVantageTicker("NVDA.DEX");
         entity.setCurrency(Currency.$);
         entity.setSector(Sector.SEMICONDUCTORS);
+        entity.setName("NVIDIA Corporation");
+        entity.setDescription("Accelerated computing company");
+        entity.setLogoUrl("https://example.test/nvda.svg");
+        entity.setWebsite("https://www.nvidia.com");
 
         org.kaleta.model.Company company = companyService.from(entity);
 
         assertThat(company.getId(), is(1L));
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getAlphaVantageTicker(), is("NVDA.DEX"));
+        assertThat(company.getName(), is("NVIDIA Corporation"));
+        assertThat(company.getDescription(), is("Accelerated computing company"));
+        assertThat(company.getLogoUrl(), is("https://example.test/nvda.svg"));
+        assertThat(company.getWebsite(), is("https://www.nvidia.com"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(company.getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
@@ -468,6 +514,10 @@ public class CompanyServiceTest
         assertThat(actual.getId(), is(expected.getId()));
         assertThat(actual.getTicker(), is(expected.getTicker()));
         assertThat(actual.getAlphaVantageTicker(), is(expected.getAlphaVantageTicker()));
+        assertThat(actual.getName(), is(expected.getName()));
+        assertThat(actual.getDescription(), is(expected.getDescription()));
+        assertThat(actual.getLogoUrl(), is(expected.getLogoUrl()));
+        assertThat(actual.getWebsite(), is(expected.getWebsite()));
         assertThat(actual.getCurrency(), is(expected.getCurrency()));
         assertThat(actual.getTags(), is(expected.getTags()));
         if (expected.getSector() == null) {

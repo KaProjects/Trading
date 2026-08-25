@@ -29,6 +29,18 @@ public class Company extends AbstractEntity
     @Column(name = "alphaVantageTicker", length = 30)
     private String alphaVantageTicker;
 
+    @Column(name = "name", length = 150)
+    private String name;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "logoUrl", length = 500)
+    private String logoUrl;
+
+    @Column(name = "website", length = 500)
+    private String website;
+
     @Column(name = "currency", nullable = false)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.CHAR)

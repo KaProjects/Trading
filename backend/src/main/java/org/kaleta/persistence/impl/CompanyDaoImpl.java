@@ -83,6 +83,10 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
                         + "c.id, "
                         + "c.ticker, "
                         + "c.alphaVantageTicker, "
+                        + "c.name, "
+                        + "c.description, "
+                        + "c.logoUrl, "
+                        + "c.website, "
                         + "c.currency, "
                         + "c.sector, "
                         + "COALESCE(t.total_trades, 0), "
@@ -177,15 +181,19 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
         company.setId(((Number) values[0]).longValue());
         company.setTicker(asString(values[1]).trim());
         company.setAlphaVantageTicker(nullableString(values[2]));
-        company.setCurrency(Currency.valueOf(asString(values[3])));
-        if (values[4] != null) {
-            company.setSector(Sector.valueOf(asString(values[4])));
+        company.setName(nullableString(values[3]));
+        company.setDescription(nullableString(values[4]));
+        company.setLogoUrl(nullableString(values[5]));
+        company.setWebsite(nullableString(values[6]));
+        company.setCurrency(Currency.valueOf(asString(values[7])));
+        if (values[8] != null) {
+            company.setSector(Sector.valueOf(asString(values[8])));
         }
-        company.setTotalTrades(toInt(values[5]));
-        company.setActiveTrades(toInt(values[6]));
-        company.setDividends(toInt(values[7]));
-        company.setRecords(toInt(values[8]));
-        company.setPeriods(toInt(values[9]));
+        company.setTotalTrades(toInt(values[9]));
+        company.setActiveTrades(toInt(values[10]));
+        company.setDividends(toInt(values[11]));
+        company.setRecords(toInt(values[12]));
+        company.setPeriods(toInt(values[13]));
         return company;
     }
 

@@ -306,6 +306,28 @@ describe("Research", () => {
         expect(screen.getByTestId("record-list")).toHaveStyle("padding-top: 5px");
     });
 
+    test("uses the company logo instead of the ticker in the research title", async () => {
+        axios.get.mockResolvedValue({
+            data: createResearchData({
+                company: {
+                    id: "company-1",
+                    ticker: "AAPL",
+                    currency: "$",
+                    logoUrl: "https://example.test/logos/aapl.png",
+                    sector: {key: "TECH", name: "Technology"},
+                    tags: [],
+                },
+            }),
+        });
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        const logo = await screen.findByRole("img", {name: "AAPL logo"});
+        expect(logo).toHaveAttribute("src", "https://example.test/logos/aapl.png");
+        expect(logo).toHaveAttribute("title", "AAPL");
+        expect(screen.queryByText("AAPL")).not.toBeInTheDocument();
+    });
+
     test("shows the loader and hides the previous company while a new company is loading", async () => {
         let resolveSecondCompany;
         axios.get.mockImplementation(url => {
