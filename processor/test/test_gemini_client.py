@@ -18,9 +18,15 @@ from gemini.client import (
 from gemini.models import (
     InitialCompanyResponse,
     Quarter,
+    ReportDates,
     Target,
     TargetReport,
     Targets,
+)
+from polygon.models import (
+    CompanyInsights,
+    CompanyNewsInsight,
+    CompanySentimentSummaries,
 )
 
 
@@ -122,6 +128,79 @@ def test_client_configures_retries_for_transient_http_failures():
         retry_options.http_status_codes
         == GEMINI_RETRYABLE_HTTP_STATUS_CODES
     )
+
+
+@pytest.mark.parametrize(
+    ("method_name", "response_factory", "invoke"),
+    [
+        (
+            "get_initial_stock_data",
+            lambda: initial_company_data(),
+            lambda client: client.get_initial_stock_data("ASML"),
+        ),
+        (
+            "revalidate_report_dates",
+            lambda: {"report_dates": []},
+            lambda client: client.revalidate_report_dates(
+                ReportDates(report_dates=[])
+            ),
+        ),
+        (
+            "get_quarter_report",
+            complete_quarter_data,
+            lambda client: client.get_quarter_report(
+                "ACME",
+                make_quarter(),
+                "$",
+            ),
+        ),
+        (
+            "get_price_targets",
+            lambda: {"targets": []},
+            lambda client: client.get_price_targets(
+                ["AAPL"],
+                date(2026, 8, 24),
+                date(2026, 8, 26),
+            ),
+        ),
+        (
+            "get_target_report",
+            lambda: {
+                "overview": "Overview",
+                "key_takeaways": ["Takeaway"],
+            },
+            lambda client: client.get_target_report(Target(
+                ticker="AMD",
+                institution="Baird",
+                date="2026-08-26",
+                price="250",
+                rating="Outperform",
+                source="https://example.com/amd",
+            )),
+        ),
+        (
+            "get_news_sentiment_analysis",
+            lambda: {"companies": []},
+            lambda client: client.get_news_sentiment_analysis([]),
+        ),
+    ],
+)
+def test_public_method_logs_progress(
+    method_name,
+    response_factory,
+    invoke,
+    caplog,
+):
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            json.dumps(response_factory())
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        with caplog.at_level(logging.INFO, logger="gemini.client"):
+            invoke(client)
+
+    assert f"Running Gemini client.{method_name}..." in caplog.messages
 
 
 def test_initial_company_error_contains_exact_gemini_response():
@@ -372,6 +451,126 @@ def test_get_target_report_truncates_overflow_and_logs_target(caplog):
     assert "actual=1005, limit=1000" in caplog.text
     assert "actual=6, limit=4" in caplog.text
     assert "actual=505, limit=500" in caplog.text
+
+
+def test_get_news_sentiment_analysis_returns_validated_company_results():
+    companies = [
+        CompanyInsights(
+            ticker="AAPL",
+            insights=[
+                CompanyNewsInsight(
+                    article_id="aapl-1",
+                    ticker="AAPL",
+                    sentiment="positive",
+                    sentiment_reasoning="Demand remained strong.",
+                ),
+                CompanyNewsInsight(
+                    article_id="aapl-2",
+                    ticker="AAPL",
+                    sentiment=" POSITIVE ",
+                    sentiment_reasoning="Sales exceeded expectations.",
+                ),
+                CompanyNewsInsight(
+                    article_id="aapl-3",
+                    ticker="AAPL",
+                    sentiment="neutral",
+                ),
+                CompanyNewsInsight(
+                    article_id="aapl-4",
+                    ticker="AAPL",
+                    sentiment="negative",
+                ),
+                CompanyNewsInsight(
+                    article_id="aapl-5",
+                    ticker="AAPL",
+                    sentiment="mixed",
+                ),
+                CompanyNewsInsight(
+                    article_id="aapl-6",
+                    ticker="AAPL",
+                ),
+            ],
+        ),
+        CompanyInsights(ticker="MSFT"),
+    ]
+    response = {
+        "companies": [
+            {
+                "ticker": "AAPL",
+                "key_takeaways": [
+                    "Demand and sales expectations were strong."
+                ],
+            },
+            {
+                "ticker": "MSFT",
+                "key_takeaways": [],
+            },
+        ]
+    }
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            json.dumps(response)
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        result = client.get_news_sentiment_analysis(companies)
+
+    assert [company.ticker for company in result] == ["AAPL", "MSFT"]
+    assert result[0].statistics.model_dump() == {
+        "total": 6,
+        "missing": 1,
+        "mixed": 1,
+        "negative": 1,
+        "neutral": 1,
+        "positive": 2,
+    }
+    assert result[1].key_takeaways == []
+    request = constructor.return_value.models.generate_content.call_args
+    assert request.kwargs["config"]["response_json_schema"] == (
+        CompanySentimentSummaries.model_json_schema()
+    )
+    assert "tools" not in request.kwargs["config"]
+    assert "Never omit, add, duplicate, or reorder companies" in (
+        request.kwargs["contents"]
+    )
+    assert "Return only ticker and key_takeaways" in (
+        request.kwargs["contents"]
+    )
+    assert "browse for more information" in request.kwargs["contents"]
+    assert '"article_id":"aapl-1"' in request.kwargs["contents"]
+    assert (
+        '"statistics":{"total":6,"missing":1,"mixed":1,'
+        '"negative":1,"neutral":1,"positive":2}'
+    ) in request.kwargs["contents"]
+
+
+def test_get_news_sentiment_analysis_rejects_changed_company_ticker():
+    companies = [
+        CompanyInsights(
+            ticker="AAPL",
+            insights=[CompanyNewsInsight(
+                article_id="aapl-1",
+                ticker="AAPL",
+                sentiment="positive",
+            )],
+        )
+    ]
+    response = {
+        "companies": [
+            {
+                "ticker": "MSFT",
+                "key_takeaways": [],
+            }
+        ]
+    }
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            json.dumps(response)
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        with pytest.raises(ValueError, match="company order differs"):
+            client.get_news_sentiment_analysis(companies)
 
 
 @pytest.mark.parametrize("missing_value", [None, "", "omitted"])

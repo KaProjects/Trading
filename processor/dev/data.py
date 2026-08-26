@@ -16,6 +16,7 @@ from myfinnhub.models import (
     Company as FinnhubCompany,
     Earnings,
 )
+from polygon.models import NewsResponse
 
 
 def cmc_fear_and_greed() -> FearAndGreedReading:
@@ -38,6 +39,81 @@ def cmc_bitcoin_quote() -> BitcoinQuote:
                 },
             }],
         },
+    })
+
+
+def polygon_news(tickers: list[str] | None = None) -> NewsResponse:
+    return _polygon_news_response(
+        sorted(set(tickers or ["ACME", "NEWC", "FUTR", "STBL"])),
+        articles_per_ticker=2,
+        id_group="market",
+    )
+
+
+def _polygon_news_response(
+    company_tickers: list[str],
+    *,
+    articles_per_ticker: int,
+    id_group: str,
+) -> NewsResponse:
+    today = date.today()
+    sentiment_profiles = [
+        (
+            "positive",
+            "Demand accelerated and management raised its revenue outlook.",
+        ),
+        (
+            "neutral",
+            "Management maintained guidance while monitoring market demand.",
+        ),
+        (
+            "negative",
+            "Higher input costs put near-term pressure on operating margins.",
+        ),
+        (
+            "mixed",
+            "Bookings improved, but execution risks remain for the expansion.",
+        ),
+    ]
+    results = []
+    for ticker_index, ticker in enumerate(company_tickers):
+        for article_index in range(articles_per_ticker):
+            sentiment, reasoning = sentiment_profiles[
+                (ticker_index + article_index) % len(sentiment_profiles)
+            ]
+            days_ago = (ticker_index + article_index * 3) % 8
+            article_id = (
+                f"fake-{id_group}-{ticker.lower()}-{article_index + 1}"
+            )
+            results.append({
+                "id": article_id,
+                "publisher": {
+                    "name": "Development Market Wire",
+                    "homepage_url": "https://news.example.com",
+                },
+                "title": f"{ticker} development market update",
+                "author": "Development Reporter",
+                "published_utc": (
+                    f"{(today - timedelta(days=days_ago)).isoformat()}"
+                    "T12:00:00Z"
+                ),
+                "article_url": f"https://news.example.com/{article_id}",
+                "tickers": [ticker],
+                "description": (
+                    f"Development-only company news for {ticker}."
+                ),
+                "keywords": ["development", "market"],
+                "insights": [{
+                    "ticker": ticker,
+                    "sentiment": sentiment,
+                    "sentiment_reasoning": f"{ticker}: {reasoning}",
+                }],
+            })
+    return NewsResponse.model_validate({
+        "count": len(results),
+        "status": "OK",
+        "request_id": "fake-polygon-request",
+        "results": results,
     })
 
 

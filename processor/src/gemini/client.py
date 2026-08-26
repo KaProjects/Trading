@@ -1,3 +1,4 @@
+import json
 import logging
 from dataclasses import dataclass
 from datetime import date
@@ -16,6 +17,12 @@ from gemini.models import (
     Target,
     TargetReport,
     Targets,
+)
+from polygon.models import (
+    CompanyInsights,
+    CompanySentimentAnalysis,
+    CompanySentimentSummaries,
+    SentimentStatistics,
 )
 
 logger = logging.getLogger(__name__)
@@ -119,8 +126,13 @@ class GeminiClient:
         response_model: type[BaseModel],
         *,
         validation_context: dict[str, object] | None = None,
+        use_google_search: bool = True,
     ):
-        response = self.__request(prompt, response_model)
+        response = self.__request(
+            prompt,
+            response_model,
+            use_google_search=use_google_search,
+        )
         return response_model.model_validate_json(
             response.text,
             context=validation_context,
@@ -130,18 +142,25 @@ class GeminiClient:
         self,
         prompt: str,
         response_model: type[BaseModel],
+        *,
+        use_google_search: bool = True,
     ):
+        config = {
+            "response_mime_type": "application/json",
+            "response_json_schema": response_model.model_json_schema(),
+        }
+        if use_google_search:
+            config["tools"] = [
+                types.Tool(google_search=types.GoogleSearch())
+            ]
         return self.client.models.generate_content(
             model=self.model,
             contents=prompt,
-            config={
-                "tools": [types.Tool(google_search=types.GoogleSearch())],
-                "response_mime_type": "application/json",
-                "response_json_schema": response_model.model_json_schema(),
-            },
+            config=config,
         )
 
     def get_initial_stock_data(self, ticker: str) -> InitialCompanyResult:
+        self.log.info("Running Gemini client.get_initial_stock_data...")
         prompt = f"""
         For company with ticker {ticker}, retrieve all required information about the company.
 
@@ -307,6 +326,7 @@ class GeminiClient:
         return violations
 
     def revalidate_report_dates(self, report_dates: ReportDates) -> ReportDates:
+        self.log.info("Running Gemini client.revalidate_report_dates...")
         data = report_dates.model_dump(mode="json")
         prompt = f"""
         I provide you the list of current quarter report dates for companies, here: {data} 
@@ -325,6 +345,7 @@ class GeminiClient:
         current_quarter: Quarter,
         currency: str,
     ) -> QuarterReportResult:
+        self.log.info("Running Gemini client.get_quarter_report...")
         data = current_quarter.model_dump(mode="json")
         if currency == "$":
             completeness = """
@@ -395,6 +416,7 @@ class GeminiClient:
         start_date: date,
         end_date: date,
     ) -> Targets:
+        self.log.info("Running Gemini client.get_price_targets...")
         prompt = f"""
         You are a financial-data researcher extracting newly announced institutional
         equity analyst price-target actions.
@@ -460,6 +482,7 @@ class GeminiClient:
         return self.__ask(prompt, Targets)
 
     def get_target_report(self, target: Target) -> Target:
+        self.log.info("Running Gemini client.get_target_report...")
         data = target.model_dump(mode="json", exclude={"report"})
         prompt = f"""
         {target.institution} recently issued a ${target.price} price target for
@@ -495,3 +518,82 @@ class GeminiClient:
             },
         )
         return target.model_copy(update={"report": report})
+
+    def get_news_sentiment_analysis(
+        self,
+        companies: list[CompanyInsights],
+    ) -> list[CompanySentimentAnalysis]:
+        self.log.info(
+            "Running Gemini client.get_news_sentiment_analysis..."
+        )
+        company_data = [
+            {
+                **company.model_dump(mode="json"),
+                "statistics": SentimentStatistics.from_insights(
+                    company.insights
+                ).model_dump(mode="json"),
+            }
+            for company in companies
+        ]
+        data = json.dumps(
+            company_data,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        prompt = f"""
+        Analyze the supplied Polygon news insights grouped by company:
+        {data}
+
+        Return a CompanySentimentSummaries model containing exactly one result
+        for every input company, in the same order and with the same ticker.
+        Never omit, add, duplicate, or reorder companies.
+
+        Return only ticker and key_takeaways for each company. Do not return
+        statistics; they were already calculated by the application and will
+        be attached after your response. Your only analytical task is to
+        produce key_takeaways.
+
+        For key_takeaways, read only the supplied sentiment_reasoning values and
+        synthesize up to five concise, non-duplicative takeaways per company.
+        article_id identifies the source article. Treat the same article_id for
+        the same company as one article and never duplicate its reasoning.
+        Merge repeated reasoning and capture the most important recurring events,
+        business drivers, catalysts, risks, and conflicting signals. Do not invent
+        facts, use external knowledge, browse for more information, or merely
+        restate the sentiment counts. A company with no insights must have an
+        empty key_takeaways list.
+        """
+        response = self.__ask(
+            prompt,
+            CompanySentimentSummaries,
+            use_google_search=False,
+        )
+        return self._combine_news_sentiment_analysis(companies, response)
+
+    @staticmethod
+    def _combine_news_sentiment_analysis(
+        companies: list[CompanyInsights],
+        response: CompanySentimentSummaries,
+    ) -> list[CompanySentimentAnalysis]:
+        expected_tickers = [company.ticker for company in companies]
+        actual_tickers = [company.ticker for company in response.companies]
+        if actual_tickers != expected_tickers:
+            raise ValueError(
+                "Gemini news sentiment company order differs from input: "
+                f"expected={expected_tickers}, actual={actual_tickers}"
+            )
+
+        return [
+            CompanySentimentAnalysis(
+                ticker=summary.ticker,
+                statistics=SentimentStatistics.from_insights(
+                    source.insights
+                ),
+                key_takeaways=summary.key_takeaways,
+            )
+            for source, summary in zip(
+                companies,
+                response.companies,
+                strict=True,
+            )
+        ]

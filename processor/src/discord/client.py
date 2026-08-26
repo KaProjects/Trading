@@ -313,7 +313,9 @@ class DiscordClient:
 
     @staticmethod
     def _normalize_channel_name(channel_name: str) -> str:
-        normalized_name = channel_name.strip().lstrip("#").casefold()
+        normalized_name = (
+            channel_name.strip().lstrip("#").replace(".", "-").casefold()
+        )
         if not normalized_name:
             raise ValueError("Discord channel name cannot be empty")
         return normalized_name

@@ -16,6 +16,8 @@ from dev.fakes import (
     FakeFinnhubFirebaseService,
     FakeGeminiClient,
     FakeGeminiFirebaseService,
+    FakePolygonClient,
+    FakePolygonFirebaseService,
 )
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
@@ -25,6 +27,9 @@ from gemini.service import FirebaseService as GeminiFirebaseService
 from myfinnhub.client import FinnhubClient
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from myfinnhub.service import FirebaseService as FinnhubFirebaseService
+from polygon.client import PolygonClient
+from polygon.retriever import PolygonNewsRetrieverRunner
+from polygon.service import FirebaseService as PolygonFirebaseService
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +37,13 @@ RUNNERS = {
     "btc": "BTC fear-and-greed retrieval and Discord notification",
     "gemini": "Gemini quarterly stock-data retrieval",
     "finnhub": "Finnhub earnings retrieval",
+    "polygon": "Polygon company-news sentiment analysis",
 }
 CLIENTS = {
     "cmc": "CoinMarketCap",
     "gemini": "Gemini",
     "finnhub": "Finnhub",
+    "polygon": "Polygon",
     "discord": "Discord",
     "firebase": "Firebase",
 }
@@ -44,6 +51,7 @@ RUNNER_CLIENTS = {
     "btc": ("cmc", "discord"),
     "gemini": ("gemini", "discord", "firebase"),
     "finnhub": ("finnhub", "discord", "firebase"),
+    "polygon": ("polygon", "gemini", "discord", "firebase"),
 }
 
 
@@ -135,6 +143,13 @@ def build_runner(
         )
     if args.runner == "finnhub":
         return _build_finnhub_runner(
+            args,
+            config,
+            firebase_snapshot,
+            errors,
+        )
+    if args.runner == "polygon":
+        return _build_polygon_runner(
             args,
             config,
             firebase_snapshot,
@@ -234,6 +249,49 @@ def _build_finnhub_runner(
         discord=discord,
         error_reporter=error_reporter,
         sleeper=lambda _: None,
+    )
+
+
+def _build_polygon_runner(
+    args: argparse.Namespace,
+    config: AppConfig | None,
+    firebase_snapshot: dict[str, object],
+    error_reporter: ErrorReporter,
+) -> PolygonNewsRetrieverRunner:
+    if args.polygon_prod:
+        production_config = _require_config(config)
+        polygon_client = PolygonClient(
+            api_key=(
+                production_config.polygon_api_key.get_secret_value()
+            )
+        )
+    else:
+        polygon_client = FakePolygonClient(list(firebase_snapshot))
+
+    if args.gemini_prod:
+        production_config = _require_config(config)
+        gemini_client = GeminiClient(
+            api_key=production_config.gemini_api_key.get_secret_value(),
+            model=PolygonNewsRetrieverRunner.model,
+        )
+    else:
+        gemini_client = FakeGeminiClient()
+
+    service = _build_firebase_service(
+        args,
+        config,
+        production_factory=PolygonFirebaseService,
+        fake_factory=FakePolygonFirebaseService,
+        firebase_snapshot=firebase_snapshot,
+        error_reporter=error_reporter,
+    )
+    discord = _build_discord_client(args, config)
+    return PolygonNewsRetrieverRunner(
+        client=polygon_client,
+        gemini=gemini_client,
+        service=service,
+        discord=discord,
+        error_reporter=error_reporter,
     )
 
 

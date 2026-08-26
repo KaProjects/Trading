@@ -6,7 +6,10 @@ from urllib.parse import urlsplit
 from firebase_admin import db
 
 from error_reporting import ErrorReporter
-from firebase_repository import parse_company_snapshot
+from firebase_repository import (
+    parse_company_snapshot,
+    ticker_to_firebase_key,
+)
 from gemini.models import (
     Company,
     CompanyTarget,
@@ -23,7 +26,8 @@ required_company_fields = frozenset({"info", "quarters"})
 logger = logging.getLogger(__name__)
 
 def company_path(company_id: str) -> str:
-    return companies_path + "/" + company_id + "/" + data_root
+    company_key = ticker_to_firebase_key(company_id)
+    return companies_path + "/" + company_key + "/" + data_root
 
 
 def create_target_id(company_id: str, target: CompanyTarget) -> str:

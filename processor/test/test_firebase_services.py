@@ -17,6 +17,7 @@ from gemini.service import FirebaseService as GeminiFirebaseService
 from gemini.service import company_path as gemini_company_path
 from gemini.service import create_target_id
 from gemini.service import institutions_path
+from myfinnhub.service import company_path as finnhub_company_path
 from myfinnhub.service import FirebaseService as FinnhubFirebaseService
 
 
@@ -43,6 +44,32 @@ def test_gemini_service_treats_empty_snapshot_as_empty_mapping():
 def test_finnhub_service_treats_empty_snapshot_as_empty_mapping():
     with patch("myfinnhub.service.db.reference", autospec=True, return_value=FakeReference(None)):
         assert make_service(FinnhubFirebaseService).get_companies() == {}
+
+
+@pytest.mark.parametrize(
+    ("service_class", "reference_path"),
+    [
+        (GeminiFirebaseService, "gemini.service.db.reference"),
+        (FinnhubFirebaseService, "myfinnhub.service.db.reference"),
+    ],
+)
+def test_firebase_service_converts_company_key_to_api_ticker(
+    service_class,
+    reference_path,
+):
+    with patch(
+        reference_path,
+        autospec=True,
+        return_value=FakeReference({"BRK-B": None}),
+    ):
+        companies = make_service(service_class).get_companies()
+
+    assert companies == {"BRK.B": None}
+
+
+def test_company_paths_convert_api_ticker_to_firebase_key():
+    assert gemini_company_path("BRK.B") == "company/BRK-B/gemini"
+    assert finnhub_company_path("BRK.B") == "company/BRK-B/fhe"
 
 
 def test_gemini_service_loads_institutions():

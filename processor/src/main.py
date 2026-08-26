@@ -12,6 +12,7 @@ from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from gemini.retriever import StockDataRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
+from polygon.retriever import PolygonNewsRetrieverRunner
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class Application:
     btc_runner: BtcFearAndGreedRetrieverRunner
     finnhub_runner: FinnhubEarningsRetrieverRunner
     stock_runner: StockDataRetrieverRunner
+    polygon_runner: PolygonNewsRetrieverRunner
     errors: ErrorReporter
     timezone: str
     poll_interval_seconds: float = 60
@@ -40,6 +42,9 @@ class Application:
         )
         self.scheduler.every().day.at("08:00", self.timezone).do(
             self.stock_runner.run
+        )
+        self.scheduler.every().sunday.at("09:00", self.timezone).do(
+            self.polygon_runner.run
         )
         self._jobs_configured = True
 
@@ -106,6 +111,12 @@ def create_app(
             error_reporter=errors,
         ),
         stock_runner=StockDataRetrieverRunner(
+            gemini_api_key=config.gemini_api_key.get_secret_value(),
+            discord=discord,
+            error_reporter=errors,
+        ),
+        polygon_runner=PolygonNewsRetrieverRunner(
+            polygon_api_key=config.polygon_api_key.get_secret_value(),
             gemini_api_key=config.gemini_api_key.get_secret_value(),
             discord=discord,
             error_reporter=errors,

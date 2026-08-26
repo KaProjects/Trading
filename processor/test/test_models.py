@@ -19,11 +19,72 @@ from gemini.models import (
 )
 from myfinnhub.models import Company as FinnhubCompany
 from myfinnhub.models import Earnings
+from polygon.models import (
+    CompanyInsights,
+    CompanyNewsInsight,
+    NewsInsight,
+    SentimentStatistics,
+)
 
 
 def test_gemini_company_rejects_missing_required_info():
     with pytest.raises(ValidationError):
         Company.model_validate({"quarters": {}})
+
+
+def test_sentiment_statistics_counts_every_normalized_label():
+    statistics = SentimentStatistics.from_insights([
+        NewsInsight(ticker="AAPL", sentiment="positive"),
+        NewsInsight(ticker="AAPL", sentiment="Neutral"),
+        NewsInsight(ticker="AAPL", sentiment="negative"),
+        NewsInsight(ticker="AAPL", sentiment="mixed"),
+        NewsInsight(ticker="AAPL"),
+    ])
+
+    assert statistics == SentimentStatistics(
+        total=5,
+        missing=1,
+        mixed=1,
+        negative=1,
+        neutral=1,
+        positive=1,
+    )
+    assert statistics.model_dump() == {
+        "total": 5,
+        "missing": 1,
+        "mixed": 1,
+        "negative": 1,
+        "neutral": 1,
+        "positive": 1,
+    }
+
+
+def test_sentiment_statistics_rejects_category_total_mismatch():
+    with pytest.raises(
+        ValidationError,
+        match="sentiment counts must equal total",
+    ):
+        SentimentStatistics(
+            total=2,
+            positive=1,
+        )
+
+
+def test_company_insights_reject_duplicate_article_ids():
+    insight = CompanyNewsInsight(
+        article_id="article-1",
+        ticker="AAPL",
+        sentiment="positive",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="article ids must be unique",
+    ):
+        CompanyInsights(
+            ticker="AAPL",
+            insights=[insight, insight.model_copy(deep=True)],
+        )
 
 
 def test_gemini_company_serialization_round_trip():

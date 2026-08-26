@@ -1,5 +1,6 @@
 import logging
 from datetime import date
+from decimal import Decimal
 
 import finnhub
 
@@ -7,6 +8,19 @@ from myfinnhub.models import Earnings
 from myfinnhub.strings import ErrMsg
 
 logger = logging.getLogger(__name__)
+BERKSHIRE_CLASS_B_TICKER = "BRK.B"
+BERKSHIRE_CLASS_B_EPS_DIVISOR = Decimal("1500")
+EPS_PRECISION = Decimal("0.0001")
+
+
+def normalize_eps(company_id: str, value: object) -> object:
+    if value is None or value == "":
+        return value
+    if company_id != BERKSHIRE_CLASS_B_TICKER:
+        return value
+    return (
+        Decimal(str(value)) / BERKSHIRE_CLASS_B_EPS_DIVISOR
+    ).quantize(EPS_PRECISION)
 
 
 class FinnhubClient:
@@ -32,7 +46,8 @@ class FinnhubClient:
         else:
             for earnings in response["earningsCalendar"]:
                 quarter = str(earnings["year"])[2:] + "Q" + str(earnings["quarter"])
-                data = {"epse": earnings["epsEstimate"], "epsa": earnings["epsActual"],
+                data = {"epse": normalize_eps(company_id, earnings["epsEstimate"]),
+                        "epsa": normalize_eps(company_id, earnings["epsActual"]),
                         "reve": earnings["revenueEstimate"], "reva": earnings["revenueActual"],
                         "report": earnings["date"] + "-" + earnings["hour"]}
                 quarters[quarter] = Earnings.model_validate(data)

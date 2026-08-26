@@ -15,6 +15,7 @@ from main import (
     create_error_reporter,
 )
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
+from polygon.retriever import PolygonNewsRetrieverRunner
 
 
 def make_config(**overrides):
@@ -29,6 +30,7 @@ def make_config(**overrides):
         "discord_errorlog_webhook_key": "errorlog-webhook",
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
+        "polygon_api_key": "polygon",
     }
     data.update(overrides)
     return AppConfig.model_validate(data)
@@ -46,6 +48,10 @@ def make_application():
             instance=True,
         ),
         stock_runner=create_autospec(StockDataRetrieverRunner, instance=True),
+        polygon_runner=create_autospec(
+            PolygonNewsRetrieverRunner,
+            instance=True,
+        ),
         errors=errors,
         timezone="Europe/Prague",
         scheduler=Scheduler(),
@@ -58,11 +64,12 @@ def test_application_configures_jobs_in_explicit_timezone():
     app.configure_jobs()
     app.configure_jobs()
 
-    assert len(app.scheduler.jobs) == 3
+    assert len(app.scheduler.jobs) == 4
     assert [job.at_time.strftime("%H:%M") for job in app.scheduler.jobs] == [
         "03:00",
         "07:00",
         "08:00",
+        "09:00",
     ]
     assert {
         job.at_time_zone.zone
@@ -75,6 +82,8 @@ def test_application_configures_jobs_in_explicit_timezone():
     app.btc_runner.run.assert_called_once()
     app.finnhub_runner.run.assert_called_once()
     app.stock_runner.run.assert_called_once()
+    app.polygon_runner.run.assert_called_once()
+    assert app.scheduler.jobs[-1].start_day == "sunday"
 
 
 @pytest.mark.parametrize(
@@ -83,6 +92,7 @@ def test_application_configures_jobs_in_explicit_timezone():
         BtcFearAndGreedRetrieverRunner,
         FinnhubEarningsRetrieverRunner,
         StockDataRetrieverRunner,
+        PolygonNewsRetrieverRunner,
     ],
 )
 def test_runner_logger_uses_runner_name(runner_type):
@@ -102,6 +112,10 @@ def test_create_app_initializes_dependencies_from_validated_config():
         ) as btc_runner,
         patch("main.FinnhubEarningsRetrieverRunner", autospec=True) as finnhub_runner,
         patch("main.StockDataRetrieverRunner", autospec=True) as stock_runner,
+        patch(
+            "main.PolygonNewsRetrieverRunner",
+            autospec=True,
+        ) as polygon_runner,
     ):
         app = create_app(
             config,
@@ -121,6 +135,12 @@ def test_create_app_initializes_dependencies_from_validated_config():
         error_reporter=errors,
     )
     stock_runner.assert_called_once_with(
+        gemini_api_key="gemini",
+        discord=discord,
+        error_reporter=errors,
+    )
+    polygon_runner.assert_called_once_with(
+        polygon_api_key="polygon",
         gemini_api_key="gemini",
         discord=discord,
         error_reporter=errors,

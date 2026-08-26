@@ -15,7 +15,7 @@ class AppConfig(BaseModel):
     discord_errorlog_webhook_key: SecretStr
     finnhub_api_key: SecretStr
     gemini_api_key: SecretStr
-    polygon_api_key: SecretStr | None = None
+    polygon_api_key: SecretStr
     timezone: str = "Europe/Prague"
     poll_interval_seconds: PositiveFloat = 60
 

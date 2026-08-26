@@ -2,3 +2,4 @@ __pycache__/
 venv
 /dev/firebase_companies.json
 /dev/.firebase_companies.*.tmp
+/dev/polygon_news.json

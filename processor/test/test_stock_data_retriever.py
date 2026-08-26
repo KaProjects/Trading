@@ -132,42 +132,51 @@ class TestStockDataRetriever:
         runner.client.get_initial_stock_data.assert_called_once_with("AAPL")
         runner.service.init_company.assert_called_once_with(id="AAPL", data=mock_company)
 
-    def test_initialization_errors_are_reported_and_company_is_not_persisted(
+    def test_usd_optional_fields_are_warned_and_persisted(
         self,
         runner,
     ):
-        quarter = make_quarter(quarter_id="26Q3")
-        company = make_company("ASML", "26Q3", {"26Q3": quarter})
+        current_quarter = make_quarter(quarter_id="26Q3")
+        reported_quarter = make_quarter(
+            quarter_id="26Q2",
+            reported_revenues="1000",
+            reported_net_income="200",
+        )
+        company = make_company(
+            "ORCL",
+            "26Q3",
+            {
+                "26Q3": current_quarter,
+                "26Q2": reported_quarter,
+            },
+        )
         response = make_initial_result(
             company,
             errors=[
                 "26Q2 reported dividend was unavailable.",
-                "26Q1 price range was based on limited public data.",
             ],
             raw_response='{"errors":["unavailable data"]}',
         )
-        runner.service.get_companies.return_value = {"ASML": None}
+        runner.service.get_companies.return_value = {"ORCL": None}
         runner.client.get_initial_stock_data.return_value = response
 
         runner.run()
 
-        runner.service.init_company.assert_not_called()
-        runner.errors.report_error_message.assert_called_once_with(
-            "Gemini initialization failed:\n"
-            "1. 26Q2 reported dividend was unavailable.\n"
-            "2. 26Q1 price range was based on limited public data.\n\n"
-            "================ GEMINI RESPONSE START ================\n"
-            '{"errors":["unavailable data"]}\n'
-            "================= GEMINI RESPONSE END =================",
-            logger=runner.log,
-            source=runner.name,
-            operation="initialize_company",
-            context={
-                "company_id": "ASML",
-                "currency": "$",
-                "error_count": 2,
-            },
+        runner.service.init_company.assert_called_once_with(
+            id="ORCL",
+            data=company,
         )
+        runner.errors.report_error_message.assert_not_called()
+        runner.errors.report_warning_message.assert_called_once()
+        warning_call = runner.errors.report_warning_message.call_args
+        assert warning_call.kwargs["context"] == {
+            "company_id": "ORCL",
+            "currency": "$",
+            "error_count": 2,
+        }
+        assert "26Q2 reported dividend was unavailable" in warning_call.args[0]
+        assert "26Q2.reported_div" in warning_call.args[0]
+        assert response.raw_response in warning_call.args[0]
 
     def test_non_usd_optional_fields_are_warned_and_persisted(
         self,

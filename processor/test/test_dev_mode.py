@@ -1,5 +1,6 @@
 import logging
 import subprocess
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -16,10 +17,13 @@ from dev.fakes import (
     FakeFinnhubFirebaseService,
     FakeGeminiClient,
     FakeGeminiFirebaseService,
+    FakePolygonClient,
+    FakePolygonFirebaseService,
 )
 from dev.run import build_runner, main, needs_production_config, parse_args
 from gemini.retriever import StockDataRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
+from polygon.retriever import PolygonNewsRetrieverRunner
 
 
 def make_config() -> AppConfig:
@@ -34,6 +38,7 @@ def make_config() -> AppConfig:
         "discord_errorlog_webhook_key": "errorlog-webhook",
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
+        "polygon_api_key": "polygon",
     })
 
 
@@ -47,6 +52,7 @@ def test_missing_runner_prints_all_options_and_fails(capsys):
     assert "btc" in error
     assert "gemini" in error
     assert "finnhub" in error
+    assert "polygon" in error
 
 
 def test_all_clients_default_to_fake():
@@ -55,6 +61,7 @@ def test_all_clients_default_to_fake():
     assert not args.cmc_prod
     assert not args.gemini_prod
     assert not args.finnhub_prod
+    assert not args.polygon_prod
     assert not args.discord_prod
     assert not args.firebase_prod
 
@@ -65,6 +72,8 @@ def test_all_clients_default_to_fake():
         ("btc", "--cmc-prod", "cmc_prod"),
         ("gemini", "--gemini-prod", "gemini_prod"),
         ("finnhub", "--finnhub-prod", "finnhub_prod"),
+        ("polygon", "--polygon-prod", "polygon_prod"),
+        ("polygon", "--gemini-prod", "gemini_prod"),
         ("btc", "--discord-prod", "discord_prod"),
         ("gemini", "--firebase-prod", "firebase_prod"),
     ],
@@ -81,25 +90,41 @@ def test_each_production_switch_requires_configuration(
 
 
 @pytest.mark.parametrize(
-    ("runner_name", "runner_type", "client_type", "service_type"),
+    (
+        "runner_name",
+        "runner_type",
+        "client_type",
+        "service_type",
+        "uses_discord",
+    ),
     [
         (
             "btc",
             BtcFearAndGreedRetrieverRunner,
             FakeCoinMarketCapClient,
             None,
+            True,
         ),
         (
             "gemini",
             StockDataRetrieverRunner,
             FakeGeminiClient,
             FakeGeminiFirebaseService,
+            True,
         ),
         (
             "finnhub",
             FinnhubEarningsRetrieverRunner,
             FakeFinnhubClient,
             FakeFinnhubFirebaseService,
+            True,
+        ),
+        (
+            "polygon",
+            PolygonNewsRetrieverRunner,
+            FakePolygonClient,
+            FakePolygonFirebaseService,
+            True,
         ),
     ],
 )
@@ -108,6 +133,7 @@ def test_build_runner_uses_only_fake_dependencies_by_default(
     runner_type,
     client_type,
     service_type,
+    uses_discord,
 ):
     runner = build_runner(
         parse_args([runner_name]),
@@ -117,12 +143,20 @@ def test_build_runner_uses_only_fake_dependencies_by_default(
 
     assert isinstance(runner, runner_type)
     assert isinstance(runner.client, client_type)
-    assert isinstance(runner.discord, ConsoleDiscordClient)
+    if uses_discord:
+        assert isinstance(runner.discord, ConsoleDiscordClient)
+    else:
+        assert not hasattr(runner, "discord")
     if service_type is not None:
         assert isinstance(runner.service, service_type)
+    if runner_name == "polygon":
+        assert isinstance(runner.gemini, FakeGeminiClient)
 
 
-@pytest.mark.parametrize("runner_name", ["btc", "gemini", "finnhub"])
+@pytest.mark.parametrize(
+    "runner_name",
+    ["btc", "gemini", "finnhub", "polygon"],
+)
 def test_fake_runner_executes_end_to_end_without_network(
     runner_name,
     caplog,
@@ -139,11 +173,40 @@ def test_fake_runner_executes_end_to_end_without_network(
     assert "FAKE GET" in caplog.text
 
 
+def test_fake_polygon_runner_maps_rich_news_sentiment_data():
+    runner = build_runner(
+        parse_args(["polygon"]),
+        config=None,
+        firebase_snapshot=data.firebase_company_snapshot(),
+    )
+
+    analyses = {
+        analysis.ticker: analysis
+        for analysis in runner.run()
+    }
+
+    assert set(analyses) == {"ACME", "FUTR", "NEWC", "STBL"}
+    assert all(
+        analysis.statistics.total == 2
+        for analysis in analyses.values()
+    )
+    counts = Counter()
+    for analysis in analyses.values():
+        counts.update(analysis.statistics.counts)
+    assert counts == {
+        "mixed": 2,
+        "negative": 2,
+        "neutral": 2,
+        "positive": 2,
+    }
+
+
 @pytest.mark.parametrize(
     ("service_type", "path"),
     [
         (FakeGeminiFirebaseService, "Firebase /company/*/gemini"),
         (FakeFinnhubFirebaseService, "Firebase /company/*/fhe"),
+        (FakePolygonFirebaseService, "Firebase /company/*/pgn"),
     ],
 )
 def test_fake_firebase_logs_get_without_snapshot_data(

@@ -36,6 +36,7 @@ def discord_client():
     session.get.return_value = response(
         data=[
             {"id": "btc-id", "name": "btc", "type": 0},
+            {"id": "brk-b-id", "name": "brk-b", "type": 0},
             {"id": "voice-id", "name": "voice", "type": 2},
         ]
     )
@@ -123,6 +124,29 @@ def test_post_if_channel_exists_posts_to_resolved_channel(discord_client):
     )
     session.post.assert_called_once_with(
         f"{API_URL}/channels/btc-id/messages",
+        headers=HEADERS,
+        json={
+            "content": "test",
+            "flags": SUPPRESS_NOTIFICATIONS_FLAG,
+        },
+        timeout=3.0,
+    )
+
+
+def test_ticker_dot_resolves_to_discord_channel_dash(discord_client):
+    client, session = discord_client
+    session.post.return_value = response(data={"id": "message-id"})
+
+    posted = client.post_if_channel_exists(
+        "BRK.B",
+        {"content": "test"},
+    )
+
+    assert posted == (
+        "https://discord.com/channels/guild-id/brk-b-id/message-id"
+    )
+    session.post.assert_called_once_with(
+        f"{API_URL}/channels/brk-b-id/messages",
         headers=HEADERS,
         json={
             "content": "test",

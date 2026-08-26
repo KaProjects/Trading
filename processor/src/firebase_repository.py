@@ -9,6 +9,14 @@ from error_reporting import ErrorReporter
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
+def ticker_from_firebase_key(company_key: str) -> str:
+    return company_key.replace("-", ".")
+
+
+def ticker_to_firebase_key(ticker: str) -> str:
+    return ticker.replace(".", "-")
+
+
 def parse_company_snapshot(
     snapshot: object,
     *,
@@ -24,10 +32,11 @@ def parse_company_snapshot(
         raise TypeError("Firebase company snapshot must be a mapping")
 
     companies: dict[str, ModelT | None] = {}
-    for company_id, company_data in snapshot.items():
-        if not isinstance(company_id, str):
-            logger.error("Ignoring malformed Firebase company node %r", company_id)
+    for company_key, company_data in snapshot.items():
+        if not isinstance(company_key, str):
+            logger.error("Ignoring malformed Firebase company node %r", company_key)
             continue
+        company_id = ticker_from_firebase_key(company_key)
         if not isinstance(company_data, dict):
             companies[company_id] = None
             continue

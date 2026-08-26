@@ -224,24 +224,10 @@ class StockDataRetrieverRunner:
             )
             return None
 
-        if currency == "$" and (retrieval_errors or missing_fields):
+        if retrieval_errors or missing_fields:
             if missing_fields:
                 retrieval_errors.append(
-                    "USD company has incomplete reported-quarter data: "
-                    + ", ".join(missing_fields)
-                )
-            self._report_initial_company_errors(
-                company_id,
-                currency,
-                retrieval_errors,
-                result.raw_response,
-            )
-            return None
-
-        if currency != "$" and (retrieval_errors or missing_fields):
-            if missing_fields:
-                retrieval_errors.append(
-                    "Accepted unavailable non-USD reported-quarter fields: "
+                    "Accepted unavailable reported-quarter fields: "
                     + ", ".join(missing_fields)
                 )
             self._report_initial_company_warnings(

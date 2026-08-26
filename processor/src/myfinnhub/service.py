@@ -4,7 +4,10 @@ from datetime import date
 from firebase_admin import db
 
 from error_reporting import ErrorReporter
-from firebase_repository import parse_company_snapshot
+from firebase_repository import (
+    parse_company_snapshot,
+    ticker_to_firebase_key,
+)
 from myfinnhub.models import Company, Quarter, Earnings
 from myfinnhub.strings import LogMsg
 
@@ -13,7 +16,8 @@ data_root = "fhe"
 logger = logging.getLogger(__name__)
 
 def company_path(company_id: str) -> str:
-    return companies_path + "/" + company_id + "/" + data_root
+    company_key = ticker_to_firebase_key(company_id)
+    return companies_path + "/" + company_key + "/" + data_root
 
 class FirebaseService:
     log = logger

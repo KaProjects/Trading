@@ -31,6 +31,16 @@ from myfinnhub.models import (
     Earnings,
     Quarter as FinnhubQuarter,
 )
+from polygon.models import (
+    CompanyInsights,
+    CompanyNewsHistory,
+    CompanySentimentAnalysis,
+    NewsResponse,
+    NewsSentimentRecord,
+    SentimentStatistics,
+)
+from polygon.service import company_path as polygon_company_path
+from polygon.service import create_sentiment_analysis_id
 
 logger = logging.getLogger(__name__)
 SEPARATOR = "=" * 72
@@ -151,6 +161,30 @@ class FakeGeminiClient:
         )
         return result
 
+    def get_news_sentiment_analysis(
+        self,
+        companies: list[CompanyInsights],
+    ) -> list[CompanySentimentAnalysis]:
+        result = [
+            CompanySentimentAnalysis(
+                ticker=company.ticker,
+                statistics=SentimentStatistics.from_insights(
+                    company.insights
+                ),
+                key_takeaways=(
+                    [
+                        f"{company.ticker} has "
+                        f"{len(company.insights)} mapped news insight(s)."
+                    ]
+                    if company.insights
+                    else []
+                ),
+            )
+            for company in companies
+        ]
+        _log_operation("FAKE GET", "Gemini news sentiment analysis")
+        return result
+
 
 class FakeFinnhubClient:
     def __init__(self) -> None:
@@ -166,6 +200,21 @@ class FakeFinnhubClient:
         }
         _log_operation("FAKE GET", f"Finnhub earnings [{company_id}]")
         return result
+
+
+class FakePolygonClient:
+    def __init__(self, tickers: list[str] | None = None) -> None:
+        self.news = data.polygon_news(tickers)
+
+    def get_latest_news(
+        self,
+        *,
+        previous_days: int | None = 7,
+        ticker: str | None = None,
+        limit: int = 1000,
+    ) -> NewsResponse:
+        _log_operation("FAKE GET", "Polygon latest news")
+        return self.news.model_copy(deep=True)
 
 
 class ConsoleDiscordClient:
@@ -436,3 +485,48 @@ class FakeFinnhubFirebaseService:
         if company is None:
             raise KeyError(f"Unknown fake company: {company_id}")
         return company
+
+
+class FakePolygonFirebaseService:
+    def __init__(
+        self,
+        snapshot: object,
+        error_reporter: ErrorReporter | None = None,
+    ) -> None:
+        self.companies = parse_company_snapshot(
+            snapshot,
+            data_root="pgn",
+            model=CompanyNewsHistory,
+            logger=logger,
+            error_reporter=error_reporter,
+        )
+
+    def get_companies(self) -> dict[str, CompanyNewsHistory | None]:
+        result = {
+            ticker: (
+                company.model_copy(deep=True)
+                if company is not None
+                else None
+            )
+            for ticker, company in self.companies.items()
+        }
+        _log_operation("FAKE GET", "Firebase /company/*/pgn")
+        return result
+
+    def upsert_sentiment_analysis(
+        self,
+        analysis: CompanySentimentAnalysis,
+    ) -> str:
+        analysis_id = create_sentiment_analysis_id(analysis)
+        record = NewsSentimentRecord.from_analysis(analysis)
+        company = self.companies.get(analysis.ticker)
+        if company is None:
+            company = CompanyNewsHistory({})
+            self.companies[analysis.ticker] = company
+        company.root[analysis_id] = record
+        _log_exchange(
+            "FAKE PUT",
+            f"Firebase /{polygon_company_path(analysis.ticker)}/{analysis_id}",
+            record,
+        )
+        return analysis_id

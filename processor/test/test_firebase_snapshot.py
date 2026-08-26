@@ -21,6 +21,7 @@ def make_config():
         "discord_errorlog_webhook_key": "errorlog-webhook",
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
+        "polygon_api_key": "polygon",
     }
 
 
