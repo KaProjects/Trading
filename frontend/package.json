@@ -17,7 +17,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-is": "18.2.0",
-    "react-router-dom": "^6.4.3",
+    "react-router-dom": "^7.18.2",
     "react-scripts": "5.0.1",
     "recharts": "^2.2.0",
     "slate": "^0.101.5",
