@@ -1,0 +1,305 @@
+name: Mark released issues
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  mark-released:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Mark included issues as released
+        # actions/github-script v9.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          PROJECT_NUMBERS: ${{ vars.PROJECT_NUMBERS }}
+          PROJECT_OWNER: ${{ vars.PROJECT_OWNER }}
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+          script: |
+            const projectOwner = process.env.PROJECT_OWNER;
+            const configuredProjectNumbers =
+              (process.env.PROJECT_NUMBERS ?? "")
+                .split(",")
+                .map(value => value.trim())
+                .filter(Boolean);
+            const statusFieldName = "Status";
+            const implementedStatus = "implemented";
+            const releasedStatus = "released";
+
+            if (!projectOwner) {
+              throw new Error("PROJECT_OWNER repository variable is required.");
+            }
+            if (configuredProjectNumbers.length === 0) {
+              throw new Error(
+                "PROJECT_NUMBERS repository variable is required.",
+              );
+            }
+
+            const projectNumbers = [
+              ...new Set(configuredProjectNumbers.map(Number)),
+            ];
+            if (
+              projectNumbers.some(
+                number => !Number.isInteger(number) || number <= 0,
+              )
+            ) {
+              throw new Error(
+                "PROJECT_NUMBERS must contain comma-separated positive integers.",
+              );
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pullNumber = context.payload.pull_request.number;
+            const commitCount = context.payload.pull_request.commits;
+
+            // GitHub's pull-request commits endpoint returns at most 250 commits.
+            if (commitCount > 250) {
+              throw new Error(
+                `Pull request #${pullNumber} contains ${commitCount} commits; ` +
+                  "the release workflow supports at most 250.",
+              );
+            }
+
+            const commits = await github.paginate(
+              github.rest.pulls.listCommits,
+              {
+                owner,
+                repo,
+                pull_number: pullNumber,
+                per_page: 100,
+              },
+            );
+
+            const referencedIssues = new Set();
+            for (const commit of commits) {
+              for (const match of commit.commit.message.matchAll(/#(\d+)\b/g)) {
+                referencedIssues.add(Number(match[1]));
+              }
+            }
+
+            const issueNumbers = [...referencedIssues].sort((a, b) => a - b);
+            if (issueNumbers.length === 0) {
+              core.notice("No issue references were found in the included commits.");
+              return;
+            }
+
+            core.info(`Referenced issue numbers: ${issueNumbers.join(", ")}`);
+
+            const expectedRepository = `${owner}/${repo}`.toLowerCase();
+            const results = [];
+
+            for (const projectNumber of projectNumbers) {
+              const projectResult = await github.graphql(
+                `
+                  query(
+                    $login: String!
+                    $number: Int!
+                    $statusFieldName: String!
+                  ) {
+                    organization(login: $login) {
+                      projectV2(number: $number) {
+                        ...ProjectData
+                      }
+                    }
+                    user(login: $login) {
+                      projectV2(number: $number) {
+                        ...ProjectData
+                      }
+                    }
+                  }
+
+                  fragment ProjectData on ProjectV2 {
+                    id
+                    title
+                    field(name: $statusFieldName) {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options {
+                          id
+                          name
+                        }
+                      }
+                    }
+                  }
+                `,
+                {
+                  login: projectOwner,
+                  number: projectNumber,
+                  statusFieldName,
+                },
+              );
+
+              const project =
+                projectResult.organization?.projectV2 ??
+                projectResult.user?.projectV2;
+              if (!project) {
+                throw new Error(
+                  `Project ${projectOwner}/${projectNumber} was not found.`,
+                );
+              }
+
+              const projectLabel =
+                `Project ${projectNumber} (${project.title})`;
+              core.info(`Processing ${projectLabel}.`);
+
+              const statusField = project.field;
+              if (!statusField) {
+                throw new Error(
+                  `${projectLabel}: field "${statusFieldName}" was not found.`,
+                );
+              }
+
+              const releasedOption = statusField.options.find(
+                option => option.name === releasedStatus,
+              );
+              if (!releasedOption) {
+                throw new Error(
+                  `${projectLabel}: status option "${releasedStatus}" ` +
+                    "was not found.",
+                );
+              }
+
+              const projectItems = [];
+              let cursor = null;
+              do {
+                const itemResult = await github.graphql(
+                  `
+                    query(
+                      $projectId: ID!
+                      $cursor: String
+                      $statusFieldName: String!
+                    ) {
+                      node(id: $projectId) {
+                        ... on ProjectV2 {
+                          items(first: 100, after: $cursor) {
+                            nodes {
+                              id
+                              content {
+                                ... on Issue {
+                                  number
+                                  title
+                                  repository {
+                                    nameWithOwner
+                                  }
+                                }
+                              }
+                              fieldValueByName(name: $statusFieldName) {
+                                ... on ProjectV2ItemFieldSingleSelectValue {
+                                  name
+                                }
+                              }
+                            }
+                            pageInfo {
+                              hasNextPage
+                              endCursor
+                            }
+                          }
+                        }
+                      }
+                    }
+                  `,
+                  {
+                    projectId: project.id,
+                    cursor,
+                    statusFieldName,
+                  },
+                );
+
+                const page = itemResult.node.items;
+                projectItems.push(...page.nodes);
+                cursor = page.pageInfo.hasNextPage
+                  ? page.pageInfo.endCursor
+                  : null;
+              } while (cursor);
+
+              for (const issueNumber of issueNumbers) {
+                const item = projectItems.find(candidate =>
+                  candidate.content?.number === issueNumber &&
+                  candidate.content.repository.nameWithOwner.toLowerCase() ===
+                    expectedRepository
+                );
+
+                // Pull requests share the repository numbering sequence with issues.
+                // Project items that are pull requests do not match this Issue fragment.
+                if (!item) {
+                  const message =
+                    `${projectLabel}: #${issueNumber} is not in this project`;
+                  core.info(message);
+                  results.push(`- ${message}`);
+                  continue;
+                }
+
+                const currentStatus = item.fieldValueByName?.name;
+                if (currentStatus === releasedStatus) {
+                  const message =
+                    `${projectLabel}: #${issueNumber} is already ` +
+                    `"${releasedStatus}"`;
+                  core.info(message);
+                  results.push(`- ${message}`);
+                  continue;
+                }
+                if (currentStatus !== implementedStatus) {
+                  const message =
+                    `${projectLabel}: #${issueNumber} status is ` +
+                    `"${currentStatus ?? "unset"}", not ` +
+                    `"${implementedStatus}"; skipped`;
+                  core.warning(message);
+                  results.push(`- ${message}`);
+                  continue;
+                }
+
+                await github.graphql(
+                  `
+                    mutation(
+                      $projectId: ID!
+                      $itemId: ID!
+                      $fieldId: ID!
+                      $optionId: String!
+                    ) {
+                      updateProjectV2ItemFieldValue(
+                        input: {
+                          projectId: $projectId
+                          itemId: $itemId
+                          fieldId: $fieldId
+                          value: { singleSelectOptionId: $optionId }
+                        }
+                      ) {
+                        projectV2Item {
+                          id
+                        }
+                      }
+                    }
+                  `,
+                  {
+                    projectId: project.id,
+                    itemId: item.id,
+                    fieldId: statusField.id,
+                    optionId: releasedOption.id,
+                  },
+                );
+
+                const message =
+                  `${projectLabel}: #${issueNumber} ${item.content.title}: ` +
+                  `${implementedStatus} -> ${releasedStatus}`;
+                core.info(message);
+                results.push(`- ${message}`);
+              }
+            }
+
+            await core.summary
+              .addHeading("Released project issues")
+              .addRaw(results.join("\n"))
+              .write();
