@@ -99,6 +99,22 @@ jobs:
 
             const expectedRepository = `${owner}/${repo}`.toLowerCase();
             const results = [];
+            const { data: projectOwnerAccount } =
+              await github.rest.users.getByUsername({
+                username: projectOwner,
+              });
+            const projectOwnerField =
+              projectOwnerAccount.type === "Organization"
+                ? "organization"
+                : projectOwnerAccount.type === "User"
+                  ? "user"
+                  : null;
+
+            if (!projectOwnerField) {
+              throw new Error(
+                `Unsupported project owner type: ${projectOwnerAccount.type}.`,
+              );
+            }
 
             for (const projectNumber of projectNumbers) {
               const projectResult = await github.graphql(
@@ -108,12 +124,7 @@ jobs:
                     $number: Int!
                     $statusFieldName: String!
                   ) {
-                    organization(login: $login) {
-                      projectV2(number: $number) {
-                        ...ProjectData
-                      }
-                    }
-                    user(login: $login) {
+                    projectOwner: ${projectOwnerField}(login: $login) {
                       projectV2(number: $number) {
                         ...ProjectData
                       }
@@ -142,9 +153,7 @@ jobs:
                 },
               );
 
-              const project =
-                projectResult.organization?.projectV2 ??
-                projectResult.user?.projectV2;
+              const project = projectResult.projectOwner?.projectV2;
               if (!project) {
                 throw new Error(
                   `Project ${projectOwner}/${projectNumber} was not found.`,
