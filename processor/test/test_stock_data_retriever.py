@@ -520,7 +520,7 @@ class TestStockDataRetriever:
             "company_id": "ASML",
             "currency": "€",
             "quarter_id": "25Q4",
-            "missing_field_count": 9,
+            "missing_field_count": 7,
         }
         assert "reported_gross_profit" in warning_call.args[0]
         assert raw_response in warning_call.args[0]
@@ -603,6 +603,54 @@ class TestStockDataRetriever:
         assert "USD quarter report is incomplete" in (
             runner.errors.report_error_message.call_args.args[0]
         )
+
+    @patch("utils.is_past_date", return_value=True)
+    @patch("gemini.retriever.datetime")
+    def test_usd_quarter_report_accepts_missing_capex_and_free_cash_flow(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        current_quarter = make_quarter(report_date="2026-04-20")
+        company = make_company(
+            "NVDA",
+            "25Q4",
+            {"25Q4": current_quarter},
+        )
+        reported_quarter = make_complete_quarter(
+            report_date="2026-04-20",
+            reported_capex=None,
+            reported_free_cash_flow=None,
+        )
+        runner.service.get_companies.return_value = {"NVDA": company}
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(reported_quarter)
+        )
+        next_quarter = make_quarter(
+            quarter_id="26Q1",
+            report_date="",
+            ending_month="26-06",
+            previous_report_date="2026-04-20",
+        )
+        runner.compose_new_quarter = create_autospec(
+            runner.compose_new_quarter,
+            return_value=next_quarter,
+        )
+
+        runner.run()
+
+        runner.service.report_quarter.assert_called_once_with(
+            "NVDA",
+            reported_quarter,
+        )
+        runner.service.create_quarter.assert_called_once_with(
+            "NVDA",
+            next_quarter,
+        )
+        runner.errors.report_error_message.assert_not_called()
+        runner.errors.report_warning_message.assert_not_called()
 
     @patch("utils.is_past_date")
     @patch("gemini.retriever.datetime")

@@ -349,9 +349,10 @@ class GeminiClient:
         data = current_quarter.model_dump(mode="json")
         if currency == "$":
             completeness = """
-            All reported financial and price fields must be populated. If any
-            value cannot be found and verified, return every value you did find
-            and use null only for the unavailable values.
+            All reported financial and price fields except reported_capex and
+            reported_free_cash_flow must be populated. Those two optional fields
+            may be null when they cannot be found and verified. Return every
+            value you did find.
             """
         else:
             completeness = """
@@ -383,7 +384,8 @@ class GeminiClient:
         Never use a year-to-date value as a quarterly value. When a cash-flow
         statement provides cumulative values, derive the standalone quarter by
         subtracting the previous cumulative period and use figures from the same
-        accounting period and currency.
+        accounting period and currency. Try to retrieve these two values, but
+        reported_capex and reported_free_cash_flow are optional and may be null.
         
         For price_min and price_max, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).

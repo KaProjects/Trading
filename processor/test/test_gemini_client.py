@@ -599,7 +599,10 @@ def test_get_quarter_report_returns_incomplete_response_for_runner_policy(
             "contents"
         ]
     )
-    assert "All reported financial and price fields must be populated" in prompt
+    assert (
+        "All reported financial and price fields except reported_capex" in prompt
+    )
+    assert "reported_capex and reported_free_cash_flow are optional" in prompt
 
 
 def test_get_quarter_report_accepts_complete_response():

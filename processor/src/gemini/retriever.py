@@ -41,6 +41,10 @@ REQUIRED_REPORTED_QUARTER_FIELDS = frozenset({
     "reported_revenues",
     "reported_net_income",
 })
+OPTIONAL_QUARTER_REPORT_FIELDS = frozenset({
+    "reported_capex",
+    "reported_free_cash_flow",
+})
 logger = logging.getLogger(RUNNER_NAME)
 
 
@@ -112,7 +116,7 @@ class StockDataRetrieverRunner:
                                         current_quarter,
                                         current_quarter_reported,
                                     )
-                                    missing_fields = self._missing_quarter_data_fields(
+                                    missing_fields = self._missing_quarter_report_fields(
                                         current_quarter_reported
                                     )
                                     missing_required_fields = sorted(
@@ -259,6 +263,16 @@ class StockDataRetrieverRunner:
             for field in REPORTED_QUARTER_DATA_FIELDS
             if getattr(quarter, field) is None
         )
+
+    @staticmethod
+    def _missing_quarter_report_fields(quarter: Quarter) -> list[str]:
+        return [
+            field
+            for field in StockDataRetrieverRunner._missing_quarter_data_fields(
+                quarter
+            )
+            if field not in OPTIONAL_QUARTER_REPORT_FIELDS
+        ]
 
     @staticmethod
     def _quarter_structure_errors(
