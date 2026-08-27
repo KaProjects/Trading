@@ -61,8 +61,13 @@ const latestCompletePeriods = financials => {
 const hasCompleteValues = (periods, value) => periods.length > 0
     && periods.every(financial => !isNotAValue(value(financial)));
 
+const formatSummaryMargin = margin => {
+    const decimals = Math.abs(margin) < 10 && !Number.isInteger(margin) ? 1 : 0;
+    return formatPercent(margin, false, decimals);
+};
+
 const FinancialSummaryItem = ({value, label, margin, first = false}) => {
-    const formattedMargin = formatPercent(margin, false, 0);
+    const formattedMargin = formatSummaryMargin(margin);
 
     return (
         <Box sx={{marginLeft: first ? 0 : "10px", flexShrink: 0}}>
@@ -174,7 +179,7 @@ export const PeriodFinancials = ({ttm, financials = [], onOpen, sx}) => {
                             alignItems="stretch"
                             sx={{width: "max-content", minWidth: "100%"}}
                         >
-                            <FinancialSummaryItem first value={ttm.revenue.value} label="revenue" margin={ttm.revenue.margin}/>
+                            <FinancialSummaryItem first value={ttm.revenue.value} label="revenue"/>
                             {!isNotAValue(ttm.grossProfit?.value) &&
                                 <FinancialSummaryItem value={ttm.grossProfit.value} label="gross profit" margin={ttm.grossProfit.margin}/>
                             }

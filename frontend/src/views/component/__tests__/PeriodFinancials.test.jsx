@@ -37,6 +37,7 @@ describe("PeriodFinancials", () => {
 
         expect(screen.getByText("Financials")).toBeInTheDocument();
         expect(screen.queryByText("TTM")).not.toBeInTheDocument();
+        expect(screen.queryByText("(100%)")).not.toBeInTheDocument();
         expect(screen.getByText("1.5B")).toBeInTheDocument();
         expect(screen.getByText("op. income")).toBeInTheDocument();
         expect(screen.getByText("net income")).toBeInTheDocument();
@@ -106,6 +107,23 @@ describe("PeriodFinancials", () => {
         expect(screen.queryByText("dividend")).not.toBeInTheDocument();
         expect(screen.getByText("capex")).toBeInTheDocument();
         expect(screen.getByText("fcf")).toBeInTheDocument();
+    });
+
+    test("shows one decimal only for fractional margins below ten percent", () => {
+        render(<PeriodFinancials
+            ttm={{
+                ...ttm,
+                dividendMargin: 2.44,
+                capex: {...ttm.capex, margin: 8},
+                freeCashFlow: {...ttm.freeCashFlow, margin: 10.6},
+            }}
+            financials={completeQuarterFinancials}
+            onOpen={jest.fn()}
+        />);
+
+        expect(screen.getByText("(2.4%)")).toBeInTheDocument();
+        expect(screen.getByText("(8%)")).toBeInTheDocument();
+        expect(screen.getByText("(11%)")).toBeInTheDocument();
     });
 
     test("renders the detailed financial table separately", () => {
