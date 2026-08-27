@@ -15,6 +15,7 @@ import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
@@ -59,6 +60,10 @@ class CompanyEndpointsTest
 
         assertThat(dto.getSectors().size(), is(Sector.values().length));
         assertThat(dto.getCurrencies().size(), is(Currency.values().length));
+        assertThat(dto.getExchanges().size(), is(Exchange.values().length));
+        assertThat(dto.getExchanges().stream()
+                .filter(exchange -> exchange.getKey().equals(Exchange.XPRA.toString()))
+                .findFirst().orElseThrow().getTradingViewCode(), is("PSECZ"));
         assertThat(dto.getPortfolios().size(), is(Portfolio.values().length));
         assertThat(dto.getPortfolios().get(0).getKey(), is(Portfolio.FIDELITY_ORCL.toString()));
         assertThat(dto.getPortfolios().get(0).getName(), is("Fidelity - ORCL"));
@@ -115,6 +120,7 @@ class CompanyEndpointsTest
         dto.setId(1842L);
         dto.setCurrency(Currency.K.toString());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setExchange(Exchange.XPRA.toString());
         dto.setName("Updated Company");
         dto.setDescription("Updated description");
         dto.setLogoUrl("https://example.test/updated.svg");
@@ -127,6 +133,7 @@ class CompanyEndpointsTest
         assertThat(company.getTicker(), is("UPD"));
         assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
         assertThat(company.getSector(), is(Sector.valueOf(dto.getSector())));
+        assertThat(company.getExchange(), is(Exchange.XPRA));
         assertThat(company.getName(), is(dto.getName()));
         assertThat(company.getDescription(), is(dto.getDescription()));
         assertThat(company.getLogoUrl(), is(dto.getLogoUrl()));
@@ -162,6 +169,12 @@ class CompanyEndpointsTest
         Assert.putValidationError(path, dto, "must be any of Sector");
         dto.setSector(validSector);
 
+        dto.setExchange("");
+        Assert.putValidationError(path, dto, "must be any of Exchange");
+        dto.setExchange("xyz");
+        Assert.putValidationError(path, dto, "must be any of Exchange");
+        dto.setExchange(null);
+
         dto.setId(null);
         Assert.putValidationError(path, dto, NOT_NULL);
         dto.setId(0L);
@@ -181,6 +194,7 @@ class CompanyEndpointsTest
         dto.setTicker("CCCCC");
         dto.setCurrency(Currency.K.toString());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setExchange(Exchange.XNAS.toString());
         dto.setName("Created Company");
         dto.setDescription("Created description");
         dto.setLogoUrl("https://example.test/created.svg");
@@ -193,6 +207,7 @@ class CompanyEndpointsTest
         assertThat(company.getId(), is(not(nullValue())));
         assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
         assertThat(company.getSector(), is(Sector.valueOf(dto.getSector())));
+        assertThat(company.getExchange(), is(Exchange.XNAS));
         assertThat(company.getName(), is(dto.getName()));
         assertThat(company.getDescription(), is(dto.getDescription()));
         assertThat(company.getLogoUrl(), is(dto.getLogoUrl()));
@@ -227,6 +242,12 @@ class CompanyEndpointsTest
         dto.setSector("xyz");
         Assert.postValidationError(path, dto, "must be any of Sector");
         dto.setSector(validSector);
+
+        dto.setExchange("");
+        Assert.postValidationError(path, dto, "must be any of Exchange");
+        dto.setExchange("xyz");
+        Assert.postValidationError(path, dto, "must be any of Exchange");
+        dto.setExchange(null);
 
         dto.setTicker(null);
         Assert.postValidationError(path, dto, NOT_NULL);
@@ -344,6 +365,7 @@ class CompanyEndpointsTest
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
         assertThat(dto.getCompanies().get(0).getSector().getKey(), is(Sector.ENERGY_MINERALS.toString()));
+        assertThat(dto.getCompanies().get(0).getExchange().getKey(), is(Exchange.XAMS.toString()));
         assertThat(dto.getCompanies().get(0).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(0).getDividends(), is(0));

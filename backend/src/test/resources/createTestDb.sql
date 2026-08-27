@@ -2,10 +2,13 @@
 INSERT INTO Company (id, ticker, currency) VALUES (2213, 'XXX', 'K');
 INSERT INTO Company (id, ticker, currency) VALUES (1041, 'YYY', 'K');
 INSERT INTO Company (id, ticker, currency) VALUES (1579, 'ZZZ', '$');
-INSERT INTO Company (id, ticker, currency, sector) VALUES (1927, 'NVDA', '$',  'SEMICONDUCTORS');
-INSERT INTO Company (id, ticker, currency, sector) VALUES (1425, 'SHELL', '€', 'ENERGY_MINERALS');
+INSERT INTO Company (id, ticker, exchangeCode, currency, sector)
+VALUES (1927, 'NVDA', 'XNAS', '$', 'SEMICONDUCTORS');
+INSERT INTO Company (id, ticker, exchangeCode, currency, sector)
+VALUES (1425, 'SHELL', 'XAMS', '€', 'ENERGY_MINERALS');
 INSERT INTO Company (id, ticker, currency) VALUES (2229, 'RR', '£');
-INSERT INTO Company (id, ticker, currency) VALUES (1531, 'CEZ', 'K');
+INSERT INTO Company (id, ticker, exchangeCode, currency)
+VALUES (1531, 'CEZ', 'XPRA', 'K');
 INSERT INTO Company (id, ticker, currency) VALUES (1557, 'ABCD', '$');
 INSERT INTO Company (id, ticker, currency) VALUES (2150, 'XRC', '$');
 INSERT INTO Company (id, ticker, currency) VALUES (1501, 'XRSA', '$');

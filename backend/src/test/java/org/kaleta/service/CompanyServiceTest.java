@@ -18,6 +18,7 @@ import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyTagCreateDto;
@@ -70,6 +71,7 @@ public class CompanyServiceTest
         company1.setId(1L);
         company1.setTicker("ZZZZ");
         company1.setAlphaVantageTicker("ZZZZ.AMS");
+        company1.setExchange(Exchange.XAMS);
         company1.setCurrency(Currency.$);
         company1.setSector(Sector.SEMICONDUCTORS);
         company1.setTotalTrades(5);
@@ -101,6 +103,8 @@ public class CompanyServiceTest
         assertThat(first.getId(), is(1L));
         assertThat(first.getTicker(), is("ZZZZ"));
         assertThat(first.getAlphaVantageTicker(), is("ZZZZ.AMS"));
+        assertThat(first.getExchange().getKey(), is(Exchange.XAMS.toString()));
+        assertThat(first.getExchange().getTradingViewCode(), is("EURONEXT"));
         assertThat(first.getCurrency(), is(Currency.$));
         assertThat(first.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(first.getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
@@ -256,6 +260,7 @@ public class CompanyServiceTest
         dto.setCurrency(Currency.€.name());
         dto.setSector(Sector.SOFTWARE.toString());
         dto.setAlphaVantageTicker("ASML.AMS");
+        dto.setExchange(Exchange.XAMS.toString());
         dto.setName("ASML Holding N.V.");
         dto.setDescription("Semiconductor equipment company");
         dto.setLogoUrl("https://example.test/asml.svg");
@@ -270,6 +275,7 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getCurrency(), is(Currency.€));
         assertThat(captor.getValue().getSector(), is(Sector.SOFTWARE));
         assertThat(captor.getValue().getAlphaVantageTicker(), is("ASML.AMS"));
+        assertThat(captor.getValue().getExchange(), is(Exchange.XAMS));
         assertThat(captor.getValue().getName(), is("ASML Holding N.V."));
         assertThat(captor.getValue().getDescription(), is("Semiconductor equipment company"));
         assertThat(captor.getValue().getLogoUrl(), is("https://example.test/asml.svg"));
@@ -295,6 +301,7 @@ public class CompanyServiceTest
         verify(companyDao).save(captor.capture());
 
         assertThat(captor.getValue().getSector(), is(nullValue()));
+        assertThat(captor.getValue().getExchange(), is(nullValue()));
         assertThat(captor.getValue().getCurrency(), is(Currency.$));
     }
 
@@ -308,6 +315,7 @@ public class CompanyServiceTest
         dto.setId(companyId);
         dto.setCurrency(Currency.$.name());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setExchange(Exchange.XNAS.toString());
         dto.setName("NVIDIA Corporation");
         dto.setDescription("Accelerated computing company");
         dto.setLogoUrl("https://example.test/nvda.svg");
@@ -328,6 +336,7 @@ public class CompanyServiceTest
         dto.setTicker("NVDA");
         dto.setCurrency(Currency.$.name());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setExchange(Exchange.XNAS.toString());
         dto.setName("NVIDIA Corporation");
         dto.setDescription("Accelerated computing company");
         dto.setLogoUrl("https://example.test/nvda.svg");
@@ -341,6 +350,7 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getTicker(), is("NVDA"));
         assertThat(captor.getValue().getCurrency(), is(Currency.$));
         assertThat(captor.getValue().getSector(), is(Sector.SEMICONDUCTORS));
+        assertThat(captor.getValue().getExchange(), is(Exchange.XNAS));
         assertThat(captor.getValue().getName(), is("NVIDIA Corporation"));
         assertThat(captor.getValue().getDescription(), is("Accelerated computing company"));
         assertThat(captor.getValue().getLogoUrl(), is("https://example.test/nvda.svg"));
@@ -471,6 +481,7 @@ public class CompanyServiceTest
         entity.setId(1L);
         entity.setTicker(" NVDA ");
         entity.setAlphaVantageTicker("NVDA.DEX");
+        entity.setExchange(Exchange.XNAS);
         entity.setCurrency(Currency.$);
         entity.setSector(Sector.SEMICONDUCTORS);
         entity.setName("NVIDIA Corporation");
@@ -483,6 +494,8 @@ public class CompanyServiceTest
         assertThat(company.getId(), is(1L));
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getAlphaVantageTicker(), is("NVDA.DEX"));
+        assertThat(company.getExchange().getKey(), is(Exchange.XNAS.toString()));
+        assertThat(company.getExchange().getName(), is(Exchange.XNAS.getName()));
         assertThat(company.getName(), is("NVIDIA Corporation"));
         assertThat(company.getDescription(), is("Accelerated computing company"));
         assertThat(company.getLogoUrl(), is("https://example.test/nvda.svg"));
@@ -520,6 +533,12 @@ public class CompanyServiceTest
         assertThat(actual.getWebsite(), is(expected.getWebsite()));
         assertThat(actual.getCurrency(), is(expected.getCurrency()));
         assertThat(actual.getTags(), is(expected.getTags()));
+        if (expected.getExchange() == null) {
+            assertThat(actual.getExchange(), is(nullValue()));
+        } else {
+            assertThat(actual.getExchange().getKey(), is(expected.getExchange().toString()));
+            assertThat(actual.getExchange().getName(), is(expected.getExchange().getName()));
+        }
         if (expected.getSector() == null) {
             assertThat(actual.getSector(), is(nullValue()));
         } else {

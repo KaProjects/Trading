@@ -15,6 +15,7 @@ import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyTagCreateDto;
@@ -159,6 +160,7 @@ public class CompanyService
         company.setCurrency(Currency.valueOf(dto.getCurrency()));
         company.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
         company.setAlphaVantageTicker(dto.getAlphaVantageTicker());
+        setExchange(company, dto.getExchange());
         company.setName(nullableTrimmed(dto.getName()));
         company.setDescription(nullableTrimmed(dto.getDescription()));
         company.setLogoUrl(nullableTrimmed(dto.getLogoUrl()));
@@ -177,6 +179,7 @@ public class CompanyService
         Company newCompany = new Company();
         newCompany.setTicker(dto.getTicker());
         newCompany.setAlphaVantageTicker(dto.getAlphaVantageTicker());
+        setExchange(newCompany, dto.getExchange());
         newCompany.setName(nullableTrimmed(dto.getName()));
         newCompany.setDescription(nullableTrimmed(dto.getDescription()));
         newCompany.setLogoUrl(nullableTrimmed(dto.getLogoUrl()));
@@ -230,11 +233,19 @@ public class CompanyService
         return value == null || value.isBlank() ? null : value.trim();
     }
 
+    private static void setExchange(Company company, String exchangeValue)
+    {
+        company.setExchange(exchangeValue == null ? null : Exchange.valueOf(exchangeValue));
+    }
+
     public org.kaleta.model.Company from(Company entity){
         org.kaleta.model.Company company = new org.kaleta.model.Company();
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setAlphaVantageTicker(entity.getAlphaVantageTicker());
+        company.setExchange(entity.getExchange() == null
+                ? null
+                : new org.kaleta.model.Company.Exchange(entity.getExchange()));
         company.setName(entity.getName());
         company.setDescription(entity.getDescription());
         company.setLogoUrl(entity.getLogoUrl());
@@ -253,6 +264,9 @@ public class CompanyService
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
         company.setAlphaVantageTicker(entity.getAlphaVantageTicker());
+        company.setExchange(entity.getExchange() == null
+                ? null
+                : new org.kaleta.model.Company.Exchange(entity.getExchange()));
         company.setName(entity.getName());
         company.setDescription(entity.getDescription());
         company.setLogoUrl(entity.getLogoUrl());

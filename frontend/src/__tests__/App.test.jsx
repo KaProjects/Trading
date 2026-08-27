@@ -64,6 +64,7 @@ describe("App", () => {
                 : {
                     currencies: ["$"],
                     sectors: [{key: "TECH", name: "Technology"}],
+                    exchanges: [{key: "XNAS", name: "Nasdaq", tradingViewCode: "NASDAQ"}],
                     portfolios: [{key: "PATRIA_STANDARD", name: "Patria - Standard", abbreviation: "P"}],
                     years: ["2024", "2023"],
                 },

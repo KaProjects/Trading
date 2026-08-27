@@ -24,6 +24,7 @@ import org.kaleta.client.dto.AlphaVantageTicker;
 import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
@@ -63,6 +64,9 @@ public class CompanyEndpoints
 
         List.of(Sector.values()).forEach(sector -> dto.getSectors().add(new Company.Sector(sector)));
         dto.getSectors().sort(Company.Sector::compareTo);
+
+        List.of(Exchange.values()).forEach(exchange -> dto.getExchanges().add(new Company.Exchange(exchange)));
+        dto.getExchanges().sort(Company.Exchange::compareTo);
 
         List.of(Portfolio.values()).forEach(portfolio -> dto.getPortfolios().add(new Trades.Portfolio(portfolio)));
         dto.getPortfolios().sort(Trades.Portfolio::compareTo);

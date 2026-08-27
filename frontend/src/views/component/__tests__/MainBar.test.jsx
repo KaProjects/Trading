@@ -77,6 +77,11 @@ function createProps(overrides = {}) {
         sectors: [{name: "Technology"}],
         sectorSelectorValue: "",
         setSectorSelectorValue: jest.fn(),
+        exchanges: [
+            {key: "XNAS", name: "Nasdaq", tradingViewCode: "NASDAQ", marketBeatCode: "NASDAQ", zacksSupported: true},
+            {key: "XPAR", name: "Euronext Paris", tradingViewCode: "EURONEXT", marketBeatCode: "EPA", zacksSupported: false},
+            {key: "XSWX", name: "SIX Swiss Exchange", tradingViewCode: "SIX", marketBeatCode: null, zacksSupported: false},
+        ],
         portfolios: [{key: "PATRIA_STANDARD", name: "Patria - Standard"}],
         portfolioSelectorValue: "",
         setPortfolioSelectorValue: jest.fn(),
@@ -422,7 +427,11 @@ describe("MainBar", () => {
         mockUseLocation.mockReturnValue({pathname: "/research", state: null});
 
         render(<MainBar {...createProps({
-            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+            companySelectorValue: {
+                id: "company-1",
+                ticker: "NVDA",
+                exchange: "XNAS",
+            },
         })} />);
 
         expect(screen.getByRole("link", {name: "TradingView financials"}))
@@ -430,7 +439,54 @@ describe("MainBar", () => {
         expect(screen.getByRole("link", {name: "MarketBeat ratings"}))
             .toHaveAttribute("href", "https://www.marketbeat.com/stocks/NASDAQ/NVDA/forecast/#ratings-table");
         expect(screen.getByRole("link", {name: "Zacks earnings estimates"}))
-            .toHaveAttribute("href", "https://www.zacks.com/stock/quote/NVDA/detailed-earning-estimates#detailed_earnings_estimates");
+            .toHaveAttribute("href", "https://www.zacks.com/stock/quote/NVDA/detailed-estimates");
+    });
+
+    test("uses provider-specific exchange codes for European links", () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+
+        render(<MainBar {...createProps({
+            companySelectorValue: {
+                id: "company-2",
+                ticker: "LVMH",
+                exchange: "XPAR",
+            },
+        })}/>);
+
+        expect(screen.getByRole("link", {name: "TradingView financials"}))
+            .toHaveAttribute("href", "https://www.tradingview.com/symbols/EURONEXT-LVMH/financials-income-statement/?statements-period=FQ");
+        expect(screen.getByRole("link", {name: "MarketBeat ratings"}))
+            .toHaveAttribute("href", "https://www.marketbeat.com/stocks/EPA/LVMH/forecast/#ratings-table");
+        expect(screen.queryByRole("link", {name: "Zacks earnings estimates"})).not.toBeInTheDocument();
+    });
+
+    test("omits providers without support for the selected exchange", () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+
+        render(<MainBar {...createProps({
+            companySelectorValue: {
+                id: "company-3",
+                ticker: "NSN",
+                exchange: "XSWX",
+            },
+        })}/>);
+
+        expect(screen.getByRole("link", {name: "TradingView financials"}))
+            .toHaveAttribute("href", "https://www.tradingview.com/symbols/SIX-NSN/financials-income-statement/?statements-period=FQ");
+        expect(screen.queryByRole("link", {name: "MarketBeat ratings"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", {name: "Zacks earnings estimates"})).not.toBeInTheDocument();
+    });
+
+    test("does not guess an exchange for a selected company without one configured", () => {
+        mockUseLocation.mockReturnValue({pathname: "/research", state: null});
+
+        render(<MainBar {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+        })}/>);
+
+        expect(screen.queryByRole("link", {name: "TradingView financials"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", {name: "MarketBeat ratings"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", {name: "Zacks earnings estimates"})).not.toBeInTheDocument();
     });
 
     test("does not render research external links without selected company", () => {

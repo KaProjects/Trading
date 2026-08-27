@@ -51,6 +51,11 @@ function createProps(overrides = {}) {
             {key: "SEMICONDUCTORS", name: "Semiconductors"},
             {key: "ENERGY", name: "Energy"},
         ],
+        exchanges: [
+            {key: "XAMS", name: "Euronext Amsterdam"},
+            {key: "XNAS", name: "Nasdaq"},
+            {key: "XPAR", name: "Euronext Paris"},
+        ],
         ...overrides,
     };
 }
@@ -81,6 +86,7 @@ describe("EditCompanyDialog", () => {
             ticker: "NVDA",
             currency: "€",
             alphaVantageTicker: null,
+            exchange: null,
             name: null,
             description: null,
             logoUrl: null,
@@ -100,6 +106,7 @@ describe("EditCompanyDialog", () => {
                 ticker: "NVDA",
                 currency: "$",
                 sector: {key: "SEMICONDUCTORS"},
+                exchange: {key: "XNAS"},
                 name: "NVIDIA Corporation",
                 description: "Accelerated computing company",
                 logoUrl: "https://example.test/nvda.svg",
@@ -120,6 +127,7 @@ describe("EditCompanyDialog", () => {
             ticker: "NVDA",
             currency: "$",
             alphaVantageTicker: null,
+            exchange: "XNAS",
             name: "NVIDIA Corporation",
             description: "Accelerated computing company",
             logoUrl: "https://example.test/nvda.svg",
@@ -181,6 +189,7 @@ describe("EditCompanyDialog", () => {
             ticker: "NVDA",
             currency: "$",
             alphaVantageTicker: null,
+            exchange: null,
             name: "NVIDIA Corporation",
             description: "Accelerated computing company",
             logoUrl: "https://example.test/nvda.svg",
@@ -231,6 +240,30 @@ describe("EditCompanyDialog", () => {
             ticker: "ASML",
             currency: "€",
             alphaVantageTicker: "ASML.AMS",
+            exchange: null,
+            name: null,
+            description: null,
+            logoUrl: null,
+            website: null,
+        }));
+    });
+
+    test("creates a company with a selected exchange", async () => {
+        axios.post.mockResolvedValue({});
+        const props = createProps({openEditCompany: {}});
+
+        render(<EditCompanyDialog {...props}/>);
+
+        fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "LVMH"}});
+        selectOption(0, "€");
+        selectOption(2, "Euronext Paris");
+        fireEvent.click(screen.getByText("Create"));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/company", {
+            ticker: "LVMH",
+            currency: "€",
+            alphaVantageTicker: null,
+            exchange: "XPAR",
             name: null,
             description: null,
             logoUrl: null,

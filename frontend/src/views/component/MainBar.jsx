@@ -42,23 +42,38 @@ const DEFAULT_MAIN_BAR_CONFIG = {
     showResearchTabs: false,
 };
 
-const researchExternalLinks = (ticker) => [
-    {
-        label: "TradingView financials",
-        icon: "https://www.google.com/s2/favicons?domain=tradingview.com&sz=32",
-        url: `https://www.tradingview.com/symbols/NASDAQ-${ticker}/financials-income-statement/?statements-period=FQ`,
-    },
-    {
-        label: "MarketBeat ratings",
-        icon: "https://www.google.com/s2/favicons?domain=marketbeat.com&sz=32",
-        url: `https://www.marketbeat.com/stocks/NASDAQ/${ticker}/forecast/#ratings-table`,
-    },
-    {
-        label: "Zacks earnings estimates",
-        icon: "https://www.google.com/s2/favicons?domain=zacks.com&sz=32",
-        url: `https://www.zacks.com/stock/quote/${ticker}/detailed-earning-estimates#detailed_earnings_estimates`,
-    },
-]
+const researchExternalLinks = (company, exchanges = []) => {
+    const exchangeKey = typeof company?.exchange === "string"
+        ? company.exchange
+        : company?.exchange?.key
+    const exchange = exchanges.find(value => value.key === exchangeKey)
+    if (!exchange) return []
+
+    const ticker = encodeURIComponent(company.ticker)
+    const links = []
+    if (exchange.tradingViewCode) {
+        links.push({
+            label: "TradingView financials",
+            icon: "https://www.google.com/s2/favicons?domain=tradingview.com&sz=32",
+            url: `https://www.tradingview.com/symbols/${exchange.tradingViewCode}-${ticker}/financials-income-statement/?statements-period=FQ`,
+        })
+    }
+    if (exchange.marketBeatCode) {
+        links.push({
+            label: "MarketBeat ratings",
+            icon: "https://www.google.com/s2/favicons?domain=marketbeat.com&sz=32",
+            url: `https://www.marketbeat.com/stocks/${exchange.marketBeatCode}/${ticker}/forecast/#ratings-table`,
+        })
+    }
+    if (exchange.zacksSupported) {
+        links.push({
+            label: "Zacks earnings estimates",
+            icon: "https://www.google.com/s2/favicons?domain=zacks.com&sz=32",
+            url: `https://www.zacks.com/stock/quote/${ticker}/detailed-estimates`,
+        })
+    }
+    return links
+}
 
 const MAIN_BAR_CONFIG = {
     "/trades": {
@@ -555,7 +570,10 @@ export const MainBar = props => {
             icon: ResearchRedirectIcon,
         },
     ]
-    const showResearchExternalLinks = location.pathname === "/research" && props.companySelectorValue?.ticker
+    const researchLinks = location.pathname === "/research" && props.companySelectorValue?.ticker
+        ? researchExternalLinks(props.companySelectorValue, props.exchanges)
+        : []
+    const showResearchExternalLinks = researchLinks.length > 0
     const visibleActionButtons = actionButtons.filter((button) => button.visible)
     const visibleSelectors = selectors.filter((selector) => selector.visible)
     const visiblePageNavigationButtons = pageNavigationButtons.filter((button) => button.visible)
@@ -632,7 +650,7 @@ export const MainBar = props => {
                         }
                         {showResearchExternalLinks &&
                             <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
-                                {researchExternalLinks(props.companySelectorValue.ticker).map((link) => (
+                                {researchLinks.map((link) => (
                                     <MainBarIconButton
                                         key={link.label}
                                         tooltip={link.label}

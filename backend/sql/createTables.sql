@@ -14,6 +14,7 @@ CREATE TABLE Company
     id                   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     ticker               CHAR(5)      NOT NULL,
     alphaVantageTicker   VARCHAR(30),
+    exchangeCode         CHAR(4),
     name                 VARCHAR(150),
     description          TEXT,
     logoUrl              VARCHAR(500),

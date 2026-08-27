@@ -12,6 +12,7 @@ public class Company implements Comparable<Company>
     private Long id;
     private String ticker;
     private String alphaVantageTicker;
+    private Exchange exchange;
     private String name;
     private String description;
     private String logoUrl;
@@ -41,6 +42,34 @@ public class Company implements Comparable<Company>
         public int compareTo(Sector other) {
             if (other == null) return -1;
             return this.getKey().compareTo(other.getKey());
+        }
+    }
+
+    @Data
+    public static class Exchange implements Comparable<Exchange>
+    {
+        private String key;
+        private String name;
+        private String tradingViewCode;
+        private String marketBeatCode;
+        private boolean zacksSupported;
+
+        public Exchange() {}
+
+        public Exchange(org.kaleta.persistence.entity.Exchange exchange)
+        {
+            this.key = exchange.toString();
+            this.name = exchange.getName();
+            this.tradingViewCode = exchange.getTradingViewCode();
+            this.marketBeatCode = exchange.getMarketBeatCode();
+            this.zacksSupported = exchange.isZacksSupported();
+        }
+
+        @Override
+        public int compareTo(Exchange other)
+        {
+            if (other == null) return -1;
+            return this.getName().compareTo(other.getName());
         }
     }
 }

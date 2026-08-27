@@ -30,6 +30,7 @@ export const App = () => {
     const [companyLists, setCompanyLists] = useState({all: []});
     const [currencies, setCurrencies] = useState([]);
     const [sectors, setSectors] = useState([]);
+    const [exchanges, setExchanges] = useState([]);
     const [portfolios, setPortfolios] = useState([]);
     const [years, setYears] = useState([]);
     const [activeSelectorValue, setActiveSelectorValue] = useState("");
@@ -54,6 +55,7 @@ export const App = () => {
             setCompanyLists(listsResponse.data);
             setCurrencies(valuesResponse.data.currencies);
             setSectors(valuesResponse.data.sectors);
+            setExchanges(valuesResponse.data.exchanges ?? []);
             setPortfolios(valuesResponse.data.portfolios ?? []);
             setYears(valuesResponse.data.years ?? []);
             setError(null);
@@ -83,6 +85,7 @@ export const App = () => {
         refreshCompanyLists,
         currencies,
         sectors,
+        exchanges,
         portfolios,
 
         years,

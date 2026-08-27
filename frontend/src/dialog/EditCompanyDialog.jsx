@@ -30,6 +30,7 @@ export const EditCompanyDialog = props => {
     const [ticker, setTicker] = useState("")
     const [currency, setCurrency] = useState("")
     const [sector, setSector] = useState("")
+    const [exchange, setExchange] = useState("")
     const [alphaVantageTicker, setAlphaVantageTicker] = useState("")
     const [name, setName] = useState("")
     const [description, setDescription] = useState("")
@@ -50,6 +51,11 @@ export const EditCompanyDialog = props => {
             setLogoUrl(company.id ? company.logoUrl ?? "" : "")
             setWebsite(company.id ? company.website ?? "" : "")
             setProfileLoading(false)
+            const exchangeKey = company.id
+                ? (typeof company.exchange === "string" ? company.exchange : company.exchange?.key)
+                : ""
+            const selectedExchange = props.exchanges.find(value => value.key === exchangeKey) ?? ""
+            setExchange(selectedExchange)
             const selectedAlphaVantageTicker = company.id ? company.alphaVantageTicker ?? "" : ""
             setAlphaVantageTicker(selectedAlphaVantageTicker)
             setAlphaVantageTickers(selectedAlphaVantageTicker
@@ -73,6 +79,7 @@ export const EditCompanyDialog = props => {
             ticker: ticker,
             currency: currency,
             alphaVantageTicker: currency === "$" ? null : alphaVantageTicker || null,
+            exchange: exchange ? exchange.key : null,
             name: name.trim() || null,
             description: description.trim() || null,
             logoUrl: logoUrl.trim() || null,
@@ -153,7 +160,6 @@ export const EditCompanyDialog = props => {
     const profileLoadingDisabled = currency === ""
         || validateTicker(ticker) !== ""
         || profileLoading
-
     return (
         <Dialog
             open={!!company}
@@ -201,6 +207,22 @@ export const EditCompanyDialog = props => {
                         <MenuItem key={index} value={sector} >{sector.name}</MenuItem>
                     ))}
                 </Select>
+                <FormControl fullWidth variant="standard" sx={{marginTop: "20px"}}>
+                    <InputLabel id="company-exchange-label">Exchange</InputLabel>
+                    <Select
+                        labelId="company-exchange-label"
+                        value={exchange}
+                        onChange={event => {
+                            setExchange(event.target.value)
+                            setAlert(null)
+                        }}
+                    >
+                        <MenuItem value="">None</MenuItem>
+                        {props.exchanges.map(value => (
+                            <MenuItem key={value.key} value={value}>{value.name}</MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
                 <Box sx={{
                     marginTop: "20px",
                     padding: "8px 12px 12px",
