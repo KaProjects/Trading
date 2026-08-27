@@ -46,6 +46,9 @@ import {AddTagDialog} from "../dialog/AddTagDialog";
 import {useLocation} from "react-router-dom";
 import {TodoList} from "./component/TodoList";
 import {LatestNewsSentiment} from "./component/LatestNewsSentiment";
+import EditNoteIcon from "@mui/icons-material/EditNote";
+import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
+import {TradingViewOverview} from "./component/TradingViewOverview";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 const researchCardStyle = {
@@ -101,6 +104,7 @@ export const Research = props => {
     const [openAddTagDialog, setOpenAddTagDialog] = useState(false)
     const [tagToDelete, setTagToDelete] = useState(null)
     const [tagSuggestions, setTagSuggestions] = useState([])
+    const [unavailableTradingViewSymbol, setUnavailableTradingViewSymbol] = useState(null)
     const [targetCandidateCounts, setTargetCandidateCounts] = useState({})
     const [failedTargetCandidatePeriods, setFailedTargetCandidatePeriods] = useState(new Set())
     const previousCompanyId = useRef(null)
@@ -216,6 +220,12 @@ export const Research = props => {
     const waitingForUrlCompany = Boolean(companyFromUrl) && !selectedCompanyMatchesUrl
     const waitingForSelectedCompany = Boolean(props.companySelectorValue) && !selectedCompanyLoaded
     const loading = waitingForUrlCompany || waitingForSelectedCompany
+    const tradingViewSymbol = data?.company?.ticker && data?.company?.exchange?.tradingViewCode
+        ? `${data.company.exchange.tradingViewCode}:${data.company.ticker}`
+        : null
+    const hasTradingView = Boolean(
+        tradingViewSymbol && tradingViewSymbol !== unavailableTradingViewSymbol
+    )
 
     return (
         <>
@@ -254,32 +264,76 @@ export const Research = props => {
                     }}>
                         <CardContent sx={researchCardContentStyle}>
                             <Box sx={{position: "relative", flexShrink: 0}}>
-                                <Box sx={{color: 'text.secondary'}}>Research</Box>
+                                <Box sx={{
+                                    color: 'text.secondary',
+                                    marginLeft: hasTradingView ? "2px" : 0,
+                                }}>
+                                    Research
+                                </Box>
                                 <Box sx={{
                                     color: 'text.primary',
-                                    fontSize: 34,
-                                    fontWeight: 'medium',
                                     minHeight: "40px",
                                     display: "flex",
                                     alignItems: "center",
+                                    width: hasTradingView ? {xs: "100%", sm: "fit-content"} : "fit-content",
+                                    maxWidth: "100%",
+                                    "& .edit-company-button": {
+                                        opacity: {xs: 1, sm: 0},
+                                        pointerEvents: {xs: "auto", sm: "none"},
+                                        transition: "opacity 120ms ease-in-out",
+                                    },
+                                    "&:hover .edit-company-button, &:focus-within .edit-company-button": {
+                                        opacity: 1,
+                                        pointerEvents: "auto",
+                                    },
                                 }}>
-                                    {data.company.logoUrl
-                                        ? <Box
-                                            component="img"
-                                            src={data.company.logoUrl}
-                                            alt={`${data.company.ticker} logo`}
-                                            title={data.company.ticker}
-                                            sx={{maxWidth: "150px", height: "38px", objectFit: "contain", objectPosition: "left center"}}
+                                    {hasTradingView
+                                        ? <TradingViewOverview
+                                            company={data.company}
+                                            onUnavailable={() => setUnavailableTradingViewSymbol(tradingViewSymbol)}
+                                            sx={{
+                                                width: {xs: "auto", sm: "520px"},
+                                                flex: {xs: "1 1 auto", sm: "0 0 520px"},
+                                                minWidth: 0,
+                                                marginTop: "1px",
+                                            }}
                                         />
-                                        : data.company.ticker
+                                        : <Box sx={{fontSize: 34, fontWeight: 'medium'}}>
+                                            {data.company.logoUrl
+                                                ? <Box
+                                                    component="img"
+                                                    src={data.company.logoUrl}
+                                                    alt={`${data.company.ticker} logo`}
+                                                    title={data.company.ticker}
+                                                    sx={{maxWidth: "150px", height: "38px", objectFit: "contain", objectPosition: "left center"}}
+                                                />
+                                                : data.company.ticker
+                                            }
+                                        </Box>
                                     }
+                                    <IconButton
+                                        className="edit-company-button"
+                                        aria-label={`Edit ${data.company.ticker}`}
+                                        title="Edit company"
+                                        size="small"
+                                        onClick={() => props.setOpenEditCompany(data.company)}
+                                        sx={{width: "26px", height: "26px", marginLeft: "3px"}}
+                                    >
+                                        <EditNoteIcon sx={{width: 17}}/>
+                                    </IconButton>
                                 </Box>
-                                {data.company.sector && <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>{data.company.sector.name}</Box>}
+                                {!hasTradingView && data.company.sector &&
+                                    <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>
+                                        {data.company.sector.name}
+                                    </Box>
+                                }
                                 <Box
                                     sx={{
                                         color: "text.secondary",
                                         display: "flex",
                                         alignItems: "center",
+                                        marginTop: hasTradingView ? "-10px" : 0,
+                                        marginLeft: hasTradingView ? "4px" : 0,
                                         flexWrap: {xs: "nowrap", sm: "wrap"},
                                         columnGap: "6px",
                                         fontSize: 14,
@@ -375,7 +429,7 @@ export const Research = props => {
                                 </Dialog>
 
                                 <PeriodFinancials
-                                    sx={{marginTop: {xs: "13px", sm: "20px"}}}
+                                    sx={{marginTop: hasTradingView ? "8px" : {xs: "13px", sm: "20px"}}}
                                     ttm={data.ttm}
                                     financials={data.financials}
                                     onOpen={() => setOpenFinancialsDialog(true)}
@@ -469,6 +523,7 @@ export const Research = props => {
                                 company={props.companySelectorValue}
                                 period={openNewsSentimentDialog}
                             />
+                            <EditCompanyDialog triggerRefresh={triggerRefresh} {...props}/>
 
                             <Box data-testid="period-list" sx={researchCardRowsStyle}>
                                 {data.periods.map((period) => (

@@ -40,7 +40,9 @@ jest.mock("../component/PeriodFinancials", () => ({
     PeriodFinancials: (props) => (
         <button
             data-testid="period-financials"
-            data-margin-top-xs={props.sx?.marginTop?.xs}
+            data-margin-top={typeof props.sx?.marginTop === "string"
+                ? props.sx.marginTop
+                : props.sx?.marginTop?.xs}
             data-financials-count={props.financials?.length ?? 0}
             onClick={props.onOpen}
         >
@@ -97,6 +99,26 @@ jest.mock("../../dialog/NewsSentimentDialog", () => ({
 }));
 jest.mock("../component/LatestNewsSentiment", () => ({
     LatestNewsSentiment: ({companyId}) => <div>latest-news-sentiment:{companyId}</div>,
+}));
+jest.mock("../component/TradingViewOverview", () => ({
+    TradingViewOverview: ({company, sx, onUnavailable}) => company.exchange?.tradingViewCode
+        ? (
+            <div
+                data-testid="trading-view-overview"
+                data-margin-top={sx?.marginTop}
+                data-width-sm={sx?.width?.sm}
+                data-symbol={`${company.exchange.tradingViewCode}:${company.ticker}`}
+            >
+                {company.ticker}
+                <button aria-label="Report TradingView unavailable" onClick={onUnavailable}/>
+            </div>
+        )
+        : null,
+}));
+jest.mock("../../dialog/EditCompanyDialog", () => ({
+    EditCompanyDialog: ({triggerRefresh}) => (
+        <button data-testid="edit-company-dialog" onClick={triggerRefresh}>edit-company-dialog</button>
+    ),
 }));
 jest.mock("../../dialog/AddTagDialog", () => ({
     AddTagDialog: (props) => props.open
@@ -155,6 +177,7 @@ function createResearchData(overrides = {}) {
             id: "company-1",
             ticker: "AAPL",
             currency: "$",
+            exchange: {key: "XNAS", tradingViewCode: "NASDAQ"},
             sector: {key: "TECH", name: "Technology"},
             tags: ["growth", "owned", "recent", "researched"],
         },
@@ -294,15 +317,23 @@ describe("Research", () => {
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith("/api/research/company-1"));
         await waitFor(() => expect(screen.getByText("AAPL")).toBeInTheDocument());
 
-        expect(screen.getByText("Research")).toBeInTheDocument();
-        expect(screen.getByText("Technology")).toBeInTheDocument();
+        expect(screen.getByText("Research")).toHaveStyle("margin-left: 2px");
+        expect(screen.queryByText("Technology")).not.toBeInTheDocument();
         expect(screen.getByText("#growth")).toBeInTheDocument();
+        expect(screen.getByText("#growth").parentElement).toHaveStyle("margin-top: -10px");
+        expect(screen.getByText("#growth").parentElement).toHaveStyle("margin-left: 4px");
         expect(screen.queryByText("#owned")).not.toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
-        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top-xs", "13px");
+        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top", "8px");
         expect(screen.getByTestId("period-financials")).toHaveAttribute("data-financials-count", "1");
         expect(screen.getByTestId("period-estimates-overview")).toHaveTextContent("estimate-overview:14");
         expect(screen.getByText("latest-news-sentiment:company-1")).toBeInTheDocument();
+        expect(screen.getByTestId("trading-view-overview")).toHaveAttribute("data-symbol", "NASDAQ:AAPL");
+        expect(screen.getByTestId("trading-view-overview")).toHaveAttribute("data-margin-top", "1px");
+        expect(screen.getByTestId("trading-view-overview")).toHaveAttribute("data-width-sm", "520px");
+        expect(screen.getByTestId("trading-view-overview").parentElement).toContainElement(
+            screen.getByRole("button", {name: "Edit AAPL"})
+        );
         expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
         expect(screen.getByText("Market Cap: $1B")).toBeInTheDocument();
         expect(screen.getByText("Dividend Yield: 2%")).toBeInTheDocument();
@@ -338,6 +369,41 @@ describe("Research", () => {
         expect(logo).toHaveAttribute("src", "https://example.test/logos/aapl.png");
         expect(logo).toHaveAttribute("title", "AAPL");
         expect(screen.queryByText("AAPL")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("trading-view-overview")).not.toBeInTheDocument();
+        expect(screen.getByText("Technology")).toBeInTheDocument();
+        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top", "13px");
+    });
+
+    test("restores the company title when TradingView reports the symbol unavailable", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByTestId("trading-view-overview");
+        fireEvent.click(screen.getByRole("button", {name: "Report TradingView unavailable"}));
+
+        expect(screen.queryByTestId("trading-view-overview")).not.toBeInTheDocument();
+        expect(screen.getByText("AAPL")).toBeInTheDocument();
+        expect(screen.getByText("Technology")).toBeInTheDocument();
+        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top", "13px");
+    });
+
+    test("opens company editing from the research title", async () => {
+        const researchData = createResearchData();
+        const setOpenEditCompany = jest.fn();
+        axios.get.mockResolvedValue({data: researchData});
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+                setOpenEditCompany={setOpenEditCompany}
+            />
+        );
+
+        fireEvent.click(await screen.findByRole("button", {name: "Edit AAPL"}));
+
+        expect(setOpenEditCompany).toHaveBeenCalledWith(researchData.company);
+        expect(screen.getByTestId("edit-company-dialog")).toBeInTheDocument();
     });
 
     test("shows the loader and hides the previous company while a new company is loading", async () => {
