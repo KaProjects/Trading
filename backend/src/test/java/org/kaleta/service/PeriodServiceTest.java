@@ -492,6 +492,7 @@ public class PeriodServiceTest
         assertBigDecimals(periods.getFinancials().get(0).getFreeCashFlow(), period1.getFreeCashFlow());
         assertBigDecimals(periods.getFinancials().get(0).getFreeCashFlow().getMargin(), new BigDecimal("6"));
         assertBigDecimals(periods.getFinancials().get(0).getDividend(), period1.getDividend());
+        assertBigDecimals(periods.getFinancials().get(0).getDividendMargin(), new BigDecimal("2"));
         assertBigDecimals(periods.getFinancials().get(0).getAdjustedEps(), period1.getAdjustedEps());
 
         assertThat(periods.getFinancials().get(1).getPeriod(), is(period3.getName()));
@@ -507,6 +508,7 @@ public class PeriodServiceTest
         assertBigDecimals(periods.getFinancials().get(1).getFreeCashFlow(), period3.getFreeCashFlow());
         assertBigDecimals(periods.getFinancials().get(1).getFreeCashFlow().getMargin(), new BigDecimal("4.21"));
         assertBigDecimals(periods.getFinancials().get(1).getDividend(), period3.getDividend());
+        assertBigDecimals(periods.getFinancials().get(1).getDividendMargin(), new BigDecimal("1.05"));
         assertThat(periods.getFinancials().get(1).getAdjustedEps(), is(nullValue()));
 
         assertThat(periods.getTtm(), is(notNullValue()));
@@ -527,6 +529,7 @@ public class PeriodServiceTest
         assertBigDecimals(periods.getTtm().getFreeCashFlow().getMargin(), new BigDecimal("5.13"));
 
         assertBigDecimals(periods.getTtm().getDividend(), new BigDecimal("60"));
+        assertBigDecimals(periods.getTtm().getDividendMargin(), new BigDecimal("1.54"));
 
         assertBigDecimals(periods.getTtm().getShares(), period1.getShares());
     }
@@ -562,6 +565,7 @@ public class PeriodServiceTest
         assertThat(financial.getCapex().getMargin(), is(nullValue()));
         assertThat(financial.getFreeCashFlow().getValue(), is(nullValue()));
         assertThat(financial.getFreeCashFlow().getMargin(), is(nullValue()));
+        assertThat(financial.getDividendMargin(), is(nullValue()));
         assertThat(periods.getTtm().getGrossProfit().getValue(), is(nullValue()));
         assertThat(periods.getTtm().getOperatingIncome().getValue(), is(nullValue()));
         assertThat(periods.getTtm().getCapex().getValue(), is(nullValue()));

@@ -12,6 +12,7 @@ public class EstimateOverview
     private Window next1 = new Window();
     private Window next2 = new Window();
     private Window next3 = new Window();
+    private BigDecimal yearOverYearChange;
 
     @Data
     public static class Window

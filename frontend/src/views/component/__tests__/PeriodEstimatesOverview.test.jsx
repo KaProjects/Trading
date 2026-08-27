@@ -7,6 +7,7 @@ const overview = {
     next1: {value: 18, change: 28.57},
     next2: {value: 22, change: 22.22},
     next3: {value: 26, change: 18.18},
+    yearOverYearChange: 160,
 };
 
 describe("PeriodEstimatesOverview", () => {
@@ -14,6 +15,7 @@ describe("PeriodEstimatesOverview", () => {
         const onOpen = jest.fn();
         render(<PeriodEstimatesOverview overview={overview} onOpen={onOpen}/>);
 
+        expect(screen.getByText("Earnings estimates")).toBeInTheDocument();
         expect(screen.getByText("ttm")).toBeInTheDocument();
         expect(screen.getByText("current")).toBeInTheDocument();
         expect(screen.getByText("next 1")).toBeInTheDocument();
@@ -23,8 +25,16 @@ describe("PeriodEstimatesOverview", () => {
         expect(screen.getByText("14")).toBeInTheDocument();
         expect(screen.getByText("(+40%)")).toBeInTheDocument();
         expect(screen.getByText("(+28.6%)")).toBeInTheDocument();
+        expect(screen.getByText("(+18.2%)")).toBeInTheDocument();
+        expect(screen.getByText("(+160%)")).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", {name: "Open estimates"}));
         expect(onOpen).toHaveBeenCalled();
+    });
+
+    test("renders nothing without an estimates overview", () => {
+        const {container} = render(<PeriodEstimatesOverview overview={null} onOpen={jest.fn()}/>);
+
+        expect(container).toBeEmptyDOMElement();
     });
 
     test("uses dashes for unavailable rolling windows", () => {
@@ -33,5 +43,6 @@ describe("PeriodEstimatesOverview", () => {
         }}/>);
 
         expect(screen.getAllByText("-")).toHaveLength(5);
+        expect(screen.queryByText("(+160%)")).not.toBeInTheDocument();
     });
 });

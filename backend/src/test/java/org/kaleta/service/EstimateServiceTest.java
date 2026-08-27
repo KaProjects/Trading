@@ -130,6 +130,7 @@ class EstimateServiceTest
         assertBigDecimals(overview.getNext2().getChange(), new BigDecimal("22.22"));
         assertBigDecimals(overview.getNext3().getValue(), new BigDecimal("26"));
         assertBigDecimals(overview.getNext3().getChange(), new BigDecimal("18.18"));
+        assertBigDecimals(overview.getYearOverYearChange(), new BigDecimal("160.0"));
     }
 
     @Test
@@ -138,6 +139,24 @@ class EstimateServiceTest
         when(estimateDao.findLatest(period.getId())).thenReturn(Optional.empty());
 
         assertThat(estimateService.getLatest(period.getId()), is(Optional.empty()));
+    }
+
+    @Test
+    void createOverview_omitsYearOverYearChangeWhenAQuarterIsMissing()
+    {
+        PeriodEstimates estimates = new PeriodEstimates();
+        estimates.setPast4(new BigDecimal("1"));
+        estimates.setPast3(new BigDecimal("2"));
+        estimates.setPast2(null);
+        estimates.setPast1(new BigDecimal("4"));
+        estimates.setCurrent(new BigDecimal("5"));
+        estimates.setNext1(new BigDecimal("6"));
+        estimates.setNext2(new BigDecimal("7"));
+        estimates.setNext3(new BigDecimal("8"));
+
+        EstimateOverview overview = estimateService.createOverview(estimates);
+
+        assertThat(overview.getYearOverYearChange(), is(nullValue()));
     }
 
     @Test

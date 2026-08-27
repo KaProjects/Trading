@@ -44,6 +44,7 @@ public class Periods
         private final Metric freeCashFlow = new Metric();
 
         private BigDecimal dividend;
+        private BigDecimal dividendMargin;
         private BigDecimal adjustedEps;
         private BigDecimal shares;
 

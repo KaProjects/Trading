@@ -377,6 +377,7 @@ export const Research = props => {
                                 <PeriodFinancials
                                     sx={{marginTop: {xs: "13px", sm: "20px"}}}
                                     ttm={data.ttm}
+                                    financials={data.financials}
                                     onOpen={() => setOpenFinancialsDialog(true)}
                                 />
                                 <PeriodEstimatesOverview

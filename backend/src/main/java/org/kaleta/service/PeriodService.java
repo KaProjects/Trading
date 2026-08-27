@@ -226,6 +226,7 @@ public class PeriodService
             financial.getNetIncome().setMargin(computeMargin(period.getNetIncome(), period.getRevenue()));
             financial.getCapex().setMargin(computeMargin(period.getCapex(), period.getRevenue()));
             financial.getFreeCashFlow().setMargin(computeMargin(period.getFreeCashFlow(), period.getRevenue()));
+            financial.setDividendMargin(computeMargin(period.getDividend(), period.getRevenue()));
         }
 
         financial.setDividend(period.getDividend());

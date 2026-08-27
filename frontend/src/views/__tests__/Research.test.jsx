@@ -41,6 +41,7 @@ jest.mock("../component/PeriodFinancials", () => ({
         <button
             data-testid="period-financials"
             data-margin-top-xs={props.sx?.marginTop?.xs}
+            data-financials-count={props.financials?.length ?? 0}
             onClick={props.onOpen}
         >
             financial-overview
@@ -299,6 +300,7 @@ describe("Research", () => {
         expect(screen.queryByText("#owned")).not.toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
         expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top-xs", "13px");
+        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-financials-count", "1");
         expect(screen.getByTestId("period-estimates-overview")).toHaveTextContent("estimate-overview:14");
         expect(screen.getByText("latest-news-sentiment:company-1")).toBeInTheDocument();
         expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();

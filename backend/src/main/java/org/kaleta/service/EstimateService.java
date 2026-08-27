@@ -73,6 +73,9 @@ public class EstimateService
         setOverviewWindow(overview.getNext1(), totals.get(2), estimates.getNext1Change());
         setOverviewWindow(overview.getNext2(), totals.get(3), estimates.getNext2Change());
         setOverviewWindow(overview.getNext3(), totals.get(4), estimates.getNext3Change());
+        if (totals.get(0) != null && totals.get(4) != null) {
+            overview.setYearOverYearChange(arithmeticService.profitPercentage(totals.get(0), totals.get(4)));
+        }
         return overview;
     }
 

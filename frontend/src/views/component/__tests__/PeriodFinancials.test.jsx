@@ -6,8 +6,18 @@ const ttm = {
     grossProfit: {value: 600, margin: 40},
     operatingIncome: {value: 300, margin: 20},
     netIncome: {value: 150, margin: 10},
+    dividend: 25,
+    dividendMargin: 2,
+    capex: {value: 50, margin: 3},
     freeCashFlow: {value: 120, margin: 8},
 };
+
+const completeQuarterFinancials = [
+    {period: {year: "2025", type: "Q4"}, dividend: 7, capex: {value: 14}, freeCashFlow: {value: 32}},
+    {period: {year: "2025", type: "Q3"}, dividend: 6, capex: {value: 13}, freeCashFlow: {value: 31}},
+    {period: {year: "2025", type: "Q2"}, dividend: 6, capex: {value: 12}, freeCashFlow: {value: 29}},
+    {period: {year: "2025", type: "Q1"}, dividend: 6, capex: {value: 11}, freeCashFlow: {value: 28}},
+];
 
 const financials = [{
     period: {year: "2025", type: "FY"},
@@ -23,11 +33,15 @@ const financials = [{
 describe("PeriodFinancials", () => {
     test("renders only the compact summary and opens financials", () => {
         const onOpen = jest.fn();
-        render(<PeriodFinancials ttm={ttm} onOpen={onOpen}/>);
+        render(<PeriodFinancials ttm={ttm} financials={completeQuarterFinancials} onOpen={onOpen}/>);
 
+        expect(screen.getByText("Financials")).toBeInTheDocument();
+        expect(screen.queryByText("TTM")).not.toBeInTheDocument();
         expect(screen.getByText("1.5B")).toBeInTheDocument();
         expect(screen.getByText("op. income")).toBeInTheDocument();
         expect(screen.getByText("net income")).toBeInTheDocument();
+        expect(screen.getByText("dividend")).toBeInTheDocument();
+        expect(screen.getByText("capex")).toBeInTheDocument();
         expect(screen.getByText("fcf")).toBeInTheDocument();
         expect(screen.getByText("120M")).toBeInTheDocument();
         expect(screen.queryByText("Dividend")).not.toBeInTheDocument();
@@ -35,9 +49,16 @@ describe("PeriodFinancials", () => {
         expect(onOpen).toHaveBeenCalled();
     });
 
+    test("renders nothing without trailing financials", () => {
+        const {container} = render(<PeriodFinancials ttm={null} onOpen={jest.fn()}/>);
+
+        expect(container).toBeEmptyDOMElement();
+    });
+
     test("omits free cash flow from the summary when it has no value", () => {
         render(<PeriodFinancials
             ttm={{...ttm, freeCashFlow: {value: null, margin: null}}}
+            financials={completeQuarterFinancials}
             onOpen={jest.fn()}
         />);
 
@@ -57,6 +78,34 @@ describe("PeriodFinancials", () => {
         expect(screen.queryByText("gross profit")).not.toBeInTheDocument();
         expect(screen.queryByText("op. income")).not.toBeInTheDocument();
         expect(screen.getByText("net income")).toBeInTheDocument();
+    });
+
+    test.each([
+        ["fewer than four quarters", completeQuarterFinancials.slice(0, 3)],
+        ["a gap in the latest quarters", [
+            completeQuarterFinancials[0],
+            completeQuarterFinancials[1],
+            {...completeQuarterFinancials[2], period: {year: "2025", type: "Q1"}},
+            {...completeQuarterFinancials[3], period: {year: "2024", type: "Q4"}},
+        ]],
+    ])("omits annual-flow metrics for %s", (description, latestFinancials) => {
+        render(<PeriodFinancials ttm={ttm} financials={latestFinancials} onOpen={jest.fn()}/>);
+
+        expect(screen.queryByText("dividend")).not.toBeInTheDocument();
+        expect(screen.queryByText("capex")).not.toBeInTheDocument();
+        expect(screen.queryByText("fcf")).not.toBeInTheDocument();
+    });
+
+    test("omits only the annual-flow metric with a missing latest value", () => {
+        const latestFinancials = completeQuarterFinancials.map((financial, index) => index === 2
+            ? {...financial, dividend: null}
+            : financial);
+
+        render(<PeriodFinancials ttm={ttm} financials={latestFinancials} onOpen={jest.fn()}/>);
+
+        expect(screen.queryByText("dividend")).not.toBeInTheDocument();
+        expect(screen.getByText("capex")).toBeInTheDocument();
+        expect(screen.getByText("fcf")).toBeInTheDocument();
     });
 
     test("renders the detailed financial table separately", () => {
