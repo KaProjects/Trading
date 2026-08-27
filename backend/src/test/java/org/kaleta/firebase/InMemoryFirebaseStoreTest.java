@@ -18,11 +18,13 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -145,6 +147,39 @@ class InMemoryFirebaseStoreTest
         assertThat(result.targets(), is(empty()));
         assertThat(result.warnings(), is(List.of(
                 "Firebase targets for NVDA could not be loaded: Firebase unavailable")));
+    }
+
+    @Test
+    void readsNewsSentimentByHalfOpenDateRangeAndLatestKey()
+    {
+        Map<String, FirebaseCompany.NewsSentiment> records = firebaseStore.findNewsSentiments(
+                "NVDA",
+                LocalDate.parse("2025-05-28"),
+                LocalDate.parse("2025-08-27"));
+
+        assertThat(records.keySet(), is(java.util.Set.of(
+                "2025-05-28-start",
+                "2025-08-26-last")));
+        FirebaseCompany.NewsSentiment latest = firebaseService.getLatestNewsSentiments("NVDA")
+                .records()
+                .get("2026-08-23-latest");
+        assertThat(latest.getStats(), is(Map.of("positive", 4, "neutral", 1, "mixed", 1)));
+        assertThat(latest.getKey_takeaways(), contains("Inference demand broadened across customers."));
+    }
+
+    @Test
+    void returnsEmptyNewsSentimentAndWarningWhenFirebaseReadFails()
+    {
+        FirebaseStore failingStore = mock(FirebaseStore.class);
+        when(failingStore.findLatestNewsSentiments("NVDA"))
+                .thenThrow(new IllegalStateException("Firebase unavailable"));
+
+        FirebaseService.NewsSentimentsResult result =
+                new FirebaseService(failingStore).getLatestNewsSentiments("NVDA");
+
+        assertThat(result.records().isEmpty(), is(true));
+        assertThat(result.warnings(), is(List.of(
+                "Firebase news sentiment for NVDA could not be loaded: Firebase unavailable")));
     }
 
     @Test

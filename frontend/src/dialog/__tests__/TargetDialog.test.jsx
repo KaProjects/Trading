@@ -217,6 +217,30 @@ describe("TargetDialog", () => {
         expect(screen.queryByText("must be from 2025-05-28 to 2025-08-26")).not.toBeInTheDocument();
     });
 
+    test.each([
+        ["half-year", {id: "half", name: {year: "2025", type: "H2"}, reportDate: "2025-08-27"}, "2025-02-27", "2025-08-26"],
+        ["fiscal-year", {id: "fiscal", name: {year: "2025", type: "FY"}, previousReportDate: "2025-05-28"}, "2025-05-28", "2026-05-27"],
+    ])("uses the %s fallback window for manual target dates", async (_name, selectedPeriod, expectedMin, expectedMax) => {
+        arrangeGetResponses();
+
+        render(
+            <TargetDialog
+                open
+                handleClose={jest.fn()}
+                triggerRefresh={triggerRefresh}
+                company={company}
+                period={selectedPeriod}
+            />
+        );
+
+        await waitForRequestsToSettle();
+        fireEvent.click(screen.getByRole("button", {name: "Add Target"}));
+
+        const dateInput = screen.getByLabelText(/Target date/);
+        expect(dateInput).toHaveAttribute("min", expectedMin);
+        expect(dateInput).toHaveAttribute("max", expectedMax);
+    });
+
     test("cancels manual creation and resets the draft", async () => {
         arrangeGetResponses({
             targets: [target()],

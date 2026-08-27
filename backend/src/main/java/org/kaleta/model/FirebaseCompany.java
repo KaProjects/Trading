@@ -19,6 +19,15 @@ public class FirebaseCompany
 {
     private Map<String, Map<String, FinnhubEarnings>> fhe;
     private Gemini gemini;
+    private Map<String, NewsSentiment> pgn;
+
+    @Data
+    @RegisterForReflection
+    public static class NewsSentiment
+    {
+        private Map<String, Integer> stats;
+        private List<String> key_takeaways;
+    }
 
     @Data
     @RegisterForReflection

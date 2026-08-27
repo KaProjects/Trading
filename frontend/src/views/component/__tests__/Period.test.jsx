@@ -22,6 +22,7 @@ describe("Period", () => {
         const openEditDialog = jest.fn();
         const openEstimateDialog = jest.fn();
         const openTargetDialog = jest.fn();
+        const openNewsSentimentDialog = jest.fn();
         render(
             <Period
                 period={{
@@ -62,6 +63,7 @@ describe("Period", () => {
                 openEditDialog={openEditDialog}
                 openEstimateDialog={openEstimateDialog}
                 openTargetDialog={openTargetDialog}
+                openNewsSentimentDialog={openNewsSentimentDialog}
                 targetCandidateCount={3}
             />
         );
@@ -86,6 +88,8 @@ describe("Period", () => {
         expect(screen.getByText("3")).toHaveClass("MuiBadge-colorSuccess");
         fireEvent.click(manageTargets);
         expect(openTargetDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
+        fireEvent.click(screen.getByRole("button", {name: "View News Sentiment"}));
+        expect(openNewsSentimentDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
     });
 
     test("updates research through axios", async () => {

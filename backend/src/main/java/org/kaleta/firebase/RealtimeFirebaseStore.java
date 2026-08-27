@@ -5,6 +5,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.internal.NonNull;
 import io.quarkus.arc.properties.IfBuildProperty;
@@ -13,6 +14,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,7 @@ import java.util.concurrent.TimeoutException;
 public class RealtimeFirebaseStore implements FirebaseStore
 {
     private static final long READ_TIMEOUT_SECONDS = 10;
+    private static final int LATEST_NEWS_SENTIMENT_CANDIDATES = 10;
 
     private static final class FirebasePath
     {
@@ -37,6 +40,7 @@ public class RealtimeFirebaseStore implements FirebaseStore
         private static final String QUARTERS = "quarters";
         private static final String TARGETS = "targets";
         private static final String FINNHUB_EARNINGS = "fhe";
+        private static final String NEWS_SENTIMENT = "pgn";
     }
 
     private final FirebaseDatabase database;
@@ -98,6 +102,29 @@ public class RealtimeFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public Map<String, FirebaseCompany.NewsSentiment> findNewsSentiments(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive)
+    {
+        Query query = newsSentiments(ticker)
+                .orderByKey()
+                .startAt(startInclusive.toString())
+                .endAt(endExclusive.toString());
+        return readChildren(query, FirebaseCompany.NewsSentiment.class);
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.NewsSentiment> findLatestNewsSentiments(String ticker)
+    {
+        return readChildren(
+                newsSentiments(ticker)
+                        .orderByKey()
+                        .limitToLast(LATEST_NEWS_SENTIMENT_CANDIDATES),
+                FirebaseCompany.NewsSentiment.class);
+    }
+
+    @Override
     public void replaceAssets(List<FirebaseAsset> assets)
     {
         DatabaseReference reference = database.getReference(FirebasePath.ASSET);
@@ -134,15 +161,22 @@ public class RealtimeFirebaseStore implements FirebaseStore
         return database.getReference(FirebasePath.COMPANY).child(ticker);
     }
 
+    private DatabaseReference newsSentiments(String ticker)
+    {
+        return database.getReference(FirebasePath.COMPANY)
+                .child(ticker.replace(".", "-"))
+                .child(FirebasePath.NEWS_SENTIMENT);
+    }
+
     private <T> Optional<T> read(DatabaseReference reference, Class<T> clazz)
     {
         DataSnapshot snapshot = read(reference);
         return snapshot.exists() ? Optional.ofNullable(snapshot.getValue(clazz)) : Optional.empty();
     }
 
-    private <T> Map<String, T> readChildren(DatabaseReference reference, Class<T> clazz)
+    private <T> Map<String, T> readChildren(Query query, Class<T> clazz)
     {
-        DataSnapshot snapshot = read(reference);
+        DataSnapshot snapshot = read(query);
         Map<String, T> result = new LinkedHashMap<>();
         for (DataSnapshot child : snapshot.getChildren()) {
             result.put(child.getKey(), child.getValue(clazz));
@@ -150,7 +184,7 @@ public class RealtimeFirebaseStore implements FirebaseStore
         return result;
     }
 
-    private DataSnapshot read(DatabaseReference reference)
+    private DataSnapshot read(Query query)
     {
         CompletableFuture<DataSnapshot> result = new CompletableFuture<>();
         ValueEventListener listener = new ValueEventListener()
@@ -167,7 +201,7 @@ public class RealtimeFirebaseStore implements FirebaseStore
                 result.completeExceptionally(error.toException());
             }
         };
-        reference.addListenerForSingleValueEvent(listener);
+        query.addListenerForSingleValueEvent(listener);
 
         try {
             return result.get(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -176,12 +210,12 @@ public class RealtimeFirebaseStore implements FirebaseStore
             throw new IllegalStateException("Firebase read was interrupted", exception);
         } catch (ExecutionException exception) {
             throw new IllegalStateException(
-                    "Failed to read Firebase path '" + reference.getKey() + "'",
+                    "Failed to read Firebase path '" + query.getRef().getKey() + "'",
                     exception.getCause());
         } catch (TimeoutException exception) {
-            reference.removeEventListener(listener);
+            query.removeEventListener(listener);
             throw new IllegalStateException(
-                    "Timed out reading Firebase path '" + reference.getKey() + "'",
+                    "Timed out reading Firebase path '" + query.getRef().getKey() + "'",
                     exception);
         }
     }

@@ -71,8 +71,12 @@ function previousDay(value) {
 }
 
 function dateWindow(period) {
-    const start = period?.previousReportDate || shiftMonths(period?.reportDate, -3);
-    const end = period?.reportDate || shiftMonths(period?.previousReportDate, 3);
+    const type = typeof period?.name === "string"
+        ? period.name.slice(-2)
+        : period?.name?.type;
+    const months = type === "FY" ? 12 : type === "H1" || type === "H2" ? 6 : 3;
+    const start = period?.previousReportDate || shiftMonths(period?.reportDate, -months);
+    const end = period?.reportDate || shiftMonths(period?.previousReportDate, months);
     return start && end && start < end ? {start, end} : null;
 }
 

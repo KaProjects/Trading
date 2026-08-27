@@ -40,6 +40,28 @@
           }
         }
       },
+      "pgn": {
+        "2025-05-27-before": {
+          "stats": {"positive": 1, "negative": 1},
+          "key_takeaways": ["This record is before the sample period window."]
+        },
+        "2025-05-28-start": {
+          "stats": {"positive": 3, "neutral": 1, "negative": 0},
+          "key_takeaways": ["AI demand remains the main growth driver."]
+        },
+        "2025-08-26-last": {
+          "stats": {"positive": 2, "mixed": 1, "negative": 1},
+          "key_takeaways": ["Supply constraints are easing.", "Valuation remains elevated."]
+        },
+        "2025-08-27-end": {
+          "stats": {"positive": 1, "neutral": 2},
+          "key_takeaways": ["This record is on the exclusive boundary."]
+        },
+        "2026-08-23-latest": {
+          "stats": {"positive": 4, "neutral": 1, "mixed": 1},
+          "key_takeaways": ["Inference demand broadened across customers."]
+        }
+      },
       "fhe": {
         "25Q1": {
           "20250201": {

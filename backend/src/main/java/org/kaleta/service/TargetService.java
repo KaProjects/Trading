@@ -9,8 +9,6 @@ import org.kaleta.model.TargetStats;
 import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.api.TargetDao;
 import org.kaleta.persistence.entity.Period;
-import org.kaleta.persistence.entity.PeriodName;
-import org.kaleta.persistence.entity.PeriodType;
 import org.kaleta.persistence.entity.Target;
 import org.kaleta.rest.dto.TargetCreateDto;
 import org.kaleta.rest.dto.TargetDto;
@@ -44,6 +42,8 @@ public class TargetService
     FirebaseService firebaseService;
     @Inject
     CompanyService companyService;
+    @Inject
+    PeriodDateWindowService periodDateWindowService;
 
     public List<TargetDto> getAll(Long periodId)
     {
@@ -109,13 +109,13 @@ public class TargetService
         String ticker = companyService.findEntity(companyId).getTicker();
         List<Period> periods = periodDao.list(companyId);
         Map<Long, Integer> counts = new LinkedHashMap<>();
-        Map<Long, DateWindow> windows = new LinkedHashMap<>();
+        Map<Long, PeriodDateWindowService.DateWindow> windows = new LinkedHashMap<>();
         Set<Long> failedPeriodIds = new LinkedHashSet<>();
         List<String> warnings = new ArrayList<>();
 
         for (Period period : periods) {
             counts.put(period.getId(), 0);
-            DateWindow window = dateWindow(period, periods, warnings);
+            PeriodDateWindowService.DateWindow window = dateWindow(period, periods, warnings);
             if (window != null) {
                 windows.put(period.getId(), window);
             } else {
@@ -149,7 +149,7 @@ public class TargetService
         }
 
         for (Period period : periods) {
-            DateWindow window = windows.get(period.getId());
+            PeriodDateWindowService.DateWindow window = windows.get(period.getId());
             if (window == null) continue;
 
             Set<TargetIdentity> persisted = persistedByPeriod.getOrDefault(period.getId(), Set.of());
@@ -168,7 +168,7 @@ public class TargetService
     private CandidateResult candidates(Period period)
     {
         List<String> warnings = new ArrayList<>();
-        DateWindow window = dateWindow(
+        PeriodDateWindowService.DateWindow window = dateWindow(
                 period,
                 periodDao.list(period.getCompany().getId()),
                 warnings);
@@ -192,14 +192,14 @@ public class TargetService
 
     private List<Target> candidates(
             Period period,
-            DateWindow window,
+            PeriodDateWindowService.DateWindow window,
             Set<TargetIdentity> persisted,
             List<TargetData> firebaseTargets)
     {
         Map<TargetIdentity, Target> candidates = new LinkedHashMap<>();
 
         for (TargetData firebaseTarget : firebaseTargets) {
-            if (firebaseTarget.date().isBefore(window.start()) || !firebaseTarget.date().isBefore(window.end())) {
+            if (!window.contains(firebaseTarget.date())) {
                 continue;
             }
 
@@ -231,9 +231,12 @@ public class TargetService
         return List.copyOf(result);
     }
 
-    private DateWindow dateWindow(Period period, List<Period> periods, List<String> warnings)
+    private PeriodDateWindowService.DateWindow dateWindow(
+            Period period,
+            List<Period> periods,
+            List<String> warnings)
     {
-        DateWindowResolution resolution = resolveDateWindow(period, periods);
+        PeriodDateWindowService.Resolution resolution = periodDateWindowService.resolve(period, periods);
         if (resolution.window() != null) {
             return resolution.window();
         }
@@ -243,36 +246,9 @@ public class TargetService
         return null;
     }
 
-    private DateWindowResolution resolveDateWindow(Period period, List<Period> periods)
-    {
-        LocalDate currentReportDate = toLocalDate(period.getReportDate());
-        LocalDate previousReportDate = previousPeriod(period, periods)
-                .map(Period::getReportDate)
-                .map(Date::toLocalDate)
-                .orElse(null);
-
-        if (currentReportDate == null && previousReportDate == null) {
-            return new DateWindowResolution(
-                    null,
-                    "current and previous report dates are unavailable");
-        }
-
-        LocalDate start = previousReportDate != null
-                ? previousReportDate
-                : currentReportDate.minusMonths(3);
-        LocalDate end = currentReportDate != null
-                ? currentReportDate
-                : previousReportDate.plusMonths(3);
-
-        if (!start.isBefore(end)) {
-            return new DateWindowResolution(null, "invalid report-date window");
-        }
-        return new DateWindowResolution(new DateWindow(start, end), null);
-    }
-
     private void validateTargetDate(Period period, LocalDate targetDate)
     {
-        DateWindowResolution resolution = resolveDateWindow(
+        PeriodDateWindowService.Resolution resolution = periodDateWindowService.resolve(
                 period,
                 periodDao.list(period.getCompany().getId()));
         if (resolution.window() == null) {
@@ -281,40 +257,12 @@ public class TargetService
                             + "': " + resolution.error());
         }
 
-        DateWindow window = resolution.window();
-        if (targetDate.isBefore(window.start()) || !targetDate.isBefore(window.end())) {
+        PeriodDateWindowService.DateWindow window = resolution.window();
+        if (!window.contains(targetDate)) {
             throw new InvalidInputException(
                     "target date '" + targetDate + "' must be on or after '" + window.start()
                             + "' and before '" + window.end() + "' for period '" + period.getName() + "'");
         }
-    }
-
-    private java.util.Optional<Period> previousPeriod(Period period, List<Period> periods)
-    {
-        PeriodName expected = previous(period.getName());
-        return periods.stream()
-                .filter(candidate -> candidate.getName().equals(expected))
-                .findFirst();
-    }
-
-    private PeriodName previous(PeriodName current)
-    {
-        int year = current.getYear().getValue();
-        PeriodType type = current.getType();
-        return switch (type) {
-            case Q1 -> periodName(year - 1, PeriodType.Q4);
-            case Q2 -> periodName(year, PeriodType.Q1);
-            case Q3 -> periodName(year, PeriodType.Q2);
-            case Q4 -> periodName(year, PeriodType.Q3);
-            case H1 -> periodName(year - 1, PeriodType.H2);
-            case H2 -> periodName(year, PeriodType.H1);
-            case FY -> periodName(year - 1, PeriodType.FY);
-        };
-    }
-
-    private PeriodName periodName(int year, PeriodType type)
-    {
-        return PeriodName.valueOf(String.format("%02d%s", Math.floorMod(year, 100), type));
     }
 
     private TargetData from(FirebaseCompany.Gemini.Target source)
@@ -419,11 +367,6 @@ public class TargetService
         return price;
     }
 
-    private LocalDate toLocalDate(Date date)
-    {
-        return date == null ? null : date.toLocalDate();
-    }
-
     private String nullIfBlank(String value)
     {
         return value == null || value.isBlank() ? null : value.trim();
@@ -445,10 +388,6 @@ public class TargetService
         dto.setTakeaway4(entity.getTakeaway4());
         return dto;
     }
-
-    private record DateWindow(LocalDate start, LocalDate end) {}
-
-    private record DateWindowResolution(DateWindow window, String error) {}
 
     private record CandidateResult(List<Target> targets, List<String> warnings) {}
 

@@ -40,10 +40,12 @@ import {AddRecordDialog} from "../dialog/AddRecordDialog";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
 import {TargetDialog} from "../dialog/TargetDialog";
+import {NewsSentimentDialog} from "../dialog/NewsSentimentDialog";
 import {RESEARCH_SPLIT_BREAKPOINT, RESEARCH_TAB} from "./component/MainBar";
 import {AddTagDialog} from "../dialog/AddTagDialog";
 import {useLocation} from "react-router-dom";
 import {TodoList} from "./component/TodoList";
+import {LatestNewsSentiment} from "./component/LatestNewsSentiment";
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 const researchCardStyle = {
@@ -95,6 +97,7 @@ export const Research = props => {
     const [openEditFinancialDialog, setOpenEditFinancialDialog] = useState(null)
     const [openAddEstimateDialog, setOpenAddEstimateDialog] = useState(null)
     const [openTargetDialog, setOpenTargetDialog] = useState(null)
+    const [openNewsSentimentDialog, setOpenNewsSentimentDialog] = useState(null)
     const [openAddTagDialog, setOpenAddTagDialog] = useState(false)
     const [tagToDelete, setTagToDelete] = useState(null)
     const [tagSuggestions, setTagSuggestions] = useState([])
@@ -126,6 +129,7 @@ export const Research = props => {
                     if (companyChanged) setOpenEarningsProjectionsDialog(false)
                     if (companyChanged) setOpenAddEstimateDialog(null)
                     if (companyChanged) setOpenTargetDialog(null)
+                    if (companyChanged) setOpenNewsSentimentDialog(null)
                     setLoaded(true)
                     fetchTargetCandidateCounts(
                         props.companySelectorValue.id,
@@ -380,6 +384,10 @@ export const Research = props => {
                                     overview={data.estimateOverview}
                                     onOpen={() => setOpenEarningsProjectionsDialog(true)}
                                 />
+                                <LatestNewsSentiment
+                                    companyId={data.company.id}
+                                    sx={{marginTop: "8px"}}
+                                />
 
                                 <Box sx={{position: "absolute", top: "0", right: "0", display: "flex", alignItems: "center"}}>
                                     {data.importablePeriods?.length > 0 &&
@@ -454,6 +462,12 @@ export const Research = props => {
                                 company={props.companySelectorValue}
                                 period={openTargetDialog}
                             />
+                            <NewsSentimentDialog
+                                open={openNewsSentimentDialog !== null}
+                                handleClose={() => setOpenNewsSentimentDialog(null)}
+                                company={props.companySelectorValue}
+                                period={openNewsSentimentDialog}
+                            />
 
                             <Box data-testid="period-list" sx={researchCardRowsStyle}>
                                 {data.periods.map((period) => (
@@ -466,6 +480,7 @@ export const Research = props => {
                                         openEditDialog={() => setOpenEditFinancialDialog(period)}
                                         openEstimateDialog={() => setOpenAddEstimateDialog(period)}
                                         openTargetDialog={() => setOpenTargetDialog(period)}
+                                        openNewsSentimentDialog={() => setOpenNewsSentimentDialog(period)}
                                         targetCandidateCount={targetCandidateCounts[period.id] ?? 0}
                                         targetCandidateFailed={failedTargetCandidatePeriods.has(String(period.id))}
                                     />

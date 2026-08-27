@@ -17,7 +17,11 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -104,6 +108,36 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public Map<String, FirebaseCompany.NewsSentiment> findNewsSentiments(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive)
+    {
+        Map<String, FirebaseCompany.NewsSentiment> result = new LinkedHashMap<>();
+        newsSentiments(ticker).entrySet().stream()
+                .filter(entry -> entry.getKey() != null)
+                .filter(entry -> entry.getKey().compareTo(startInclusive.toString()) >= 0)
+                .filter(entry -> entry.getKey().compareTo(endExclusive.toString()) <= 0)
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+        return Collections.unmodifiableMap(result);
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.NewsSentiment> findLatestNewsSentiments(String ticker)
+    {
+        Map<String, FirebaseCompany.NewsSentiment> result = new LinkedHashMap<>();
+        newsSentiments(ticker).entrySet().stream()
+                .filter(entry -> entry.getKey() != null)
+                .sorted(Comparator.comparing(
+                        (Map.Entry<String, FirebaseCompany.NewsSentiment> entry) -> entry.getKey())
+                        .reversed())
+                .limit(10)
+                .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+        return Collections.unmodifiableMap(result);
+    }
+
+    @Override
     public void replaceAssets(List<FirebaseAsset> newAssets)
     {
         assets.clear();
@@ -131,6 +165,12 @@ public class InMemoryFirebaseStore implements FirebaseStore
     List<FirebaseAsset> getAssets()
     {
         return List.copyOf(assets);
+    }
+
+    private Map<String, FirebaseCompany.NewsSentiment> newsSentiments(String ticker)
+    {
+        FirebaseCompany company = companies.get(ticker.replace(".", "-"));
+        return company == null || company.getPgn() == null ? Map.of() : company.getPgn();
     }
 
     private void createSnapshotIfMissing(

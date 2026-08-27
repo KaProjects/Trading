@@ -10,9 +10,10 @@ import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financial
 import {ReactComponent as EstimatesPlusIcon} from "../../assets/icons/estimates-plus.svg";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
+import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
 
-export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openTargetDialog, targetCandidateCount, targetCandidateFailed}) => {
+export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed}) => {
 
     function formatEndingMonth(endingMonth) {
         if (endingMonth === null || endingMonth === undefined) return "";
@@ -171,6 +172,11 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
                         >
                             <TrackChangesIcon/>
                         </Badge>
+                    </Button>
+                </Tooltip>
+                <Tooltip title="View News Sentiment" placement="left">
+                    <Button aria-label="View News Sentiment" onClick={() => openNewsSentimentDialog?.(period)}>
+                        <NewspaperOutlinedIcon sx={{color: "info.main"}}/>
                     </Button>
                 </Tooltip>
                 {period.financial &&

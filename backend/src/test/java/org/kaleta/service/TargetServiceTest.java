@@ -312,6 +312,26 @@ class TargetServiceTest
         assertThat(targetService.countImportCandidates(PERIOD_ID).count(), is(1));
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "25H2,2025-02-27,2025-02-26",
+            "25FY,2024-08-27,2024-08-26"
+    })
+    void countImportCandidates_usesFrequencyAwareFallbackWhenPreviousDateIsUnavailable(
+            String periodName,
+            String startDate,
+            String beforeDate)
+    {
+        current.setName(PeriodName.valueOf(periodName));
+        when(periodDao.list(COMPANY_ID)).thenReturn(List.of(current));
+        when(firebaseService.getTargets("NVDA")).thenReturn(new FirebaseService.TargetsResult(List.of(
+                firebaseTarget(beforeDate, "Before", "140"),
+                firebaseTarget(startDate, "Start included", "145")
+        ), List.of()));
+
+        assertThat(targetService.countImportCandidates(PERIOD_ID).count(), is(1));
+    }
+
     @Test
     void countImportCandidates_disablesSyncWhenBothBoundaryDatesAreUnavailable()
     {

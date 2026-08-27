@@ -140,14 +140,6 @@ INSERT INTO Record (id, companyId, date, price, content, review, strategy, retro
 INSERT INTO Record (id, companyId, date, price, content, review, strategy, retro) VALUES (2338, 2212, '2025-05-11', '400.5', '[{"type":"paragraph","children":[{"text":"Reviewed EPYC and accelerator adoption as AMD broadened its data-center portfolio."}]}]', '[{"type":"paragraph","children":[{"text":"Server share gains continued, though accelerator execution and software maturity still needed proof."}]}]', '[{"type":"paragraph","children":[{"text":"Maintain a measured position until product launches translate into sustained margin expansion."}]}]', '[{"type":"paragraph","children":[{"text":"The earlier review underestimated how long customer qualification cycles could take."}]}]');
 
 
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1004, 2213, '24Q4', '2501', '2025-02-15', '1200', '720', '480', '240', '30', '1000', '120', '80');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares) VALUES (1420, 2213, '24Q3', '2410', '2024-11-15', '1000', '500', '300', '80', '20', '1000');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES (2278, 2213, '24Q2', '2407', '2024-08-15', '800', '400', '200', '0', '10');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES (2303, 2213, '24Q1', '2404', '2024-02-15', '1234', '456', '123', '11', '7');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend) VALUES (1750, 2213, '23Q4', '2401', '2024-02-01', '900', '450', '240', '120', '15');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2337, 2212, '25Q3', '2510', '2025-11-04', '1850', '960', '410', '260', '0', '0.75', '1250', '185', '132');
-
-
 INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES (2024, 2213, '2021-06-01', '70', '7');
 INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES (1195, 2213, '2022-12-01', '80', '8');
 INSERT INTO Dividend (id, companyId, date, dividend, tax) VALUES (1775, 2213, '2021-12-01', '1000', '100');
@@ -183,66 +175,39 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date, research) VA
 INSERT INTO Period (id, companyId, name, ending_month, research) VALUES (2502, 2300, '26Q2', '2606', '[{"type":"paragraph","children":[{"text":"Monitor the next report for stable retention, improving free cash flow, and evidence that growth is not dependent on higher sales spending."}]}]');
 
 
--- Quarterly financial history and adjusted EPS for NVDA and AMD.
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1251, 2213, '25Q1', '2504', '2025-05-28', '1380', '815', '535', '285', '32', '990', '155', '92');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1252, 2213, '25Q2', '2507', '2025-08-27', '1540', '925', '625', '350', '34', '0.76', '980', '185', '95');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1253, 2213, '25Q3', '2510', '2025-11-19', '1695', '1035', '710', '420', '36', '0.81', '970', '198', '145');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1254, 2213, '25Q4', '2601', '2026-02-25', '1880', '1165', '810', '505', '38', '0.89', '960', '205', '132');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1255, 2213, '26Q1', '2604', '2026-05-27', '2075', '1300', '925', '590', '40', '0.96', '950', '195', '150');
+-- NVDA periods mirror the downloaded production Firebase Gemini snapshot.
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2601, 2213, '26Q1', '2504', '2025-05-28', '44062', '26668', '21638', '18775', '243', '0.76', '24300', '136.33', '104.47');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2602, 2213, '26Q2', '2507', '2025-08-27', '46743', '33842', '28440', '26422', '243', '1.05', '24300', '184.45', '135.37');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2603, 2213, '26Q3', '2510', '2025-11-19', '57006', '41849', '36010', '31910', '243', '1.30', '24300', '212.19', '173.12');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2604, 2213, '26Q4', '2601', '2026-02-25', '68127', '51093', '44299', '42960', '243', '1.62', '24300', '195.98', '174.63');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2605, 2213, '27Q1', '2604', '2026-05-20', '81615', '61157', '53536', '58321', '244', '1.87', '24391', '236.54', '165.17');
+INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (2606, 2213, '27Q2', '2707', '2026-08-26');
 
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1256, 2212, '24Q4', '2501', '2025-02-04', '1320', '670', '270', '160', '0', '1290', '178', '118');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares, price_high, price_low) VALUES (1257, 2212, '25Q1', '2504', '2025-05-06', '1450', '745', '305', '185', '0', '1280', '165', '76');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1258, 2212, '25Q2', '2507', '2025-08-05', '1610', '835', '355', '220', '0', '0.54', '1270', '182', '120');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1259, 2212, '25Q4', '2601', '2026-02-03', '1980', '1040', '455', '305', '0', '1.09', '1240', '205', '151');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1260, 2212, '26Q1', '2604', '2026-05-05', '2180', '1160', '525', '365', '0', '1.16', '1225', '190', '135');
-INSERT INTO Period (id, companyId, name, ending_month) VALUES (1268, 2212, '26Q2', '2607');
+-- AMD periods mirror the downloaded production Firebase Gemini snapshot.
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2610, 2212, '25Q1', '2503', '2025-05-06', '7438', '3736', '806', '709', '0', '0.44', '1620', '122.52', '90.37');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2611, 2212, '25Q2', '2506', '2025-08-05', '7685', '3074', '-134', '872', '0', '0.54', '1610', '186.65', '99.27');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2612, 2212, '25Q3', '2509', '2025-11-04', '9246', '4780', '1300', '1200', '0', '0.75', '1610', '262.80', '157.80');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2613, 2212, '25Q4', '2512', '2026-02-03', '10270', '5577', '1752', '1511', '0', '0.92', '1648', '266.96', '194.28');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2614, 2212, '26Q1', '2603', '2026-05-05', '10253', '5434', '1476', '1383', '0', '0.84', '1653', '362.79', '189.02');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2615, 2212, '26Q2', '2606', '2026-08-04', '11536', '6203', '1990', '2297', '0', '1.38', '1664', '584.73', '401.08');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (2616, 2212, '26Q3', '2609');
 
--- Saved analyst snapshots for AMD quarters, including shortened future horizons.
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1395, 1256, '2025-02-01 09:00:00', '0.95', '1.05', '1.15', '1.28');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1396, 1257, '2025-05-01 09:00:00', '1.10', '1.18', '1.30');
-INSERT INTO Estimate (id, periodId, datetime, current, next1) VALUES (1397, 1258, '2025-08-01 09:00:00', '1.22', '1.34');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1398, 2337, '2025-11-01 09:00:00', '1.30', '1.42', '1.55', '1.70');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1399, 1259, '2026-02-01 09:00:00', '1.40', '1.52', '1.68', '1.82');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1400, 1260, '2026-05-01 09:00:00', '1.50', '1.65', '1.82');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1401, 1268, '2026-07-20 09:00:00', '1.44', '1.82', '2.55', '2.70');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1402, 1268, '2026-08-01 18:30:00', '1.62', '1.85', '2.64', '2.76');
+-- INTC periods mirror the downloaded production Firebase Gemini snapshot.
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2620, 2214, '25Q2', '2506', '2025-07-24', '12859', '3536', '-3200', '-2918', '0', '-0.67', '4377', '44.00', '20.70');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2621, 2214, '25Q3', '2509', '2025-10-23', '13653', '5220', '683', '4063', '0', '0.90', '4514', '38.28', '18.96');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2622, 2214, '25Q4', '2512', '2026-01-22', '13674', '4936', '-500', '-591', '0', '-0.12', '4925', '54.41', '38.16');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2623, 2214, '26Q1', '2603', '2026-04-23', '13577', '5350', '-3140', '-3730', '0', '-0.73', '5083', '70.33', '40.63');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2624, 2214, '26Q2', '2606', '2026-07-23', '16128', '6509', '1796', '-11033', '0', '-2.16', '5104', '142.35', '79.62');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (2625, 2214, '26Q3', '2609');
 
-
--- Intel quarterly sequence: only the latest period remains unreported.
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2410, 2214, '25Q1', '2503', '2025-04-24', '12667', '4672', '-301', '-821', '0', '0.13', '4343', '27', '18');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2401, 2214, '25Q2', '2506', '2025-07-24', '12860', '4780', '-630', '-590', '130', '-0.02', '4210', '26', '19');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2402, 2214, '25Q3', '2509', '2025-10-23', '13300', '5200', '100', '-80', '130', '0.23', '4180', '31', '20');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2403, 2214, '25Q4', '2512', '2026-01-22', '13800', '5500', '350', '190', '130', '0.13', '4160', '42', '22');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (1269, 2214, '26Q1', '2603', '2026-04-23', '13100', '5000', '-100', '-140', '130', '0.12', '4140', '38', '19');
-INSERT INTO Period (id, companyId, name, ending_month) VALUES (2411, 2214, '26Q2', '2606');
-
--- Consecutive cash-flow history used by TTM financials and record P/FCF calculations.
-UPDATE Period SET capex = '45', fcf = '235' WHERE id = 1251;
-UPDATE Period SET capex = '52', fcf = '285' WHERE id = 1252;
-UPDATE Period SET capex = '60', fcf = '345' WHERE id = 1253;
-UPDATE Period SET capex = '68', fcf = '425' WHERE id = 1254;
-UPDATE Period SET capex = '78', fcf = '510' WHERE id = 1255;
-
-UPDATE Period SET capex = '75', fcf = '120' WHERE id = 1257;
-UPDATE Period SET capex = '82', fcf = '145' WHERE id = 1258;
-UPDATE Period SET capex = '90', fcf = '175' WHERE id = 2337;
-UPDATE Period SET capex = '98', fcf = '220' WHERE id = 1259;
-UPDATE Period SET capex = '108', fcf = '275' WHERE id = 1260;
-
-UPDATE Period SET capex = '3200', fcf = '-2500' WHERE id = 2410;
-UPDATE Period SET capex = '3400', fcf = '-2750' WHERE id = 2401;
-UPDATE Period SET capex = '3100', fcf = '-2100' WHERE id = 2402;
-UPDATE Period SET capex = '2800', fcf = '-1250' WHERE id = 2403;
-UPDATE Period SET capex = '2600', fcf = '-900' WHERE id = 1269;
-
--- Intel analyst snapshots exercise reported and unreported estimate states.
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1410, 2410, '2025-04-15 09:00:00', '-0.15', '-0.02', '0.18', '0.12');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1411, 2401, '2025-07-20 09:00:00', '-0.02', '0.20', '0.12', '0.15');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1412, 2402, '2025-10-20 09:00:00', '0.23', '0.14', '0.17', '0.20');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1413, 2403, '2026-01-18 09:00:00', '0.13', '0.12', '0.18', '0.23');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1414, 1269, '2026-04-18 09:00:00', '0.12', '0.17', '0.23', '0.28');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1415, 2411, '2026-07-20 09:00:00', '0.10', '0.19', '0.25', '0.31');
-INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1416, 2411, '2026-08-03 09:00:00', '0.11', '0.20', '0.26', '0.32');
+-- Estimate snapshots use EPS projections from the same Firebase copy.
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1395, 2606, '2026-05-28 09:00:00', '2.12', '2.40', '2.72', '2.92');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1396, 2615, '2026-05-12 09:00:00', '1.62', '1.85', '2.64', '2.76');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1397, 2616, '2026-06-18 09:00:00', '1.85', '2.64', '2.76');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1398, 2616, '2026-08-11 09:00:00', '1.96', '2.64', '3.01');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1399, 2624, '2026-04-30 09:00:00', '0.20', '0.27', '0.31', '0.28');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1400, 2625, '2026-06-18 09:00:00', '0.27', '0.31', '0.28');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1401, 2625, '2026-08-11 09:00:00', '0.39', '0.43', '0.40');
 
 -- Half-year history exercises its separate growth rules.
 
@@ -275,47 +240,24 @@ INSERT INTO Latest (id, companyId, datetime, price) VALUES (1435, 1504, '2026-07
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1436, 2261, '2026-07-24 16:00:00', '102.30');
 
 
--- Persisted analyst targets used by the research target summary and dialog.
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1254, '2025-12-10', 'Northstar Research', '170', 'Hold', 'Demand remains healthy while valuation is elevated.', 'Watch data-center order growth.');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (1254, '2026-01-15', 'Example Capital', '185', 'Buy', 'The product cycle supports continued earnings growth.', 'Margins remain resilient.', 'Execution is the main risk.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1254, '2026-02-20', 'Summit Securities', '200', 'Outperform');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1255, '2026-03-10', 'Example Capital', '190', 'Buy', 'Existing Firebase identity used to demonstrate idempotent synchronization.', 'The duplicate candidate is not imported twice.');
+-- Persisted targets use identities present in the downloaded Firebase copy.
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2606, '2026-08-03', 'Bernstein', '315', 'buy', 'Recent target data exercises local persistence and Firebase sync de-duplication.', 'Compare the target range with forward earnings revisions.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2606, '2026-08-10', 'Morgan Stanley', '288', 'buy');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2606, '2026-08-20', 'RBC Capital', '300', 'Outperform', 'Accelerated computing demand remains the central valuation driver.', 'Watch customer concentration and export restrictions.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2606, '2026-08-24', 'Wedbush', '330', 'Outperform');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2606, '2026-08-25', 'Raymond James', '352', 'Strong Buy');
 
--- Additional Nvidia targets across the latest four reported periods.
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1252, '2025-06-12', 'Morgan Stanley', '172.50', 'Overweight', 'Data-center demand remains the primary growth driver.', 'Monitor supply availability.');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1252, '2025-07-10', 'Citi', '180', 'Buy', 'Accelerated-computing adoption supports estimate revisions.', 'Networking adds another growth path.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1252, '2025-08-12', 'Goldman Sachs', '178', 'Neutral');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1253, '2025-09-09', 'JPMorgan', '188', 'Overweight', 'The product roadmap remains ahead of competing platforms.', 'Valuation leaves less room for execution misses.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1253, '2025-10-14', 'UBS', '195', 'Buy');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1254, '2025-12-05', 'Barclays', '210', 'Overweight', 'Cloud capital spending supports continued revenue growth.', 'Watch customer concentration.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1254, '2026-01-29', 'BofA Securities', '225', 'Buy');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1255, '2026-03-18', 'Wells Fargo', '205', 'Overweight', 'Inference demand broadens the addressable market.', 'Gross margin remains a key sensitivity.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1255, '2026-04-21', 'Mizuho', '215', 'Outperform');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (1255, '2026-05-12', 'Truist Securities', '220', 'Buy', 'Enterprise adoption and networking support the outlook.', 'Software adoption is improving.', 'Export restrictions remain a risk.');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2615, '2026-07-23', 'Benchmark', '685', 'Buy', 'Server share gains and accelerator execution support the target.', 'Track data-center growth and software adoption.');
+INSERT INTO Target (periodId, date, institution, price) VALUES (2615, '2026-07-24', 'UBS', '730');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2616, '2026-08-04', 'Benchmark', '685', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2616, '2026-08-05', 'Morgan Stanley', '465', 'Equal-Weight', 'The target reflects a more cautious accelerator adoption scenario.', 'Execution against the product roadmap remains the key variable.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2616, '2026-08-25', 'Raymond James', '641', 'Strong Buy');
 
--- AMD targets across the latest four reported periods.
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1258, '2025-06-03', 'Jefferies', '145', 'Buy', 'Server share gains support the earnings outlook.', 'Track EPYC adoption.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1258, '2025-07-17', 'Morgan Stanley', '155', 'Equal Weight');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1258, '2025-07-31', 'Citi', '160', 'Buy', 'Data-center growth offsets a more cyclical client business.', 'Accelerator execution is the main variable.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2337, '2025-08-22', 'Goldman Sachs', '175', 'Buy');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2337, '2025-10-13', 'UBS', '182', 'Neutral', 'The roadmap is competitive but expectations are elevated.', 'Watch software ecosystem adoption.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1259, '2025-11-18', 'BofA Securities', '190', 'Buy');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1259, '2026-01-12', 'Barclays', '200', 'Overweight', 'Improving product mix supports margin expansion.', 'Client demand remains cyclical.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1260, '2026-02-20', 'Wells Fargo', '185', 'Overweight');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1260, '2026-03-26', 'Mizuho', '195', 'Outperform', 'Server momentum and accelerator optionality support the target.', 'Execution must translate into free cash flow.');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (1260, '2026-04-21', 'JPMorgan', '205', 'Overweight', 'Share gains remain durable across cloud and enterprise.', 'The accelerator pipeline is expanding.', 'Competition may pressure pricing.');
-
--- Intel targets across the latest four reported periods.
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2401, '2025-05-08', 'BofA Securities', '22', 'Underperform', 'Foundry investment continues to weigh on profitability.', 'Monitor cash burn.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2401, '2025-06-03', 'Citi', '24', 'Neutral');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2401, '2025-07-15', 'JPMorgan', '25', 'Neutral', 'Product execution is improving while the turnaround remains early.', 'Foundry utilization is the key milestone.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2402, '2025-08-13', 'Morgan Stanley', '26', 'Equal Weight');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2402, '2025-09-29', 'Bernstein', '28', 'Market Perform', 'A stronger product roadmap is offset by capital intensity.', 'Track gross-margin recovery.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2403, '2025-11-06', 'UBS', '30', 'Neutral');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2403, '2026-01-08', 'Mizuho', '32', 'Neutral', 'The restructuring improves focus but execution risk remains.', 'Foundry customer wins are required.');
-INSERT INTO Target (periodId, date, institution, price, rating) VALUES (1269, '2026-02-10', 'BofA Securities', '25', 'Underperform');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (1269, '2026-03-12', 'Citi', '27', 'Neutral', 'Cost reductions provide support while revenue growth remains uncertain.', 'Watch operating cash flow.');
-INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (1269, '2026-04-15', 'JPMorgan', '29', 'Neutral', 'Execution against the manufacturing roadmap drives the valuation.', 'Product competitiveness is stabilizing.', 'Capital requirements remain elevated.');
+INSERT INTO Target (periodId, date, institution, price, overview, takeaway1) VALUES (2625, '2026-07-24', 'Baird', '125', 'Turnaround expectations remain sensitive to foundry execution.', 'Monitor capital intensity and external customer wins.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2625, '2026-07-24', 'Rosenblatt Securities', '80', 'Sell');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2625, '2026-07-28', 'Rosenblatt', '65', 'Sell');
+INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2625, '2026-08-12', 'Bank of America', '145', 'Buy', 'Product progress is offset by the cost of the manufacturing transition.', 'Free cash flow remains the critical checkpoint.');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2625, '2026-08-17', 'UBS', '112', 'Neutral');
 
 -- NTRD targets demonstrate low-price formatting across reported and unreported periods.
 INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2501, '2026-02-12', 'Lakeview Research', '0.85', 'Hold', 'Retention remains stable while the company is still proving operating leverage.', 'Monitor customer acquisition costs.');

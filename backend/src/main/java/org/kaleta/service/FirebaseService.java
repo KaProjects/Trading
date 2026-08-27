@@ -14,7 +14,9 @@ import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,6 +53,17 @@ public class FirebaseService
         public TargetsResult
         {
             targets = List.copyOf(targets);
+            warnings = List.copyOf(warnings);
+        }
+    }
+
+    public record NewsSentimentsResult(
+            Map<String, FirebaseCompany.NewsSentiment> records,
+            List<String> warnings)
+    {
+        public NewsSentimentsResult
+        {
+            records = Collections.unmodifiableMap(new LinkedHashMap<>(records));
             warnings = List.copyOf(warnings);
         }
     }
@@ -113,6 +126,40 @@ public class FirebaseService
             Log.warn(warning, exception);
             return new TargetsResult(List.of(), List.of(warning));
         }
+    }
+
+    public NewsSentimentsResult getNewsSentiments(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive)
+    {
+        try {
+            return new NewsSentimentsResult(
+                    firebaseStore.findNewsSentiments(ticker, startInclusive, endExclusive),
+                    List.of());
+        } catch (RuntimeException exception) {
+            return unavailableNewsSentiments(ticker, exception);
+        }
+    }
+
+    public NewsSentimentsResult getLatestNewsSentiments(String ticker)
+    {
+        try {
+            return new NewsSentimentsResult(
+                    firebaseStore.findLatestNewsSentiments(ticker),
+                    List.of());
+        } catch (RuntimeException exception) {
+            return unavailableNewsSentiments(ticker, exception);
+        }
+    }
+
+    private NewsSentimentsResult unavailableNewsSentiments(String ticker, RuntimeException exception)
+    {
+        String warning = ExternalWarnings.unavailable(
+                "Firebase news sentiment for " + ticker,
+                exception);
+        Log.warn(warning, exception);
+        return new NewsSentimentsResult(Map.of(), List.of(warning));
     }
 
     private PeriodImportCandidateDto toImportCandidate(

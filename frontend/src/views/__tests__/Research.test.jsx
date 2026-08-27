@@ -89,6 +89,14 @@ jest.mock("../../dialog/TargetDialog", () => ({
         </div>
         : null,
 }));
+jest.mock("../../dialog/NewsSentimentDialog", () => ({
+    NewsSentimentDialog: (props) => props.open
+        ? <div>news-sentiment-dialog:{props.company.id}:{props.period.id}</div>
+        : null,
+}));
+jest.mock("../component/LatestNewsSentiment", () => ({
+    LatestNewsSentiment: ({companyId}) => <div>latest-news-sentiment:{companyId}</div>,
+}));
 jest.mock("../../dialog/AddTagDialog", () => ({
     AddTagDialog: (props) => props.open
         ? <div>add-tag-dialog:{props.companyId}:{props.suggestions.join(",")}</div>
@@ -114,13 +122,14 @@ jest.mock("../component/Record", () => ({
     )
 }));
 jest.mock("../component/Period", () => ({
-    Period: ({period, openDialog, openEstimateDialog, openTargetDialog, targetCandidateCount, targetCandidateFailed}) => (
+    Period: ({period, openDialog, openEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed}) => (
         <div>
             <span>period:{period.id}</span>
             <span>target-candidates:{period.id}:{targetCandidateCount}:{targetCandidateFailed ? "failed" : "ok"}</span>
             <button onClick={openDialog}>open-period-dialog:{period.id}</button>
             <button onClick={openEstimateDialog}>open-estimate-dialog:{period.id}</button>
             <button onClick={openTargetDialog}>open-target-dialog:{period.id}</button>
+            <button onClick={openNewsSentimentDialog}>open-news-sentiment-dialog:{period.id}</button>
         </div>
     )
 }));
@@ -291,6 +300,7 @@ describe("Research", () => {
         expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
         expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top-xs", "13px");
         expect(screen.getByTestId("period-estimates-overview")).toHaveTextContent("estimate-overview:14");
+        expect(screen.getByText("latest-news-sentiment:company-1")).toBeInTheDocument();
         expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
         expect(screen.getByText("Market Cap: $1B")).toBeInTheDocument();
         expect(screen.getByText("Dividend Yield: 2%")).toBeInTheDocument();
@@ -471,6 +481,17 @@ describe("Research", () => {
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(countUrl));
         fireEvent.click(screen.getByText("refresh-targets"));
         await waitFor(() => expect(axios.get.mock.calls.filter(([url]) => url === countUrl)).toHaveLength(2));
+    });
+
+    test("opens the news sentiment dialog for a period", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("open-news-sentiment-dialog:period-1");
+        fireEvent.click(screen.getByText("open-news-sentiment-dialog:period-1"));
+
+        expect(screen.getByText("news-sentiment-dialog:company-1:period-1")).toBeInTheDocument();
     });
 
     test("loads target candidate counts asynchronously and passes them to periods", async () => {
