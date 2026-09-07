@@ -17,6 +17,7 @@ import {TradeImport} from "./views/TradeImport";
 import {DividendImport} from "./views/DividendImport";
 import {Box, ThemeProvider} from "@mui/material";
 import {appTheme} from "./theme";
+import {CloseOnNavigation} from "./views/component/CloseOnNavigation";
 
 const PageNotFound = () => (
     <div style={{position: "absolute", top: "25%", left: "50%", transform: "translate(-50%, -50%)"}}>
@@ -123,6 +124,12 @@ export const App = () => {
     return (
         <ThemeProvider theme={appTheme}>
             <BrowserRouter>
+                <CloseOnNavigation close={() => {
+                    setOpenAddTrade(false);
+                    setOpenSellTrade(false);
+                    setOpenAddDividend(false);
+                    setOpenEditCompany(null);
+                }}/>
                 <MainBar {...props} />
                 <Box sx={{
                     pt: "var(--main-bar-height, 48px)",

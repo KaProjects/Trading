@@ -44,6 +44,7 @@ import {NewsSentimentDialog} from "../dialog/NewsSentimentDialog";
 import {RESEARCH_SPLIT_BREAKPOINT, RESEARCH_TAB} from "./component/MainBar";
 import {AddTagDialog} from "../dialog/AddTagDialog";
 import {useLocation} from "react-router-dom";
+import {useCloseOnNavigation} from "../service/NavigationService";
 import {TodoList} from "./component/TodoList";
 import {LatestNewsSentiment} from "./component/LatestNewsSentiment";
 import EditNoteIcon from "@mui/icons-material/EditNote";
@@ -109,6 +110,21 @@ export const Research = props => {
     const [failedTargetCandidatePeriods, setFailedTargetCandidatePeriods] = useState(new Set())
     const previousCompanyId = useRef(null)
     const latestRequestId = useRef(0)
+
+    useCloseOnNavigation(() => {
+        setOpenAddRecordDialog(false)
+        setOpenAddPeriodDialog(false)
+        setOpenImportPeriodDialog(false)
+        setOpenFinancialsDialog(false)
+        setOpenEarningsProjectionsDialog(false)
+        setOpenAddFinancialDialog(null)
+        setOpenEditFinancialDialog(null)
+        setOpenAddEstimateDialog(null)
+        setOpenTargetDialog(null)
+        setOpenNewsSentimentDialog(null)
+        setOpenAddTagDialog(false)
+        setTagToDelete(null)
+    })
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
     const todoTabSelected = researchTabsIndex === RESEARCH_TAB.todo
 
@@ -129,11 +145,6 @@ export const Research = props => {
                     setData(response.data)
                     setError(null)
 
-                    if (companyChanged) setOpenFinancialsDialog(false)
-                    if (companyChanged) setOpenEarningsProjectionsDialog(false)
-                    if (companyChanged) setOpenAddEstimateDialog(null)
-                    if (companyChanged) setOpenTargetDialog(null)
-                    if (companyChanged) setOpenNewsSentimentDialog(null)
                     setLoaded(true)
                     fetchTargetCandidateCounts(
                         props.companySelectorValue.id,
