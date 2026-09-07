@@ -17,6 +17,7 @@ const SINGLE_TICKER_SCRIPT_URL = "https://widgets.tradingview-widget.com/w/en/tv
 const ADVANCED_CHART_SCRIPT_URL = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
 const SINGLE_TICKER_BODY_HEIGHT = "76px"
 const SINGLE_TICKER_ERROR_SELECTOR = "tv-error-boundary[has-error]"
+const SINGLE_TICKER_BRANDING_TAG = "tv-branding"
 const SINGLE_TICKER_LOAD_TIMEOUT = 10000
 let singleTickerScriptPromise
 
@@ -87,6 +88,10 @@ const TradingViewSingleTicker = ({symbol, onUnavailable}) => {
 
             renderRoot ??= ticker.shadowRoot
             if (!renderRoot) return
+
+            const brandingStyle = document.createElement("style")
+            brandingStyle.textContent = `${SINGLE_TICKER_BRANDING_TAG} { display: none !important; }`
+            renderRoot.appendChild(brandingStyle)
 
             const detectError = () => {
                 if (renderRoot.querySelector(SINGLE_TICKER_ERROR_SELECTOR)) {

@@ -278,6 +278,7 @@ export const Research = props => {
                                 <Box sx={{
                                     color: 'text.secondary',
                                     marginLeft: hasTradingView ? "2px" : 0,
+                                    display: {xs: "none", sm: "block"},
                                 }}>
                                     Research
                                 </Box>
@@ -455,7 +456,13 @@ export const Research = props => {
                                     sx={{marginTop: "8px"}}
                                 />
 
-                                <Box sx={{position: "absolute", top: "0", right: "0", display: "flex", alignItems: "center"}}>
+                                <Box sx={{
+                                    position: "absolute",
+                                    top: {xs: "-10px", sm: "0"},
+                                    right: {xs: "-10px", sm: "0"},
+                                    display: "flex",
+                                    alignItems: "center",
+                                }}>
                                     {data.importablePeriods?.length > 0 &&
                                         <>
                                             <Button onClick={() => setOpenImportPeriodDialog(true)}>
@@ -567,7 +574,7 @@ export const Research = props => {
                     }}>
                         <CardContent sx={researchCardContentStyle}>
                             <Box sx={{position: "relative", flexShrink: 0}}>
-                                <Box sx={{color: 'text.secondary'}}>Records</Box>
+                                <Box sx={{color: 'text.secondary', display: {xs: "none", sm: "block"}}}>Records</Box>
 
                                 {data.latest &&
                                 <>

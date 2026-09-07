@@ -11,8 +11,10 @@ class MockTradingViewTicker extends HTMLElement {
         if (this.errorBoundary) return;
 
         const root = this.attachShadow({mode: "closed"});
+        this.renderRoot = root;
         this.errorBoundary = document.createElement("tv-error-boundary");
-        root.appendChild(this.errorBoundary);
+        this.branding = document.createElement("tv-branding");
+        root.append(this.errorBoundary, this.branding);
     }
 
     reportError() {
@@ -71,6 +73,17 @@ describe("TradingViewOverview", () => {
         container.querySelector("tv-single-ticker").reportError();
 
         await waitFor(() => expect(onUnavailable).toHaveBeenCalledTimes(1));
+    });
+
+    test("hides the TradingView branding inside the widget", async () => {
+        const {container} = render(<TradingViewOverview company={company}/>);
+
+        await waitFor(() => expect(container.querySelector("tv-single-ticker")).toBeInTheDocument());
+        const root = container.querySelector("tv-single-ticker").renderRoot;
+
+        await waitFor(() => expect(root.querySelector("style")).toBeInTheDocument());
+        expect(root.querySelector("style").textContent)
+            .toContain("tv-branding { display: none !important; }");
     });
 
     test("renders nothing when the company has no TradingView exchange", () => {
