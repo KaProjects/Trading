@@ -1,8 +1,11 @@
 package org.kaleta.rest.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.time.LocalDate;
 import java.util.List;
 
+@RegisterForReflection
 public record NewsSentimentPeriodDto(
         List<NewsSentimentDto> records,
         Window window,
@@ -14,5 +17,6 @@ public record NewsSentimentPeriodDto(
         warnings = List.copyOf(warnings);
     }
 
+    @RegisterForReflection
     public record Window(LocalDate start, LocalDate end) {}
 }
