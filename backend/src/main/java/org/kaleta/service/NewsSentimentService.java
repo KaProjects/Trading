@@ -111,7 +111,7 @@ public class NewsSentimentService
         if (source == null) {
             throw new IllegalArgumentException("record is null");
         }
-        Map<String, Integer> stats = source.getStats();
+        Map<String, Integer> stats = source.getSentiment();
         if (stats == null) {
             throw new IllegalArgumentException("sentiment statistics are missing");
         }

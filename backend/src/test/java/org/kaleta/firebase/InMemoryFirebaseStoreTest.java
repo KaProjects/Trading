@@ -107,6 +107,8 @@ class InMemoryFirebaseStoreTest
         assertThat(periods.get(1).getName(), is("25Q1"));
         assertThat(firebaseService.getPeriod("NVDA", "25Q1").getEndingMonth(), is("2025-04"));
         assertThat(firebaseService.getPeriod("NVDA", "25Q1").getAdjustedEps(), is("1.28"));
+        assertThat(firebaseService.getPeriod("NVDA", "25Q1").getCapex(), is("3000"));
+        assertThat(firebaseService.getPeriod("NVDA", "25Q1").getFreeCashFlow(), is("12500"));
         assertThat(firebaseService.getNewerPeriods("AMD", "24Q4").periods(), is(empty()));
     }
 
@@ -163,7 +165,7 @@ class InMemoryFirebaseStoreTest
         FirebaseCompany.NewsSentiment latest = firebaseService.getLatestNewsSentiments("NVDA")
                 .records()
                 .get("2026-08-23-latest");
-        assertThat(latest.getStats(), is(Map.of("positive", 4, "neutral", 1, "mixed", 1)));
+        assertThat(latest.getSentiment(), is(Map.of("positive", 4, "neutral", 1, "mixed", 1)));
         assertThat(latest.getKey_takeaways(), contains("Inference demand broadened across customers."));
     }
 

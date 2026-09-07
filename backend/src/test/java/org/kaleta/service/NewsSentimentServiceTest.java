@@ -157,7 +157,7 @@ class NewsSentimentServiceTest
     private FirebaseCompany.NewsSentiment sentiment(Map<String, Integer> values, String... takeaways)
     {
         FirebaseCompany.NewsSentiment sentiment = new FirebaseCompany.NewsSentiment();
-        sentiment.setStats(values);
+        sentiment.setSentiment(values);
         sentiment.setKey_takeaways(List.of(takeaways));
         return sentiment;
     }

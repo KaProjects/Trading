@@ -25,7 +25,7 @@ public class FirebaseCompany
     @RegisterForReflection
     public static class NewsSentiment
     {
-        private Map<String, Integer> stats;
+        private Map<String, Integer> sentiment;
         private List<String> key_takeaways;
     }
 
@@ -96,7 +96,7 @@ public class FirebaseCompany
             private String reported_revenues;
             private String reported_shares;
             private String reported_capex;
-            private String reported_fcf;
+            private String reported_free_cash_flow;
 
             public boolean isInFutureOf(String quarterId)
             {
@@ -144,8 +144,8 @@ public class FirebaseCompany
                 if (this.reported_capex != null && !this.reported_capex.isBlank()) {
                     period.setCapex(new BigDecimal(this.reported_capex).toString());
                 }
-                if (this.reported_fcf != null && !this.reported_fcf.isBlank()) {
-                    period.setFreeCashFlow(new BigDecimal(this.reported_fcf).toString());
+                if (this.reported_free_cash_flow != null && !this.reported_free_cash_flow.isBlank()) {
+                    period.setFreeCashFlow(new BigDecimal(this.reported_free_cash_flow).toString());
                 }
                 if (this.reported_eps != null && !this.reported_eps.isBlank()) {
                     period.setAdjustedEps(new BigDecimal(this.reported_eps).toString());
