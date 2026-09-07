@@ -127,7 +127,8 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
             <PeriodTargetSummary stats={period.targetStats} currency={currency}/>
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
-                       position: "absolute", top: "6px", right: "8px", zIndex: 1, opacity: 0, pointerEvents: "none",
+                       position: "absolute", top: "6px", right: "8px", zIndex: 1,
+                       opacity: {xs: 1, sm: 0}, pointerEvents: {xs: "auto", sm: "none"},
                        maxHeight: "calc(100% - 12px)", overflowY: "auto", overflowX: "hidden",
                        paddingRight: "8px", marginRight: "-8px",
                        transition: "opacity 120ms ease-in-out",
