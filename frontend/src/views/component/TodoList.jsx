@@ -121,7 +121,7 @@ export const TodoList = props => {
                     maxWidth: narrowScreen ? "none" : "200px",
                     position: narrowScreen ? "static" : "absolute",
                     top: 0,
-                    right: narrowScreen ? "auto" : 0,
+                    right: narrowScreen ? "auto" : "-13px",
                     zIndex: 1,
                     marginTop: "2px",
                     marginBottom: 0,

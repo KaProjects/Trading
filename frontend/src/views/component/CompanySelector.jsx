@@ -113,10 +113,8 @@ export const CompanySelector = (props) => {
     const sidebarSx = {
         maxWidth: "200px",
         position: "absolute",
-        left: 0,
+        left: {xs: "-5px", sm: "-13px"},
         display: "block",
-        "@media (max-width:599.95px)": {left: "-5px"},
-        [`@media (min-width:600px) and (max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`]: {left: "-13px"},
     }
     const compactSx = {
         width: {xs: "calc(100% + 10px)", sm: "calc(100% + 26px)"},

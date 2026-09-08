@@ -57,7 +57,9 @@ const researchCardStyle = {
     boxShadow: 1,
     borderRadius: 2,
     minWidth: {xs: 0, sm: 700},
-    width: {xs: "100%", sm: 800},
+    width: {xs: "calc(100% + 10px)", sm: 800},
+    marginLeft: {xs: "-5px", sm: 0},
+    marginRight: {xs: "-5px", sm: 0},
     maxHeight: {
         xs: "calc(100dvh - var(--main-bar-height, 48px) - 8px)",
         sm: "calc(100dvh - var(--main-bar-height, 48px) - 16px)",
@@ -66,11 +68,19 @@ const researchCardStyle = {
     overflow: "hidden",
 }
 
+const cardActionAnchorStyle = {
+    position: "absolute",
+    top: {xs: "-10px", sm: "0"},
+    right: 0,
+}
+
 const researchCardContentStyle = {
     display: "flex",
     flexDirection: "column",
     flex: "1 1 auto",
     minHeight: 0,
+    paddingLeft: {xs: 0, sm: 2},
+    paddingRight: {xs: 0, sm: 2},
     "&:last-child": {paddingBottom: 2},
 }
 
@@ -448,9 +458,7 @@ export const Research = props => {
                                 />
 
                                 <Box sx={{
-                                    position: "absolute",
-                                    top: {xs: "-10px", sm: "0"},
-                                    right: {xs: "-10px", sm: "0"},
+                                    ...cardActionAnchorStyle,
                                     display: "flex",
                                     alignItems: "center",
                                 }}>
@@ -564,7 +572,7 @@ export const Research = props => {
                         },
                     }}>
                         <CardContent sx={researchCardContentStyle}>
-                            <Box sx={{position: "relative", flexShrink: 0}}>
+                            <Box sx={{position: "relative", flexShrink: 0, paddingLeft: {xs: "5px", sm: 0}}}>
                                 <Box sx={{color: 'text.secondary', display: {xs: "none", sm: "block"}}}>Records</Box>
 
                                 {data.latest &&
@@ -576,7 +584,7 @@ export const Research = props => {
                                 </>
                                 }
 
-                                <Button aria-label="Add record" sx={{position: "absolute", top: "0", right: "0"}} onClick={() => setOpenAddRecordDialog(true)}>
+                                <Button aria-label="Add record" sx={cardActionAnchorStyle} onClick={() => setOpenAddRecordDialog(true)}>
                                     <ControlPointIcon sx={{color: 'lightgreen',}}/>
                                 </Button>
                                 <AddRecordDialog
@@ -591,7 +599,7 @@ export const Research = props => {
                             </Box>
 
                             {data.indicators &&
-                                <Box>
+                                <Box sx={{paddingLeft: {xs: "5px", sm: 0}}}>
                                     <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {data.company.currency}{formatMillions(data.indicators.marketCap)}</Box>
                                     <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Dividend Yield: {formatPercent(data.indicators.ttm.dividendYield)}</Box>
 
@@ -614,7 +622,7 @@ export const Research = props => {
                                         marginTop: "10px",
                                         marginRight: "10px",
                                         marginBottom: 0,
-                                        marginLeft: {xs: "3px", sm: "10px"},
+                                        marginLeft: {xs: "5px", sm: "10px"},
                                         maxWidth: "100%",
                                         flexShrink: 0,
                                         overflowX: {xs: "auto", sm: "visible"},
