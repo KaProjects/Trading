@@ -51,6 +51,9 @@ export const AddPeriodFinancialDialog = props => {
         axios.get(`${backend}/research/${company.id}/import/period/${quarterId}${endingMonthQuery}`)
             .then(response => {
                 const data = response.data
+                if (!edit && data.reportDate) {
+                    setFinancial(previous => ({...previous, reportDate: data.reportDate}))
+                }
                 setSuggestions({
                     firebase: data.firebase ?? {},
                     polygon: data.polygon ?? {},

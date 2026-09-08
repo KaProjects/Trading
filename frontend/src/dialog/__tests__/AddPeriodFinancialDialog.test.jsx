@@ -148,14 +148,13 @@ describe("AddPeriodFinancialDialog", () => {
         expect(await screen.findByText("Gemini")).toBeInTheDocument();
         expect(screen.getByText("Polygon.io")).toBeInTheDocument();
         expect(screen.getByText("Alpha Vantage")).toBeInTheDocument();
-        expect(screen.getByLabelText("Report Date")).toHaveValue("");
+        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("");
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("");
 
         fireEvent.click(screen.getByRole("button", {
             name: "Use Polygon.io value for Shares (in Millions)",
         }));
-        fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("10");
         fireEvent.click(screen.getByRole("button", {
             name: "Use Gemini value for Revenue (in Millions)",
@@ -262,6 +261,24 @@ describe("AddPeriodFinancialDialog", () => {
             capex: null,
             freeCashFlow: null,
         }));
+    });
+
+    test("keeps the report date empty when the import data has none", async () => {
+        axios.get.mockResolvedValue({data: {firebase: {}, polygon: {}, alphaVantage: {}, warnings: []}});
+
+        render(<AddPeriodFinancialDialog {...createProps()}/>);
+
+        expect(await screen.findByText("Gemini")).toBeInTheDocument();
+        expect(screen.getByLabelText("Report Date")).toHaveValue("");
+    });
+
+    test("keeps the saved report date when editing", async () => {
+        axios.get.mockResolvedValue({data: {...comparisonData, reportDate: "2024-09-30"}});
+
+        render(<AddPeriodFinancialDialog {...createProps()} edit/>);
+
+        expect(await screen.findByText("Gemini")).toBeInTheDocument();
+        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
     });
 
     test("opens with empty suggestion columns when no import data is available", async () => {
