@@ -1,10 +1,12 @@
 package org.kaleta.rest.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
 
 import java.math.BigDecimal;
 
 @Data
+@RegisterForReflection
 public class TargetDto
 {
     private Long id;
