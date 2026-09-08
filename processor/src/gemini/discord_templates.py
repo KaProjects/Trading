@@ -83,6 +83,39 @@ def price_target(target: Target) -> dict[str, object]:
     }
 
 
+def price_targets(ticker: str, targets: list[Target]) -> dict[str, object]:
+    return {
+        "username": TARGET_REPORTER_USERNAME,
+        "avatar_url": TARGET_REPORTER_AVATAR_URL,
+        "embeds": [
+            _price_targets_embed(targets, title=f"🎯 {ticker} | New price targets")
+        ],
+    }
+
+
+def ticker_price_targets(targets: list[Target]) -> dict[str, object]:
+    return {
+        "embeds": [
+            _price_targets_embed(targets, title="🎯 New price targets")
+        ],
+    }
+
+
+def _price_targets_embed(
+    targets: list[Target],
+    *,
+    title: str,
+) -> dict[str, object]:
+    return {
+        "title": title,
+        "color": 0xF1C40F,
+        "description": "\n".join(
+            f"{target.institution}: ${target.price}"
+            for target in targets
+        ),
+    }
+
+
 def ticker_price_target(target: Target) -> dict[str, object]:
     return {
         "embeds": [{

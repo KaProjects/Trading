@@ -475,6 +475,7 @@ class StockDataRetrieverRunner:
             institutions,
         )
 
+        notifiable_targets: dict[str, list[Target]] = {}
         for target, institution in sorted(
             resolved_targets,
             key=lambda resolved: resolved[0].date,
@@ -506,7 +507,12 @@ class StockDataRetrieverRunner:
 
             if self._persist_price_target(target):
                 ticker_target_dates[target_key] = target.date
-                self._notify_price_target(target)
+                notifiable_targets.setdefault(target.ticker, []).append(
+                    target
+                )
+
+        for ticker, ticker_targets in notifiable_targets.items():
+            self._notify_price_targets(ticker, ticker_targets)
 
         self.log.info(
             LogMsg.TARGETS_RETRIEVED.format(
@@ -543,6 +549,26 @@ class StockDataRetrieverRunner:
             return False
         return True
 
+    def _notify_price_targets(
+        self,
+        ticker: str,
+        targets: list[Target],
+    ) -> None:
+        reported_targets = [
+            target for target in targets if target.report is not None
+        ]
+        plain_targets = [
+            target for target in targets if target.report is None
+        ]
+
+        for target in reported_targets:
+            self._notify_price_target(target)
+
+        if len(plain_targets) == 1:
+            self._notify_price_target(plain_targets[0])
+        elif plain_targets:
+            self._notify_grouped_price_targets(ticker, plain_targets)
+
     def _notify_price_target(self, target: Target) -> None:
         try:
             if self.discord.post_if_channel_exists(
@@ -558,6 +584,27 @@ class StockDataRetrieverRunner:
                 exception,
                 operation="notify_price_target",
                 context=self._price_target_context(target),
+            )
+
+    def _notify_grouped_price_targets(
+        self,
+        ticker: str,
+        targets: list[Target],
+    ) -> None:
+        try:
+            if self.discord.post_if_channel_exists(
+                ticker,
+                discord_templates.ticker_price_targets(targets),
+            ):
+                return
+            self.discord.post_eventlog(
+                discord_templates.price_targets(ticker, targets),
+            )
+        except Exception as exception:
+            self.report_error(
+                exception,
+                operation="notify_price_targets",
+                context={"ticker": ticker, "count": str(len(targets))},
             )
 
     @staticmethod
