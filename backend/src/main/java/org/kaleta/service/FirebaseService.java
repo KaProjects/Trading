@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 @Singleton
@@ -189,20 +190,22 @@ public class FirebaseService
 
     public EstimateImportDto.Quarter getLatestEstimate(String ticker, String quarterId)
     {
-        FirebaseCompany.FinnhubEarnings latest = getLatestEarnings(ticker, quarterId);
+        Map.Entry<String, FirebaseCompany.FinnhubEarnings> latest = getLatestEarnings(ticker, quarterId);
         if (latest == null) return null;
 
         EstimateImportDto.Quarter quarter = new EstimateImportDto.Quarter();
-        quarter.setEps(firstNonBlank(latest.getEpsa(), latest.getEpse()));
-        quarter.setDate(reportDate(latest.getReport()));
+        quarter.setEps(firstNonBlank(latest.getValue().getEpsa(), latest.getValue().getEpse()));
+        quarter.setDate(snapshotDate(latest.getKey()));
         return quarter;
     }
 
     public String getLatestActualEps(String ticker, String quarterId)
     {
-        FirebaseCompany.FinnhubEarnings latest = getLatestEarnings(ticker, quarterId);
-        if (latest == null || latest.getEpsa() == null || latest.getEpsa().isBlank()) return null;
-        return latest.getEpsa();
+        Map.Entry<String, FirebaseCompany.FinnhubEarnings> latest = getLatestEarnings(ticker, quarterId);
+        if (latest == null) return null;
+
+        String actualEps = latest.getValue().getEpsa();
+        return actualEps == null || actualEps.isBlank() ? null : actualEps;
     }
 
     public void updatePeriod(Period period)
@@ -226,14 +229,15 @@ public class FirebaseService
         firebaseStore.updateQuarter(ticker, quarterId, quarter);
     }
 
-    private FirebaseCompany.FinnhubEarnings getLatestEarnings(String ticker, String quarterId)
+    private Map.Entry<String, FirebaseCompany.FinnhubEarnings> getLatestEarnings(
+            String ticker,
+            String quarterId)
     {
         Map<String, FirebaseCompany.FinnhubEarnings> estimates = firebaseStore.findEarnings(ticker, quarterId);
         if (estimates == null || estimates.isEmpty()) return null;
 
         return estimates.entrySet().stream()
                 .max(Map.Entry.comparingByKey())
-                .map(Map.Entry::getValue)
                 .orElse(null);
     }
 
@@ -249,11 +253,11 @@ public class FirebaseService
         return null;
     }
 
-    private String reportDate(String report)
+    private String snapshotDate(String key)
     {
-        if (report == null || report.length() < 10) return null;
+        if (key == null) return null;
         try {
-            return LocalDate.parse(report.substring(0, 10)).toString();
+            return LocalDate.parse(key, DateTimeFormatter.BASIC_ISO_DATE).toString();
         } catch (DateTimeParseException exception) {
             return null;
         }

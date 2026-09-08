@@ -118,13 +118,16 @@ export const TodoList = props => {
                 aria-label="Research todos"
                 subheader={listHeader}
                 sx={{
-                    maxWidth: narrowScreen ? "800px" : "200px",
+                    maxWidth: narrowScreen ? "none" : "200px",
                     position: narrowScreen ? "static" : "absolute",
                     top: 0,
                     right: narrowScreen ? "auto" : 0,
                     zIndex: 1,
-                    margin: narrowScreen ? "2px auto 0" : "2px 0 0",
-                    width: narrowScreen ? "100%" : "200px",
+                    marginTop: "2px",
+                    marginBottom: 0,
+                    marginLeft: narrowScreen ? {xs: "-5px", sm: "-13px"} : 0,
+                    marginRight: 0,
+                    width: narrowScreen ? {xs: "calc(100% + 10px)", sm: "calc(100% + 26px)"} : "200px",
                     maxHeight: "calc(100dvh - var(--main-bar-height, 48px) - 16px)",
                     overflowY: "auto",
                     overscrollBehavior: "contain",

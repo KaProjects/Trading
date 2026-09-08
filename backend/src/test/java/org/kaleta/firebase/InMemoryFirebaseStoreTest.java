@@ -226,9 +226,9 @@ class InMemoryFirebaseStoreTest
         EstimateImportDto.Quarter estimated = firebaseService.getLatestEstimate("NVDA", "25Q2");
 
         assertThat(actual.getEps(), is("1.30"));
-        assertThat(actual.getDate(), is("2025-05-21"));
+        assertThat(actual.getDate(), is("2025-02-02"));
         assertThat(estimated.getEps(), is("1.40"));
-        assertThat(estimated.getDate(), is("2025-08-27"));
+        assertThat(estimated.getDate(), is("2025-05-01"));
         assertThat(firebaseService.getLatestActualEps("NVDA", "25Q1"), is("1.30"));
         assertThat(firebaseService.getLatestActualEps("NVDA", "25Q2"), is(nullValue()));
         assertThat(firebaseService.getLatestEstimate("NVDA", "25Q3"), is(nullValue()));

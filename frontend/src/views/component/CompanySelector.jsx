@@ -110,11 +110,18 @@ export const CompanySelector = (props) => {
         ':before': {borderBottomColor: 'transparent'},
         ':after': {borderBottomColor: 'grey'},
     }
-    const sidebarSx = {maxWidth: "200px", position: "absolute", left: 0, display: "block"}
+    const sidebarSx = {
+        maxWidth: "200px",
+        position: "absolute",
+        left: 0,
+        display: "block",
+        "@media (max-width:599.95px)": {left: "-5px"},
+        [`@media (min-width:600px) and (max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`]: {left: "-13px"},
+    }
     const compactSx = {
-        width: {xs: "calc(100% + 16px)", sm: "calc(100% + 32px)"},
+        width: {xs: "calc(100% + 10px)", sm: "calc(100% + 26px)"},
         maxWidth: "none",
-        marginLeft: {xs: "-8px", sm: "-16px"},
+        marginLeft: {xs: "-5px", sm: "-13px"},
     }
 
     function renderListHeader(listKey) {
