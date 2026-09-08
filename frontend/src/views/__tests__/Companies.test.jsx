@@ -50,7 +50,6 @@ function createData(overrides = {}) {
                 currency: "$",
                 name: "NVIDIA Corporation",
                 description: "Accelerated computing company",
-                logoUrl: "https://example.test/logos/nvda.svg",
                 website: "https://www.nvidia.com",
                 sector: {key: "SEMICONDUCTORS", name: "Semiconductors"},
                 totalTrades: 11,
@@ -122,7 +121,6 @@ describe("Companies", () => {
         expect(screen.getByText("Ticker")).toBeInTheDocument();
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("SHELL")).toBeInTheDocument();
-        expect(screen.getByRole("img", {name: "NVDA logo"})).toHaveAttribute("src", "https://example.test/logos/nvda.svg");
         expect(screen.getByText("NVIDIA Corporation")).toBeInTheDocument();
         expect(screen.getByRole("link", {name: "https://www.nvidia.com"})).toHaveAttribute("href", "https://www.nvidia.com");
         expect(screen.getByText("Accelerated computing company")).toBeInTheDocument();

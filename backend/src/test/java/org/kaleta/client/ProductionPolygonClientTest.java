@@ -73,7 +73,6 @@ class ProductionPolygonClientTest
 
         assertThat(profile.name(), is("Advanced Micro Devices, Inc."));
         assertThat(profile.description(), is("AMD designs high-performance computing products."));
-        assertThat(profile.logoUrl(), is("https://example.test/amd.svg"));
         assertThat(profile.website(), is("https://www.amd.com"));
     }
 
@@ -103,8 +102,7 @@ class ProductionPolygonClientTest
                       "results": {
                         "name": "Advanced Micro Devices, Inc.",
                         "description": "AMD designs high-performance computing products.",
-                        "homepage_url": "https://www.amd.com",
-                        "branding": {"logo_url": "https://example.test/amd.svg"}
+                        "homepage_url": "https://www.amd.com"
                       }
                     }
                     """;

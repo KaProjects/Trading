@@ -17,7 +17,6 @@ CREATE TABLE Company
     exchangeCode         CHAR(4),
     name                 VARCHAR(150),
     description          TEXT,
-    logoUrl              VARCHAR(500),
     website              VARCHAR(500),
     currency             CHAR(1)      NOT NULL,
     sector               VARCHAR(30)

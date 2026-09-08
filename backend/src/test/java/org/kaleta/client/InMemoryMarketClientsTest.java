@@ -63,10 +63,8 @@ class InMemoryMarketClientsTest
 
         assertThat(client.getCompanyProfile("NVDA").orElseThrow().name(), is("NVIDIA Corporation"));
         assertThat(client.getCompanyProfile("AMD").orElseThrow().website(), is("https://www.amd.com"));
-        assertThat(client.getCompanyProfile("INTC").orElseThrow().logoUrl(),
-                is("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/"
-                        + "Intel_logo_%282020%2C_dark_blue%29.svg/"
-                        + "330px-Intel_logo_%282020%2C_dark_blue%29.svg.png"));
+        assertThat(client.getCompanyProfile("INTC").orElseThrow().description(),
+                is("Intel designs and manufactures semiconductor products and computing platforms."));
         assertThat(client.getCompanyProfile("ASML"), is(Optional.empty()));
     }
 

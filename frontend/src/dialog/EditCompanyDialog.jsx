@@ -34,7 +34,6 @@ export const EditCompanyDialog = props => {
     const [alphaVantageTicker, setAlphaVantageTicker] = useState("")
     const [name, setName] = useState("")
     const [description, setDescription] = useState("")
-    const [logoUrl, setLogoUrl] = useState("")
     const [website, setWebsite] = useState("")
     const [profileLoading, setProfileLoading] = useState(false)
     const [alphaVantageTickers, setAlphaVantageTickers] = useState([])
@@ -48,7 +47,6 @@ export const EditCompanyDialog = props => {
             setCurrency(company.id ? company.currency : "")
             setName(company.id ? company.name ?? "" : "")
             setDescription(company.id ? company.description ?? "" : "")
-            setLogoUrl(company.id ? company.logoUrl ?? "" : "")
             setWebsite(company.id ? company.website ?? "" : "")
             setProfileLoading(false)
             const exchangeKey = company.id
@@ -82,7 +80,6 @@ export const EditCompanyDialog = props => {
             exchange: exchange ? exchange.key : null,
             name: name.trim() || null,
             description: description.trim() || null,
-            logoUrl: logoUrl.trim() || null,
             website: website.trim() || null,
         }
         if (sector) companyData.sector = sector.key
@@ -111,7 +108,6 @@ export const EditCompanyDialog = props => {
     function resetProfile() {
         setName("")
         setDescription("")
-        setLogoUrl("")
         setWebsite("")
     }
 
@@ -124,7 +120,6 @@ export const EditCompanyDialog = props => {
             const profile = response.data ?? {}
             setName(profile.name ?? "")
             setDescription(profile.description ?? "")
-            setLogoUrl(profile.logoUrl ?? "")
             setWebsite(profile.website ?? "")
         }).catch(error => {
             setAlert(formatError(error))
@@ -262,14 +257,6 @@ export const EditCompanyDialog = props => {
                         type="url"
                         required={false}
                         onChange={event => {setWebsite(event.target.value);setAlert(null)}}
-                    />
-                    <DialogTextField
-                        id="company-logo-url"
-                        value={logoUrl}
-                        label="Logo URL"
-                        type="url"
-                        required={false}
-                        onChange={event => {setLogoUrl(event.target.value);setAlert(null)}}
                     />
                 </Box>
                 {alphaVantageEnabled && !tickerSearchCompleted &&

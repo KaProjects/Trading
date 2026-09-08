@@ -311,16 +311,7 @@ export const Research = props => {
                                             }}
                                         />
                                         : <Box sx={{fontSize: 34, fontWeight: 'medium'}}>
-                                            {data.company.logoUrl
-                                                ? <Box
-                                                    component="img"
-                                                    src={data.company.logoUrl}
-                                                    alt={`${data.company.ticker} logo`}
-                                                    title={data.company.ticker}
-                                                    sx={{maxWidth: "150px", height: "38px", objectFit: "contain", objectPosition: "left center"}}
-                                                />
-                                                : data.company.ticker
-                                            }
+                                            {data.company.ticker}
                                         </Box>
                                     }
                                     <IconButton

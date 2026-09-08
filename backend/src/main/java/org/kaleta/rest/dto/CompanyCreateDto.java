@@ -26,7 +26,6 @@ public class CompanyCreateDto
     private String description;
     @Size(max = 500)
     @Pattern(regexp = "^https?://\\S+$", message = "must be an HTTP(S) URL")
-    private String logoUrl;
     @Size(max = 500)
     @Pattern(regexp = "^https?://\\S+$", message = "must be an HTTP(S) URL")
     private String website;

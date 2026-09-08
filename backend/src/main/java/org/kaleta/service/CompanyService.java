@@ -163,7 +163,6 @@ public class CompanyService
         setExchange(company, dto.getExchange());
         company.setName(nullableTrimmed(dto.getName()));
         company.setDescription(nullableTrimmed(dto.getDescription()));
-        company.setLogoUrl(nullableTrimmed(dto.getLogoUrl()));
         company.setWebsite(nullableTrimmed(dto.getWebsite()));
 
         companyDao.save(company);
@@ -182,7 +181,6 @@ public class CompanyService
         setExchange(newCompany, dto.getExchange());
         newCompany.setName(nullableTrimmed(dto.getName()));
         newCompany.setDescription(nullableTrimmed(dto.getDescription()));
-        newCompany.setLogoUrl(nullableTrimmed(dto.getLogoUrl()));
         newCompany.setWebsite(nullableTrimmed(dto.getWebsite()));
         newCompany.setCurrency(Currency.valueOf(dto.getCurrency()));
         newCompany.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
@@ -248,7 +246,6 @@ public class CompanyService
                 : new org.kaleta.model.Company.Exchange(entity.getExchange()));
         company.setName(entity.getName());
         company.setDescription(entity.getDescription());
-        company.setLogoUrl(entity.getLogoUrl());
         company.setWebsite(entity.getWebsite());
         company.setCurrency(entity.getCurrency());
         company.setTags(new ArrayList<>(entity.getTags()));
@@ -269,7 +266,6 @@ public class CompanyService
                 : new org.kaleta.model.Company.Exchange(entity.getExchange()));
         company.setName(entity.getName());
         company.setDescription(entity.getDescription());
-        company.setLogoUrl(entity.getLogoUrl());
         company.setWebsite(entity.getWebsite());
         company.setCurrency(entity.getCurrency());
         if (entity.getSector() != null) {

@@ -123,7 +123,6 @@ class CompanyEndpointsTest
         dto.setExchange(Exchange.XPRA.toString());
         dto.setName("Updated Company");
         dto.setDescription("Updated description");
-        dto.setLogoUrl("https://example.test/updated.svg");
         dto.setWebsite("https://example.test/updated");
 
         Assert.put204(path, dto);
@@ -136,7 +135,6 @@ class CompanyEndpointsTest
         assertThat(company.getExchange(), is(Exchange.XPRA));
         assertThat(company.getName(), is(dto.getName()));
         assertThat(company.getDescription(), is(dto.getDescription()));
-        assertThat(company.getLogoUrl(), is(dto.getLogoUrl()));
         assertThat(company.getWebsite(), is(dto.getWebsite()));
     }
 
@@ -197,7 +195,6 @@ class CompanyEndpointsTest
         dto.setExchange(Exchange.XNAS.toString());
         dto.setName("Created Company");
         dto.setDescription("Created description");
-        dto.setLogoUrl("https://example.test/created.svg");
         dto.setWebsite("https://example.test/created");
 
         Assert.post201(path, dto);
@@ -210,7 +207,6 @@ class CompanyEndpointsTest
         assertThat(company.getExchange(), is(Exchange.XNAS));
         assertThat(company.getName(), is(dto.getName()));
         assertThat(company.getDescription(), is(dto.getDescription()));
-        assertThat(company.getLogoUrl(), is(dto.getLogoUrl()));
         assertThat(company.getWebsite(), is(dto.getWebsite()));
     }
 

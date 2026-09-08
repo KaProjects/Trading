@@ -61,7 +61,6 @@ public class ProductionPolygonClient implements PolygonClient
         return Optional.of(new PolygonCompanyProfile(
                 details.name(),
                 details.description(),
-                details.branding() == null ? null : details.branding().logoUrl(),
                 details.website()));
     }
 
@@ -280,14 +279,7 @@ public class ProductionPolygonClient implements PolygonClient
     private record TickerDetails(
             String name,
             String description,
-            @JsonProperty("homepage_url") String website,
-            Branding branding)
-    {
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @RegisterForReflection
-    private record Branding(@JsonProperty("logo_url") String logoUrl)
+            @JsonProperty("homepage_url") String website)
     {
     }
 

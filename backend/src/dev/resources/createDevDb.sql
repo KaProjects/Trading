@@ -1,17 +1,14 @@
-INSERT INTO Company (id, ticker, exchangeCode, currency, sector, name, description, logoUrl, website)
+INSERT INTO Company (id, ticker, exchangeCode, currency, sector, name, description, website)
 VALUES (2213, 'NVDA', 'XNAS', '$', 'HARDWARE', 'NVIDIA Corporation',
         'NVIDIA designs accelerated computing platforms, graphics processors, networking products, and related software.',
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/NVIDIA_logo.svg/330px-NVIDIA_logo.svg.png',
         'https://www.nvidia.com');
-INSERT INTO Company (id, ticker, exchangeCode, currency, sector, name, description, logoUrl, website)
+INSERT INTO Company (id, ticker, exchangeCode, currency, sector, name, description, website)
 VALUES (2212, 'AMD', 'XNAS', '$', 'HARDWARE', 'Advanced Micro Devices, Inc.',
         'AMD designs high-performance and adaptive computing products.',
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/AMD_Logo.svg/330px-AMD_Logo.svg.png',
         'https://www.amd.com');
-INSERT INTO Company (id, ticker, exchangeCode, currency, sector, name, description, logoUrl, website)
+INSERT INTO Company (id, ticker, exchangeCode, currency, sector, name, description, website)
 VALUES (2214, 'INTC', 'XNAS', '$', 'HARDWARE', 'Intel Corporation',
         'Intel designs and manufactures semiconductor products and computing platforms.',
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Intel_logo_%282020%2C_dark_blue%29.svg/330px-Intel_logo_%282020%2C_dark_blue%29.svg.png',
         'https://www.intel.com');
 INSERT INTO Company (id, ticker, alphaVantageTicker, exchangeCode, currency, sector)
 VALUES (2301, 'ASML', 'ASML.AMS', 'XAMS', '€', 'HARDWARE');

@@ -167,7 +167,6 @@ public class CompanyServiceTest
         PolygonCompanyProfile profile = new PolygonCompanyProfile(
                 "NVIDIA Corporation",
                 "Accelerated computing company",
-                "https://example.test/nvda.svg",
                 "https://www.nvidia.com");
         when(polygonClient.getCompanyProfile("NVDA")).thenReturn(Optional.of(profile));
 
@@ -263,7 +262,6 @@ public class CompanyServiceTest
         dto.setExchange(Exchange.XAMS.toString());
         dto.setName("ASML Holding N.V.");
         dto.setDescription("Semiconductor equipment company");
-        dto.setLogoUrl("https://example.test/asml.svg");
         dto.setWebsite("https://www.asml.com");
 
         companyService.update(dto);
@@ -278,7 +276,6 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getExchange(), is(Exchange.XAMS));
         assertThat(captor.getValue().getName(), is("ASML Holding N.V."));
         assertThat(captor.getValue().getDescription(), is("Semiconductor equipment company"));
-        assertThat(captor.getValue().getLogoUrl(), is("https://example.test/asml.svg"));
         assertThat(captor.getValue().getWebsite(), is("https://www.asml.com"));
     }
 
@@ -318,7 +315,6 @@ public class CompanyServiceTest
         dto.setExchange(Exchange.XNAS.toString());
         dto.setName("NVIDIA Corporation");
         dto.setDescription("Accelerated computing company");
-        dto.setLogoUrl("https://example.test/nvda.svg");
         dto.setWebsite("https://www.nvidia.com");
 
         InvalidInputException exception = assertThrows(InvalidInputException.class, () -> companyService.update(dto));
@@ -339,7 +335,6 @@ public class CompanyServiceTest
         dto.setExchange(Exchange.XNAS.toString());
         dto.setName("NVIDIA Corporation");
         dto.setDescription("Accelerated computing company");
-        dto.setLogoUrl("https://example.test/nvda.svg");
         dto.setWebsite("https://www.nvidia.com");
 
         companyService.create(dto);
@@ -353,7 +348,6 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getExchange(), is(Exchange.XNAS));
         assertThat(captor.getValue().getName(), is("NVIDIA Corporation"));
         assertThat(captor.getValue().getDescription(), is("Accelerated computing company"));
-        assertThat(captor.getValue().getLogoUrl(), is("https://example.test/nvda.svg"));
         assertThat(captor.getValue().getWebsite(), is("https://www.nvidia.com"));
     }
 
@@ -486,7 +480,6 @@ public class CompanyServiceTest
         entity.setSector(Sector.SEMICONDUCTORS);
         entity.setName("NVIDIA Corporation");
         entity.setDescription("Accelerated computing company");
-        entity.setLogoUrl("https://example.test/nvda.svg");
         entity.setWebsite("https://www.nvidia.com");
 
         org.kaleta.model.Company company = companyService.from(entity);
@@ -498,7 +491,6 @@ public class CompanyServiceTest
         assertThat(company.getExchange().getName(), is(Exchange.XNAS.getName()));
         assertThat(company.getName(), is("NVIDIA Corporation"));
         assertThat(company.getDescription(), is("Accelerated computing company"));
-        assertThat(company.getLogoUrl(), is("https://example.test/nvda.svg"));
         assertThat(company.getWebsite(), is("https://www.nvidia.com"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
@@ -529,7 +521,6 @@ public class CompanyServiceTest
         assertThat(actual.getAlphaVantageTicker(), is(expected.getAlphaVantageTicker()));
         assertThat(actual.getName(), is(expected.getName()));
         assertThat(actual.getDescription(), is(expected.getDescription()));
-        assertThat(actual.getLogoUrl(), is(expected.getLogoUrl()));
         assertThat(actual.getWebsite(), is(expected.getWebsite()));
         assertThat(actual.getCurrency(), is(expected.getCurrency()));
         assertThat(actual.getTags(), is(expected.getTags()));

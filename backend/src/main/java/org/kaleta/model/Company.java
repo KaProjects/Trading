@@ -15,7 +15,6 @@ public class Company implements Comparable<Company>
     private Exchange exchange;
     private String name;
     private String description;
-    private String logoUrl;
     private String website;
     private Currency currency;
     private Sector sector;

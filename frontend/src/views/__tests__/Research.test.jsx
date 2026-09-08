@@ -349,14 +349,13 @@ describe("Research", () => {
         expect(screen.getByTestId("record-list")).toHaveStyle("padding-top: 5px");
     });
 
-    test("uses the company logo instead of the ticker in the research title", async () => {
+    test("uses the ticker in the research title when TradingView is unavailable", async () => {
         axios.get.mockResolvedValue({
             data: createResearchData({
                 company: {
                     id: "company-1",
                     ticker: "AAPL",
                     currency: "$",
-                    logoUrl: "https://example.test/logos/aapl.png",
                     sector: {key: "TECH", name: "Technology"},
                     tags: [],
                 },
@@ -365,10 +364,8 @@ describe("Research", () => {
 
         render(<Research companySelectorValue={companySelectorValue}/>);
 
-        const logo = await screen.findByRole("img", {name: "AAPL logo"});
-        expect(logo).toHaveAttribute("src", "https://example.test/logos/aapl.png");
-        expect(logo).toHaveAttribute("title", "AAPL");
-        expect(screen.queryByText("AAPL")).not.toBeInTheDocument();
+        expect(await screen.findByText("AAPL")).toBeInTheDocument();
+        expect(screen.queryByRole("img", {name: "AAPL logo"})).not.toBeInTheDocument();
         expect(screen.queryByTestId("trading-view-overview")).not.toBeInTheDocument();
         expect(screen.getByText("Technology")).toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top", "13px");

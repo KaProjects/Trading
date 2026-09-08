@@ -32,15 +32,15 @@ export const Companies = props => {
 
     function headerStyle(index){
         const border = "1px solid lightgrey"
-        const borderRight = (index === 11) ? border : "0px"
+        const borderRight = (index === 10) ? border : "0px"
         return {textAlign: "center", borderLeft: border, borderRight: borderRight, borderBottom: border, borderTop: border}
     }
 
     function rowStyle(index){
         const fontWeight = ([].includes(index)) ? "bold" : "normal"
-        const textAlign = ([0, 1, 7, 9, 10, 11].includes(index)) ? "left" : (index === 8 ? "center" : "right")
+        const textAlign = ([0, 1, 7, 8, 9, 10].includes(index)) ? "left" : "right"
         const borderLeft = "1px solid lightgrey"
-        const borderRight = ([11].includes(index)) ? "1px solid lightgrey" : "0px"
+        const borderRight = ([10].includes(index)) ? "1px solid lightgrey" : "0px"
         const fontFamily = "Roboto"
         let color = "primary"
         return {fontWeight: fontWeight, textAlign: textAlign, borderLeft: borderLeft, borderRight: borderRight, fontFamily: fontFamily, color: color}
@@ -111,10 +111,9 @@ export const Companies = props => {
                                     <HeaderCell index={5} value={"Records"} sortValue={data.sorts[6]}/>
                                     <HeaderCell index={6} value={"Periods"} sortValue={data.sorts[7]}/>
                                     <HeaderCell index={7} value={"Name"}/>
-                                    <HeaderCell index={8} value={"Logo"}/>
-                                    <HeaderCell index={9} value={"Sector"} sortValue={data.sorts[2]}/>
-                                    <HeaderCell index={10} value={"Website"}/>
-                                    <HeaderCell index={11} value={"Description"}/>
+                                    <HeaderCell index={8} value={"Sector"} sortValue={data.sorts[2]}/>
+                                    <HeaderCell index={9} value={"Website"}/>
+                                    <HeaderCell index={10} value={"Description"}/>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -128,14 +127,11 @@ export const Companies = props => {
                                         <TableCellWithAction index={5} value={company.records} action={() => redirect(company.ticker, '/research', null, RESEARCH_TAB.records)}/>
                                         <TableCellWithAction index={6} value={company.periods} action={() => redirect(company.ticker, '/research', null, RESEARCH_TAB.research)}/>
                                         <TableCellWithAction index={7} value={company.name ?? ""}/>
-                                        <TableCellWithAction index={8} value={company.logoUrl
-                                            ? <img src={company.logoUrl} alt={`${company.ticker} logo`} style={{display: "block", width: 28, height: 28, objectFit: "contain", margin: "auto"}}/>
-                                            : ""}/>
-                                        <TableCellWithAction index={9} value={company.sector ? company.sector.name : ''}/>
-                                        <TableCellWithAction index={10} value={company.website
+                                        <TableCellWithAction index={8} value={company.sector ? company.sector.name : ''}/>
+                                        <TableCellWithAction index={9} value={company.website
                                             ? <a href={company.website} target="_blank" rel="noreferrer">{company.website}</a>
                                             : ""}/>
-                                        <TableCellWithAction index={11} value={company.description ?? ""}/>
+                                        <TableCellWithAction index={10} value={company.description ?? ""}/>
                                     </TableRow>
                                 ))}
                             </TableBody>

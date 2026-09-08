@@ -89,7 +89,6 @@ describe("EditCompanyDialog", () => {
             exchange: null,
             name: null,
             description: null,
-            logoUrl: null,
             website: null,
             sector: "SEMICONDUCTORS",
         }));
@@ -109,7 +108,6 @@ describe("EditCompanyDialog", () => {
                 exchange: {key: "XNAS"},
                 name: "NVIDIA Corporation",
                 description: "Accelerated computing company",
-                logoUrl: "https://example.test/nvda.svg",
                 website: "https://www.nvidia.com",
             },
         });
@@ -130,7 +128,6 @@ describe("EditCompanyDialog", () => {
             exchange: "XNAS",
             name: "NVIDIA Corporation",
             description: "Accelerated computing company",
-            logoUrl: "https://example.test/nvda.svg",
             website: "https://www.nvidia.com",
             sector: "SEMICONDUCTORS",
         }));
@@ -161,7 +158,6 @@ describe("EditCompanyDialog", () => {
             data: {
                 name: "NVIDIA Corporation",
                 description: "Accelerated computing company",
-                logoUrl: "https://example.test/nvda.svg",
                 website: "https://www.nvidia.com",
             },
         });
@@ -180,7 +176,6 @@ describe("EditCompanyDialog", () => {
         ));
         await waitFor(() => expect(screen.getByLabelText("Name")).toHaveValue("NVIDIA Corporation"));
         expect(screen.getByLabelText("Description")).toHaveValue("Accelerated computing company");
-        expect(screen.getByLabelText("Logo URL")).toHaveValue("https://example.test/nvda.svg");
         expect(screen.getByLabelText("Website")).toHaveValue("https://www.nvidia.com");
 
         fireEvent.click(screen.getByText("Create"));
@@ -192,7 +187,6 @@ describe("EditCompanyDialog", () => {
             exchange: null,
             name: "NVIDIA Corporation",
             description: "Accelerated computing company",
-            logoUrl: "https://example.test/nvda.svg",
             website: "https://www.nvidia.com",
         }));
     });
@@ -243,7 +237,6 @@ describe("EditCompanyDialog", () => {
             exchange: null,
             name: null,
             description: null,
-            logoUrl: null,
             website: null,
         }));
     });
@@ -266,7 +259,6 @@ describe("EditCompanyDialog", () => {
             exchange: "XPAR",
             name: null,
             description: null,
-            logoUrl: null,
             website: null,
         }));
     });

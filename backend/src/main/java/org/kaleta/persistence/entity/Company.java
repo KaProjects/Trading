@@ -40,8 +40,6 @@ public class Company extends AbstractEntity
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "logoUrl", length = 500)
-    private String logoUrl;
 
     @Column(name = "website", length = 500)
     private String website;
