@@ -1,8 +1,10 @@
-import React, {useEffect, useLayoutEffect, useRef} from "react";
+import React, {useEffect, useLayoutEffect, useRef, useState} from "react";
 import {AppBar, Box, IconButton, Tab, Tabs, Toolbar, Typography} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import {MainBarSelect} from "./MainBarSelect";
 import {MainBarIconButton} from "./MainBarIconButton";
 import {useLocation, useNavigate} from "react-router-dom";
@@ -123,6 +125,8 @@ export const MainBar = props => {
     const companyListKeys = getCompanyListKeys(props.companyLists)
     const companyListKeysSignature = JSON.stringify(companyListKeys)
     const showTodoTab = useMediaQuery(`(max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`)
+    const isNarrowScreen = showTodoTab
+    const [showSecondRow, setShowSecondRow] = useState(false)
     const selectedResearchTab = props.researchTabsIndex
     const setSelectedResearchTab = props.setResearchTabsIndex
     const config = {
@@ -152,6 +156,23 @@ export const MainBar = props => {
             setSelectedResearchTab(RESEARCH_TAB.research)
         }
     }, [showTodoTab, selectedResearchTab, setSelectedResearchTab])
+
+    useEffect(() => {
+        if (!showSecondRow) return
+
+        function handleOutsideClick(event) {
+            if (!mainBarRef.current?.contains(event.target)) {
+                setShowSecondRow(false)
+            }
+        }
+
+        document.addEventListener("mousedown", handleOutsideClick)
+        document.addEventListener("touchstart", handleOutsideClick)
+        return () => {
+            document.removeEventListener("mousedown", handleOutsideClick)
+            document.removeEventListener("touchstart", handleOutsideClick)
+        }
+    }, [showSecondRow])
 
     function searchWithCompany(ticker, search = location.search) {
         const searchParams = new URLSearchParams(search ?? "")
@@ -578,6 +599,8 @@ export const MainBar = props => {
     const visibleSelectors = selectors.filter((selector) => selector.visible)
     const visiblePageNavigationButtons = pageNavigationButtons.filter((button) => button.visible)
     const wrapPageControls = ["/trades", "/dividends", "/companies"].includes(location.pathname)
+    const collapseSecondRow = location.pathname === "/research" && isNarrowScreen
+    const hasSecondRowContent = showResearchExternalLinks
     const actionButtonElements = visibleActionButtons.map((button) => (
         <MainBarIconButton
             key={button.key}
@@ -644,7 +667,7 @@ export const MainBar = props => {
                                 {actionButtonElements}
                             </Box>
                         }
-                        {showResearchExternalLinks &&
+                        {showResearchExternalLinks && !collapseSecondRow &&
                             <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
                                 {researchLinks.map((link) => (
                                     <MainBarIconButton
@@ -705,7 +728,35 @@ export const MainBar = props => {
                         }
                     </Box>
                     <Box sx={{ flexGrow: 1 }} />
+                    {collapseSecondRow && hasSecondRowContent &&
+                        <MainBarIconButton
+                            tooltip={showSecondRow ? "Hide links" : "Show links"}
+                            ariaLabel="toggle research links row"
+                            onClick={() => setShowSecondRow(!showSecondRow)}
+                            icon={showSecondRow ? KeyboardArrowDownIcon : KeyboardArrowUpIcon}
+                            color="white"
+                            buttonSx={{width: 45, height: 30, flexShrink: 0}}
+                            iconSx={{width: 23, height: 23}}
+                        />
+                    }
                 </Toolbar>
+                {collapseSecondRow && showSecondRow && hasSecondRowContent &&
+                    <Toolbar variant="dense" sx={{display: "flex", justifyContent: "center", minHeight: 36}}>
+                        <Box sx={{display: "flex", alignItems: "center", gap: "3px"}}>
+                            {researchLinks.map((link) => (
+                                <MainBarIconButton
+                                    key={link.label}
+                                    tooltip={link.label}
+                                    href={link.url}
+                                    image={link.icon}
+                                    alt={link.label}
+                                    buttonSx={{width: 45, height: 30}}
+                                    iconSx={{width: 21, height: 21}}
+                                />
+                            ))}
+                        </Box>
+                    </Toolbar>
+                }
             </AppBar>
         </Box>
     )

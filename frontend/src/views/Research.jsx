@@ -68,12 +68,19 @@ const researchCardStyle = {
     overflow: "hidden",
 }
 
-const cardActionAnchorStyle = {
+const recordActionAnchorStyle = {
     position: "absolute",
     top: 0,
+    right: 0,
+}
+
+const periodActionAnchorStyle = {
+    position: "absolute",
+    top: {xs: "6px", sm: 0},
     left: {xs: "50%", sm: "auto"},
     right: {xs: "auto", sm: 0},
-    transform: {xs: "translateX(-50%)", sm: "none"},
+    transform: {xs: "translateX(calc(-50% + 25px))", sm: "none"},
+    zIndex: 2,
 }
 
 const researchCardContentStyle = {
@@ -360,13 +367,14 @@ export const Research = props => {
                                         size="small"
                                         onClick={() => props.setOpenEditCompany(data.company)}
                                         sx={{
-                                            position: "absolute",
-                                            top: 0,
-                                            right: 0,
-                                            zIndex: 2,
+                                            position: {xs: "absolute", sm: "static"},
+                                            top: {xs: 0, sm: "auto"},
+                                            right: {xs: 0, sm: "auto"},
+                                            zIndex: {xs: 2, sm: "auto"},
+                                            marginLeft: {xs: 0, sm: "3px"},
                                             width: "26px",
                                             height: "26px",
-                                            backgroundColor: "background.paper",
+                                            backgroundColor: {xs: "background.paper", sm: "transparent"},
                                         }}
                                     >
                                         <EditNoteIcon sx={{width: 17}}/>
@@ -502,13 +510,14 @@ export const Research = props => {
                                 />
 
                                 <Box sx={{
-                                    ...cardActionAnchorStyle,
+                                    ...periodActionAnchorStyle,
                                     display: "flex",
                                     alignItems: "center",
+                                    gap: {xs: "8px", sm: 0},
                                 }}>
                                     {data.importablePeriods?.length > 0 &&
                                         <>
-                                            <Button onClick={() => setOpenImportPeriodDialog(true)}>
+                                            <Button sx={{minWidth: {xs: 0, sm: 64}, padding: {xs: "6px", sm: "6px 16px"}}} onClick={() => setOpenImportPeriodDialog(true)}>
                                                 <Badge badgeContent={data.importablePeriods.length} sx={badgeStyle}>
                                                     <CloudDownloadIcon sx={{color: 'lightgreen'}}/>
                                                 </Badge>
@@ -522,7 +531,7 @@ export const Research = props => {
                                             />
                                         </>
                                     }
-                                    <Button onClick={() => setOpenAddPeriodDialog(true)}>
+                                    <Button sx={{minWidth: {xs: 0, sm: 64}, padding: {xs: "6px", sm: "6px 16px"}}} onClick={() => setOpenAddPeriodDialog(true)}>
                                         <ControlPointIcon sx={{color: 'lightgreen',}}/>
                                     </Button>
                                     <AddPeriodDialog
@@ -631,7 +640,7 @@ export const Research = props => {
                                 </>
                                 }
 
-                                <Button aria-label="Add record" sx={cardActionAnchorStyle} onClick={() => setOpenAddRecordDialog(true)}>
+                                <Button aria-label="Add record" sx={recordActionAnchorStyle} onClick={() => setOpenAddRecordDialog(true)}>
                                     <ControlPointIcon sx={{color: 'lightgreen',}}/>
                                 </Button>
                                 <AddRecordDialog
