@@ -13,6 +13,7 @@ import {
     Stack,
 } from "@mui/material";
 import React, {useEffect, useRef, useState} from "react";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import {Loader} from "./component/Loader";
 import {backend} from "../properties";
 import axios from "axios";
@@ -64,6 +65,7 @@ const researchCardStyle = {
         xs: "calc(100dvh - var(--main-bar-height, 48px) - 8px)",
         sm: "calc(100dvh - var(--main-bar-height, 48px) - 16px)",
     },
+    height: {xs: "calc(100dvh - var(--main-bar-height, 48px) - 8px)", sm: "auto"},
     flexDirection: "column",
     overflow: "hidden",
 }
@@ -128,6 +130,7 @@ export const Research = props => {
     const [unavailableTradingViewSymbol, setUnavailableTradingViewSymbol] = useState(null)
     const [targetCandidateCounts, setTargetCandidateCounts] = useState({})
     const [failedTargetCandidatePeriods, setFailedTargetCandidatePeriods] = useState(new Set())
+    const [narrowPeriodIndex, setNarrowPeriodIndex] = useState(0)
     const previousCompanyId = useRef(null)
     const latestRequestId = useRef(0)
 
@@ -146,6 +149,7 @@ export const Research = props => {
         setTagToDelete(null)
     })
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
+    const isNarrowScreen = useMediaQuery(`(max-width:${SWIPE_NAV_BREAKPOINT}px)`)
     const todoTabSelected = researchTabsIndex === RESEARCH_TAB.todo
     const touchStart = useRef(null)
 
@@ -172,6 +176,39 @@ export const Research = props => {
         }
     }
 
+    const periodTouchStart = useRef(null)
+
+    function handlePeriodTouchStart(event) {
+        const touch = event.touches[0]
+        periodTouchStart.current = {x: touch.clientX, y: touch.clientY}
+    }
+
+    function handlePeriodTouchEnd(event, periodCount) {
+        const start = periodTouchStart.current
+        periodTouchStart.current = null
+        if (!start || window.innerWidth > SWIPE_NAV_BREAKPOINT) return
+
+        const touch = event.changedTouches[0]
+        const deltaX = touch.clientX - start.x
+        const deltaY = touch.clientY - start.y
+        const SWIPE_THRESHOLD = 60
+        if (Math.abs(deltaY) < SWIPE_THRESHOLD || Math.abs(deltaY) < Math.abs(deltaX)) return
+
+        const scrollBox = event.currentTarget.querySelector("[data-period-scroll]")
+        if (scrollBox) {
+            const atBottom = scrollBox.scrollTop + scrollBox.clientHeight >= scrollBox.scrollHeight - 1
+            const atTop = scrollBox.scrollTop <= 1
+            if (deltaY < 0 && !atBottom) return
+            if (deltaY > 0 && !atTop) return
+        }
+
+        if (deltaY < 0) {
+            setNarrowPeriodIndex(index => Math.min(index + 1, periodCount - 1))
+        } else {
+            setNarrowPeriodIndex(index => Math.max(index - 1, 0))
+        }
+    }
+
     function fetchData(companyChanged) {
         const requestId = ++latestRequestId.current
         if (props.companySelectorValue) {
@@ -180,6 +217,7 @@ export const Research = props => {
                 setError(null)
                 setTargetCandidateCounts({})
                 setFailedTargetCandidatePeriods(new Set())
+                setNarrowPeriodIndex(0)
             }
 
             axios.get(backend + "/research/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
@@ -657,23 +695,48 @@ export const Research = props => {
 
                             <Box
                                 data-testid="period-list"
-                                sx={{...researchCardRowsStyle, marginTop: {xs: "-2px", sm: "10px"}, paddingTop: {xs: "14px", sm: "5px"}}}
+                                onTouchStart={isNarrowScreen ? handlePeriodTouchStart : undefined}
+                                onTouchEnd={isNarrowScreen ? (event) => handlePeriodTouchEnd(event, data.periods.length) : undefined}
+                                sx={{
+                                    ...researchCardRowsStyle,
+                                    marginTop: {xs: "-7px", sm: "10px"},
+                                    paddingTop: {xs: "14px", sm: "5px"},
+                                    ...(isNarrowScreen && {display: "flex", flexDirection: "column"}),
+                                }}
                             >
-                                {data.periods.map((period) => (
-                                    <Period
-                                        key={period.id}
-                                        period={period}
-                                        currency={data.company.currency}
-                                        setAlert={setAlert}
-                                        openDialog={() => setOpenAddFinancialDialog(period)}
-                                        openEditDialog={() => setOpenEditFinancialDialog(period)}
-                                        openEstimateDialog={() => setOpenAddEstimateDialog(period)}
-                                        openTargetDialog={() => setOpenTargetDialog(period)}
-                                        openNewsSentimentDialog={() => setOpenNewsSentimentDialog(period)}
-                                        targetCandidateCount={targetCandidateCounts[period.id] ?? 0}
-                                        targetCandidateFailed={failedTargetCandidatePeriods.has(String(period.id))}
-                                    />
-                                ))}
+                                {isNarrowScreen
+                                    ? data.periods.slice(narrowPeriodIndex, narrowPeriodIndex + 1).map((period) => (
+                                        <Box key={period.id} sx={{flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column"}}>
+                                            <Period
+                                                period={period}
+                                                currency={data.company.currency}
+                                                setAlert={setAlert}
+                                                openDialog={() => setOpenAddFinancialDialog(period)}
+                                                openEditDialog={() => setOpenEditFinancialDialog(period)}
+                                                openEstimateDialog={() => setOpenAddEstimateDialog(period)}
+                                                openTargetDialog={() => setOpenTargetDialog(period)}
+                                                openNewsSentimentDialog={() => setOpenNewsSentimentDialog(period)}
+                                                targetCandidateCount={targetCandidateCounts[period.id] ?? 0}
+                                                targetCandidateFailed={failedTargetCandidatePeriods.has(String(period.id))}
+                                                stretch
+                                            />
+                                        </Box>
+                                    ))
+                                    : data.periods.map((period) => (
+                                        <Period
+                                            key={period.id}
+                                            period={period}
+                                            currency={data.company.currency}
+                                            setAlert={setAlert}
+                                            openDialog={() => setOpenAddFinancialDialog(period)}
+                                            openEditDialog={() => setOpenEditFinancialDialog(period)}
+                                            openEstimateDialog={() => setOpenAddEstimateDialog(period)}
+                                            openTargetDialog={() => setOpenTargetDialog(period)}
+                                            openNewsSentimentDialog={() => setOpenNewsSentimentDialog(period)}
+                                            targetCandidateCount={targetCandidateCounts[period.id] ?? 0}
+                                            targetCandidateFailed={failedTargetCandidatePeriods.has(String(period.id))}
+                                        />
+                                    ))}
                             </Box>
                         </CardContent>
                     </Card>

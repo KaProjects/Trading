@@ -10,13 +10,14 @@ const DEFAULT_VALUE = [{type: 'paragraph', children: [{ text: '' }],}]
 
 export const defaultContent = () => structuredClone(DEFAULT_VALUE);
 
-export const ContentEditor = ({content, update, style}) => {
+export const ContentEditor = ({content, update, style, locked, editTrigger}) => {
 
     const renderElement = useCallback(props => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const editor = useMemo(() => withHistory(withReact(createEditor())), [])
 
     const [editing, setEditing] = useState(false)
+    const [unlocked, setUnlocked] = useState(!locked)
     const [value, setValue] = useState(defaultContent())
     const [error, setError] = useState(null)
     const [savedContent, setSavedContent] = useState(toValidContent(content))
@@ -25,6 +26,13 @@ export const ContentEditor = ({content, update, style}) => {
         setError(null)
         // eslint-disable-next-line
     }, [value, editing])
+
+    useEffect(() => {
+        if (!locked || !editTrigger) return
+        setUnlocked(true)
+        setTimeout(() => ReactEditor.focus(editor), 0)
+        // eslint-disable-next-line
+    }, [editTrigger])
 
     async function handleUnFocus()
     {
@@ -39,6 +47,7 @@ export const ContentEditor = ({content, update, style}) => {
         } else {
             setEditing(false)
         }
+        if (locked) setUnlocked(false)
     }
 
     function rollback() {
@@ -94,6 +103,7 @@ export const ContentEditor = ({content, update, style}) => {
                 renderLeaf={renderLeaf}
                 placeholder="write a content"
                 style={{...style, paddingBottom: editing ? "10px" : "0"}}
+                readOnly={locked && !unlocked}
                 onFocus={() => setEditing(true)}
                 onBlur={handleUnFocus}
                 onKeyDown={e => {

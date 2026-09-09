@@ -14,8 +14,19 @@
     margin-top: 8px;
 }
 
+.mainContainer.stretch {
+    height: 100%;
+}
+
 .childrenContainer {
     padding: 0 10px 10px 10px;
+}
+
+.childrenContainer.stretchContent {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .header {
@@ -43,6 +54,13 @@
     text-overflow: ellipsis;
     font-size: 12px;
     color: var(--border-color)
+}
+
+.headerTitle.highlighted {
+    background-color: #e0e0e0;
+    color: #595959;
+    padding: 0 0.4em;
+    border-radius: 4px;
 }
 
 .headerBorderAfter {

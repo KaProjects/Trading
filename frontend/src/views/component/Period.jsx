@@ -1,5 +1,5 @@
 import {BorderedSection} from "./BorderedSection";
-import React from "react";
+import React, {useState} from "react";
 import {Badge, Box, Button, Stack, Typography} from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import {formatDate, formatDecimals, formatError, formatMillions, formatPercent, formatPeriodName} from "../../service/FormattingService";
@@ -9,11 +9,14 @@ import {ContentEditor} from "./ContentEditor";
 import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financials-plus.svg";
 import {ReactComponent as EstimatesPlusIcon} from "../../assets/icons/estimates-plus.svg";
 import EditNoteIcon from "@mui/icons-material/EditNote";
+import EditIcon from "@mui/icons-material/Edit";
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
 
-export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed}) => {
+export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
+
+    const [contentEditSignal, setContentEditSignal] = useState(0)
 
     function formatEndingMonth(endingMonth) {
         if (endingMonth === null || endingMonth === undefined) return "";
@@ -73,12 +76,21 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
         <BorderedSection
             title={formatPeriodName(period.name) + " - ending: " + formatEndingMonth(period.endingMonth) + " - report: " + formatDate(period.reportDate)}
             style={{color: 'text.primary'}}
+            stretch={stretch}
+            highlightTitle={stretch}
         >
-            <ContentEditor
-                content={period.research}
-                update={(value) => updateResearch(period.id, value)}
-                style={{margin: "5px 5px 10px 5px"}}
-            />
+            <Box
+                data-period-scroll={stretch ? "true" : undefined}
+                sx={stretch ? {flex: "1 1 auto", minHeight: 0, overflow: "auto"} : undefined}
+            >
+                <ContentEditor
+                    content={period.research}
+                    update={(value) => updateResearch(period.id, value)}
+                    style={{margin: "5px 5px 10px 5px"}}
+                    locked={stretch}
+                    editTrigger={contentEditSignal}
+                />
+            </Box>
 
             {period.financial &&
                 <>
@@ -137,6 +149,13 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
                        "& svg": {width: "20px", height: "20px", display: "block",},
                    }}
             >
+                {stretch &&
+                    <Tooltip title="Edit Content" placement="left">
+                        <Button aria-label="Edit Content" onClick={() => setContentEditSignal(signal => signal + 1)}>
+                            <EditIcon/>
+                        </Button>
+                    </Tooltip>
+                }
                 {!period.financial &&
                     <Tooltip title="Add Financials" placement="left">
                         <Button onClick={openDialog}>
