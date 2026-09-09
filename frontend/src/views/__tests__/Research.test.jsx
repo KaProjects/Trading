@@ -40,9 +40,6 @@ jest.mock("../component/PeriodFinancials", () => ({
     PeriodFinancials: (props) => (
         <button
             data-testid="period-financials"
-            data-margin-top={typeof props.sx?.marginTop === "string"
-                ? props.sx.marginTop
-                : props.sx?.marginTop?.xs}
             data-financials-count={props.financials?.length ?? 0}
             onClick={props.onOpen}
         >
@@ -324,7 +321,6 @@ describe("Research", () => {
         expect(screen.getByText("#growth").parentElement).toHaveStyle("margin-left: 4px");
         expect(screen.queryByText("#owned")).not.toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
-        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top", "8px");
         expect(screen.getByTestId("period-financials")).toHaveAttribute("data-financials-count", "1");
         expect(screen.getByTestId("period-estimates-overview")).toHaveTextContent("estimate-overview:14");
         expect(screen.getByText("latest-news-sentiment:company-1")).toBeInTheDocument();
@@ -343,8 +339,6 @@ describe("Research", () => {
         expect(screen.getByText("period:period-1")).toBeInTheDocument();
         expect(screen.getByText("record:record-1")).toBeInTheDocument();
         expect(screen.getByTestId("period-list")).toHaveStyle("overflow-y: auto");
-        expect(screen.getByTestId("period-list")).toHaveStyle("margin-top: 10px");
-        expect(screen.getByTestId("period-list")).toHaveStyle("padding-top: 5px");
         expect(screen.getByTestId("record-list")).toHaveStyle("overflow-y: auto");
         expect(screen.getByTestId("record-list")).toHaveStyle("padding-top: 5px");
     });
@@ -368,7 +362,6 @@ describe("Research", () => {
         expect(screen.queryByRole("img", {name: "AAPL logo"})).not.toBeInTheDocument();
         expect(screen.queryByTestId("trading-view-overview")).not.toBeInTheDocument();
         expect(screen.getByText("Technology")).toBeInTheDocument();
-        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top", "13px");
     });
 
     test("restores the company title when TradingView reports the symbol unavailable", async () => {
@@ -382,7 +375,6 @@ describe("Research", () => {
         expect(screen.queryByTestId("trading-view-overview")).not.toBeInTheDocument();
         expect(screen.getByText("AAPL")).toBeInTheDocument();
         expect(screen.getByText("Technology")).toBeInTheDocument();
-        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-margin-top", "13px");
     });
 
     test("opens company editing from the research title", async () => {

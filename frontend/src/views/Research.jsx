@@ -70,8 +70,10 @@ const researchCardStyle = {
 
 const cardActionAnchorStyle = {
     position: "absolute",
-    top: {xs: "-10px", sm: "0"},
-    right: 0,
+    top: 0,
+    left: {xs: "50%", sm: "auto"},
+    right: {xs: "auto", sm: 0},
+    transform: {xs: "translateX(-50%)", sm: "none"},
 }
 
 const researchCardContentStyle = {
@@ -79,6 +81,7 @@ const researchCardContentStyle = {
     flexDirection: "column",
     flex: "1 1 auto",
     minHeight: 0,
+    paddingTop: {xs: "1px", sm: 2},
     paddingLeft: {xs: 0, sm: 2},
     paddingRight: {xs: 0, sm: 2},
     "&:last-child": {paddingBottom: 2},
@@ -330,7 +333,15 @@ export const Research = props => {
                                         title="Edit company"
                                         size="small"
                                         onClick={() => props.setOpenEditCompany(data.company)}
-                                        sx={{width: "26px", height: "26px", marginLeft: "3px"}}
+                                        sx={{
+                                            position: "absolute",
+                                            top: 0,
+                                            right: 0,
+                                            zIndex: 2,
+                                            width: "26px",
+                                            height: "26px",
+                                            backgroundColor: "background.paper",
+                                        }}
                                     >
                                         <EditNoteIcon sx={{width: 17}}/>
                                     </IconButton>
@@ -343,7 +354,7 @@ export const Research = props => {
                                 <Box
                                     sx={{
                                         color: "text.secondary",
-                                        display: "flex",
+                                        display: {xs: "none", sm: "flex"},
                                         alignItems: "center",
                                         marginTop: hasTradingView ? "-10px" : 0,
                                         marginLeft: hasTradingView ? "4px" : 0,
@@ -441,20 +452,27 @@ export const Research = props => {
                                     </DialogActions>
                                 </Dialog>
 
-                                <PeriodFinancials
-                                    sx={{marginTop: hasTradingView ? "8px" : {xs: "13px", sm: "20px"}}}
-                                    ttm={data.ttm}
-                                    financials={data.financials}
-                                    onOpen={() => setOpenFinancialsDialog(true)}
-                                />
+                                {data.ttm &&
+                                    <Box sx={{
+                                        marginTop: hasTradingView ? {xs: "-7px", sm: "8px"} : {xs: "13px", sm: "20px"},
+                                        bgcolor: "background.paper",
+                                        position: "relative",
+                                    }}>
+                                        <PeriodFinancials
+                                            ttm={data.ttm}
+                                            financials={data.financials}
+                                            onOpen={() => setOpenFinancialsDialog(true)}
+                                        />
+                                    </Box>
+                                }
                                 <PeriodEstimatesOverview
-                                    sx={{marginTop: "8px"}}
+                                    sx={{marginTop: {xs: "2px", sm: "8px"}}}
                                     overview={data.estimateOverview}
                                     onOpen={() => setOpenEarningsProjectionsDialog(true)}
                                 />
                                 <LatestNewsSentiment
                                     companyId={data.company.id}
-                                    sx={{marginTop: "8px"}}
+                                    sx={{marginTop: {xs: "2px", sm: "8px"}}}
                                 />
 
                                 <Box sx={{
@@ -542,7 +560,10 @@ export const Research = props => {
                             />
                             <EditCompanyDialog triggerRefresh={triggerRefresh} {...props}/>
 
-                            <Box data-testid="period-list" sx={researchCardRowsStyle}>
+                            <Box
+                                data-testid="period-list"
+                                sx={{...researchCardRowsStyle, marginTop: {xs: "-2px", sm: "10px"}, paddingTop: {xs: "14px", sm: "5px"}}}
+                            >
                                 {data.periods.map((period) => (
                                     <Period
                                         key={period.id}
