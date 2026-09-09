@@ -51,6 +51,8 @@ public class ResearchDto
         dto.setPriceHigh(period.getPriceHigh());
         dto.setResearch(period.getResearch());
         dto.setFinancial(period.getFinancial());
+        dto.setExpectedReportDate(period.getExpectedReportDate());
+        dto.setReportedInFirebase(period.getReportedInFirebase());
         dto.setEstimate(estimate);
         dto.setTargetStats(targetStats);
         periods.add(dto);

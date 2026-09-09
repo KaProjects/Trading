@@ -16,6 +16,7 @@ import org.kaleta.persistence.entity.Latest;
 import org.kaleta.model.PeriodEstimates;
 import org.kaleta.model.TargetStats;
 import org.kaleta.rest.dto.PeriodImportDataDto;
+import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
 import org.kaleta.rest.validation.ValidPeriodName;
 import org.kaleta.rest.validation.ValidId;
@@ -30,6 +31,7 @@ import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
 import org.kaleta.service.TargetService;
 
+import java.sql.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -69,6 +71,18 @@ public class ResearchEndpoints
         Periods periodsModel = periodService.getBy(companyId);
         dto.setFinancials(periodsModel.getFinancials());
         dto.setTtm(periodsModel.getTtm());
+        periodsModel.getPeriods().stream()
+                .findFirst()
+                .filter(period -> period.getFinancial() == null)
+                .ifPresent(period -> {
+                    PeriodImportDto firebasePeriod =
+                            firebaseService.getPeriod(company.getTicker(), period.getName().toString());
+                    if (firebasePeriod == null) return;
+                    if (firebasePeriod.getReportDate() != null) {
+                        period.setExpectedReportDate(Date.valueOf(firebasePeriod.getReportDate()));
+                    }
+                    period.setReportedInFirebase(firebasePeriod.getIsReported());
+                });
         List<Long> periodIds = periodsModel.getPeriods().stream()
                 .map(Periods.Period::getId)
                 .toList();

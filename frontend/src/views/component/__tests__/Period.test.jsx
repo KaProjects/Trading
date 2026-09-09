@@ -68,7 +68,7 @@ describe("Period", () => {
             />
         );
 
-        expect(screen.getByText("25FY - ending: 12/25 - report: 15.02.2026")).toBeInTheDocument();
+        expect(screen.getByText("25FY - ending: 12/25 - reported: 15.02.2026")).toBeInTheDocument();
         expect(screen.getByText("Shares: 123M | CapEx: 40M | FCF: 70M | Dividend: 12M | Adj. Eps: 1.62"))
             .toBeInTheDocument();
         expect(screen.getByText("H: 20$ | L: 10$")).toBeInTheDocument();
@@ -207,6 +207,110 @@ describe("Period", () => {
         expect(screen.getByText("(02.08.2026)")).toBeInTheDocument();
         expect(screen.getByText("(4.38)")).toBeInTheDocument();
         expect(screen.getByText("(+12.5% | -3.3% | 0% | +4%)")).toBeInTheDocument();
+    });
+
+    test("shows the report date from firebase for an unreported period", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    expectedReportDate: "2026-08-15",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByText("26Q2 - ending: 07/26 - report: 15.08.2026")).toBeInTheDocument();
+    });
+
+    test("shows a question mark when the report date is not known for an unreported period", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByText("26Q2 - ending: 07/26 - report: ?")).toBeInTheDocument();
+    });
+
+    test("appends an exclamation mark when firebase already has revenues for an unreported period", () => {
+        const {container} = render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    expectedReportDate: "2026-08-15",
+                    reportedInFirebase: true,
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(container.querySelector(".title")).toHaveTextContent("26Q2 - ending: 07/26 - report: 15.08.2026 !");
+        expect(screen.getByText("!")).toHaveStyle({fontWeight: 900, color: "rgb(198, 40, 40)"});
+        expect(screen.getByText("15.08.2026")).toHaveStyle({color: "rgb(198, 40, 40)", textDecoration: "underline"});
+        expect(screen.getByText("report:")).toHaveStyle({color: "rgb(198, 40, 40)"});
+    });
+
+    test("appends an exclamation mark alongside the question mark when firebase already has revenues but no date is known", () => {
+        const {container} = render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    reportedInFirebase: true,
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(container.querySelector(".title")).toHaveTextContent("26Q2 - ending: 07/26 - report: ? !");
+        expect(screen.getByText("?")).toHaveStyle({color: "rgb(198, 40, 40)", textDecoration: "underline"});
+    });
+
+    test("labels a period as reported and ignores firebase fields once it has financials", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    reportDate: "2026-08-15",
+                    expectedReportDate: "2099-01-01",
+                    reportedInFirebase: true,
+                    financial: {
+                        dividend: 0,
+                        adjustedEps: 1,
+                        revenue: {value: 1},
+                        grossProfit: {value: 1},
+                        operatingIncome: {value: 1},
+                        netIncome: {value: 1},
+                    },
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByText("26Q2 - ending: 07/26 - reported: 15.08.2026")).toBeInTheDocument();
     });
 
     test("opens dialog when financials are missing", () => {

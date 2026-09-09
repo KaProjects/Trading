@@ -17,6 +17,11 @@ import {PeriodTargetSummary} from "./PeriodTargetSummary";
 export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
 
     const [contentEditSignal, setContentEditSignal] = useState(0)
+    const reportLabel = period.financial ? "reported: " : "report: "
+    const reportValue = period.financial
+        ? formatDate(period.reportDate)
+        : (period.expectedReportDate ? formatDate(period.expectedReportDate) : "?")
+    const reportedInFirebaseOnly = !period.financial && period.reportedInFirebase
 
     function formatEndingMonth(endingMonth) {
         if (endingMonth === null || endingMonth === undefined) return "";
@@ -74,7 +79,20 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
 
     return (
         <BorderedSection
-            title={formatPeriodName(period.name) + " - ending: " + formatEndingMonth(period.endingMonth) + " - report: " + formatDate(period.reportDate)}
+            title={
+                <>
+                    {formatPeriodName(period.name) + " - ending: " + formatEndingMonth(period.endingMonth) + " - "}
+                    {reportedInFirebaseOnly
+                        ? <Box component="span" sx={{color: "error.dark"}}>{reportLabel}</Box>
+                        : reportLabel}
+                    {reportedInFirebaseOnly
+                        ? <Box component="span" sx={{color: "error.dark", textDecoration: "underline"}}>{reportValue}</Box>
+                        : reportValue}
+                    {reportedInFirebaseOnly &&
+                        <Box component="span" sx={{fontWeight: 900, color: "error.dark"}}> !</Box>
+                    }
+                </>
+            }
             style={{color: 'text.primary'}}
             stretch={stretch}
             highlightTitle={stretch}

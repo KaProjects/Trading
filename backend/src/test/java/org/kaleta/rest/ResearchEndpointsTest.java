@@ -181,9 +181,58 @@ public class ResearchEndpointsTest
         assertBigDecimals(dto.getAssets().getAggregate().getProfitValue(), new BigDecimal("32520"));
         assertBigDecimals(dto.getAssets().getAggregate().getProfitPercent(), new BigDecimal("722.67"));
         assertThat(dto.getWarnings(), is(List.of()));
+        assertThat(dto.getPeriods().get(0).getExpectedReportDate(), is(nullValue()));
+        assertThat(dto.getPeriods().get(0).getReportedInFirebase(), is(nullValue()));
 
+        verify(firebaseService).getPeriod("RCH", "25Q1");
         verify(firebaseService).getNewerPeriods("RCH", "25Q1");
         verify(firebaseService, never()).getTargets(anyString());
+    }
+
+    @Test
+    void get_addsExpectedReportDateAndReportedFlagFromFirebaseForLatestUnreportedPeriod()
+    {
+        Long companyId = 2281L;
+        PeriodImportDto firebasePeriod = new PeriodImportDto();
+        firebasePeriod.setName("25Q1");
+        firebasePeriod.setEndingMonth("2025-03");
+        firebasePeriod.setReportDate("2025-05-01");
+        firebasePeriod.setIsReported(true);
+        when(firebaseService.getPeriod("RCH", "25Q1")).thenReturn(firebasePeriod);
+
+        ResearchDto dto = given().when()
+                .get("/research/" + companyId)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", ResearchDto.class);
+
+        assertThat(dto.getPeriods().get(0).getName(), is(PeriodName.valueOf("25Q1")));
+        assertThat(dto.getPeriods().get(0).getExpectedReportDate().toString(), is("2025-05-01"));
+        assertThat(dto.getPeriods().get(0).getReportedInFirebase(), is(true));
+        assertThat(dto.getPeriods().get(1).getExpectedReportDate(), is(nullValue()));
+        assertThat(dto.getPeriods().get(1).getReportedInFirebase(), is(nullValue()));
+    }
+
+    @Test
+    void get_leavesExpectedReportDateBlankWhenFirebaseHasNoReportDate()
+    {
+        Long companyId = 2281L;
+        PeriodImportDto firebasePeriod = new PeriodImportDto();
+        firebasePeriod.setName("25Q1");
+        firebasePeriod.setEndingMonth("2025-03");
+        firebasePeriod.setIsReported(false);
+        when(firebaseService.getPeriod("RCH", "25Q1")).thenReturn(firebasePeriod);
+
+        ResearchDto dto = given().when()
+                .get("/research/" + companyId)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", ResearchDto.class);
+
+        assertThat(dto.getPeriods().get(0).getExpectedReportDate(), is(nullValue()));
+        assertThat(dto.getPeriods().get(0).getReportedInFirebase(), is(false));
     }
 
     @Test
