@@ -22,6 +22,7 @@ export const RESEARCH_TAB = {
     todo: 2,
 };
 export const RESEARCH_SPLIT_BREAKPOINT = 2000;
+export const SWIPE_NAV_BREAKPOINT = 700;
 const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly", "P/L"];
 const RESEARCH_TAB_LABELS = ["Research", "Records", "Todo"];
 const DATA_ROUTES = ["/trades", "/dividends", "/research"];
@@ -124,8 +125,9 @@ export const MainBar = props => {
     const companyTickers = companies.map(company => company.ticker).join(",")
     const companyListKeys = getCompanyListKeys(props.companyLists)
     const companyListKeysSignature = JSON.stringify(companyListKeys)
-    const showTodoTab = useMediaQuery(`(max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`)
+    const showTodoTab = useMediaQuery(`(max-width:${SWIPE_NAV_BREAKPOINT}px)`)
     const isNarrowScreen = showTodoTab
+    const todoTabAvailable = useMediaQuery(`(max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`)
     const [showSecondRow, setShowSecondRow] = useState(false)
     const selectedResearchTab = props.researchTabsIndex
     const setSelectedResearchTab = props.setResearchTabsIndex
@@ -152,10 +154,10 @@ export const MainBar = props => {
     }, [props.companySelectorValue, props.companyListSelectorValue])
 
     useEffect(() => {
-        if (!showTodoTab && selectedResearchTab === RESEARCH_TAB.todo) {
+        if (!todoTabAvailable && selectedResearchTab === RESEARCH_TAB.todo) {
             setSelectedResearchTab(RESEARCH_TAB.research)
         }
-    }, [showTodoTab, selectedResearchTab, setSelectedResearchTab])
+    }, [todoTabAvailable, selectedResearchTab, setSelectedResearchTab])
 
     useEffect(() => {
         if (!showSecondRow) return
@@ -622,11 +624,14 @@ export const MainBar = props => {
                                 onClick={() => navigate("/")}>
                         <MenuIcon />
                     </IconButton>
-                    <Typography variant="h6" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                    <Typography variant="h6" sx={{
+                        display: "none",
+                        "@media (min-width:801px)": {display: "block"},
+                    }}>
                         Trading
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
-                    <Box sx={{display: {xs: "block", md: "flex"}, minWidth: 0, maxWidth: "100%"}}>
+                    <Box sx={{display: "flex", minWidth: 0, maxWidth: "100%"}}>
                         {config.showStatsTabs &&
                             <Tabs value={props.statsTabsIndex}
                                   onChange={(event, value) => props.setStatsTabsIndex(value)}
@@ -650,14 +655,16 @@ export const MainBar = props => {
                                   textColor="inherit"
                                   sx={{
                                       display: "none",
-                                      [`@media (min-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT + 1}px) and (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {display: "flex"},
+                                      [`@media (min-width:${SWIPE_NAV_BREAKPOINT + 1}px) and (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {display: "flex"},
                                   }}
                             >
                                 {RESEARCH_TAB_LABELS.map((tab, index) => (
                                     <Tab
                                         key={tab}
                                         label={tab}
-                                        sx={index === RESEARCH_TAB.todo ? {display: "none"} : undefined}
+                                        sx={index === RESEARCH_TAB.todo
+                                            ? {[`@media (min-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT + 1}px)`]: {display: "none"}}
+                                            : undefined}
                                     />
                                 ))}
                             </Tabs>
