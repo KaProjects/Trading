@@ -204,7 +204,8 @@ test("computes the annualized return assuming a 10000 starting capital over the 
 });
 
 test("returns null for the annualized return when the first event is today or the loss exceeds the starting capital", () => {
-    const todayIso = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
     expect(computeAnnualizedReturn([{date: todayIso, cumulativeProfit: 100}], 10000)).toBeNull();
     expect(computeAnnualizedReturn([{date: "2020-01-01", cumulativeProfit: -20000}], 10000)).toBeNull();

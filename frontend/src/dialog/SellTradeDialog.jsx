@@ -36,6 +36,7 @@ export const SellTradeDialog = props => {
     const [fees, setFees] = useState("")
     const [company, setCompany] = useState("")
     const [trades, setTrades] = useState([])
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (open) {
@@ -47,12 +48,15 @@ export const SellTradeDialog = props => {
                 .find(company => company.id === props.companySelectorValue?.id) ?? ""
             selectCompany(selectedOwnedCompany)
             setTrades([])
+            setSubmitting(false)
         }
         // eslint-disable-next-line
     }, [open])
 
 
     function sellTrade() {
+        if (submitting) return
+        setSubmitting(true)
         const tradesToSell = []
         trades.forEach(trade => {
             if (validateSellQuantity(trade) === "") {
@@ -67,7 +71,9 @@ export const SellTradeDialog = props => {
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
-            }).catch((error) => {setAlert(formatError(error))})
+            })
+            .catch((error) => {setAlert(formatError(error))})
+            .finally(() => setSubmitting(false))
     }
 
     function selectCompany(company) {
@@ -187,7 +193,7 @@ export const SellTradeDialog = props => {
             }
             <DialogActions>
                 <Button onClick={() => handleClose()}>Cancel</Button>
-                <Button type="submit">Sell</Button>
+                <Button type="submit" disabled={submitting}>Sell</Button>
             </DialogActions>
         </Dialog>
     )

@@ -32,6 +32,7 @@ export const AddTradeDialog = props => {
     const [fees, setFees] = useState("")
     const [company, setCompany] = useState("")
     const [portfolio, setPortfolio] = useState("")
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (open) {
@@ -42,11 +43,14 @@ export const AddTradeDialog = props => {
             setFees("")
             setCompany(props.companySelectorValue)
             setPortfolio("")
+            setSubmitting(false)
         }
         // eslint-disable-next-line
     }, [open])
 
     function createTrade() {
+        if (submitting) return
+        setSubmitting(true)
         const tradeData = {
             companyId: company.id,
             date: date,
@@ -59,7 +63,9 @@ export const AddTradeDialog = props => {
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
-            }).catch((error) => {setAlert(formatError(error))})
+            })
+            .catch((error) => {setAlert(formatError(error))})
+            .finally(() => setSubmitting(false))
     }
 
     return (
@@ -125,7 +131,7 @@ export const AddTradeDialog = props => {
             }
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit">Create</Button>
+                <Button type="submit" disabled={submitting}>Create</Button>
             </DialogActions>
         </Dialog>
     )

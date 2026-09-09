@@ -59,11 +59,13 @@ export const EditCompanyDialog = props => {
     const [tickerSearchCompleted, setTickerSearchCompleted] = useState(false)
     const [tags, setTags] = useState([])
     const [newTag, setNewTag] = useState("")
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (company) {
             setTab(TAB.general)
             setAlert(null)
+            setSubmitting(false)
             setTicker(company.id ? company.ticker : "")
             setCurrency(company.id ? company.currency : "")
             setName(company.id ? company.name ?? "" : "")
@@ -96,6 +98,8 @@ export const EditCompanyDialog = props => {
     }, [company])
 
     function createEditCompany() {
+        if (submitting) return
+        setSubmitting(true)
         const companyData = {
             ticker: ticker,
             currency: currency,
@@ -112,13 +116,17 @@ export const EditCompanyDialog = props => {
                 .then((response) => {
                     props.triggerRefresh()
                     handleClose()
-                }).catch((error) => {setAlert(formatError(error))})
+                })
+                .catch((error) => {setAlert(formatError(error))})
+                .finally(() => setSubmitting(false))
         } else {
             axios.post(backend + "/company", companyData)
                 .then((response) => {
                     props.triggerRefresh()
                     handleClose()
-                }).catch((error) => {setAlert(formatError(error))})
+                })
+                .catch((error) => {setAlert(formatError(error))})
+                .finally(() => setSubmitting(false))
         }
     }
 
@@ -172,7 +180,8 @@ export const EditCompanyDialog = props => {
     }
 
     function addTag() {
-        if (!newTagValid) return
+        if (!newTagValid || submitting) return
+        setSubmitting(true)
 
         axios.post(backend + "/company/tag", {
             companyId: company.id,
@@ -182,16 +191,22 @@ export const EditCompanyDialog = props => {
             setNewTag("")
             setAlert(null)
             props.triggerRefresh()
-        }).catch(error => setAlert(formatError(error)))
+        })
+            .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false))
     }
 
     function deleteTag(tag) {
+        if (submitting) return
+        setSubmitting(true)
         axios.delete(backend + "/company/" + company.id + "/tag", {
             params: {value: tag},
         }).then(() => {
             setTags(previous => previous.filter(value => value !== tag))
             props.triggerRefresh()
-        }).catch(error => setAlert(formatError(error)))
+        })
+            .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false))
     }
 
     const alphaVantageEnabled = currency !== "" && currency !== "$"
@@ -402,6 +417,7 @@ export const EditCompanyDialog = props => {
                                     <IconButton
                                         aria-label={`Remove tag ${tag}`}
                                         size="small"
+                                        disabled={submitting}
                                         onClick={() => deleteTag(tag)}
                                         sx={{marginLeft: "2px", "& svg": {width: 15, height: 15, display: "block"}}}
                                     >
@@ -447,7 +463,7 @@ export const EditCompanyDialog = props => {
                             />
                             <IconButton
                                 aria-label="Add tag"
-                                disabled={newTag.trim() === ""}
+                                disabled={newTag.trim() === "" || submitting}
                                 onClick={addTag}
                                 sx={{marginBottom: "2px"}}
                             >
@@ -463,8 +479,8 @@ export const EditCompanyDialog = props => {
                 </Alert>
             }
             <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit">{(company && company.id) ? "Edit" : "Create"}</Button>
+                <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
+                <Button type="submit" disabled={submitting}>{(company && company.id) ? "Edit" : "Create"}</Button>
             </DialogActions>
         </Dialog>
     )

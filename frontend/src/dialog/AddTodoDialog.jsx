@@ -17,17 +17,20 @@ export const AddTodoDialog = props => {
     const editing = Boolean(props.todo);
     const [content, setContent] = useState("");
     const [alert, setAlert] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
     const contentValid = content.trim().length > 0;
 
     useEffect(() => {
         if (props.open) {
             setContent(props.todo?.content ?? "");
             setAlert(null);
+            setSubmitting(false);
         }
     }, [props.open, props.todo]);
 
     function saveTodo() {
-        if (!contentValid) return;
+        if (!contentValid || submitting) return;
+        setSubmitting(true);
 
         const payload = {
             content: content.trim(),
@@ -43,7 +46,9 @@ export const AddTodoDialog = props => {
                 props.onCreated(response.data);
             }
             props.handleClose();
-        }).catch(error => setAlert(formatError(error)));
+        })
+            .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false));
     }
 
     return (
@@ -89,7 +94,7 @@ export const AddTodoDialog = props => {
             }
             <DialogActions>
                 <Button onClick={props.handleClose}>Cancel</Button>
-                <Button type="submit" disabled={!contentValid}>{editing ? "Save" : "Add"}</Button>
+                <Button type="submit" disabled={!contentValid || submitting}>{editing ? "Save" : "Add"}</Button>
             </DialogActions>
         </Dialog>
     );

@@ -34,6 +34,7 @@ export const AddPeriodFinancialDialog = props => {
     const [warnings, setWarnings] = useState([])
     const [alert, setAlert] = useState(null)
     const [loading, setLoading] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (!open || !period) return
@@ -43,6 +44,7 @@ export const AddPeriodFinancialDialog = props => {
         setWarnings([])
         setAlert(null)
         setLoading(true)
+        setSubmitting(false)
 
         const quarterId = formatPeriodName(period.name)
         const endingMonthQuery = edit && period.endingMonth
@@ -70,6 +72,8 @@ export const AddPeriodFinancialDialog = props => {
     }, [open, period, edit])
 
     function createFinancial() {
+        if (submitting) return
+        setSubmitting(true)
         axios.put(backend + "/period/financial", {
             id: period.id,
             ...toNullableFinancialValues(financial),
@@ -79,6 +83,7 @@ export const AddPeriodFinancialDialog = props => {
                 handleClose()
             })
             .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false))
     }
 
     return (
@@ -133,7 +138,7 @@ export const AddPeriodFinancialDialog = props => {
             }
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit" disabled={loading}>{edit ? "Update" : "Create"}</Button>
+                <Button type="submit" disabled={loading || submitting}>{edit ? "Update" : "Create"}</Button>
             </DialogActions>
         </Dialog>
     )

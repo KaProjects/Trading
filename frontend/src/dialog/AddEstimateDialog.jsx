@@ -93,6 +93,7 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
     const [loading, setLoading] = useState(false);
     const [alert, setAlert] = useState(null);
     const [estimatesToParse, setEstimatesToParse] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         if (!open || !period || !company) return;
@@ -103,6 +104,7 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
         setAlert(null);
         setEstimatesToParse("");
         setLoading(true);
+        setSubmitting(false);
 
         Promise.all([
             axios.get(`${backend}/estimate/${period.id}`),
@@ -154,6 +156,8 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
     }
 
     function createEstimate() {
+        if (submitting) return;
+
         const invalid = validateDate(estimate.date, true, true)
             || ESTIMATE_FIELDS.map(fieldError).find(error => error !== "");
         if (invalid) {
@@ -161,6 +165,7 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
             return;
         }
 
+        setSubmitting(true);
         const nullable = value => value === "" ? null : value;
         axios.post(`${backend}/estimate/${period.id}`, {
             date: estimate.date,
@@ -173,7 +178,8 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
                 triggerRefresh();
                 handleClose();
             })
-            .catch(error => setAlert(formatError(error)));
+            .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false));
     }
 
     const hasImportedValues = roundedImportedValue(imported, "current") !== ""
@@ -358,7 +364,7 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
             }
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit" disabled={loading}>Add</Button>
+                <Button type="submit" disabled={loading || submitting}>Add</Button>
             </DialogActions>
         </Dialog>
     );

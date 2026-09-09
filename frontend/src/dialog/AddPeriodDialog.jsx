@@ -12,22 +12,28 @@ export const AddPeriodDialog = props => {
     const [alert, setAlert] = useState(null)
     const [name, setName] = useState("")
     const [endingMonth, setEndingMonth] = useState("")
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (open) {
             setName("")
             setEndingMonth("")
+            setSubmitting(false)
         }
         // eslint-disable-next-line
     }, [open])
 
     function createPeriod() {
+        if (submitting) return
+        setSubmitting(true)
         const data = {companyId: companyId, name: name, endingMonth: endingMonth}
         axios.post(backend + "/period", data)
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
-            }).catch((error) => {setAlert(formatError(error))})
+            })
+            .catch((error) => {setAlert(formatError(error))})
+            .finally(() => setSubmitting(false))
     }
 
     return (
@@ -60,7 +66,7 @@ export const AddPeriodDialog = props => {
             }
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit">Create</Button>
+                <Button type="submit" disabled={submitting}>Create</Button>
             </DialogActions>
         </Dialog>
     )

@@ -38,6 +38,7 @@ export const EditTradeDialog = props => {
     const [sellPrice, setSellPrice] = useState("")
     const [sellFees, setSellFees] = useState("")
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (!trade) return
@@ -52,9 +53,12 @@ export const EditTradeDialog = props => {
         setSellPrice(active ? "" : inputValue(trade.sellPrice))
         setSellFees(active ? "" : inputValue(trade.sellFees))
         setOpenDeleteDialog(false)
+        setSubmitting(false)
     }, [trade, active])
 
     function updateTrade() {
+        if (submitting) return
+        setSubmitting(true)
         const tradeData = {
             purchaseDate,
             quantity,
@@ -72,9 +76,12 @@ export const EditTradeDialog = props => {
                 handleClose()
             })
             .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false))
     }
 
     function deleteTrade() {
+        if (submitting) return
+        setSubmitting(true)
         axios.delete(backend + "/trade/" + trade.id)
             .then(() => {
                 setOpenDeleteDialog(false)
@@ -85,6 +92,7 @@ export const EditTradeDialog = props => {
                 setOpenDeleteDialog(false)
                 setAlert(formatError(error))
             })
+            .finally(() => setSubmitting(false))
     }
 
     return (
@@ -103,8 +111,8 @@ export const EditTradeDialog = props => {
                         <Typography>This permanently deletes the trade.</Typography>
                     </DialogContent>
                     <DialogActions>
-                        <Button type="button" onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-                        <Button type="button" color="error" onClick={deleteTrade}>Delete</Button>
+                        <Button type="button" onClick={() => setOpenDeleteDialog(false)} disabled={submitting}>Cancel</Button>
+                        <Button type="button" color="error" onClick={deleteTrade} disabled={submitting}>Delete</Button>
                     </DialogActions>
                 </>
                 : <>
@@ -184,11 +192,11 @@ export const EditTradeDialog = props => {
                         </Alert>
                     }
                     <DialogActions>
-                        <Button type="button" color="error" onClick={() => setOpenDeleteDialog(true)} sx={{marginRight: "auto"}}>
+                        <Button type="button" color="error" onClick={() => setOpenDeleteDialog(true)} disabled={submitting} sx={{marginRight: "auto"}}>
                             Delete
                         </Button>
-                        <Button type="button" onClick={handleClose}>Cancel</Button>
-                        <Button type="submit">Save</Button>
+                        <Button type="button" onClick={handleClose} disabled={submitting}>Cancel</Button>
+                        <Button type="submit" disabled={submitting}>Save</Button>
                     </DialogActions>
                 </>
             }

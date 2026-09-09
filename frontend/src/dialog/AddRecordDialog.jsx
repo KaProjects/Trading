@@ -25,10 +25,12 @@ export const AddRecordDialog = props => {
     const [sumAssetQuantity, setSumAssetQuantity] = useState("")
     const [avgAssetPrice, setAvgAssetPrice] = useState("")
     const [targets, setTargets] = useState("");
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (open) {
             setAlert(null)
+            setSubmitting(false)
             setDate("")
             setPrefilledDate("")
             setPrefilledValuesCleared(false)
@@ -84,6 +86,8 @@ export const AddRecordDialog = props => {
     }
 
     function createRecord() {
+        if (submitting) return
+        setSubmitting(true)
         const nullIfBlank = (value) => value ? value : null
         const data = {companyId: companyId, date: date, price: price,
             priceToRevenues: nullIfBlank(priceToRevenues),
@@ -100,7 +104,9 @@ export const AddRecordDialog = props => {
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
-            }).catch((error) => {setAlert(formatError(error))})
+            })
+            .catch((error) => {setAlert(formatError(error))})
+            .finally(() => setSubmitting(false))
     }
 
     return (
@@ -215,7 +221,7 @@ export const AddRecordDialog = props => {
             }
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit">Create</Button>
+                <Button type="submit" disabled={submitting}>Create</Button>
             </DialogActions>
         </Dialog>
     )

@@ -29,6 +29,7 @@ export const ImportPeriodDialog = props => {
     const [warnings, setWarnings] = useState([])
     const [alert, setAlert] = useState(null)
     const [loading, setLoading] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (open) resetSelection()
@@ -41,6 +42,7 @@ export const ImportPeriodDialog = props => {
         setWarnings([])
         setAlert(null)
         setLoading(false)
+        setSubmitting(false)
     }
 
     function editablePeriod(data) {
@@ -54,6 +56,9 @@ export const ImportPeriodDialog = props => {
     }
 
     function createPeriod() {
+        if (submitting) return
+        setSubmitting(true)
+
         const endpoint = period.isReported ? "/period/import" : "/period/import/unreported"
         const data = period.isReported
             ? {...toNullableFinancialValues(period), companyId: company.id}
@@ -65,6 +70,7 @@ export const ImportPeriodDialog = props => {
                 handleClose()
             })
             .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false))
     }
 
     function selectPeriod(candidate) {
@@ -183,11 +189,11 @@ export const ImportPeriodDialog = props => {
             }
 
             <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
+                <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
                 {period &&
                     <>
-                        <Button onClick={resetSelection}>Back</Button>
-                        <Button type="submit">Create</Button>
+                        <Button onClick={resetSelection} disabled={submitting}>Back</Button>
+                        <Button type="submit" disabled={submitting}>Create</Button>
                     </>
                 }
             </DialogActions>
