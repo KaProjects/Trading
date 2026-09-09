@@ -329,62 +329,90 @@ export const Research = props => {
                                     Research
                                 </Box>
                                 <Box sx={{
-                                    color: 'text.primary',
-                                    minHeight: "40px",
                                     display: "flex",
-                                    alignItems: "center",
-                                    width: hasTradingView ? {xs: "100%", sm: "fit-content"} : "fit-content",
-                                    maxWidth: "100%",
-                                    "& .edit-company-button": {
-                                        opacity: {xs: 1, sm: 0},
-                                        pointerEvents: {xs: "auto", sm: "none"},
-                                        transition: "opacity 120ms ease-in-out",
-                                    },
-                                    "&:hover .edit-company-button, &:focus-within .edit-company-button": {
-                                        opacity: 1,
-                                        pointerEvents: "auto",
-                                    },
+                                    alignItems: "flex-end",
+                                    justifyContent: !hasTradingView ? {xs: "space-between", sm: "flex-start"} : "flex-start",
+                                    paddingRight: !hasTradingView ? {xs: "30px", sm: 0} : 0,
                                 }}>
-                                    {hasTradingView
-                                        ? <TradingViewOverview
-                                            company={data.company}
-                                            onUnavailable={() => setUnavailableTradingViewSymbol(tradingViewSymbol)}
+                                    <Box sx={{
+                                        color: 'text.primary',
+                                        minHeight: "40px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        width: hasTradingView ? {xs: "100%", sm: "fit-content"} : "fit-content",
+                                        maxWidth: "100%",
+                                        "& .edit-company-button": {
+                                            opacity: {xs: 1, sm: 0},
+                                            pointerEvents: {xs: "auto", sm: "none"},
+                                            transition: "opacity 120ms ease-in-out",
+                                        },
+                                        "&:hover .edit-company-button, &:focus-within .edit-company-button": {
+                                            opacity: 1,
+                                            pointerEvents: "auto",
+                                        },
+                                    }}>
+                                        {hasTradingView
+                                            ? <TradingViewOverview
+                                                company={data.company}
+                                                onUnavailable={() => setUnavailableTradingViewSymbol(tradingViewSymbol)}
+                                                sx={{
+                                                    width: {xs: "auto", sm: "520px"},
+                                                    flex: {xs: "1 1 auto", sm: "0 0 520px"},
+                                                    minWidth: 0,
+                                                    marginTop: "1px",
+                                                }}
+                                            />
+                                            : <Box sx={{position: "relative", left: {xs: "5px", sm: 0}, fontSize: 34, fontWeight: 'medium'}}>
+                                                {data.company.ticker}
+                                            </Box>
+                                        }
+                                        <IconButton
+                                            className="edit-company-button"
+                                            aria-label={`Edit ${data.company.ticker}`}
+                                            title="Edit company"
+                                            size="small"
+                                            onClick={() => props.setOpenEditCompany(data.company)}
                                             sx={{
-                                                width: {xs: "auto", sm: "520px"},
-                                                flex: {xs: "1 1 auto", sm: "0 0 520px"},
-                                                minWidth: 0,
-                                                marginTop: "1px",
+                                                position: {xs: "absolute", sm: "static"},
+                                                top: {xs: 0, sm: "auto"},
+                                                right: {xs: 0, sm: "auto"},
+                                                zIndex: {xs: 2, sm: "auto"},
+                                                marginLeft: {xs: 0, sm: "3px"},
+                                                width: "26px",
+                                                height: "26px",
+                                                backgroundColor: {xs: "background.paper", sm: "transparent"},
                                             }}
-                                        />
-                                        : <Box sx={{fontSize: 34, fontWeight: 'medium'}}>
-                                            {data.company.ticker}
+                                        >
+                                            <EditNoteIcon sx={{width: 17}}/>
+                                        </IconButton>
+                                    </Box>
+                                    {!hasTradingView && data.latest &&
+                                        <Box sx={{display: {xs: "block", sm: "none"}, flexShrink: 0, textAlign: "right", marginBottom: "4px"}}>
+                                            <Box sx={{position: "relative", left: {xs: "5px", sm: 0}, fontSize: 23, fontWeight: 'medium'}}>
+                                                {data.company.currency}{formatDecimals(data.latest.price, 0, 2)}
+                                            </Box>
                                         </Box>
                                     }
-                                    <IconButton
-                                        className="edit-company-button"
-                                        aria-label={`Edit ${data.company.ticker}`}
-                                        title="Edit company"
-                                        size="small"
-                                        onClick={() => props.setOpenEditCompany(data.company)}
-                                        sx={{
-                                            position: {xs: "absolute", sm: "static"},
-                                            top: {xs: 0, sm: "auto"},
-                                            right: {xs: 0, sm: "auto"},
-                                            zIndex: {xs: 2, sm: "auto"},
-                                            marginLeft: {xs: 0, sm: "3px"},
-                                            width: "26px",
-                                            height: "26px",
-                                            backgroundColor: {xs: "background.paper", sm: "transparent"},
-                                        }}
-                                    >
-                                        <EditNoteIcon sx={{width: 17}}/>
-                                    </IconButton>
                                 </Box>
-                                {!hasTradingView && data.company.sector &&
-                                    <Box sx={{color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>
-                                        {data.company.sector.name}
-                                    </Box>
-                                }
+                                <Box sx={{
+                                    display: "flex",
+                                    alignItems: "flex-end",
+                                    justifyContent: !hasTradingView ? {xs: "space-between", sm: "flex-start"} : "flex-start",
+                                    paddingRight: !hasTradingView ? {xs: "30px", sm: 0} : 0,
+                                }}>
+                                    {!hasTradingView && data.company.sector &&
+                                        <Box sx={{position: "relative", left: {xs: "5px", sm: 0}, color: 'text.secondary', fontSize: 14, marginTop: "-4px"}}>
+                                            {data.company.sector.name}
+                                        </Box>
+                                    }
+                                    {!hasTradingView && data.latest &&
+                                        <DateTime
+                                            value={data.latest.datetime}
+                                            sx={{display: {xs: "flex", sm: "none"}, position: "relative", left: {xs: "5px", sm: 0}, marginTop: '-2px', color: 'text.secondary', fontSize: 10}}
+                                            iconMarginTop={"1px"}
+                                        />
+                                    }
+                                </Box>
                                 <Box
                                     sx={{
                                         color: "text.secondary",
