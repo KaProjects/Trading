@@ -160,6 +160,19 @@ describe("Companies", () => {
         getTimeSpy.mockRestore();
     });
 
+    test("keeps the edit dialog mounted while the table reloads after a refresh", () => {
+        mockUseData.mockReturnValue({data: createData(), loaded: true, error: null});
+        const {rerender} = render(<Companies {...createProps()}/>);
+
+        expect(screen.getByText("edit-company-dialog")).toBeInTheDocument();
+
+        mockUseData.mockReturnValue({data: createData(), loaded: false, error: null});
+        rerender(<Companies {...createProps()}/>);
+
+        expect(screen.getByTestId("loader")).toBeInTheDocument();
+        expect(screen.getByText("edit-company-dialog")).toBeInTheDocument();
+    });
+
     test("redirects from trade aggregates with company navigation state", async () => {
         const data = createData();
 

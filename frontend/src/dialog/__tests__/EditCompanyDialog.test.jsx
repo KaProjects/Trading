@@ -56,6 +56,7 @@ function createProps(overrides = {}) {
             {key: "XNAS", name: "Nasdaq"},
             {key: "XPAR", name: "Euronext Paris"},
         ],
+        companyLists: {},
         ...overrides,
     };
 }
@@ -168,6 +169,7 @@ describe("EditCompanyDialog", () => {
 
         fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "NVDA"}});
         selectOption(0, "$");
+        fireEvent.click(screen.getByRole("tab", {name: "Data"}));
         fireEvent.click(screen.getByRole("button", {name: "Try Load Company Data"}));
 
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
@@ -241,6 +243,57 @@ describe("EditCompanyDialog", () => {
         }));
     });
 
+    test("splits General and Data fields into separate tabs", () => {
+        const props = createProps({openEditCompany: {}});
+        render(<EditCompanyDialog {...props}/>);
+
+        expect(screen.getByLabelText("Ticker")).toBeInTheDocument();
+        expect(screen.getAllByRole("combobox")).toHaveLength(3);
+        expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Description")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Website")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Try Load Company Data"})).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("tab", {name: "Data"}));
+
+        expect(screen.getByLabelText("Name")).toBeInTheDocument();
+        expect(screen.getByLabelText("Description")).toBeInTheDocument();
+        expect(screen.getByLabelText("Website")).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Try Load Company Data"})).toBeInTheDocument();
+        expect(screen.queryByLabelText("Ticker")).not.toBeInTheDocument();
+        expect(screen.queryAllByRole("combobox")).toHaveLength(0);
+    });
+
+    test("switches back to the General tab whenever the dialog reopens", () => {
+        const props = createProps({openEditCompany: {}});
+        const {rerender} = render(<EditCompanyDialog {...props}/>);
+
+        fireEvent.click(screen.getByRole("tab", {name: "Data"}));
+        expect(screen.getByLabelText("Name")).toBeInTheDocument();
+
+        rerender(<EditCompanyDialog {...props} openEditCompany={null}/>);
+        rerender(<EditCompanyDialog {...props} openEditCompany={{}}/>);
+
+        expect(screen.getByLabelText("Ticker")).toBeInTheDocument();
+        expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    });
+
+    test("places the Alpha Vantage ticker retrieval directly below currency on the General tab", () => {
+        const props = createProps({openEditCompany: {}});
+        render(<EditCompanyDialog {...props}/>);
+
+        selectOption(0, "€");
+
+        const ticker = screen.getByLabelText("Ticker");
+        const currency = screen.getAllByRole("combobox")[0];
+        const findButton = screen.getByRole("button", {name: "Find Alpha Vantage tickers"});
+        const sector = screen.getAllByRole("combobox")[1];
+
+        expect(ticker.compareDocumentPosition(currency) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(currency.compareDocumentPosition(findButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(findButton.compareDocumentPosition(sector) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     test("creates a company with a selected exchange", async () => {
         axios.post.mockResolvedValue({});
         const props = createProps({openEditCompany: {}});
@@ -261,5 +314,165 @@ describe("EditCompanyDialog", () => {
             description: null,
             website: null,
         }));
+    });
+
+    describe("Tags tab", () => {
+        function companyLists() {
+            return {
+                owned: [{id: "company-1", ticker: "NVDA"}],
+                growth: [{id: "company-1", ticker: "NVDA"}, {id: "company-2", ticker: "AMD"}],
+                watchlist: [{id: "company-1", ticker: "NVDA"}],
+                turnaround: [{id: "company-2", ticker: "AMD"}],
+            };
+        }
+
+        test("is only shown when editing an existing company", () => {
+            const {rerender} = render(<EditCompanyDialog {...createProps({openEditCompany: {}})}/>);
+
+            expect(screen.queryByRole("tab", {name: "Tags"})).not.toBeInTheDocument();
+
+            rerender(<EditCompanyDialog {...createProps({
+                openEditCompany: {id: "company-1", ticker: "NVDA", currency: "$"},
+                companyLists: companyLists(),
+            })}/>);
+
+            expect(screen.getByRole("tab", {name: "Tags"})).toBeInTheDocument();
+        });
+
+        test("lists the company's custom tags, excluding built-in lists", () => {
+            const props = createProps({
+                openEditCompany: {id: "company-1", ticker: "NVDA", currency: "$"},
+                companyLists: companyLists(),
+            });
+            render(<EditCompanyDialog {...props}/>);
+
+            fireEvent.click(screen.getByRole("tab", {name: "Tags"}));
+
+            expect(screen.getByText("#growth")).toBeInTheDocument();
+            expect(screen.getByText("#watchlist")).toBeInTheDocument();
+            expect(screen.queryByText("#owned")).not.toBeInTheDocument();
+            expect(screen.queryByText(/^No tags yet/)).not.toBeInTheDocument();
+        });
+
+        test("shows a placeholder when the company has no custom tags", () => {
+            const props = createProps({
+                openEditCompany: {id: "company-2", ticker: "AMD", currency: "$"},
+                companyLists: {owned: [{id: "company-2", ticker: "AMD"}]},
+            });
+            render(<EditCompanyDialog {...props}/>);
+
+            fireEvent.click(screen.getByRole("tab", {name: "Tags"}));
+
+            expect(screen.getByText("No tags yet.")).toBeInTheDocument();
+        });
+
+        test("removes a tag immediately, without a confirmation step", async () => {
+            axios.delete.mockResolvedValue({});
+            const props = createProps({
+                openEditCompany: {id: "company-1", ticker: "NVDA", currency: "$"},
+                companyLists: companyLists(),
+            });
+            render(<EditCompanyDialog {...props}/>);
+
+            fireEvent.click(screen.getByRole("tab", {name: "Tags"}));
+            fireEvent.click(screen.getByRole("button", {name: "Remove tag growth"}));
+
+            expect(screen.queryByText("Remove tag?")).not.toBeInTheDocument();
+            await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/company/company-1/tag", {
+                params: {value: "growth"},
+            }));
+            await waitFor(() => expect(screen.queryByText("#growth")).not.toBeInTheDocument());
+            expect(screen.getByText("#watchlist")).toBeInTheDocument();
+            expect(props.triggerRefresh).toHaveBeenCalled();
+        });
+
+        test("shows an alert and keeps the tag when removal fails", async () => {
+            axios.delete.mockRejectedValue(new Error("failed"));
+            const props = createProps({
+                openEditCompany: {id: "company-1", ticker: "NVDA", currency: "$"},
+                companyLists: companyLists(),
+            });
+            render(<EditCompanyDialog {...props}/>);
+
+            fireEvent.click(screen.getByRole("tab", {name: "Tags"}));
+            fireEvent.click(screen.getByRole("button", {name: "Remove tag growth"}));
+
+            await waitFor(() => expect(mockFormatError).toHaveBeenCalled());
+            expect(screen.getByText("#growth")).toBeInTheDocument();
+        });
+
+        test("adds a new tag via the icon button, using the same validation as the tag dialogue", async () => {
+            axios.post.mockResolvedValue({});
+            const props = createProps({
+                openEditCompany: {id: "company-1", ticker: "NVDA", currency: "$"},
+                companyLists: companyLists(),
+            });
+            render(<EditCompanyDialog {...props}/>);
+
+            fireEvent.click(screen.getByRole("tab", {name: "Tags"}));
+            const tagInput = screen.getByLabelText("Tag");
+            const addButton = screen.getByRole("button", {name: "Add tag"});
+
+            expect(addButton).toBeDisabled();
+
+            fireEvent.change(tagInput, {target: {value: "has space"}});
+            expect(screen.getByText("Tag must not contain spaces or tabs")).toBeInTheDocument();
+            expect(addButton).toBeEnabled();
+
+            fireEvent.change(tagInput, {target: {value: "growth"}});
+            expect(screen.getByText("Tag is already assigned to this company")).toBeInTheDocument();
+
+            fireEvent.change(tagInput, {target: {value: "owned"}});
+            expect(screen.getByText("Tag name is reserved")).toBeInTheDocument();
+
+            fireEvent.change(tagInput, {target: {value: "momentum"}});
+            expect(screen.queryByText("Tag name is reserved")).not.toBeInTheDocument();
+            expect(addButton).toBeEnabled();
+
+            fireEvent.click(addButton);
+
+            await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/company/tag", {
+                companyId: "company-1",
+                value: "momentum",
+            }));
+            await waitFor(() => expect(screen.getByText("#momentum")).toBeInTheDocument());
+            expect(tagInput).toHaveValue("");
+            expect(addButton).toBeDisabled();
+            expect(props.triggerRefresh).toHaveBeenCalled();
+        });
+
+        test("adds a new tag by pressing Enter in the input", async () => {
+            axios.post.mockResolvedValue({});
+            const props = createProps({
+                openEditCompany: {id: "company-1", ticker: "NVDA", currency: "$"},
+                companyLists: companyLists(),
+            });
+            render(<EditCompanyDialog {...props}/>);
+
+            fireEvent.click(screen.getByRole("tab", {name: "Tags"}));
+            const tagInput = screen.getByLabelText("Tag");
+
+            fireEvent.change(tagInput, {target: {value: "momentum"}});
+            fireEvent.keyDown(tagInput, {key: "Enter"});
+
+            await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/company/tag", {
+                companyId: "company-1",
+                value: "momentum",
+            }));
+        });
+
+        test("offers unused custom tag keys from other companies as suggestions", () => {
+            const props = createProps({
+                openEditCompany: {id: "company-1", ticker: "NVDA", currency: "$"},
+                companyLists: companyLists(),
+            });
+            render(<EditCompanyDialog {...props}/>);
+
+            fireEvent.click(screen.getByRole("tab", {name: "Tags"}));
+            fireEvent.mouseDown(screen.getByLabelText("Tag"));
+
+            expect(screen.getByRole("option", {name: "turnaround"})).toBeInTheDocument();
+            expect(screen.queryByRole("option", {name: "growth"})).not.toBeInTheDocument();
+        });
     });
 });

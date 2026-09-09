@@ -95,10 +95,10 @@ export const Companies = props => {
 
     return (
         <>
+            <EditCompanyDialog triggerRefresh={triggerRefresh} {...props}/>
             {!loaded && <Loader error={error}/>}
             {loaded &&
                 <>
-                    <EditCompanyDialog triggerRefresh={triggerRefresh} {...props}/>
                     <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto 10px auto", maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
                         <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 1450, sm: "unset"}}}>
                             <TableHead>
