@@ -277,6 +277,8 @@ class InMemoryFirebaseStoreTest
         period.setOperatingIncome(new BigDecimal("20000"));
         period.setNetIncome(new BigDecimal("19000"));
         period.setAdjustedEps(new BigDecimal("1.35"));
+        period.setCapex(new BigDecimal("3000"));
+        period.setFreeCashFlow(new BigDecimal("12500"));
 
         firebaseService.updatePeriod(period);
 
@@ -293,5 +295,7 @@ class InMemoryFirebaseStoreTest
         assertThat(quarter.getReported_net_income(), is("19000"));
         assertThat(quarter.getReported_div(), is(""));
         assertThat(quarter.getReported_eps(), is("1.35"));
+        assertThat(quarter.getReported_capex(), is("3000"));
+        assertThat(quarter.getReported_free_cash_flow(), is("12500"));
     }
 }

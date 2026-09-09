@@ -160,6 +160,8 @@ public class InMemoryFirebaseStore implements FirebaseStore
         quarter.setReported_net_income(update.getReported_net_income());
         quarter.setReported_div(update.getReported_div());
         quarter.setReported_eps(update.getReported_eps());
+        quarter.setReported_capex(update.getReported_capex());
+        quarter.setReported_free_cash_flow(update.getReported_free_cash_flow());
     }
 
     List<FirebaseAsset> getAssets()

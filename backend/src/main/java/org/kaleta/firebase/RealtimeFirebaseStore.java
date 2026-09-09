@@ -148,6 +148,8 @@ public class RealtimeFirebaseStore implements FirebaseStore
         values.put("reported_net_income", quarter.getReported_net_income());
         values.put("reported_div", quarter.getReported_div());
         values.put("reported_eps", quarter.getReported_eps());
+        values.put("reported_capex", quarter.getReported_capex());
+        values.put("reported_free_cash_flow", quarter.getReported_free_cash_flow());
 
         company(ticker)
                 .child(FirebasePath.GEMINI)
