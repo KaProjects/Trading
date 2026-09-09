@@ -140,6 +140,30 @@ export const Research = props => {
     })
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
     const todoTabSelected = researchTabsIndex === RESEARCH_TAB.todo
+    const touchStart = useRef(null)
+
+    function handleTouchStart(event) {
+        const touch = event.touches[0]
+        touchStart.current = {x: touch.clientX, y: touch.clientY}
+    }
+
+    function handleTouchEnd(event) {
+        const start = touchStart.current
+        touchStart.current = null
+        if (!start || window.innerWidth > COMPANY_SELECTOR_SIDEBAR_BREAKPOINT) return
+
+        const touch = event.changedTouches[0]
+        const deltaX = touch.clientX - start.x
+        const deltaY = touch.clientY - start.y
+        const SWIPE_THRESHOLD = 60
+        if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return
+
+        if (deltaX < 0) {
+            props.setResearchTabsIndex?.(Math.min(researchTabsIndex + 1, RESEARCH_TAB.todo))
+        } else {
+            props.setResearchTabsIndex?.(Math.max(researchTabsIndex - 1, RESEARCH_TAB.research))
+        }
+    }
 
     function fetchData(companyChanged) {
         const requestId = ++latestRequestId.current
@@ -257,6 +281,8 @@ export const Research = props => {
             <Box
                 data-testid="research-content"
                 hidden={loading}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
                 sx={{display: loading ? "none" : "block", position: "relative", minHeight: "1px"}}
             >
                 <TodoList

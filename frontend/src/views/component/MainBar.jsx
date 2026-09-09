@@ -619,26 +619,22 @@ export const MainBar = props => {
                                 ))}
                             </Tabs>
                         }
-                        {config.showResearchTabs && (props.companySelectorValue || showTodoTab) &&
+                        {config.showResearchTabs && !showTodoTab && props.companySelectorValue &&
                             <Tabs value={props.researchTabsIndex}
                                   onChange={(event, value) => props.setResearchTabsIndex(value)}
-                                  variant={showTodoTab ? "fullWidth" : "standard"}
+                                  variant="standard"
                                   slotProps={{indicator: {style: {backgroundColor: "white"}}}}
                                   textColor="inherit"
                                   sx={{
                                       display: "none",
-                                      [`@media (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {display: "flex"},
+                                      [`@media (min-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT + 1}px) and (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {display: "flex"},
                                   }}
                             >
                                 {RESEARCH_TAB_LABELS.map((tab, index) => (
                                     <Tab
                                         key={tab}
                                         label={tab}
-                                        sx={index === RESEARCH_TAB.todo ? {
-                                            [`@media (min-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT + 1}px)`]: {
-                                                display: "none",
-                                            },
-                                        } : undefined}
+                                        sx={index === RESEARCH_TAB.todo ? {display: "none"} : undefined}
                                     />
                                 ))}
                             </Tabs>

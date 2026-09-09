@@ -263,17 +263,17 @@ describe("MainBar", () => {
         expect(screen.queryByRole("tab", {name: "Records"})).not.toBeInTheDocument();
     });
 
-    test("renders the Todo tab on a narrow Research view without a selected company", () => {
+    test("hides the research tabs entirely on a narrow screen in favor of swipe navigation", () => {
         mockUseMediaQuery.mockReturnValue(true);
         mockUseLocation.mockReturnValue({pathname: "/research", state: null});
-        const setResearchTabsIndex = jest.fn();
 
-        render(<MainBar {...createProps({setResearchTabsIndex})}/>);
+        render(<MainBar {...createProps({
+            companySelectorValue: {id: "company-1", ticker: "NVDA"},
+        })}/>);
 
-        expect(screen.getByRole("tab", {name: "Research", hidden: true})).toBeInTheDocument();
-        expect(screen.getByRole("tab", {name: "Records", hidden: true})).toBeInTheDocument();
-        fireEvent.click(screen.getByRole("tab", {name: "Todo", hidden: true}));
-        expect(setResearchTabsIndex).toHaveBeenCalledWith(2);
+        expect(screen.queryByRole("tab", {name: "Research"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("tab", {name: "Records"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("tab", {name: "Todo"})).not.toBeInTheDocument();
     });
 
     test("returns to the Research tab when the Todo tab is no longer available", async () => {

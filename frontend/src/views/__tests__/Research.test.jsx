@@ -300,6 +300,127 @@ describe("Research", () => {
         expect(setResearchTabsIndex).toHaveBeenCalledWith(0);
     });
 
+    describe("swipe navigation on a narrow screen", () => {
+        const originalInnerWidth = window.innerWidth;
+
+        beforeEach(() => {
+            axios.get.mockResolvedValue({data: createResearchData()});
+        });
+
+        function setInnerWidth(width) {
+            Object.defineProperty(window, "innerWidth", {value: width, configurable: true});
+        }
+
+        afterEach(() => {
+            setInnerWidth(originalInnerWidth);
+        });
+
+        function swipe(content, fromX, toX) {
+            fireEvent.touchStart(content, {touches: [{clientX: fromX, clientY: 100}]});
+            fireEvent.touchEnd(content, {changedTouches: [{clientX: toX, clientY: 100}]});
+        }
+
+        test("swiping left moves forward from Research to Records", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 300, 100);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
+        });
+
+        test("swiping right moves backward from Todo to Records", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={2}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 100, 300);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
+        });
+
+        test("does not swipe forward past the last tab", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={2}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 300, 100);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(2);
+        });
+
+        test("does not swipe backward past the first tab", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 100, 300);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(0);
+        });
+
+        test("ignores a short swipe below the distance threshold", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 100, 130);
+
+            expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+
+        test("ignores a predominantly vertical scroll gesture", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            const content = screen.getByTestId("research-content");
+            fireEvent.touchStart(content, {touches: [{clientX: 100, clientY: 100}]});
+            fireEvent.touchEnd(content, {changedTouches: [{clientX: 180, clientY: 300}]});
+
+            expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+
+        test("ignores swipes on a wide screen", () => {
+            setInnerWidth(1400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 100, 300);
+
+            expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+    });
+
     test("fetches data and renders the research view", async () => {
         axios.get.mockResolvedValue({data: createResearchData()});
 
