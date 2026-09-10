@@ -334,32 +334,6 @@ export const MainBar = props => {
     }, [location.pathname, location.search, companyTickers])
 
     useEffect(() => {
-        if (!DATA_ROUTES.includes(location.pathname) || waitingForCompanyLists.current) {
-            return
-        }
-        if (companySelectionFromUrl.current) {
-            companySelectionFromUrl.current = false
-            return
-        }
-
-        const ticker = props.companySelectorValue?.ticker ?? ""
-        const tickerFromUrl = new URLSearchParams(location.search ?? "").get(COMPANY_QUERY_PARAMETER) ?? ""
-        if (ticker === tickerFromUrl) {
-            return
-        }
-
-        navigate({
-            pathname: location.pathname,
-            search: location.pathname === "/research"
-                ? searchWithResearchSelection(ticker, props.companyListSelectorValue)
-                : searchWithCompany(ticker),
-            hash: location.hash,
-        }, {state: location.state})
-        // Company selection changes drive this effect; URL changes are handled by the preceding effect.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [location.pathname, props.companySelectorValue?.ticker])
-
-    useEffect(() => {
         if (location.pathname !== "/research") {
             companyListSelectionFromUrl.current = false
             waitingForCompanyListOptions.current = false
@@ -402,29 +376,42 @@ export const MainBar = props => {
     }, [location.pathname, location.search, companyListKeysSignature, companyTickers])
 
     useEffect(() => {
-        if (location.pathname !== "/research" || waitingForCompanyListOptions.current) {
-            return
-        }
-        if (companyListSelectionFromUrl.current) {
-            companyListSelectionFromUrl.current = false
+        if (!DATA_ROUTES.includes(location.pathname) || waitingForCompanyLists.current) {
             return
         }
 
+        const skipCompany = companySelectionFromUrl.current
+        companySelectionFromUrl.current = false
+        const skipList = companyListSelectionFromUrl.current
+        companyListSelectionFromUrl.current = false
+
+        const ticker = props.companySelectorValue?.ticker ?? ""
+        const tickerFromUrl = new URLSearchParams(location.search ?? "").get(COMPANY_QUERY_PARAMETER) ?? ""
+        const tickerChanged = !skipCompany && ticker !== tickerFromUrl
+
         const selectedList = props.companyListSelectorValue || DEFAULT_COMPANY_LIST
-        const listFromUrl = new URLSearchParams(location.search ?? "")
-            .get(COMPANY_LIST_QUERY_PARAMETER) || DEFAULT_COMPANY_LIST
-        if (selectedList === listFromUrl || !companyListKeys.includes(selectedList)) {
+        let listChanged = false
+        if (location.pathname === "/research" && !waitingForCompanyListOptions.current) {
+            const listFromUrl = new URLSearchParams(location.search ?? "")
+                .get(COMPANY_LIST_QUERY_PARAMETER) || DEFAULT_COMPANY_LIST
+            listChanged = !skipList && selectedList !== listFromUrl && companyListKeys.includes(selectedList)
+        }
+
+        if (!tickerChanged && !listChanged) {
             return
         }
 
         navigate({
             pathname: location.pathname,
-            search: searchWithResearchSelection(props.companySelectorValue?.ticker, selectedList),
+            search: location.pathname === "/research"
+                ? searchWithResearchSelection(ticker, selectedList)
+                : searchWithCompany(ticker),
             hash: location.hash,
         }, {state: location.state})
-        // Company-list selection changes drive this effect; URL changes are handled by the preceding effect.
+        // Company/company-list selection changes drive this effect together, as one push;
+        // URL changes are handled by the preceding effects.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [location.pathname, props.companyListSelectorValue])
+    }, [location.pathname, props.companySelectorValue?.ticker, props.companyListSelectorValue])
 
     useLayoutEffect(() => {
         function updateMainBarHeight() {

@@ -742,9 +742,14 @@ describe("MainBar", () => {
         fireEvent.click(screen.getByText("select-company-from-list:owned"));
 
         await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
-        expect(mockNavigate.mock.calls.every(([target]) => (
-            target.search === "?company=NVDA&list=owned"
-        ))).toBe(true);
+        expect(mockNavigate).toHaveBeenCalledTimes(1);
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/research",
+            search: "?company=NVDA&list=owned",
+            hash: undefined,
+        }, {
+            state: null,
+        });
         expect(screen.getByTestId("selector-value-companies")).toHaveTextContent("NVDA");
         expect(screen.getByTestId("company-list-value")).toHaveTextContent("owned");
     });
