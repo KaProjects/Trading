@@ -23,7 +23,6 @@ import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -35,7 +34,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class CompanyService
 {
-    private static final Set<String> RESERVED_TAGS = Set.of("owned", "recent", "researched", "all");
+    private static final Set<String> RESERVED_TAGS = Set.of("owned", "recent", "all");
     private static final Comparator<String> COMPANY_LIST_ORDER = Comparator
             .comparingInt(CompanyService::companyListOrder)
             .thenComparing(Comparator.naturalOrder());
@@ -118,7 +117,6 @@ public class CompanyService
     {
         Map<String, List<CompanyWithStats>> companiesByTag = new TreeMap<>(COMPANY_LIST_ORDER);
         List<CompanyWithStats> allCompanies = new ArrayList<>();
-        YearMonth periodCutoff = YearMonth.now().minusYears(1);
         LocalDate recordCutoff = LocalDate.now().minusYears(1);
 
         for (CompanyWithStats company : companyDao.listWithStats())
@@ -126,10 +124,6 @@ public class CompanyService
             allCompanies.add(company);
             if (company.getLatestPurchaseDate() != null) {
                 companiesByTag.computeIfAbsent("owned", ignored -> new ArrayList<>()).add(company);
-            }
-            if (company.getLatestPeriodEndingMonth() != null
-                    && !company.getLatestPeriodEndingMonth().isBefore(periodCutoff)) {
-                companiesByTag.computeIfAbsent("researched", ignored -> new ArrayList<>()).add(company);
             }
             if (company.getLatestRecordDate() != null
                     && !company.getLatestRecordDate().toLocalDate().isBefore(recordCutoff)) {
@@ -147,7 +141,6 @@ public class CompanyService
         return switch (tag) {
             case "owned" -> 0;
             case "recent" -> 1;
-            case "researched" -> 2;
             case "all" -> 4;
             default -> 3;
         };

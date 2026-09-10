@@ -76,8 +76,6 @@ export const CompanySelector = (props) => {
 
     function getSecondaryValue(company, listKey) {
         switch (listKey) {
-            case "researched":
-                return company.latestPeriodEndingMonth
             case "recent":
                 return company.latestRecordDate
             case "actionable":

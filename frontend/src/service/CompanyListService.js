@@ -2,11 +2,10 @@ export const COMPANY_LIST_TITLES = {
     owned: "Owned",
     actionable: "Actionable",
     recent: "Recent",
-    researched: "Researched",
     all: "All",
 }
 
-const BUILT_IN_LIST_KEYS = ["owned", "actionable", "recent", "researched"]
+const BUILT_IN_LIST_KEYS = ["owned", "actionable", "recent"]
 const CUSTOM_LIST_ORDER = BUILT_IN_LIST_KEYS.length
 const ALL_LIST_ORDER = BUILT_IN_LIST_KEYS.length + 1
 

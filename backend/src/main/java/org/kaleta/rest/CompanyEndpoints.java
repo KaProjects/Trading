@@ -108,13 +108,7 @@ public class CompanyEndpoints
     public Map<String, List<CompanyWithStats>> getCompaniesByTag()
     {
         Map<String, List<CompanyWithStats>> dto = companyService.getCompaniesByTag();
-        dto.forEach((tag, companies) -> companies.sort(switch (tag) {
-            case "researched" -> Comparator.comparing(CompanyWithStats::getLatestPeriodEndingMonth,
-                    Comparator.nullsLast(Comparator.reverseOrder()));
-            case "recent" -> Comparator.comparing(CompanyWithStats::getLatestRecordDate,
-                    Comparator.nullsLast(Comparator.reverseOrder()));
-            default -> Comparator.comparing(CompanyWithStats::getTicker);
-        }));
+        dto.forEach((tag, companies) -> companies.sort(Comparator.comparing(CompanyWithStats::getTicker)));
 
         return dto;
     }

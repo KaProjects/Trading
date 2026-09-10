@@ -28,9 +28,6 @@ function createData(overrides = {}) {
         recent: [
             {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-03-15"},
         ],
-        researched: [
-            {id: "company-4", ticker: "CEZ", latestPeriodEndingMonth: "2025-01"},
-        ],
         Energy: [
             {id: "company-6", ticker: "XOM", latestRecordDate: "2024-01-20"},
         ],
@@ -70,14 +67,13 @@ describe("CompanySelector", () => {
         render(<CompanySelector {...createProps()}/>);
 
         expect(await screen.findByText("Owned")).toBeInTheDocument();
-        expect(screen.getByText("Researched")).toBeInTheDocument();
         expect(screen.getByText("Recent")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.getByText("Energy")).toBeInTheDocument();
         expect(screen.getByText("All")).toBeInTheDocument();
         expect(screen.getAllByText("NVDA")).toHaveLength(3);
         expect(screen.getAllByText("TSLA")).toHaveLength(2);
-        expect(screen.getAllByText("CEZ")).toHaveLength(2);
+        expect(screen.getAllByText("CEZ")).toHaveLength(1);
         screen.getAllByRole("list").forEach(list => {
             expect(list).toHaveStyle("overflow-y: auto");
         });
@@ -98,18 +94,16 @@ describe("CompanySelector", () => {
         expect(screen.getAllByRole("list").map(list => list.firstChild.textContent)).toEqual([
             "Owned",
             "Recent",
-            "Researched",
             "Energy",
             "Semiconductors",
             "All",
         ]);
     });
 
-    test("shows secondary dates only for recent and researched lists", async () => {
+    test("shows secondary dates only for the recent list", async () => {
         render(<CompanySelector {...createProps()}/>);
 
         expect(await screen.findByText("2024-03-15")).toBeInTheDocument();
-        expect(screen.getByText("2025-01")).toBeInTheDocument();
         expect(screen.queryByText("2024-04-20")).not.toBeInTheDocument();
         expect(screen.queryByText("2024-01-20")).not.toBeInTheDocument();
     });
@@ -216,7 +210,6 @@ describe("CompanySelector", () => {
         rerender(<CompanySelector {...createProps({companySelectorValue: null})}/>);
 
         expect(await screen.findByText("Owned")).toBeInTheDocument();
-        expect(screen.getByText("Researched")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.queryByRole("combobox", {name: "Company list"})).not.toBeInTheDocument();
     });
@@ -256,7 +249,6 @@ describe("CompanySelector", () => {
         render(<CompanySelector {...createProps()}/>);
 
         expect(await screen.findByText("Owned")).toBeInTheDocument();
-        expect(screen.getByText("Researched")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.getByText("All")).toBeInTheDocument();
         expect(screen.queryByRole("combobox", {name: "Company list"})).not.toBeInTheDocument();

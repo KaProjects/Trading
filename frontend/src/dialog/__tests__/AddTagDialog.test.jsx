@@ -73,7 +73,7 @@ describe("AddTagDialog", () => {
         expect(screen.getByText("Tag is already assigned to this company")).toBeInTheDocument();
     });
 
-    test.each(["owned", "Recent", "RESEARCHED", "all"])("rejects reserved tag %p", value => {
+    test.each(["owned", "Recent", "ACTIONABLE", "all"])("rejects reserved tag %p", value => {
         render(<AddTagDialog {...createProps()}/>);
 
         fireEvent.change(screen.getByRole("combobox", {name: /Tag/}), {target: {value}});

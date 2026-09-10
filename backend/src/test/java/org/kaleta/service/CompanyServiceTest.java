@@ -29,7 +29,6 @@ import org.mockito.ArgumentCaptor;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -197,7 +196,6 @@ public class CompanyServiceTest
     @Test
     void getCompaniesByTag()
     {
-        YearMonth periodCutoff = YearMonth.now().minusYears(1);
         LocalDate recordCutoff = LocalDate.now().minusYears(1);
 
         CompanyWithStats company1 = new CompanyWithStats();
@@ -206,7 +204,6 @@ public class CompanyServiceTest
         company1.setCurrency(Currency.$);
         company1.setLatestPurchaseDate(Date.valueOf("2024-07-10"));
         company1.setLatestRecordDate(Date.valueOf(recordCutoff));
-        company1.setLatestPeriodEndingMonth(periodCutoff);
         company1.setTags(List.of("ai", "growth", "ai"));
 
         CompanyWithStats company2 = new CompanyWithStats();
@@ -214,7 +211,6 @@ public class CompanyServiceTest
         company2.setTicker("XCW");
         company2.setCurrency(Currency.$);
         company2.setLatestRecordDate(Date.valueOf(recordCutoff.minusDays(1)));
-        company2.setLatestPeriodEndingMonth(periodCutoff.minusMonths(1));
         company2.setTags(List.of("growth"));
 
         CompanyWithStats company3 = new CompanyWithStats();
@@ -223,8 +219,7 @@ public class CompanyServiceTest
         company3.setCurrency(Currency.$);
         company3.setLatestPurchaseDate(Date.valueOf("2024-01-01"));
         company3.setLatestRecordDate(Date.valueOf(recordCutoff.plusMonths(1)));
-        company3.setLatestPeriodEndingMonth(periodCutoff.plusMonths(1));
-        company3.setTags(List.of("researched"));
+        company3.setTags(List.of("watchlist"));
 
         CompanyWithStats company4 = new CompanyWithStats();
         company4.setId(4L);
@@ -236,11 +231,11 @@ public class CompanyServiceTest
         Map<String, List<CompanyWithStats>> companiesByTag = companyService.getCompaniesByTag();
 
         assertThat(companiesByTag.keySet().stream().toList(),
-                is(List.of("owned", "recent", "researched", "ai", "growth", "all")));
+                is(List.of("owned", "recent", "ai", "growth", "watchlist", "all")));
         assertThat(companiesByTag.get("ai"), is(List.of(company1)));
         assertThat(companiesByTag.get("growth"), is(List.of(company1, company2)));
         assertThat(companiesByTag.get("owned"), is(List.of(company1, company3)));
-        assertThat(companiesByTag.get("researched"), is(List.of(company1, company3, company3)));
+        assertThat(companiesByTag.get("watchlist"), is(List.of(company3)));
         assertThat(companiesByTag.get("recent"), is(List.of(company1, company3)));
         assertThat(companiesByTag.get("all"), is(List.of(company1, company2, company3, company4)));
     }
