@@ -58,6 +58,17 @@ public class FirebaseService
         }
     }
 
+    public record AllCompaniesResult(
+            Map<String, FirebaseCompany> companies,
+            List<String> warnings)
+    {
+        public AllCompaniesResult
+        {
+            companies = Collections.unmodifiableMap(new LinkedHashMap<>(companies));
+            warnings = List.copyOf(warnings);
+        }
+    }
+
     public record NewsSentimentsResult(
             Map<String, FirebaseCompany.NewsSentiment> records,
             List<String> warnings)
@@ -78,8 +89,6 @@ public class FirebaseService
 
     public ImportCandidatesResult getNewerPeriods(String ticker, String quarterId)
     {
-        PeriodName latestPeriod = quarterId == null ? null : PeriodName.valueOf(quarterId);
-        List<String> warnings = new ArrayList<>();
         Map<String, FirebaseStore.QuarterMetadata> quarters;
         try {
             quarters = firebaseStore.findQuartersMetadata(ticker);
@@ -90,26 +99,12 @@ public class FirebaseService
             Log.warn(warning, exception);
             return new ImportCandidatesResult(List.of(), List.of(warning));
         }
+        return buildImportCandidates(quarters, quarterId, ticker);
+    }
 
-        List<PeriodImportCandidateDto> periods = new ArrayList<>();
-        for (Map.Entry<String, FirebaseStore.QuarterMetadata> quarter : quarters.entrySet()) {
-            String id = quarter.getKey();
-            try {
-                if (latestPeriod == null || PeriodName.valueOf(id).compareTo(latestPeriod) > 0) {
-                    periods.add(toImportCandidate(id, quarter.getValue()));
-                }
-            } catch (RuntimeException exception) {
-                String warning = ExternalWarnings.unavailable(
-                        "Firebase period " + id + " for " + ticker,
-                        exception);
-                Log.warn(warning, exception);
-                warnings.add(warning);
-            }
-        }
-        periods.sort(Comparator.comparing(
-                candidate -> PeriodName.valueOf(candidate.getName()),
-                Comparator.reverseOrder()));
-        return new ImportCandidatesResult(periods, warnings);
+    public ImportCandidatesResult getNewerPeriods(FirebaseCompany company, String quarterId)
+    {
+        return buildImportCandidates(quarterMetadataOf(company), quarterId, null);
     }
 
     public TargetsResult getTargets(String ticker)
@@ -127,6 +122,74 @@ public class FirebaseService
             Log.warn(warning, exception);
             return new TargetsResult(List.of(), List.of(warning));
         }
+    }
+
+    public TargetsResult getTargets(FirebaseCompany company)
+    {
+        if (company == null || company.getGemini() == null || company.getGemini().getTargets() == null) {
+            return new TargetsResult(List.of(), List.of());
+        }
+        return new TargetsResult(
+                company.getGemini().getTargets().values().stream()
+                        .filter(java.util.Objects::nonNull)
+                        .toList(),
+                List.of());
+    }
+
+    public AllCompaniesResult getAllCompanies()
+    {
+        try {
+            return new AllCompaniesResult(firebaseStore.findAllCompanies(), List.of());
+        } catch (RuntimeException exception) {
+            String warning = ExternalWarnings.unavailable("Firebase company data", exception);
+            Log.warn(warning, exception);
+            return new AllCompaniesResult(Map.of(), List.of(warning));
+        }
+    }
+
+    private ImportCandidatesResult buildImportCandidates(
+            Map<String, FirebaseStore.QuarterMetadata> quarters,
+            String quarterId,
+            String ticker)
+    {
+        PeriodName latestPeriod = quarterId == null ? null : PeriodName.valueOf(quarterId);
+        List<String> warnings = new ArrayList<>();
+        List<PeriodImportCandidateDto> periods = new ArrayList<>();
+        for (Map.Entry<String, FirebaseStore.QuarterMetadata> quarter : quarters.entrySet()) {
+            String id = quarter.getKey();
+            try {
+                if (latestPeriod == null || PeriodName.valueOf(id).compareTo(latestPeriod) > 0) {
+                    periods.add(toImportCandidate(id, quarter.getValue()));
+                }
+            } catch (RuntimeException exception) {
+                String warning = ExternalWarnings.unavailable(
+                        "Firebase period " + id + (ticker != null ? " for " + ticker : ""),
+                        exception);
+                Log.warn(warning, exception);
+                warnings.add(warning);
+            }
+        }
+        periods.sort(Comparator.comparing(
+                candidate -> PeriodName.valueOf(candidate.getName()),
+                Comparator.reverseOrder()));
+        return new ImportCandidatesResult(periods, warnings);
+    }
+
+    private Map<String, FirebaseStore.QuarterMetadata> quarterMetadataOf(FirebaseCompany company)
+    {
+        if (company == null || company.getGemini() == null || company.getGemini().getQuarters() == null) {
+            return Map.of();
+        }
+        return company.getGemini().getQuarters().entrySet().stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey,
+                        entry -> {
+                            FirebaseCompany.Gemini.Quarter quarter = entry.getValue();
+                            String revenues = quarter.getReported_revenues();
+                            return new FirebaseStore.QuarterMetadata(
+                                    quarter.getEnding_month(),
+                                    revenues != null && !revenues.isBlank());
+                        }));
     }
 
     public NewsSentimentsResult getNewsSentiments(

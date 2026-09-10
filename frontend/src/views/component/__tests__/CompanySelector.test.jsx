@@ -114,6 +114,23 @@ describe("CompanySelector", () => {
         expect(screen.queryByText("2024-01-20")).not.toBeInTheDocument();
     });
 
+    test("shows importable period and target counts for the actionable list", async () => {
+        const data = createData({
+            actionable: [
+                {id: "company-7", ticker: "AMD", importablePeriodsCount: 1, importableTargetsCount: 3},
+                {id: "company-8", ticker: "INTC", importablePeriodsCount: 2, importableTargetsCount: 0},
+                {id: "company-9", ticker: "QCOM", importablePeriodsCount: 0, importableTargetsCount: 1},
+            ],
+        });
+
+        render(<CompanySelector {...createProps({companyLists: data})}/>);
+
+        expect(await screen.findByText("Actionable")).toBeInTheDocument();
+        expect(screen.getByText("1 period, 3 targets")).toBeInTheDocument();
+        expect(screen.getByText("2 periods")).toBeInTheDocument();
+        expect(screen.getByText("1 target")).toBeInTheDocument();
+    });
+
     test("selects a company and retains only the source list", async () => {
         const setCompanySelectorValue = jest.fn();
         const setCompanyListSelectorValue = jest.fn();

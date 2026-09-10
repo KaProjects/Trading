@@ -109,6 +109,11 @@ public class CompanyService
         }
     }
 
+    public List<CompanyWithStats> getAllWithStats()
+    {
+        return companyDao.listWithStats();
+    }
+
     public Map<String, List<CompanyWithStats>> getCompaniesByTag()
     {
         Map<String, List<CompanyWithStats>> companiesByTag = new TreeMap<>(COMPANY_LIST_ORDER);

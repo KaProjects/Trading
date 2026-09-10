@@ -53,7 +53,7 @@ export const App = () => {
             axios.get(backend + "/company/values"),
             axios.get(backend + "/company/lists"),
         ]).then(([valuesResponse, listsResponse]) => {
-            setCompanyLists(listsResponse.data);
+            setCompanyLists(previous => ({...previous, ...listsResponse.data}));
             setCurrencies(valuesResponse.data.currencies);
             setSectors(valuesResponse.data.sectors);
             setExchanges(valuesResponse.data.exchanges ?? []);
@@ -65,11 +65,23 @@ export const App = () => {
             setError(formatError(error));
             setLoaded(false);
         });
+
+        axios.get(backend + "/company/lists/actionable")
+            .then(response => {
+                if (!response.data || response.data.length === 0) return
+                const actionable = response.data.map(entry => ({
+                    ...entry.company,
+                    importablePeriodsCount: entry.importablePeriodsCount,
+                    importableTargetsCount: entry.importableTargetsCount,
+                }));
+                setCompanyLists(previous => ({...previous, actionable}));
+            })
+            .catch(() => {});
     }, []);
 
     function refreshCompanyLists() {
         axios.get(backend + "/company/lists?refresh" + Date.now())
-            .then(response => setCompanyLists(response.data))
+            .then(response => setCompanyLists(previous => ({...previous, ...response.data})))
             .catch(requestError => setError(formatError(requestError)));
     }
 

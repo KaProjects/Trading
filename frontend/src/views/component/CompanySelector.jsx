@@ -80,9 +80,22 @@ export const CompanySelector = (props) => {
                 return company.latestPeriodEndingMonth
             case "recent":
                 return company.latestRecordDate
+            case "actionable":
+                return getActionableSecondaryValue(company)
             default:
                 return undefined
         }
+    }
+
+    function getActionableSecondaryValue(company) {
+        const parts = []
+        if (company.importablePeriodsCount > 0) {
+            parts.push(`${company.importablePeriodsCount} period${company.importablePeriodsCount === 1 ? "" : "s"}`)
+        }
+        if (company.importableTargetsCount > 0) {
+            parts.push(`${company.importableTargetsCount} target${company.importableTargetsCount === 1 ? "" : "s"}`)
+        }
+        return parts.join(", ") || undefined
     }
 
     const listStyle = {

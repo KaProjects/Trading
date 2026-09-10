@@ -10,13 +10,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.kaleta.model.FirebaseCompany;
+import org.kaleta.model.Periods;
 import org.kaleta.model.TargetStats;
 import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.api.TargetDao;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.persistence.entity.Target;
+import org.kaleta.rest.dto.ActionableCompanyDto;
+import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.TargetCreateDto;
 import org.kaleta.rest.dto.TargetDto;
 import org.kaleta.rest.dto.TargetSyncCountsDto;
@@ -35,6 +39,7 @@ import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -43,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -260,6 +266,87 @@ class TargetServiceTest
     }
 
     @Test
+    void getCompaniesWithImportCandidates_countsImportablePeriodsAndTargetsUsingOneBulkFirebaseCall()
+    {
+        CompanyWithStats nvda = new CompanyWithStats();
+        nvda.setId(COMPANY_ID);
+        nvda.setTicker("NVDA");
+        CompanyWithStats amd = new CompanyWithStats();
+        amd.setId(2L);
+        amd.setTicker("AMD");
+        CompanyWithStats tsla = new CompanyWithStats();
+        tsla.setId(3L);
+        tsla.setTicker("TSLA");
+        when(companyService.getAllWithStats()).thenReturn(List.of(nvda, amd, tsla));
+
+        FirebaseCompany nvdaFirebase = new FirebaseCompany();
+        FirebaseCompany.Gemini nvdaGemini = new FirebaseCompany.Gemini();
+        nvdaGemini.setTargets(Map.of("t1", firebaseTarget("2025-07-10", "Current period", "180")));
+        nvdaFirebase.setGemini(nvdaGemini);
+
+        FirebaseCompany amdFirebase = new FirebaseCompany();
+        FirebaseCompany.Gemini amdGemini = new FirebaseCompany.Gemini();
+        FirebaseCompany.Gemini.Quarter amdQuarter = new FirebaseCompany.Gemini.Quarter();
+        amdQuarter.setEnding_month("25-09");
+        amdGemini.setQuarters(Map.of("25Q3", amdQuarter));
+        amdFirebase.setGemini(amdGemini);
+
+        when(firebaseService.getAllCompanies()).thenReturn(new FirebaseService.AllCompaniesResult(
+                Map.of("NVDA", nvdaFirebase, "AMD", amdFirebase), List.of()));
+        when(firebaseService.getNewerPeriods(nvdaFirebase, "25Q2"))
+                .thenReturn(new FirebaseService.ImportCandidatesResult(List.of(), List.of()));
+        when(firebaseService.getTargets(nvdaFirebase)).thenReturn(new FirebaseService.TargetsResult(
+                List.of(firebaseTarget("2025-07-10", "Current period", "180")), List.of()));
+        PeriodImportCandidateDto amdCandidate = new PeriodImportCandidateDto();
+        amdCandidate.setName("25Q3");
+        amdCandidate.setEndingMonth("2025-09");
+        amdCandidate.setIsReported(false);
+        when(firebaseService.getNewerPeriods(amdFirebase, null))
+                .thenReturn(new FirebaseService.ImportCandidatesResult(List.of(amdCandidate), List.of()));
+        when(firebaseService.getTargets(amdFirebase))
+                .thenReturn(new FirebaseService.TargetsResult(List.of(), List.of()));
+        when(firebaseService.getNewerPeriods((FirebaseCompany) null, null))
+                .thenReturn(new FirebaseService.ImportCandidatesResult(List.of(), List.of()));
+        when(firebaseService.getTargets((FirebaseCompany) null))
+                .thenReturn(new FirebaseService.TargetsResult(List.of(), List.of()));
+
+        Periods.Period nvdaPeriod = new Periods.Period();
+        nvdaPeriod.setName(PeriodName.valueOf("25Q2"));
+        Periods nvdaPeriods = new Periods();
+        nvdaPeriods.getPeriods().add(nvdaPeriod);
+        when(periodService.getBy(COMPANY_ID)).thenReturn(nvdaPeriods);
+        when(periodService.getBy(2L)).thenReturn(new Periods());
+        when(periodService.getBy(3L)).thenReturn(new Periods());
+
+        Company amdCompany = new Company();
+        amdCompany.setId(2L);
+        amdCompany.setTicker("AMD");
+        when(companyService.findEntity(2L)).thenReturn(amdCompany);
+        when(periodDao.list(2L)).thenReturn(List.of());
+        Company tslaCompany = new Company();
+        tslaCompany.setId(3L);
+        tslaCompany.setTicker("TSLA");
+        when(companyService.findEntity(3L)).thenReturn(tslaCompany);
+        when(periodDao.list(3L)).thenReturn(List.of());
+
+        List<ActionableCompanyDto> result = targetService.getCompaniesWithImportCandidates();
+
+        ActionableCompanyDto expectedNvda = new ActionableCompanyDto();
+        expectedNvda.setCompany(nvda);
+        expectedNvda.setImportablePeriodsCount(0);
+        expectedNvda.setImportableTargetsCount(1);
+        ActionableCompanyDto expectedAmd = new ActionableCompanyDto();
+        expectedAmd.setCompany(amd);
+        expectedAmd.setImportablePeriodsCount(1);
+        expectedAmd.setImportableTargetsCount(0);
+        assertThat(result, containsInAnyOrder(expectedNvda, expectedAmd));
+
+        verify(firebaseService, times(1)).getAllCompanies();
+        verify(firebaseService, never()).getNewerPeriods(anyString(), any());
+        verify(firebaseService, never()).getTargets(anyString());
+    }
+
+    @Test
     void sync_insertsOnlyMissingTargetsAndMapsReport()
     {
         FirebaseCompany.Gemini.Target source = firebaseTarget("2025-06-10", "Northstar", "175.25");
@@ -343,7 +430,7 @@ class TargetServiceTest
         assertThat(result.count(), is(0));
         assertThat(result.warnings(), hasSize(1));
         assertThat(result.warnings().getFirst(), containsString("current and previous report dates are unavailable"));
-        verify(firebaseService, never()).getTargets(any());
+        verify(firebaseService, never()).getTargets(anyString());
     }
 
     @Test

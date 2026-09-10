@@ -69,6 +69,12 @@ public class RealtimeFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public Map<String, FirebaseCompany> findAllCompanies()
+    {
+        return readChildren(database.getReference(FirebasePath.COMPANY), FirebaseCompany.class);
+    }
+
+    @Override
     public Optional<FirebaseCompany.Gemini.Info> findGeminiInfo(String ticker)
     {
         return read(company(ticker)

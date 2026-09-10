@@ -27,6 +27,7 @@ import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
+import org.kaleta.rest.dto.ActionableCompanyDto;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
@@ -35,6 +36,7 @@ import org.kaleta.rest.validation.ValueOfEnum;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.service.CompanyService;
 import org.kaleta.service.DividendService;
+import org.kaleta.service.TargetService;
 import org.kaleta.service.TradeService;
 
 import java.util.Comparator;
@@ -52,6 +54,8 @@ public class CompanyEndpoints
     TradeService tradeService;
     @Inject
     DividendService dividendService;
+    @Inject
+    TargetService targetService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -113,6 +117,17 @@ public class CompanyEndpoints
         }));
 
         return dto;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/lists/actionable")
+    public List<ActionableCompanyDto> getActionableCompanies()
+    {
+        List<ActionableCompanyDto> companies = targetService.getCompaniesWithImportCandidates();
+        return companies.stream()
+                .sorted(Comparator.comparing(dto -> dto.getCompany().getTicker()))
+                .toList();
     }
 
     @GET

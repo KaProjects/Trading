@@ -68,6 +68,12 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public Map<String, FirebaseCompany> findAllCompanies()
+    {
+        return Map.copyOf(companies);
+    }
+
+    @Override
     public Optional<FirebaseCompany.Gemini.Info> findGeminiInfo(String ticker)
     {
         FirebaseCompany company = companies.get(ticker);

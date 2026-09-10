@@ -1,5 +1,6 @@
 package org.kaleta.rest;
 
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.common.mapper.TypeRef;
 import io.restassured.http.ContentType;
@@ -18,10 +19,12 @@ import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
+import org.kaleta.rest.dto.ActionableCompanyDto;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.dto.CompanyValuesDto;
+import org.kaleta.service.TargetService;
 
 import java.util.List;
 import java.util.Map;
@@ -37,6 +40,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
 import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -46,6 +50,8 @@ class CompanyEndpointsTest
 
     @Inject
     CompanyDao companyDao;
+    @InjectMock
+    TargetService targetService;
 
     @Test
     @Order(1)
@@ -110,6 +116,34 @@ class CompanyEndpointsTest
         assertThat(all.size(), is(26));
         assertThat(all.get(0).getTicker(), is("ABCD"));
         assertThat(tickers(all), is(tickers(all).stream().sorted().toList()));
+    }
+
+    @Test
+    @Order(1)
+    void getActionableCompanies_sortsCompaniesFromTargetServiceByTicker()
+    {
+        CompanyWithStats amdCompany = new CompanyWithStats();
+        amdCompany.setTicker("AMD");
+        ActionableCompanyDto amd = new ActionableCompanyDto();
+        amd.setCompany(amdCompany);
+        amd.setImportablePeriodsCount(1);
+        CompanyWithStats nvdaCompany = new CompanyWithStats();
+        nvdaCompany.setTicker("NVDA");
+        ActionableCompanyDto nvda = new ActionableCompanyDto();
+        nvda.setCompany(nvdaCompany);
+        nvda.setImportableTargetsCount(2);
+        when(targetService.getCompaniesWithImportCandidates()).thenReturn(List.of(nvda, amd));
+
+        List<ActionableCompanyDto> result = given().when()
+                .get(path + "/lists/actionable")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().as(new TypeRef<>() {});
+
+        assertThat(result.stream().map(dto -> dto.getCompany().getTicker()).toList(), is(List.of("AMD", "NVDA")));
+        assertThat(result.get(0).getImportablePeriodsCount(), is(1));
+        assertThat(result.get(1).getImportableTargetsCount(), is(2));
     }
 
     @Test

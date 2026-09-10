@@ -8,8 +8,10 @@ import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.TargetStats;
 import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.api.TargetDao;
+import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.Target;
+import org.kaleta.rest.dto.ActionableCompanyDto;
 import org.kaleta.rest.dto.TargetCreateDto;
 import org.kaleta.rest.dto.TargetDto;
 import org.kaleta.rest.dto.TargetSyncCountsDto;
@@ -27,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @ApplicationScoped
@@ -108,6 +111,77 @@ public class TargetService
     {
         String ticker = companyService.findEntity(companyId).getTicker();
         List<Period> periods = periodDao.list(companyId);
+        WindowResult windowResult = computeWindows(periods);
+        if (windowResult.windows().isEmpty()) {
+            return windowResult.toDto();
+        }
+
+        return countImportCandidatesByCompany(ticker, periods, windowResult, firebaseService.getTargets(ticker));
+    }
+
+    public TargetSyncCountsDto countImportCandidatesByCompany(
+            Long companyId,
+            FirebaseService.TargetsResult firebaseResult)
+    {
+        String ticker = companyService.findEntity(companyId).getTicker();
+        List<Period> periods = periodDao.list(companyId);
+        WindowResult windowResult = computeWindows(periods);
+        if (windowResult.windows().isEmpty()) {
+            return windowResult.toDto();
+        }
+
+        return countImportCandidatesByCompany(ticker, periods, windowResult, firebaseResult);
+    }
+
+    public List<ActionableCompanyDto> getCompaniesWithImportCandidates()
+    {
+        List<CompanyWithStats> companies = companyService.getAllWithStats();
+        FirebaseService.AllCompaniesResult firebaseData = firebaseService.getAllCompanies();
+
+        List<ActionableCompanyDto> actionable = new ArrayList<>();
+        for (CompanyWithStats company : companies) {
+            FirebaseCompany firebaseCompany = firebaseData.companies().get(company.getTicker());
+
+            String latestPeriodId = periodService.getBy(company.getId()).getPeriods().stream()
+                    .findFirst()
+                    .map(period -> period.getName().toString())
+                    .orElse(null);
+            int importablePeriodsCount = firebaseService.getNewerPeriods(firebaseCompany, latestPeriodId)
+                    .periods().size();
+
+            int importableTargetsCount = countImportCandidatesByCompany(
+                    company.getId(),
+                    firebaseService.getTargets(firebaseCompany))
+                    .counts().values().stream()
+                    .filter(Objects::nonNull)
+                    .mapToInt(Integer::intValue)
+                    .sum();
+
+            if (importablePeriodsCount == 0 && importableTargetsCount == 0) continue;
+
+            ActionableCompanyDto dto = new ActionableCompanyDto();
+            dto.setCompany(company);
+            dto.setImportablePeriodsCount(importablePeriodsCount);
+            dto.setImportableTargetsCount(importableTargetsCount);
+            actionable.add(dto);
+        }
+        return actionable;
+    }
+
+    private record WindowResult(
+            Map<Long, Integer> counts,
+            Map<Long, PeriodDateWindowService.DateWindow> windows,
+            Set<Long> failedPeriodIds,
+            List<String> warnings)
+    {
+        TargetSyncCountsDto toDto()
+        {
+            return new TargetSyncCountsDto(counts, failedPeriodIds, warnings);
+        }
+    }
+
+    private WindowResult computeWindows(List<Period> periods)
+    {
         Map<Long, Integer> counts = new LinkedHashMap<>();
         Map<Long, PeriodDateWindowService.DateWindow> windows = new LinkedHashMap<>();
         Set<Long> failedPeriodIds = new LinkedHashSet<>();
@@ -122,11 +196,20 @@ public class TargetService
                 failedPeriodIds.add(period.getId());
             }
         }
-        if (windows.isEmpty()) {
-            return new TargetSyncCountsDto(counts, failedPeriodIds, warnings);
-        }
+        return new WindowResult(counts, windows, failedPeriodIds, warnings);
+    }
 
-        FirebaseService.TargetsResult firebaseResult = firebaseService.getTargets(ticker);
+    private TargetSyncCountsDto countImportCandidatesByCompany(
+            String ticker,
+            List<Period> periods,
+            WindowResult windowResult,
+            FirebaseService.TargetsResult firebaseResult)
+    {
+        Map<Long, Integer> counts = windowResult.counts();
+        Map<Long, PeriodDateWindowService.DateWindow> windows = windowResult.windows();
+        Set<Long> failedPeriodIds = new LinkedHashSet<>(windowResult.failedPeriodIds());
+        List<String> warnings = new ArrayList<>(windowResult.warnings());
+
         if (!firebaseResult.warnings().isEmpty()) {
             failedPeriodIds.addAll(windows.keySet());
         }

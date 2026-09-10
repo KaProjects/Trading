@@ -13,6 +13,7 @@ jest.mock("../views/component/MainBar", () => ({
     MainBar: (props) => (
         <div>
             <div>lists:{(props.companyLists.all ?? []).map(company => company.ticker).join(",")}</div>
+            <div>actionable:{(props.companyLists.actionable ?? []).map(company => company.ticker).join(",")}</div>
             <div>company:{props.companySelectorValue?.ticker || ""}</div>
             <div>currency:{props.currencySelectorValue || ""}</div>
             <div>years:{props.years.join(",")}</div>
@@ -58,17 +59,29 @@ jest.mock("../views/Analytics", () => ({
 describe("App", () => {
     beforeEach(() => {
         window.history.pushState({}, "", "/");
-        axios.get.mockImplementation(url => Promise.resolve({
-            data: url.endsWith("/company/lists")
-                ? {all: [{id: "company-1", ticker: "NVDA"}]}
-                : {
+        axios.get.mockImplementation(url => {
+            if (url.endsWith("/company/lists/actionable")) {
+                return Promise.resolve({
+                    data: [{
+                        company: {id: "company-2", ticker: "AMD"},
+                        importablePeriodsCount: 1,
+                        importableTargetsCount: 0,
+                    }],
+                });
+            }
+            if (url.endsWith("/company/lists")) {
+                return Promise.resolve({data: {all: [{id: "company-1", ticker: "NVDA"}]}});
+            }
+            return Promise.resolve({
+                data: {
                     currencies: ["$"],
                     sectors: [{key: "TECH", name: "Technology"}],
                     exchanges: [{key: "XNAS", name: "Nasdaq", tradingViewCode: "NASDAQ"}],
                     portfolios: [{key: "PATRIA_STANDARD", name: "Patria - Standard", abbreviation: "P"}],
                     years: ["2024", "2023"],
                 },
-        }));
+            });
+        });
     });
 
     test("resets currency and sector when actual company is selected", async () => {
@@ -102,6 +115,14 @@ describe("App", () => {
         expect(screen.getByText("company:")).toBeInTheDocument();
         expect(screen.getByText("currency:$")).toBeInTheDocument();
         expect(screen.getByText("sector:Technology")).toBeInTheDocument();
+    });
+
+    test("merges the actionable company list into the base company lists once it loads", async () => {
+        render(<App/>);
+
+        await waitFor(() => expect(screen.getByText("lists:NVDA")).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByText("actionable:AMD")).toBeInTheDocument());
+        expect(screen.getByText("lists:NVDA")).toBeInTheDocument();
     });
 
     test("stores the selected trade portfolio", async () => {

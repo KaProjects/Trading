@@ -27,6 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -149,6 +150,43 @@ class InMemoryFirebaseStoreTest
         assertThat(result.targets(), is(empty()));
         assertThat(result.warnings(), is(List.of(
                 "Firebase targets for NVDA could not be loaded: Firebase unavailable")));
+    }
+
+    @Test
+    void readsAllCompaniesInOneCallAndMatchesPerTickerResults()
+    {
+        FirebaseService.AllCompaniesResult all = firebaseService.getAllCompanies();
+
+        assertThat(all.warnings(), is(empty()));
+        FirebaseCompany nvda = all.companies().get("NVDA");
+        assertThat(nvda, is(notNullValue()));
+
+        FirebaseService.ImportCandidatesResult periodsFromBulk = firebaseService.getNewerPeriods(nvda, "24Q4");
+        assertThat(periodsFromBulk.periods().size(), is(2));
+        assertThat(periodsFromBulk.periods().get(0).getName(), is("25Q2"));
+        assertThat(periodsFromBulk.periods().get(1).getName(), is("25Q1"));
+
+        FirebaseService.TargetsResult targetsFromBulk = firebaseService.getTargets(nvda);
+        assertThat(targetsFromBulk.targets().size(), is(1));
+        assertThat(targetsFromBulk.targets().getFirst().getInstitution(), is("Example Capital"));
+
+        FirebaseCompany amd = all.companies().get("AMD");
+        assertThat(firebaseService.getNewerPeriods(amd, "24Q4").periods(), is(empty()));
+        assertThat(firebaseService.getTargets(amd).targets(), is(empty()));
+    }
+
+    @Test
+    void returnsEmptyCompaniesAndWarningWhenFirebaseReadFails()
+    {
+        FirebaseStore failingStore = mock(FirebaseStore.class);
+        when(failingStore.findAllCompanies())
+                .thenThrow(new IllegalStateException("Firebase unavailable"));
+
+        FirebaseService.AllCompaniesResult result = new FirebaseService(failingStore).getAllCompanies();
+
+        assertThat(result.companies(), is(Map.of()));
+        assertThat(result.warnings(), is(List.of(
+                "Firebase company data could not be loaded: Firebase unavailable")));
     }
 
     @Test

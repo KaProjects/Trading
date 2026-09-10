@@ -14,6 +14,8 @@ public interface FirebaseStore
 
     Map<String, QuarterMetadata> findQuartersMetadata(String ticker);
 
+    Map<String, FirebaseCompany> findAllCompanies();
+
     Optional<FirebaseCompany.Gemini.Info> findGeminiInfo(String ticker);
 
     Optional<FirebaseCompany.Gemini.Quarter> findQuarter(String ticker, String quarterId);
