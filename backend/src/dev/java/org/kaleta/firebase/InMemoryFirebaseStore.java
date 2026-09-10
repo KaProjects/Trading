@@ -170,6 +170,14 @@ public class InMemoryFirebaseStore implements FirebaseStore
         quarter.setReported_free_cash_flow(update.getReported_free_cash_flow());
     }
 
+    @Override
+    public void deleteTarget(String ticker, String key)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getGemini() == null || company.getGemini().getTargets() == null) return;
+        company.getGemini().getTargets().remove(key);
+    }
+
     List<FirebaseAsset> getAssets()
     {
         return List.copyOf(assets);

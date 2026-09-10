@@ -88,12 +88,18 @@ public class TargetService
 
     public void delete(Long targetId)
     {
+        Target target;
         try {
-            targetDao.get(targetId);
+            target = targetDao.get(targetId);
         } catch (NoResultException exception) {
             throw new InvalidInputException("target with id '" + targetId + "' not found");
         }
         targetDao.delete(targetId);
+        firebaseService.deleteTarget(
+                target.getPeriod().getCompany().getTicker(),
+                target.getDate().toLocalDate(),
+                target.getInstitution(),
+                target.getPrice());
     }
 
     public Map<Long, TargetStats> getStatistics(List<Long> periodIds)

@@ -139,6 +139,34 @@ class InMemoryFirebaseStoreTest
     }
 
     @Test
+    void deleteTarget_removesTheMatchingTargetByDateInstitutionAndPrice()
+    {
+        firebaseService.deleteTarget(
+                "NVDA", LocalDate.parse("2026-07-24"), "example capital", new BigDecimal("210.00"));
+
+        assertThat(firebaseService.getTargets("NVDA").targets(), is(empty()));
+    }
+
+    @Test
+    void deleteTarget_doesNothingWhenNoTargetMatches()
+    {
+        firebaseService.deleteTarget(
+                "NVDA", LocalDate.parse("2026-07-24"), "Example Capital", new BigDecimal("999"));
+
+        assertThat(firebaseService.getTargets("NVDA").targets().size(), is(1));
+    }
+
+    @Test
+    void deleteTarget_doesNotThrowWhenFirebaseReadFails()
+    {
+        FirebaseStore failingStore = mock(FirebaseStore.class);
+        when(failingStore.findTargets("NVDA")).thenThrow(new IllegalStateException("Firebase unavailable"));
+
+        new FirebaseService(failingStore).deleteTarget(
+                "NVDA", LocalDate.parse("2026-07-24"), "Example Capital", new BigDecimal("210"));
+    }
+
+    @Test
     void returnsEmptyTargetsAndWarningWhenFirebaseReadFails()
     {
         FirebaseStore failingStore = mock(FirebaseStore.class);

@@ -34,4 +34,6 @@ public interface FirebaseStore
     void replaceAssets(List<FirebaseAsset> assets);
 
     void updateQuarter(String ticker, String quarterId, FirebaseCompany.Gemini.Quarter quarter);
+
+    void deleteTarget(String ticker, String key);
 }

@@ -31,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
@@ -197,6 +198,16 @@ class TargetServiceTest
         when(targetDao.get(8L)).thenThrow(NoResultException.class);
         assertThrows(InvalidInputException.class, () -> targetService.delete(8L));
         verify(targetDao, never()).delete(8L);
+    }
+
+    @Test
+    void delete_alsoRemovesTheMatchingTargetFromFirebase()
+    {
+        when(targetDao.get(7L)).thenReturn(target(7L, current, "2025-07-10", "Northstar", "175"));
+
+        targetService.delete(7L);
+
+        verify(firebaseService).deleteTarget("NVDA", LocalDate.parse("2025-07-10"), "Northstar", new BigDecimal("175"));
     }
 
     @Test

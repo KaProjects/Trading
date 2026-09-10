@@ -13,11 +13,13 @@ import org.kaleta.rest.dto.EstimateImportDto;
 import org.kaleta.rest.dto.PeriodImportCandidateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
@@ -292,6 +294,51 @@ public class FirebaseService
         quarter.setReported_free_cash_flow(toString(period.getFreeCashFlow()));
 
         firebaseStore.updateQuarter(ticker, quarterId, quarter);
+    }
+
+    public void deleteTarget(String ticker, LocalDate date, String institution, BigDecimal price)
+    {
+        try {
+            String normalizedInstitution = institution.trim().toLowerCase(Locale.ROOT);
+            BigDecimal normalizedPrice = price.stripTrailingZeros();
+
+            for (Map.Entry<String, FirebaseCompany.Gemini.Target> entry
+                    : firebaseStore.findTargets(ticker).entrySet()) {
+                FirebaseCompany.Gemini.Target target = entry.getValue();
+                if (!matches(target, date, normalizedInstitution, normalizedPrice)) continue;
+
+                firebaseStore.deleteTarget(ticker, entry.getKey());
+                return;
+            }
+        } catch (RuntimeException exception) {
+            String warning = ExternalWarnings.unavailable("Firebase target delete for " + ticker, exception);
+            Log.warn(warning, exception);
+        }
+    }
+
+    private boolean matches(
+            FirebaseCompany.Gemini.Target target,
+            LocalDate date,
+            String normalizedInstitution,
+            BigDecimal normalizedPrice)
+    {
+        if (target == null || target.getDate() == null
+                || target.getInstitution() == null || target.getPrice() == null) {
+            return false;
+        }
+
+        LocalDate targetDate;
+        BigDecimal targetPrice;
+        try {
+            targetDate = LocalDate.parse(target.getDate());
+            targetPrice = new BigDecimal(target.getPrice()).stripTrailingZeros();
+        } catch (RuntimeException exception) {
+            return false;
+        }
+
+        return date.equals(targetDate)
+                && normalizedInstitution.equals(target.getInstitution().trim().toLowerCase(Locale.ROOT))
+                && normalizedPrice.equals(targetPrice);
     }
 
     private Map.Entry<String, FirebaseCompany.FinnhubEarnings> getLatestEarnings(

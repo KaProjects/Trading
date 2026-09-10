@@ -164,6 +164,16 @@ public class RealtimeFirebaseStore implements FirebaseStore
                 .updateChildrenAsync(values);
     }
 
+    @Override
+    public void deleteTarget(String ticker, String key)
+    {
+        company(ticker)
+                .child(FirebasePath.GEMINI)
+                .child(FirebasePath.TARGETS)
+                .child(key)
+                .removeValueAsync();
+    }
+
     private DatabaseReference company(String ticker)
     {
         return database.getReference(FirebasePath.COMPANY).child(ticker);
