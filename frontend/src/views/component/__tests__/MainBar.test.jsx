@@ -57,6 +57,8 @@ function createProps(overrides = {}) {
         setStatsTabsIndex: jest.fn(),
         researchTabsIndex: 0,
         setResearchTabsIndex: jest.fn(),
+        outperformersTabsIndex: 0,
+        setOutperformersTabsIndex: jest.fn(),
         setOpenSellTrade: jest.fn(),
         setOpenAddTrade: jest.fn(),
         setOpenAddDividend: jest.fn(),
@@ -234,6 +236,29 @@ describe("MainBar", () => {
         fireEvent.click(screen.getByRole("tab", {name: "Quarterly"}));
 
         expect(setStatsTabsIndex).toHaveBeenCalledWith(2);
+    });
+
+    test("renders outperformers tabs on the outperformers route", () => {
+        mockUseLocation.mockReturnValue({pathname: "/outperformers"});
+
+        render(<MainBar {...createProps({outperformersTabsIndex: 0})} />);
+
+        expect(screen.getByRole("tab", {name: "EPS Estimates"})).toBeInTheDocument();
+        expect(screen.getByRole("tab", {name: "Margins"})).toBeInTheDocument();
+        expect(screen.getByRole("tab", {name: "Sentiment"})).toBeInTheDocument();
+        expect(screen.getByRole("tab", {name: "Targets"})).toBeInTheDocument();
+    });
+
+    test("handles outperformers tab change on the outperformers route", () => {
+        mockUseLocation.mockReturnValue({pathname: "/outperformers"});
+
+        const setOutperformersTabsIndex = jest.fn();
+
+        render(<MainBar {...createProps({setOutperformersTabsIndex})} />);
+
+        fireEvent.click(screen.getByRole("tab", {name: "Margins"}));
+
+        expect(setOutperformersTabsIndex).toHaveBeenCalledWith(1);
     });
 
     test("handles research tab change on research route", () => {

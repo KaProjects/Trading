@@ -12,6 +12,7 @@ import {Dividends} from "./views/Dividends";
 import {Companies} from "./views/Companies";
 import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
+import {Outperformers} from "./views/Outperformers";
 import {Home} from "./views/Home";
 import {TradeImport} from "./views/TradeImport";
 import {DividendImport} from "./views/DividendImport";
@@ -47,6 +48,7 @@ export const App = () => {
     const [openEditCompany, setOpenEditCompany] = useState(null);
     const [statsTabsIndex, setStatsTabsIndex] = useState(0);
     const [researchTabsIndex, setResearchTabsIndex] = useState(0);
+    const [outperformersTabsIndex, setOutperformersTabsIndex] = useState(0);
 
     useEffect(() => {
         Promise.all([
@@ -131,6 +133,8 @@ export const App = () => {
         setStatsTabsIndex,
         researchTabsIndex,
         setResearchTabsIndex,
+        outperformersTabsIndex,
+        setOutperformersTabsIndex,
     };
 
     return (
@@ -158,6 +162,7 @@ export const App = () => {
                             <Route exact path="/stats" element={<Stats {...props}/>}/>
                             <Route exact path="/companies" element={<Companies {...props}/>}/>
                             <Route exact path="/analytics" element={<Analytics {...props}/>}/>
+                            <Route exact path="/outperformers" element={<Outperformers {...props}/>}/>
                             <Route exact path="/admin/import/trades" element={<TradeImport/>}/>
                             <Route exact path="/admin/import/dividends" element={<DividendImport/>}/>
                             <Route path="*" element={<PageNotFound/>}/>

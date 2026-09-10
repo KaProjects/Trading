@@ -1,7 +1,6 @@
 import {ButtonBase, Card, CardContent, Paper, Stack, Typography} from "@mui/material";
 import React from "react";
-import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
-import {backend} from "../properties";
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import StoreIcon from '@mui/icons-material/Store';
 import DonutSmallIcon from '@mui/icons-material/DonutSmall';
@@ -54,10 +53,10 @@ export const Home = props => {
                                icon={<ResearchIcon style={{width: 24, height: 24}}/>}
                                description={"Collection of periods and records for companies including related data like financials and ratios"}
                 />
-                <ClickableCard action={() => window.location.href='/companies'}
-                               title={"Companies"}
-                               icon={<StoreIcon/>}
-                               description={"List of companies with their attributes, aggregated data and their management"}
+                <ClickableCard action={() => window.location.href='/outperformers'}
+                               title={"Outperformers"}
+                               icon={<TrendingUpIcon/>}
+                               description={"Researched companies ranked by EPS estimates, margins, sentiment, and price targets."}
                 />
             </Stack>
 
@@ -67,10 +66,10 @@ export const Home = props => {
                                icon={<QueryStatsIcon/>}
                                description={"A collection, description, analysis, and inference of conclusions from quantitative data."}
                 />
-                <ClickableCard action={() => window.open(backend + '/api/docs', '_blank')}
-                               title={"API"}
-                               icon={<SettingsSuggestIcon/>}
-                               description={"A back-end API that helps to interact with back-end services."}
+                <ClickableCard action={() => window.location.href='/companies'}
+                               title={"Companies"}
+                               icon={<StoreIcon/>}
+                               description={"List of companies with their attributes, aggregated data and their management"}
                 />
             </Stack>
 

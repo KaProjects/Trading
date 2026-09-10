@@ -267,3 +267,70 @@ INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaw
 INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2502, '2026-06-03', 'Pioneer Capital', '6.90', 'Overweight');
 INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1) VALUES (2502, '2026-07-08', 'Summit Analytics', '7.50', 'Outperform', 'Growth quality is improving as recurring revenue becomes more predictable.', 'Watch sales efficiency.');
 INSERT INTO Target (periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (2502, '2026-08-01', 'Harbor Securities', '8.20', 'Buy', 'The business is approaching sustainable free cash flow.', 'Retention remains the core indicator.', 'Valuation assumes continued execution.');
+
+-- Outperformers demo companies: exercise all four rankings with a mix of qualifying and disqualified companies.
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2900, 'OUTA', '$', 'SOFTWARE');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2901, 'OUTB', '$', 'SOFTWARE');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2902, 'OUTC', '$', 'HARDWARE');
+INSERT INTO Company (id, ticker, currency, sector) VALUES (2903, 'OUTD', '$', 'FINANCE');
+
+-- Dates below are relative to whenever the dev DB is (re)created (DATEADD off CURRENT_DATE/CURRENT_TIMESTAMP),
+-- not fixed calendar dates, so the qualify/disqualify outcomes stay correct no matter when this is next loaded.
+
+-- OUTA: fresh financials, fresh estimate, enough recent targets and a fresh price -> qualifies margins, EPS and targets.
+-- Margin profile: highest gross margin (65%) but only middling operating (20%) and net margin (15%).
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2950, 2900, '25Q3', '2509', DATEADD('DAY', -325, CURRENT_DATE), '500', '325', '100', '75', '0', '1.00', '100', '60', '45');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2951, 2900, '25Q4', '2512', DATEADD('DAY', -234, CURRENT_DATE), '520', '338', '104', '78', '0', '1.08', '100', '64', '48');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2952, 2900, '26Q1', '2603', DATEADD('DAY', -143, CURRENT_DATE), '540', '351', '108', '81', '0', '1.15', '100', '68', '50');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2953, 2900, '26Q2', '2606', DATEADD('DAY', -52, CURRENT_DATE), '560', '364', '112', '84', '0', '1.22', '100', '72', '55');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2954, 2900, '26Q3', '2609', DATEADD('DAY', -16, CURRENT_DATE), '600', '390', '120', '90', '0', '1.32', '100', '78', '60');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1500, 2954, DATEADD('DAY', -13, CURRENT_TIMESTAMP), '1.30', '1.50', '1.75', '2.05');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2954, DATEADD('DAY', -67, CURRENT_DATE), 'Bernstein', '65', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2954, DATEADD('DAY', -52, CURRENT_DATE), 'Morgan Stanley', '68', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2954, DATEADD('DAY', -40, CURRENT_DATE), 'RBC Capital', '70', 'Outperform');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2954, DATEADD('DAY', -26, CURRENT_DATE), 'Wedbush', '74', 'Outperform');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2954, DATEADD('DAY', -11, CURRENT_DATE), 'Raymond James', '78', 'Strong Buy');
+INSERT INTO Latest (id, companyId, datetime, price) VALUES (1500, 2900, DATEADD('DAY', -2, CURRENT_TIMESTAMP), '62.00');
+
+-- OUTB: fresh financials and targets, but the estimate snapshot is over 3 months old -> disqualified from EPS only.
+-- Margin profile: lower gross margin (55%) but the best operating margin (25%) of the three; net margin is weakest (10%).
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2955, 2901, '25Q3', '2509', DATEADD('DAY', -327, CURRENT_DATE), '480', '264', '120', '48', '0', '0.96', '90', '58', '44');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2956, 2901, '25Q4', '2512', DATEADD('DAY', -236, CURRENT_DATE), '495', '272', '124', '50', '0', '1.00', '90', '60', '46');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2957, 2901, '26Q1', '2603', DATEADD('DAY', -145, CURRENT_DATE), '510', '281', '128', '51', '0', '1.06', '90', '63', '48');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2958, 2901, '26Q2', '2606', DATEADD('DAY', -54, CURRENT_DATE), '525', '289', '131', '53', '0', '1.12', '90', '66', '50');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2959, 2901, '26Q3', '2609', DATEADD('DAY', -19, CURRENT_DATE), '545', '300', '136', '55', '0', '1.20', '90', '70', '54');
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1501, 2959, DATEADD('DAY', -238, CURRENT_TIMESTAMP), '1.28', '1.34', '1.40', '1.46');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2959, DATEADD('DAY', -87, CURRENT_DATE), 'Baird', '60', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2959, DATEADD('DAY', -70, CURRENT_DATE), 'UBS', '63', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2959, DATEADD('DAY', -47, CURRENT_DATE), 'Rosenblatt', '66', 'Outperform');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2959, DATEADD('DAY', -31, CURRENT_DATE), 'Benchmark', '69', 'Outperform');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2959, DATEADD('DAY', -12, CURRENT_DATE), 'Harbor Securities', '72', 'Strong Buy');
+INSERT INTO Latest (id, companyId, datetime, price) VALUES (1501, 2901, DATEADD('DAY', -3, CURRENT_TIMESTAMP), '58.00');
+
+-- OUTC: latest reported period is over 3 months old -> disqualified from margins; latest (unreported) period has a fresh
+-- estimate -> qualifies EPS; only 3 recent targets -> disqualified from targets.
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2965, 2902, '25Q2', '2506', DATEADD('DAY', -422, CURRENT_DATE), '685', '340', '170', '106', '0', '1.45', '150', '38', '29');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2966, 2902, '25Q3', '2509', DATEADD('DAY', -330, CURRENT_DATE), '700', '350', '175', '110', '0', '1.50', '150', '40', '30');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2967, 2902, '25Q4', '2512', DATEADD('DAY', -239, CURRENT_DATE), '715', '360', '180', '115', '0', '1.55', '150', '42', '32');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2968, 2902, '26Q1', '2603', DATEADD('DAY', -148, CURRENT_DATE), '730', '368', '185', '120', '0', '1.60', '150', '44', '33');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (2969, 2902, '26Q2', '2606');
+-- Front-loaded growth: strongest +1Q change of the group, but flattens out while OUTA's accelerates past it.
+INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1502, 2969, DATEADD('DAY', -21, CURRENT_TIMESTAMP), '1.90', '1.92', '1.93', '1.94');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2969, DATEADD('DAY', -62, CURRENT_DATE), 'Lakeview Research', '35', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2969, DATEADD('DAY', -40, CURRENT_DATE), 'Pioneer Capital', '37', 'Neutral');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2969, DATEADD('DAY', -21, CURRENT_DATE), 'Summit Analytics', '39', 'Buy');
+
+-- OUTD: fresh financials qualify margins; no estimate at all -> excluded entirely from EPS (not even disqualified);
+-- enough recent targets, but the cached price is over a week old -> disqualified from targets.
+-- Margin profile: lowest gross margin (45%) but the best net margin (18%) of the three, with mid-pack operating margin (22%).
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2970, 2903, '25Q3', '2509', DATEADD('DAY', -333, CURRENT_DATE), '300', '135', '66', '54', '0', '0.60', '80', '30', '22');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2971, 2903, '25Q4', '2512', DATEADD('DAY', -242, CURRENT_DATE), '310', '140', '68', '56', '0', '0.63', '80', '31', '23');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2972, 2903, '26Q1', '2603', DATEADD('DAY', -151, CURRENT_DATE), '320', '144', '70', '58', '0', '0.65', '80', '32', '24');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2973, 2903, '26Q2', '2606', DATEADD('DAY', -60, CURRENT_DATE), '330', '149', '73', '59', '0', '0.67', '80', '33', '25');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2974, 2903, '26Q3', '2609', DATEADD('DAY', -23, CURRENT_DATE), '345', '155', '76', '62', '0', '0.71', '80', '35', '27');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2974, DATEADD('DAY', -82, CURRENT_DATE), 'Baird', '28', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2974, DATEADD('DAY', -67, CURRENT_DATE), 'UBS', '29', 'Buy');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2974, DATEADD('DAY', -50, CURRENT_DATE), 'Rosenblatt', '30', 'Neutral');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2974, DATEADD('DAY', -36, CURRENT_DATE), 'Benchmark', '31', 'Outperform');
+INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2974, DATEADD('DAY', -16, CURRENT_DATE), 'Harbor Securities', '33', 'Outperform');
+INSERT INTO Latest (id, companyId, datetime, price) VALUES (1503, 2903, DATEADD('DAY', -40, CURRENT_TIMESTAMP), '27.50');
