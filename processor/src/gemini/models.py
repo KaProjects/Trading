@@ -309,7 +309,7 @@ class TargetReport(BaseModel):
         return normalized
 
 
-class CompanyTarget(BaseModel):
+class TargetFields(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     institution: InstitutionName = Field(
@@ -344,6 +344,9 @@ class CompanyTarget(BaseModel):
             "when a direct URL is unavailable."
         ),
     )
+
+
+class CompanyTarget(TargetFields):
     report: TargetReport | None = Field(
         default=None,
         description=(
@@ -362,7 +365,9 @@ class InstitutionRecord(BaseModel):
     trusted: bool = False
 
 
-class Target(CompanyTarget):
+class TargetCandidate(TargetFields):
+    # No `report` field: only a `Target`, mapped in after institution trust
+    # is decided, may carry one.
     ticker: Ticker = Field(
         description=(
             "Exact ticker from the requested ticker list to which this price "
@@ -371,13 +376,22 @@ class Target(CompanyTarget):
     )
 
 
-class Targets(BaseModel):
+class TargetCandidates(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    targets: list[Target] = Field(
+    targets: list[TargetCandidate] = Field(
         description=(
             "All qualifying institutional price targets for the requested "
             "tickers and date interval; an empty list is valid."
+        ),
+    )
+
+
+class Target(CompanyTarget):
+    ticker: Ticker = Field(
+        description=(
+            "Exact ticker from the requested ticker list to which this price "
+            "target applies."
         ),
     )
 

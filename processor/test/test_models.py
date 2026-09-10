@@ -14,8 +14,9 @@ from gemini.models import (
     ReportDate,
     ReportDates,
     Target,
+    TargetCandidate,
+    TargetCandidates,
     TargetReport,
-    Targets,
 )
 from myfinnhub.models import Company as FinnhubCompany
 from myfinnhub.models import Earnings
@@ -189,8 +190,20 @@ def test_target_schema_describes_every_output_field():
         assert target_schema["properties"][field_name]["description"]
     assert target_schema["properties"]["source"]["maxLength"] == 1024
 
-    targets_schema = Targets.model_json_schema()
-    assert targets_schema["properties"]["targets"]["description"]
+    candidate_schema = TargetCandidate.model_json_schema()
+    for field_name in (
+        "ticker",
+        "institution",
+        "date",
+        "price",
+        "rating",
+        "source",
+    ):
+        assert candidate_schema["properties"][field_name]["description"]
+    assert "report" not in candidate_schema["properties"]
+
+    candidates_schema = TargetCandidates.model_json_schema()
+    assert candidates_schema["properties"]["targets"]["description"]
 
     report_schema = TargetReport.model_json_schema()
     assert report_schema["properties"]["overview"]["description"]

@@ -10,6 +10,7 @@ from gemini.models import (
     Info,
     Quarter as GeminiQuarter,
     Target,
+    TargetCandidate,
     TargetReport,
 )
 from myfinnhub.models import (
@@ -249,12 +250,12 @@ def gemini_price_targets(
     tickers: list[str],
     start_date: date,
     end_date: date,
-) -> list[Target]:
+) -> list[TargetCandidate]:
     institutions = (
         ("Northstar Global Research", "Outperform"),
         ("Summit Capital Markets", "Buy"),
     )
-    targets: list[Target] = []
+    targets: list[TargetCandidate] = []
     for ticker_index, ticker in enumerate(tickers):
         for institution_index, (institution, rating) in enumerate(
             institutions
@@ -264,7 +265,7 @@ def gemini_price_targets(
                 start_date + timedelta(days=day_offset),
                 end_date,
             )
-            targets.append(Target(
+            targets.append(TargetCandidate(
                 ticker=ticker,
                 institution=institution,
                 date=target_date,

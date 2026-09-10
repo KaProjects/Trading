@@ -15,8 +15,8 @@ from gemini.models import (
     TARGET_REPORT_OVERVIEW_MAX_LENGTH,
     TARGET_REPORT_TAKEAWAY_MAX_LENGTH,
     Target,
+    TargetCandidates,
     TargetReport,
-    Targets,
 )
 from polygon.models import (
     CompanyInsights,
@@ -417,7 +417,7 @@ class GeminiClient:
         tickers: list[str],
         start_date: date,
         end_date: date,
-    ) -> Targets:
+    ) -> TargetCandidates:
         self.log.info("Running Gemini client.get_price_targets...")
         prompt = f"""
         You are a financial-data researcher extracting newly announced institutional
@@ -440,8 +440,8 @@ class GeminiClient:
         significance. Return no target rather than including an insignificant or
         uncertain institution.
 
-        Return a Targets model whose targets field contains Target objects with
-        these fields:
+        Return a TargetCandidates model whose targets field contains
+        TargetCandidate objects with these fields:
 
         - ticker: the exact ticker from REQUESTED TICKERS.
         - institution: the canonical name of the important institution that issued
@@ -478,10 +478,11 @@ class GeminiClient:
         institution, date, and price. If several sources describe the same action,
         retain only the strongest source.
 
-        Before returning the Targets model, verify every field against its source.
-        An empty targets list is the correct result when nothing qualifies.
+        Before returning the TargetCandidates model, verify every field against
+        its source. An empty targets list is the correct result when nothing
+        qualifies.
         """
-        return self.__ask(prompt, Targets)
+        return self.__ask(prompt, TargetCandidates)
 
     def get_target_report(self, target: Target) -> Target:
         self.log.info("Running Gemini client.get_target_report...")

@@ -18,6 +18,7 @@ from gemini.models import (
     ReportDate,
     ReportDates,
     Target,
+    TargetCandidate,
 )
 from gemini.service import FirebaseService
 from gemini.strings import ErrorMsg, LogMsg
@@ -448,21 +449,19 @@ class StockDataRetrieverRunner:
         institutions = InstitutionRegistry(
             self.service.get_institutions()
         )
-        targets = self.client.get_price_targets(
+        candidates = self.client.get_price_targets(
             tickers,
             start_date,
             end_date,
         )
 
         resolved_targets: list[tuple[Target, InstitutionRecord]] = []
-        for target in targets.targets:
+        for candidate in candidates.targets:
             institution = institutions.resolve_or_create(
-                target.institution
+                candidate.institution
             )
             resolved_targets.append((
-                target.model_copy(
-                    update={"institution": institution.name}
-                ),
+                self._to_target(candidate, institution),
                 institution,
             ))
 
@@ -516,11 +515,25 @@ class StockDataRetrieverRunner:
 
         self.log.info(
             LogMsg.TARGETS_RETRIEVED.format(
-                target_count=len(targets.targets),
+                target_count=len(candidates.targets),
                 company_count=len(tickers),
                 start_date=start_date,
                 end_date=end_date,
             )
+        )
+
+    @staticmethod
+    def _to_target(
+        candidate: TargetCandidate,
+        institution: InstitutionRecord,
+    ) -> Target:
+        return Target(
+            ticker=candidate.ticker,
+            institution=institution.name,
+            date=candidate.date,
+            price=candidate.price,
+            rating=candidate.rating,
+            source=candidate.source,
         )
 
     def _enrich_price_target(self, target: Target) -> Target | None:

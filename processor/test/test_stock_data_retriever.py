@@ -22,8 +22,9 @@ from gemini.models import (
     ReportDate,
     ReportDates,
     Target,
+    TargetCandidate,
+    TargetCandidates,
     TargetReport,
-    Targets,
 )
 from gemini.service import FirebaseService
 from gemini.retriever import StockDataRetrieverRunner
@@ -112,7 +113,9 @@ class TestStockDataRetriever:
         )
         instance.log = create_autospec(logging.Logger, instance=True)
         instance.errors = create_autospec(ErrorReporter, instance=True)
-        instance.client.get_price_targets.return_value = Targets(targets=[])
+        instance.client.get_price_targets.return_value = TargetCandidates(
+            targets=[]
+        )
         instance.service.get_institutions.return_value = {}
         instance.discord.post_if_channel_exists.return_value = None
         yield instance
@@ -731,7 +734,7 @@ class TestStockDataRetriever:
         runner.service.get_companies.return_value = {
             "AAPL": company,
         }
-        target = Target(
+        target = TargetCandidate(
             ticker="AAPL",
             institution="Important Research",
             date="2026-07-20",
@@ -739,7 +742,7 @@ class TestStockDataRetriever:
             rating="Outperform",
             source="https://research.example.com/aapl",
         )
-        runner.client.get_price_targets.return_value = Targets(
+        runner.client.get_price_targets.return_value = TargetCandidates(
             targets=[target]
         )
 
@@ -826,16 +829,18 @@ class TestStockDataRetriever:
                 enabled=True,
             ),
         }
-        runner.client.get_price_targets.return_value = Targets(targets=[
-            Target(
-                ticker="AAPL",
-                institution="BofA Securities",
-                date="2026-07-21",
-                price="225",
-                rating="Buy",
-                source="new.example.com",
-            ),
-        ])
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution="BofA Securities",
+                    date="2026-07-21",
+                    price="225",
+                    rating="Buy",
+                    source="new.example.com",
+                ),
+            ]
+        )
 
         runner.run()
 
@@ -868,16 +873,18 @@ class TestStockDataRetriever:
                 enabled=True,
             ),
         }
-        runner.client.get_price_targets.return_value = Targets(targets=[
-            Target(
-                ticker="AAPL",
-                institution="Robert W. Baird",
-                date="2026-07-21",
-                price="230",
-                rating="Outperform",
-                source="new.example.com",
-            ),
-        ])
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution="Robert W. Baird",
+                    date="2026-07-21",
+                    price="230",
+                    rating="Outperform",
+                    source="new.example.com",
+                ),
+            ]
+        )
 
         runner.run()
 
@@ -920,16 +927,18 @@ class TestStockDataRetriever:
                 enabled=False,
             ),
         }
-        runner.client.get_price_targets.return_value = Targets(targets=[
-            Target(
-                ticker="AAPL",
-                institution="Rosenblatt Securities",
-                date="2026-07-21",
-                price="230",
-                rating="Buy",
-                source="new.example.com",
-            ),
-        ])
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution="Rosenblatt Securities",
+                    date="2026-07-21",
+                    price="230",
+                    rating="Buy",
+                    source="new.example.com",
+                ),
+            ]
+        )
 
         runner.run()
 
@@ -961,6 +970,14 @@ class TestStockDataRetriever:
                 trusted=True,
             ),
         }
+        candidate = TargetCandidate(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-07-21",
+            price="250",
+            rating="Outperform",
+            source="https://research.example.com/amd",
+        )
         target = Target(
             ticker="AMD",
             institution="Baird",
@@ -977,8 +994,8 @@ class TestStockDataRetriever:
             ],
         )
         enriched_target = target.model_copy(update={"report": report})
-        runner.client.get_price_targets.return_value = Targets(
-            targets=[target]
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[candidate]
         )
         runner.client.get_target_report.return_value = enriched_target
 
@@ -1101,7 +1118,7 @@ class TestStockDataRetriever:
                 trusted=True,
             ),
         }
-        target = Target(
+        candidate = TargetCandidate(
             ticker="AMD",
             institution="Baird",
             date="2026-07-21",
@@ -1109,8 +1126,8 @@ class TestStockDataRetriever:
             rating="Outperform",
             source="https://research.example.com/amd",
         )
-        runner.client.get_price_targets.return_value = Targets(
-            targets=[target]
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[candidate]
         )
         exception = RuntimeError("Gemini unavailable")
         runner.client.get_target_report.side_effect = exception
@@ -1188,7 +1205,7 @@ class TestStockDataRetriever:
             {"26Q2": make_quarter(quarter_id="26Q2")},
             targets={"2026-07-20-existing": existing_target},
         )
-        new_target = Target(
+        new_target = TargetCandidate(
             ticker="AAPL",
             institution="New Research",
             date="2026-07-21",
@@ -1197,25 +1214,27 @@ class TestStockDataRetriever:
             source="https://new.example.com/aapl",
         )
         runner.service.get_companies.return_value = {"AAPL": company}
-        runner.client.get_price_targets.return_value = Targets(targets=[
-            Target(
-                ticker="AAPL",
-                institution="IMPORTANT RESEARCH",
-                date="2026-07-21",
-                price="200",
-                rating="Strong Buy",
-                source="https://different.example.com/aapl",
-            ),
-            new_target,
-            Target(
-                ticker="AAPL",
-                institution="NEW   RESEARCH",
-                date="2026-07-21",
-                price="230",
-                rating="Buy",
-                source="https://duplicate.example.com/aapl",
-            ),
-        ])
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution="IMPORTANT RESEARCH",
+                    date="2026-07-21",
+                    price="200",
+                    rating="Strong Buy",
+                    source="https://different.example.com/aapl",
+                ),
+                new_target,
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution="NEW   RESEARCH",
+                    date="2026-07-21",
+                    price="230",
+                    rating="Buy",
+                    source="https://duplicate.example.com/aapl",
+                ),
+            ]
+        )
 
         runner.run()
 
@@ -1277,16 +1296,18 @@ class TestStockDataRetriever:
                 enabled=True,
             ),
         }
-        runner.client.get_price_targets.return_value = Targets(targets=[
-            Target(
-                ticker="AAPL",
-                institution="Baird",
-                date=today,
-                price="400",
-                rating="Outperform",
-                source="new.example.com",
-            ),
-        ])
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution="Baird",
+                    date=today,
+                    price="400",
+                    rating="Outperform",
+                    source="new.example.com",
+                ),
+            ]
+        )
 
         runner.run()
 
@@ -1328,16 +1349,18 @@ class TestStockDataRetriever:
                 enabled=True,
             ),
         }
-        runner.client.get_price_targets.return_value = Targets(targets=[
-            Target(
-                ticker="AAPL",
-                institution="Baird",
-                date="2026-07-21",
-                price="410",
-                rating="Outperform",
-                source="new.example.com",
-            ),
-        ])
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution="Baird",
+                    date="2026-07-21",
+                    price="410",
+                    rating="Outperform",
+                    source="new.example.com",
+                ),
+            ]
+        )
 
         runner.run()
 
@@ -1375,24 +1398,26 @@ class TestStockDataRetriever:
                 enabled=True,
             ),
         }
-        runner.client.get_price_targets.return_value = Targets(targets=[
-            Target(
-                ticker="AAPL",
-                institution="Baird",
-                date="2026-07-20",
-                price="400",
-                rating="Outperform",
-                source="older.example.com",
-            ),
-            Target(
-                ticker="AAPL",
-                institution="Baird",
-                date="2026-07-21",
-                price="400",
-                rating="Outperform",
-                source="newer.example.com",
-            ),
-        ])
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution="Baird",
+                    date="2026-07-20",
+                    price="400",
+                    rating="Outperform",
+                    source="older.example.com",
+                ),
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution="Baird",
+                    date="2026-07-21",
+                    price="400",
+                    rating="Outperform",
+                    source="newer.example.com",
+                ),
+            ]
+        )
 
         runner.run()
 

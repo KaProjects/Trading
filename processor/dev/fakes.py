@@ -23,7 +23,7 @@ from gemini.models import (
     ReportDate,
     ReportDates,
     Target,
-    Targets,
+    TargetCandidates,
 )
 from gemini.service import create_target_id, required_company_fields
 from myfinnhub.models import (
@@ -143,8 +143,8 @@ class FakeGeminiClient:
         tickers: list[str],
         start_date: date,
         end_date: date,
-    ) -> Targets:
-        result = Targets(
+    ) -> TargetCandidates:
+        result = TargetCandidates(
             targets=data.gemini_price_targets(tickers, start_date, end_date)
         )
         _log_operation("FAKE GET", "Gemini institutional price targets")

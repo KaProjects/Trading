@@ -20,8 +20,9 @@ from gemini.models import (
     Quarter,
     ReportDates,
     Target,
+    TargetCandidate,
+    TargetCandidates,
     TargetReport,
-    Targets,
 )
 from polygon.models import (
     CompanyInsights,
@@ -339,8 +340,8 @@ def test_get_price_targets_returns_python_objects_and_uses_targets_schema():
             date(2026, 7, 19),
         )
 
-    assert targets == Targets(targets=[
-        Target(
+    assert targets == TargetCandidates(targets=[
+        TargetCandidate(
             ticker="AAPL",
             institution="Important Research",
             date="2026-07-15",
@@ -358,7 +359,7 @@ def test_get_price_targets_returns_python_objects_and_uses_targets_schema():
         in request.kwargs["contents"]
     )
     assert request.kwargs["config"]["response_json_schema"] == (
-        Targets.model_json_schema()
+        TargetCandidates.model_json_schema()
     )
 
 
