@@ -175,7 +175,7 @@ export const MainBarSelect = props => {
                 ? () => selectedOption?.[valueKey] ?? companyPlaceholder
                 : undefined}
             variant="standard"
-            sx={props.sx ?? {marginLeft: "15px", textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
+            sx={props.sx ?? {marginLeft: props.marginLeft ?? "15px", textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
                 ':not(.Mui-disabled):hover::before': { borderBottomColor: '#1976d2' },
                 ':before': { borderBottomColor: '#1976d2' },
                 ':after': { borderBottomColor: '#1976d2' }}}

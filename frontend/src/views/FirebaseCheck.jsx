@@ -37,6 +37,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {Loader} from "./component/Loader";
 import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
 import {STICKY_COLUMN_BODY_SX, STICKY_COLUMN_HEAD_SX} from "./component/tableStyles";
+import {SWIPE_AREA_SX, useSwipeNavigation} from "./component/useSwipeNavigation";
 
 function Section({title, children}) {
     return (
@@ -569,8 +570,10 @@ export const FirebaseCheck = props => {
         window.location.href = `/research?${new URLSearchParams({company: addedTicker})}`
     }
 
+    const swipe = useSwipeNavigation(props.firebaseTabsIndex, props.setFirebaseTabsIndex, 4)
+
     return (
-        <>
+        <Box sx={SWIPE_AREA_SX} {...swipe}>
             {props.firebaseTabsIndex === 0 &&
                 <MissingCompanies
                     key={refreshKey}
@@ -587,6 +590,6 @@ export const FirebaseCheck = props => {
             {props.firebaseTabsIndex === 3 && <Institutions/>}
 
             <EditCompanyDialog {...props} triggerRefresh={companySaved}/>
-        </>
+        </Box>
     )
 }

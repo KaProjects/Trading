@@ -8,9 +8,11 @@ import {SellTradeDialog} from "../dialog/SellTradeDialog";
 import {ACTIVE_STATES} from "./component/MainBar";
 import {EditTradeDialog} from "../dialog/EditTradeDialog";
 import EditNoteIcon from "@mui/icons-material/EditNote";
+import {STICKY_FIRST_COLUMN_HEAD_STYLE, STICKY_FIRST_COLUMN_STYLE} from "./component/tableStyles";
 
 const compactColumnStyle = {width: "35px", minWidth: "35px", maxWidth: "35px", boxSizing: "border-box"}
 const centeredCompactColumnStyle = {...compactColumnStyle, textAlign: "center", verticalAlign: "middle", paddingLeft: 0, paddingRight: 0}
+const ROW_SX = {backgroundColor: "background.paper", "&.MuiTableRow-hover:hover": {backgroundColor: "action.hover"}}
 
 export const Trades = props => {
     const [refresh, setRefresh] = useState("")
@@ -82,7 +84,7 @@ export const Trades = props => {
                 <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 1100, sm: "unset"}}}>
                     <TableHead>
                         <TableRow>
-                            <TableCell key={0} colSpan={1} rowSpan={2} style={{...headerStyle(true), textAlign: "left"}}>Ticker</TableCell>
+                            <TableCell key={0} colSpan={1} rowSpan={2} style={{...headerStyle(true), textAlign: "left", ...STICKY_FIRST_COLUMN_HEAD_STYLE}}>Ticker</TableCell>
                             <TableCell key={1} colSpan={1} rowSpan={2} style={{...headerStyle(true), ...centeredCompactColumnStyle}}>#</TableCell>
                             <TableCell key={2} colSpan={1} rowSpan={2} style={{...headerStyle(true), ...compactColumnStyle, paddingLeft: "7px", paddingRight: "7px"}}>@</TableCell>
                             <TableCell key={3} colSpan={5} rowSpan={1} style={headerStyle(true)}>Purchase</TableCell>
@@ -105,9 +107,9 @@ export const Trades = props => {
                     </TableHead>
                     <TableBody>
                         {data.trades.map(trade => (
-                            <TableRow key={trade.id} hover>
+                            <TableRow key={trade.id} hover sx={ROW_SX}>
                                 <TableCell
-                                    style={rowStyle(0)}
+                                    style={{...rowStyle(0), ...STICKY_FIRST_COLUMN_STYLE}}
                                     onDoubleClick={() => selectCompany(trade.company.ticker)}
                                     onMouseEnter={() => setHoveredTradeId(trade.id)}
                                     onMouseLeave={() => setHoveredTradeId(null)}
@@ -144,8 +146,8 @@ export const Trades = props => {
                                 <TableCell style={rowStyle(14, Number(trade.profitPercentage) > 0)}>{formatDecimals(trade.profitPercentage, 0, 2)}</TableCell>
                             </TableRow>
                         ))}
-                        <TableRow key={-1} >
-                            <TableCell key={0} style={sumRowStyle(0)}>{data.aggregates.companies}</TableCell>
+                        <TableRow key={-1} sx={ROW_SX}>
+                            <TableCell key={0} style={{...sumRowStyle(0), ...STICKY_FIRST_COLUMN_STYLE}}>{data.aggregates.companies}</TableCell>
                             <TableCell key={1} style={{...sumRowStyle(1), ...centeredCompactColumnStyle}}>{data.aggregates.currencies}</TableCell>
                             <TableCell key={2} style={{...sumRowStyle(1), ...compactColumnStyle}}>{data.aggregates.portfolios}</TableCell>
                             <TableCell key={3} style={sumRowStyle(3)}></TableCell>

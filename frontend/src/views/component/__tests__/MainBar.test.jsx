@@ -215,7 +215,7 @@ describe("MainBar", () => {
             />
         );
 
-        fireEvent.click(screen.getByLabelText("open drawer"));
+        fireEvent.click(screen.getByLabelText("go to main menu"));
         expect(mockNavigate).toHaveBeenCalledWith("/");
 
         fireEvent.click(screen.getByRole("button", {name: "sell trade"}));

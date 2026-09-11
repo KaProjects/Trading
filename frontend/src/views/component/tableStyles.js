@@ -25,3 +25,16 @@ export const STICKY_COLUMN_HEAD_SX = {
     borderRight: "1px solid",
     borderRightColor: "divider",
 }
+
+export const STICKY_FIRST_COLUMN_STYLE = {
+    position: "sticky",
+    left: 0,
+    zIndex: 2,
+    backgroundColor: "inherit",
+}
+
+export const STICKY_FIRST_COLUMN_HEAD_STYLE = {
+    position: "sticky",
+    left: 0,
+    zIndex: 4,
+}

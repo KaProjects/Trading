@@ -157,6 +157,10 @@ export const App = () => {
                     pt: "var(--main-bar-height, 48px)",
                     px: {xs: 1, sm: 2},
                     pb: {xs: 1, sm: 2},
+                    minHeight: "100dvh",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    flexDirection: "column",
                 }}>
                     {!loaded && <Loader error={error}/>}
                     {loaded &&

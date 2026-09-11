@@ -14,6 +14,7 @@ import {
 import {useData} from "../service/BackendService";
 import {Loader} from "./component/Loader";
 import {STICKY_COLUMN_BODY_SX, STICKY_COLUMN_HEAD_SX, TABLE_CONTAINER_SX} from "./component/tableStyles";
+import {SWIPE_AREA_SX, useSwipeNavigation} from "./component/useSwipeNavigation";
 import {formatDecimals, formatMillions, formatPercent} from "../service/FormattingService";
 
 const EPS_COLUMNS = [
@@ -120,7 +121,13 @@ function sortRows(rows, sort) {
 
 function RatingCriteria({criteria}) {
     return (
-        <Box sx={{width: {xs: "100%", sm: "max-content"}, minWidth: {sm: 320}, margin: "16px auto", padding: "0 8px"}}>
+        <Box sx={{
+            width: {xs: "100%", sm: "max-content"},
+            minWidth: {sm: 320},
+            margin: "16px auto",
+            padding: "0 8px",
+            boxSizing: "border-box",
+        }}>
             <Typography sx={{fontSize: 13, fontWeight: 600, color: "text.secondary"}}>
                 Rating criteria
             </Typography>
@@ -238,10 +245,10 @@ function OutperformersTable({columns, rows, disqualified, criteria, sort, setSor
 export const Outperformers = props => {
     const {data, loaded, error} = useData("/outperformers");
     const [sorts, setSorts] = useState(TAB_CONFIG.map(config => config.defaultSort));
+    const tab = props.outperformersTabsIndex ?? 0;
+    const swipe = useSwipeNavigation(tab, props.setOutperformersTabsIndex, TAB_CONFIG.length);
 
     if (!loaded) return <Loader error={error}/>;
-
-    const tab = props.outperformersTabsIndex ?? 0;
 
     function setSortForTab(index, updater) {
         setSorts(previous => previous.map((sort, i) => (
@@ -252,7 +259,21 @@ export const Outperformers = props => {
     const activeConfig = TAB_CONFIG[tab];
 
     return (
-        <Box sx={{margin: {xs: 0, sm: "10px"}}}>
+        <Box
+            sx={{
+                ...SWIPE_AREA_SX,
+                minHeight: 0,
+                maxHeight: {
+                    xs: "calc(100dvh - var(--main-bar-height, 48px) - 8px)",
+                    sm: "calc(100dvh - var(--main-bar-height, 48px) - 36px)",
+                },
+                overflowY: "auto",
+                overscrollBehavior: "contain",
+                margin: {xs: 0, sm: "10px"},
+                "& > *": {flexShrink: 0},
+            }}
+            {...swipe}
+        >
             <OutperformersTable
                 columns={activeConfig.columns}
                 rows={data[activeConfig.dataKey] ?? []}

@@ -1,10 +1,10 @@
 import React, {useEffect, useLayoutEffect, useRef, useState} from "react";
 import {AppBar, Box, IconButton, Tab, Tabs, Toolbar, Typography} from "@mui/material";
-import MenuIcon from '@mui/icons-material/Menu';
+import GridViewIcon from '@mui/icons-material/GridView';
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import TuneIcon from '@mui/icons-material/Tune';
 import {MainBarSelect} from "./MainBarSelect";
 import {MainBarIconButton} from "./MainBarIconButton";
 import {useLocation, useNavigate} from "react-router-dom";
@@ -14,6 +14,7 @@ import {ReactComponent as ResearchRedirectIcon} from "../../assets/icons/researc
 import {getCompanyListKeys} from "../../service/CompanyListService";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {COMPANY_SELECTOR_SIDEBAR_BREAKPOINT} from "./CompanySelector";
+import {MainBarTabs} from "./MainBarTabs";
 
 export const ACTIVE_STATES = ["only active", "only closed"];
 export const RESEARCH_TAB = {
@@ -47,6 +48,7 @@ const DEFAULT_MAIN_BAR_CONFIG = {
     showResearchTabs: false,
     showOutperformersTabs: false,
     showFirebaseTabs: false,
+    secondarySelectors: [],
 };
 
 const researchExternalLinks = (company, exchanges = []) => {
@@ -92,6 +94,7 @@ const MAIN_BAR_CONFIG = {
         showPortfolioSelector: true,
         showAddTradeButton: true,
         showSellTradeButton: true,
+        secondarySelectors: ["active", "currency", "year", "sector", "portfolio"],
     },
     "/research": {
         showCompanySelector: true,
@@ -103,6 +106,7 @@ const MAIN_BAR_CONFIG = {
         showYearSelector: true,
         showSectorSelector: true,
         showAddDividendButton: true,
+        secondarySelectors: ["currency", "year", "sector"],
     },
     "/admin/companies": {
         showCurrencySelector: true,
@@ -112,6 +116,7 @@ const MAIN_BAR_CONFIG = {
     "/stats": {
         showStatsTabs: true,
         showSectorSelector: true,
+        secondarySelectors: ["company", "currency", "year", "sector", "portfolio"],
     },
     "/outperformers": {
         showOutperformersTabs: true,
@@ -598,8 +603,14 @@ export const MainBar = props => {
     const visibleSelectors = selectors.filter((selector) => selector.visible)
     const visiblePageNavigationButtons = pageNavigationButtons.filter((button) => button.visible)
     const wrapPageControls = ["/trades", "/dividends", "/admin/companies"].includes(location.pathname)
-    const collapseSecondRow = location.pathname === "/research" && isNarrowScreen
-    const hasSecondRowContent = showResearchExternalLinks
+    const secondRowSelectorKeys = isNarrowScreen ? config.secondarySelectors : []
+    const firstRowSelectors = visibleSelectors.filter((selector) => !secondRowSelectorKeys.includes(selector.key))
+    const secondRowSelectors = visibleSelectors.filter((selector) => secondRowSelectorKeys.includes(selector.key))
+    const collapseResearchLinks = location.pathname === "/research" && isNarrowScreen
+    const secondRowLinks = collapseResearchLinks ? researchLinks : []
+    const hasSecondRowContent = secondRowSelectors.length > 0 || secondRowLinks.length > 0
+    const researchTabLabels = todoTabAvailable ? RESEARCH_TAB_LABELS : RESEARCH_TAB_LABELS.slice(0, RESEARCH_TAB.todo)
+    const barButtonWidth = isNarrowScreen ? 34 : 45
     const actionButtonElements = visibleActionButtons.map((button) => (
         <MainBarIconButton
             key={button.key}
@@ -608,7 +619,7 @@ export const MainBar = props => {
             onClick={button.onClick}
             icon={button.icon}
             color={button.color}
-            buttonSx={{width: 45, height: 30}}
+            buttonSx={{width: barButtonWidth, height: 30}}
             iconSx={{width: 23, height: 23}}
         />
     ))
@@ -617,9 +628,9 @@ export const MainBar = props => {
         <Box sx={{flexGrow: 1}}>
             <AppBar ref={mainBarRef} position="fixed" sx={{top: 0, zIndex: (theme) => theme.zIndex.drawer + 1}}>
                 <Toolbar variant="dense">
-                    <IconButton size="large" edge="start" color="inherit" aria-label="open drawer" sx={{ mr: 2 }}
+                    <IconButton size="large" edge="start" color="inherit" aria-label="go to main menu" sx={{mr: isNarrowScreen ? 1 : 2}}
                                 onClick={() => navigate("/")}>
-                        <MenuIcon />
+                        <GridViewIcon />
                     </IconButton>
                     <Typography variant="h6" sx={{
                         display: "none",
@@ -630,49 +641,32 @@ export const MainBar = props => {
                     <Box sx={{ flexGrow: 1 }} />
                     <Box sx={{display: "flex", minWidth: 0, maxWidth: "100%"}}>
                         {config.showStatsTabs &&
-                            <Tabs value={props.statsTabsIndex}
-                                  onChange={(event, value) => props.setStatsTabsIndex(value)}
-                                  slotProps={{indicator: {style: {backgroundColor: "white"}}}}
-                                  textColor="inherit"
-                                  sx={{
-                                      "& .MuiTabs-list": {flexWrap: {xs: "wrap", sm: "nowrap"}},
-                                      "& .MuiTab-root": {minWidth: {xs: "50%", sm: 90}},
-                                  }}
-                            >
-                                {STATS_TABS.map((tab) => (
-                                    <Tab key={tab} label={tab}/>
-                                ))}
-                            </Tabs>
+                            <MainBarTabs
+                                labels={STATS_TABS}
+                                value={props.statsTabsIndex}
+                                setValue={props.setStatsTabsIndex}
+                            />
                         }
                         {config.showOutperformersTabs &&
-                            <Tabs value={props.outperformersTabsIndex}
-                                  onChange={(event, value) => props.setOutperformersTabsIndex(value)}
-                                  slotProps={{indicator: {style: {backgroundColor: "white"}}}}
-                                  textColor="inherit"
-                                  sx={{
-                                      "& .MuiTabs-list": {flexWrap: {xs: "wrap", sm: "nowrap"}},
-                                      "& .MuiTab-root": {minWidth: {xs: "50%", sm: 90}},
-                                  }}
-                            >
-                                {OUTPERFORMERS_TABS.map((tab) => (
-                                    <Tab key={tab} label={tab}/>
-                                ))}
-                            </Tabs>
+                            <MainBarTabs
+                                labels={OUTPERFORMERS_TABS}
+                                value={props.outperformersTabsIndex}
+                                setValue={props.setOutperformersTabsIndex}
+                            />
                         }
                         {config.showFirebaseTabs &&
-                            <Tabs value={props.firebaseTabsIndex}
-                                  onChange={(event, value) => props.setFirebaseTabsIndex(value)}
-                                  slotProps={{indicator: {style: {backgroundColor: "white"}}}}
-                                  textColor="inherit"
-                                  sx={{
-                                      "& .MuiTabs-list": {flexWrap: {xs: "wrap", sm: "nowrap"}},
-                                      "& .MuiTab-root": {minWidth: {xs: "50%", sm: 90}},
-                                  }}
-                            >
-                                {FIREBASE_TABS.map((tab) => (
-                                    <Tab key={tab} label={tab}/>
-                                ))}
-                            </Tabs>
+                            <MainBarTabs
+                                labels={FIREBASE_TABS}
+                                value={props.firebaseTabsIndex}
+                                setValue={props.setFirebaseTabsIndex}
+                            />
+                        }
+                        {config.showResearchTabs && isNarrowScreen && props.companySelectorValue &&
+                            <MainBarTabs
+                                labels={researchTabLabels}
+                                value={props.researchTabsIndex}
+                                setValue={props.setResearchTabsIndex}
+                            />
                         }
                         {config.showResearchTabs && !showTodoTab && props.companySelectorValue &&
                             <Tabs value={props.researchTabsIndex}
@@ -701,7 +695,7 @@ export const MainBar = props => {
                                 {actionButtonElements}
                             </Box>
                         }
-                        {showResearchExternalLinks && !collapseSecondRow &&
+                        {showResearchExternalLinks && !collapseResearchLinks &&
                             <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
                                 {researchLinks.map((link) => (
                                     <MainBarIconButton
@@ -717,7 +711,7 @@ export const MainBar = props => {
                             </Box>
                         }
                         {((wrapPageControls && visibleActionButtons.length > 0)
-                            || visibleSelectors.length > 0
+                            || firstRowSelectors.length > 0
                             || visiblePageNavigationButtons.length > 0) &&
                             <Box role="group" aria-label="page controls" sx={{
                                 display: "flex",
@@ -728,9 +722,10 @@ export const MainBar = props => {
                                 overflowX: wrapPageControls ? {xs: "visible", md: "auto"} : "auto",
                             }}>
                                 {wrapPageControls && actionButtonElements}
-                                {visibleSelectors.map((selector) => (
+                                {firstRowSelectors.map((selector) => (
                                     <MainBarSelect
                                         key={selector.key}
+                                        marginLeft={isNarrowScreen ? "8px" : undefined}
                                         values={selector.values}
                                         value={selector.value}
                                         setValue={selector.setValue}
@@ -743,7 +738,12 @@ export const MainBar = props => {
                                     />
                                 ))}
                                 {visiblePageNavigationButtons.length > 0 &&
-                                    <Box sx={{display: "flex", alignItems: "center", flexShrink: 0, marginLeft: "8px"}}>
+                                    <Box sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        flexShrink: 0,
+                                        marginLeft: isNarrowScreen ? 0 : "8px",
+                                    }}>
                                         {visiblePageNavigationButtons.map((button) => (
                                             <MainBarIconButton
                                                 key={button.key}
@@ -752,7 +752,7 @@ export const MainBar = props => {
                                                 onClick={button.onClick}
                                                 icon={button.icon}
                                                 color="white"
-                                                buttonSx={{width: 50, height: 30}}
+                                                buttonSx={{width: isNarrowScreen ? 34 : 50, height: 30}}
                                                 iconSx={{width: 23, height: 23}}
                                             />
                                         ))}
@@ -762,22 +762,43 @@ export const MainBar = props => {
                         }
                     </Box>
                     <Box sx={{ flexGrow: 1 }} />
-                    {collapseSecondRow && hasSecondRowContent &&
+                    {hasSecondRowContent &&
                         <MainBarIconButton
-                            tooltip={showSecondRow ? "Hide links" : "Show links"}
-                            ariaLabel="toggle research links row"
+                            tooltip={showSecondRow ? "Hide filters" : "Show filters"}
+                            ariaLabel="toggle second row"
                             onClick={() => setShowSecondRow(!showSecondRow)}
-                            icon={showSecondRow ? KeyboardArrowDownIcon : KeyboardArrowUpIcon}
+                            icon={showSecondRow ? KeyboardArrowDownIcon : TuneIcon}
                             color="white"
-                            buttonSx={{width: 45, height: 30, flexShrink: 0}}
+                            buttonSx={{width: barButtonWidth, height: 30, flexShrink: 0}}
                             iconSx={{width: 23, height: 23}}
                         />
                     }
                 </Toolbar>
-                {collapseSecondRow && showSecondRow && hasSecondRowContent &&
+                {showSecondRow && hasSecondRowContent &&
                     <Toolbar variant="dense" sx={{display: "flex", justifyContent: "center", minHeight: 36}}>
-                        <Box sx={{display: "flex", alignItems: "center", gap: "3px"}}>
-                            {researchLinks.map((link) => (
+                        <Box sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            flexWrap: "wrap",
+                            justifyContent: "center",
+                            maxWidth: "100%",
+                        }}>
+                            {secondRowSelectors.map((selector) => (
+                                <MainBarSelect
+                                    key={selector.key}
+                                    values={selector.values}
+                                    value={selector.value}
+                                    setValue={selector.setValue}
+                                    valueKey={selector.valueKey}
+                                    label={selector.label}
+                                    companyLists={selector.companyLists}
+                                    defaultCompanyList={selector.defaultCompanyList}
+                                    companyListValue={selector.companyListValue}
+                                    setCompanyListValue={selector.setCompanyListValue}
+                                />
+                            ))}
+                            {secondRowLinks.map((link) => (
                                 <MainBarIconButton
                                     key={link.label}
                                     tooltip={link.label}

@@ -1,12 +1,19 @@
 import React from "react";
+import {Box} from "@mui/material";
 import {CompanyStats} from "./component/CompanyStats";
 import {PeriodStats} from "./component/PeriodStats";
 import {ProfitLossStats} from "./component/ProfitLossStats";
+import {SWIPE_AREA_SX, useSwipeNavigation} from "./component/useSwipeNavigation";
 
 const STATS_TYPES = {company: "company", monthly: "monthly", quarterly: "quarterly", yearly: "yearly"}
 
-export const Stats = props => (
-    <>
+const STATS_TAB_COUNT = 5
+
+export const Stats = props => {
+    const swipe = useSwipeNavigation(props.statsTabsIndex, props.setStatsTabsIndex, STATS_TAB_COUNT)
+
+    return (
+    <Box sx={SWIPE_AREA_SX} {...swipe}>
         {props.statsTabsIndex === 0 && (
             <CompanyStats type={STATS_TYPES.company} {...props} />
         )}
@@ -22,5 +29,6 @@ export const Stats = props => (
         {props.statsTabsIndex === 4 && (
             <ProfitLossStats {...props}/>
         )}
-    </>
-)
+    </Box>
+    )
+}

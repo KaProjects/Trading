@@ -4,6 +4,9 @@ import {Loader} from "./component/Loader";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {AddDividendDialog} from "../dialog/AddDividendDialog";
 import {formatDate} from "../service/FormattingService";
+import {STICKY_FIRST_COLUMN_HEAD_STYLE, STICKY_FIRST_COLUMN_STYLE} from "./component/tableStyles";
+
+const ROW_SX = {backgroundColor: "background.paper", "&.MuiTableRow-hover:hover": {backgroundColor: "action.hover"}}
 
 
 export const Dividends = props => {
@@ -55,7 +58,7 @@ export const Dividends = props => {
                 <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 520, sm: "unset"}}}>
                     <TableHead>
                         <TableRow>
-                            <TableCell key={0} style={headerStyle}>Ticker</TableCell>
+                            <TableCell key={0} style={{...headerStyle, ...STICKY_FIRST_COLUMN_HEAD_STYLE}}>Ticker</TableCell>
                             <TableCell key={1} style={headerStyle}>#</TableCell>
                             <TableCell key={2} style={headerStyle}>Date</TableCell>
                             <TableCell key={3} style={headerStyle}>Dividend</TableCell>
@@ -65,8 +68,8 @@ export const Dividends = props => {
                     </TableHead>
                     <TableBody>
                         {data.dividends.map((dividend, index) => (
-                            <TableRow key={index} hover>
-                                <TableCell style={rowStyle(0)} onDoubleClick={() => selectCompany(dividend.company.ticker)}>
+                            <TableRow key={index} hover sx={ROW_SX}>
+                                <TableCell style={{...rowStyle(0), ...STICKY_FIRST_COLUMN_STYLE}} onDoubleClick={() => selectCompany(dividend.company.ticker)}>
                                     {dividend.company.ticker}
                                 </TableCell>
                                 <TableCell style={rowStyle(1)}>{dividend.company.currency}</TableCell>
@@ -76,8 +79,8 @@ export const Dividends = props => {
                                 <TableCell style={rowStyle(5)}>{dividend.net}</TableCell>
                             </TableRow>
                         ))}
-                        <TableRow key={-1}>
-                            <TableCell key={0} style={sumRowStyle(0)}>{data.aggregates.companies}</TableCell>
+                        <TableRow key={-1} sx={ROW_SX}>
+                            <TableCell key={0} style={{...sumRowStyle(0), ...STICKY_FIRST_COLUMN_STYLE}}>{data.aggregates.companies}</TableCell>
                             <TableCell key={1} style={sumRowStyle(1)}>{data.aggregates.currencies}</TableCell>
                             <TableCell key={2} style={sumRowStyle(2)}></TableCell>
                             <TableCell key={3} style={sumRowStyle(3)}>{data.aggregates.dividendSum}</TableCell>
