@@ -97,6 +97,49 @@ describe("EditCompanyDialog", () => {
         expect(props.setOpenEditCompany).toHaveBeenCalledWith(null);
     });
 
+    test("reports a ticker that already exists, case-insensitively", () => {
+        const props = createProps({
+            openEditCompany: {},
+            companyLists: {all: [{id: "company-1", ticker: "NVDA"}, {id: "company-2", ticker: "AMD"}]},
+        });
+
+        render(<EditCompanyDialog {...props}/>);
+
+        const tickerField = screen.getByLabelText("Ticker");
+
+        fireEvent.change(tickerField, {target: {value: "NVDA"}});
+        expect(screen.getByText("already exists")).toBeInTheDocument();
+
+        fireEvent.change(tickerField, {target: {value: "INTC"}});
+        expect(screen.queryByText("already exists")).not.toBeInTheDocument();
+    });
+
+    test("keeps reporting the format problem before the duplicate check", () => {
+        const props = createProps({
+            openEditCompany: {},
+            companyLists: {all: [{id: "company-1", ticker: "NVDA"}]},
+        });
+
+        render(<EditCompanyDialog {...props}/>);
+
+        fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "nvda"}});
+
+        expect(screen.getByText("only uppercase")).toBeInTheDocument();
+        expect(screen.queryByText("already exists")).not.toBeInTheDocument();
+    });
+
+    test("does not report a duplicate when editing an existing company", () => {
+        const props = createProps({
+            openEditCompany: {id: "company-1", ticker: "NVDA", currency: "$"},
+            companyLists: {all: [{id: "company-1", ticker: "NVDA"}]},
+        });
+
+        render(<EditCompanyDialog {...props}/>);
+
+        expect(screen.queryByLabelText("Ticker")).not.toBeInTheDocument();
+        expect(screen.queryByText("already exists")).not.toBeInTheDocument();
+    });
+
     test("updates a company in edit mode", async () => {
         axios.put.mockResolvedValue({});
 

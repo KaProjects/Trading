@@ -59,7 +59,7 @@ export const MainBarSelect = props => {
         }
 
         return [
-            <MenuItem key="selected-company" value={selectedOption.id} style={{display: "none"}}>
+            <MenuItem key="selected-company" value={selectedOption.id} disabled style={{display: "none"}}>
                 {selectedOption[valueKey]}
             </MenuItem>
         ]
@@ -80,7 +80,7 @@ export const MainBarSelect = props => {
     }
 
     function renderEmptyOption(placeholder) {
-        return <MenuItem key="empty-selector" value="" style={{display: "none"}}>
+        return <MenuItem key="empty-selector" value="" disabled style={{display: "none"}}>
             {placeholder}
         </MenuItem>
     }

@@ -196,6 +196,42 @@ describe("MainBarSelect", () => {
         expect(screen.queryByRole("option", {name: "NVDA"})).not.toBeInTheDocument();
     });
 
+    test("never puts keyboard focus on a hidden option, so type-ahead keeps working", () => {
+        const companyLists = {
+            recent: [{id: "company-2", ticker: "AMD"}],
+            all: [
+                {id: "company-2", ticker: "AMD"},
+                {id: "company-1", ticker: "NVDA"},
+            ],
+        };
+        const baseProps = {
+            companyLists,
+            defaultCompanyList: "all",
+            setValue: jest.fn(),
+            label: "companies",
+            valueKey: "ticker",
+        };
+
+        function focusableOptions() {
+            return Array.from(document.querySelectorAll('li[tabindex="0"]'));
+        }
+
+        const {unmount} = render(<MainBarSelect {...baseProps} value=""/>);
+        fireEvent.mouseDown(screen.getByRole("combobox"));
+
+        expect(focusableOptions()).not.toHaveLength(0);
+        focusableOptions().forEach(option => expect(option.style.display).not.toBe("none"));
+        unmount();
+
+        render(<MainBarSelect {...baseProps} value={{id: "company-1", ticker: "NVDA"}}/>);
+        fireEvent.mouseDown(screen.getByRole("combobox"));
+        fireEvent.click(screen.getByRole("button", {name: "Company list All"}));
+        fireEvent.click(screen.getByRole("button", {name: "Use company list Recent"}));
+
+        expect(focusableOptions()).not.toHaveLength(0);
+        focusableOptions().forEach(option => expect(option.style.display).not.toBe("none"));
+    });
+
     test("clears the selected company and restores the lowercase placeholder", () => {
         const nvidia = {id: "company-1", ticker: "NVDA"};
         const companyLists = {all: [nvidia]};

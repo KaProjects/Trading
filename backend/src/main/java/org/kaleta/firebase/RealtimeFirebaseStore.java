@@ -3,12 +3,14 @@ package org.kaleta.firebase;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseException;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.internal.NonNull;
 import io.quarkus.arc.properties.IfBuildProperty;
+import io.quarkus.logging.Log;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.model.FirebaseAsset;
@@ -194,10 +196,19 @@ public class RealtimeFirebaseStore implements FirebaseStore
 
     private <T> Map<String, T> readChildren(Query query, Class<T> clazz)
     {
-        DataSnapshot snapshot = read(query);
+        return toChildMap(read(query), clazz);
+    }
+
+    static <T> Map<String, T> toChildMap(DataSnapshot snapshot, Class<T> clazz)
+    {
         Map<String, T> result = new LinkedHashMap<>();
         for (DataSnapshot child : snapshot.getChildren()) {
-            result.put(child.getKey(), child.getValue(clazz));
+            try {
+                result.put(child.getKey(), child.getValue(clazz));
+            } catch (DatabaseException exception) {
+                Log.debugf("Skipping Firebase entry '%s' that is not a %s: %s",
+                        child.getKey(), clazz.getSimpleName(), exception.getMessage());
+            }
         }
         return result;
     }

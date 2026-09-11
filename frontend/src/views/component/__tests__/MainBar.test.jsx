@@ -138,7 +138,7 @@ describe("MainBar", () => {
     });
 
     test("renders company action and selectors in shared page controls", () => {
-        mockUseLocation.mockReturnValue({pathname: "/companies"});
+        mockUseLocation.mockReturnValue({pathname: "/admin/companies"});
 
         render(<MainBar {...createProps()} />);
 

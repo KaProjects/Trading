@@ -79,7 +79,7 @@ describe("Companies", () => {
 
     beforeAll(() => {
         delete window.location;
-        window.location = {pathname: "/companies", href: "/companies"};
+        window.location = {pathname: "/admin/companies", href: "/admin/companies"};
     });
 
     afterAll(() => {
@@ -189,7 +189,7 @@ describe("Companies", () => {
         fireEvent.mouseEnter(totalTradesCell);
         fireEvent.click(within(totalTradesCell).getByRole("button"));
 
-        expect(mockRecordEvent).toHaveBeenCalledWith("/companies#redirect:/trades");
+        expect(mockRecordEvent).toHaveBeenCalledWith("/admin/companies#redirect:/trades");
         expect(mockNavigate).toHaveBeenCalledWith({
             pathname: "/trades",
             search: "?company=NVDA",

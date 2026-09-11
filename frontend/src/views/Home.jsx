@@ -2,7 +2,7 @@ import {ButtonBase, Card, CardContent, Paper, Stack, Typography} from "@mui/mate
 import React from "react";
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
-import StoreIcon from '@mui/icons-material/Store';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import DonutSmallIcon from '@mui/icons-material/DonutSmall';
 import {ReactComponent as TradesIcon} from "../assets/icons/trades.svg";
 import {ReactComponent as DividendsIcon} from "../assets/icons/dividends.svg";
@@ -66,10 +66,10 @@ export const Home = props => {
                                icon={<QueryStatsIcon/>}
                                description={"A collection, description, analysis, and inference of conclusions from quantitative data."}
                 />
-                <ClickableCard action={() => window.location.href='/companies'}
-                               title={"Companies"}
-                               icon={<StoreIcon/>}
-                               description={"List of companies with their attributes, aggregated data and their management"}
+                <ClickableCard action={() => window.location.href='/admin'}
+                               title={"Admin"}
+                               icon={<AdminPanelSettingsIcon/>}
+                               description={"Companies, data imports and API docs."}
                 />
             </Stack>
 

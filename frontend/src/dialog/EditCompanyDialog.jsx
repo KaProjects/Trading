@@ -209,6 +209,16 @@ export const EditCompanyDialog = props => {
             .finally(() => setSubmitting(false))
     }
 
+    function tickerError() {
+        const formatError = validateTicker(ticker)
+        if (formatError) return formatError
+
+        const normalizedTicker = ticker.toLocaleUpperCase()
+        return (props.companyLists?.all ?? []).some(item => item.ticker.toLocaleUpperCase() === normalizedTicker)
+            ? "already exists"
+            : ""
+    }
+
     const alphaVantageEnabled = currency !== "" && currency !== "$"
     const tickerSearchDisabled = !alphaVantageEnabled
         || validateTicker(ticker) !== ""
@@ -266,7 +276,7 @@ export const EditCompanyDialog = props => {
                                     resetProfile()
                                     setAlert(null)
                                 }}
-                                validate={() => validateTicker(ticker)}
+                                validate={tickerError}
                             />
                         }
                         <FormControl required fullWidth variant="standard" error={currency === ""} sx={{marginTop: "20px"}}>

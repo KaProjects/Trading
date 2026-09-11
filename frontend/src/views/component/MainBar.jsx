@@ -102,7 +102,7 @@ const MAIN_BAR_CONFIG = {
         showSectorSelector: true,
         showAddDividendButton: true,
     },
-    "/companies": {
+    "/admin/companies": {
         showCurrencySelector: true,
         showSectorSelector: true,
         showAddCompanyButton: true,
@@ -592,7 +592,7 @@ export const MainBar = props => {
     const visibleActionButtons = actionButtons.filter((button) => button.visible)
     const visibleSelectors = selectors.filter((selector) => selector.visible)
     const visiblePageNavigationButtons = pageNavigationButtons.filter((button) => button.visible)
-    const wrapPageControls = ["/trades", "/dividends", "/companies"].includes(location.pathname)
+    const wrapPageControls = ["/trades", "/dividends", "/admin/companies"].includes(location.pathname)
     const collapseSecondRow = location.pathname === "/research" && isNarrowScreen
     const hasSecondRowContent = showResearchExternalLinks
     const actionButtonElements = visibleActionButtons.map((button) => (
