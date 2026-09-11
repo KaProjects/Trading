@@ -15,6 +15,7 @@ import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
+import org.kaleta.model.FirebaseInstitution;
 
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -37,6 +38,7 @@ public class RealtimeFirebaseStore implements FirebaseStore
     {
         private static final String COMPANY = "company";
         private static final String ASSET = "asset";
+        private static final String INSTITUTION = "institution";
         private static final String GEMINI = "gemini";
         private static final String INFO = "info";
         private static final String QUARTERS = "quarters";
@@ -74,6 +76,25 @@ public class RealtimeFirebaseStore implements FirebaseStore
     public Map<String, FirebaseCompany> findAllCompanies()
     {
         return readChildren(database.getReference(FirebasePath.COMPANY), FirebaseCompany.class);
+    }
+
+    @Override
+    public Optional<FirebaseCompany> findCompany(String ticker)
+    {
+        DataSnapshot snapshot = read(company(ticker));
+        if (!snapshot.exists()) return Optional.empty();
+        try {
+            return Optional.ofNullable(snapshot.getValue(FirebaseCompany.class));
+        } catch (DatabaseException exception) {
+            Log.debugf("Firebase entry '%s' is not a company: %s", ticker, exception.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Map<String, FirebaseInstitution> findAllInstitutions()
+    {
+        return readChildren(database.getReference(FirebasePath.INSTITUTION), FirebaseInstitution.class);
     }
 
     @Override
@@ -164,6 +185,26 @@ public class RealtimeFirebaseStore implements FirebaseStore
                 .child(FirebasePath.QUARTERS)
                 .child(quarterId)
                 .updateChildrenAsync(values);
+    }
+
+    @Override
+    public void mergeInstitutions(String sourceKey, String targetKey, Map<String, String> aliases)
+    {
+        Map<String, Object> updates = new LinkedHashMap<>();
+        aliases.forEach((alias, label) -> updates.put(targetKey + "/aliases/" + alias, label));
+        updates.put(sourceKey, null);
+
+        database.getReference(FirebasePath.INSTITUTION).updateChildrenAsync(updates);
+    }
+
+    @Override
+    public void updateInstitutionFlags(String key, boolean enabled, boolean trusted)
+    {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("enabled", enabled);
+        values.put("trusted", trusted);
+
+        database.getReference(FirebasePath.INSTITUTION).child(key).updateChildrenAsync(values);
     }
 
     @Override

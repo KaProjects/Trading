@@ -66,7 +66,7 @@ export const EditCompanyDialog = props => {
             setTab(TAB.general)
             setAlert(null)
             setSubmitting(false)
-            setTicker(company.id ? company.ticker : "")
+            setTicker(company.ticker ?? "")
             setCurrency(company.id ? company.currency : "")
             setName(company.id ? company.name ?? "" : "")
             setDescription(company.id ? company.description ?? "" : "")

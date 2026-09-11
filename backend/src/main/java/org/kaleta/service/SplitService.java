@@ -54,7 +54,7 @@ public class SplitService
             requireStorable(company, trade, quantity, MAX_QUANTITY, "quantity");
             requireStorable(company, trade, price, MAX_PRICE, "purchase price");
 
-            details.add("- " + trade.getPurchaseDate() + ": "
+            details.add(trade.getPurchaseDate() + ": "
                     + plain(trade.getQuantity()) + "@" + plain(trade.getPurchasePrice())
                     + " -> " + plain(quantity) + "@" + plain(price));
 
@@ -84,7 +84,7 @@ public class SplitService
         }
 
         String strategy = "split " + plain(dto.getSplitFrom()) + ":" + plain(dto.getSplitTo());
-        recordService.createWithStrategy(
+        recordService.createWithContent(
                 company.getId(),
                 strategy,
                 dto.getDate(),

@@ -93,13 +93,29 @@ public class RecordService
     public void createWithStrategy(Long companyId, String strategy, String date, String price,
                                    List<String> strategyDetails)
     {
+        createBulleted(companyId, date, price, strategy, strategyDetails, false);
+    }
+
+    public void createWithContent(Long companyId, String content, String date, String price,
+                                  List<String> contentDetails)
+    {
+        createBulleted(companyId, date, price, content, contentDetails, true);
+    }
+
+    private void createBulleted(Long companyId, String date, String price, String heading,
+                                List<String> details, boolean asContent)
+    {
         Company company = companyService.findEntity(companyId);
         Periods periods = periodService.getBy(companyId);
 
         Record newRecord = new Record();
 
         newRecord.setCompany(company);
-        newRecord.setStrategy(createBulletedList(strategy, strategyDetails));
+        if (asContent) {
+            newRecord.setContent(createBulletedList(heading, details));
+        } else {
+            newRecord.setStrategy(createBulletedList(heading, details));
+        }
 
         newRecord.setDate(Date.valueOf(date));
         newRecord.setPrice(new BigDecimal(price));

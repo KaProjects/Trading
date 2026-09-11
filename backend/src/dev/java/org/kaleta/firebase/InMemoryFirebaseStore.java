@@ -1,6 +1,7 @@
 package org.kaleta.firebase;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.logging.Log;
@@ -10,6 +11,7 @@ import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
+import org.kaleta.model.FirebaseInstitution;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,6 +38,7 @@ public class InMemoryFirebaseStore implements FirebaseStore
 {
     private final Map<String, FirebaseCompany> companies = new ConcurrentHashMap<>();
     private final List<FirebaseAsset> assets = new CopyOnWriteArrayList<>();
+    private final Map<String, FirebaseInstitution> institutions = new ConcurrentHashMap<>();
 
     @Inject
     public InMemoryFirebaseStore(
@@ -71,6 +74,41 @@ public class InMemoryFirebaseStore implements FirebaseStore
     public Map<String, FirebaseCompany> findAllCompanies()
     {
         return Map.copyOf(companies);
+    }
+
+    @Override
+    public Optional<FirebaseCompany> findCompany(String ticker)
+    {
+        return Optional.ofNullable(companies.get(ticker.replace(".", "-")));
+    }
+
+    @Override
+    public void mergeInstitutions(String sourceKey, String targetKey, Map<String, String> aliases)
+    {
+        FirebaseInstitution target = institutions.get(targetKey);
+        if (target == null) return;
+
+        Map<String, String> merged = new LinkedHashMap<>();
+        if (target.getAliases() != null) merged.putAll(target.getAliases());
+        merged.putAll(aliases);
+        target.setAliases(merged);
+        institutions.remove(sourceKey);
+    }
+
+    @Override
+    public void updateInstitutionFlags(String key, boolean enabled, boolean trusted)
+    {
+        FirebaseInstitution institution = institutions.get(key);
+        if (institution == null) return;
+
+        institution.setEnabled(enabled);
+        institution.setTrusted(trusted);
+    }
+
+    @Override
+    public Map<String, FirebaseInstitution> findAllInstitutions()
+    {
+        return Map.copyOf(institutions);
     }
 
     @Override
@@ -233,7 +271,10 @@ public class InMemoryFirebaseStore implements FirebaseStore
         try (InputStream input = Files.newInputStream(snapshotFile)) {
             FirebaseData data = objectMapper.readValue(input, FirebaseData.class);
             if (data.companies != null) {
-                companies.putAll(data.companies);
+                companies.putAll(toCompanies(objectMapper, data.companies));
+            }
+            if (data.institutions != null) {
+                institutions.putAll(data.institutions);
             }
             if (data.assets != null) {
                 assets.addAll(data.assets);
@@ -245,11 +286,26 @@ public class InMemoryFirebaseStore implements FirebaseStore
         }
     }
 
+    private Map<String, FirebaseCompany> toCompanies(ObjectMapper objectMapper, Map<String, JsonNode> nodes)
+    {
+        Map<String, FirebaseCompany> result = new LinkedHashMap<>();
+        nodes.forEach((ticker, node) -> {
+            if (node == null || !node.isObject()) {
+                Log.debugf("Skipping Firebase snapshot entry '%s' that is not a company object", ticker);
+                return;
+            }
+            result.put(ticker, objectMapper.convertValue(node, FirebaseCompany.class));
+        });
+        return result;
+    }
+
     private static class FirebaseData
     {
         @JsonProperty("company")
-        private Map<String, FirebaseCompany> companies;
+        private Map<String, JsonNode> companies;
         @JsonProperty("asset")
         private List<FirebaseAsset> assets = new ArrayList<>();
+        @JsonProperty("institution")
+        private Map<String, FirebaseInstitution> institutions;
     }
 }

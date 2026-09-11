@@ -25,6 +25,7 @@ export const RESEARCH_SPLIT_BREAKPOINT = 2000;
 export const SWIPE_NAV_BREAKPOINT = 700;
 const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly", "P/L"];
 const OUTPERFORMERS_TABS = ["EPS Estimates", "Margins", "Sentiment", "Targets"];
+const FIREBASE_TABS = ["Missing", "Not Imported", "Cache", "Institutions"];
 const RESEARCH_TAB_LABELS = ["Research", "Records", "Todo"];
 const DATA_ROUTES = ["/trades", "/dividends", "/research"];
 const COMPANY_QUERY_PARAMETER = "company";
@@ -45,6 +46,7 @@ const DEFAULT_MAIN_BAR_CONFIG = {
     showStatsTabs: false,
     showResearchTabs: false,
     showOutperformersTabs: false,
+    showFirebaseTabs: false,
 };
 
 const researchExternalLinks = (company, exchanges = []) => {
@@ -113,6 +115,9 @@ const MAIN_BAR_CONFIG = {
     },
     "/outperformers": {
         showOutperformersTabs: true,
+    },
+    "/admin/firebase": {
+        showFirebaseTabs: true,
     },
 };
 
@@ -650,6 +655,21 @@ export const MainBar = props => {
                                   }}
                             >
                                 {OUTPERFORMERS_TABS.map((tab) => (
+                                    <Tab key={tab} label={tab}/>
+                                ))}
+                            </Tabs>
+                        }
+                        {config.showFirebaseTabs &&
+                            <Tabs value={props.firebaseTabsIndex}
+                                  onChange={(event, value) => props.setFirebaseTabsIndex(value)}
+                                  slotProps={{indicator: {style: {backgroundColor: "white"}}}}
+                                  textColor="inherit"
+                                  sx={{
+                                      "& .MuiTabs-list": {flexWrap: {xs: "wrap", sm: "nowrap"}},
+                                      "& .MuiTab-root": {minWidth: {xs: "50%", sm: 90}},
+                                  }}
+                            >
+                                {FIREBASE_TABS.map((tab) => (
                                     <Tab key={tab} label={tab}/>
                                 ))}
                             </Tabs>

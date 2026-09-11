@@ -2,6 +2,7 @@ package org.kaleta.firebase;
 
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
+import org.kaleta.model.FirebaseInstitution;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,6 +16,14 @@ public interface FirebaseStore
     Map<String, QuarterMetadata> findQuartersMetadata(String ticker);
 
     Map<String, FirebaseCompany> findAllCompanies();
+
+    Optional<FirebaseCompany> findCompany(String ticker);
+
+    Map<String, FirebaseInstitution> findAllInstitutions();
+
+    void mergeInstitutions(String sourceKey, String targetKey, Map<String, String> aliases);
+
+    void updateInstitutionFlags(String key, boolean enabled, boolean trusted);
 
     Optional<FirebaseCompany.Gemini.Info> findGeminiInfo(String ticker);
 

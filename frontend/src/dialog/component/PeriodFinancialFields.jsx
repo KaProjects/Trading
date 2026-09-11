@@ -81,14 +81,6 @@ const FINANCIAL_FIELDS = [
         allowNegative: true,
     },
     {
-        key: "dividend",
-        id: "company-financial-dividend",
-        label: "Dividend (in Millions)",
-        integerConstraint: 8,
-        decimalConstraint: 2,
-        allowNegative: false,
-    },
-    {
         key: "adjustedEps",
         id: "company-financial-adjusted-eps",
         label: "Adjusted EPS",
@@ -119,6 +111,14 @@ const FINANCIAL_FIELDS = [
         integerConstraint: 8,
         decimalConstraint: 2,
         allowNegative: true,
+    },
+    {
+        key: "dividend",
+        id: "company-financial-dividend",
+        label: "Dividend (in Millions)",
+        integerConstraint: 8,
+        decimalConstraint: 2,
+        allowNegative: false,
     },
     {
         key: "freeCashFlow",

@@ -23,13 +23,14 @@ describe("Admin", () => {
     test("lists every admin page as a title-only card", () => {
         render(<Admin/>);
 
-        const titles = ["Companies", "Stock Split", "Trade Import", "Dividend Import", "API Docs"];
+        const titles = ["Companies", "Stock Split", "Firebase Check", "Trade Import", "Dividend Import", "API Docs"];
         titles.forEach(title => expect(screen.getByText(title)).toBeInTheDocument());
         expect(screen.getAllByRole("button")).toHaveLength(titles.length);
     });
 
     test.each([
         ["Companies", "/admin/companies"],
+        ["Firebase Check", "/admin/firebase"],
         ["Trade Import", "/admin/import/trades"],
         ["Dividend Import", "/admin/import/dividends"],
     ])("navigates to %s", (title, path) => {

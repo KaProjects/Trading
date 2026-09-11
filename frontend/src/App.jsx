@@ -12,6 +12,7 @@ import {Dividends} from "./views/Dividends";
 import {Companies} from "./views/Companies";
 import {Admin} from "./views/Admin";
 import {StockSplit} from "./views/StockSplit";
+import {FirebaseCheck} from "./views/FirebaseCheck";
 import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
 import {Outperformers} from "./views/Outperformers";
@@ -51,6 +52,7 @@ export const App = () => {
     const [statsTabsIndex, setStatsTabsIndex] = useState(0);
     const [researchTabsIndex, setResearchTabsIndex] = useState(0);
     const [outperformersTabsIndex, setOutperformersTabsIndex] = useState(0);
+    const [firebaseTabsIndex, setFirebaseTabsIndex] = useState(0);
 
     useEffect(() => {
         Promise.all([
@@ -137,6 +139,8 @@ export const App = () => {
         setResearchTabsIndex,
         outperformersTabsIndex,
         setOutperformersTabsIndex,
+        firebaseTabsIndex,
+        setFirebaseTabsIndex,
     };
 
     return (
@@ -165,6 +169,7 @@ export const App = () => {
                             <Route exact path="/admin" element={<Admin {...props}/>}/>
                             <Route exact path="/admin/companies" element={<Companies {...props}/>}/>
                             <Route exact path="/admin/split" element={<StockSplit {...props}/>}/>
+                            <Route exact path="/admin/firebase" element={<FirebaseCheck {...props}/>}/>
                             <Route exact path="/analytics" element={<Analytics {...props}/>}/>
                             <Route exact path="/outperformers" element={<Outperformers {...props}/>}/>
                             <Route exact path="/admin/import/trades" element={<TradeImport/>}/>

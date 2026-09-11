@@ -25,6 +25,7 @@ public class ProductionFirebaseSnapshotDownloader implements FirebaseSnapshotDow
 {
     private static final long DOWNLOAD_TIMEOUT_SECONDS = 30;
     private static final String COMPANY = "company";
+    private static final String INSTITUTION = "institution";
     private static final String ASSET = "asset";
 
     private final Instance<FirebaseApp> firebaseApp;
@@ -45,6 +46,7 @@ public class ProductionFirebaseSnapshotDownloader implements FirebaseSnapshotDow
         FirebaseDatabase database = FirebaseDatabase.getInstance(firebaseApp.get(), databaseUrl);
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put(COMPANY, download(database.getReference(COMPANY)));
+        snapshot.put(INSTITUTION, download(database.getReference(INSTITUTION)));
         snapshot.put(ASSET, List.of());
         return snapshot;
     }
