@@ -3,6 +3,7 @@ import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow}
 import {useData} from "../../service/BackendService";
 import {Loader} from "./Loader";
 import {formatDecimals} from "../../service/FormattingService";
+import {STICKY_COLUMN_BODY_SX, STICKY_COLUMN_HEAD_SX, TABLE_CONTAINER_SX} from "./tableStyles";
 
 const STATS_TYPES = {monthly: "monthly", quarterly: "quarterly", yearly: "yearly"}
 const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
@@ -44,12 +45,16 @@ export const PeriodStats = props => {
 
     function BodyCell({index, row, value}) {
         const style = rowStyle(index, row)
-        return <TableCell key={index} style={style}>{value}</TableCell>
+        return <TableCell key={index} style={style} sx={index === 0 ? STICKY_COLUMN_BODY_SX : undefined}>
+            {value}
+        </TableCell>
     }
 
     function SumCell({index, value}) {
         const style = {...rowStyle(index), borderTop: "1px solid grey", borderBottom: "1px solid grey"}
-        return <TableCell key={index} style={style}>{value}</TableCell>
+        return <TableCell key={index} style={style} sx={index === 0 ? STICKY_COLUMN_BODY_SX : undefined}>
+            {value}
+        </TableCell>
     }
 
     function getTitle() {
@@ -74,11 +79,11 @@ export const PeriodStats = props => {
         <>
         {!loaded && <Loader error ={error}/>}
         {loaded &&
-            <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto 10px auto", maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
+            <TableContainer component={Paper} sx={{...TABLE_CONTAINER_SX, maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
                 <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 560, sm: "unset"}}}>
                     <TableHead>
                         <TableRow>
-                            <TableCell key={0} style={headerStyle} colSpan={1} rowSpan={2}>{getTitle()}</TableCell>
+                            <TableCell key={0} style={headerStyle} sx={STICKY_COLUMN_HEAD_SX} colSpan={1} rowSpan={2}>{getTitle()}</TableCell>
                             <TableCell key={1} style={headerStyle} colSpan={3} rowSpan={1}>Trades</TableCell>
                             <TableCell key={2} style={headerStyle} colSpan={1} rowSpan={2}>Dividends $</TableCell>
                         </TableRow>

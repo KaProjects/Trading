@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import {useData} from "../service/BackendService";
 import {Loader} from "./component/Loader";
+import {STICKY_COLUMN_BODY_SX, STICKY_COLUMN_HEAD_SX, TABLE_CONTAINER_SX} from "./component/tableStyles";
 import {formatDecimals, formatMillions, formatPercent} from "../service/FormattingService";
 
 const EPS_COLUMNS = [
@@ -159,12 +160,16 @@ function OutperformersTable({columns, rows, disqualified, criteria, sort, setSor
 
     return (
         <>
-            <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto"}}>
+            <TableContainer component={Paper} sx={TABLE_CONTAINER_SX}>
                 <Table size="small" stickyHeader>
                     <TableHead>
                         <TableRow>
-                            {columns.map(column => (
-                                <TableCell key={column.key} align={column.align ?? "right"}>
+                            {columns.map((column, index) => (
+                                <TableCell
+                                    key={column.key}
+                                    align={column.align ?? "right"}
+                                    sx={index === 0 ? STICKY_COLUMN_HEAD_SX : undefined}
+                                >
                                     <TableSortLabel
                                         active={sort?.key === column.key}
                                         direction={sort?.key === column.key ? sort.direction : "desc"}
@@ -179,8 +184,12 @@ function OutperformersTable({columns, rows, disqualified, criteria, sort, setSor
                     <TableBody>
                         {sortedRows.map(row => (
                             <TableRow key={row.ticker}>
-                                {columns.map(column => (
-                                    <TableCell key={column.key} align={column.align ?? "right"}>
+                                {columns.map((column, index) => (
+                                    <TableCell
+                                        key={column.key}
+                                        align={column.align ?? "right"}
+                                        sx={index === 0 ? STICKY_COLUMN_BODY_SX : undefined}
+                                    >
                                         {column.key === "ticker"
                                             ? row.ticker
                                             : (column.format ? column.format(row[column.key]) : row[column.key])}
@@ -200,7 +209,7 @@ function OutperformersTable({columns, rows, disqualified, criteria, sort, setSor
             <RatingCriteria criteria={criteria}/>
 
             {disqualified.length > 0 &&
-                <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto"}}>
+                <TableContainer component={Paper} sx={TABLE_CONTAINER_SX}>
                     <Table size="small">
                         <TableHead>
                             <TableRow>
@@ -243,7 +252,7 @@ export const Outperformers = props => {
     const activeConfig = TAB_CONFIG[tab];
 
     return (
-        <Box sx={{margin: "10px"}}>
+        <Box sx={{margin: {xs: 0, sm: "10px"}}}>
             <OutperformersTable
                 columns={activeConfig.columns}
                 rows={data[activeConfig.dataKey] ?? []}

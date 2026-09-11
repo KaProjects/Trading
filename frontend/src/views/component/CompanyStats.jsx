@@ -4,6 +4,7 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import {useData} from "../../service/BackendService";
 import {Loader} from "./Loader";
 import {formatDecimals} from "../../service/FormattingService";
+import {STICKY_COLUMN_BODY_SX, STICKY_COLUMN_HEAD_SX, TABLE_CONTAINER_SX} from "./tableStyles";
 
 const headerStyle = {textAlign: "center", border: "1px solid lightgrey"}
 
@@ -29,11 +30,18 @@ export const CompanyStats = props => {
     }
 
     function BodyCell({index, value}) {
-        return <TableCell key={index} style={rowStyle(index)}>{value}</TableCell>
+        return <TableCell key={index} style={rowStyle(index)} sx={index === 0 ? STICKY_COLUMN_BODY_SX : undefined}>
+            {value}
+        </TableCell>
     }
 
     function HeaderCell({index, value}) {
-        return <TableCell key={index} style={headerStyle} onClick={() => setSort(data.sorts[index])}>
+        return <TableCell
+            key={index}
+            style={headerStyle}
+            sx={index === 0 ? STICKY_COLUMN_HEAD_SX : undefined}
+            onClick={() => setSort(data.sorts[index])}
+        >
             {value}
             {sort === data.sorts[index] && <ArrowDropDownIcon sx={{ height: "18px", marginRight: "-15px", marginBottom: "-5px"}}/>}
         </TableCell>
@@ -41,14 +49,16 @@ export const CompanyStats = props => {
 
     function SumCell({index, value}) {
         const style = {...rowStyle(index), borderTop: "1px solid grey", borderBottom: "1px solid grey"}
-        return <TableCell key={index} style={style}>{value}</TableCell>
+        return <TableCell key={index} style={style} sx={index === 0 ? STICKY_COLUMN_BODY_SX : undefined}>
+            {value}
+        </TableCell>
     }
 
     return (
         <>
         {!loaded && <Loader error ={error}/>}
         {loaded &&
-            <TableContainer component={Paper} sx={{width: {xs: "100%", sm: "max-content"}, margin: "10px auto 10px auto", maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
+            <TableContainer component={Paper} sx={{...TABLE_CONTAINER_SX, maxHeight: "calc(100vh - var(--main-bar-height, 48px) - 32px)", overflow: "auto"}}>
                 <Table size="small" aria-label="a dense table" stickyHeader sx={{minWidth: {xs: 760, sm: "unset"}}}>
                     <TableHead>
                         <TableRow>
