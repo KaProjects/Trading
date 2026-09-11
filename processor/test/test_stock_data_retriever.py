@@ -1620,6 +1620,48 @@ class TestStockDataRetriever:
         assert new_quarter.ending_month == "26-03"
         assert new_quarter.report_date_previous_quarter == datetime(2025, 10, 20).date()
 
+    def test_compose_new_quarter_keeps_calendar_year_on_fiscal_label_rollover(
+        self,
+        runner,
+    ):
+        """Regression test for a bug where a company whose fiscal-year label
+        runs ahead of the calendar year (e.g. MSFT, whose fiscal Q4 ends in
+        June) got the fiscal-id year copied onto ending_month's calendar
+        year on the Q4-to-Q1 rollover, producing a +15 month jump (27-09)
+        instead of the correct +3 months (26-09)."""
+        previous_quarter = make_quarter(
+            quarter_id="26Q4",
+            name="Q4 2026",
+            ending_month="26-06",
+            previous_report_date="2026-01-20",
+            report_date="2026-04-20",
+        )
+        new_quarter = runner.compose_new_quarter(previous_quarter)
+        assert new_quarter.id == "27Q1"
+        assert new_quarter.name == "Q1 2027"
+        assert new_quarter.ending_month == "26-09"
+
+    def test_compose_new_quarter_keeps_calendar_year_without_label_rollover(
+        self,
+        runner,
+    ):
+        """Regression test for a bug where, once a company's fiscal-id year
+        outran its ending_month's calendar year (e.g. NVDA), even a
+        same-fiscal-year Q1-to-Q2 step re-derived the calendar year from the
+        fiscal id instead of from the previous ending_month, producing
+        27-07 instead of the correct 26-07."""
+        previous_quarter = make_quarter(
+            quarter_id="27Q1",
+            name="Q1 2027",
+            ending_month="26-04",
+            previous_report_date="2025-08-20",
+            report_date="2025-11-20",
+        )
+        new_quarter = runner.compose_new_quarter(previous_quarter)
+        assert new_quarter.id == "27Q2"
+        assert new_quarter.name == "Q2 2027"
+        assert new_quarter.ending_month == "26-07"
+
     @pytest.mark.parametrize(
         ("value", "expected"),
         [

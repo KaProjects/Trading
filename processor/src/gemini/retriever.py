@@ -710,25 +710,28 @@ class StockDataRetrieverRunner:
         )
 
     def compose_new_quarter(self, previous_quarter: Quarter) -> Quarter:
-        previous_y = int(previous_quarter.id[:2])
+        previous_id_year = int(previous_quarter.id[:2])
         previous_q = int(previous_quarter.id[3])
+        previous_month_year = int(previous_quarter.ending_month[:2])
         previous_m = int(previous_quarter.ending_month[3:])
 
         if previous_q == 4:
             next_q = 1
-            next_y = previous_y + 1
+            next_id_year = previous_id_year + 1
         else:
             next_q = previous_q + 1
-            next_y = previous_y
+            next_id_year = previous_id_year
 
         next_m = previous_m + 3
+        next_month_year = previous_month_year
         if next_m > 12:
             next_m -= 12
+            next_month_year += 1
 
-        yy_str = f"{next_y:02d}"
-        mm_str = f"{next_m:02d}"
+        id_yy_str = f"{next_id_year:02d}"
+        ending_month = f"{next_month_year:02d}-{next_m:02d}"
 
-        return Quarter(name=f"Q{next_q} 20{yy_str}", ending_month=f"{yy_str}-{mm_str}", id=f"{yy_str}Q{next_q}", report_date_previous_quarter=previous_quarter.report_date_this_quarter)
+        return Quarter(name=f"Q{next_q} 20{id_yy_str}", ending_month=ending_month, id=f"{id_yy_str}Q{next_q}", report_date_previous_quarter=previous_quarter.report_date_this_quarter)
 
     def check_report_dates_next_week(self, report_dates: ReportDates):
         today = datetime.now().date()
