@@ -130,7 +130,7 @@ export const EditTradeDialog = props => {
                             label="Quantity"
                             value={quantity}
                             onChange={event => {setQuantity(event.target.value);setAlert(null);}}
-                            validate={() => validateNumber(quantity, false, 8, 4, false)}
+                            validate={() => validateNumber(quantity, false, 11, 4, false)}
                         />
                         <DialogTextField
                             id="trader-edit-trade-purchase-price"

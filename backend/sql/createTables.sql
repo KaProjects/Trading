@@ -33,7 +33,7 @@ CREATE TABLE Dividend
 CREATE TABLE Trade
 (
     id             INT UNSIGNED   NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    quantity       DECIMAL(8, 4)  NOT NULL,
+    quantity       DECIMAL(11, 4) NOT NULL,
     purchase_date  DATE           NOT NULL,
     purchase_price DECIMAL(10, 4) NOT NULL,
     purchase_fees  DECIMAL(5, 2)  NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE Record
     p_net           DECIMAL(6, 2),
     p_fcf           DECIMAL(6, 2),
     dy              DECIMAL(5, 2),
-    asset_quantity  DECIMAL(8, 4),
+    asset_quantity  DECIMAL(11, 4),
     asset_price     DECIMAL(10, 4),
     companyId       INT UNSIGNED   NOT NULL,
     CONSTRAINT `fk_recordCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)

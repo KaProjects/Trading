@@ -107,7 +107,7 @@ export const AddTradeDialog = props => {
                     value={quantity}
                     label="Quantity"
                     onChange={(e) => {setQuantity(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(quantity, false, 8, 4, false)}
+                    validate={() => validateNumber(quantity, false, 11, 4, false)}
                 />
                 <DialogTextField
                     id="trader-trade-price"

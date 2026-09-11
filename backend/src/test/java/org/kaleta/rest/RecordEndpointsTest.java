@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_3_2_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_2_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_2_true;
-import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_4_false;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_7_4_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_4_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
@@ -225,17 +225,17 @@ class RecordEndpointsTest
         dto.setDividendYield(validDy);
 
         dto.setSumAssetQuantity("x");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity(".1");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("1.");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
-        dto.setSumAssetQuantity("12345");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
+        dto.setSumAssetQuantity("12345678");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("10.12345");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("-1");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity(validQ);
 
         dto.setAvgAssetPrice("x");
@@ -339,17 +339,17 @@ class RecordEndpointsTest
         dto.setId(1974L);
 
         dto.setSumAssetQuantity("x");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity(".1");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("1.");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
-        dto.setSumAssetQuantity("12345");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
+        dto.setSumAssetQuantity("12345678");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("10.12345");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("-1");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("12.5");
 
         dto.setAvgAssetPrice("x");

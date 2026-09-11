@@ -92,7 +92,7 @@ export const SellTradeDialog = props => {
     }
 
     function validateSellQuantity(trade) {
-        const numberInvalid = validateNumber(trade.sellQuantity ? trade.sellQuantity : "", true, 8, 4, false)
+        const numberInvalid = validateNumber(trade.sellQuantity ? trade.sellQuantity : "", true, 11, 4, false)
         if (numberInvalid){
             return numberInvalid
         } else {

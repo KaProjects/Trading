@@ -194,7 +194,7 @@ export const AddRecordDialog = props => {
                     required={false}
                     label="assets quantity sum"
                     onChange={(e) => {setSumAssetQuantity(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(sumAssetQuantity, true, 8, 4, false)}
+                    validate={() => validateNumber(sumAssetQuantity, true, 11, 4, false)}
                 />
                 <DialogTextField
                     id="trader-record-assets-price"

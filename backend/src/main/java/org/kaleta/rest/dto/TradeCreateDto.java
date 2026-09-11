@@ -18,7 +18,7 @@ public class TradeCreateDto
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")
     private String date;
     @NotNull
-    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 4)
+    @ValidBigDecimal(integerConstraint = 7, decimalConstraint = 4)
     private String quantity;
     @NotNull
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)

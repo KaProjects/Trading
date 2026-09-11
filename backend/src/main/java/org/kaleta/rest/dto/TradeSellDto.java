@@ -36,7 +36,7 @@ public class TradeSellDto
         @ValidId
         private Long tradeId;
         @NotNull
-        @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 4)
+        @ValidBigDecimal(integerConstraint = 7, decimalConstraint = 4)
         private String quantity;
 
         public Trade() {}

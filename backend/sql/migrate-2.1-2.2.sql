@@ -34,3 +34,6 @@ CREATE TABLE Target
     CONSTRAINT `uk_targetIdentity` UNIQUE (periodId, date, institution, price),
     CONSTRAINT `fk_targetPeriodId` FOREIGN KEY (periodId) REFERENCES Period (id)
 );
+
+ALTER TABLE Trade MODIFY quantity DECIMAL(11, 4) NOT NULL;
+ALTER TABLE Record MODIFY asset_quantity DECIMAL(11, 4);

@@ -34,7 +34,7 @@ public class TradeImportDto
         @NotBlank
         private String ticker;
         @NotNull
-        @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 4)
+        @ValidBigDecimal(integerConstraint = 7, decimalConstraint = 4)
         private String quantity;
         @NotNull
         @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)

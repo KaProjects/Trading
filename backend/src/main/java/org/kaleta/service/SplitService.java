@@ -20,7 +20,7 @@ import java.util.List;
 public class SplitService
 {
     private static final int VALUE_SCALE = 4;
-    private static final BigDecimal MAX_QUANTITY = new BigDecimal("9999.9999");
+    private static final BigDecimal MAX_QUANTITY = new BigDecimal("9999999.9999");
     private static final BigDecimal MAX_PRICE = new BigDecimal("999999.9999");
 
     @Inject

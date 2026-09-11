@@ -39,7 +39,7 @@ public class RecordCreateDto
     @ValidBigDecimal(integerConstraint = 3, decimalConstraint = 2)
     private String dividendYield;
 
-    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 4)
+    @ValidBigDecimal(integerConstraint = 7, decimalConstraint = 4)
     private String sumAssetQuantity;
 
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)

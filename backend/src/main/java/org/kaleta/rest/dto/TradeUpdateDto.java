@@ -15,7 +15,7 @@ public class TradeUpdateDto
     private String purchaseDate;
 
     @NotNull
-    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 4)
+    @ValidBigDecimal(integerConstraint = 7, decimalConstraint = 4)
     private String quantity;
 
     @NotNull
