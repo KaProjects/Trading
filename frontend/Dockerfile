@@ -1,5 +1,7 @@
 FROM node:23.11.0-alpine3.21 as build-stage
 WORKDIR /app
+ARG REACT_APP_BACKEND_PORT
+ENV REACT_APP_BACKEND_PORT=${REACT_APP_BACKEND_PORT}
 COPY frontend /app
 RUN npm install
 RUN npm run build

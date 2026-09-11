@@ -77,12 +77,6 @@ public class RecordService
                               TradeSaleSummary sale)
     {
         Company company = companyService.findEntity(companyId);
-        Periods periods = periodService.getBy(companyId);
-
-        Record newRecord = new Record();
-
-        newRecord.setCompany(company);
-        String strategy = titlePrefix + "@" + price + company.getCurrency();
         List<String> strategyDetails = new ArrayList<>();
         if (sale != null) {
             String currency = company.getCurrency().toString();
@@ -91,6 +85,20 @@ public class RecordService
                     + " - " + formatDecimal(sale.fees(), 2) + currency
                     + " = " + formatPerformance(sale.profit(), sale.profitPercentage(), currency));
         }
+
+        createWithStrategy(companyId, titlePrefix + "@" + price + company.getCurrency(),
+                date, price, strategyDetails);
+    }
+
+    public void createWithStrategy(Long companyId, String strategy, String date, String price,
+                                   List<String> strategyDetails)
+    {
+        Company company = companyService.findEntity(companyId);
+        Periods periods = periodService.getBy(companyId);
+
+        Record newRecord = new Record();
+
+        newRecord.setCompany(company);
         newRecord.setStrategy(createBulletedList(strategy, strategyDetails));
 
         newRecord.setDate(Date.valueOf(date));

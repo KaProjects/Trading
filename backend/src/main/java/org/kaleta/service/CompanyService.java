@@ -9,6 +9,7 @@ import org.kaleta.client.PolygonClient;
 import org.kaleta.client.RequestFailureException;
 import org.kaleta.client.dto.AlphaVantageTicker;
 import org.kaleta.client.dto.PolygonCompanyProfile;
+import org.kaleta.client.dto.PolygonSplit;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 public class CompanyService
 {
     private static final Set<String> RESERVED_TAGS = Set.of("owned", "recent", "all");
+    private static final int SPLIT_LOOKBACK_MONTHS = 12;
     private static final Comparator<String> COMPANY_LIST_ORDER = Comparator
             .comparingInt(CompanyService::companyListOrder)
             .thenComparing(Comparator.naturalOrder());
@@ -81,6 +83,18 @@ public class CompanyService
         } catch (RequestFailureException exception) {
             throw new InvalidInputException(
                     "Polygon.io company data for ticker '" + ticker + "' could not be loaded: "
+                            + exception.getMessage());
+        }
+    }
+
+    public List<PolygonSplit> getPolygonSplits(String ticker)
+    {
+        String executedFrom = LocalDate.now().minusMonths(SPLIT_LOOKBACK_MONTHS).toString();
+        try {
+            return polygonClient.getSplits(ticker, executedFrom);
+        } catch (RequestFailureException exception) {
+            throw new InvalidInputException(
+                    "Polygon splits for ticker '" + ticker + "' could not be loaded: "
                             + exception.getMessage());
         }
     }

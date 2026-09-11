@@ -9,16 +9,19 @@ import org.junit.jupiter.api.Test;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
+import org.kaleta.client.dto.PolygonSplit;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -90,6 +93,18 @@ class ProductionPolygonClientTest
                 containsString("Polygon.io financial metrics use inconsistent currencies: EUR, USD"));
     }
 
+    @Test
+    void readsSplitsAndSkipsIncompleteEntries() throws RequestFailureException
+    {
+        List<PolygonSplit> splits = client.getSplits("NVDA", "2026-01-01");
+
+        assertThat(splits, hasSize(2));
+        assertThat(splits.getFirst().executionDate(), is("2026-06-10"));
+        assertThat(splits.getFirst().splitFrom(), comparesEqualTo(BigDecimal.ONE));
+        assertThat(splits.getFirst().splitTo(), comparesEqualTo(BigDecimal.TEN));
+        assertThat(splits.get(1).executionDate(), is("2026-02-23"));
+    }
+
     private void respond(HttpExchange exchange) throws IOException
     {
         String path = exchange.getRequestURI().getPath();
@@ -104,6 +119,18 @@ class ProductionPolygonClientTest
                         "description": "AMD designs high-performance computing products.",
                         "homepage_url": "https://www.amd.com"
                       }
+                    }
+                    """;
+        } else if (path.contains("/stocks/v1/splits")) {
+            body = """
+                    {
+                      "results": [
+                        {"split_from": 1, "split_to": 10, "execution_date": "2026-06-10",
+                         "adjustment_type": "forward_split"},
+                        {"split_from": 3, "split_to": 4, "execution_date": "2026-02-23",
+                         "adjustment_type": "stock_dividend"},
+                        {"split_from": null, "split_to": 2, "execution_date": "2026-01-05"}
+                      ]
                     }
                     """;
         } else if (path.contains("/aggs/ticker/")) {

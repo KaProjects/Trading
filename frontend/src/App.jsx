@@ -11,6 +11,7 @@ import {Stats} from "./views/Stats";
 import {Dividends} from "./views/Dividends";
 import {Companies} from "./views/Companies";
 import {Admin} from "./views/Admin";
+import {StockSplit} from "./views/StockSplit";
 import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
 import {Outperformers} from "./views/Outperformers";
@@ -163,6 +164,7 @@ export const App = () => {
                             <Route exact path="/stats" element={<Stats {...props}/>}/>
                             <Route exact path="/admin" element={<Admin {...props}/>}/>
                             <Route exact path="/admin/companies" element={<Companies {...props}/>}/>
+                            <Route exact path="/admin/split" element={<StockSplit {...props}/>}/>
                             <Route exact path="/analytics" element={<Analytics {...props}/>}/>
                             <Route exact path="/outperformers" element={<Outperformers {...props}/>}/>
                             <Route exact path="/admin/import/trades" element={<TradeImport/>}/>

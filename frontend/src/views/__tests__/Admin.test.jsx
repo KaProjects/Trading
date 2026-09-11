@@ -1,7 +1,7 @@
 import React from "react";
 import {fireEvent, render, screen} from "@testing-library/react";
 
-jest.mock("../../properties", () => ({backend: "/api"}));
+jest.mock("../../properties", () => ({backend: "/api", apiDocsUrl: "http://localhost:9090/api/docs/"}));
 
 import {Admin} from "../Admin";
 
@@ -23,11 +23,9 @@ describe("Admin", () => {
     test("lists every admin page as a title-only card", () => {
         render(<Admin/>);
 
-        expect(screen.getByText("Companies")).toBeInTheDocument();
-        expect(screen.getByText("Trade Import")).toBeInTheDocument();
-        expect(screen.getByText("Dividend Import")).toBeInTheDocument();
-        expect(screen.getByText("API Docs")).toBeInTheDocument();
-        expect(screen.getAllByRole("button")).toHaveLength(4);
+        const titles = ["Companies", "Stock Split", "Trade Import", "Dividend Import", "API Docs"];
+        titles.forEach(title => expect(screen.getByText(title)).toBeInTheDocument());
+        expect(screen.getAllByRole("button")).toHaveLength(titles.length);
     });
 
     test.each([
@@ -47,7 +45,7 @@ describe("Admin", () => {
 
         fireEvent.click(screen.getByText("API Docs"));
 
-        expect(window.open).toHaveBeenCalledWith("/api/api/docs/", "_blank");
+        expect(window.open).toHaveBeenCalledWith("http://localhost:9090/api/docs/", "_blank");
         expect(window.location.href).toBe("");
     });
 });

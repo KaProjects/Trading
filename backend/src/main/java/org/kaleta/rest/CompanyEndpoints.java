@@ -22,6 +22,7 @@ import org.kaleta.model.CompanyAggregates;
 import org.kaleta.model.Trades;
 import org.kaleta.client.dto.AlphaVantageTicker;
 import org.kaleta.client.dto.PolygonCompanyProfile;
+import org.kaleta.client.dto.PolygonSplit;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Exchange;
@@ -144,6 +145,16 @@ public class CompanyEndpoints
             @QueryParam("ticker") String ticker)
     {
         return companyService.getPolygonCompanyProfile(ticker);
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/polygon/splits")
+    public List<PolygonSplit> getPolygonSplits(
+            @NotNull @org.kaleta.rest.validation.ValidTicker
+            @QueryParam("ticker") String ticker)
+    {
+        return companyService.getPolygonSplits(ticker);
     }
 
     @PUT

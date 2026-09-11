@@ -9,11 +9,16 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
+import org.kaleta.client.dto.PolygonSplit;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -26,6 +31,7 @@ public class InMemoryPolygonClient implements PolygonClient
     private final Map<String, Map<String, PolygonFinancials>> financials;
     private final Map<String, Map<String, PolygonPriceRange>> priceRanges;
     private final Map<String, PolygonCompanyProfile> companyProfiles;
+    private final Map<String, List<DevSplit>> splits;
 
     @Inject
     public InMemoryPolygonClient(
@@ -36,6 +42,7 @@ public class InMemoryPolygonClient implements PolygonClient
         this.financials = data.financials() == null ? Map.of() : data.financials();
         this.priceRanges = data.priceRanges() == null ? Map.of() : data.priceRanges();
         this.companyProfiles = data.companyProfiles() == null ? Map.of() : data.companyProfiles();
+        this.splits = data.splits() == null ? Map.of() : data.splits();
     }
 
     @Override
@@ -63,6 +70,19 @@ public class InMemoryPolygonClient implements PolygonClient
                 .get(from + ":" + to));
     }
 
+    @Override
+    public List<PolygonSplit> getSplits(String ticker, String executedFrom)
+    {
+        return splits.getOrDefault(normalize(ticker), List.of()).stream()
+                .map(split -> new PolygonSplit(
+                        split.splitFrom(),
+                        split.splitTo(),
+                        LocalDate.now().minusDays(split.daysAgo()).toString()))
+                .filter(split -> split.executionDate().compareTo(executedFrom) >= 0)
+                .sorted(Comparator.comparing(PolygonSplit::executionDate).reversed())
+                .toList();
+    }
+
     private PolygonData load(ObjectMapper objectMapper, String dataFile)
     {
         Path path = Path.of(dataFile).toAbsolutePath().normalize();
@@ -83,7 +103,12 @@ public class InMemoryPolygonClient implements PolygonClient
     private record PolygonData(
             Map<String, Map<String, PolygonFinancials>> financials,
             Map<String, Map<String, PolygonPriceRange>> priceRanges,
-            Map<String, PolygonCompanyProfile> companyProfiles)
+            Map<String, PolygonCompanyProfile> companyProfiles,
+            Map<String, List<DevSplit>> splits)
+    {
+    }
+
+    private record DevSplit(BigDecimal splitFrom, BigDecimal splitTo, long daysAgo)
     {
     }
 }

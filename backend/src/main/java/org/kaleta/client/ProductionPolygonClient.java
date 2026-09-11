@@ -11,6 +11,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
+import org.kaleta.client.dto.PolygonSplit;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -118,6 +119,22 @@ public class ProductionPolygonClient implements PolygonClient
         return Optional.of(new PolygonPriceRange(high, low, "USD"));
     }
 
+    @Override
+    public List<PolygonSplit> getSplits(String ticker, String executedFrom) throws RequestFailureException
+    {
+        URI endpoint = URI.create(apiUrl
+                + "/stocks/v1/splits?ticker=" + encode(ticker)
+                + "&execution_date.gte=" + encode(executedFrom)
+                + "&sort=execution_date&order=desc&limit=50");
+        SplitsResponse response = get(endpoint, SplitsResponse.class);
+
+        return optionalList(response.results()).stream()
+                .filter(split -> split.executionDate() != null)
+                .filter(split -> split.splitFrom() != null && split.splitTo() != null)
+                .map(split -> new PolygonSplit(split.splitFrom(), split.splitTo(), split.executionDate()))
+                .toList();
+    }
+
     private <T> T get(URI uri, Class<T> responseType) throws RequestFailureException
     {
         HttpRequest request = HttpRequest.newBuilder(uri)
@@ -213,6 +230,21 @@ public class ProductionPolygonClient implements PolygonClient
     private static <T> List<T> optionalList(List<T> values)
     {
         return values == null ? List.of() : values;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    private record SplitsResponse(List<SplitResult> results)
+    {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    private record SplitResult(
+            @JsonProperty("split_from") BigDecimal splitFrom,
+            @JsonProperty("split_to") BigDecimal splitTo,
+            @JsonProperty("execution_date") String executionDate)
+    {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

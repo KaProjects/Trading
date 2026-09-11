@@ -226,5 +226,33 @@
         "reportedCurrency": "USD"
       }
     }
+  },
+  "splits": {
+    "NVDA": [
+      {
+        "splitFrom": 1,
+        "splitTo": 10,
+        "daysAgo": 0
+      }
+    ],
+    "INTC": [
+      {
+        "splitFrom": 1,
+        "splitTo": 2,
+        "daysAgo": 25
+      },
+      {
+        "splitFrom": 3,
+        "splitTo": 4,
+        "daysAgo": 200
+      }
+    ],
+    "DDD": [
+      {
+        "splitFrom": 10,
+        "splitTo": 1,
+        "daysAgo": 800
+      }
+    ]
   }
 }
