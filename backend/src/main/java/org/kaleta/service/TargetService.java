@@ -12,8 +12,11 @@ import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.Target;
 import org.kaleta.rest.dto.ActionableCompanyDto;
+import org.kaleta.rest.dto.TargetCandidatesDto;
 import org.kaleta.rest.dto.TargetCreateDto;
 import org.kaleta.rest.dto.TargetDto;
+import org.kaleta.rest.dto.TargetImportDto;
+import org.kaleta.rest.dto.TargetImportResultDto;
 import org.kaleta.rest.dto.TargetSyncCountsDto;
 import org.kaleta.rest.dto.TargetSyncDto;
 import org.kaleta.rest.error.ConflictException;
@@ -247,11 +250,67 @@ public class TargetService
         return new TargetSyncCountsDto(counts, failedPeriodIds, warnings);
     }
 
-    public TargetSyncDto sync(Long periodId)
+    public TargetCandidatesDto getImportCandidates(Long periodId)
     {
         CandidateResult result = candidates(periodService.get(periodId));
-        targetDao.createAll(result.targets());
-        return new TargetSyncDto(result.targets().size(), result.warnings());
+        return new TargetCandidatesDto(
+                result.targets().stream().map(this::toCandidate).toList(),
+                result.warnings());
+    }
+
+    public TargetImportResultDto importCandidates(Long periodId, TargetImportDto dto)
+    {
+        Period period = periodService.get(periodId);
+        CandidateResult result = candidates(period);
+
+        Set<TargetIdentity> selected = identities(dto.getSelected());
+        Set<TargetIdentity> discarded = identities(dto.getDiscarded());
+
+        List<Target> toImport = new ArrayList<>();
+        List<Target> toDiscard = new ArrayList<>();
+        for (Target candidate : result.targets()) {
+            TargetIdentity identity = TargetIdentity.from(candidate);
+            if (selected.contains(identity)) {
+                toImport.add(candidate);
+            } else if (discarded.contains(identity)) {
+                toDiscard.add(candidate);
+            }
+        }
+
+        targetDao.createAll(toImport);
+        for (Target target : toDiscard) {
+            firebaseService.deleteTarget(
+                    period.getCompany().getTicker(),
+                    target.getDate().toLocalDate(),
+                    target.getInstitution(),
+                    target.getPrice());
+        }
+
+        return new TargetImportResultDto(toImport.size(), toDiscard.size(), result.warnings());
+    }
+
+    private Set<TargetIdentity> identities(List<TargetImportDto.Selection> selections)
+    {
+        return selections.stream()
+                .map(selection -> new TargetIdentity(
+                        parseDate(selection.getDate()),
+                        selection.getInstitution().trim().toLowerCase(Locale.ROOT),
+                        selection.getPrice().stripTrailingZeros()))
+                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+    }
+
+    private TargetCandidatesDto.Candidate toCandidate(Target target)
+    {
+        return new TargetCandidatesDto.Candidate(
+                target.getDate().toString(),
+                target.getInstitution(),
+                target.getPrice(),
+                target.getRating(),
+                target.getOverview(),
+                target.getTakeaway1(),
+                target.getTakeaway2(),
+                target.getTakeaway3(),
+                target.getTakeaway4());
     }
 
     private CandidateResult candidates(Period period)

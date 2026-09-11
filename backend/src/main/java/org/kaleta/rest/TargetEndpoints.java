@@ -13,6 +13,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.rest.dto.TargetCreateDto;
+import org.kaleta.rest.dto.TargetImportDto;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.service.TargetService;
 
@@ -66,10 +67,21 @@ public class TargetEndpoints
         return Response.ok(targetService.countImportCandidates(periodId)).build();
     }
 
+    @GET
+    @Path("/{periodId}/sync/candidates")
+    public Response getImportCandidates(
+            @NotNull @ValidId @PathParam("periodId") Long periodId)
+    {
+        return Response.ok(targetService.getImportCandidates(periodId)).build();
+    }
+
     @POST
     @Path("/{periodId}/sync")
-    public Response sync(@NotNull @ValidId @PathParam("periodId") Long periodId)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response sync(
+            @NotNull @ValidId @PathParam("periodId") Long periodId,
+            @Valid @NotNull TargetImportDto dto)
     {
-        return Response.ok(targetService.sync(periodId)).build();
+        return Response.ok(targetService.importCandidates(periodId, dto)).build();
     }
 }

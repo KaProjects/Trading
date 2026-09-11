@@ -4,6 +4,7 @@ import {
     Badge,
     Box,
     Button,
+    Checkbox,
     CircularProgress,
     Dialog,
     DialogActions,
@@ -86,6 +87,10 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
     const [target, setTarget] = useState(EMPTY_TARGET);
     const [candidateCount, setCandidateCount] = useState(0);
     const [warnings, setWarnings] = useState([]);
+    const [candidates, setCandidates] = useState([]);
+    const [selectedCandidates, setSelectedCandidates] = useState(new Set());
+    const [loadingCandidates, setLoadingCandidates] = useState(false);
+    const [pendingDelete, setPendingDelete] = useState(null);
     const [loadingTargets, setLoadingTargets] = useState(false);
     const [loadingCount, setLoadingCount] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -93,6 +98,8 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
     const [submitted, setSubmitted] = useState(false);
     const [highlightedTargetIds, setHighlightedTargetIds] = useState(new Set());
     const targetDateWindow = dateWindow(period);
+    const selectedCount = selectedCandidates.size;
+    const discardedCount = candidates.length - selectedCount;
 
     useEffect(() => {
         if (!open || !period) return;
@@ -100,6 +107,9 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
         setTargets([]);
         setTarget(EMPTY_TARGET);
         setCandidateCount(0);
+        setCandidates([]);
+        setSelectedCandidates(new Set());
+        setPendingDelete(null);
         setWarnings([]);
         setAlert(null);
         setSubmitted(false);
@@ -226,14 +236,64 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
             .finally(() => setSubmitting(false));
     }
 
-    function syncTargets() {
+    function startImporting() {
+        setAlert(null);
+        setCandidates([]);
+        setSelectedCandidates(new Set());
+        setMode("import");
+        setLoadingCandidates(true);
+        axios.get(`${backend}/target/${period.id}/sync/candidates`)
+            .then(response => {
+                const loaded = response.data?.candidates ?? [];
+                setCandidates(loaded);
+                setSelectedCandidates(new Set(loaded.map((ignored, index) => index)));
+                setWarnings(uniqueWarnings(response.data?.warnings ?? []));
+            })
+            .catch(error => setAlert(formatError(error)))
+            .finally(() => setLoadingCandidates(false));
+    }
+
+    function stopImporting() {
+        setCandidates([]);
+        setSelectedCandidates(new Set());
+        setAlert(null);
+        setMode("list");
+    }
+
+    function toggleCandidate(index) {
+        setSelectedCandidates(previous => {
+            const next = new Set(previous);
+            if (next.has(index)) {
+                next.delete(index);
+            } else {
+                next.add(index);
+            }
+            return next;
+        });
+    }
+
+    function importCandidates() {
+        const identity = candidate => ({
+            date: candidate.date,
+            institution: candidate.institution,
+            price: candidate.price,
+        });
         const existingTargetIds = new Set(targets.map(item => item.id));
+
         setSubmitting(true);
         setAlert(null);
-        axios.post(`${backend}/target/${period.id}/sync`)
+        axios.post(`${backend}/target/${period.id}/sync`, {
+            selected: candidates.filter((ignored, index) => selectedCandidates.has(index)).map(identity),
+            discarded: candidates.filter((ignored, index) => !selectedCandidates.has(index)).map(identity),
+        })
             .then(response => {
                 const syncWarnings = response.data?.warnings ?? [];
-                if ((response.data?.count ?? 0) > 0) triggerRefresh();
+                if ((response.data?.imported ?? 0) > 0 || (response.data?.discarded ?? 0) > 0) {
+                    triggerRefresh();
+                }
+                setCandidates([]);
+                setSelectedCandidates(new Set());
+                setMode("list");
                 return Promise.all([loadTargets(), loadCandidateCount(syncWarnings)])
                     .then(([loadedTargets]) => highlightTargets(
                         (loadedTargets ?? [])
@@ -262,15 +322,47 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
             .finally(() => setSubmitting(false));
     }
 
+    function confirmDelete() {
+        const targetId = pendingDelete?.id;
+        setPendingDelete(null);
+        if (targetId) deleteTarget(targetId);
+    }
+
     const takeaways = item => [item.takeaway1, item.takeaway2, item.takeaway3, item.takeaway4].filter(Boolean);
+
+    const targetDetails = item => (
+        <>
+            <Typography sx={{fontWeight: 600}}>
+                {item.institution} | {company?.currency}{formatDecimals(item.price, 2, 2)}
+            </Typography>
+            <Typography sx={{fontSize: 12, color: "text.secondary"}}>
+                {formatDate(item.date)}{item.rating ? ` | ${item.rating}` : ""}
+            </Typography>
+        </>
+    );
+
+    const targetBody = item => (
+        <>
+            {item.overview && <Typography sx={{marginTop: 1, fontSize: 14}}>{item.overview}</Typography>}
+            {takeaways(item).length > 0 &&
+                <Box component="ul" sx={{marginY: 0.5, paddingLeft: 3}}>
+                    {takeaways(item).map((takeaway, index) => (
+                        <Typography component="li" key={index} sx={{fontSize: 13}}>
+                            {takeaway}
+                        </Typography>
+                    ))}
+                </Box>
+            }
+        </>
+    );
 
     return (
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
             <DialogTitle>
-                {mode === "add" ? "Add target for" : "Targets for"} {company?.ticker} {period ? formatPeriodName(period.name) : ""}
+                {mode === "add" ? "Add target for" : mode === "import" ? "Import targets for" : "Targets for"} {company?.ticker} {period ? formatPeriodName(period.name) : ""}
             </DialogTitle>
             <DialogContent sx={{display: "flex", flexDirection: "column", gap: 2}}>
-                {mode === "list" && warnings.length > 0 &&
+                {mode !== "add" && warnings.length > 0 &&
                     <Alert severity="warning">
                         <AlertTitle>Some expected target data could not be loaded</AlertTitle>
                         {warnings.map(warning => <Box key={warning}>{warning}</Box>)}
@@ -378,7 +470,7 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
                         <span>
                             <IconButton
                                 aria-label="Sync targets"
-                                onClick={syncTargets}
+                                onClick={startImporting}
                                 disabled={submitting || loadingCount || candidateCount < 1}
                             >
                                 {loadingCount
@@ -432,14 +524,7 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
                                 }}
                             >
                                 <Box sx={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1}}>
-                                    <Box>
-                                        <Typography sx={{fontWeight: 600}}>
-                                            {item.institution} | {company?.currency}{formatDecimals(item.price, 2, 2)}
-                                        </Typography>
-                                        <Typography sx={{fontSize: 12, color: "text.secondary"}}>
-                                            {formatDate(item.date)}{item.rating ? ` | ${item.rating}` : ""}
-                                        </Typography>
-                                    </Box>
+                                    <Box>{targetDetails(item)}</Box>
                                     <Tooltip title="Delete target">
                                         <IconButton
                                             className="deleteTarget"
@@ -447,32 +532,71 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
                                             color="error"
                                             size="small"
                                             disabled={submitting}
-                                            onClick={() => deleteTarget(item.id)}
+                                            onClick={() => setPendingDelete(item)}
                                         >
                                             <DeleteIcon fontSize="small"/>
                                         </IconButton>
                                     </Tooltip>
                                 </Box>
-                                {item.overview && <Typography sx={{marginTop: 1, fontSize: 14}}>{item.overview}</Typography>}
-                                {takeaways(item).length > 0 &&
-                                    <Box component="ul" sx={{marginY: 0.5, paddingLeft: 3}}>
-                                        {takeaways(item).map((takeaway, index) => (
-                                            <Typography component="li" key={`${item.id}-${index}`} sx={{fontSize: 13}}>
-                                                {takeaway}
-                                            </Typography>
-                                        ))}
-                                    </Box>
-                                }
+                                {targetBody(item)}
                             </Paper>
                         ))}
                     </Stack>
                 }
                     </>
                 }
+
+                {mode === "import" &&
+                    <>
+                        {loadingCandidates &&
+                            <Box sx={{display: "flex", justifyContent: "center", minHeight: 100, alignItems: "center"}}>
+                                <CircularProgress/>
+                            </Box>
+                        }
+                        {!loadingCandidates && candidates.length === 0 &&
+                            <Typography color="text.secondary">No targets available to import.</Typography>
+                        }
+                        {!loadingCandidates && candidates.length > 0 &&
+                            <>
+                                <Typography color="text.secondary">
+                                    Checked targets are imported. Unchecked targets are removed from Firebase.
+                                </Typography>
+                                <Stack spacing={1}>
+                                    {candidates.map((item, index) => (
+                                        <Paper
+                                            key={index}
+                                            data-testid={`candidate-${index}`}
+                                            variant="outlined"
+                                            sx={{
+                                                padding: 1.5,
+                                                opacity: selectedCandidates.has(index) ? 1 : 0.55,
+                                                transition: "opacity 120ms ease-in-out",
+                                            }}
+                                        >
+                                            <Box sx={{display: "flex", alignItems: "flex-start", gap: 1}}>
+                                                <Checkbox
+                                                    sx={{padding: 0.5}}
+                                                    checked={selectedCandidates.has(index)}
+                                                    disabled={submitting}
+                                                    onChange={() => toggleCandidate(index)}
+                                                    inputProps={{"aria-label": `Import target ${item.institution}`}}
+                                                />
+                                                <Box sx={{flexGrow: 1}}>
+                                                    {targetDetails(item)}
+                                                    {targetBody(item)}
+                                                </Box>
+                                            </Box>
+                                        </Paper>
+                                    ))}
+                                </Stack>
+                            </>
+                        }
+                    </>
+                }
             </DialogContent>
             <DialogActions>
-                {mode === "add"
-                    ? <>
+                {mode === "add" &&
+                    <>
                         <Button onClick={stopAdding} disabled={submitting}>Back</Button>
                         <Button
                             type="submit"
@@ -483,12 +607,40 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
                             Add
                         </Button>
                     </>
-                    : <>
+                }
+                {mode === "import" &&
+                    <>
+                        <Button onClick={stopImporting} disabled={submitting}>Back</Button>
+                        <Button
+                            variant="contained"
+                            onClick={importCandidates}
+                            disabled={submitting || loadingCandidates || candidates.length === 0}
+                        >
+                            Import {selectedCount}{discardedCount > 0 ? `, discard ${discardedCount}` : ""}
+                        </Button>
+                    </>
+                }
+                {mode === "list" &&
+                    <>
                         <Button onClick={startAdding}>Add Target</Button>
                         <Button onClick={handleClose}>Close</Button>
                     </>
                 }
             </DialogActions>
+
+            <Dialog open={Boolean(pendingDelete)} onClose={() => setPendingDelete(null)}>
+                <DialogTitle>Delete target</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Delete the {pendingDelete?.institution} target
+                        from {formatDate(pendingDelete?.date)}? It is removed from the database and from Firebase.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setPendingDelete(null)}>Cancel</Button>
+                    <Button color="error" variant="contained" onClick={confirmDelete}>Delete</Button>
+                </DialogActions>
+            </Dialog>
         </Dialog>
     );
 };

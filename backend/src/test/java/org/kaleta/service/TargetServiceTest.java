@@ -21,8 +21,11 @@ import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.persistence.entity.Target;
 import org.kaleta.rest.dto.ActionableCompanyDto;
 import org.kaleta.rest.dto.PeriodImportCandidateDto;
+import org.kaleta.rest.dto.TargetCandidatesDto;
 import org.kaleta.rest.dto.TargetCreateDto;
 import org.kaleta.rest.dto.TargetDto;
+import org.kaleta.rest.dto.TargetImportDto;
+import org.kaleta.rest.dto.TargetImportResultDto;
 import org.kaleta.rest.dto.TargetSyncCountsDto;
 import org.kaleta.rest.dto.TargetSyncDto;
 import org.kaleta.rest.error.ConflictException;
@@ -358,7 +361,7 @@ class TargetServiceTest
     }
 
     @Test
-    void sync_insertsOnlyMissingTargetsAndMapsReport()
+    void importCandidates_insertsSelectedTargetAndMapsReport()
     {
         FirebaseCompany.Gemini.Target source = firebaseTarget("2025-06-10", "Northstar", "175.25");
         source.setRating("Outperform");
@@ -369,7 +372,9 @@ class TargetServiceTest
         when(firebaseService.getTargets("NVDA"))
                 .thenReturn(new FirebaseService.TargetsResult(List.of(source), List.of("partial Firebase warning")));
 
-        TargetSyncDto result = targetService.sync(PERIOD_ID);
+        TargetImportResultDto result = targetService.importCandidates(
+                PERIOD_ID,
+                importDto(List.of(selection("2025-06-10", "Northstar", "175.25")), List.of()));
 
         ArgumentCaptor<List<Target>> captor = ArgumentCaptor.forClass(List.class);
         verify(targetDao).createAll(captor.capture());
@@ -382,8 +387,99 @@ class TargetServiceTest
         assertThat(created.getTakeaway1(), is("Revenue accelerates"));
         assertThat(created.getTakeaway2(), is("Margins improve"));
         assertThat(created.getTakeaway3(), is(nullValue()));
-        assertThat(result.count(), is(1));
+        assertThat(result.imported(), is(1));
+        assertThat(result.discarded(), is(0));
         assertThat(result.warnings(), contains("partial Firebase warning"));
+    }
+
+    @Test
+    void getImportCandidates_listsEveryCandidateWithItsDetails()
+    {
+        FirebaseCompany.Gemini.Target source = firebaseTarget("2025-06-10", "Northstar", "175.25");
+        source.setRating("Outperform");
+        when(firebaseService.getTargets("NVDA")).thenReturn(new FirebaseService.TargetsResult(
+                List.of(source, firebaseTarget("2025-06-11", "Southpeak", "180")),
+                List.of()));
+
+        TargetCandidatesDto result = targetService.getImportCandidates(PERIOD_ID);
+
+        assertThat(result.candidates(), hasSize(2));
+        TargetCandidatesDto.Candidate first = result.candidates().getFirst();
+        assertThat(first.date(), is("2025-06-10"));
+        assertThat(first.institution(), is("Northstar"));
+        assertBigDecimals(first.price(), new BigDecimal("175.25"));
+        assertThat(first.rating(), is("Outperform"));
+        assertThat(result.candidates().get(1).institution(), is("Southpeak"));
+    }
+
+    @Test
+    void importCandidates_importsSelectedAndRemovesDiscardedFromFirebase()
+    {
+        when(firebaseService.getTargets("NVDA")).thenReturn(new FirebaseService.TargetsResult(List.of(
+                firebaseTarget("2025-06-10", "Northstar", "175.25"),
+                firebaseTarget("2025-06-11", "Southpeak", "180")
+        ), List.of()));
+
+        TargetImportResultDto result = targetService.importCandidates(
+                PERIOD_ID,
+                importDto(
+                        List.of(selection("2025-06-10", "Northstar", "175.25")),
+                        List.of(selection("2025-06-11", "Southpeak", "180"))));
+
+        ArgumentCaptor<List<Target>> captor = ArgumentCaptor.forClass(List.class);
+        verify(targetDao).createAll(captor.capture());
+        assertThat(captor.getValue(), hasSize(1));
+        assertThat(captor.getValue().getFirst().getInstitution(), is("Northstar"));
+
+        verify(firebaseService).deleteTarget(
+                "NVDA",
+                LocalDate.parse("2025-06-11"),
+                "Southpeak",
+                new BigDecimal("180"));
+        verify(firebaseService, never()).deleteTarget(
+                anyString(),
+                any(),
+                org.mockito.ArgumentMatchers.eq("Northstar"),
+                any());
+
+        assertThat(result.imported(), is(1));
+        assertThat(result.discarded(), is(1));
+    }
+
+    @Test
+    void importCandidates_leavesCandidatesThatWereNotReviewedUntouched()
+    {
+        when(firebaseService.getTargets("NVDA")).thenReturn(new FirebaseService.TargetsResult(List.of(
+                firebaseTarget("2025-06-10", "Northstar", "175.25"),
+                firebaseTarget("2025-06-11", "Appeared Later", "180")
+        ), List.of()));
+
+        TargetImportResultDto result = targetService.importCandidates(
+                PERIOD_ID,
+                importDto(List.of(selection("2025-06-10", "Northstar", "175.25")), List.of()));
+
+        assertThat(result.imported(), is(1));
+        assertThat(result.discarded(), is(0));
+        verify(firebaseService, never()).deleteTarget(anyString(), any(), anyString(), any());
+    }
+
+    private TargetImportDto importDto(
+            List<TargetImportDto.Selection> selected,
+            List<TargetImportDto.Selection> discarded)
+    {
+        TargetImportDto dto = new TargetImportDto();
+        dto.setSelected(selected);
+        dto.setDiscarded(discarded);
+        return dto;
+    }
+
+    private TargetImportDto.Selection selection(String date, String institution, String price)
+    {
+        TargetImportDto.Selection selection = new TargetImportDto.Selection();
+        selection.setDate(date);
+        selection.setInstitution(institution);
+        selection.setPrice(new BigDecimal(price));
+        return selection;
     }
 
     @Test

@@ -302,25 +302,117 @@ describe("TargetDialog", () => {
         await waitFor(() => expect(screen.getByRole("button", {name: "Add"})).not.toBeDisabled());
     });
 
-    test("syncs candidates and deletes persisted targets", async () => {
+    test("reviews candidates, imports the checked ones and discards the rest", async () => {
         const existingTarget = target();
         const importedTarget = target({
             id: "target-2",
             institution: "Imported Capital",
             date: "2025-07-12",
         });
+        const keptCandidate = {
+            date: "2025-07-12",
+            institution: "Imported Capital",
+            price: 180.5,
+            rating: "Buy",
+            overview: "Worth keeping.",
+        };
+        const rejectedCandidate = {
+            date: "2025-07-13",
+            institution: "Noise Research",
+            price: 320,
+            rating: null,
+            overview: null,
+        };
         let persistedTargets = [existingTarget];
-        let count = 1;
-        axios.get.mockImplementation(url => url.endsWith("/sync/count")
-            ? Promise.resolve({data: {count, warnings: []}})
-            : Promise.resolve({data: persistedTargets}));
+        let count = 2;
+        axios.get.mockImplementation(url => {
+            if (url.endsWith("/sync/count")) return Promise.resolve({data: {count, warnings: []}});
+            if (url.endsWith("/sync/candidates")) {
+                return Promise.resolve({data: {candidates: [keptCandidate, rejectedCandidate], warnings: []}});
+            }
+            return Promise.resolve({data: persistedTargets});
+        });
         axios.post.mockImplementation(() => {
             persistedTargets = [existingTarget, importedTarget];
             count = 0;
-            return Promise.resolve({data: {count: 1, warnings: []}});
+            return Promise.resolve({data: {imported: 1, discarded: 1, warnings: []}});
         });
+
+        render(
+            <TargetDialog
+                open
+                handleClose={jest.fn()}
+                triggerRefresh={triggerRefresh}
+                company={company}
+                period={period}
+            />
+        );
+
+        await waitForRequestsToSettle();
+        fireEvent.click(screen.getByRole("button", {name: "Sync targets"}));
+        await waitForRequestsToSettle();
+
+        expect(screen.getByText("Imported Capital | $180.50")).toBeInTheDocument();
+        expect(screen.getByText("Noise Research | $320.00")).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Add Target"})).not.toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Import 2"})).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("checkbox", {name: "Import target Noise Research"}));
+
+        const importButton = screen.getByRole("button", {name: "Import 1, discard 1"});
+        fireEvent.click(importButton);
+        await waitForRequestsToSettle();
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/target/period-1/sync", {
+            selected: [{date: "2025-07-12", institution: "Imported Capital", price: 180.5}],
+            discarded: [{date: "2025-07-13", institution: "Noise Research", price: 320}],
+        }));
+        await waitFor(() => expect(triggerRefresh).toHaveBeenCalledTimes(1));
+        expect(screen.getByTestId("target-target-1")).toHaveAttribute("data-highlighted", "false");
+        expect(screen.getByTestId("target-target-2")).toHaveAttribute("data-highlighted", "true");
+    });
+
+    test("returns from the import view without importing anything", async () => {
+        arrangeGetResponses({targets: [target()], count: 1});
+        axios.get.mockImplementation(url => {
+            if (url.endsWith("/sync/count")) return Promise.resolve({data: {count: 1, warnings: []}});
+            if (url.endsWith("/sync/candidates")) {
+                return Promise.resolve({
+                    data: {candidates: [{date: "2025-07-12", institution: "Maybe Later", price: 180}], warnings: []},
+                });
+            }
+            return Promise.resolve({data: [target()]});
+        });
+
+        render(
+            <TargetDialog
+                open
+                handleClose={jest.fn()}
+                triggerRefresh={triggerRefresh}
+                company={company}
+                period={period}
+            />
+        );
+
+        await waitForRequestsToSettle();
+        fireEvent.click(screen.getByRole("button", {name: "Sync targets"}));
+        await waitForRequestsToSettle();
+        expect(screen.getByText("Maybe Later | $180.00")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Back"}));
+
+        expect(screen.queryByText("Maybe Later | $180.00")).not.toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add Target"})).toBeInTheDocument();
+        expect(axios.post).not.toHaveBeenCalled();
+    });
+
+    test("deletes a persisted target only after the deletion is confirmed", async () => {
+        let persistedTargets = [target()];
+        axios.get.mockImplementation(url => url.endsWith("/sync/count")
+            ? Promise.resolve({data: {count: 0, warnings: []}})
+            : Promise.resolve({data: persistedTargets}));
         axios.delete.mockImplementation(() => {
-            persistedTargets = persistedTargets.filter(item => item.id !== existingTarget.id);
+            persistedTargets = [];
             return Promise.resolve({});
         });
 
@@ -335,23 +427,20 @@ describe("TargetDialog", () => {
         );
 
         await waitForRequestsToSettle();
-        expect(screen.getByText("Northstar | $175.25")).toBeInTheDocument();
-        fireEvent.click(screen.getByRole("button", {name: "Sync targets"}));
+
+        fireEvent.click(screen.getByRole("button", {name: "Delete target Northstar"}));
+        expect(screen.getByText("Delete target")).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", {name: "Cancel"}));
+        await waitFor(() => expect(screen.queryByText("Delete target")).not.toBeInTheDocument());
+        expect(axios.delete).not.toHaveBeenCalled();
+        expect(screen.getByTestId("target-target-1")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Delete target Northstar"}));
+        fireEvent.click(screen.getByRole("button", {name: "Delete"}));
         await waitForRequestsToSettle();
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/target/period-1/sync"));
-        await waitFor(() => expect(triggerRefresh).toHaveBeenCalledTimes(1));
-        await waitFor(() => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument());
-        expect(screen.getByTestId("target-target-1")).toHaveAttribute("data-highlighted", "false");
-        expect(screen.getByTestId("target-target-2")).toHaveAttribute("data-highlighted", "true");
-
-        const deleteButton = screen.getByRole("button", {name: "Delete target Northstar"});
-        await waitFor(() => expect(deleteButton).not.toBeDisabled());
-        fireEvent.click(deleteButton);
-        await waitForRequestsToSettle();
         await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/target/target-1"));
-        await waitFor(() => expect(triggerRefresh).toHaveBeenCalledTimes(2));
-        await waitFor(() => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument());
+        await waitFor(() => expect(triggerRefresh).toHaveBeenCalledTimes(1));
         expect(screen.queryByRole("button", {name: "Delete target Northstar"})).not.toBeInTheDocument();
     });
 });

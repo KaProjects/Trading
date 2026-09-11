@@ -12,14 +12,18 @@ import org.kaleta.model.FirebaseCompany;
 import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.api.TargetDao;
 import org.kaleta.persistence.entity.Target;
+import org.kaleta.rest.dto.TargetCandidatesDto;
 import org.kaleta.rest.dto.TargetCreateDto;
 import org.kaleta.rest.dto.TargetDto;
+import org.kaleta.rest.dto.TargetImportDto;
+import org.kaleta.rest.dto.TargetImportResultDto;
 import org.kaleta.rest.dto.TargetSyncCountsDto;
 import org.kaleta.rest.dto.TargetSyncDto;
 import org.kaleta.service.FirebaseService;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +44,7 @@ import static org.kaleta.framework.Assert.get400;
 import static org.kaleta.framework.Assert.getValidationError;
 import static org.kaleta.framework.Assert.postValidationError;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -276,19 +281,52 @@ class TargetEndpointsTest
     }
 
     @Test
-    void sync()
+    void getImportCandidates()
     {
         when(firebaseService.getTargets("RCH")).thenReturn(new FirebaseService.TargetsResult(List.of(
                 firebaseTarget("2025-03-21", "Sync Capital", "181.25")
         ), List.of()));
 
-        TargetSyncDto result = given().when()
+        TargetCandidatesDto result = given().when()
+                .get(PATH + "/" + UNREPORTED_PERIOD_ID + "/sync/candidates")
+                .then().log().ifError()
+                .statusCode(Response.Status.OK.getStatusCode())
+                .extract().as(TargetCandidatesDto.class);
+
+        assertThat(result.candidates(), hasSize(1));
+        assertThat(result.candidates().getFirst().institution(), is("Sync Capital"));
+        assertThat(result.candidates().getFirst().date(), is("2025-03-21"));
+        assertThat(result.candidates().getFirst().rating(), is("Buy"));
+        assertBigDecimals(result.candidates().getFirst().price(), new BigDecimal("181.25"));
+    }
+
+    @Test
+    void getImportCandidates_invalidParameters()
+    {
+        getValidationError(PATH + "/0/sync/candidates", VALID_ID);
+        get400(PATH + "/4294967295/sync/candidates", "period with id '4294967295' not found");
+    }
+
+    @Test
+    void sync()
+    {
+        when(firebaseService.getTargets("RCH")).thenReturn(new FirebaseService.TargetsResult(List.of(
+                firebaseTarget("2025-03-21", "Sync Capital", "181.25"),
+                firebaseTarget("2025-03-22", "Rejected Capital", "191.25")
+        ), List.of()));
+
+        TargetImportResultDto result = given().contentType(ContentType.JSON)
+                .body(importDto(
+                        List.of(selection("2025-03-21", "Sync Capital", "181.25")),
+                        List.of(selection("2025-03-22", "Rejected Capital", "191.25"))))
+                .when()
                 .post(PATH + "/" + UNREPORTED_PERIOD_ID + "/sync")
                 .then().log().ifError()
                 .statusCode(Response.Status.OK.getStatusCode())
-                .extract().as(TargetSyncDto.class);
+                .extract().as(TargetImportResultDto.class);
 
-        assertThat(result.count(), is(1));
+        assertThat(result.imported(), is(1));
+        assertThat(result.discarded(), is(1));
         Target created = targetDao.findByIdentity(
                         UNREPORTED_PERIOD_ID,
                         Date.valueOf("2025-03-21"),
@@ -296,13 +334,20 @@ class TargetEndpointsTest
                         new BigDecimal("181.25"))
                 .orElseThrow();
         assertThat(created.getRating(), is("Buy"));
+        verify(firebaseService).deleteTarget(
+                "RCH",
+                LocalDate.parse("2025-03-22"),
+                "Rejected Capital",
+                new BigDecimal("191.25"));
 
-        TargetSyncDto secondSync = given().when()
+        TargetImportResultDto secondSync = given().contentType(ContentType.JSON)
+                .body(importDto(List.of(selection("2025-03-21", "Sync Capital", "181.25")), List.of()))
+                .when()
                 .post(PATH + "/" + UNREPORTED_PERIOD_ID + "/sync")
                 .then().log().ifError()
                 .statusCode(Response.Status.OK.getStatusCode())
-                .extract().as(TargetSyncDto.class);
-        assertThat(secondSync.count(), is(0));
+                .extract().as(TargetImportResultDto.class);
+        assertThat(secondSync.imported(), is(0));
 
         targetDao.delete(created.getId());
     }
@@ -310,11 +355,32 @@ class TargetEndpointsTest
     @Test
     void sync_invalidParameters()
     {
-        postValidationError(PATH + "/0/sync", null, VALID_ID);
-        given().when().post(PATH + "/4294967295/sync")
+        postValidationError(PATH + "/0/sync", importDto(List.of(), List.of()), VALID_ID);
+        given().contentType(ContentType.JSON)
+                .body(importDto(List.of(), List.of()))
+                .when().post(PATH + "/4294967295/sync")
                 .then()
                 .statusCode(Response.Status.BAD_REQUEST.getStatusCode())
                 .body(containsString("period with id '4294967295' not found"));
+    }
+
+    private TargetImportDto importDto(
+            List<TargetImportDto.Selection> selected,
+            List<TargetImportDto.Selection> discarded)
+    {
+        TargetImportDto dto = new TargetImportDto();
+        dto.setSelected(selected);
+        dto.setDiscarded(discarded);
+        return dto;
+    }
+
+    private TargetImportDto.Selection selection(String date, String institution, String price)
+    {
+        TargetImportDto.Selection selection = new TargetImportDto.Selection();
+        selection.setDate(date);
+        selection.setInstitution(institution);
+        selection.setPrice(new BigDecimal(price));
+        return selection;
     }
 
     private TargetCreateDto dto(String date, String institution, String price)
