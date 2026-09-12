@@ -37,6 +37,7 @@ import {AddPeriodDialog} from "../dialog/AddPeriodDialog";
 import {AddPeriodFinancialDialog} from "../dialog/AddPeriodFinancialDialog";
 import {FinancialsDialog} from "../dialog/FinancialsDialog";
 import {EarningsProjectionsDialog} from "../dialog/EarningsProjectionsDialog";
+import {RevenueProjectionsDialog} from "../dialog/RevenueProjectionsDialog";
 import {AddRecordDialog} from "../dialog/AddRecordDialog";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
@@ -119,6 +120,7 @@ export const Research = props => {
     const [openImportPeriodDialog, setOpenImportPeriodDialog] = useState(false)
     const [openFinancialsDialog, setOpenFinancialsDialog] = useState(false)
     const [openEarningsProjectionsDialog, setOpenEarningsProjectionsDialog] = useState(false)
+    const [openRevenueProjectionsDialog, setOpenRevenueProjectionsDialog] = useState(false)
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
     const [openEditFinancialDialog, setOpenEditFinancialDialog] = useState(null)
     const [openAddEstimateDialog, setOpenAddEstimateDialog] = useState(null)
@@ -141,6 +143,7 @@ export const Research = props => {
         setOpenImportPeriodDialog(false)
         setOpenFinancialsDialog(false)
         setOpenEarningsProjectionsDialog(false)
+        setOpenRevenueProjectionsDialog(false)
         setOpenAddFinancialDialog(null)
         setOpenEditFinancialDialog(null)
         setOpenAddEstimateDialog(null)
@@ -609,6 +612,7 @@ export const Research = props => {
                                     overview={data.revenueEstimateOverview}
                                     title="Revenue estimates"
                                     format={formatRevenueEstimateAmount}
+                                    onOpen={() => setOpenRevenueProjectionsDialog(true)}
                                 />
                                 <LatestNewsSentiment
                                     companyId={data.company.id}
@@ -673,6 +677,15 @@ export const Research = props => {
                             <EarningsProjectionsDialog
                                 open={openEarningsProjectionsDialog}
                                 handleClose={() => setOpenEarningsProjectionsDialog(false)}
+                                triggerRefresh={triggerRefresh}
+                                ticker={data.company.ticker}
+                                currentPrice={data.latest?.price}
+                                latestPeriod={data.periods[0]}
+                                previousPeriod={data.periods[1]}
+                            />
+                            <RevenueProjectionsDialog
+                                open={openRevenueProjectionsDialog}
+                                handleClose={() => setOpenRevenueProjectionsDialog(false)}
                                 triggerRefresh={triggerRefresh}
                                 ticker={data.company.ticker}
                                 currentPrice={data.latest?.price}

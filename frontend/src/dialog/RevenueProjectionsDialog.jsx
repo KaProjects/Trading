@@ -21,7 +21,14 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import axios from "axios";
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
-import {formatDate, formatDecimals, formatError, formatPercent, formatPeriodName} from "../service/FormattingService";
+import {
+    formatDate,
+    formatDecimals,
+    formatError,
+    formatMillionsRounded,
+    formatPercent,
+    formatPeriodName,
+} from "../service/FormattingService";
 import {validateNumber} from "../service/ValidationService";
 import {ProjectionInput} from "./component/ProjectionInput";
 
@@ -35,17 +42,17 @@ const priceRows = [
     {label: "t - 20%", factor: 0.80},
 ];
 
-const peRows = [
-    {label: "t + 15", adjustment: 15},
-    {label: "t + 10", adjustment: 10},
-    {label: "t + 5", adjustment: 5},
+const psRows = [
+    {label: "t + 6", adjustment: 6},
+    {label: "t + 4", adjustment: 4},
+    {label: "t + 2", adjustment: 2},
     {label: "target ~", adjustment: 0, target: true},
-    {label: "t - 5", adjustment: -5},
-    {label: "t - 10", adjustment: -10},
-    {label: "t - 15", adjustment: -15},
+    {label: "t - 2", adjustment: -2},
+    {label: "t - 4", adjustment: -4},
+    {label: "t - 6", adjustment: -6},
 ];
 
-const earningsColumns = [
+const revenueColumns = [
     {key: "ttm", label: "ttm"},
     {key: "current", label: "current"},
     {key: "next1", label: "next 1"},
@@ -82,26 +89,24 @@ const projectedPrice = (targetPrice, factor) => {
     return price === null ? null : price * factor;
 };
 
-const peFromPrice = (price, earnings) => {
-    const earningsValue = numberValue(earnings);
-    if (price === null || earningsValue === null || earningsValue === 0) return null;
-    return price / earningsValue;
+const psFromPrice = (price, revenuePerShare) => {
+    if (price === null || revenuePerShare === null || revenuePerShare === 0) return null;
+    return price / revenuePerShare;
 };
 
-const priceToEarnings = (price, earnings) => {
-    const pe = peFromPrice(price, earnings);
-    return pe === null ? "-" : formatDecimals(pe, 2, 2) || "-";
+const priceToSales = (price, revenuePerShare) => {
+    const ps = psFromPrice(price, revenuePerShare);
+    return ps === null ? "-" : formatDecimals(ps, 2, 2) || "-";
 };
 
-const projectedPe = (targetPe, adjustment) => {
-    const pe = numberValue(targetPe);
-    return pe === null ? null : pe + adjustment;
+const projectedPs = (targetPs, adjustment) => {
+    const ps = numberValue(targetPs);
+    return ps === null ? null : ps + adjustment;
 };
 
-const earningsToPrice = (pe, earnings) => {
-    const earningsValue = numberValue(earnings);
-    if (pe === null || earningsValue === null) return "-";
-    return formatDecimals(pe * earningsValue, 0, 2) || "-";
+const salesToPrice = (ps, revenuePerShare) => {
+    if (ps === null || revenuePerShare === null) return "-";
+    return formatDecimals(ps * revenuePerShare, 0, 2) || "-";
 };
 
 const inputNumber = value => String(Math.round(value * 100000000) / 100000000);
@@ -117,7 +122,7 @@ const currentDate = () => {
     ].join("-");
 };
 
-export const EarningsProjectionsDialog = ({
+export const RevenueProjectionsDialog = ({
     open,
     handleClose,
     triggerRefresh,
@@ -128,7 +133,7 @@ export const EarningsProjectionsDialog = ({
 }) => {
     const isNarrowScreen = useMediaQuery("(max-width:599.95px)");
     const [targetPrice, setTargetPrice] = useState("");
-    const [targetPe, setTargetPe] = useState("30");
+    const [targetPs, setTargetPs] = useState("10");
     const [forecastAdjustment, setForecastAdjustment] = useState("0");
     const [estimateValues, setEstimateValues] = useState({});
     const [persistedEstimateValues, setPersistedEstimateValues] = useState({});
@@ -136,6 +141,7 @@ export const EarningsProjectionsDialog = ({
     const [persistDate, setPersistDate] = useState("");
     const [savingEstimate, setSavingEstimate] = useState(false);
     const [saveError, setSaveError] = useState(null);
+    const shares = numberValue(latestPeriod?.shares) ?? numberValue(previousPeriod?.shares);
     const previousPriceHigh = numberValue(previousPeriod?.priceHigh);
     const previousPriceLow = numberValue(previousPeriod?.priceLow);
     const previousPriceRows = previousPriceHigh !== null && previousPriceLow !== null
@@ -152,10 +158,10 @@ export const EarningsProjectionsDialog = ({
         if (open) {
             const price = numberValue(currentPrice);
             setTargetPrice(price === null ? "" : price.toFixed(2));
-            setTargetPe("30");
+            setTargetPs("10");
             setForecastAdjustment("0");
             const values = Object.fromEntries(estimateFields.map(field => {
-                const value = latestPeriod?.estimate?.[field.key];
+                const value = latestPeriod?.revenueEstimate?.[field.key];
                 return [field.key, numberValue(value) === null ? "" : String(value)];
             }));
             setEstimateValues(values);
@@ -171,35 +177,36 @@ export const EarningsProjectionsDialog = ({
         if (value === null || index < 4) return value;
         return Math.round(value * (1 + adjustment / 100) * 100) / 100;
     });
-    const rollingEarnings = (sequence, offset) => {
+    const rollingRevenue = (sequence, offset) => {
         const values = sequence.slice(offset, offset + 4);
         return values.length === 4 && !values.includes(null)
             ? values.reduce((sum, value) => sum + value, 0)
             : null;
     };
-    const earnings = Object.fromEntries(earningsColumns.map((column, index) => [
-        column.key,
-        {value: rollingEarnings(estimateSequence, index)},
-    ]));
-    const baseRollingEarnings = earningsColumns.map((column, index) =>
-        rollingEarnings(baseEstimateSequence, index));
+    const perShare = total => total === null || shares === null || shares === 0 ? null : total / shares;
+    const revenues = Object.fromEntries(revenueColumns.map((column, index) => {
+        const total = rollingRevenue(estimateSequence, index);
+        return [column.key, {value: total, perShare: perShare(total)}];
+    }));
+    const baseRollingRevenue = revenueColumns.map((column, index) =>
+        rollingRevenue(baseEstimateSequence, index));
     const rollingChanges = Object.fromEntries(persistedEstimateKeys.map((key, index) => {
-        const previous = baseRollingEarnings[index];
-        const current = baseRollingEarnings[index + 1];
+        const previous = baseRollingRevenue[index];
+        const current = baseRollingRevenue[index + 1];
         const change = previous === null || current === null || previous === 0
             ? null
             : (current / previous - 1) * 100;
         return [key, change];
     }));
-    const previousFourEarnings = baseRollingEarnings[0];
-    const nextFourEarnings = baseRollingEarnings[4];
-    const yearOverYearChange = previousFourEarnings === null
-        || nextFourEarnings === null
-        || previousFourEarnings === 0
+    const previousFourRevenue = baseRollingRevenue[0];
+    const nextFourRevenue = baseRollingRevenue[4];
+    const yearOverYearChange = previousFourRevenue === null
+        || nextFourRevenue === null
+        || previousFourRevenue === 0
         ? null
-        : (nextFourEarnings / previousFourEarnings - 1) * 100;
+        : (nextFourRevenue / previousFourRevenue - 1) * 100;
     const allPersistedValuesValid = persistedEstimateKeys.every(key =>
-        validateNumber(estimateValues[key] ?? "", false, 6, 2, true) === "");
+        validateNumber(estimateValues[key] ?? "", false, 8, 2, true) === "");
     const persistedValuesChanged = persistedEstimateKeys.some(key =>
         numberValue(estimateValues[key]) !== numberValue(persistedEstimateValues[key]));
     const canPersistEstimate = Boolean(latestPeriod?.id)
@@ -221,13 +228,13 @@ export const EarningsProjectionsDialog = ({
         if (price !== null) setTargetPrice((price > 0 ? price : 1).toFixed(2));
     };
 
-    const stepTargetPe = direction => {
-        const pe = numberValue(targetPe);
-        if (pe === null || pe < 15) {
-            setTargetPe("16");
+    const stepTargetPs = direction => {
+        const ps = numberValue(targetPs);
+        if (ps === null || ps < 1) {
+            setTargetPs("2");
             return;
         }
-        setTargetPe(inputNumber(Math.max(15, pe + direction * 5)));
+        setTargetPs(inputNumber(Math.max(1, ps + direction * 2)));
     };
 
     const stepForecastAdjustment = direction => {
@@ -246,7 +253,7 @@ export const EarningsProjectionsDialog = ({
 
         setSavingEstimate(true);
         setSaveError(null);
-        axios.post(`${backend}/estimate/${latestPeriod.id}/eps`, {
+        axios.post(`${backend}/estimate/${latestPeriod.id}/revenue`, {
             date: persistDate,
             current: estimateValues.current,
             next1: estimateValues.next1,
@@ -278,7 +285,7 @@ export const EarningsProjectionsDialog = ({
             }}
         >
             <DialogTitle>
-                {ticker} - {periodName || "-"} - {isNarrowScreen ? "E&P Projections" : "Earnings and Prices Projections"}
+                {ticker} - {periodName || "-"} - {isNarrowScreen ? "R&P Projections" : "Revenues and Prices Projections"}
             </DialogTitle>
             <DialogContent sx={{padding: 2, display: "flex", flex: "1 1 0", flexDirection: "column", overflow: "hidden", minHeight: 0}}>
                 <Box
@@ -296,7 +303,7 @@ export const EarningsProjectionsDialog = ({
                     <Box
                         sx={{
                             display: "grid",
-                            gridTemplateColumns: {xs: "repeat(4, 60px)", sm: "repeat(8, 60px)"},
+                            gridTemplateColumns: {xs: "repeat(4, 80px)", sm: "repeat(8, 80px)"},
                             columnGap: "20px",
                             flex: "0 0 auto",
                         }}
@@ -389,6 +396,20 @@ export const EarningsProjectionsDialog = ({
                             />
                         </Box>
                     </Box>
+                    <Box
+                        data-testid="revenue-projection-shares"
+                        sx={{
+                            display: {xs: "none", sm: "block"},
+                            flex: "0 0 auto",
+                            marginLeft: 2,
+                            marginTop: "18px",
+                            color: "text.secondary",
+                            fontSize: 11,
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        Shares: {shares === null ? "-" : formatMillionsRounded(shares)}
+                    </Box>
                 </Box>
                 <Box
                     data-testid="projection-tables-top-fade"
@@ -413,7 +434,7 @@ export const EarningsProjectionsDialog = ({
                 <TableContainer>
                     <Table
                         size="small"
-                        aria-label="earnings and price projections"
+                        aria-label="revenue and price projections"
                         sx={{
                             tableLayout: "fixed",
                             width: "auto",
@@ -422,7 +443,7 @@ export const EarningsProjectionsDialog = ({
                         <colgroup>
                             <col style={{width: columnWidth}}/>
                             <col style={{width: columnWidth}}/>
-                            {earningsColumns.map(column => (
+                            {revenueColumns.map(column => (
                                 <col key={column.key} style={{width: columnWidth}}/>
                             ))}
                         </colgroup>
@@ -433,10 +454,10 @@ export const EarningsProjectionsDialog = ({
                                     Price
                                 </TableCell>
                                 <TableCell colSpan={1} sx={{border, backgroundColor: headerColor, color: "#111"}}>
-                                    P/E (TTM)
+                                    P/S (TTM)
                                 </TableCell>
                                 <TableCell colSpan={4} sx={{border, backgroundColor: headerColor, color: "#111"}}>
-                                    P/E (forward)
+                                    P/S (forward)
                                 </TableCell>
                             </TableRow>
                         </TableHead>
@@ -464,18 +485,18 @@ export const EarningsProjectionsDialog = ({
                                                 />
                                                 : formatDecimals(price, 0, 2) || "-"}
                                         </TableCell>
-                                        {earningsColumns.map(column => (
+                                        {revenueColumns.map(column => (
                                             <TableCell
                                                 key={column.key}
                                                 align="right"
-                                                aria-label={`${row.label} ${column.label} P/E`}
+                                                aria-label={`${row.label} ${column.label} P/S`}
                                                 sx={{
                                                     border,
                                                     backgroundColor: row.target ? targetRatioColor : ratioColor,
                                                     color: "#111",
                                                 }}
                                             >
-                                                {priceToEarnings(price, earnings?.[column.key]?.value)}
+                                                {priceToSales(price, revenues?.[column.key]?.perShare)}
                                             </TableCell>
                                         ))}
                                     </TableRow>
@@ -487,13 +508,13 @@ export const EarningsProjectionsDialog = ({
                 <TableContainer sx={{marginTop: "5px"}}>
                     <Table
                         size="small"
-                        aria-label="price projections by P/E"
+                        aria-label="price projections by P/S"
                         sx={{tableLayout: "fixed", width: "auto"}}
                     >
                         <colgroup>
                             <col style={{width: columnWidth}}/>
                             <col style={{width: columnWidth}}/>
-                            {earningsColumns.map(column => (
+                            {revenueColumns.map(column => (
                                 <col key={column.key} style={{width: columnWidth}}/>
                             ))}
                         </colgroup>
@@ -501,7 +522,7 @@ export const EarningsProjectionsDialog = ({
                             <TableRow>
                                 <TableCell sx={{border}}/>
                                 <TableCell align="center" sx={{border, backgroundColor: headerColor, color: "#111"}}>
-                                    P/E
+                                    P/S
                                 </TableCell>
                                 <TableCell sx={{border, backgroundColor: headerColor, color: "#111"}}>
                                     Price (TTM)
@@ -512,8 +533,8 @@ export const EarningsProjectionsDialog = ({
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {peRows.map(row => {
-                                const pe = projectedPe(targetPe, row.adjustment);
+                            {psRows.map(row => {
+                                const ps = projectedPs(targetPs, row.adjustment);
                                 return (
                                     <TableRow key={row.label}>
                                         <TableCell sx={{border, backgroundColor: priceColor, color: "#111", whiteSpace: "nowrap"}}>
@@ -521,20 +542,20 @@ export const EarningsProjectionsDialog = ({
                                         </TableCell>
                                         <TableCell
                                             align="right"
-                                            aria-label={`${row.label} P/E`}
+                                            aria-label={`${row.label} P/S`}
                                             sx={{border, backgroundColor: row.target ? "#fff" : priceColor, color: "#111", padding: row.target ? 0 : undefined}}
                                         >
                                             {row.target
                                                 ? <ProjectionInput
-                                                    value={targetPe}
-                                                    onChange={event => setTargetPe(event.target.value)}
-                                                    onStep={stepTargetPe}
-                                                    label="Target P/E"
-                                                    min="15"
+                                                    value={targetPs}
+                                                    onChange={event => setTargetPs(event.target.value)}
+                                                    onStep={stepTargetPs}
+                                                    label="Target P/S"
+                                                    min="1"
                                                 />
-                                                : formatDecimals(pe, 0, 2) || "-"}
+                                                : formatDecimals(ps, 0, 2) || "-"}
                                         </TableCell>
-                                        {earningsColumns.map(column => (
+                                        {revenueColumns.map(column => (
                                             <TableCell
                                                 key={column.key}
                                                 align="right"
@@ -545,7 +566,7 @@ export const EarningsProjectionsDialog = ({
                                                     color: "#111",
                                                 }}
                                             >
-                                                {earningsToPrice(pe, earnings?.[column.key]?.value)}
+                                                {salesToPrice(ps, revenues?.[column.key]?.perShare)}
                                             </TableCell>
                                         ))}
                                     </TableRow>
@@ -564,7 +585,7 @@ export const EarningsProjectionsDialog = ({
                             <colgroup>
                                 <col style={{width: columnWidth}}/>
                                 <col style={{width: columnWidth}}/>
-                                {earningsColumns.map(column => (
+                                {revenueColumns.map(column => (
                                     <col key={column.key} style={{width: columnWidth}}/>
                                 ))}
                             </colgroup>
@@ -575,16 +596,16 @@ export const EarningsProjectionsDialog = ({
                                         P (Q-1)
                                     </TableCell>
                                     <TableCell sx={{border, backgroundColor: headerColor, color: "#111"}}>
-                                        P/E (TTM)
+                                        P/S (TTM)
                                     </TableCell>
                                     <TableCell colSpan={4} sx={{border, backgroundColor: headerColor, color: "#111"}}>
-                                        Price (Forward with fixed P/E)
+                                        Price (Forward with fixed P/S)
                                     </TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {previousPriceRows.map(row => {
-                                    const pe = peFromPrice(row.price, earnings?.ttm?.value);
+                                    const ps = psFromPrice(row.price, revenues?.ttm?.perShare);
                                     return (
                                         <TableRow key={row.label}>
                                             <TableCell sx={{border, backgroundColor: priceColor, color: "#111"}}>
@@ -599,19 +620,19 @@ export const EarningsProjectionsDialog = ({
                                             </TableCell>
                                             <TableCell
                                                 align="right"
-                                                aria-label={`${row.label} P/E`}
+                                                aria-label={`${row.label} P/S`}
                                                 sx={{border, backgroundColor: priceColor, color: "#111"}}
                                             >
-                                                {pe === null ? "-" : formatDecimals(pe, 2, 2) || "-"}
+                                                {ps === null ? "-" : formatDecimals(ps, 2, 2) || "-"}
                                             </TableCell>
-                                            {earningsColumns.slice(1).map(column => (
+                                            {revenueColumns.slice(1).map(column => (
                                                 <TableCell
                                                     key={column.key}
                                                     align="right"
                                                     aria-label={`${row.label} ${column.label} price`}
                                                     sx={{border, backgroundColor: ratioColor, color: "#111"}}
                                                 >
-                                                    {earningsToPrice(pe, earnings?.[column.key]?.value)}
+                                                    {salesToPrice(ps, revenues?.[column.key]?.perShare)}
                                                 </TableCell>
                                             ))}
                                         </TableRow>
@@ -643,10 +664,10 @@ export const EarningsProjectionsDialog = ({
             maxWidth="sm"
             fullWidth
         >
-            <DialogTitle>Persist Estimate</DialogTitle>
+            <DialogTitle>Persist Revenue Estimate</DialogTitle>
             <DialogContent>
                 <Box>
-                    Do you want to persist new estimate values for {ticker} {periodName} as of {formatDate(persistDate)}?
+                    Do you want to persist new revenue estimate values for {ticker} {periodName} as of {formatDate(persistDate)}?
                 </Box>
                 {saveError &&
                     <Alert severity="error" sx={{marginTop: 2}}>
