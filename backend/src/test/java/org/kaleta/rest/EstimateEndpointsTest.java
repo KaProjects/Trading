@@ -20,7 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_2_true;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_2_true;
 import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
 import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
@@ -38,7 +38,7 @@ class EstimateEndpointsTest
     void getLatest()
     {
         PeriodEstimates dto = given().when()
-                .get(PATH + "/1/latest")
+                .get(PATH + "/1/eps/latest")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -57,7 +57,7 @@ class EstimateEndpointsTest
     void getLatest_empty()
     {
         given().when()
-                .get(PATH + "/3/latest")
+                .get(PATH + "/3/eps/latest")
                 .then()
                 .statusCode(204);
     }
@@ -67,9 +67,9 @@ class EstimateEndpointsTest
     {
         Long missingPeriodId = 4_294_967_295L;
 
-        Assert.getValidationError(PATH + "/0/latest", VALID_ID);
+        Assert.getValidationError(PATH + "/0/eps/latest", VALID_ID);
         Assert.get400(
-                PATH + "/" + missingPeriodId + "/latest",
+                PATH + "/" + missingPeriodId + "/eps/latest",
                 "period with id '" + missingPeriodId + "' not found");
     }
 
@@ -77,7 +77,7 @@ class EstimateEndpointsTest
     void getAll()
     {
         List<EstimateDto> estimates = given().when()
-                .get(PATH + "/1")
+                .get(PATH + "/1/eps")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -95,9 +95,9 @@ class EstimateEndpointsTest
         Long periodId = 1839L;
         EstimateCreateDto dto = validDto();
 
-        Assert.post201(PATH + "/" + periodId, dto);
+        Assert.post201(PATH + "/" + periodId + "/eps", dto);
 
-        List<Estimate> estimates = estimateDao.list(periodId);
+        List<Estimate> estimates = estimateDao.list(periodId, Estimate.EPS);
         assertThat(estimates.size(), is(1));
         Estimate estimate = estimates.getFirst();
         assertThat(estimate.getId(), is(notNullValue()));
@@ -116,35 +116,68 @@ class EstimateEndpointsTest
         Long missingPeriodId = 4_294_967_295L;
         EstimateCreateDto dto = validDto();
 
-        Assert.postValidationError(PATH + "/" + periodId, null, NOT_NULL);
-        Assert.postValidationError(PATH + "/0", dto, VALID_ID);
+        Assert.postValidationError(PATH + "/" + periodId + "/eps", null, NOT_NULL);
+        Assert.postValidationError(PATH + "/0/eps", dto, VALID_ID);
         Assert.post400(
-                PATH + "/" + missingPeriodId,
+                PATH + "/" + missingPeriodId + "/eps",
                 dto,
                 "period with id '" + missingPeriodId + "' not found");
 
         dto.setDate(null);
-        Assert.postValidationError(PATH + "/" + periodId, dto, NOT_NULL);
+        Assert.postValidationError(PATH + "/" + periodId + "/eps", dto, NOT_NULL);
         dto.setDate("03.08.2026");
-        Assert.postValidationError(PATH + "/" + periodId, dto, MATCH_DATE_FORMAT);
+        Assert.postValidationError(PATH + "/" + periodId + "/eps", dto, MATCH_DATE_FORMAT);
         dto.setDate("2026-08-03");
 
         dto.setCurrent(null);
-        Assert.postValidationError(PATH + "/" + periodId, dto, NOT_NULL);
-        dto.setCurrent("12345");
-        Assert.postValidationError(PATH + "/" + periodId, dto, BIG_DECIMAL_4_2_true);
+        Assert.postValidationError(PATH + "/" + periodId + "/eps", dto, NOT_NULL);
+        dto.setCurrent("1234567");
+        Assert.postValidationError(PATH + "/" + periodId + "/eps", dto, BIG_DECIMAL_6_2_true);
         dto.setCurrent("11.50");
 
         dto.setNext1("12.123");
-        Assert.postValidationError(PATH + "/" + periodId, dto, BIG_DECIMAL_4_2_true);
+        Assert.postValidationError(PATH + "/" + periodId + "/eps", dto, BIG_DECIMAL_6_2_true);
         dto.setNext1("12.75");
 
         dto.setNext2("");
-        Assert.postValidationError(PATH + "/" + periodId, dto, BIG_DECIMAL_4_2_true);
+        Assert.postValidationError(PATH + "/" + periodId + "/eps", dto, BIG_DECIMAL_6_2_true);
         dto.setNext2(null);
 
-        dto.setNext3("-12345");
-        Assert.postValidationError(PATH + "/" + periodId, dto, BIG_DECIMAL_4_2_true);
+        dto.setNext3("-1234567");
+        Assert.postValidationError(PATH + "/" + periodId + "/eps", dto, BIG_DECIMAL_6_2_true);
+    }
+
+    @Test
+    void createRevenue_isSeparatedFromEps()
+    {
+        Long periodId = 2L;
+        EstimateCreateDto dto = validDto();
+        dto.setCurrent("123456.78");
+        dto.setNext1("234567.89");
+
+        int epsCountBefore = estimateDao.list(periodId, Estimate.EPS).size();
+        Assert.post201(PATH + "/" + periodId + "/revenue", dto);
+
+        List<Estimate> revenueEstimates = estimateDao.list(periodId, Estimate.REVENUE);
+        assertThat(revenueEstimates.size(), is(1));
+        assertThat(revenueEstimates.getFirst().isType(), is(Estimate.REVENUE));
+        assertBigDecimals(revenueEstimates.getFirst().getCurrent(), new BigDecimal(dto.getCurrent()));
+        assertThat(estimateDao.list(periodId, Estimate.EPS).size(), is(epsCountBefore));
+
+        List<EstimateDto> eps = given().when()
+                .get(PATH + "/" + periodId + "/eps")
+                .then()
+                .statusCode(200)
+                .extract().body().jsonPath().getList(".", EstimateDto.class);
+        assertThat(eps.stream().anyMatch(estimate -> !estimate.isType()), is(false));
+
+        List<EstimateDto> revenue = given().when()
+                .get(PATH + "/" + periodId + "/revenue")
+                .then()
+                .statusCode(200)
+                .extract().body().jsonPath().getList(".", EstimateDto.class);
+        assertThat(revenue.size(), is(1));
+        assertThat(revenue.getFirst().isType(), is(Estimate.REVENUE));
     }
 
     private EstimateCreateDto validDto()

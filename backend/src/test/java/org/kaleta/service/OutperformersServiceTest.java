@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.PeriodEstimates;
+import org.kaleta.persistence.entity.Estimate;
 import org.kaleta.model.Periods;
 import org.kaleta.persistence.api.LatestDao;
 import org.kaleta.persistence.api.TargetDao;
@@ -100,7 +101,7 @@ class OutperformersServiceTest
         when(targetDao.listByPeriodIds(List.of(10L))).thenReturn(List.of());
 
         PeriodEstimates estimates = estimates(LocalDateTime.now().minusDays(10));
-        when(estimateService.getLatest(10L)).thenReturn(Optional.of(estimates));
+        when(estimateService.getLatest(10L, Estimate.EPS)).thenReturn(Optional.of(estimates));
 
         OutperformersDto result = outperformersService.get();
 
@@ -129,7 +130,7 @@ class OutperformersServiceTest
         PeriodEstimates estimates = estimates(LocalDateTime.now().minusDays(10));
         estimates.setNext2(null);
         estimates.setNext3(null);
-        when(estimateService.getLatest(10L)).thenReturn(Optional.of(estimates));
+        when(estimateService.getLatest(10L, Estimate.EPS)).thenReturn(Optional.of(estimates));
 
         OutperformersDto result = outperformersService.get();
 
@@ -148,7 +149,7 @@ class OutperformersServiceTest
         Periods periods = periodsWithLatest("25Q2");
         when(periodService.getBy(1L)).thenReturn(periods);
         when(targetDao.listByPeriodIds(List.of(10L))).thenReturn(List.of());
-        when(estimateService.getLatest(10L))
+        when(estimateService.getLatest(10L, Estimate.EPS))
                 .thenReturn(Optional.of(estimates(LocalDateTime.now().minusMonths(4))));
 
         OutperformersDto result = outperformersService.get();
@@ -165,7 +166,7 @@ class OutperformersServiceTest
         Periods periods = periodsWithLatest("25Q2");
         when(periodService.getBy(1L)).thenReturn(periods);
         when(targetDao.listByPeriodIds(List.of(10L))).thenReturn(List.of());
-        when(estimateService.getLatest(10L)).thenReturn(Optional.empty());
+        when(estimateService.getLatest(10L, Estimate.EPS)).thenReturn(Optional.empty());
 
         OutperformersDto result = outperformersService.get();
 
@@ -399,7 +400,7 @@ class OutperformersServiceTest
         Periods nvdaPeriods = periodsWithLatest("25Q2");
         when(periodService.getBy(1L)).thenReturn(nvdaPeriods);
         when(targetDao.listByPeriodIds(List.of(10L))).thenReturn(List.of());
-        when(estimateService.getLatest(10L))
+        when(estimateService.getLatest(10L, Estimate.EPS))
                 .thenReturn(Optional.of(estimates(LocalDateTime.now().minusDays(1))));
 
         Periods amdPeriods = periodsWithLatest("25Q2");
@@ -408,7 +409,7 @@ class OutperformersServiceTest
         when(targetDao.listByPeriodIds(List.of(20L))).thenReturn(List.of());
         PeriodEstimates higherEstimates = estimates(LocalDateTime.now().minusDays(1));
         higherEstimates.setNext3(new BigDecimal("20"));
-        when(estimateService.getLatest(20L)).thenReturn(Optional.of(higherEstimates));
+        when(estimateService.getLatest(20L, Estimate.EPS)).thenReturn(Optional.of(higherEstimates));
 
         OutperformersDto result = outperformersService.get();
 

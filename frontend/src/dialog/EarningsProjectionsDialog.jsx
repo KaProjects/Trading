@@ -340,7 +340,7 @@ export const EarningsProjectionsDialog = ({
 
         setSavingEstimate(true);
         setSaveError(null);
-        axios.post(`${backend}/estimate/${latestPeriod.id}`, {
+        axios.post(`${backend}/estimate/${latestPeriod.id}/eps`, {
             date: persistDate,
             current: estimateValues.current,
             next1: estimateValues.next1,

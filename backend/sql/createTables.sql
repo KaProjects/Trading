@@ -99,10 +99,11 @@ CREATE TABLE Estimate
 (
     id           INT UNSIGNED    NOT NULL AUTO_INCREMENT PRIMARY KEY,
     datetime     DATETIME        NOT NULL,
-    current      DECIMAL(6, 2)   NOT NULL,
-    next1        DECIMAL(6, 2),
-    next2        DECIMAL(6, 2),
-    next3        DECIMAL(6, 2),
+    type         BOOLEAN         NOT NULL DEFAULT TRUE,
+    current      DECIMAL(8, 2)   NOT NULL,
+    next1        DECIMAL(8, 2),
+    next2        DECIMAL(8, 2),
+    next3        DECIMAL(8, 2),
     periodId     INT UNSIGNED    NOT NULL,
     CONSTRAINT `fk_estimatePeriodId` FOREIGN KEY (periodId) REFERENCES Period (id)
 );

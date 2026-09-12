@@ -11,6 +11,7 @@ public class EstimateDto
     private Long id;
     private Long periodId;
     private LocalDateTime datetime;
+    private boolean type;
     private BigDecimal current;
     private BigDecimal next1;
     private BigDecimal next2;

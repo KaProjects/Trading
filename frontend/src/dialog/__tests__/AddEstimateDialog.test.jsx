@@ -65,7 +65,7 @@ describe("AddEstimateDialog", () => {
         axios.post.mockReset();
         mockFormatError.mockClear();
         axios.get.mockImplementation(url => Promise.resolve({
-            data: url === "/api/estimate/period-1" ? history : imported,
+            data: url === "/api/estimate/period-1/eps" ? history : imported,
         }));
         axios.post.mockResolvedValue({});
     });
@@ -76,7 +76,7 @@ describe("AddEstimateDialog", () => {
 
         expect(await screen.findByText("02.08.2026")).toBeInTheDocument();
         expect(screen.getByText("01.08.2026")).toBeInTheDocument();
-        expect(axios.get).toHaveBeenCalledWith("/api/estimate/period-1");
+        expect(axios.get).toHaveBeenCalledWith("/api/estimate/period-1/eps");
         expect(axios.get).toHaveBeenCalledWith("/api/research/company-1/import/estimate/period-1");
 
         expect(screen.getByTestId("external-estimates"))
@@ -93,7 +93,7 @@ describe("AddEstimateDialog", () => {
         fireEvent.click(screen.getByRole("button", {name: "Add"}));
 
         await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
-            "/api/estimate/period-1",
+            "/api/estimate/period-1/eps",
             {
                 date: "2026-08-03",
                 current: "1.62",
@@ -104,6 +104,48 @@ describe("AddEstimateDialog", () => {
         ));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();
+    });
+
+    test("loads and creates revenue estimates when the revenue kind is used", async () => {
+        const revenueHistory = [
+            {id: "revenue-1", datetime: "2026-08-02T12:30:00", current: 94320, next1: 108450, next2: null, next3: 134600},
+        ];
+        const revenueImported = {
+            current: {eps: "1.62", revenue: "96221.00", date: "2026-08-10"},
+            next1: {eps: "1.85", revenue: "105311.63", date: "2026-11-10"},
+            next2: null,
+            next3: {eps: "2.76", revenue: "137360.22", date: "2027-05-10"},
+        };
+        axios.get.mockImplementation(url => Promise.resolve({
+            data: url === "/api/estimate/period-1/revenue" ? revenueHistory : revenueImported,
+        }));
+
+        const props = createProps({kind: "revenue"});
+        render(<AddEstimateDialog {...props}/>);
+
+        expect(await screen.findByText("02.08.2026")).toBeInTheDocument();
+        expect(screen.getByText("Add Revenue Estimate for NVDA 26Q2")).toBeInTheDocument();
+        expect(axios.get).toHaveBeenCalledWith("/api/estimate/period-1/revenue");
+
+        expect(screen.getByTestId("external-estimates"))
+            .toHaveTextContent("External estimates: [ 96221.00 (10.08.2026) | 105311.63 (10.11.2026) | - | 137360.22 (10.05.2027) ]");
+        fireEvent.click(screen.getByRole("button", {name: "Use external estimates"}));
+        expect(screen.getByTestId("estimate-current")).toHaveValue("96221.00");
+        expect(screen.getByTestId("estimate-next1")).toHaveValue("105311.63");
+
+        fireEvent.change(screen.getByTestId("estimate-date"), {target: {value: "2026-08-03"}});
+        fireEvent.click(screen.getByRole("button", {name: "Add"}));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
+            "/api/estimate/period-1/revenue",
+            {
+                date: "2026-08-03",
+                current: "96221.00",
+                next1: "105311.63",
+                next2: null,
+                next3: "137360.22",
+            },
+        ));
     });
 
     test("parses two to four pasted estimates and keeps valid parser input reusable", async () => {
@@ -138,7 +180,7 @@ describe("AddEstimateDialog", () => {
 
     test("shows per-value placeholders and disables external use unless current and next 1 are present", async () => {
         axios.get.mockImplementation(url => Promise.resolve({
-            data: url === "/api/estimate/period-1"
+            data: url === "/api/estimate/period-1/eps"
                 ? history
                 : {
                     current: {eps: "1.9", date: "2026-08-10"},
@@ -157,7 +199,7 @@ describe("AddEstimateDialog", () => {
 
     test("shows four dashes and disables external use when no estimates are imported", async () => {
         axios.get.mockImplementation(url => Promise.resolve({
-            data: url === "/api/estimate/period-1" ? history : {},
+            data: url === "/api/estimate/period-1/eps" ? history : {},
         }));
 
         render(<AddEstimateDialog {...createProps()}/>);

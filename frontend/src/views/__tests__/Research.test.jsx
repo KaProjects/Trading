@@ -48,9 +48,17 @@ jest.mock("../component/PeriodFinancials", () => ({
     ),
 }));
 jest.mock("../component/PeriodEstimatesOverview", () => ({
-    PeriodEstimatesOverview: (props) => (
-        <button data-testid="period-estimates-overview" onClick={props.onOpen}>estimate-overview:{props.overview?.current?.value}</button>
-    ),
+    formatRevenueEstimateAmount: (value) => String(value),
+    PeriodEstimatesOverview: (props) => props.overview ? (
+        <button
+            data-testid={props.title === "Revenue estimates"
+                ? "period-revenue-estimates-overview"
+                : "period-estimates-overview"}
+            onClick={props.onOpen}
+        >
+            estimate-overview:{props.overview?.current?.value}
+        </button>
+    ) : null,
 }));
 jest.mock("../../dialog/FinancialsDialog", () => ({
     FinancialsDialog: (props) => props.open ? <div>financials-dialog:{props.ticker}:{props.financials.length}</div> : null,

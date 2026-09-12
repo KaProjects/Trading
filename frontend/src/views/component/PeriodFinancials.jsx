@@ -14,6 +14,7 @@ import React from "react";
 import {ReactComponent as FinancialsIcon} from "../../assets/icons/financials.svg";
 import {
     formatMillions,
+    formatMillionsRounded,
     formatPercent,
     formatPeriodName,
     isNotAValue,
@@ -74,8 +75,14 @@ const FinancialSummaryItem = ({value, label, margin, first = false}) => {
             <Box sx={{color: "text.secondary", fontSize: 9, textAlign: "center"}}>
                 {formattedMargin ? `(${formattedMargin})` : "\u00a0"}
             </Box>
-            <Box sx={{fontWeight: 600, fontSize: 13, textAlign: "center"}}>{formatMillions(value)}</Box>
-            <Box sx={{color: "text.secondary", mx: 0.5, fontSize: 11, textAlign: "center"}}>{label}</Box>
+            <Box sx={{fontWeight: 600, fontSize: 13, textAlign: "center"}}>{formatMillionsRounded(value)}</Box>
+            <Box sx={{
+                display: {xs: "none", sm: "block"},
+                color: "text.secondary",
+                mx: 0.5,
+                fontSize: 11,
+                textAlign: "center",
+            }}>{label}</Box>
         </Box>
     );
 };
@@ -167,7 +174,7 @@ export const PeriodFinancials = ({ttm, financials = [], onOpen, sx}) => {
                     <FinancialsIcon width="17" height="17"/>
                 </Box>
                 <Box sx={{flex: 1, minWidth: 0}}>
-                    <Box sx={{display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px", color: "text.secondary", fontSize: 11}}>
+                    <Box sx={{display: {xs: "none", sm: "flex"}, alignItems: "center", gap: "6px", marginBottom: "2px", color: "text.secondary", fontSize: 11}}>
                         <Box component="span" sx={{fontWeight: 600, color: "text.primary"}}>Financials</Box>
                     </Box>
                     <Box sx={{maxWidth: "100%", overflowX: {xs: "auto", sm: "visible"}, overflowY: "hidden"}}>

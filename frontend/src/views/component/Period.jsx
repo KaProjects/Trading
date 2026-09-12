@@ -2,19 +2,20 @@ import {BorderedSection} from "./BorderedSection";
 import React, {useState} from "react";
 import {Badge, Box, Button, Stack, Typography} from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
-import {formatDate, formatDecimals, formatError, formatMillions, formatPercent, formatPeriodName} from "../../service/FormattingService";
+import {formatDate, formatDecimals, formatError, formatMillions, formatMillionsRounded, formatPercent, formatPeriodName} from "../../service/FormattingService";
 import axios from "axios";
 import {backend} from "../../properties";
 import {ContentEditor} from "./ContentEditor";
 import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financials-plus.svg";
-import {ReactComponent as EstimatesPlusIcon} from "../../assets/icons/estimates-plus.svg";
+import {ReactComponent as EpsEstimatesPlusIcon} from "../../assets/icons/estimates-plus-eps.svg";
+import {ReactComponent as RevenueEstimatesPlusIcon} from "../../assets/icons/estimates-plus-revenue.svg";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import EditIcon from "@mui/icons-material/Edit";
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
 
-export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
+export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
 
     const [contentEditSignal, setContentEditSignal] = useState(0)
     const reportLabel = period.financial ? "reported: " : "report: "
@@ -38,18 +39,23 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
         return formatDecimals(value, 0, 2) || "-"
     }
 
-    function formatPastEstimates(estimate) {
+    function formatRevenueEstimateValue(value) {
+        if (value === null || value === undefined || value === "") return "-"
+        return formatMillionsRounded(Number(value)) || "-"
+    }
+
+    function formatPastEstimates(estimate, format = formatEstimateValue) {
         const past = [estimate.past4, estimate.past3, estimate.past2, estimate.past1]
-            .map(formatEstimateValue)
+            .map(format)
             .join(" | ")
         return past + " => "
     }
 
-    function formatCurrentAndFutureEstimates(estimate) {
+    function formatCurrentAndFutureEstimates(estimate, format = formatEstimateValue) {
         const future = [estimate.next1, estimate.next2, estimate.next3]
-            .map(formatEstimateValue)
+            .map(format)
             .join(" | ")
-        return formatEstimateValue(estimate.current) + " | " + future
+        return format(estimate.current) + " | " + future
     }
 
     function formatEstimateChanges(estimate) {
@@ -65,6 +71,10 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
 
     function formatEstimatePastTotal(value) {
         return formatDecimals(value, 0, 2) || "-";
+    }
+
+    function formatRevenueEstimatePastTotal(value) {
+        return formatRevenueEstimateValue(value);
     }
 
     function updateResearch(id, content) {
@@ -154,6 +164,29 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
                     </Box>
                 </>
             }
+            {period.revenueEstimate &&
+                <>
+                    <Typography data-testid="period-revenue-estimates" sx={{color: 'text.secondary', fontSize: 14}}>
+                        {"Revenues: "}
+                        <Box component="span" sx={{display: {xs: "none", sm: "inline"}}}>
+                            {formatPastEstimates(period.revenueEstimate, formatRevenueEstimateValue)}
+                        </Box>
+                        {formatCurrentAndFutureEstimates(period.revenueEstimate, formatRevenueEstimateValue)}
+                    </Typography>
+                    <Box sx={{
+                        color: 'text.secondary',
+                        display: "grid",
+                        gridTemplateColumns: {xs: "88px max-content", sm: "88px 94px max-content"},
+                        columnGap: "8px",
+                        fontSize: 11,
+                        marginTop: "-2px",
+                    }}>
+                        <Box>({formatEstimateDate(period.revenueEstimate.datetime)})</Box>
+                        <Box sx={{display: {xs: "none", sm: "flex"}, justifyContent: "center"}}>({formatRevenueEstimatePastTotal(period.revenueEstimate.pastTotal)})</Box>
+                        <Box sx={{marginLeft: {xs: 0, sm: "20px"}}}>({formatEstimateChanges(period.revenueEstimate)})</Box>
+                    </Box>
+                </>
+            }
             <PeriodTargetSummary stats={period.targetStats} currency={currency}/>
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
@@ -181,9 +214,14 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
                         </Button>
                     </Tooltip>
                 }
-                <Tooltip title="Add Estimates" placement="left">
-                    <Button onClick={() => openEstimateDialog?.(period)}>
-                        <EstimatesPlusIcon/>
+                <Tooltip title="Add EPS Estimates" placement="left">
+                    <Button aria-label="Add EPS Estimates" onClick={() => openEstimateDialog?.(period)}>
+                        <EpsEstimatesPlusIcon/>
+                    </Button>
+                </Tooltip>
+                <Tooltip title="Add Revenue Estimates" placement="left">
+                    <Button aria-label="Add Revenue Estimates" onClick={() => openRevenueEstimateDialog?.(period)}>
+                        <RevenueEstimatesPlusIcon/>
                     </Button>
                 </Tooltip>
                 <Tooltip

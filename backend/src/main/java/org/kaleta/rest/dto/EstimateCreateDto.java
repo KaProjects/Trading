@@ -13,15 +13,15 @@ public class EstimateCreateDto
     private String date;
 
     @NotNull
-    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String current;
 
-    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String next1;
 
-    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String next2;
 
-    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
     private String next3;
 }

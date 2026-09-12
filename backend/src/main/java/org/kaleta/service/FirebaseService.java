@@ -30,6 +30,8 @@ import java.time.format.DateTimeParseException;
 @Singleton
 public class FirebaseService
 {
+    private static final BigDecimal ONE_MILLION = BigDecimal.valueOf(1_000_000);
+
     private final FirebaseStore firebaseStore;
 
     @Inject
@@ -260,6 +262,7 @@ public class FirebaseService
 
         EstimateImportDto.Quarter quarter = new EstimateImportDto.Quarter();
         quarter.setEps(firstNonBlank(latest.getValue().getEpsa(), latest.getValue().getEpse()));
+        quarter.setRevenue(toMillions(firstNonBlank(latest.getValue().getReva(), latest.getValue().getReve())));
         quarter.setDate(snapshotDate(latest.getKey()));
         return quarter;
     }
@@ -356,6 +359,19 @@ public class FirebaseService
     private String toString(Object object)
     {
         return object == null ? "" : String.valueOf(object);
+    }
+
+    private String toMillions(String value)
+    {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return new BigDecimal(value)
+                    .divide(ONE_MILLION)
+                    .stripTrailingZeros()
+                    .toPlainString();
+        } catch (ArithmeticException | NumberFormatException exception) {
+            return null;
+        }
     }
 
     private String firstNonBlank(String preferred, String fallback)

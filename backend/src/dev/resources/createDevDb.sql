@@ -204,6 +204,10 @@ INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALU
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1397, 2616, '2026-06-18 09:00:00', '1.85', '2.64', '2.76');
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1398, 2616, '2026-08-11 09:00:00', '1.96', '2.64', '3.01');
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALUES (1399, 2624, '2026-04-30 09:00:00', '0.20', '0.27', '0.31', '0.28');
+
+-- Revenue estimate snapshots are stored in millions, alongside the EPS snapshots above.
+INSERT INTO Estimate (id, periodId, datetime, type, current, next1, next2, next3) VALUES (1510, 2606, '2026-05-28 09:00:00', FALSE, '94320.00', '108450.00', '121900.00', '134600.00');
+INSERT INTO Estimate (id, periodId, datetime, type, current, next1, next2, next3) VALUES (1511, 2615, '2026-05-12 09:00:00', FALSE, '11480.00', '12310.00', '13050.00', '13920.00');
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1400, 2625, '2026-06-18 09:00:00', '0.27', '0.31', '0.28');
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1401, 2625, '2026-08-11 09:00:00', '0.39', '0.43', '0.40');
 

@@ -3,6 +3,7 @@ import {
     formatDecimals,
     formatError,
     formatMillions,
+    formatMillionsRounded,
     formatTargetStats,
     formatPercent,
     formatPeriodName,
@@ -43,6 +44,23 @@ describe('FormattingService', () => {
         expect(formatMillions(-123)).toBe("-123M");
         expect(formatMillions(-1234)).toBe("-1.23B");
         expect(formatMillions(-1235)).toBe("-1.24B");
+    })
+
+    test("formatMillionsRounded", () => {
+        expect(formatMillionsRounded(undefined)).toBe("");
+        expect(formatMillionsRounded(null)).toBe("");
+        expect(formatMillionsRounded("")).toBe("");
+        expect(formatMillionsRounded("123")).toBe("");
+
+        expect(formatMillionsRounded(9.456)).toBe("9.46M");
+        expect(formatMillionsRounded(46.78)).toBe("46.8M");
+        expect(formatMillionsRounded(875.4)).toBe("875M");
+        expect(formatMillionsRounded(9750)).toBe("9.75B");
+        expect(formatMillionsRounded(46740)).toBe("46.7B");
+        expect(formatMillionsRounded(108450)).toBe("108B");
+        expect(formatMillionsRounded(253490)).toBe("253B");
+        expect(formatMillionsRounded(-46740)).toBe("-46.7B");
+        expect(formatMillionsRounded(-9750)).toBe("-9.75B");
     })
 
     test("formatTargetStats", () => {

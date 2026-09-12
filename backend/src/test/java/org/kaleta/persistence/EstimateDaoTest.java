@@ -25,7 +25,7 @@ class EstimateDaoTest
     @Test
     void listByPeriod()
     {
-        List<Estimate> estimates = estimateDao.list(1L);
+        List<Estimate> estimates = estimateDao.list(1L, Estimate.EPS);
 
         assertThat(estimates.size(), is(3));
         assertThat(estimates.stream().map(Estimate::getId).toList(), is(List.of(5L, 3L, 1L)));
@@ -45,17 +45,17 @@ class EstimateDaoTest
     @Test
     void findLatestByPeriod()
     {
-        Estimate latest = estimateDao.findLatest(1L).orElseThrow();
+        Estimate latest = estimateDao.findLatest(1L, Estimate.EPS).orElseThrow();
 
         assertThat(latest.getId(), is(5L));
         assertThat(latest.getDatetime(), is(LocalDateTime.parse("2026-08-02T12:30:00")));
-        assertThat(estimateDao.findLatest(3L).isEmpty(), is(true));
+        assertThat(estimateDao.findLatest(3L, Estimate.EPS).isEmpty(), is(true));
     }
 
     @Test
     void findLatestByPeriodIds()
     {
-        List<Estimate> estimates = estimateDao.findLatestByPeriodIds(List.of(1L, 2L, 3L));
+        List<Estimate> estimates = estimateDao.findLatestByPeriodIds(List.of(1L, 2L, 3L), Estimate.EPS);
 
         assertThat(
                 estimates.stream().map(Estimate::getId).toList(),

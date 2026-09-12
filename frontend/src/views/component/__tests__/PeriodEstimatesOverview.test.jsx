@@ -1,5 +1,5 @@
 import {fireEvent, render, screen} from "@testing-library/react";
-import {PeriodEstimatesOverview} from "../PeriodEstimatesOverview";
+import {PeriodEstimatesOverview, formatRevenueEstimateAmount} from "../PeriodEstimatesOverview";
 
 const overview = {
     ttm: {value: 10, change: null},
@@ -29,6 +29,26 @@ describe("PeriodEstimatesOverview", () => {
         expect(screen.getByText("(+160%)")).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", {name: "Open estimates"}));
         expect(onOpen).toHaveBeenCalled();
+    });
+
+    test("renders a revenue overview in millions without an open action", () => {
+        render(<PeriodEstimatesOverview
+            overview={{
+                ttm: {value: 253490, change: null},
+                current: {value: 301070, change: 18.8},
+                next1: {value: 352510, change: 17.1},
+                next2: {value: 406290, change: 15.3},
+                next3: {value: 459270, change: 13},
+            }}
+            title="Revenue estimates"
+            format={formatRevenueEstimateAmount}
+        />);
+
+        expect(screen.getByText("Revenue estimates")).toBeInTheDocument();
+        expect(screen.queryByText("Earnings estimates")).not.toBeInTheDocument();
+        expect(screen.getByText("253B")).toBeInTheDocument();
+        expect(screen.getByText("301B")).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Open estimates"})).not.toBeInTheDocument();
     });
 
     test("renders nothing without an estimates overview", () => {

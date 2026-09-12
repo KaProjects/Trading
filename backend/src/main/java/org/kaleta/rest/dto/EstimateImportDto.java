@@ -18,6 +18,7 @@ public class EstimateImportDto
     public static class Quarter
     {
         private String eps;
+        private String revenue;
         private String date;
     }
 }

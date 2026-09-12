@@ -31,7 +31,7 @@ import {
     CompanySelector,
 } from "./component/CompanySelector";
 import {PeriodFinancials} from "./component/PeriodFinancials";
-import {PeriodEstimatesOverview} from "./component/PeriodEstimatesOverview";
+import {PeriodEstimatesOverview, formatRevenueEstimateAmount} from "./component/PeriodEstimatesOverview";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
 import {AddPeriodDialog} from "../dialog/AddPeriodDialog";
 import {AddPeriodFinancialDialog} from "../dialog/AddPeriodFinancialDialog";
@@ -122,6 +122,7 @@ export const Research = props => {
     const [openAddFinancialDialog, setOpenAddFinancialDialog] = useState(null)
     const [openEditFinancialDialog, setOpenEditFinancialDialog] = useState(null)
     const [openAddEstimateDialog, setOpenAddEstimateDialog] = useState(null)
+    const [openAddRevenueEstimateDialog, setOpenAddRevenueEstimateDialog] = useState(null)
     const [openTargetDialog, setOpenTargetDialog] = useState(null)
     const [openNewsSentimentDialog, setOpenNewsSentimentDialog] = useState(null)
     const [openAddTagDialog, setOpenAddTagDialog] = useState(false)
@@ -143,6 +144,7 @@ export const Research = props => {
         setOpenAddFinancialDialog(null)
         setOpenEditFinancialDialog(null)
         setOpenAddEstimateDialog(null)
+        setOpenAddRevenueEstimateDialog(null)
         setOpenTargetDialog(null)
         setOpenNewsSentimentDialog(null)
         setOpenAddTagDialog(false)
@@ -602,6 +604,12 @@ export const Research = props => {
                                     overview={data.estimateOverview}
                                     onOpen={() => setOpenEarningsProjectionsDialog(true)}
                                 />
+                                <PeriodEstimatesOverview
+                                    sx={{marginTop: {xs: "2px", sm: "8px"}}}
+                                    overview={data.revenueEstimateOverview}
+                                    title="Revenue estimates"
+                                    format={formatRevenueEstimateAmount}
+                                />
                                 <LatestNewsSentiment
                                     companyId={data.company.id}
                                     sx={{marginTop: {xs: "2px", sm: "8px"}}}
@@ -678,6 +686,14 @@ export const Research = props => {
                                 company={props.companySelectorValue}
                                 period={openAddEstimateDialog}
                             />
+                            <AddEstimateDialog
+                                kind="revenue"
+                                open={openAddRevenueEstimateDialog !== null}
+                                handleClose={() => setOpenAddRevenueEstimateDialog(null)}
+                                triggerRefresh={triggerRefresh}
+                                company={props.companySelectorValue}
+                                period={openAddRevenueEstimateDialog}
+                            />
                             <TargetDialog
                                 open={openTargetDialog !== null}
                                 handleClose={() => setOpenTargetDialog(null)}
@@ -714,6 +730,7 @@ export const Research = props => {
                                                 openDialog={() => setOpenAddFinancialDialog(period)}
                                                 openEditDialog={() => setOpenEditFinancialDialog(period)}
                                                 openEstimateDialog={() => setOpenAddEstimateDialog(period)}
+                                                openRevenueEstimateDialog={() => setOpenAddRevenueEstimateDialog(period)}
                                                 openTargetDialog={() => setOpenTargetDialog(period)}
                                                 openNewsSentimentDialog={() => setOpenNewsSentimentDialog(period)}
                                                 targetCandidateCount={targetCandidateCounts[period.id] ?? 0}
@@ -731,6 +748,7 @@ export const Research = props => {
                                             openDialog={() => setOpenAddFinancialDialog(period)}
                                             openEditDialog={() => setOpenEditFinancialDialog(period)}
                                             openEstimateDialog={() => setOpenAddEstimateDialog(period)}
+                                            openRevenueEstimateDialog={() => setOpenAddRevenueEstimateDialog(period)}
                                             openTargetDialog={() => setOpenTargetDialog(period)}
                                             openNewsSentimentDialog={() => setOpenNewsSentimentDialog(period)}
                                             targetCandidateCount={targetCandidateCounts[period.id] ?? 0}

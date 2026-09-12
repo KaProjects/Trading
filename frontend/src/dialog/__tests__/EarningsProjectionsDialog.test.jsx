@@ -171,7 +171,7 @@ test("persists changed current and forward estimates after confirmation", async 
         String(date.getMonth() + 1).padStart(2, "0"),
         String(date.getDate()).padStart(2, "0"),
     ].join("-");
-    await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/estimate/period-1", {
+    await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/estimate/period-1/eps", {
         date: expectedDate,
         current: "12",
         next1: "7",

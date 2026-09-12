@@ -6,7 +6,7 @@ import {
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import React from "react";
 import {ReactComponent as EstimatesIcon} from "../../assets/icons/estimates.svg";
-import {formatDecimals, formatPercent} from "../../service/FormattingService";
+import {formatDecimals, formatMillionsRounded, formatPercent} from "../../service/FormattingService";
 
 const windows = [
     {key: "ttm", label: "ttm"},
@@ -16,7 +16,11 @@ const windows = [
     {key: "next3", label: "next 3"},
 ];
 
-const EstimateSummaryItem = ({window = {}, label, first = false}) => {
+export const formatEstimateAmount = value => formatDecimals(value, 0, 2) || "-";
+export const formatRevenueEstimateAmount = value =>
+    (value === null || value === undefined || value === "" ? "" : formatMillionsRounded(Number(value))) || "-";
+
+const EstimateSummaryItem = ({window = {}, label, format, first = false}) => {
     const change = formatPercent(window.change, true, 1);
     return (
         <Box sx={{marginLeft: first ? 0 : "10px", flexShrink: 0}}>
@@ -24,9 +28,16 @@ const EstimateSummaryItem = ({window = {}, label, first = false}) => {
                 {change ? `(${change})` : "\u00a0"}
             </Box>
             <Box sx={{fontWeight: 600, fontSize: 13, textAlign: "center"}}>
-                {formatDecimals(window.value, 0, 2) || "-"}
+                {format(window.value)}
             </Box>
-            <Box sx={{color: "text.secondary", mx: 0.5, marginTop: "-2px", fontSize: 11, textAlign: "center"}}>
+            <Box sx={{
+                display: {xs: "none", sm: "block"},
+                color: "text.secondary",
+                mx: 0.5,
+                marginTop: "-2px",
+                fontSize: 11,
+                textAlign: "center",
+            }}>
                 {label}
             </Box>
         </Box>
@@ -44,7 +55,13 @@ const EstimateYearOverYearChange = ({value}) => {
     );
 };
 
-export const PeriodEstimatesOverview = ({overview, onOpen, sx}) => {
+export const PeriodEstimatesOverview = ({
+    overview,
+    onOpen,
+    sx,
+    title = "Earnings estimates",
+    format = formatEstimateAmount,
+}) => {
     if (!overview) return null;
 
     return (
@@ -57,16 +74,25 @@ export const PeriodEstimatesOverview = ({overview, onOpen, sx}) => {
             borderRadius: "0 4px 4px 0",
         }}>
             <ButtonBase
-                aria-label="Open estimates"
+                component={onOpen ? "button" : "div"}
+                aria-label={onOpen ? "Open estimates" : undefined}
                 onClick={onOpen}
-                sx={{width: "100%", padding: "5px 7px", textAlign: "left", alignItems: "flex-start", gap: "7px"}}
+                disableRipple={!onOpen}
+                sx={{
+                    width: "100%",
+                    padding: "5px 7px",
+                    textAlign: "left",
+                    alignItems: "flex-start",
+                    gap: "7px",
+                    cursor: onOpen ? "pointer" : "default",
+                }}
             >
                 <Box sx={{display: "flex", color: "warning.main", marginTop: "1px", flexShrink: 0}}>
                     <EstimatesIcon width="17" height="17"/>
                 </Box>
                 <Box sx={{flex: 1, minWidth: 0}}>
-                    <Box sx={{marginBottom: "2px", color: "text.secondary", fontSize: 11}}>
-                        <Box component="span" sx={{fontWeight: 600, color: "text.primary"}}>Earnings estimates</Box>
+                    <Box sx={{display: {xs: "none", sm: "block"}, marginBottom: "2px", color: "text.secondary", fontSize: 11}}>
+                        <Box component="span" sx={{fontWeight: 600, color: "text.primary"}}>{title}</Box>
                     </Box>
                     <Box sx={{maxWidth: "100%", overflowX: {xs: "auto", sm: "visible"}, overflowY: "hidden"}}>
                         <Grid
@@ -82,6 +108,7 @@ export const PeriodEstimatesOverview = ({overview, onOpen, sx}) => {
                                     key={window.key}
                                     window={overview[window.key]}
                                     label={window.label}
+                                    format={format}
                                     first={index === 0}
                                 />
                             ))}
@@ -89,7 +116,9 @@ export const PeriodEstimatesOverview = ({overview, onOpen, sx}) => {
                         </Grid>
                     </Box>
                 </Box>
-                <ChevronRightIcon sx={{fontSize: 17, color: "text.secondary", marginTop: "1px", flexShrink: 0}}/>
+                {onOpen &&
+                    <ChevronRightIcon sx={{fontSize: 17, color: "text.secondary", marginTop: "1px", flexShrink: 0}}/>
+                }
             </ButtonBase>
         </Box>
     );

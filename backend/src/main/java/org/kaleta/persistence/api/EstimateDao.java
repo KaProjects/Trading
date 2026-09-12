@@ -8,17 +8,17 @@ import java.util.Optional;
 public interface EstimateDao extends EntityDao<Estimate>
 {
     /**
-     * @return estimates for the specified period
+     * @return estimates of the specified type for the specified period
      */
-    List<Estimate> list(Long periodId);
+    List<Estimate> list(Long periodId, boolean type);
 
     /**
-     * @return latest estimate for the specified period
+     * @return latest estimate of the specified type for the specified period
      */
-    Optional<Estimate> findLatest(Long periodId);
+    Optional<Estimate> findLatest(Long periodId, boolean type);
 
     /**
-     * @return latest estimate for each specified period
+     * @return latest estimate of the specified type for each specified period
      */
-    List<Estimate> findLatestByPeriodIds(List<Long> periodIds);
+    List<Estimate> findLatestByPeriodIds(List<Long> periodIds, boolean type);
 }

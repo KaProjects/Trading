@@ -22,6 +22,7 @@ public class ResearchDto
     private List<Periods.Financial> financials = new ArrayList<>();
     private Periods.Financial ttm;
     private EstimateOverview estimateOverview;
+    private EstimateOverview revenueEstimateOverview;
     private List<Record> records = new ArrayList<>();
     private Latest latest;
     private PriceIndicators indicators;
@@ -32,12 +33,14 @@ public class ResearchDto
     @Data
     public static class PeriodDto extends Periods.Period {
         private PeriodEstimates estimate;
+        private PeriodEstimates revenueEstimate;
         private TargetStats targetStats = TargetStats.empty();
     }
 
     public void addPeriod(
             Periods.Period period,
             PeriodEstimates estimate,
+            PeriodEstimates revenueEstimate,
             TargetStats targetStats)
     {
         PeriodDto dto = new PeriodDto();
@@ -54,6 +57,7 @@ public class ResearchDto
         dto.setExpectedReportDate(period.getExpectedReportDate());
         dto.setReportedInFirebase(period.getReportedInFirebase());
         dto.setEstimate(estimate);
+        dto.setRevenueEstimate(revenueEstimate);
         dto.setTargetStats(targetStats);
         periods.add(dto);
     }

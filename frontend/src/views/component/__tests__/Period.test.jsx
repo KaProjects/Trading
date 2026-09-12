@@ -78,8 +78,8 @@ describe("Period", () => {
         expect(screen.getByTestId("period-target-summary"))
             .toHaveTextContent("Targets: 3@(175-120)~146$");
         expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
-        expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
-        fireEvent.click(screen.getByRole("button", {name: "Add Estimates"}));
+        expect(screen.getByRole("button", {name: "Add EPS Estimates"})).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", {name: "Add EPS Estimates"}));
         expect(openEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
         fireEvent.click(screen.getByRole("button", {name: "Edit Period"}));
         expect(openEditDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
@@ -143,10 +143,47 @@ describe("Period", () => {
         expect(screen.getByTestId("period-estimates"))
             .toHaveTextContent("Estimates: - | - | - | - => 1.62 | - | - | -");
         expect(screen.getByRole("button", {name: "Add Financials"})).toBeInTheDocument();
-        expect(screen.getByRole("button", {name: "Add Estimates"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add EPS Estimates"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Manage Targets"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Manage Targets"})).not.toHaveTextContent(/[1-9]/);
         expect(screen.queryByTestId("period-target-summary")).not.toBeInTheDocument();
+    });
+
+    test("renders revenue estimates in millions next to the eps estimates", () => {
+        const openRevenueEstimateDialog = jest.fn();
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    reportDate: null,
+                    estimate: {current: 1.62, next1: null, next2: null, next3: null},
+                    revenueEstimate: {
+                        past4: 46740,
+                        past3: 57010,
+                        past2: 68130,
+                        past1: 81620,
+                        current: 94320,
+                        next1: 108450,
+                        next2: null,
+                        next3: null,
+                    },
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+                openRevenueEstimateDialog={openRevenueEstimateDialog}
+            />
+        );
+
+        expect(screen.getByTestId("period-revenue-estimates"))
+            .toHaveTextContent("Revenues: 46.7B | 57B | 68.1B | 81.6B => 94.3B | 108B | - | -");
+        expect(screen.getByTestId("period-estimates"))
+            .toHaveTextContent("Estimates: - | - | - | - => 1.62 | - | - | -");
+
+        fireEvent.click(screen.getByRole("button", {name: "Add Revenue Estimates"}));
+        expect(openRevenueEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
     });
 
     test("shows an error badge instead of an import count when availability cannot be checked", () => {

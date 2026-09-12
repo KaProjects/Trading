@@ -39,7 +39,13 @@ export const SentimentBreakdown = ({stats, total}) => {
         <Box data-testid="sentiment-breakdown" sx={{minWidth: 0}}>
             <Box
                 aria-label={`Sentiment distribution across ${total} articles`}
-                sx={{display: "flex", width: "100%", height: "5px", borderRadius: "3px", overflow: "hidden"}}
+                sx={{
+                    display: {xs: "none", sm: "flex"},
+                    width: "100%",
+                    height: "5px",
+                    borderRadius: "3px",
+                    overflow: "hidden",
+                }}
             >
                 {values.map(([label, count]) => (
                     <Box

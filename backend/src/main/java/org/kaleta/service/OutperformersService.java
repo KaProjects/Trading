@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.PeriodEstimates;
+import org.kaleta.persistence.entity.Estimate;
 import org.kaleta.model.Periods;
 import org.kaleta.persistence.api.LatestDao;
 import org.kaleta.persistence.api.TargetDao;
@@ -95,7 +96,7 @@ public class OutperformersService
         Periods.Period latestPeriod = periods.getPeriods().stream().findFirst().orElse(null);
         if (latestPeriod == null) return;
 
-        PeriodEstimates estimates = estimateService.getLatest(latestPeriod.getId()).orElse(null);
+        PeriodEstimates estimates = estimateService.getLatest(latestPeriod.getId(), Estimate.EPS).orElse(null);
         if (estimates == null) return;
 
         if (estimates.getDatetime() != null

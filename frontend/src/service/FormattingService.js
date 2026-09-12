@@ -28,6 +28,21 @@ export function formatMillions(millions) {
     }
 }
 
+export function formatMillionsRounded(millions) {
+    if (isNotAValue(millions)) return "";
+    if (typeof millions !== 'number') {
+        console.error(`'${millions}' is not a valid number`)
+        return ""
+    }
+
+    const useBillions = Math.abs(millions) >= 1000;
+    const value = useBillions ? millions / 1000 : millions;
+    const magnitude = Math.abs(value);
+    const decimals = magnitude < 10 ? 2 : magnitude < 100 ? 1 : 0;
+
+    return formatDecimals(value, 0, decimals) + (useBillions ? "B" : "M");
+}
+
 export function formatTargetStats(stats) {
     if (!stats || stats.count < 1) return "";
 

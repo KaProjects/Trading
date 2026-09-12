@@ -14,6 +14,7 @@ import org.kaleta.model.Periods;
 import org.kaleta.model.Record;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.model.PeriodEstimates;
+import org.kaleta.persistence.entity.Estimate;
 import org.kaleta.model.TargetStats;
 import org.kaleta.rest.dto.PeriodImportDataDto;
 import org.kaleta.rest.dto.PeriodImportDto;
@@ -34,6 +35,7 @@ import org.kaleta.service.TargetService;
 import java.sql.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Path("/research")
 public class ResearchEndpoints
@@ -86,18 +88,26 @@ public class ResearchEndpoints
         List<Long> periodIds = periodsModel.getPeriods().stream()
                 .map(Periods.Period::getId)
                 .toList();
-        Map<Long, PeriodEstimates> estimates = estimateService.getLatestByPeriodIds(periodIds);
+        Map<Long, PeriodEstimates> estimates = estimateService.getLatestByPeriodIds(periodIds, Estimate.EPS);
+        Map<Long, PeriodEstimates> revenueEstimates =
+                estimateService.getLatestByPeriodIds(periodIds, Estimate.REVENUE);
         Map<Long, TargetStats> targetStats = targetService.getStatistics(periodIds);
-        periodsModel.getPeriods().stream()
+        Optional<Long> latestId = periodsModel.getPeriods().stream()
                 .findFirst()
-                .map(Periods.Period::getId)
+                .map(Periods.Period::getId);
+        latestId
                 .map(estimates::get)
                 .map(estimateService::createOverview)
                 .ifPresent(dto::setEstimateOverview);
+        latestId
+                .map(revenueEstimates::get)
+                .map(estimateService::createOverview)
+                .ifPresent(dto::setRevenueEstimateOverview);
         periodsModel.getPeriods().forEach(period -> {
             dto.addPeriod(
                     period,
                     estimates.get(period.getId()),
+                    revenueEstimates.get(period.getId()),
                     targetStats.getOrDefault(period.getId(), TargetStats.empty()));
         });
 
