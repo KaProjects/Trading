@@ -227,7 +227,35 @@ describe("Period", () => {
         expect(screen.queryByTestId("period-ending-month-warning")).not.toBeInTheDocument();
     });
 
-    test("does not mark the ending month for non-quarterly periods", () => {
+    test("does not mark the ending month across a gap in the period names", () => {
+        render(
+            <Period
+                period={{id: "period-1", name: {year: "2026", type: "Q1"}, endingMonth: "2026-03"}}
+                previousPeriod={{id: "period-2", name: {year: "2025", type: "Q1"}, endingMonth: "2025-01"}}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.queryByTestId("period-ending-month-warning")).not.toBeInTheDocument();
+    });
+
+    test("marks the ending month of a consecutive half year that breaks the cadence", () => {
+        render(
+            <Period
+                period={{id: "period-1", name: {year: "2026", type: "H1"}, endingMonth: "2026-09"}}
+                previousPeriod={{id: "period-2", name: {year: "2025", type: "H2"}, endingMonth: "2025-12"}}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("period-ending-month-warning")).toHaveTextContent("09/26");
+    });
+
+    test("does not mark consecutive full years that keep the cadence", () => {
         render(
             <Period
                 period={{id: "period-1", name: {year: "2026", type: "FY"}, endingMonth: "2026-12"}}
@@ -358,7 +386,7 @@ describe("Period", () => {
         expect(screen.getByText("report:")).toHaveStyle({color: "rgb(198, 40, 40)"});
     });
 
-    test("appends an exclamation mark alongside the question mark when firebase already has revenues but no date is known", () => {
+    test("replaces the question mark with an exclamation mark when firebase already has revenues but no date is known", () => {
         const {container} = render(
             <Period
                 period={{
@@ -373,8 +401,93 @@ describe("Period", () => {
             />
         );
 
-        expect(container.querySelector(".title")).toHaveTextContent("26Q2 - ending: 07/26 - report: ? !");
-        expect(screen.getByText("?")).toHaveStyle({color: "rgb(198, 40, 40)", textDecoration: "underline"});
+        expect(container.querySelector(".title")).toHaveTextContent("26Q2 - ending: 07/26 - report: !");
+        expect(screen.queryByText("?")).not.toBeInTheDocument();
+        expect(screen.getByText("!")).toHaveStyle({fontWeight: 900, color: "rgb(198, 40, 40)"});
+    });
+
+    test("marks the report of an unreported period that is no longer the latest", () => {
+        const {container} = render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    expectedReportDate: "2026-08-15",
+                }}
+                isLatest={false}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(container.querySelector(".title")).toHaveTextContent("26Q2 - ending: 07/26 - report: 15.08.2026 !");
+        expect(screen.getByText("15.08.2026")).toHaveStyle({color: "rgb(198, 40, 40)", textDecoration: "underline"});
+        expect(screen.getByText("report:")).toHaveStyle({color: "rgb(198, 40, 40)"});
+    });
+
+    test("shows only an exclamation mark for an unreported period without a date that is not the latest", () => {
+        const {container} = render(
+            <Period
+                period={{id: "period-1", name: {year: "2026", type: "Q2"}, endingMonth: "2026-07"}}
+                isLatest={false}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(container.querySelector(".title")).toHaveTextContent("26Q2 - ending: 07/26 - report: !");
+        expect(screen.queryByText("?")).not.toBeInTheDocument();
+        expect(screen.getByText("!")).toHaveStyle({fontWeight: 900, color: "rgb(198, 40, 40)"});
+    });
+
+    test("leaves the latest unreported period unmarked without firebase revenues", () => {
+        const {container} = render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    expectedReportDate: "2026-08-15",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(container.querySelector(".title")).toHaveTextContent("26Q2 - ending: 07/26 - report: 15.08.2026");
+        expect(screen.queryByText("!")).not.toBeInTheDocument();
+        expect(container.querySelector(".title").querySelector("span")).toBeNull();
+    });
+
+    test("leaves a reported period unmarked even when it is not the latest", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    reportDate: "2026-08-15",
+                    financial: {
+                        dividend: 0,
+                        adjustedEps: 1,
+                        revenue: {value: 1},
+                        grossProfit: {value: 1},
+                        operatingIncome: {value: 1},
+                        netIncome: {value: 1},
+                    },
+                }}
+                isLatest={false}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.queryByText("!")).not.toBeInTheDocument();
     });
 
     test("labels a period as reported and ignores firebase fields once it has financials", () => {

@@ -19,6 +19,7 @@ import org.kaleta.rest.error.InvalidInputException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Date;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,16 +41,19 @@ public class PeriodService
 
     public void create(PeriodCreateDto dto)
     {
+        requireUniqueName(dto.getCompanyId(), dto.getName());
         Period period = new Period();
         period.setCompany(companyService.findEntity(dto.getCompanyId()));
         period.setName(PeriodName.valueOf(dto.getName()));
         period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
         period.setReportDate(Utils.nullableDateValueOf(dto.getReportDate()));
+        requireReportDateAfterEndingMonth(period);
         periodDao.create(period);
     }
 
     public void create(PeriodImportDto dto)
     {
+        requireUniqueName(dto.getCompanyId(), dto.getName());
         Period period = new Period();
         period.setCompany(companyService.findEntity(dto.getCompanyId()));
         period.setName(PeriodName.valueOf(dto.getName()));
@@ -67,17 +71,43 @@ public class PeriodService
         period.setFreeCashFlow(Utils.createNullableBigDecimal(dto.getFreeCashFlow()));
         period.setAdjustedEps(Utils.createNullableBigDecimal(dto.getAdjustedEps()));
 
+        requireReportDateAfterEndingMonth(period);
         periodDao.create(period);
         pushFirebase(period);
     }
 
     public void create(PeriodUnreportedImportDto dto)
     {
+        requireUniqueName(dto.getCompanyId(), dto.getName());
         Period period = new Period();
         period.setCompany(companyService.findEntity(dto.getCompanyId()));
         period.setName(PeriodName.valueOf(dto.getName()));
         period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
         periodDao.create(period);
+        pushFirebaseEndingMonth(period);
+    }
+
+    private void requireReportDateAfterEndingMonth(Period period)
+    {
+        Date reportDate = period.getReportDate();
+        YearMonth endingMonth = period.getEndingMonth();
+        if (reportDate == null || endingMonth == null) return;
+
+        if (!YearMonth.from(reportDate.toLocalDate()).isAfter(endingMonth)) {
+            throw new InvalidInputException(
+                    "report date '" + reportDate + "' must be after the ending month '" + endingMonth + "'");
+        }
+    }
+
+    private void requireUniqueName(Long companyId, String name)
+    {
+        PeriodName periodName = PeriodName.valueOf(name);
+        boolean exists = periodDao.list(companyId).stream()
+                .anyMatch(period -> periodName.equals(period.getName()));
+        if (exists) {
+            throw new InvalidInputException(
+                    "period '" + name + "' already exists for company with id '" + companyId + "'");
+        }
     }
 
     public void update(PeriodUpdateDto dto)
@@ -105,6 +135,7 @@ public class PeriodService
         if (dto.getFreeCashFlow() != null) period.setFreeCashFlow(new BigDecimal(dto.getFreeCashFlow()));
         if (dto.getAdjustedEps() != null) period.setAdjustedEps(new BigDecimal(dto.getAdjustedEps()));
 
+        requireReportDateAfterEndingMonth(period);
         periodDao.save(period);
     }
 
@@ -131,6 +162,7 @@ public class PeriodService
         period.setFreeCashFlow(Utils.createNullableBigDecimal(dto.getFreeCashFlow()));
         period.setAdjustedEps(Utils.createNullableBigDecimal(dto.getAdjustedEps()));
 
+        requireReportDateAfterEndingMonth(period);
         periodDao.save(period);
         pushFirebase(period);
     }
@@ -182,6 +214,14 @@ public class PeriodService
             return periodDao.get(id);
         } catch (NoResultException exception) {
             throw new InvalidInputException("period with id '" + id + "' not found");
+        }
+    }
+
+    private void pushFirebaseEndingMonth(Period period){
+        try {
+            firebaseService.updatePeriodEndingMonth(period);
+        } catch (RuntimeException exception) {
+            Log.error(exception.getMessage(), exception);
         }
     }
 

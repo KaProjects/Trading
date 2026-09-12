@@ -276,6 +276,20 @@ public class FirebaseService
         return actualEps == null || actualEps.isBlank() ? null : actualEps;
     }
 
+    public void updatePeriodEndingMonth(Period period)
+    {
+        String ticker = period.getCompany().getTicker();
+        String quarterId = period.getName().toString();
+        if (firebaseStore.findQuarter(ticker, quarterId).isEmpty()) return;
+
+        firebaseStore.updateQuarterEndingMonth(ticker, quarterId, toEndingMonth(period.getEndingMonth()));
+    }
+
+    private String toEndingMonth(YearMonth endingMonth)
+    {
+        return endingMonth == null ? "" : endingMonth.toString().substring(2);
+    }
+
     public void updatePeriod(Period period)
     {
         String ticker = period.getCompany().getTicker();
@@ -283,6 +297,7 @@ public class FirebaseService
         if (firebaseStore.findQuarter(ticker, quarterId).isEmpty()) return;
 
         FirebaseCompany.Gemini.Quarter quarter = new FirebaseCompany.Gemini.Quarter();
+        quarter.setEnding_month(toEndingMonth(period.getEndingMonth()));
         quarter.setReport_date_this_quarter(toString(period.getReportDate()));
         quarter.setReported_shares(toString(period.getShares()));
         quarter.setPrice_min(toString(period.getPriceLow()));

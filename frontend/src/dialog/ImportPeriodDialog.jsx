@@ -11,6 +11,12 @@ import {
 } from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {DialogTextField} from "./component/DialogTextField";
+import {
+    endingMonthWarning,
+    periodNameError,
+    periodNameWarning,
+    reportDateError,
+} from "../service/PeriodService";
 import {DialogDatePicker} from "./component/DialogDatePicker";
 import {formatError} from "../service/FormattingService";
 import {backend} from "../properties";
@@ -22,7 +28,8 @@ import {
 } from "./component/PeriodFinancialFields";
 
 export const ImportPeriodDialog = props => {
-    const {company, periods = [], open, handleClose, triggerRefresh} = props
+    const {company, periods = [], existingPeriods = [], open, handleClose, triggerRefresh} = props
+    const latestPeriod = existingPeriods[0]
 
     const [period, setPeriod] = useState(null)
     const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}, alphaVantage: {}})
@@ -53,6 +60,14 @@ export const ImportPeriodDialog = props => {
             reportDate: data.reportDate ?? "",
             isReported: data.isReported,
         }
+    }
+
+    function nameError() {
+        return periodNameError(period?.name ?? "", existingPeriods)
+    }
+
+    function reportDateValidation() {
+        return period?.isReported ? reportDateError(period.reportDate, period.endingMonth) : ""
     }
 
     function createPeriod() {
@@ -138,10 +153,9 @@ export const ImportPeriodDialog = props => {
                                 id="trader-period-name"
                                 value={period.name}
                                 label="Name"
-                                onChange={event => {setPeriod(previous => ({...previous, name: event.target.value}));setAlert(null)}}
-                                validate={() => period.name.length !== 4
-                                    ? "exactly 4 symbols, e.g. 25FY, 25Q1, ..."
-                                    : ""}
+                                disabled
+                                validate={nameError}
+                                warning={periodNameWarning(period.name, latestPeriod)}
                             />
                             <DialogDatePicker
                                 id="trader-period-end-month"
@@ -149,6 +163,7 @@ export const ImportPeriodDialog = props => {
                                 value={period.endingMonth}
                                 label="Ending Month"
                                 onChange={event => {setPeriod(previous => ({...previous, endingMonth: event.target.value}));setAlert(null)}}
+                                warning={endingMonthWarning(period.name, period.endingMonth, latestPeriod)}
                             />
                             {period.isReported &&
                                 <DialogDatePicker
@@ -156,6 +171,7 @@ export const ImportPeriodDialog = props => {
                                     value={period.reportDate}
                                     label="Report Date"
                                     onChange={event => {setPeriod(previous => ({...previous, reportDate: event.target.value}));setAlert(null)}}
+                                    validate={reportDateValidation}
                                 />
                             }
                         </Box>

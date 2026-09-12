@@ -2,7 +2,10 @@ import {TextField} from "@mui/material";
 import React from "react";
 
 
-export const DialogDatePicker = ({value, validate, slotProps, ...props}) => {
+export const DialogDatePicker = ({value, validate, warning, slotProps, ...props}) => {
+    const validation = validate ? validate() : "";
+    const showWarning = validation === "" && Boolean(warning);
+
     return (
         <TextField
             required
@@ -18,9 +21,13 @@ export const DialogDatePicker = ({value, validate, slotProps, ...props}) => {
                     ...slotProps?.inputLabel,
                     shrink: true,
                 },
+                ...(showWarning ? {formHelperText: {sx: {
+                    color: "warning.main",
+                    "&.Mui-disabled": {color: "warning.main"},
+                }}} : {}),
             }}
-            error={validate ? validate() !== "" : value === ""}
-            helperText={validate ? validate() : ""}
+            error={validate ? validation !== "" : value === ""}
+            helperText={validation || warning || ""}
         />
     )
 }

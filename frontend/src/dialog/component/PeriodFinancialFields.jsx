@@ -130,6 +130,15 @@ const FINANCIAL_FIELDS = [
     },
 ]
 
+export const roundedSuggestion = (value, decimals) => {
+    if (value === null || value === undefined || value === "") return value
+
+    const number = Number(value)
+    if (!Number.isFinite(number) || !Number.isInteger(decimals)) return value
+
+    return String(Number(number.toFixed(decimals)))
+}
+
 const SourceSuggestion = ({source, fieldLabel, value, apply}) => {
     const hasValue = value !== null && value !== undefined && value !== ""
 
@@ -151,9 +160,12 @@ const SourceSuggestion = ({source, fieldLabel, value, apply}) => {
 }
 
 const FinancialField = ({field, values, setValues, suggestions, setSuggestions, clearAlert, showSuggestions}) => {
+    function suggestionValue(source) {
+        return roundedSuggestion(suggestions[source]?.[field.key], field.decimalConstraint)
+    }
+
     function applySuggestion(source) {
-        const value = suggestions[source]?.[field.key]
-        setValues(previous => ({...previous, [field.key]: value}))
+        setValues(previous => ({...previous, [field.key]: suggestionValue(source)}))
         clearAlert()
         setSuggestions(previous => ({
             ...previous,
@@ -189,19 +201,19 @@ const FinancialField = ({field, values, setValues, suggestions, setSuggestions, 
                     <SourceSuggestion
                         source="firebase"
                         fieldLabel={field.label}
-                        value={suggestions.firebase?.[field.key]}
+                        value={suggestionValue("firebase")}
                         apply={() => applySuggestion("firebase")}
                     />
                     <SourceSuggestion
                         source="polygon"
                         fieldLabel={field.label}
-                        value={suggestions.polygon?.[field.key]}
+                        value={suggestionValue("polygon")}
                         apply={() => applySuggestion("polygon")}
                     />
                     <SourceSuggestion
                         source="alphaVantage"
                         fieldLabel={field.label}
-                        value={suggestions.alphaVantage?.[field.key]}
+                        value={suggestionValue("alphaVantage")}
                         apply={() => applySuggestion("alphaVantage")}
                     />
                 </>

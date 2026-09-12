@@ -76,6 +76,51 @@ class PeriodEndpointsTest
     }
 
     @Test
+    void create_duplicateName()
+    {
+        Long companyId = 1565L;
+        String name = periodDao.list(companyId).getFirst().getName().toString();
+
+        PeriodCreateDto dto = new PeriodCreateDto();
+        dto.setCompanyId(companyId);
+        dto.setName(name);
+        dto.setEndingMonth("2015-10");
+
+        int initialCount = periodDao.list(companyId).size();
+
+        Assert.post400(
+                path,
+                dto,
+                "period '" + name + "' already exists for company with id '" + companyId + "'");
+
+        assertThat(periodDao.list(companyId).size(), is(initialCount));
+    }
+
+    @Test
+    void create_reportDateNotAfterEndingMonth()
+    {
+        Long companyId = 1565L;
+
+        PeriodCreateDto dto = new PeriodCreateDto();
+        dto.setCompanyId(companyId);
+        dto.setName("14Q1");
+        dto.setEndingMonth("2014-03");
+        int initialCount = periodDao.list(companyId).size();
+
+        dto.setReportDate("2014-03-31");
+        Assert.post400(path, dto, "report date '2014-03-31' must be after the ending month '2014-03'");
+
+        dto.setReportDate("2014-02-15");
+        Assert.post400(path, dto, "report date '2014-02-15' must be after the ending month '2014-03'");
+
+        assertThat(periodDao.list(companyId).size(), is(initialCount));
+
+        dto.setReportDate("2014-04-01");
+        Assert.post201(path, dto);
+        assertThat(periodDao.list(companyId).size(), is(initialCount + 1));
+    }
+
+    @Test
     void create_invalidParameters()
     {
         Long validCompanyId = 2287L;
@@ -712,7 +757,7 @@ class PeriodEndpointsTest
 
         PeriodUpdateFinancialDto dto = new PeriodUpdateFinancialDto();
         dto.setId(id);
-        dto.setReportDate("2020-12-15");
+        dto.setReportDate("2025-04-15");
         dto.setShares("12345");
         dto.setRevenue("22.5");
         dto.setNetIncome("5");

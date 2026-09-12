@@ -91,7 +91,7 @@ function createImportData(overrides = {}) {
     return {
         name: "24Q1",
         endingMonth: "2024-03",
-        reportDate: "2024-02-15",
+        reportDate: "2024-04-15",
         isReported: true,
         firebase: {
             shares: "11",
@@ -164,9 +164,12 @@ describe("ImportPeriodDialog", () => {
             "/api/research/company-1/import/period/24Q1"
         ));
         expect(await screen.findByLabelText("Name")).toHaveValue("24Q1");
+        expect(screen.getByLabelText("Name")).toBeDisabled();
+        expect(screen.getByLabelText("Ending Month")).not.toBeDisabled();
+        expect(screen.getByLabelText("Report Date")).not.toBeDisabled();
         expect(screen.getByRole("heading", {name: "Import Period 24Q1"})).toBeInTheDocument();
         expect(screen.getByLabelText("Ending Month")).toHaveValue("2024-03");
-        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
+        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-04-15");
         expect(screen.getByText("Gemini")).toBeInTheDocument();
         expect(screen.getByText("Polygon.io")).toBeInTheDocument();
         expect(screen.getByText("Alpha Vantage")).toBeInTheDocument();
@@ -205,7 +208,7 @@ describe("ImportPeriodDialog", () => {
             name: "24Q1",
             isReported: true,
             endingMonth: "2024-03",
-            reportDate: "2024-02-15",
+            reportDate: "2024-04-15",
             shares: "10",
             revenue: "20",
             grossProfit: "30",
@@ -257,7 +260,7 @@ describe("ImportPeriodDialog", () => {
             name: "24Q1",
             isReported: true,
             endingMonth: "2024-03",
-            reportDate: "2024-02-15",
+            reportDate: "2024-04-15",
             shares: "10",
             revenue: "20",
             netIncome: "5",

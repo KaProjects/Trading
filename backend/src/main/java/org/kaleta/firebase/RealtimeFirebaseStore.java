@@ -167,6 +167,7 @@ public class RealtimeFirebaseStore implements FirebaseStore
     public void updateQuarter(String ticker, String quarterId, FirebaseCompany.Gemini.Quarter quarter)
     {
         Map<String, Object> values = new LinkedHashMap<>();
+        values.put("ending_month", quarter.getEnding_month());
         values.put("report_date_this_quarter", quarter.getReport_date_this_quarter());
         values.put("reported_shares", quarter.getReported_shares());
         values.put("price_min", quarter.getPrice_min());
@@ -185,6 +186,16 @@ public class RealtimeFirebaseStore implements FirebaseStore
                 .child(FirebasePath.QUARTERS)
                 .child(quarterId)
                 .updateChildrenAsync(values);
+    }
+
+    @Override
+    public void updateQuarterEndingMonth(String ticker, String quarterId, String endingMonth)
+    {
+        company(ticker)
+                .child(FirebasePath.GEMINI)
+                .child(FirebasePath.QUARTERS)
+                .child(quarterId)
+                .updateChildrenAsync(Map.of("ending_month", endingMonth));
     }
 
     @Override

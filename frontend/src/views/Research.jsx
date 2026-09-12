@@ -648,6 +648,7 @@ export const Research = props => {
                                                 handleClose={() => setOpenImportPeriodDialog(false)}
                                                 company={props.companySelectorValue}
                                                 periods={data.importablePeriods}
+                                                existingPeriods={data.periods}
                                                 triggerRefresh={triggerRefresh}
                                             />
                                         </>
@@ -660,6 +661,7 @@ export const Research = props => {
                                         handleClose={() => setOpenAddPeriodDialog(false)}
                                         triggerRefresh={triggerRefresh}
                                         companyId={props.companySelectorValue.id}
+                                        periods={data.periods}
                                     />
                                 </Box>
                             </Box>
@@ -751,6 +753,7 @@ export const Research = props => {
                                             <Period
                                                 period={period}
                                                 previousPeriod={data.periods[narrowPeriodIndex + 1]}
+                                                isLatest={narrowPeriodIndex === 0}
                                                 currency={data.company.currency}
                                                 setAlert={setAlert}
                                                 openDialog={() => setOpenAddFinancialDialog(period)}
@@ -770,6 +773,7 @@ export const Research = props => {
                                             key={period.id}
                                             period={period}
                                             previousPeriod={data.periods[index + 1]}
+                                            isLatest={index === 0}
                                             currency={data.company.currency}
                                             setAlert={setAlert}
                                             openDialog={() => setOpenAddFinancialDialog(period)}

@@ -88,7 +88,7 @@ public class Generator
         period.setPriceHigh(randomBigDecimal(new BigDecimal(999999), 4));
         period.setPriceLow(randomBigDecimal(period.getPriceHigh(), 4));
         if (reported) {
-            period.setReportDate(Date.valueOf(randomDate(name.getYear().getValue())));
+            period.setReportDate(Date.valueOf(endingMonth.plusMonths(1).atDay(RANDOM.nextInt(28) + 1)));
             period.setRevenue(randomBigDecimal(new BigDecimal(999999), 2));
             period.setGrossProfit(randomBigDecimal(period.getRevenue(), 2));
             period.setOperatingIncome(randomBigDecimal(period.getGrossProfit(), 2));

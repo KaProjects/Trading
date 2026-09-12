@@ -2,8 +2,9 @@ import {TextField} from "@mui/material";
 import React from "react";
 
 
-export const DialogTextField = ({validate, helperText, showValidationError = true, ...props}) => {
+export const DialogTextField = ({validate, warning, helperText, showValidationError = true, ...props}) => {
     const validation = validate ? validate() : "";
+    const showWarning = validation === "" && Boolean(warning);
 
     return (
         <TextField
@@ -13,7 +14,13 @@ export const DialogTextField = ({validate, helperText, showValidationError = tru
             variant="standard"
             {...props}
             error={showValidationError && validation !== ""}
-            helperText={helperText ?? validation}
+            helperText={helperText ?? (validation || warning || "")}
+            slotProps={showWarning
+                ? {formHelperText: {sx: {
+                    color: "warning.main",
+                    "&.Mui-disabled": {color: "warning.main"},
+                }}}
+                : undefined}
         />
     )
 }

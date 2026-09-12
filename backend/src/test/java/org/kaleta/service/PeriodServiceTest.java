@@ -230,13 +230,14 @@ public class PeriodServiceTest
         dto.setEndingMonth("2025-10-10");
         updateAndAssertPeriod(dto, period, DateTimeParseException.class);
         dto.setEndingMonth("2025-10");
+        dto.setReportDate("2025-11-15");
         updateAndAssertPeriod(dto, period, null);
 
         invalidDates().forEach(invalidDate -> {
             dto.setReportDate(invalidDate);
             updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
-        dto.setReportDate(Generator.randomDate(2025));
+        dto.setReportDate("2025-11-15");
         updateAndAssertPeriod(dto, period, null);
 
         invalidBigDecimals().forEach(invalidBigDecimal -> {
@@ -334,7 +335,7 @@ public class PeriodServiceTest
         updateAndAssertPeriod(dto, period, InvalidInputException.class);
 
         dto.setId(period.getId());
-        dto.setReportDate(Generator.randomDate(2025));
+        dto.setReportDate("2025-11-15");
         dto.setShares(String.valueOf(Generator.randomBigDecimal(999999, 2)));
         dto.setPriceLow(String.valueOf(Generator.randomBigDecimal(999999, 4)));
         dto.setPriceHigh(String.valueOf(Generator.randomBigDecimal(999999, 4)));
@@ -352,7 +353,7 @@ public class PeriodServiceTest
             dto.setReportDate(invalidDate);
             updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
         });
-        dto.setReportDate(Generator.randomDate(2025));
+        dto.setReportDate("2025-11-15");
         updateAndAssertPeriod(dto, period, null);
 
         invalidBigDecimals().forEach(invalidBigDecimal -> {

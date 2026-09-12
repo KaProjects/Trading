@@ -3,6 +3,7 @@ import React, {useState} from "react";
 import {Badge, Box, Button, Stack, Typography} from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import {formatDate, formatDecimals, formatError, formatMillions, formatMillionsRounded, formatPercent, formatPeriodName} from "../../service/FormattingService";
+import {nextPeriod} from "../../service/PeriodService";
 import axios from "axios";
 import {backend} from "../../properties";
 import {ContentEditor} from "./ContentEditor";
@@ -15,42 +16,26 @@ import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
 
-const QUARTER_MONTHS = 3
-
-function periodType(name) {
-    if (typeof name === "string") return name.slice(-2)
-    return name?.type
-}
-
-function isQuarter(name) {
-    return /^Q[1-4]$/.test(periodType(name) ?? "")
-}
-
-function endingMonthIndex(endingMonth) {
-    if (typeof endingMonth !== "string" || endingMonth.length < 7) return null
-    const year = Number(endingMonth.substring(0, 4))
-    const month = Number(endingMonth.substring(5, 7))
-    return Number.isInteger(year) && Number.isInteger(month) ? year * 12 + month : null
-}
-
 export function hasUnexpectedEndingMonth(period, previousPeriod) {
-    if (!isQuarter(period?.name) || !isQuarter(previousPeriod?.name)) return false
+    const following = nextPeriod(previousPeriod)
+    if (!following?.endingMonth) return false
 
-    const current = endingMonthIndex(period?.endingMonth)
-    const previous = endingMonthIndex(previousPeriod?.endingMonth)
-    if (current === null || previous === null) return false
+    const name = formatPeriodName(period?.name)
+        || (typeof period?.name === "string" ? period.name : "")
+    if (name !== following.name) return false
 
-    return current - previous !== QUARTER_MONTHS
+    return typeof period?.endingMonth === "string" && period.endingMonth !== following.endingMonth
 }
 
-export const Period = ({period, previousPeriod, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
+export const Period = ({period, previousPeriod, isLatest = true, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
 
     const [contentEditSignal, setContentEditSignal] = useState(0)
     const reportLabel = period.financial ? "reported: " : "report: "
     const reportValue = period.financial
         ? formatDate(period.reportDate)
         : (period.expectedReportDate ? formatDate(period.expectedReportDate) : "?")
-    const reportedInFirebaseOnly = !period.financial && period.reportedInFirebase
+    const reportPending = !period.financial && (period.reportedInFirebase || !isLatest)
+    const reportDateUnknown = reportValue === "?"
     const endingMonthMismatch = hasUnexpectedEndingMonth(period, previousPeriod)
 
     function formatEndingMonth(endingMonth) {
@@ -134,14 +119,19 @@ export const Period = ({period, previousPeriod, currency, setAlert, openDialog, 
                         </Box>
                         : formatEndingMonth(period.endingMonth)}
                     {" - "}
-                    {reportedInFirebaseOnly
+                    {reportPending
                         ? <Box component="span" sx={{color: "error.dark"}}>{reportLabel}</Box>
                         : reportLabel}
-                    {reportedInFirebaseOnly
-                        ? <Box component="span" sx={{color: "error.dark", textDecoration: "underline"}}>{reportValue}</Box>
+                    {reportPending
+                        ? (!reportDateUnknown &&
+                            <Box component="span" sx={{color: "error.dark", textDecoration: "underline"}}>
+                                {reportValue}
+                            </Box>)
                         : reportValue}
-                    {reportedInFirebaseOnly &&
-                        <Box component="span" sx={{fontWeight: 900, color: "error.dark"}}> !</Box>
+                    {reportPending &&
+                        <Box component="span" sx={{fontWeight: 900, color: "error.dark"}}>
+                            {reportDateUnknown ? "!" : " !"}
+                        </Box>
                     }
                 </>
             }

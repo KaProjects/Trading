@@ -194,6 +194,7 @@ public class InMemoryFirebaseStore implements FirebaseStore
         FirebaseCompany.Gemini.Quarter quarter = findQuarter(ticker, quarterId).orElse(null);
         if (quarter == null) return;
 
+        quarter.setEnding_month(update.getEnding_month());
         quarter.setReport_date_this_quarter(update.getReport_date_this_quarter());
         quarter.setReported_shares(update.getReported_shares());
         quarter.setPrice_min(update.getPrice_min());
@@ -206,6 +207,12 @@ public class InMemoryFirebaseStore implements FirebaseStore
         quarter.setReported_eps(update.getReported_eps());
         quarter.setReported_capex(update.getReported_capex());
         quarter.setReported_free_cash_flow(update.getReported_free_cash_flow());
+    }
+
+    @Override
+    public void updateQuarterEndingMonth(String ticker, String quarterId, String endingMonth)
+    {
+        findQuarter(ticker, quarterId).ifPresent(quarter -> quarter.setEnding_month(endingMonth));
     }
 
     @Override

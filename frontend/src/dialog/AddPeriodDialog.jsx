@@ -5,10 +5,12 @@ import axios from "axios";
 import {formatError} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
+import {endingMonthWarning, nextPeriod, periodNameError, periodNameWarning} from "../service/PeriodService";
 
 
 export const AddPeriodDialog = props => {
-    const {companyId, open, handleClose} = props
+    const {companyId, open, handleClose, periods = []} = props
+    const latestPeriod = periods[0]
     const [alert, setAlert] = useState(null)
     const [name, setName] = useState("")
     const [endingMonth, setEndingMonth] = useState("")
@@ -16,12 +18,17 @@ export const AddPeriodDialog = props => {
 
     useEffect(() => {
         if (open) {
-            setName("")
-            setEndingMonth("")
+            const following = nextPeriod(latestPeriod)
+            setName(following?.name ?? "")
+            setEndingMonth(following?.endingMonth ?? "")
             setSubmitting(false)
         }
         // eslint-disable-next-line
-    }, [open])
+    }, [open, latestPeriod])
+
+    function nameError() {
+        return periodNameError(name, periods)
+    }
 
     function createPeriod() {
         if (submitting) return
@@ -49,7 +56,8 @@ export const AddPeriodDialog = props => {
                     value={name}
                     label="Name"
                     onChange={(e) => {setName(e.target.value);setAlert(null);}}
-                    validate={() => name.length !== 4 ? "exactly 4 symbols, e.g. 25FY, 25Q1, ..." : ""}
+                    validate={nameError}
+                    warning={periodNameWarning(name, latestPeriod)}
                 />
                 <DialogDatePicker
                     id="trader-period-end-month"
@@ -57,6 +65,7 @@ export const AddPeriodDialog = props => {
                     value={endingMonth}
                     label="Ending Month"
                     onChange={(e) => {setEndingMonth(e.target.value);setAlert(null);}}
+                    warning={endingMonthWarning(name, endingMonth, latestPeriod)}
                 />
             </DialogContent>
             {alert &&
