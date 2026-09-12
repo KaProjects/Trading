@@ -10,13 +10,13 @@ const DEFAULT_VALUE = [{type: 'paragraph', children: [{ text: '' }],}]
 
 export const defaultContent = () => structuredClone(DEFAULT_VALUE);
 
-export const ContentEditor = ({content, update, style, locked, editTrigger}) => {
+export const ContentEditor = ({content, update, style, locked, editTrigger, autoSave = true, alwaysEditing = false, onValueChange}) => {
 
     const renderElement = useCallback(props => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const editor = useMemo(() => withHistory(withReact(createEditor())), [])
 
-    const [editing, setEditing] = useState(false)
+    const [editing, setEditing] = useState(alwaysEditing)
     const [unlocked, setUnlocked] = useState(!locked)
     const [value, setValue] = useState(defaultContent())
     const [error, setError] = useState(null)
@@ -36,6 +36,8 @@ export const ContentEditor = ({content, update, style, locked, editTrigger}) => 
 
     async function handleUnFocus()
     {
+        if (!autoSave) return
+
         if (value !== savedContent) {
             const error = await update(value)
             if (error) {
@@ -77,7 +79,10 @@ export const ContentEditor = ({content, update, style, locked, editTrigger}) => 
                onChange={value => {
                    setError(null)
                    const isAstChange = editor.operations.some(op => 'set_selection' !== op.type0)
-                   if (isAstChange) setValue(value)
+                   if (isAstChange) {
+                       setValue(value)
+                       onValueChange?.(value)
+                   }
                }}
         >
             {editing &&
@@ -103,7 +108,7 @@ export const ContentEditor = ({content, update, style, locked, editTrigger}) => 
                 renderLeaf={renderLeaf}
                 placeholder="write a content"
                 style={{...style, paddingBottom: editing ? "10px" : "0"}}
-                readOnly={locked && !unlocked}
+                readOnly={locked && !unlocked && !alwaysEditing}
                 onFocus={() => setEditing(true)}
                 onBlur={handleUnFocus}
                 onKeyDown={e => {

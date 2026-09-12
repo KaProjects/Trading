@@ -12,6 +12,15 @@ const ttm = {
     freeCashFlow: {value: 120, margin: 8},
 };
 
+const indicators = {
+    marketCapToRevenues: 3.456,
+    marketCapToGrossProfit: 12.34,
+    marketCapToOperatingIncome: 45.67,
+    marketCapToNetIncome: 123.4,
+    marketCapToFreeCashFlow: 9.87,
+    dividendYield: 2.5,
+};
+
 const completeQuarterFinancials = [
     {period: {year: "2025", type: "Q4"}, dividend: 7, capex: {value: 14}, freeCashFlow: {value: 32}},
     {period: {year: "2025", type: "Q3"}, dividend: 6, capex: {value: 13}, freeCashFlow: {value: 31}},
@@ -81,6 +90,26 @@ describe("PeriodFinancials", () => {
         expect(screen.getByText("net income")).toBeInTheDocument();
     });
 
+    test("omits profit values and the dividend from the summary when they are zero", () => {
+        render(<PeriodFinancials
+            ttm={{
+                ...ttm,
+                grossProfit: {value: 0, margin: 0},
+                operatingIncome: {value: 0, margin: 0},
+                dividend: 0,
+                dividendMargin: 0,
+            }}
+            financials={completeQuarterFinancials}
+            onOpen={jest.fn()}
+        />);
+
+        expect(screen.queryByText("gross profit")).not.toBeInTheDocument();
+        expect(screen.queryByText("op. income")).not.toBeInTheDocument();
+        expect(screen.queryByText("dividend")).not.toBeInTheDocument();
+        expect(screen.getByText("revenue")).toBeInTheDocument();
+        expect(screen.getByText("net income")).toBeInTheDocument();
+    });
+
     test.each([
         ["fewer than four quarters", completeQuarterFinancials.slice(0, 3)],
         ["a gap in the latest quarters", [
@@ -124,6 +153,66 @@ describe("PeriodFinancials", () => {
         expect(screen.getByText("(2.4%)")).toBeInTheDocument();
         expect(screen.getByText("(8%)")).toBeInTheDocument();
         expect(screen.getByText("(11%)")).toBeInTheDocument();
+    });
+
+    test("shows the price indicators below the summary values", () => {
+        render(<PeriodFinancials
+            ttm={ttm}
+            financials={completeQuarterFinancials}
+            indicators={indicators}
+            onOpen={jest.fn()}
+        />);
+
+        expect(screen.getByText("3.46x")).toBeInTheDocument();
+        expect(screen.getByText("12.3x")).toBeInTheDocument();
+        expect(screen.getByText("45.7x")).toBeInTheDocument();
+        expect(screen.getByText("123x")).toBeInTheDocument();
+        expect(screen.getByText("9.87x")).toBeInTheDocument();
+        expect(screen.getByText("2.5%")).toBeInTheDocument();
+        expect(screen.getByText("capex").parentElement).toHaveTextContent(/^\(3%\)50Mcapex$/);
+    });
+
+    test("omits price indicators that are not set", () => {
+        render(<PeriodFinancials
+            ttm={ttm}
+            financials={completeQuarterFinancials}
+            indicators={{
+                marketCapToRevenues: 3.456,
+                marketCapToGrossProfit: null,
+                marketCapToOperatingIncome: undefined,
+                marketCapToNetIncome: 0,
+                marketCapToFreeCashFlow: 9.87,
+                dividendYield: 0,
+            }}
+            onOpen={jest.fn()}
+        />);
+
+        expect(screen.getByText("3.46x")).toBeInTheDocument();
+        expect(screen.getByText("9.87x")).toBeInTheDocument();
+        expect(screen.getByText("gross profit").parentElement).toHaveTextContent(/^\(40%\)600Mgross profit$/);
+        expect(screen.getByText("op. income").parentElement).toHaveTextContent(/^\(20%\)300Mop. income$/);
+        expect(screen.getByText("net income").parentElement).toHaveTextContent(/^\(10%\)150Mnet income$/);
+        expect(screen.getByText("dividend").parentElement).toHaveTextContent(/^\(2%\)25Mdividend$/);
+    });
+
+    test("shows the market cap at the right edge of the summary", () => {
+        render(<PeriodFinancials
+            ttm={ttm}
+            financials={completeQuarterFinancials}
+            indicators={indicators}
+            marketCap={4234}
+            onOpen={jest.fn()}
+        />);
+
+        const label = screen.getByText("m. cap.");
+        expect(label.parentElement).toHaveTextContent(/^m. cap.4.23B$/);
+        expect(label.parentElement).toHaveStyle("margin-left: auto");
+    });
+
+    test("omits the market cap when it is not set", () => {
+        render(<PeriodFinancials ttm={ttm} financials={completeQuarterFinancials} onOpen={jest.fn()}/>);
+
+        expect(screen.queryByText("m. cap.")).not.toBeInTheDocument();
     });
 
     test("renders the detailed financial table separately", () => {

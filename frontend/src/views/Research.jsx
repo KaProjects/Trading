@@ -19,7 +19,7 @@ import {backend} from "../properties";
 import axios from "axios";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import {ReactComponent as DeleteIcon} from "../assets/icons/delete.svg";
-import {formatDecimals, formatError, formatMillions, formatPercent} from "../service/FormattingService";
+import {formatDecimals, formatError} from "../service/FormattingService";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import {AssetBox} from "./component/AssetBox";
 import {DateTime} from "./component/DateTime";
@@ -48,7 +48,7 @@ import {AddTagDialog} from "../dialog/AddTagDialog";
 import {useLocation} from "react-router-dom";
 import {useCloseOnNavigation} from "../service/NavigationService";
 import {TodoList} from "./component/TodoList";
-import {isInsideOverlay} from "./component/useSwipeNavigation";
+import {horizontalScrollAncestor, isInsideOverlay} from "./component/useSwipeNavigation";
 import {LatestNewsSentiment} from "./component/LatestNewsSentiment";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
@@ -60,14 +60,15 @@ const researchCardStyle = {
     boxShadow: 1,
     borderRadius: 2,
     minWidth: {xs: 0, sm: 700},
-    width: {xs: "calc(100% + 10px)", sm: 800},
-    marginLeft: {xs: "-5px", sm: 0},
-    marginRight: {xs: "-5px", sm: 0},
+    width: {xs: "calc(100% + 16px)", sm: 800},
+    marginLeft: {xs: "-8px", sm: 0},
+    marginRight: {xs: "-8px", sm: 0},
     maxHeight: {
-        xs: "calc(100dvh - var(--main-bar-height, 48px) - 8px)",
+        xs: "calc(100dvh - var(--main-bar-height, 48px))",
         sm: "calc(100dvh - var(--main-bar-height, 48px) - 16px)",
     },
-    height: {xs: "calc(100dvh - var(--main-bar-height, 48px) - 8px)", sm: "auto"},
+    height: {xs: "calc(100dvh - var(--main-bar-height, 48px))", sm: "auto"},
+    marginBottom: {xs: "-8px", sm: 0},
     flexDirection: "column",
     overflow: "hidden",
 }
@@ -95,7 +96,7 @@ const researchCardContentStyle = {
     paddingTop: {xs: "1px", sm: 2},
     paddingLeft: {xs: 0, sm: 2},
     paddingRight: {xs: 0, sm: 2},
-    "&:last-child": {paddingBottom: 2},
+    "&:last-child": {paddingBottom: {xs: 0, sm: 2}},
 }
 
 const researchCardRowsStyle = {
@@ -105,7 +106,7 @@ const researchCardRowsStyle = {
     paddingTop: "5px",
     overflowY: "auto",
     overscrollBehavior: "contain",
-    "& > .mainContainer:first-of-type": {marginTop: 0},
+    "& > .mainContainer:first-of-type, & > *:first-of-type > .mainContainer:first-of-type": {marginTop: 0},
 }
 
 export const Research = props => {
@@ -166,7 +167,7 @@ export const Research = props => {
         }
 
         const touch = event.touches[0]
-        touchStart.current = {x: touch.clientX, y: touch.clientY}
+        touchStart.current = {x: touch.clientX, y: touch.clientY, target: event.target}
     }
 
     function handleTouchEnd(event) {
@@ -179,6 +180,7 @@ export const Research = props => {
         const deltaY = touch.clientY - start.y
         const SWIPE_THRESHOLD = 60
         if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return
+        if (horizontalScrollAncestor(start.target, event.currentTarget)) return
 
         if (deltaX < 0) {
             props.setResearchTabsIndex?.(Math.min(researchTabsIndex + 1, RESEARCH_TAB.todo))
@@ -196,7 +198,7 @@ export const Research = props => {
         }
 
         const touch = event.touches[0]
-        periodTouchStart.current = {x: touch.clientX, y: touch.clientY}
+        periodTouchStart.current = {x: touch.clientX, y: touch.clientY, target: event.target}
     }
 
     function handlePeriodTouchEnd(event, periodCount) {
@@ -210,7 +212,7 @@ export const Research = props => {
         const SWIPE_THRESHOLD = 60
         if (Math.abs(deltaY) < SWIPE_THRESHOLD || Math.abs(deltaY) < Math.abs(deltaX)) return
 
-        const scrollBox = event.currentTarget.querySelector("[data-period-scroll]")
+        const scrollBox = start.target?.closest?.("[data-period-scroll]")
         if (scrollBox) {
             const atBottom = scrollBox.scrollTop + scrollBox.clientHeight >= scrollBox.scrollHeight - 1
             const atTop = scrollBox.scrollTop <= 1
@@ -356,7 +358,12 @@ export const Research = props => {
                 hidden={loading}
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
-                sx={{display: loading ? "none" : "block", position: "relative", minHeight: "1px"}}
+                sx={{
+                    display: loading ? "none" : "block",
+                    position: "relative",
+                    minHeight: "1px",
+                    flexGrow: 1,
+                }}
             >
                 <TodoList
                     {...props}
@@ -620,6 +627,8 @@ export const Research = props => {
                                         <PeriodFinancials
                                             ttm={data.ttm}
                                             financials={data.financials}
+                                            indicators={data.indicators?.ttm}
+                                            marketCap={data.indicators?.marketCap}
                                             onOpen={() => setOpenFinancialsDialog(true)}
                                         />
                                     </Box>
@@ -765,6 +774,8 @@ export const Research = props => {
                                                 period={period}
                                                 previousPeriod={data.periods[narrowPeriodIndex + 1]}
                                                 isLatest={narrowPeriodIndex === 0}
+                                                periodPosition={narrowPeriodIndex + 1}
+                                                periodCount={data.periods.length}
                                                 currency={data.company.currency}
                                                 setAlert={setAlert}
                                                 openDialog={() => setOpenAddFinancialDialog(period)}
@@ -816,6 +827,7 @@ export const Research = props => {
 
                                 {data.latest &&
                                 <Box sx={{
+                                    [`@media (max-width:${SWIPE_NAV_BREAKPOINT}px)`]: {display: "none"},
                                     [`@media (min-width:${RESEARCH_SPLIT_BREAKPOINT + 1}px)`]: {display: "none"},
                                 }}>
                                     <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
@@ -838,21 +850,6 @@ export const Research = props => {
                                     targetStats={data.periods[0]?.targetStats}
                                 />
                             </Box>
-
-                            {data.indicators &&
-                                <Box sx={{paddingLeft: {xs: "5px", sm: 0}}}>
-                                    <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Market Cap: {data.company.currency}{formatMillions(data.indicators.marketCap)}</Box>
-                                    <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>Dividend Yield: {formatPercent(data.indicators.ttm.dividendYield)}</Box>
-
-                                    <Stack direction={"row"} spacing={2}>
-                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PS: {formatDecimals(data.indicators.ttm.marketCapToRevenues, 0, 2)}</Box>
-                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PG: {formatDecimals(data.indicators.ttm.marketCapToGrossProfit, 0, 2)}</Box>
-                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PO: {formatDecimals(data.indicators.ttm.marketCapToOperatingIncome, 0, 2)}</Box>
-                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PE: {formatDecimals(data.indicators.ttm.marketCapToNetIncome, 0, 2)}</Box>
-                                        <Box sx={{color: 'text.secondary', fontSize: 11, marginTop: "0px"}}>PCF: {formatDecimals(data.indicators.ttm.marketCapToFreeCashFlow, 0, 2)}</Box>
-                                    </Stack>
-                                </Box>
-                            }
 
                             {data.assets.assets.length > 0 &&
                                 <Stack

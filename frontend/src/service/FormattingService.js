@@ -21,7 +21,9 @@ export function formatMillions(millions) {
 
     const num = Number(millions);
 
-    if (Math.abs(num) >= 1000) {
+    if (Math.abs(num) >= 1000000) {
+        return formatDecimals(num / 1000000, 0, 2) + "T";
+    } else if (Math.abs(num) >= 1000) {
         return formatDecimals(num / 1000, 0, 2) + "B";
     } else {
         return formatDecimals(num, 0, 2) + "M";
@@ -35,12 +37,17 @@ export function formatMillionsRounded(millions) {
         return ""
     }
 
-    const useBillions = Math.abs(millions) >= 1000;
-    const value = useBillions ? millions / 1000 : millions;
+    const scale = Math.abs(millions) >= 1000000
+        ? {divisor: 1000000, suffix: "T"}
+        : Math.abs(millions) >= 1000
+            ? {divisor: 1000, suffix: "B"}
+            : {divisor: 1, suffix: "M"};
+
+    const value = millions / scale.divisor;
     const magnitude = Math.abs(value);
     const decimals = magnitude < 10 ? 2 : magnitude < 100 ? 1 : 0;
 
-    return formatDecimals(value, 0, decimals) + (useBillions ? "B" : "M");
+    return formatDecimals(value, 0, decimals) + scale.suffix;
 }
 
 export function formatTargetStats(stats) {

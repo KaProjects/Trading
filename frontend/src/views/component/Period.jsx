@@ -7,6 +7,7 @@ import {nextPeriod} from "../../service/PeriodService";
 import axios from "axios";
 import {backend} from "../../properties";
 import {ContentEditor} from "./ContentEditor";
+import {ContentEditorDialog} from "../../dialog/ContentEditorDialog";
 import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financials-plus.svg";
 import {ReactComponent as EpsEstimatesPlusIcon} from "../../assets/icons/estimates-plus-eps.svg";
 import {ReactComponent as RevenueEstimatesPlusIcon} from "../../assets/icons/estimates-plus-revenue.svg";
@@ -27,9 +28,12 @@ export function hasUnexpectedEndingMonth(period, previousPeriod) {
     return typeof period?.endingMonth === "string" && period.endingMonth !== following.endingMonth
 }
 
-export const Period = ({period, previousPeriod, isLatest = true, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
+export const Period = ({period, previousPeriod, isLatest = true, periodPosition, periodCount, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
 
     const [contentEditSignal, setContentEditSignal] = useState(0)
+    const [openContentEditor, setOpenContentEditor] = useState(false)
+    const [research, setResearch] = useState(period.research)
+    const [researchVersion, setResearchVersion] = useState(0)
     const reportLabel = period.financial ? "reported: " : "report: "
     const reportValue = period.financial
         ? formatDate(period.reportDate)
@@ -101,6 +105,15 @@ export const Period = ({period, previousPeriod, isLatest = true, currency, setAl
             })
     }
 
+    async function saveResearch(content) {
+        const error = await updateResearch(period.id, content)
+        if (error) return error
+
+        setResearch(JSON.stringify(content))
+        setResearchVersion(version => version + 1)
+        return null
+    }
+
     return (
         <BorderedSection
             title={
@@ -135,6 +148,7 @@ export const Period = ({period, previousPeriod, isLatest = true, currency, setAl
                     }
                 </>
             }
+            titleEnd={periodPosition && periodCount ? `${periodPosition} / ${periodCount}` : undefined}
             style={{color: 'text.primary'}}
             stretch={stretch}
             highlightTitle={stretch}
@@ -144,11 +158,12 @@ export const Period = ({period, previousPeriod, isLatest = true, currency, setAl
                 sx={stretch ? {flex: "1 1 auto", minHeight: 0, overflow: "auto"} : undefined}
             >
                 <ContentEditor
-                    content={period.research}
+                    key={researchVersion}
+                    content={research}
                     update={(value) => updateResearch(period.id, value)}
                     style={{margin: "5px 5px 10px 5px"}}
                     locked={stretch}
-                    editTrigger={contentEditSignal}
+                    editTrigger={stretch ? undefined : contentEditSignal}
                 />
             </Box>
 
@@ -173,7 +188,7 @@ export const Period = ({period, previousPeriod, isLatest = true, currency, setAl
                     </Typography>
                 </>
             }
-            {period.estimate &&
+            {!stretch && period.estimate &&
                 <>
                     <Typography data-testid="period-estimates" sx={{color: 'text.secondary', fontSize: 14}}>
                         {"Estimates: "}
@@ -196,7 +211,7 @@ export const Period = ({period, previousPeriod, isLatest = true, currency, setAl
                     </Box>
                 </>
             }
-            {period.revenueEstimate &&
+            {!stretch && period.revenueEstimate &&
                 <>
                     <Typography data-testid="period-revenue-estimates" sx={{color: 'text.secondary', fontSize: 14}}>
                         {"Revenues: "}
@@ -219,6 +234,12 @@ export const Period = ({period, previousPeriod, isLatest = true, currency, setAl
                     </Box>
                 </>
             }
+            <ContentEditorDialog
+                open={openContentEditor}
+                content={research}
+                handleClose={() => setOpenContentEditor(false)}
+                save={saveResearch}
+            />
             <PeriodTargetSummary stats={period.targetStats} currency={currency}/>
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
@@ -234,7 +255,7 @@ export const Period = ({period, previousPeriod, isLatest = true, currency, setAl
             >
                 {stretch &&
                     <Tooltip title="Edit Content" placement="left">
-                        <Button aria-label="Edit Content" onClick={() => setContentEditSignal(signal => signal + 1)}>
+                        <Button aria-label="Edit Content" onClick={() => setOpenContentEditor(true)}>
                             <EditIcon/>
                         </Button>
                     </Tooltip>

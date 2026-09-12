@@ -269,6 +269,27 @@ describe("Period", () => {
         expect(screen.queryByTestId("period-ending-month-warning")).not.toBeInTheDocument();
     });
 
+    test("hides the estimate lines in the stretched narrow view", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    estimate: {current: 1.62, next1: null, next2: null, next3: null},
+                    revenueEstimate: {current: 94320, next1: null, next2: null, next3: null},
+                }}
+                stretch
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.queryByTestId("period-estimates")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("period-revenue-estimates")).not.toBeInTheDocument();
+    });
+
     test("shows an error badge instead of an import count when availability cannot be checked", () => {
         render(
             <Period

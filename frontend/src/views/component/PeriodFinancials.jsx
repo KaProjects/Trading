@@ -13,6 +13,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import React from "react";
 import {ReactComponent as FinancialsIcon} from "../../assets/icons/financials.svg";
 import {
+    formatDecimals,
     formatMillions,
     formatMillionsRounded,
     formatPercent,
@@ -59,6 +60,19 @@ const latestCompletePeriods = financials => {
     return periods;
 };
 
+const isReportedValue = value => !isNotAValue(value) && Number(value) !== 0;
+
+const isIndicatorValue = value => Number.isFinite(Number(value)) && Number(value) !== 0;
+
+const formatIndicator = value => {
+    if (!isIndicatorValue(value)) return "";
+    const magnitude = Math.abs(Number(value));
+    const decimals = magnitude < 10 ? 2 : magnitude < 100 ? 1 : 0;
+    return formatDecimals(Number(value), 0, decimals) + "x";
+};
+
+const formatYieldIndicator = value => isIndicatorValue(value) ? formatPercent(value) : "";
+
 const hasCompleteValues = (periods, value) => periods.length > 0
     && periods.every(financial => !isNotAValue(value(financial)));
 
@@ -67,7 +81,7 @@ const formatSummaryMargin = margin => {
     return formatPercent(margin, false, decimals);
 };
 
-const FinancialSummaryItem = ({value, label, margin, first = false}) => {
+const FinancialSummaryItem = ({value, label, margin, indicator, first = false}) => {
     const formattedMargin = formatSummaryMargin(margin);
 
     return (
@@ -83,9 +97,28 @@ const FinancialSummaryItem = ({value, label, margin, first = false}) => {
                 fontSize: 11,
                 textAlign: "center",
             }}>{label}</Box>
+            {indicator &&
+                <Box sx={{color: "text.secondary", fontSize: 10, textAlign: "center"}}>{indicator}</Box>
+            }
         </Box>
     );
 };
+
+const MarketCapSummaryItem = ({value}) => (
+    <Box sx={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "flex-end",
+        marginLeft: "auto",
+        paddingLeft: "16px",
+        flexShrink: 0,
+    }}>
+        <Box sx={{display: {xs: "none", sm: "block"}, color: "text.secondary", fontSize: 11, textAlign: "center"}}>
+            m. cap.
+        </Box>
+        <Box sx={{color: "text.secondary", fontSize: 10, textAlign: "center"}}>{formatMillionsRounded(value)}</Box>
+    </Box>
+);
 
 const FinancialTableCell = ({value, margin, yoy, qoq, fontSize}) => {
     const formattedYoy = formatPercent(yoy, true, 0);
@@ -143,11 +176,11 @@ export const FinancialsTable = ({financials, fontSize = 14, scrollable = false})
     </TableContainer>
 );
 
-export const PeriodFinancials = ({ttm, financials = [], onOpen, sx}) => {
+export const PeriodFinancials = ({ttm, financials = [], indicators, marketCap, onOpen, sx}) => {
     if (!ttm) return null;
 
     const completePeriods = latestCompletePeriods(financials);
-    const showDividend = !isNotAValue(ttm.dividend)
+    const showDividend = isReportedValue(ttm.dividend)
         && hasCompleteValues(completePeriods, financial => financial.dividend);
     const showCapex = !isNotAValue(ttm.capex?.value)
         && hasCompleteValues(completePeriods, financial => financial.capex?.value);
@@ -186,22 +219,25 @@ export const PeriodFinancials = ({ttm, financials = [], onOpen, sx}) => {
                             alignItems="stretch"
                             sx={{width: "max-content", minWidth: "100%"}}
                         >
-                            <FinancialSummaryItem first value={ttm.revenue.value} label="revenue"/>
-                            {!isNotAValue(ttm.grossProfit?.value) &&
-                                <FinancialSummaryItem value={ttm.grossProfit.value} label="gross profit" margin={ttm.grossProfit.margin}/>
+                            <FinancialSummaryItem first value={ttm.revenue.value} label="revenue" indicator={formatIndicator(indicators?.marketCapToRevenues)}/>
+                            {isReportedValue(ttm.grossProfit?.value) &&
+                                <FinancialSummaryItem value={ttm.grossProfit.value} label="gross profit" margin={ttm.grossProfit.margin} indicator={formatIndicator(indicators?.marketCapToGrossProfit)}/>
                             }
-                            {!isNotAValue(ttm.operatingIncome?.value) &&
-                                <FinancialSummaryItem value={ttm.operatingIncome.value} label="op. income" margin={ttm.operatingIncome.margin}/>
+                            {isReportedValue(ttm.operatingIncome?.value) &&
+                                <FinancialSummaryItem value={ttm.operatingIncome.value} label="op. income" margin={ttm.operatingIncome.margin} indicator={formatIndicator(indicators?.marketCapToOperatingIncome)}/>
                             }
-                            <FinancialSummaryItem value={ttm.netIncome.value} label="net income" margin={ttm.netIncome.margin}/>
+                            <FinancialSummaryItem value={ttm.netIncome.value} label="net income" margin={ttm.netIncome.margin} indicator={formatIndicator(indicators?.marketCapToNetIncome)}/>
                             {showDividend &&
-                                <FinancialSummaryItem value={ttm.dividend} label="dividend" margin={ttm.dividendMargin}/>
+                                <FinancialSummaryItem value={ttm.dividend} label="dividend" margin={ttm.dividendMargin} indicator={formatYieldIndicator(indicators?.dividendYield)}/>
                             }
                             {showCapex &&
                                 <FinancialSummaryItem value={ttm.capex.value} label="capex" margin={ttm.capex.margin}/>
                             }
                             {showFreeCashFlow &&
-                                <FinancialSummaryItem value={ttm.freeCashFlow.value} label="fcf" margin={ttm.freeCashFlow.margin}/>
+                                <FinancialSummaryItem value={ttm.freeCashFlow.value} label="fcf" margin={ttm.freeCashFlow.margin} indicator={formatIndicator(indicators?.marketCapToFreeCashFlow)}/>
+                            }
+                            {!isNotAValue(marketCap) &&
+                                <MarketCapSummaryItem value={marketCap}/>
                             }
                         </Grid>
                     </Box>

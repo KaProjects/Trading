@@ -41,6 +41,8 @@ jest.mock("../component/PeriodFinancials", () => ({
         <button
             data-testid="period-financials"
             data-financials-count={props.financials?.length ?? 0}
+            data-net-income-multiple={String(props.indicators?.marketCapToNetIncome ?? "")}
+            data-market-cap={String(props.marketCap ?? "")}
             onClick={props.onOpen}
         >
             financial-overview
@@ -153,6 +155,8 @@ jest.mock("../component/Period", () => ({
     Period: ({period, openDialog, openEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed}) => (
         <div>
             <span>period:{period.id}</span>
+            <div data-period-scroll="true" data-testid={`period-content:${period.id}`}/>
+            <span data-testid={`period-header:${period.id}`}>header:{period.id}</span>
             <span>target-candidates:{period.id}:{targetCandidateCount}:{targetCandidateFailed ? "failed" : "ok"}</span>
             <button onClick={openDialog}>open-period-dialog:{period.id}</button>
             <button onClick={openEstimateDialog}>open-estimate-dialog:{period.id}</button>
@@ -310,9 +314,20 @@ describe("Research", () => {
 
     describe("swipe navigation on a narrow screen", () => {
         const originalInnerWidth = window.innerWidth;
+        const originalMatchMedia = window.matchMedia;
 
         beforeEach(() => {
             axios.get.mockResolvedValue({data: createResearchData()});
+            window.matchMedia = query => ({
+                media: query,
+                matches: /max-width/.test(query)
+                    && window.innerWidth <= Number(query.match(/(\d+)/)[1]),
+                addListener: () => {},
+                removeListener: () => {},
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                dispatchEvent: () => false,
+            });
         });
 
         function setInnerWidth(width) {
@@ -321,6 +336,7 @@ describe("Research", () => {
 
         afterEach(() => {
             setInnerWidth(originalInnerWidth);
+            window.matchMedia = originalMatchMedia;
         });
 
         function swipe(content, fromX, toX) {
@@ -338,6 +354,49 @@ describe("Research", () => {
             />);
 
             swipe(screen.getByTestId("research-content"), 300, 100);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
+        });
+
+        test("ignores a swipe that starts inside a horizontally scrollable component", async () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            const content = await screen.findByTestId("research-content");
+            const scroller = document.createElement("div");
+            scroller.style.overflowX = "auto";
+            const inner = document.createElement("span");
+            scroller.appendChild(inner);
+            content.appendChild(scroller);
+            Object.defineProperty(scroller, "scrollWidth", {value: 800, configurable: true});
+            Object.defineProperty(scroller, "clientWidth", {value: 300, configurable: true});
+
+            swipe(inner, 300, 100);
+
+            expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+
+        test("still swipes when the gesture starts outside a scrollable component", async () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            const content = await screen.findByTestId("research-content");
+            const plain = document.createElement("div");
+            content.appendChild(plain);
+            Object.defineProperty(plain, "scrollWidth", {value: 364, configurable: true});
+            Object.defineProperty(plain, "clientWidth", {value: 359, configurable: true});
+
+            swipe(plain, 300, 100);
 
             expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
         });
@@ -362,6 +421,60 @@ describe("Research", () => {
             fireEvent.touchEnd(table, {changedTouches: [{clientX: 100, clientY: 100}]});
 
             expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+
+        function verticalSwipe(element, fromY, toY) {
+            fireEvent.touchStart(element, {touches: [{clientX: 100, clientY: fromY}]});
+            fireEvent.touchEnd(screen.getByTestId("period-list"), {
+                changedTouches: [{clientX: 100, clientY: toY}],
+            });
+        }
+
+        function setScroll(element, {scrollTop, clientHeight, scrollHeight}) {
+            Object.defineProperty(element, "scrollTop", {value: scrollTop, configurable: true});
+            Object.defineProperty(element, "clientHeight", {value: clientHeight, configurable: true});
+            Object.defineProperty(element, "scrollHeight", {value: scrollHeight, configurable: true});
+        }
+
+        test("swiping outside the period content switches periods at any scroll position", async () => {
+            setInnerWidth(400);
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            await screen.findByText("period:period-1");
+            setScroll(screen.getByTestId("period-content:period-1"), {
+                scrollTop: 40, clientHeight: 100, scrollHeight: 400,
+            });
+
+            verticalSwipe(screen.getByTestId("period-header:period-1"), 300, 100);
+
+            expect(await screen.findByText("period:period-2")).toBeInTheDocument();
+        });
+
+        test("swiping inside the period content scrolls instead of switching periods", async () => {
+            setInnerWidth(400);
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            await screen.findByText("period:period-1");
+            const content = screen.getByTestId("period-content:period-1");
+            setScroll(content, {scrollTop: 40, clientHeight: 100, scrollHeight: 400});
+
+            verticalSwipe(content, 300, 100);
+
+            expect(screen.getByText("period:period-1")).toBeInTheDocument();
+            expect(screen.queryByText("period:period-2")).not.toBeInTheDocument();
+        });
+
+        test("swiping inside the period content switches periods once it is scrolled to the end", async () => {
+            setInnerWidth(400);
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            await screen.findByText("period:period-1");
+            const content = screen.getByTestId("period-content:period-1");
+            setScroll(content, {scrollTop: 300, clientHeight: 100, scrollHeight: 400});
+
+            verticalSwipe(content, 300, 100);
+
+            expect(await screen.findByText("period:period-2")).toBeInTheDocument();
         });
 
         test("swiping right moves backward from Todo to Records", () => {
@@ -482,9 +595,11 @@ describe("Research", () => {
             screen.getByRole("button", {name: "Edit AAPL"})
         );
         expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
-        expect(screen.getByText("Market Cap: $1B")).toBeInTheDocument();
-        expect(screen.getByText("Dividend Yield: 2%")).toBeInTheDocument();
-        expect(screen.getByText("PCF: 7")).toBeInTheDocument();
+        expect(screen.queryByText(/^Market Cap/)).not.toBeInTheDocument();
+        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-net-income-multiple", "6");
+        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-market-cap", "1000");
+        expect(screen.queryByText(/^PE:/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/^DY:/)).not.toBeInTheDocument();
         expect(screen.getByText("asset:3@100$")).toBeInTheDocument();
         expect(screen.getByTestId("record-assets")).toHaveStyle("flex-shrink: 0");
         expect(screen.getByText("period:period-1")).toBeInTheDocument();

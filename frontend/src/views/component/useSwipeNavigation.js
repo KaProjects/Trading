@@ -12,10 +12,17 @@ export function isInsideOverlay(element) {
     return Boolean(element?.closest?.(".MuiModal-root"))
 }
 
-function horizontalScrollAncestor(element, boundary) {
+function isHorizontallyScrollable(element) {
+    if (element.scrollWidth - element.clientWidth <= 1) return false
+
+    const overflowX = window.getComputedStyle(element).overflowX
+    return overflowX === "auto" || overflowX === "scroll"
+}
+
+export function horizontalScrollAncestor(element, boundary) {
     let current = element
     while (current && current !== boundary) {
-        if (current.scrollWidth - current.clientWidth > 1) return current
+        if (isHorizontallyScrollable(current)) return current
         current = current.parentElement
     }
     return null

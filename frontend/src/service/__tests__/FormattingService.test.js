@@ -40,10 +40,16 @@ describe('FormattingService', () => {
         expect(formatMillions(123)).toBe("123M");
         expect(formatMillions(1234)).toBe("1.23B");
         expect(formatMillions(1235)).toBe("1.24B");
-        expect(formatMillions(1111235)).toBe("1,111.24B");
+        expect(formatMillions(1111235)).toBe("1.11T");
         expect(formatMillions(-123)).toBe("-123M");
         expect(formatMillions(-1234)).toBe("-1.23B");
         expect(formatMillions(-1235)).toBe("-1.24B");
+
+        expect(formatMillions(1000000)).toBe("1T");
+        expect(formatMillions(5200000)).toBe("5.2T");
+        expect(formatMillions(4324567)).toBe("4.32T");
+        expect(formatMillions(999999)).toBe("1,000B");
+        expect(formatMillions(-5200000)).toBe("-5.2T");
     })
 
     test("formatMillionsRounded", () => {
@@ -61,6 +67,11 @@ describe('FormattingService', () => {
         expect(formatMillionsRounded(253490)).toBe("253B");
         expect(formatMillionsRounded(-46740)).toBe("-46.7B");
         expect(formatMillionsRounded(-9750)).toBe("-9.75B");
+
+        expect(formatMillionsRounded(5200000)).toBe("5.2T");
+        expect(formatMillionsRounded(4324567)).toBe("4.32T");
+        expect(formatMillionsRounded(45600000)).toBe("45.6T");
+        expect(formatMillionsRounded(-5200000)).toBe("-5.2T");
     })
 
     test("formatTargetStats", () => {
