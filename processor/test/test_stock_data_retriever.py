@@ -788,18 +788,19 @@ class TestStockDataRetriever:
         assert payload["username"] == "Institutional Price Target Reporter"
         assert payload["avatar_url"].endswith("/1872/1872505.png")
         embed = payload["embeds"][0]
-        assert embed["title"] == "🎯 AAPL | $225.50 | 2026-07-20"
-        assert embed["fields"][0] == {
-            "name": "Important Research",
-            "value": "Outperform",
+        assert (
+            embed["title"]
+            == "🎯 AAPL | Price target $225.50 | Important Research"
+        )
+        assert embed["fields"] == [{
+            "name": "​",
+            "value": (
+                "Outperform\n"
+                "2026-07-20\n"
+                "source: https://research.example.com/aapl"
+            ),
             "inline": False,
-        }
-        assert embed["fields"][1] == {
-            "name": "Source",
-            "value": "https://research.example.com/aapl",
-            "inline": False,
-        }
-        assert len(embed["fields"]) == 2
+        }]
         runner.client.get_target_report.assert_not_called()
         runner.errors.report.assert_not_called()
 
@@ -910,7 +911,7 @@ class TestStockDataRetriever:
             ),
         )
         payload = runner.discord.post_eventlog.call_args.args[0]
-        assert payload["embeds"][0]["fields"][0]["name"] == "Baird"
+        assert payload["embeds"][0]["title"].endswith("| Baird")
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")
@@ -1025,9 +1026,16 @@ class TestStockDataRetriever:
             ),
         )
         embed = runner.discord.post_eventlog.call_args.args[0]["embeds"][0]
-        assert len(embed["fields"]) == 2
+        assert embed["title"] == "🎯 AMD | Price target $250 | Baird"
+        assert embed["fields"] == [{
+            "name": "​",
+            "value": (
+                "Outperform\n2026-07-21\nsource: https://research.example.com/amd"
+            ),
+            "inline": False,
+        }]
         assert embed["description"] == (
-            "**Overview**\n\n"
+            "**Overview**\n"
             "Baird expects stronger data-center demand.\n\n"
             "**Key takeaways**\n"
             "• The price target was increased to $250.\n"
@@ -1068,7 +1076,7 @@ class TestStockDataRetriever:
 
         payload = discord_templates.price_target(target)
         description = payload["embeds"][0]["description"]
-        assert len(description) == 3048
+        assert len(description) == 3047
         assert "x" * 997 + "..." in description
         assert "t" * 497 + "..." in description
         assert "Fifth" not in description
@@ -1177,10 +1185,10 @@ class TestStockDataRetriever:
             "AMD",
             {
                 "embeds": [{
-                    "title": "🎯 new price target $1250",
+                    "title": "🎯 Price target $1250 | Baird",
                     "color": 15844367,
                     "fields": [{
-                        "name": "Baird",
+                        "name": "​",
                         "value": (
                             "Outperform\n"
                             "2026-07-24\n"
@@ -1193,6 +1201,37 @@ class TestStockDataRetriever:
         )
         runner.discord.post_eventlog.assert_not_called()
         runner.errors.report.assert_not_called()
+
+    def test_price_target_with_report_moves_institution_into_ticker_channel_title(
+        self,
+        runner,
+    ):
+        report = TargetReport(
+            overview="Baird expects stronger data-center demand.",
+            key_takeaways=["The price target was increased to $1250."],
+        )
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-07-24",
+            price="1250",
+            rating="Outperform",
+            source="investing.com",
+            report=report,
+        )
+        runner.discord.post_if_channel_exists.return_value = True
+
+        runner._notify_price_target(target)
+
+        payload = runner.discord.post_if_channel_exists.call_args.args[1]
+        embed = payload["embeds"][0]
+        assert embed["title"] == "🎯 Price target $1250 | Baird"
+        assert embed["fields"] == [{
+            "name": "​",
+            "value": "Outperform\n2026-07-24\nsource: investing.com",
+            "inline": False,
+        }]
+        assert "description" in embed
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")
@@ -1262,7 +1301,7 @@ class TestStockDataRetriever:
         assert runner.discord.post_eventlog.call_count == 2
         assert (
             runner.discord.post_eventlog.call_args.args[0]["embeds"][0]["title"]
-            == "🎯 AAPL | $230 | 2026-07-21"
+            == "🎯 AAPL | Price target $230 | New Research"
         )
         runner.errors.report.assert_not_called()
 

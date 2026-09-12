@@ -60,26 +60,7 @@ def price_target(target: Target) -> dict[str, object]:
     return {
         "username": TARGET_REPORTER_USERNAME,
         "avatar_url": TARGET_REPORTER_AVATAR_URL,
-        "embeds": [{
-            "title": (
-                f"🎯 {target.ticker} | ${target.price} | "
-                f"{target.date.isoformat()}"
-            ),
-            "color": 0xF1C40F,
-            "fields": [
-                {
-                    "name": target.institution,
-                    "value": target.rating or "Not provided",
-                    "inline": False,
-                },
-                {
-                    "name": "Source",
-                    "value": target.source,
-                    "inline": False,
-                },
-            ],
-            **_target_report_description(target),
-        }],
+        "embeds": [_price_target_embed(target, ticker_prefix=True)],
     }
 
 
@@ -134,22 +115,37 @@ def _price_targets_embed(
 
 def ticker_price_target(target: Target) -> dict[str, object]:
     return {
-        "embeds": [{
-            "title": f"🎯 new price target ${target.price}",
-            "color": 0xF1C40F,
-            "fields": [
-                {
-                    "name": target.institution,
-                    "value": (
-                        f"{target.rating or 'Not provided'}\n"
-                        f"{target.date.isoformat()}\n"
-                        f"source: {target.source}"
-                    ),
-                    "inline": False,
-                },
-            ],
-            **_target_report_description(target),
-        }],
+        "embeds": [_price_target_embed(target, ticker_prefix=False)],
+    }
+
+
+def _price_target_embed(
+    target: Target,
+    *,
+    ticker_prefix: bool,
+) -> dict[str, object]:
+    price_target_title = f"Price target ${target.price} | {target.institution}"
+    title = (
+        f"🎯 {target.ticker} | {price_target_title}"
+        if ticker_prefix
+        else f"🎯 {price_target_title}"
+    )
+
+    return {
+        "title": title,
+        "color": 0xF1C40F,
+        "fields": [
+            {
+                "name": DISCORD_SPACER,
+                "value": (
+                    f"{target.rating or 'Not provided'}\n"
+                    f"{target.date.isoformat()}\n"
+                    f"source: {target.source}"
+                ),
+                "inline": False,
+            },
+        ],
+        **_target_report_description(target),
     }
 
 
@@ -162,7 +158,7 @@ def _target_report_description(target: Target) -> dict[str, str]:
         for takeaway in target.report.key_takeaways
     )
     description = (
-        f"**Overview**\n\n{target.report.overview}\n\n"
+        f"**Overview**\n{target.report.overview}\n\n"
         f"**Key takeaways**\n{takeaways}\n\n{DISCORD_SPACER}"
     )
     if len(description) > DISCORD_EMBED_DESCRIPTION_MAX_LENGTH:
