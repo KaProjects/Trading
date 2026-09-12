@@ -48,6 +48,7 @@ import {AddTagDialog} from "../dialog/AddTagDialog";
 import {useLocation} from "react-router-dom";
 import {useCloseOnNavigation} from "../service/NavigationService";
 import {TodoList} from "./component/TodoList";
+import {isInsideOverlay} from "./component/useSwipeNavigation";
 import {LatestNewsSentiment} from "./component/LatestNewsSentiment";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
@@ -159,6 +160,11 @@ export const Research = props => {
     const touchStart = useRef(null)
 
     function handleTouchStart(event) {
+        if (isInsideOverlay(event.target)) {
+            touchStart.current = null
+            return
+        }
+
         const touch = event.touches[0]
         touchStart.current = {x: touch.clientX, y: touch.clientY}
     }
@@ -184,6 +190,11 @@ export const Research = props => {
     const periodTouchStart = useRef(null)
 
     function handlePeriodTouchStart(event) {
+        if (isInsideOverlay(event.target)) {
+            periodTouchStart.current = null
+            return
+        }
+
         const touch = event.touches[0]
         periodTouchStart.current = {x: touch.clientX, y: touch.clientY}
     }

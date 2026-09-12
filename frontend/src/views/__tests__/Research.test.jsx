@@ -342,6 +342,28 @@ describe("Research", () => {
             expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
         });
 
+        test("ignores a swipe that starts inside an open dialog", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            const content = screen.getByTestId("research-content");
+            const overlay = document.createElement("div");
+            overlay.className = "MuiModal-root";
+            const table = document.createElement("div");
+            overlay.appendChild(table);
+            content.appendChild(overlay);
+
+            fireEvent.touchStart(table, {touches: [{clientX: 300, clientY: 100}]});
+            fireEvent.touchEnd(table, {changedTouches: [{clientX: 100, clientY: 100}]});
+
+            expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+
         test("swiping right moves backward from Todo to Records", () => {
             setInnerWidth(400);
             const setResearchTabsIndex = jest.fn();

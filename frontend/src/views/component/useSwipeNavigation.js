@@ -8,6 +8,10 @@ export const SWIPE_AREA_SX = {
     flexGrow: 1,
 }
 
+export function isInsideOverlay(element) {
+    return Boolean(element?.closest?.(".MuiModal-root"))
+}
+
 function horizontalScrollAncestor(element, boundary) {
     let current = element
     while (current && current !== boundary) {
@@ -21,6 +25,11 @@ export function useSwipeNavigation(index, setIndex, count) {
     const start = useRef(null)
 
     function onTouchStart(event) {
+        if (isInsideOverlay(event.target)) {
+            start.current = null
+            return
+        }
+
         const touch = event.touches[0]
         start.current = {x: touch.clientX, y: touch.clientY, target: event.target}
     }
