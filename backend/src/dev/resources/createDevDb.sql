@@ -208,6 +208,7 @@ INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALU
 -- Revenue estimate snapshots are stored in millions, alongside the EPS snapshots above.
 INSERT INTO Estimate (id, periodId, datetime, type, current, next1, next2, next3) VALUES (1510, 2606, '2026-05-28 09:00:00', FALSE, '94320.00', '108450.00', '121900.00', '134600.00');
 INSERT INTO Estimate (id, periodId, datetime, type, current, next1, next2, next3) VALUES (1511, 2615, '2026-05-12 09:00:00', FALSE, '11480.00', '12310.00', '13050.00', '13920.00');
+INSERT INTO Estimate (id, periodId, datetime, type, current, next1, next2, next3) VALUES (1512, 2625, '2026-06-18 09:00:00', FALSE, '13900.00', '14350.00', '15100.00', '15650.00');
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1400, 2625, '2026-06-18 09:00:00', '0.27', '0.31', '0.28');
 INSERT INTO Estimate (id, periodId, datetime, current, next1, next2) VALUES (1401, 2625, '2026-08-11 09:00:00', '0.39', '0.43', '0.40');
 

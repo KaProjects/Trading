@@ -689,6 +689,7 @@ export const Research = props => {
                                 triggerRefresh={triggerRefresh}
                                 ticker={data.company.ticker}
                                 currentPrice={data.latest?.price}
+                                ttm={data.ttm}
                                 latestPeriod={data.periods[0]}
                                 previousPeriod={data.periods[1]}
                             />

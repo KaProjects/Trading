@@ -48,9 +48,10 @@ export const ProjectionInput = ({value, onChange, onBlur, onStep, label, min}) =
         inputProps={{inputMode: "decimal", min, step: "any", "aria-label": label}}
         sx={{
             width: "100%",
+            minWidth: 0,
             color: "#111",
             fontSize: "inherit",
-            "& input": {padding: "4px 2px 4px 8px", textAlign: "right"},
+            "& input": {padding: "4px 2px 4px 8px", textAlign: "right", minWidth: 0},
             "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
                 WebkitAppearance: "none",
                 margin: 0,

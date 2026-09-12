@@ -60,6 +60,23 @@ const revenueColumns = [
     {key: "next3", label: "next 3"},
 ];
 
+const marginRows = [
+    {key: "grossProfit", label: "Gross profit", shortLabel: "Gross P.", expenseLabel: "Gross exp. (%)"},
+    {key: "operatingIncome", label: "Oper. income", shortLabel: "Op. Inc.", expenseLabel: "Oper. exp. (%)"},
+    {key: "netIncome", label: "Net income", shortLabel: "Net Inc.", expenseLabel: "Non-op. exp. (%)"},
+];
+
+const financialCellSx = {padding: "6px 6px"};
+
+const FinancialCell = ({name, children}) => (
+    <Box sx={{display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "3px"}}>
+        <Box component="span" sx={{fontSize: 10, opacity: 0.7, whiteSpace: "nowrap"}}>({name})</Box>
+        <Box component="span" sx={{whiteSpace: "nowrap"}}>{children}</Box>
+    </Box>
+);
+
+const EMPTY_EXPENSE_ADJUSTMENTS = {grossProfit: "0", operatingIncome: "0", netIncome: "0"};
+
 const estimateFields = [
     {key: "past4", label: "Past 4"},
     {key: "past3", label: "Past 3"},
@@ -112,6 +129,7 @@ const salesToPrice = (ps, revenuePerShare) => {
 const inputNumber = value => String(Math.round(value * 100000000) / 100000000);
 const estimateInputPattern = /^-?(?:\d+(?:\.\d*)?|\.\d*)?$/;
 const persistedEstimateKeys = ["current", "next1", "next2", "next3"];
+const editableEstimateFields = estimateFields.filter(field => persistedEstimateKeys.includes(field.key));
 
 const currentDate = () => {
     const date = new Date();
@@ -128,6 +146,7 @@ export const RevenueProjectionsDialog = ({
     triggerRefresh,
     ticker,
     currentPrice,
+    ttm,
     latestPeriod,
     previousPeriod,
 }) => {
@@ -135,6 +154,7 @@ export const RevenueProjectionsDialog = ({
     const [targetPrice, setTargetPrice] = useState("");
     const [targetPs, setTargetPs] = useState("10");
     const [forecastAdjustment, setForecastAdjustment] = useState("0");
+    const [expenseAdjustments, setExpenseAdjustments] = useState(EMPTY_EXPENSE_ADJUSTMENTS);
     const [estimateValues, setEstimateValues] = useState({});
     const [persistedEstimateValues, setPersistedEstimateValues] = useState({});
     const [openPersistConfirmation, setOpenPersistConfirmation] = useState(false);
@@ -160,6 +180,7 @@ export const RevenueProjectionsDialog = ({
             setTargetPrice(price === null ? "" : price.toFixed(2));
             setTargetPs("10");
             setForecastAdjustment("0");
+            setExpenseAdjustments(EMPTY_EXPENSE_ADJUSTMENTS);
             const values = Object.fromEntries(estimateFields.map(field => {
                 const value = latestPeriod?.revenueEstimate?.[field.key];
                 return [field.key, numberValue(value) === null ? "" : String(value)];
@@ -213,6 +234,56 @@ export const RevenueProjectionsDialog = ({
         && allPersistedValuesValid
         && persistedValuesChanged
         && !savingEstimate;
+
+    const ttmValue = key => {
+        const value = ttm?.[key]?.value;
+        return value === null || value === undefined ? null : Number(value);
+    };
+    const baselineRevenue = ttmValue("revenue") ?? revenues.ttm?.value ?? null;
+    const ttmGrossProfit = ttmValue("grossProfit");
+    const ttmOperatingIncome = ttmValue("operatingIncome");
+    const ttmNetIncome = ttmValue("netIncome");
+    const marginOf = (value, revenue) => value === null
+        || value === undefined
+        || value < 0
+        || revenue === null
+        || revenue <= 0
+        ? null
+        : value / revenue * 100;
+    const expenseFactor = key => 1 + (numberValue(expenseAdjustments[key]) ?? 0) / 100;
+    const projectedFinancials = (projectedRevenue, quartersForward) => {
+        if (projectedRevenue === null || baselineRevenue === null || baselineRevenue === 0) {
+            return {grossProfit: null, operatingIncome: null, netIncome: null};
+        }
+
+        const revenueGrowth = projectedRevenue / baselineRevenue - 1;
+        const grossExpenseGrowth = 1 + revenueGrowth * expenseFactor("grossProfit");
+        const grossProfit = ttmGrossProfit === null
+            ? null
+            : projectedRevenue - (baselineRevenue - ttmGrossProfit) * grossExpenseGrowth;
+        const operatingIncome = grossProfit === null || ttmOperatingIncome === null
+            ? null
+            : grossProfit - (ttmGrossProfit - ttmOperatingIncome)
+                * Math.pow(expenseFactor("operatingIncome"), quartersForward);
+        const netIncome = operatingIncome === null || ttmNetIncome === null
+            ? null
+            : operatingIncome - (ttmOperatingIncome - ttmNetIncome)
+                * Math.pow(expenseFactor("netIncome"), quartersForward);
+        return {grossProfit, operatingIncome, netIncome};
+    };
+    const projectionsByColumn = Object.fromEntries(revenueColumns.slice(1).map((column, index) => [
+        column.key,
+        projectedFinancials(revenues?.[column.key]?.value ?? null, index + 1),
+    ]));
+    const formatMargin = value => value === null ? "-" : formatPercent(value, false, 1) || "-";
+
+    const stepExpenseAdjustment = (key, direction) => {
+        const value = numberValue(expenseAdjustments[key]) ?? 0;
+        setExpenseAdjustments(adjustments => ({
+            ...adjustments,
+            [key]: inputNumber(value + direction * 5),
+        }));
+    };
 
     const stepTargetPrice = direction => {
         const price = numberValue(targetPrice);
@@ -285,7 +356,7 @@ export const RevenueProjectionsDialog = ({
             }}
         >
             <DialogTitle>
-                {ticker} - {periodName || "-"} - {isNarrowScreen ? "R&P Projections" : "Revenues and Prices Projections"}
+                {ticker} - {periodName || "-"} - {isNarrowScreen ? "S&P&M Projections" : "Sales and Prices and Margins Projections"}
             </DialogTitle>
             <DialogContent sx={{padding: 2, display: "flex", flex: "1 1 0", flexDirection: "column", overflow: "hidden", minHeight: 0}}>
                 <Box
@@ -303,12 +374,12 @@ export const RevenueProjectionsDialog = ({
                     <Box
                         sx={{
                             display: "grid",
-                            gridTemplateColumns: {xs: "repeat(4, 80px)", sm: "repeat(8, 80px)"},
+                            gridTemplateColumns: "repeat(4, 80px)",
                             columnGap: "20px",
                             flex: "0 0 auto",
                         }}
                     >
-                        {estimateFields.map(field => {
+                        {editableEstimateFields.map(field => {
                             const missing = numberValue(estimateValues[field.key]) === null;
                             const showRollingChange = persistedEstimateKeys.includes(field.key);
                             const rollingChange = showRollingChange
@@ -354,7 +425,6 @@ export const RevenueProjectionsDialog = ({
                                     "& .MuiInputLabel-root.MuiInputLabel-shrink": {
                                         transform: "translate(0, 0.5px) scale(0.75)",
                                     },
-                                    display: field.key.startsWith("past") ? {xs: "none", sm: "inline-flex"} : undefined,
                                 }}
                                 FormHelperTextProps={{
                                     sx: {
@@ -432,6 +502,129 @@ export const RevenueProjectionsDialog = ({
                 >
                 <Box>
                 <TableContainer>
+                    <Table
+                        size="small"
+                        aria-label="revenue margin projections"
+                        sx={{tableLayout: "fixed", width: columnWidth * (revenueColumns.length + 2)}}
+                    >
+                        <colgroup>
+                            <col style={{width: columnWidth}}/>
+                            <col style={{width: columnWidth}}/>
+                            <col style={{width: columnWidth}}/>
+                            {revenueColumns.slice(1).map(column => (
+                                <col key={column.key} style={{width: columnWidth}}/>
+                            ))}
+                        </colgroup>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={{border}}/>
+                                <TableCell sx={{border, ...financialCellSx, backgroundColor: headerColor, color: "#111"}}>
+                                    <FinancialCell name="Financials">TTM</FinancialCell>
+                                </TableCell>
+                                <TableCell align="center" sx={{border, backgroundColor: headerColor, color: "#111"}}>
+                                    Margin
+                                </TableCell>
+                                <TableCell colSpan={4} sx={{border, backgroundColor: headerColor, color: "#111"}}>
+                                    Margin (forward)
+                                </TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell sx={{border, backgroundColor: priceColor, color: "#111", whiteSpace: "nowrap"}}>
+                                    Expense adj.
+                                </TableCell>
+                                <TableCell
+                                    align="right"
+                                    aria-label="ttm revenues"
+                                    sx={{border, ...financialCellSx, backgroundColor: priceColor, color: "#111"}}
+                                >
+                                    <FinancialCell name="Revenues">
+                                        {baselineRevenue === null ? "-" : formatMillionsRounded(baselineRevenue) || "-"}
+                                    </FinancialCell>
+                                </TableCell>
+                                <TableCell
+                                    align="right"
+                                    aria-label="ttm revenues margin"
+                                    sx={{border, backgroundColor: priceColor, color: "#111"}}
+                                >
+                                    {formatMargin(baselineRevenue === null ? null : 100)}
+                                </TableCell>
+                                {revenueColumns.slice(1).map(column => (
+                                    <TableCell
+                                        key={column.key}
+                                        align="right"
+                                        aria-label={`${column.label} revenues`}
+                                        sx={{border, backgroundColor: priceColor, color: "#111"}}
+                                    >
+                                        {revenues?.[column.key]?.value === null
+                                            ? "-"
+                                            : formatMillionsRounded(revenues[column.key].value) || "-"}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                            {marginRows.map(row => {
+                                const value = ttmValue(row.key);
+                                return (
+                                    <TableRow key={row.key}>
+                                        <TableCell sx={{border, backgroundColor: "#fff", color: "#111", padding: 0}}>
+                                            <Box sx={{
+                                                color: "text.secondary",
+                                                fontSize: 10,
+                                                lineHeight: 1.2,
+                                                padding: "2px 5px 0",
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                            }}>
+                                                {row.expenseLabel}
+                                            </Box>
+                                            <ProjectionInput
+                                                value={expenseAdjustments[row.key]}
+                                                onChange={event => setExpenseAdjustments(adjustments => ({
+                                                    ...adjustments,
+                                                    [row.key]: event.target.value,
+                                                }))}
+                                                onStep={direction => stepExpenseAdjustment(row.key, direction)}
+                                                label={`${row.expenseLabel} adjustment (%)`}
+                                            />
+                                        </TableCell>
+                                        <TableCell
+                                            align="right"
+                                            aria-label={`ttm ${row.label.toLowerCase()}`}
+                                            sx={{border, ...financialCellSx, backgroundColor: priceColor, color: "#111"}}
+                                        >
+                                            <FinancialCell name={row.shortLabel}>
+                                                {value === null ? "-" : formatMillionsRounded(value) || "-"}
+                                            </FinancialCell>
+                                        </TableCell>
+                                        <TableCell
+                                            align="right"
+                                            aria-label={`ttm ${row.label.toLowerCase()} margin`}
+                                            sx={{border, backgroundColor: ratioColor, color: "#111"}}
+                                        >
+                                            {formatMargin(marginOf(value, baselineRevenue))}
+                                        </TableCell>
+                                        {revenueColumns.slice(1).map(column => (
+                                            <TableCell
+                                                key={column.key}
+                                                align="right"
+                                                aria-label={`${column.label} ${row.label.toLowerCase()} margin`}
+                                                sx={{border, backgroundColor: ratioColor, color: "#111"}}
+                                            >
+                                                {formatMargin(marginOf(
+                                                    projectionsByColumn[column.key]?.[row.key] ?? null,
+                                                    revenues?.[column.key]?.value ?? null,
+                                                ))}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                <TableContainer sx={{marginTop: "5px"}}>
                     <Table
                         size="small"
                         aria-label="revenue and price projections"
