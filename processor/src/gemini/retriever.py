@@ -469,6 +469,9 @@ class StockDataRetrieverRunner:
             self.service.create_institutions(
                 institutions.new_institutions
             )
+            self._notify_new_institutions(
+                list(institutions.new_institutions.values())
+            )
         latest_target_dates = self._latest_price_target_dates(
             companies,
             institutions,
@@ -535,6 +538,25 @@ class StockDataRetrieverRunner:
             rating=candidate.rating,
             source=candidate.source,
         )
+
+    def _notify_new_institutions(
+        self,
+        institutions: list[InstitutionRecord],
+    ) -> None:
+        try:
+            self.discord.post_eventlog(
+                discord_templates.new_institutions(institutions)
+            )
+        except Exception as exception:
+            self.report_error(
+                exception,
+                operation="notify_new_institutions",
+                context={
+                    "institutions": ", ".join(
+                        institution.name for institution in institutions
+                    ),
+                },
+            )
 
     def _enrich_price_target(self, target: Target) -> Target | None:
         try:

@@ -772,8 +772,19 @@ class TestStockDataRetriever:
                 source="https://research.example.com/aapl",
             ),
         )
-        runner.discord.post_eventlog.assert_called_once()
-        payload = runner.discord.post_eventlog.call_args.args[0]
+        assert runner.discord.post_eventlog.call_count == 2
+        new_institution_payload = (
+            runner.discord.post_eventlog.call_args_list[0].args[0]
+        )
+        assert (
+            new_institution_payload["embeds"][0]["title"]
+            == "🏦 New institutions"
+        )
+        assert (
+            new_institution_payload["embeds"][0]["description"]
+            == "Important Research"
+        )
+        payload = runner.discord.post_eventlog.call_args_list[1].args[0]
         assert payload["username"] == "Institutional Price Target Reporter"
         assert payload["avatar_url"].endswith("/1872/1872505.png")
         embed = payload["embeds"][0]
@@ -1248,7 +1259,7 @@ class TestStockDataRetriever:
                 source="https://new.example.com/aapl",
             ),
         )
-        runner.discord.post_eventlog.assert_called_once()
+        assert runner.discord.post_eventlog.call_count == 2
         assert (
             runner.discord.post_eventlog.call_args.args[0]["embeds"][0]["title"]
             == "🎯 AAPL | $230 | 2026-07-21"

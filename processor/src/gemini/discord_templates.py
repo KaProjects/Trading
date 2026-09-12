@@ -1,6 +1,6 @@
 import logging
 
-from gemini.models import Quarter, Target
+from gemini.models import InstitutionRecord, Quarter, Target
 
 logger = logging.getLogger(__name__)
 DISCORD_EMBED_DESCRIPTION_MAX_LENGTH = 4096
@@ -79,6 +79,22 @@ def price_target(target: Target) -> dict[str, object]:
                 },
             ],
             **_target_report_description(target),
+        }],
+    }
+
+
+def new_institutions(
+    institutions: list[InstitutionRecord],
+) -> dict[str, object]:
+    return {
+        "username": TARGET_REPORTER_USERNAME,
+        "avatar_url": TARGET_REPORTER_AVATAR_URL,
+        "embeds": [{
+            "title": "🏦 New institutions",
+            "color": 0xF1C40F,
+            "description": "\n".join(
+                institution.name for institution in institutions
+            ),
         }],
     }
 
