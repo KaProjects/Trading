@@ -179,7 +179,7 @@ INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gro
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2603, 2213, '26Q3', '2510', '2025-11-19', '57006', '41849', '36010', '31910', '243', '1.30', '24300', '212.19', '173.12');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2604, 2213, '26Q4', '2601', '2026-02-25', '68127', '51093', '44299', '42960', '243', '1.62', '24300', '195.98', '174.63');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2605, 2213, '27Q1', '2604', '2026-05-20', '81615', '61157', '53536', '58321', '244', '1.87', '24391', '236.54', '165.17');
-INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (2606, 2213, '27Q2', '2707', '2026-08-26');
+INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (2606, 2213, '27Q2', '2607', '2026-08-26');
 
 -- AMD periods mirror the downloaded production Firebase Gemini snapshot.
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares, price_high, price_low) VALUES (2610, 2212, '25Q1', '2503', '2025-05-06', '7438', '3736', '806', '709', '0', '0.44', '1620', '122.52', '90.37');

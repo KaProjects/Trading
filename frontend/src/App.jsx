@@ -85,6 +85,31 @@ export const App = () => {
             .catch(() => {});
     }, []);
 
+    const updateActionableCompany = useCallback((companyId, importablePeriodsCount, importableTargetsCount) => {
+        setCompanyLists(previous => {
+            const actionable = previous.actionable;
+            if (!actionable) return previous;
+
+            const index = actionable.findIndex(company => String(company.id) === String(companyId));
+            if (index === -1) return previous;
+
+            const current = actionable[index];
+            if (current.importablePeriodsCount === importablePeriodsCount
+                && current.importableTargetsCount === importableTargetsCount) {
+                return previous;
+            }
+
+            return {
+                ...previous,
+                actionable: importablePeriodsCount === 0 && importableTargetsCount === 0
+                    ? actionable.filter((company, position) => position !== index)
+                    : actionable.map((company, position) => position === index
+                        ? {...company, importablePeriodsCount, importableTargetsCount}
+                        : company),
+            };
+        });
+    }, []);
+
     function refreshCompanyLists() {
         axios.get(backend + "/company/lists?refresh" + Date.now())
             .then(response => setCompanyLists(previous => ({...previous, ...response.data})))
@@ -102,6 +127,7 @@ export const App = () => {
     const props = {
         companyLists,
         refreshCompanyLists,
+        updateActionableCompany,
         currencies,
         sectors,
         exchanges,

@@ -700,6 +700,41 @@ describe("Research", () => {
         expect(axios.get).toHaveBeenCalledWith("/api/target/company/company-1/sync/counts");
     });
 
+    test("updates the actionable list entry from the loaded research data", async () => {
+        const updateActionableCompany = jest.fn();
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({data: {counts: {"period-1": 3, "period-2": 4}, failedPeriodIds: []}})
+            : Promise.resolve({data: createResearchData({
+                importablePeriods: [{name: "26Q3"}, {name: "26Q4"}],
+            })}));
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+                updateActionableCompany={updateActionableCompany}
+            />
+        );
+
+        await waitFor(() => expect(updateActionableCompany).toHaveBeenCalledWith("company-1", 2, 7));
+    });
+
+    test("keeps the actionable list entry when target candidate counts are incomplete", async () => {
+        const updateActionableCompany = jest.fn();
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({data: {counts: {"period-1": 3}, failedPeriodIds: ["period-2"]}})
+            : Promise.resolve({data: createResearchData()}));
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+                updateActionableCompany={updateActionableCompany}
+            />
+        );
+
+        expect(await screen.findByText("target-candidates:period-2:0:failed")).toBeInTheDocument();
+        expect(updateActionableCompany).not.toHaveBeenCalled();
+    });
+
     test("marks every period when target candidate counts cannot be loaded without showing an alert", async () => {
         axios.get.mockImplementation(url => url.includes("/target/company/")
             ? Promise.reject(new Error("candidate request failed"))

@@ -15,7 +15,35 @@ import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
 
-export const Period = ({period, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
+const QUARTER_MONTHS = 3
+
+function periodType(name) {
+    if (typeof name === "string") return name.slice(-2)
+    return name?.type
+}
+
+function isQuarter(name) {
+    return /^Q[1-4]$/.test(periodType(name) ?? "")
+}
+
+function endingMonthIndex(endingMonth) {
+    if (typeof endingMonth !== "string" || endingMonth.length < 7) return null
+    const year = Number(endingMonth.substring(0, 4))
+    const month = Number(endingMonth.substring(5, 7))
+    return Number.isInteger(year) && Number.isInteger(month) ? year * 12 + month : null
+}
+
+export function hasUnexpectedEndingMonth(period, previousPeriod) {
+    if (!isQuarter(period?.name) || !isQuarter(previousPeriod?.name)) return false
+
+    const current = endingMonthIndex(period?.endingMonth)
+    const previous = endingMonthIndex(previousPeriod?.endingMonth)
+    if (current === null || previous === null) return false
+
+    return current - previous !== QUARTER_MONTHS
+}
+
+export const Period = ({period, previousPeriod, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
 
     const [contentEditSignal, setContentEditSignal] = useState(0)
     const reportLabel = period.financial ? "reported: " : "report: "
@@ -23,6 +51,7 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
         ? formatDate(period.reportDate)
         : (period.expectedReportDate ? formatDate(period.expectedReportDate) : "?")
     const reportedInFirebaseOnly = !period.financial && period.reportedInFirebase
+    const endingMonthMismatch = hasUnexpectedEndingMonth(period, previousPeriod)
 
     function formatEndingMonth(endingMonth) {
         if (endingMonth === null || endingMonth === undefined) return "";
@@ -91,7 +120,20 @@ export const Period = ({period, currency, setAlert, openDialog, openEditDialog, 
         <BorderedSection
             title={
                 <>
-                    {formatPeriodName(period.name) + " - ending: " + formatEndingMonth(period.endingMonth) + " - "}
+                    {formatPeriodName(period.name) + " - "}
+                    {endingMonthMismatch
+                        ? <Box component="span" sx={{color: "error.dark"}}>{"ending: "}</Box>
+                        : "ending: "}
+                    {endingMonthMismatch
+                        ? <Box
+                            component="span"
+                            data-testid="period-ending-month-warning"
+                            sx={{color: "error.dark", textDecoration: "underline"}}
+                        >
+                            {formatEndingMonth(period.endingMonth)}
+                        </Box>
+                        : formatEndingMonth(period.endingMonth)}
+                    {" - "}
                     {reportedInFirebaseOnly
                         ? <Box component="span" sx={{color: "error.dark"}}>{reportLabel}</Box>
                         : reportLabel}

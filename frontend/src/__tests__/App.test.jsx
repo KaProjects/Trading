@@ -13,7 +13,12 @@ jest.mock("../views/component/MainBar", () => ({
     MainBar: (props) => (
         <div>
             <div>lists:{(props.companyLists.all ?? []).map(company => company.ticker).join(",")}</div>
-            <div>actionable:{(props.companyLists.actionable ?? []).map(company => company.ticker).join(",")}</div>
+            <div>actionable:{(props.companyLists.actionable ?? [])
+                .map(company => `${company.ticker}(${company.importablePeriodsCount}/${company.importableTargetsCount})`)
+                .join(",")}</div>
+            <button onClick={() => props.updateActionableCompany("company-2", 0, 3)}>update actionable</button>
+            <button onClick={() => props.updateActionableCompany("company-2", 0, 0)}>clear actionable</button>
+            <button onClick={() => props.updateActionableCompany("company-1", 5, 5)}>update missing</button>
             <div>company:{props.companySelectorValue?.ticker || ""}</div>
             <div>currency:{props.currencySelectorValue || ""}</div>
             <div>years:{props.years.join(",")}</div>
@@ -121,8 +126,35 @@ describe("App", () => {
         render(<App/>);
 
         await waitFor(() => expect(screen.getByText("lists:NVDA")).toBeInTheDocument());
-        await waitFor(() => expect(screen.getByText("actionable:AMD")).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByText("actionable:AMD(1/0)")).toBeInTheDocument());
         expect(screen.getByText("lists:NVDA")).toBeInTheDocument();
+    });
+
+    test("updates the actionable entry with counts from the research view", async () => {
+        render(<App/>);
+
+        await waitFor(() => expect(screen.getByText("actionable:AMD(1/0)")).toBeInTheDocument());
+        fireEvent.click(screen.getByText("update actionable"));
+
+        expect(screen.getByText("actionable:AMD(0/3)")).toBeInTheDocument();
+    });
+
+    test("removes the actionable entry when nothing is importable anymore", async () => {
+        render(<App/>);
+
+        await waitFor(() => expect(screen.getByText("actionable:AMD(1/0)")).toBeInTheDocument());
+        fireEvent.click(screen.getByText("clear actionable"));
+
+        expect(screen.getByText("actionable:")).toBeInTheDocument();
+    });
+
+    test("ignores counts for a company that is not in the actionable list", async () => {
+        render(<App/>);
+
+        await waitFor(() => expect(screen.getByText("actionable:AMD(1/0)")).toBeInTheDocument());
+        fireEvent.click(screen.getByText("update missing"));
+
+        expect(screen.getByText("actionable:AMD(1/0)")).toBeInTheDocument();
     });
 
     test("stores the selected trade portfolio", async () => {

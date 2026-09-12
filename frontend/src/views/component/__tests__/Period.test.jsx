@@ -186,6 +186,61 @@ describe("Period", () => {
         expect(openRevenueEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
     });
 
+    test("marks the ending month when a quarter does not follow the previous one", () => {
+        render(
+            <Period
+                period={{id: "period-1", name: {year: "2027", type: "Q2"}, endingMonth: "2027-07"}}
+                previousPeriod={{id: "period-2", name: {year: "2027", type: "Q1"}, endingMonth: "2026-04"}}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("period-ending-month-warning")).toHaveTextContent("07/27");
+    });
+
+    test("keeps the ending month unmarked when the quarter follows three months later", () => {
+        render(
+            <Period
+                period={{id: "period-1", name: {year: "2027", type: "Q2"}, endingMonth: "2026-07"}}
+                previousPeriod={{id: "period-2", name: {year: "2027", type: "Q1"}, endingMonth: "2026-04"}}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.queryByTestId("period-ending-month-warning")).not.toBeInTheDocument();
+    });
+
+    test("does not mark the ending month without a previous quarter to compare", () => {
+        render(
+            <Period
+                period={{id: "period-1", name: {year: "2027", type: "Q2"}, endingMonth: "2027-07"}}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.queryByTestId("period-ending-month-warning")).not.toBeInTheDocument();
+    });
+
+    test("does not mark the ending month for non-quarterly periods", () => {
+        render(
+            <Period
+                period={{id: "period-1", name: {year: "2026", type: "FY"}, endingMonth: "2026-12"}}
+                previousPeriod={{id: "period-2", name: {year: "2025", type: "FY"}, endingMonth: "2025-12"}}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.queryByTestId("period-ending-month-warning")).not.toBeInTheDocument();
+    });
+
     test("shows an error badge instead of an import count when availability cannot be checked", () => {
         render(
             <Period

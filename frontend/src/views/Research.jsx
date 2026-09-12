@@ -236,7 +236,8 @@ export const Research = props => {
                     fetchTargetCandidateCounts(
                         props.companySelectorValue.id,
                         response.data.periods ?? [],
-                        requestId)
+                        requestId,
+                        response.data.importablePeriods?.length ?? 0)
                 })
                 .catch((error) => {
                     if (requestId !== latestRequestId.current) return
@@ -251,7 +252,7 @@ export const Research = props => {
         }
     }
 
-    function fetchTargetCandidateCounts(companyId, periods, requestId) {
+    function fetchTargetCandidateCounts(companyId, periods, requestId, importablePeriodsCount) {
         axios.get(`${backend}/target/company/${companyId}/sync/counts`)
             .then(response => {
                 if (requestId !== latestRequestId.current) return
@@ -259,12 +260,22 @@ export const Research = props => {
                     && response.data?.failedPeriodIds === undefined
                     && response.data?.warnings === undefined) return
 
-                setTargetCandidateCounts(response.data?.counts ?? {})
+                const counts = response.data?.counts ?? {}
+                setTargetCandidateCounts(counts)
                 const failedPeriodIds = response.data?.failedPeriodIds
                     ?? ((response.data?.warnings?.length ?? 0) > 0
                         ? periods.map(period => period.id)
                         : [])
                 setFailedTargetCandidatePeriods(new Set(failedPeriodIds.map(String)))
+
+                if (failedPeriodIds.length === 0) {
+                    const importableTargetsCount = Object.values(counts)
+                        .reduce((sum, value) => sum + (Number(value) || 0), 0)
+                    props.updateActionableCompany?.(
+                        companyId,
+                        importablePeriodsCount,
+                        importableTargetsCount)
+                }
             })
             .catch(() => {
                 if (requestId !== latestRequestId.current) return
@@ -739,6 +750,7 @@ export const Research = props => {
                                         <Box key={period.id} sx={{flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column"}}>
                                             <Period
                                                 period={period}
+                                                previousPeriod={data.periods[narrowPeriodIndex + 1]}
                                                 currency={data.company.currency}
                                                 setAlert={setAlert}
                                                 openDialog={() => setOpenAddFinancialDialog(period)}
@@ -753,10 +765,11 @@ export const Research = props => {
                                             />
                                         </Box>
                                     ))
-                                    : data.periods.map((period) => (
+                                    : data.periods.map((period, index) => (
                                         <Period
                                             key={period.id}
                                             period={period}
+                                            previousPeriod={data.periods[index + 1]}
                                             currency={data.company.currency}
                                             setAlert={setAlert}
                                             openDialog={() => setOpenAddFinancialDialog(period)}
