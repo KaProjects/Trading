@@ -166,9 +166,16 @@ const toggleMark = (editor, format) => {
     }
 }
 
-const isBlockActive = (editor, format, blockType = 'type') => {
+const hasValidSelection = (editor) => {
     const { selection } = editor
-    if (!selection) return false
+    return Boolean(selection)
+        && Editor.hasPath(editor, selection.anchor.path)
+        && Editor.hasPath(editor, selection.focus.path)
+}
+
+export const isBlockActive = (editor, format, blockType = 'type') => {
+    const { selection } = editor
+    if (!hasValidSelection(editor)) return false
 
     const [match] = Array.from(
         Editor.nodes(editor, {
@@ -180,7 +187,9 @@ const isBlockActive = (editor, format, blockType = 'type') => {
     return !!match
 }
 
-const isMarkActive = (editor, format) => {
+export const isMarkActive = (editor, format) => {
+    if (!hasValidSelection(editor)) return false
+
     const marks = Editor.marks(editor)
     return marks ? marks[format] === true : false
 }

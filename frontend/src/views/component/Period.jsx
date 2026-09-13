@@ -12,7 +12,6 @@ import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financial
 import {ReactComponent as EpsEstimatesPlusIcon} from "../../assets/icons/estimates-plus-eps.svg";
 import {ReactComponent as RevenueEstimatesPlusIcon} from "../../assets/icons/estimates-plus-revenue.svg";
 import EditNoteIcon from "@mui/icons-material/EditNote";
-import EditIcon from "@mui/icons-material/Edit";
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
@@ -28,7 +27,7 @@ export function hasUnexpectedEndingMonth(period, previousPeriod) {
     return typeof period?.endingMonth === "string" && period.endingMonth !== following.endingMonth
 }
 
-export const Period = ({period, previousPeriod, isLatest = true, periodPosition, periodCount, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
+export const Period = ({period, ticker, previousPeriod, isLatest = true, periodPosition, periodCount, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
 
     const [contentEditSignal, setContentEditSignal] = useState(0)
     const [openContentEditor, setOpenContentEditor] = useState(false)
@@ -177,7 +176,10 @@ export const Period = ({period, previousPeriod, isLatest = true, periodPosition,
 
             <Box
                 data-period-scroll={stretch ? "true" : undefined}
-                sx={stretch ? {flex: "1 1 auto", minHeight: 0, overflow: "auto"} : undefined}
+                onClick={stretch ? () => setOpenContentEditor(true) : undefined}
+                sx={stretch
+                    ? {flex: "1 1 auto", minHeight: 0, overflow: "auto", cursor: "pointer"}
+                    : undefined}
             >
                 <ContentEditor
                     key={researchVersion}
@@ -237,6 +239,7 @@ export const Period = ({period, previousPeriod, isLatest = true, periodPosition,
             <ContentEditorDialog
                 open={openContentEditor}
                 content={research}
+                title={[ticker, formatPeriodName(period.name)].filter(Boolean).join(" ")}
                 handleClose={() => setOpenContentEditor(false)}
                 save={saveResearch}
             />
@@ -255,13 +258,6 @@ export const Period = ({period, previousPeriod, isLatest = true, periodPosition,
                        "& svg": {width: "20px", height: "20px", display: "block",},
                    }}
             >
-                {stretch &&
-                    <Tooltip title="Edit Content" placement="left">
-                        <Button aria-label="Edit Content" onClick={() => setOpenContentEditor(true)}>
-                            <EditIcon/>
-                        </Button>
-                    </Tooltip>
-                }
                 {!period.financial &&
                     <Tooltip title="Add Financials" placement="left">
                         <Button onClick={openDialog}>

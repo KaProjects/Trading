@@ -518,15 +518,14 @@ public class RecordServiceTest
 
     private static String bulletedList(String text, String... innerTexts)
     {
-        StringBuilder innerList = new StringBuilder();
+        StringBuilder items = new StringBuilder();
+        items.append("{\"type\":\"list-item\",\"children\":[{\"text\":\"").append(text).append("\"}]}");
         for (String innerText : innerTexts) {
-            if (!innerList.isEmpty()) innerList.append(",");
-            innerList.append("{\"type\":\"list-item\",\"children\":[{\"text\":\"")
+            items.append(",{\"type\":\"list-item\",\"children\":[{\"text\":\"     ")
                     .append(innerText)
                     .append("\"}]}");
         }
-        return "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\""
-                + text + "\"},{\"type\":\"bulleted-list\",\"children\":[" + innerList + "]}]}]}]";
+        return "[{\"type\":\"bulleted-list\",\"children\":[" + items + "]}]";
     }
 
     private void updateAndAssertRecord(RecordUpdateDto dto, Record record, Class<? extends Exception> expectedException)

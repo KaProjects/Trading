@@ -767,6 +767,7 @@ export const Research = props => {
                                         <Box key={period.id} sx={{flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column"}}>
                                             <Period
                                                 period={period}
+                                                ticker={data.company.ticker}
                                                 previousPeriod={data.periods[narrowPeriodIndex + 1]}
                                                 isLatest={narrowPeriodIndex === 0}
                                                 periodPosition={narrowPeriodIndex + 1}
@@ -789,6 +790,7 @@ export const Research = props => {
                                         <Period
                                             key={period.id}
                                             period={period}
+                                            ticker={data.company.ticker}
                                             previousPeriod={data.periods[index + 1]}
                                             isLatest={index === 0}
                                             currency={data.company.currency}
@@ -854,6 +856,7 @@ export const Research = props => {
                                     <Record
                                         key={record.id}
                                         data={record}
+                                        ticker={data.company.ticker}
                                         currency={data.company.currency}
                                         setAlert={setAlert}
                                         deleteRecord={deleteRecord}

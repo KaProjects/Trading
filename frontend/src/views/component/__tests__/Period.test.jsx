@@ -290,6 +290,33 @@ describe("Period", () => {
         expect(screen.queryByTestId("period-revenue-estimates")).not.toBeInTheDocument();
     });
 
+    test("opens the content editor dialog when the stretched content is clicked", () => {
+        const {container} = render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    research: "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"saved research\"}]}]",
+                }}
+                ticker={"NVDA"}
+                stretch
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.queryByRole("button", {name: "Edit Content"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+        fireEvent.click(container.querySelector("[data-period-scroll]"));
+
+        expect(screen.getByRole("dialog")).toBeInTheDocument();
+        expect(screen.getByTestId("content-editor-title")).toHaveTextContent("NVDA 26Q2");
+        expect(screen.getByRole("button", {name: "Save"})).toBeInTheDocument();
+    });
+
     test("hides the target summary of a reported period in the stretched narrow view", () => {
         const reportedPeriod = {
             id: "period-1",

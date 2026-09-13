@@ -1,4 +1,4 @@
-import {fireEvent, render, screen, waitFor} from "@testing-library/react";
+import {fireEvent, render, screen, waitFor, within} from "@testing-library/react";
 import axios from "axios";
 
 jest.mock("axios");
@@ -24,8 +24,13 @@ jest.mock("../EditableValueBox", () => ({
     }
 }));
 jest.mock("../ContentEditor", () => ({
-    ContentEditor: ({content, update}) => (
-        <button onClick={() => update([{type: "paragraph", children: [{text: "Updated content"}]}])}>
+    ContentEditor: ({content, update, onValueChange, locked}) => (
+        <button onClick={() => {
+            if (locked) return;
+            const value = [{type: "paragraph", children: [{text: "Updated content"}]}];
+            update?.(value);
+            onValueChange?.(value);
+        }}>
             {content}
         </button>
     ),
@@ -249,6 +254,80 @@ describe("Record", () => {
             {id: "record-1", targets: "Updated target"}
         ));
         await waitFor(() => expect(screen.getByText("Targets:Updated target$")).toBeInTheDocument());
+    });
+
+    test("edits a section through the editor dialog on a narrow screen", async () => {
+        const originalMatchMedia = window.matchMedia;
+        window.matchMedia = query => ({
+            matches: true,
+            media: query,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            addListener: () => {},
+            removeListener: () => {},
+            dispatchEvent: () => false,
+        });
+
+        try {
+            axios.put.mockResolvedValue({});
+
+            render(
+                <Record
+                    data={{
+                        id: "record-1",
+                        date: "2026-05-09",
+                        price: 123,
+                        review: "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"saved review\"}]}]",
+                        targets: "T",
+                    }}
+                    ticker={"NVDA"}
+                    currency={"$"}
+                    setAlert={jest.fn()}
+                />
+            );
+
+            expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+            fireEvent.click(within(screen.getByTestId("record-section-review")).getByText(/saved review/));
+
+            const dialog = screen.getByRole("dialog");
+            expect(screen.getByTestId("content-editor-title")).toHaveTextContent("NVDA 09.05.2026 Review");
+            expect(within(dialog).getByRole("button", {name: "Save"})).toBeInTheDocument();
+            expect(axios.put).not.toHaveBeenCalled();
+
+            fireEvent.click(within(dialog).getByText(/saved review/));
+            fireEvent.click(within(dialog).getByRole("button", {name: "Save"}));
+
+            await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
+                expect.stringContaining("/record"),
+                {
+                    id: "record-1",
+                    review: JSON.stringify([{type: "paragraph", children: [{text: "Updated content"}]}]),
+                }
+            ));
+        } finally {
+            window.matchMedia = originalMatchMedia;
+        }
+    });
+
+    test("edits a section inline on a wide screen", () => {
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
+                    review: "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"saved review\"}]}]",
+                    targets: "T",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        fireEvent.click(within(screen.getByTestId("record-section-review")).getByText(/saved review/));
+
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
     test("offers an empty forward pe when the record has none", () => {

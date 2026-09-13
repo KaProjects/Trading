@@ -36,6 +36,8 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class RecordService
 {
+    private static final String DETAIL_INDENT = "     ";
+
     @Inject
     RecordDao recordDao;
     @Inject
@@ -271,27 +273,22 @@ public class RecordService
 
     private String createBulletedList(String text, List<String> innerTexts)
     {
-        ObjectNode textNode = objectMapper.createObjectNode().put("text", text);
-
-        ObjectNode listItem = objectMapper.createObjectNode().put("type", "list-item");
-        listItem.set("children", objectMapper.createArrayNode().add(textNode));
-
-        if (!innerTexts.isEmpty()) {
-            ObjectNode innerList = objectMapper.createObjectNode().put("type", "bulleted-list");
-            innerList.set("children", objectMapper.createArrayNode());
-            for (String innerText : innerTexts) {
-                ObjectNode innerTextNode = objectMapper.createObjectNode().put("text", innerText);
-                ObjectNode innerListItem = objectMapper.createObjectNode().put("type", "list-item");
-                innerListItem.set("children", objectMapper.createArrayNode().add(innerTextNode));
-                innerList.withArray("children").add(innerListItem);
-            }
-            listItem.withArray("children").add(innerList);
-        }
-
         ObjectNode bulletedList = objectMapper.createObjectNode().put("type", "bulleted-list");
-        bulletedList.set("children", objectMapper.createArrayNode().add(listItem));
+        ArrayNode items = objectMapper.createArrayNode().add(createListItem(text));
+        for (String innerText : innerTexts) {
+            items.add(createListItem(DETAIL_INDENT + innerText));
+        }
+        bulletedList.set("children", items);
 
         return objectMapper.createArrayNode().add(bulletedList).toString();
+    }
+
+    private ObjectNode createListItem(String text)
+    {
+        ObjectNode listItem = objectMapper.createObjectNode().put("type", "list-item");
+        listItem.set("children", objectMapper.createArrayNode()
+                .add(objectMapper.createObjectNode().put("text", text)));
+        return listItem;
     }
 
     public void update(RecordUpdateDto dto)

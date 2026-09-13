@@ -14,6 +14,9 @@ import {ReactComponent as StrategyPlusIcon} from "../../assets/icons/strategy-pl
 import {ReactComponent as RetroPlusIcon} from "../../assets/icons/retro-plus.svg";
 import {ReactComponent as DeleteIcon} from "../../assets/icons/delete.svg";
 import {EditableValueBox} from "./EditableValueBox";
+import {ContentEditorDialog} from "../../dialog/ContentEditorDialog";
+import {SWIPE_NAV_BREAKPOINT} from "./MainBar";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import {validateNumber} from "../../service/ValidationService";
 
 function hasValue(value) {
@@ -25,9 +28,12 @@ function hasAssetAggregate(asset) {
 }
 
 
-export const Record = ({data, currency, setAlert, deleteRecord}) => {
+export const Record = ({data, ticker, currency, setAlert, deleteRecord}) => {
 
     const [record, setRecord] = useState(data);
+    const [editedSection, setEditedSection] = useState(null);
+    const [sectionVersion, setSectionVersion] = useState(0);
+    const isNarrowScreen = useMediaQuery(`(max-width:${SWIPE_NAV_BREAKPOINT}px)`);
 
     const [reviewSectionAdded, setReviewSectionAdded] = useState(false);
     const [strategySectionAdded, setStrategySectionAdded] = useState(false);
@@ -57,20 +63,29 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
             })
     }
 
+    async function saveSection(value) {
+        const error = await editedSection.update(value)
+        if (error) return error
+
+        setSectionVersion(version => version + 1)
+        setEditedSection(null)
+        return null
+    }
+
     function updateContent(value) {
-        updateRecord({id: record.id, content: JSON.stringify(value)})
+        return updateRecord({id: record.id, content: JSON.stringify(value)})
     }
 
     function updateReview(value) {
-        updateRecord({id: record.id, review: JSON.stringify(value)})
+        return updateRecord({id: record.id, review: JSON.stringify(value)})
     }
 
     function updateStrategy(value) {
-        updateRecord({id: record.id, strategy: JSON.stringify(value)})
+        return updateRecord({id: record.id, strategy: JSON.stringify(value)})
     }
 
     function updateRetro(value) {
-        updateRecord({id: record.id, retro: JSON.stringify(value)})
+        return updateRecord({id: record.id, retro: JSON.stringify(value)})
     }
 
     function updateTargets(value) {
@@ -229,34 +244,59 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                 >
                     {showReview &&
                         <RecordEditorSection
+                            key={`review-${sectionVersion}`}
                             label={"Review"}
                             content={record.review}
                             update={(value) => updateReview(value)}
+                            onOpen={isNarrowScreen
+                                ? () => setEditedSection({label: "Review", content: record.review, update: updateReview})
+                                : undefined}
                         />
                     }
                     {showStrategy &&
                         <RecordEditorSection
+                            key={`strategy-${sectionVersion}`}
                             label={"Strategy"}
                             content={record.strategy}
                             update={(value) => updateStrategy(value)}
+                            onOpen={isNarrowScreen
+                                ? () => setEditedSection({label: "Strategy", content: record.strategy, update: updateStrategy})
+                                : undefined}
                         />
                     }
                     {showRetro &&
                         <RecordEditorSection
+                            key={`retro-${sectionVersion}`}
                             label={"Retrospective"}
                             content={record.retro}
                             update={(value) => updateRetro(value)}
+                            onOpen={isNarrowScreen
+                                ? () => setEditedSection({label: "Retrospective", content: record.retro, update: updateRetro})
+                                : undefined}
                         />
                     }
                     {showContent &&
                         <RecordEditorSection
+                            key={`content-${sectionVersion}`}
                             label={"Content"}
                             content={record.content}
                             update={(value) => updateContent(value)}
+                            onOpen={isNarrowScreen
+                                ? () => setEditedSection({label: "Content", content: record.content, update: updateContent})
+                                : undefined}
                         />
                     }
                 </Box>
             }
+            <ContentEditorDialog
+                open={Boolean(editedSection)}
+                content={editedSection?.content}
+                title={editedSection
+                    ? [ticker, formatDate(record.date), editedSection.label].filter(Boolean).join(" ")
+                    : undefined}
+                handleClose={() => setEditedSection(null)}
+                save={saveSection}
+            />
 
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{

@@ -1,8 +1,8 @@
-import {Alert, AlertTitle, Button, Dialog, DialogActions, DialogContent} from "@mui/material";
+import {Alert, AlertTitle, Box, Button, Dialog, DialogActions, DialogContent} from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {ContentEditor} from "../views/component/ContentEditor";
 
-export const ContentEditorDialog = ({open, content, handleClose, save}) => {
+export const ContentEditorDialog = ({open, content, title, handleClose, save}) => {
     const [draft, setDraft] = useState(null)
     const [alert, setAlert] = useState(null)
     const [saving, setSaving] = useState(false)
@@ -34,6 +34,14 @@ export const ContentEditorDialog = ({open, content, handleClose, save}) => {
 
     return (
         <Dialog open={open} onClose={handleClose} fullScreen>
+            {title &&
+                <Box
+                    data-testid="content-editor-title"
+                    sx={{color: "text.secondary", fontSize: 12, fontWeight: 600, padding: "6px 10px 0 10px"}}
+                >
+                    {title}
+                </Box>
+            }
             <DialogContent sx={{display: "flex", flexDirection: "column", padding: 1, overflow: "hidden"}}>
                 {open &&
                     <ContentEditor

@@ -576,7 +576,7 @@ class TradeEndpointsTest
         List<Record> records = recordDao.list(dto.getCompanyId());
         assertThat(records.size(), is(1));
         assertThat(records.get(0).getStrategy(), is(
-                "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"sold 7.5@600$\"},{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"- 7.5@466.66667$ - 28.33$ = +971.67$ (+27.66%)\"}]}]}]}]}]"));
+                "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"sold 7.5@600$\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"     - 7.5@466.66667$ - 28.33$ = +971.67$ (+27.66%)\"}]}]}]"));
     }
 
     @Test
