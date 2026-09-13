@@ -9,12 +9,15 @@ import org.junit.jupiter.api.Test;
 import org.kaleta.Utils;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.Assets;
+import org.kaleta.model.PeriodEstimates;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
+import org.kaleta.model.TargetStats;
 import org.kaleta.model.TradeSaleSummary;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Estimate;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Record;
 import org.kaleta.rest.dto.RecordCreateDto;
@@ -28,6 +31,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -35,8 +39,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.kaleta.framework.InvalidValues.invalidBigDecimals;
 import static org.kaleta.framework.InvalidValues.invalidDates;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,6 +58,10 @@ public class RecordServiceTest
     PeriodService periodService;
     @InjectMock
     TradeService tradeService;
+    @InjectMock
+    EstimateService estimateService;
+    @InjectMock
+    TargetService targetService;
 
     @Inject
     RecordService recordService;
@@ -302,6 +312,168 @@ public class RecordServiceTest
                         "- 1@100.12346$ - 6.79$ = -45.68$ (-12.35%)")));
     }
 
+    @Test
+    void createCurrent_appendsToRecordOfTheSameDay()
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+        when(periodService.getBy(company.getId())).thenReturn(new Periods());
+        when(tradeService.getAssets(company.getId(), new BigDecimal("123"))).thenReturn(new Assets());
+
+        Record existing = new Record();
+        existing.setId(11L);
+        existing.setCompany(company);
+        existing.setDate(Date.valueOf("2030-01-01"));
+        existing.setPrice(new BigDecimal("100"));
+        existing.setStrategy(bulletedList("earlier note"));
+        existing.setTargets("165-210$");
+        when(recordDao.list(company.getId())).thenReturn(List.of(existing));
+
+        recordService.createCurrent(company.getId(), "bought 1", "2030-01-01", "123");
+
+        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+        verify(recordDao).save(captor.capture());
+        verify(recordDao, never()).create(any(Record.class));
+
+        assertThat(captor.getValue().getId(), is(11L));
+        assertThat(captor.getValue().getStrategy(), is(
+                merged(bulletedList("earlier note"), bulletedList("bought 1@123$"))));
+        assertBigDecimals(captor.getValue().getPrice(), new BigDecimal("123"));
+        assertThat(captor.getValue().getTargets(), is("165-210$"));
+    }
+
+    @Test
+    void createCurrent_replacesEmptyStrategyOfTheSameDay()
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+        when(periodService.getBy(company.getId())).thenReturn(new Periods());
+        when(tradeService.getAssets(company.getId(), new BigDecimal("123"))).thenReturn(new Assets());
+
+        Record existing = new Record();
+        existing.setId(11L);
+        existing.setCompany(company);
+        existing.setDate(Date.valueOf("2030-01-01"));
+        existing.setPrice(new BigDecimal("100"));
+        existing.setStrategy("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]");
+        when(recordDao.list(company.getId())).thenReturn(List.of(existing));
+
+        recordService.createCurrent(company.getId(), "bought 1", "2030-01-01", "123");
+
+        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+        verify(recordDao).save(captor.capture());
+
+        assertThat(captor.getValue().getStrategy(), is(bulletedList("bought 1@123$")));
+    }
+
+    @Test
+    void createCurrent_createsRecordWhenTheDayDiffersOrContentCannotBeMerged()
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+        when(periodService.getBy(company.getId())).thenReturn(new Periods());
+        when(tradeService.getAssets(company.getId(), new BigDecimal("123"))).thenReturn(new Assets());
+
+        Record otherDay = new Record();
+        otherDay.setId(11L);
+        otherDay.setCompany(company);
+        otherDay.setDate(Date.valueOf("2029-12-31"));
+        otherDay.setStrategy(bulletedList("earlier note"));
+        when(recordDao.list(company.getId())).thenReturn(List.of(otherDay));
+
+        recordService.createCurrent(company.getId(), "bought 1", "2030-01-01", "123");
+
+        verify(recordDao).create(any(Record.class));
+        verify(recordDao, never()).save(any(Record.class));
+        clearInvocations(recordDao);
+
+        Record corrupted = new Record();
+        corrupted.setId(12L);
+        corrupted.setCompany(company);
+        corrupted.setDate(Date.valueOf("2030-01-01"));
+        corrupted.setStrategy("not a content");
+        when(recordDao.list(company.getId())).thenReturn(List.of(corrupted));
+
+        recordService.createCurrent(company.getId(), "bought 1", "2030-01-01", "123");
+
+        verify(recordDao).create(any(Record.class));
+        verify(recordDao, never()).save(any(Record.class));
+    }
+
+    @Test
+    void createCurrent_withForwardPeAndTargetsOfLatestPeriod()
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+
+        Periods.Period unreported = new Periods.Period();
+        unreported.setId(77L);
+        Periods periods = new Periods();
+        periods.getPeriods().add(unreported);
+        when(periodService.getBy(company.getId())).thenReturn(periods);
+        when(tradeService.getAssets(company.getId(), new BigDecimal("123"))).thenReturn(new Assets());
+
+        PeriodEstimates estimates = new PeriodEstimates();
+        estimates.setCurrent(new BigDecimal("1.2"));
+        estimates.setNext1(new BigDecimal("1.3"));
+        estimates.setNext2(new BigDecimal("1.5"));
+        estimates.setNext3(new BigDecimal("1.8"));
+        when(estimateService.getLatest(77L, Estimate.EPS)).thenReturn(Optional.of(estimates));
+        when(targetService.getStatistics(List.of(77L))).thenReturn(Map.of(77L,
+                new TargetStats(3, new BigDecimal("288"), new BigDecimal("317.33"), new BigDecimal("352"))));
+
+        recordService.createCurrent(company.getId(), "bought 1", "2030-01-01", "123");
+
+        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+        verify(recordDao).create(captor.capture());
+
+        assertBigDecimals(captor.getValue().getForwardPe(), new BigDecimal("21.21"));
+        assertThat(captor.getValue().getTargets(), is("3@(352-288)~317$"));
+    }
+
+    @Test
+    void createCurrent_withoutForwardPeWhenThePeriodIsReportedOrEstimatesAreIncomplete()
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.$);
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+        when(tradeService.getAssets(company.getId(), new BigDecimal("123"))).thenReturn(new Assets());
+
+        Periods.Period reported = new Periods.Period();
+        reported.setId(77L);
+        reported.setFinancial(new Periods.Financial());
+        Periods reportedPeriods = new Periods();
+        reportedPeriods.getPeriods().add(reported);
+        when(periodService.getBy(company.getId())).thenReturn(reportedPeriods);
+
+        recordService.createCurrent(company.getId(), "bought 1", "2030-01-01", "123");
+
+        ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+        verify(recordDao).create(captor.capture());
+        assertThat(captor.getValue().getForwardPe(), is(Matchers.nullValue()));
+        clearInvocations(recordDao);
+
+        Periods.Period unreported = new Periods.Period();
+        unreported.setId(78L);
+        Periods unreportedPeriods = new Periods();
+        unreportedPeriods.getPeriods().add(unreported);
+        when(periodService.getBy(company.getId())).thenReturn(unreportedPeriods);
+
+        PeriodEstimates estimates = new PeriodEstimates();
+        estimates.setCurrent(new BigDecimal("1.2"));
+        estimates.setNext1(new BigDecimal("1.3"));
+        when(estimateService.getLatest(78L, Estimate.EPS)).thenReturn(Optional.of(estimates));
+
+        recordService.createCurrent(company.getId(), "bought 1", "2030-01-01", "123");
+
+        verify(recordDao).create(captor.capture());
+        assertThat(captor.getValue().getForwardPe(), is(Matchers.nullValue()));
+    }
+
     private void createCurrentAndAssertRecord(Long cid, String t, String d, String p,
                                               PriceIndicators expectedRatios,
                                               Class<? extends Exception> expectedException)
@@ -331,6 +503,11 @@ public class RecordServiceTest
         } else {
             assertThrows(expectedException, () -> recordService.createCurrent(cid, t, d, p));
         }
+    }
+
+    private static String merged(String first, String second)
+    {
+        return "[" + first.substring(1, first.length() - 1) + "," + second.substring(1, second.length() - 1) + "]";
     }
 
     private static String bulletedList(String text)

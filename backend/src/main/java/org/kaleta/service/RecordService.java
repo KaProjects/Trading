@@ -1,17 +1,22 @@
 package org.kaleta.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.Utils;
 import org.kaleta.model.Assets;
+import org.kaleta.model.PeriodEstimates;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
+import org.kaleta.model.TargetStats;
 import org.kaleta.model.TradeSaleSummary;
 import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.entity.Company;
+import org.kaleta.persistence.entity.Estimate;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Record;
 import org.kaleta.rest.dto.RecordCreateDto;
@@ -39,6 +44,10 @@ public class RecordService
     ArithmeticService arithmeticService;
     @Inject
     PeriodService periodService;
+    @Inject
+    EstimateService estimateService;
+    @Inject
+    TargetService targetService;
     @Inject
     TradeService tradeService;
     @Inject
@@ -109,41 +118,136 @@ public class RecordService
     {
         Company company = companyService.findEntity(companyId);
         Periods periods = periodService.getBy(companyId);
+        String bulletedList = createBulletedList(heading, details);
 
-        Record newRecord = new Record();
+        Record dayRecord = findRecord(companyId, Date.valueOf(date));
+        String mergedContent = dayRecord == null
+                ? null
+                : mergeContent(asContent ? dayRecord.getContent() : dayRecord.getStrategy(), bulletedList);
 
-        newRecord.setCompany(company);
+        Record record = mergedContent == null ? new Record() : dayRecord;
+
+        record.setCompany(company);
         if (asContent) {
-            newRecord.setContent(createBulletedList(heading, details));
+            record.setContent(mergedContent == null ? bulletedList : mergedContent);
         } else {
-            newRecord.setStrategy(createBulletedList(heading, details));
+            record.setStrategy(mergedContent == null ? bulletedList : mergedContent);
         }
 
-        newRecord.setDate(Date.valueOf(date));
-        newRecord.setPrice(new BigDecimal(price));
+        record.setDate(Date.valueOf(date));
+        record.setPrice(new BigDecimal(price));
 
         Latest latest = new Latest(company, LocalDate.parse(date).atStartOfDay(), new BigDecimal(price));
 
         if (periods.getTtm() != null && periods.getTtm().getShares() != null) {
             PriceIndicators indicators = arithmeticService.computeIndicators(latest, periods.getTtm());
 
-            newRecord.setPriceToRevenues(indicators.getTtm().getMarketCapToRevenues());
-            newRecord.setPriceToGrossProfit(indicators.getTtm().getMarketCapToGrossProfit());
-            newRecord.setPriceToOperatingIncome(indicators.getTtm().getMarketCapToOperatingIncome());
-            newRecord.setPriceToNetIncome(indicators.getTtm().getMarketCapToNetIncome());
-            newRecord.setPriceToFreeCashFlow(indicators.getTtm().getMarketCapToFreeCashFlow());
+            record.setPriceToRevenues(indicators.getTtm().getMarketCapToRevenues());
+            record.setPriceToGrossProfit(indicators.getTtm().getMarketCapToGrossProfit());
+            record.setPriceToOperatingIncome(indicators.getTtm().getMarketCapToOperatingIncome());
+            record.setPriceToNetIncome(indicators.getTtm().getMarketCapToNetIncome());
+            record.setPriceToFreeCashFlow(indicators.getTtm().getMarketCapToFreeCashFlow());
 
-            newRecord.setDividendYield(indicators.getTtm().getDividendYield());
+            record.setDividendYield(indicators.getTtm().getDividendYield());
+        }
+
+        Periods.Period latestPeriod = periods.getPeriods().isEmpty() ? null : periods.getPeriods().get(0);
+
+        record.setForwardPe(computeForwardPe(latestPeriod, latest.getPrice()));
+
+        if (record.getTargets() == null || record.getTargets().isBlank()) {
+            record.setTargets(formatTargetStats(latestPeriod, company.getCurrency().toString()));
         }
 
         Assets assets = tradeService.getAssets(companyId, latest.getPrice());
 
         if (assets.getAggregate() != null) {
-            newRecord.setSumAssetQuantity(assets.getAggregate().getQuantity());
-            newRecord.setAvgAssetPrice(assets.getAggregate().getPurchasePrice());
+            record.setSumAssetQuantity(assets.getAggregate().getQuantity());
+            record.setAvgAssetPrice(assets.getAggregate().getPurchasePrice());
         }
 
-        recordDao.create(newRecord);
+        if (mergedContent == null) {
+            recordDao.create(record);
+        } else {
+            recordDao.save(record);
+        }
+    }
+
+    private Record findRecord(Long companyId, Date date)
+    {
+        return recordDao.list(companyId).stream()
+                .filter(record -> date.equals(record.getDate()))
+                .max((a, b) -> Long.compare(a.getId(), b.getId()))
+                .orElse(null);
+    }
+
+    private String mergeContent(String existing, String addition)
+    {
+        if (existing == null || existing.isBlank()) return addition;
+
+        try {
+            JsonNode existingNode = objectMapper.readTree(existing);
+            JsonNode additionNode = objectMapper.readTree(addition);
+
+            if (!existingNode.isArray() || !additionNode.isArray()) return null;
+            if (isEmptyContent(existingNode)) return addition;
+
+            ArrayNode merged = objectMapper.createArrayNode();
+            merged.addAll((ArrayNode) existingNode);
+            merged.addAll((ArrayNode) additionNode);
+
+            return objectMapper.writeValueAsString(merged);
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private boolean isEmptyContent(JsonNode node)
+    {
+        if (node.isObject() && !node.path("text").asText("").isBlank()) return false;
+
+        for (JsonNode child : node) {
+            if (!isEmptyContent(child)) return false;
+        }
+        return true;
+    }
+
+    private BigDecimal computeForwardPe(Periods.Period latestPeriod, BigDecimal price)
+    {
+        if (latestPeriod == null || latestPeriod.getFinancial() != null) return null;
+
+        PeriodEstimates estimates = estimateService.getLatest(latestPeriod.getId(), Estimate.EPS).orElse(null);
+        if (estimates == null) return null;
+
+        List<BigDecimal> quarters = List.of();
+        if (estimates.getCurrent() != null && estimates.getNext1() != null
+                && estimates.getNext2() != null && estimates.getNext3() != null) {
+            quarters = List.of(estimates.getCurrent(), estimates.getNext1(),
+                    estimates.getNext2(), estimates.getNext3());
+        }
+        if (quarters.isEmpty()) return null;
+
+        BigDecimal earnings = quarters.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (earnings.signum() == 0) return null;
+
+        return price.divide(earnings, 2, RoundingMode.HALF_UP);
+    }
+
+    private String formatTargetStats(Periods.Period latestPeriod, String currency)
+    {
+        if (latestPeriod == null) return null;
+
+        TargetStats stats = targetService.getStatistics(List.of(latestPeriod.getId())).get(latestPeriod.getId());
+        if (stats == null || stats.count() < 1) return null;
+
+        return stats.count() + "@(" + formatTarget(stats.maximum()) + "-" + formatTarget(stats.minimum())
+                + ")~" + formatTarget(stats.average()) + currency;
+    }
+
+    private String formatTarget(BigDecimal value)
+    {
+        int scale = value.abs().compareTo(BigDecimal.TEN) < 0 ? 1 : 0;
+        return value.setScale(scale, RoundingMode.HALF_UP).toPlainString();
     }
 
     private String formatPerformance(BigDecimal profit, BigDecimal profitPercentage, String currency)
