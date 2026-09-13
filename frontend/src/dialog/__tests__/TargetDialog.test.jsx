@@ -90,6 +90,7 @@ describe("TargetDialog", () => {
         expect(screen.getByText("2")).toBeInTheDocument();
         expect(screen.getByText("Some expected target data could not be loaded")).toBeInTheDocument();
         expect(screen.getByText("Firebase targets for NVDA could not be loaded completely")).toBeInTheDocument();
+        expect(screen.getByTestId("target-summary")).toHaveTextContent("1@(175-175)~175$");
         expect(screen.queryByLabelText(/Target date/)).not.toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add Target"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Delete target Northstar"})).toHaveClass("deleteTarget");

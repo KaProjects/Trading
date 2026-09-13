@@ -22,7 +22,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
-import {formatDate, formatDecimals, formatError, formatPeriodName} from "../service/FormattingService";
+import {formatDate, formatDecimals, formatError, formatPeriodName, formatTargetStats} from "../service/FormattingService";
 import {validateDate, validateNumber} from "../service/ValidationService";
 
 const EMPTY_TARGET = {
@@ -81,6 +81,18 @@ function dateWindow(period) {
     return start && end && start < end ? {start, end} : null;
 }
 
+function targetStats(targets) {
+    const prices = targets.map(target => Number(target.price)).filter(Number.isFinite);
+    if (prices.length === 0) return null;
+
+    return {
+        count: prices.length,
+        minimum: Math.min(...prices),
+        maximum: Math.max(...prices),
+        average: prices.reduce((sum, price) => sum + price, 0) / prices.length,
+    };
+}
+
 export const TargetDialog = ({open, handleClose, triggerRefresh, company, period}) => {
     const [mode, setMode] = useState("list");
     const [targets, setTargets] = useState([]);
@@ -97,6 +109,8 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
     const [alert, setAlert] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [highlightedTargetIds, setHighlightedTargetIds] = useState(new Set());
+
+    const savedTargetStats = targetStats(targets);
     const targetDateWindow = dateWindow(period);
     const selectedCount = selectedCandidates.size;
     const discardedCount = candidates.length - selectedCount;
@@ -465,7 +479,9 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
                 {mode === "list" &&
                     <>
                 <Box sx={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
-                    <Typography color="text.secondary">Saved targets</Typography>
+                    <Typography data-testid="target-summary" color="text.secondary">
+                        {formatTargetStats(savedTargetStats)}{savedTargetStats ? company.currency : ""}
+                    </Typography>
                     <Tooltip title="Import new targets from Firebase">
                         <span>
                             <IconButton

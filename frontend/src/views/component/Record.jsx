@@ -16,52 +16,12 @@ import {ReactComponent as DeleteIcon} from "../../assets/icons/delete.svg";
 import {EditableValueBox} from "./EditableValueBox";
 import {validateNumber} from "../../service/ValidationService";
 
-const FINANCIAL_RATIO_LABELS = ["PS", "PG", "PO", "PE", "PCF"];
-
-function financialRatiosValue(record) {
-    return [
-        record.priceToRevenues,
-        record.priceToGrossProfit,
-        record.priceToOperatingIncome,
-        record.priceToNetIncome,
-        record.priceToFreeCashFlow,
-    ].map(value => value ?? "").join("/");
-}
-
 function hasValue(value) {
     return value !== null && value !== undefined && value !== "";
 }
 
-function hasFinancialRatios(record) {
-    return [
-        record.priceToRevenues,
-        record.priceToGrossProfit,
-        record.priceToOperatingIncome,
-        record.priceToNetIncome,
-        record.priceToFreeCashFlow,
-    ].some(hasValue);
-}
-
 function hasAssetAggregate(asset) {
     return asset && hasValue(asset.quantity) && hasValue(asset.purchasePrice);
-}
-
-function formatFinancialRatios(value) {
-    return value.split("/")
-        .map(ratio => ratio.trim())
-        .map(ratio => ratio === "" ? "-" : formatDecimals(Number(ratio), 0, 2))
-        .join(" / ");
-}
-
-function validateFinancialRatios(value) {
-    const ratios = value.split("/").map(ratio => ratio.trim());
-    if (ratios.length !== 5) return "Use format PS/PG/PO/PE/PCF";
-
-    for (let index = 0; index < ratios.length; index++) {
-        const error = validateNumber(ratios[index], false, 6, 2, index > 0);
-        if (error) return `${FINANCIAL_RATIO_LABELS[index]}: ${error}`;
-    }
-    return "";
 }
 
 
@@ -121,17 +81,12 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
         return updateRecord({id: record.id, price: value})
     }
 
-    function updateFinancialRatios(value) {
-        const [priceToRevenues, priceToGrossProfit, priceToOperatingIncome, priceToNetIncome, priceToFreeCashFlow]
-            = value.split("/").map(ratio => ratio.trim());
-        return updateRecord({
-            id: record.id,
-            priceToRevenues,
-            priceToGrossProfit,
-            priceToOperatingIncome,
-            priceToNetIncome,
-            priceToFreeCashFlow,
-        })
+    function updateDividendYield(value) {
+        return updateRecord({id: record.id, dividendYield: value})
+    }
+
+    function updateForwardPe(value) {
+        return updateRecord({id: record.id, forwardPe: value})
     }
 
     function updateAsset(quantity, purchasePrice) {
@@ -159,18 +114,17 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
     }
 
     const showAssetAggregate = hasAssetAggregate(record.asset);
-    const showFinancialRatios = hasFinancialRatios(record);
-    const showDividendYield = hasValue(record.dividendYield);
     const showReview = showReviewSection();
     const showStrategy = showStrategySection();
     const showRetro = showRetroSection();
     const showContent = showContentSection();
     const showEditorSections = showReview || showStrategy || showRetro || showContent;
+    const showDividendYield = hasValue(record.dividendYield);
     const summaryColumns = [
         showAssetAggregate && "asset",
         "price",
-        showFinancialRatios && "ratios",
         showDividendYield && "dividend",
+        "fpe",
     ].filter(Boolean);
     const summarySecondRow = summaryColumns
         .map(column => column === "asset" ? "asset" : column === "price" ? "targets" : ".")
@@ -236,18 +190,6 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                             />
                         </Box>
                     </Box>
-                    {showFinancialRatios &&
-                        <Box data-testid="record-ratios-item" sx={{gridArea: "ratios"}}>
-                            <EditableValueBox
-                                value={financialRatiosValue(record)}
-                                label="Price to financials ratios"
-                                formatValue={formatFinancialRatios}
-                                validate={validateFinancialRatios}
-                                update={updateFinancialRatios}
-                                disabled
-                            />
-                        </Box>
-                    }
                     {showDividendYield &&
                         <Box data-testid="record-dividend-item" sx={{gridArea: "dividend"}}>
                             <EditableValueBox
@@ -255,10 +197,20 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                                 suffix="%"
                                 label="Dividend yield"
                                 formatValue={(value) => formatDecimals(Number(value), 0, 2)}
-                                disabled
+                                validate={(value) => validateNumber(value, true, 5, 2, false)}
+                                update={updateDividendYield}
                             />
                         </Box>
                     }
+                    <Box data-testid="record-forward-pe-item" sx={{gridArea: "fpe"}}>
+                        <EditableValueBox
+                            value={record.forwardPe}
+                            label="Forward PE"
+                            formatValue={(value) => formatDecimals(Number(value), 0, 2)}
+                            validate={(value) => validateNumber(value, true, 6, 2, true)}
+                            update={updateForwardPe}
+                        />
+                    </Box>
                 </Box>
             </Box>
             {record.title &&

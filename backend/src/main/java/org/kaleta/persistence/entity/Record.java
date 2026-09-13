@@ -54,6 +54,9 @@ public class Record extends AbstractEntityCompany
     @Column(name = "p_fcf")
     private BigDecimal priceToFreeCashFlow;
 
+    @Column(name = "fpe")
+    private BigDecimal forwardPe;
+
     @Column(name = "dy")
     private BigDecimal dividendYield;
 

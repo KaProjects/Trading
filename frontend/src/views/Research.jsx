@@ -10,7 +10,6 @@ import {
     DialogTitle,
     Grid,
     IconButton,
-    Stack,
 } from "@mui/material";
 import React, {useEffect, useRef, useState} from "react";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -21,7 +20,7 @@ import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import {ReactComponent as DeleteIcon} from "../assets/icons/delete.svg";
 import {formatDecimals, formatError} from "../service/FormattingService";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
-import {AssetBox} from "./component/AssetBox";
+import {AssetsSummary} from "./component/AssetsSummary";
 import {DateTime} from "./component/DateTime";
 import {Record} from "./component/Record";
 import {Period} from "./component/Period";
@@ -75,8 +74,11 @@ const researchCardStyle = {
 
 const recordActionAnchorStyle = {
     position: "absolute",
-    top: 0,
-    right: 0,
+    top: {xs: "6px", sm: 0},
+    left: {xs: "50%", sm: "auto"},
+    right: {xs: "auto", sm: 0},
+    transform: {xs: "translateX(calc(-50% - 10px))", sm: "none"},
+    zIndex: 2,
 }
 
 const periodActionAnchorStyle = {
@@ -394,13 +396,6 @@ export const Research = props => {
                     }}>
                         <CardContent sx={researchCardContentStyle}>
                             <Box sx={{position: "relative", flexShrink: 0}}>
-                                <Box sx={{
-                                    color: 'text.secondary',
-                                    marginLeft: hasTradingView ? "2px" : 0,
-                                    display: {xs: "none", sm: "block"},
-                                }}>
-                                    Research
-                                </Box>
                                 <Box sx={{
                                     display: "flex",
                                     alignItems: "flex-end",
@@ -823,20 +818,6 @@ export const Research = props => {
                     }}>
                         <CardContent sx={researchCardContentStyle}>
                             <Box sx={{position: "relative", flexShrink: 0, paddingLeft: {xs: "5px", sm: 0}}}>
-                                <Box sx={{color: 'text.secondary', display: {xs: "none", sm: "block"}}}>Records</Box>
-
-                                {data.latest &&
-                                <Box sx={{
-                                    [`@media (max-width:${SWIPE_NAV_BREAKPOINT}px)`]: {display: "none"},
-                                    [`@media (min-width:${RESEARCH_SPLIT_BREAKPOINT + 1}px)`]: {display: "none"},
-                                }}>
-                                    <Box sx={{color: 'text.primary', fontSize: 34, fontWeight: 'medium'}}>
-                                        {data.company.currency}{formatDecimals(data.latest.price,0,2)}
-                                    </Box>
-                                    <DateTime value={data.latest.datetime} sx={{marginTop: '-2px', color: 'text.secondary', fontSize: 11}} iconMarginTop={"1px"}/>
-                                </Box>
-                                }
-
                                 <Button aria-label="Add record" sx={recordActionAnchorStyle} onClick={() => setOpenAddRecordDialog(true)}>
                                     <ControlPointIcon sx={{color: 'lightgreen',}}/>
                                 </Button>
@@ -847,33 +828,23 @@ export const Research = props => {
                                     companyId={props.companySelectorValue.id}
                                     indicators={data.indicators}
                                     assets={data.assets}
+                                    latestPeriod={data.periods[0]}
                                     targetStats={data.periods[0]?.targetStats}
                                 />
                             </Box>
 
-                            {data.assets.assets.length > 0 &&
-                                <Stack
-                                    data-testid="record-assets"
-                                    direction="row"
-                                    spacing={1}
-                                    sx={{
-                                        marginTop: "10px",
-                                        marginRight: "10px",
-                                        marginBottom: 0,
-                                        marginLeft: {xs: "5px", sm: "10px"},
-                                        maxWidth: "100%",
-                                        flexShrink: 0,
-                                        overflowX: {xs: "auto", sm: "visible"},
-                                        overflowY: {xs: "hidden", sm: "visible"},
-                                        pb: {xs: 1, sm: 0},
-                                        "& > *": {flexShrink: 0},
-                                    }}
-                                >
-                                    {data.assets.assets.map((asset, index) => (
-                                        <AssetBox key={`${data.company.id}-${index}`} asset={asset} currency={data.company.currency}/>
-                                    ))}
-                                </Stack>
-                            }
+                            <AssetsSummary
+                                latest={data.latest}
+                                assets={data.assets}
+                                currency={data.company.currency}
+                                sx={{
+                                    marginTop: "6px",
+                                    marginRight: {xs: 0, sm: "10px"},
+                                    marginLeft: {xs: 0, sm: "5px"},
+                                    width: "100%",
+                                    maxWidth: {xs: "100%", sm: "520px"},
+                                }}
+                            />
 
                             <Box
                                 data-testid="record-list"

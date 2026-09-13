@@ -60,6 +60,7 @@ CREATE TABLE Record
     p_oper          DECIMAL(6, 2),
     p_net           DECIMAL(6, 2),
     p_fcf           DECIMAL(6, 2),
+    fpe             DECIMAL(6, 2),
     dy              DECIMAL(5, 2),
     asset_quantity  DECIMAL(11, 4),
     asset_price     DECIMAL(10, 4),

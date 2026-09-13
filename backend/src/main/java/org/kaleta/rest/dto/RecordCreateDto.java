@@ -36,6 +36,9 @@ public class RecordCreateDto
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
     private String priceToFreeCashFlow;
 
+    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    private String forwardPe;
+
     @ValidBigDecimal(integerConstraint = 3, decimalConstraint = 2)
     private String dividendYield;
 

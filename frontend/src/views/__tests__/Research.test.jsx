@@ -137,8 +137,13 @@ jest.mock("../component/SnackbarErrorAlert", () => ({
         <div data-testid="snackbar">{props.error ? JSON.stringify(props.error) : "null"}|{String(props.open)}</div>
     )
 }));
-jest.mock("../component/AssetBox", () => ({
-    AssetBox: ({asset, currency}) => <div>asset:{asset.quantity}@{asset.purchasePrice}{currency}</div>
+jest.mock("../component/AssetsSummary", () => ({
+    AssetsSummary: ({latest, assets, currency}) => (
+        <div data-testid="record-assets">
+            assets:{assets.assets.map(asset => `${asset.quantity}@${asset.purchasePrice}${currency}`).join(",")}
+            {latest ? ` price:${latest.price}@${latest.datetime}` : ""}
+        </div>
+    )
 }));
 jest.mock("../component/DateTime", () => ({
     DateTime: ({value}) => <div>datetime:{value}</div>
@@ -578,7 +583,8 @@ describe("Research", () => {
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith("/api/research/company-1"));
         await waitFor(() => expect(screen.getByText("AAPL")).toBeInTheDocument());
 
-        expect(screen.getByText("Research")).toHaveStyle("margin-left: 2px");
+        expect(screen.queryByText("Research")).not.toBeInTheDocument();
+        expect(screen.queryByText("Records")).not.toBeInTheDocument();
         expect(screen.queryByText("Technology")).not.toBeInTheDocument();
         expect(screen.getByText("#growth")).toBeInTheDocument();
         expect(screen.getByText("#growth").parentElement).toHaveStyle("margin-top: -10px");
@@ -594,14 +600,13 @@ describe("Research", () => {
         expect(screen.getByTestId("trading-view-overview").parentElement).toContainElement(
             screen.getByRole("button", {name: "Edit AAPL"})
         );
-        expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
         expect(screen.queryByText(/^Market Cap/)).not.toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveAttribute("data-net-income-multiple", "6");
         expect(screen.getByTestId("period-financials")).toHaveAttribute("data-market-cap", "1000");
         expect(screen.queryByText(/^PE:/)).not.toBeInTheDocument();
         expect(screen.queryByText(/^DY:/)).not.toBeInTheDocument();
-        expect(screen.getByText("asset:3@100$")).toBeInTheDocument();
-        expect(screen.getByTestId("record-assets")).toHaveStyle("flex-shrink: 0");
+        expect(screen.getByTestId("record-assets"))
+            .toHaveTextContent("assets:3@100$ price:123.45@2026-05-09T10:11:12");
         expect(screen.getByText("period:period-1")).toBeInTheDocument();
         expect(screen.getByText("record:record-1")).toBeInTheDocument();
         expect(screen.getByTestId("period-list")).toHaveStyle("overflow-y: auto");

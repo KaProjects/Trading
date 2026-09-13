@@ -290,6 +290,46 @@ describe("Period", () => {
         expect(screen.queryByTestId("period-revenue-estimates")).not.toBeInTheDocument();
     });
 
+    test("hides the target summary of a reported period in the stretched narrow view", () => {
+        const reportedPeriod = {
+            id: "period-1",
+            name: {year: "2026", type: "Q2"},
+            endingMonth: "2026-07",
+            reportDate: "2026-08-26",
+            financial: {
+                revenue: {value: 300},
+                grossProfit: {value: 200},
+                operatingIncome: {value: 100},
+                netIncome: {value: 50},
+            },
+            targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
+        };
+
+        const {rerender} = render(
+            <Period period={reportedPeriod} stretch currency={"$"} setAlert={jest.fn()} openDialog={jest.fn()}/>
+        );
+
+        expect(screen.queryByTestId("period-target-summary")).not.toBeInTheDocument();
+
+        rerender(
+            <Period period={reportedPeriod} currency={"$"} setAlert={jest.fn()} openDialog={jest.fn()}/>
+        );
+
+        expect(screen.getByTestId("period-target-summary")).toHaveTextContent("Targets: 3@(175-120)~146$");
+
+        rerender(
+            <Period
+                period={{...reportedPeriod, financial: undefined}}
+                stretch
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("period-target-summary")).toHaveTextContent("Targets: 3@(175-120)~146$");
+    });
+
     test("shows an error badge instead of an import count when availability cannot be checked", () => {
         render(
             <Period

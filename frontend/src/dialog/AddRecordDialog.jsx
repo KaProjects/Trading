@@ -7,8 +7,25 @@ import {formatError, formatTargetStats} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
 
+function forwardPeFrom(latestPeriod, price) {
+    if (!latestPeriod || latestPeriod.financial) return ""
+
+    const estimates = [
+        latestPeriod.estimate?.current,
+        latestPeriod.estimate?.next1,
+        latestPeriod.estimate?.next2,
+        latestPeriod.estimate?.next3,
+    ]
+    if (estimates.some(estimate => !Number.isFinite(Number(estimate)) || estimate === null || estimate === undefined)) return ""
+
+    const earnings = estimates.reduce((sum, estimate) => sum + Number(estimate), 0)
+    if (earnings === 0 || !Number.isFinite(Number(price))) return ""
+
+    return `${Math.round(Number(price) / earnings * 100) / 100}`
+}
+
 export const AddRecordDialog = props => {
-    const {companyId, open, handleClose, indicators, assets = {}, targetStats} = props
+    const {companyId, open, handleClose, indicators, assets = {}, targetStats, latestPeriod} = props
     const [alert, setAlert] = useState(null)
     const [prefilledDate, setPrefilledDate] = useState("")
     const [prefilledValuesCleared, setPrefilledValuesCleared] = useState(false)
@@ -21,6 +38,7 @@ export const AddRecordDialog = props => {
     const [priceToOperatingIncome, setPriceToOperatingIncome] = useState("")
     const [priceToNetIncome, setPriceToNetIncome] = useState("")
     const [priceToFreeCashFlow, setPriceToFreeCashFlow] = useState("")
+    const [forwardPe, setForwardPe] = useState("")
     const [dividendYield, setDividendYield] = useState("")
     const [sumAssetQuantity, setSumAssetQuantity] = useState("")
     const [avgAssetPrice, setAvgAssetPrice] = useState("")
@@ -40,6 +58,7 @@ export const AddRecordDialog = props => {
             setPriceToOperatingIncome("")
             setPriceToNetIncome("")
             setPriceToFreeCashFlow("")
+            setForwardPe("")
             setDividendYield("")
             setTargets(indicators ? formatTargetStats(targetStats) : "")
 
@@ -57,6 +76,8 @@ export const AddRecordDialog = props => {
                     setPriceToFreeCashFlow(`${indicators.ttm.marketCapToFreeCashFlow ?? ''}`)
                     setDividendYield(`${indicators.ttm.dividendYield ?? ''}`)
                 }
+
+                setForwardPe(forwardPeFrom(latestPeriod, indicators.price))
             }
 
             if (assets.aggregate) {
@@ -77,6 +98,7 @@ export const AddRecordDialog = props => {
         setPriceToOperatingIncome("")
         setPriceToNetIncome("")
         setPriceToFreeCashFlow("")
+        setForwardPe("")
         setDividendYield("")
         setSumAssetQuantity("")
         setAvgAssetPrice("")
@@ -95,6 +117,7 @@ export const AddRecordDialog = props => {
             priceToOperatingIncome: nullIfBlank(priceToOperatingIncome),
             priceToNetIncome: nullIfBlank(priceToNetIncome),
             priceToFreeCashFlow: nullIfBlank(priceToFreeCashFlow),
+            forwardPe: nullIfBlank(forwardPe),
             dividendYield: nullIfBlank(dividendYield),
             sumAssetQuantity: nullIfBlank(sumAssetQuantity),
             avgAssetPrice: nullIfBlank(avgAssetPrice),
@@ -177,6 +200,15 @@ export const AddRecordDialog = props => {
                     label="PCF"
                     onChange={(e) => {setPriceToFreeCashFlow(e.target.value);setAlert(null);}}
                     validate={() => validateNumber(priceToFreeCashFlow, true, 6, 2, true)}
+                />
+
+                <DialogTextField
+                    id="trader-record-fpe"
+                    value={forwardPe}
+                    required={false}
+                    label="Forward PE"
+                    onChange={(e) => {setForwardPe(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(forwardPe, true, 6, 2, true)}
                 />
 
                 <DialogTextField

@@ -17,11 +17,11 @@ describe("RecordAssetAggregate", () => {
         expect(screen.getByTestId("record-asset-aggregate")).toHaveStyle("margin: 0");
         expect(screen.getByTestId("record-asset-aggregate")).toHaveStyle("min-height: 51px");
         expect(screen.getByRole("button")).toHaveStyle("height: 51px");
-        expect(screen.getByTestId("record-asset-profit")).toHaveTextContent("+75.38$ (+25.13%)");
+        expect(screen.getByTestId("record-asset-profit")).toHaveTextContent("+75.38$(+25.13%)");
         expect(screen.getByTestId("record-asset-profit")).toHaveStyle("margin-top: -3px");
         expect(screen.getByTestId("record-asset-profit")).toHaveStyle("opacity: 0.78");
         expect(screen.getByTestId("record-asset-profit-percent")).toHaveStyle("font-size: 12px");
-        expect(screen.getByRole("button")).toHaveTextContent("+75.38$ (+25.13%)");
+        expect(screen.getByRole("button")).toHaveTextContent("+75.38$(+25.13%)");
         expect(screen.queryByText("Count")).not.toBeInTheDocument();
     });
 
@@ -35,7 +35,7 @@ describe("RecordAssetAggregate", () => {
         );
 
         expect(screen.getByText("12,345.5@1,234.25$")).toBeInTheDocument();
-        expect(screen.getByTestId("record-asset-profit")).toHaveTextContent("+1,234,567.89$ (+25%)");
+        expect(screen.getByTestId("record-asset-profit")).toHaveTextContent("+1,234,567.89$(+25%)");
     });
 
     test("renders negative profit values and missing profit as dash", () => {
@@ -46,7 +46,7 @@ describe("RecordAssetAggregate", () => {
                 update={jest.fn()}
             />
         );
-        expect(screen.getByTestId("record-asset-profit")).toHaveTextContent("-12.6$ (-4.2%)");
+        expect(screen.getByTestId("record-asset-profit")).toHaveTextContent("-12.6$(-4.2%)");
 
         rerender(
             <RecordAssetAggregate
@@ -55,7 +55,7 @@ describe("RecordAssetAggregate", () => {
                 update={jest.fn()}
             />
         );
-        expect(screen.getByTestId("record-asset-profit")).toHaveTextContent("- (-)");
+        expect(screen.getByTestId("record-asset-profit")).toHaveTextContent("-(-)");
     });
 
     test("updates the stored aggregate quantity and average price", async () => {

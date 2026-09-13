@@ -81,10 +81,9 @@ describe("Record", () => {
         expect(screen.getByTestId("record-targets-item")).toHaveStyle("overflow: visible");
         expect(screen.getByText("Price:$123")).toBeInTheDocument();
         expect(screen.getByTestId("editable-value-Price")).toHaveAttribute("aria-disabled", "true");
-        expect(screen.getByText("Price to financials ratios:1 / 2 / 3 / 4 / 5")).toBeInTheDocument();
-        expect(screen.getByTestId("editable-value-Price to financials ratios")).toHaveAttribute("aria-disabled", "true");
+        expect(screen.queryByTestId("editable-value-Price to financials ratios")).not.toBeInTheDocument();
         expect(screen.getByText("Dividend yield:5%")).toBeInTheDocument();
-        expect(screen.getByTestId("editable-value-Dividend yield")).toHaveAttribute("aria-disabled", "true");
+        expect(screen.getByTestId("editable-value-Dividend yield")).not.toHaveAttribute("aria-disabled", "true");
         expect(screen.getByText("Targets:T$")).toBeInTheDocument();
         expect(screen.getByTestId("editable-value-Price").compareDocumentPosition(
             screen.getByTestId("editable-value-Targets")
@@ -140,7 +139,7 @@ describe("Record", () => {
         expect(screen.getByTestId("record-editor-sections")).toHaveStyle("margin-top: 5px");
     });
 
-    test("hides empty dividend yield", () => {
+    test("keeps the financial ratios out of the summary", () => {
         render(
             <Record
                 data={{
@@ -151,42 +150,6 @@ describe("Record", () => {
                     priceToGrossProfit: 2,
                     priceToOperatingIncome: 3,
                     priceToNetIncome: 4,
-                    dividendYield: null,
-                    targets: "T",
-                }}
-                currency={"$"}
-                setAlert={jest.fn()}
-            />
-        );
-
-        expect(screen.queryByTestId("editable-value-Dividend yield")).not.toBeInTheDocument();
-    });
-
-    test("does not render financial ratios when all five values are missing", () => {
-        render(
-            <Record
-                data={{
-                    id: "record-1",
-                    date: "2026-05-09",
-                    price: 123,
-                    dividendYield: 5,
-                    targets: "T",
-                }}
-                currency={"$"}
-                setAlert={jest.fn()}
-            />
-        );
-
-        expect(screen.queryByTestId("editable-value-Price to financials ratios")).not.toBeInTheDocument();
-    });
-
-    test("renders a free-cash-flow ratio when the other ratios are missing", () => {
-        render(
-            <Record
-                data={{
-                    id: "record-1",
-                    date: "2026-05-09",
-                    price: 123,
                     priceToFreeCashFlow: 7.5,
                     targets: "T",
                 }}
@@ -195,7 +158,8 @@ describe("Record", () => {
             />
         );
 
-        expect(screen.getByText("Price to financials ratios:- / - / - / - / 7.5")).toBeInTheDocument();
+        expect(screen.queryByTestId("editable-value-Price to financials ratios")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("record-ratios-item")).not.toBeInTheDocument();
     });
 
     test("keeps targets visible when they are set", () => {
@@ -287,17 +251,33 @@ describe("Record", () => {
         await waitFor(() => expect(screen.getByText("Targets:Updated target$")).toBeInTheDocument());
     });
 
-    test("does not edit dividend yield", () => {
+    test("offers an empty forward pe when the record has none", () => {
         render(
             <Record
                 data={{
                     id: "record-1",
                     date: "2026-05-09",
                     price: 123,
-                    priceToRevenues: 1,
-                    priceToGrossProfit: 2,
-                    priceToOperatingIncome: 3,
-                    priceToNetIncome: 4,
+                    targets: "T",
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("record-forward-pe-item")).toBeInTheDocument();
+        expect(screen.getByTestId("editable-value-Forward PE")).toHaveTextContent("Forward PE:");
+    });
+
+    test("edits dividend yield", async () => {
+        axios.put.mockResolvedValue({});
+
+        render(
+            <Record
+                data={{
+                    id: "record-1",
+                    date: "2026-05-09",
+                    price: 123,
                     dividendYield: 5,
                     targets: "T",
                 }}
@@ -308,8 +288,11 @@ describe("Record", () => {
 
         fireEvent.click(screen.getByText("Dividend yield:5%"));
 
-        expect(axios.put).not.toHaveBeenCalled();
-        expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
+            expect.stringContaining("/record"),
+            {id: "record-1", dividendYield: "6.25"}
+        ));
+        await waitFor(() => expect(screen.getByText("Dividend yield:6.25%")).toBeInTheDocument());
     });
 
     test("does not render asset when record has no asset", () => {

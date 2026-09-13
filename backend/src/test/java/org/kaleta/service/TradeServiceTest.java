@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -61,9 +62,11 @@ public class TradeServiceTest
         Trade trade1 = new Trade();
         trade1.setQuantity(new BigDecimal("1250"));
         trade1.setPurchasePrice(new BigDecimal("45.68"));
+        trade1.setPurchaseDate(Date.valueOf("2024-03-15"));
         Trade trade2 = new Trade();
         trade2.setQuantity(new BigDecimal("100"));
         trade2.setPurchasePrice(new BigDecimal("61.5"));
+        trade2.setPurchaseDate(Date.valueOf("2025-11-02"));
 
         when(tradeDao.list(true, company.getId(), null, null, null, null)).thenReturn(List.of(trade1, trade2));
 
@@ -74,6 +77,8 @@ public class TradeServiceTest
         assertBigDecimals(assets.getAssets().get(0).getQuantity(), trade1.getQuantity());
         assertBigDecimals(assets.getAssets().get(0).getPurchasePrice(), trade1.getPurchasePrice());
         assertBigDecimals(assets.getAssets().get(0).getCurrentPrice(), currentPrice);
+        assertThat(assets.getAssets().get(0).getPurchaseDate(), is(LocalDate.of(2024, 3, 15)));
+        assertThat(assets.getAssets().get(1).getPurchaseDate(), is(LocalDate.of(2025, 11, 2)));
         assertBigDecimals(assets.getAssets().get(0).getProfitValue(), new BigDecimal("6987.5"));
         assertBigDecimals(assets.getAssets().get(0).getProfitPercent(), new BigDecimal("12.24"));
         assertBigDecimals(assets.getAssets().get(1).getQuantity(), trade2.getQuantity());
@@ -86,7 +91,7 @@ public class TradeServiceTest
         assertBigDecimals(assets.getAggregate().getQuantity(), new BigDecimal("1350"));
         assertBigDecimals(assets.getAggregate().getCurrentPrice(), currentPrice);
         assertBigDecimals(assets.getAggregate().getPurchasePrice(), new BigDecimal("46.85"));
-        assertBigDecimals(assets.getAggregate().getProfitValue(), new BigDecimal("5967"));
+        assertBigDecimals(assets.getAggregate().getProfitValue(), new BigDecimal("5964.5"));
         assertBigDecimals(assets.getAggregate().getProfitPercent(), new BigDecimal("9.43"));
     }
 
@@ -110,9 +115,11 @@ public class TradeServiceTest
         Trade trade1 = new Trade();
         trade1.setQuantity(new BigDecimal("1250"));
         trade1.setPurchasePrice(new BigDecimal("45.68"));
+        trade1.setPurchaseDate(Date.valueOf("2024-03-15"));
         Trade trade2 = new Trade();
         trade2.setQuantity(new BigDecimal("100"));
         trade2.setPurchasePrice(new BigDecimal("61.5"));
+        trade2.setPurchaseDate(Date.valueOf("2025-11-02"));
 
         when(tradeDao.list(true, company.getId(), null, null, null, null)).thenReturn(List.of(trade1, trade2));
 

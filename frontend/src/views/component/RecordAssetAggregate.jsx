@@ -3,6 +3,7 @@ import React, {useState} from "react";
 import {formatDecimals} from "../../service/FormattingService";
 import {validateNumber} from "../../service/ValidationService";
 import {EditableValueBox} from "./EditableValueBox";
+import {AssetProfit} from "./AssetProfit";
 
 function validateAssetNumber(label, value, lengthConstraint, decimalConstraint) {
     const numberValidation = validateNumber(value, false, lengthConstraint, decimalConstraint, false);
@@ -17,26 +18,6 @@ function validateAssetValue(value) {
 
     return validateAssetNumber("Quantity", values[0], 8, 4)
         || validateAssetNumber("Purchase price", values[1], 10, 4);
-}
-
-function profitColor(value) {
-    if (Number(value) > 0) return "success.dark";
-    if (Number(value) < 0) return "error.dark";
-    return "text.primary";
-}
-
-function formatProfitPercent(value) {
-    if (value === null || value === undefined || isNaN(Number(value))) return "-";
-    const formatted = formatDecimals(value, 0, 2);
-    return `${Number(value) > 0 ? "+" : ""}${formatted}%`;
-}
-
-function formatProfitValue(value, currency) {
-    if (value === null || value === undefined || isNaN(Number(value))) return "-";
-    const number = Number(value);
-    const formatted = formatDecimals(Math.abs(number), 0, 2);
-    const sign = number > 0 ? "+" : number < 0 ? "-" : "";
-    return `${sign}${formatted}${currency}`;
 }
 
 function formatAssetValue(value) {
@@ -84,16 +65,14 @@ export const RecordAssetAggregate = ({asset, currency, update}) => {
                 update={updateAssetValue}
                 secondary={assetEdited
                     ? <Box sx={{color: "text.secondary", fontWeight: 500, fontSize: 14}}>edited</Box>
-                    : <Box
-                        data-testid="record-asset-profit"
-                        sx={{color: profitColor(asset.profitValue), opacity: 0.78, fontWeight: 500, fontSize: 14, whiteSpace: "nowrap", mt: "-3px"}}
-                    >
-                            {formatProfitValue(asset.profitValue, currency)}
-                            {" "}
-                            <Box component="span" data-testid="record-asset-profit-percent" sx={{fontSize: 12}}>
-                                ({formatProfitPercent(asset.profitPercent)})
-                            </Box>
-                        </Box>
+                    : <AssetProfit
+                        value={asset.profitValue}
+                        percent={asset.profitPercent}
+                        currency={currency}
+                        testId="record-asset-profit"
+                        percentTestId="record-asset-profit-percent"
+                        sx={{mt: "-3px"}}
+                    />
                 }
             />
         </Box>

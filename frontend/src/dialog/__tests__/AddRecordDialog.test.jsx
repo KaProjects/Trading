@@ -90,6 +90,10 @@ function createProps(overrides = {}) {
             average: 122,
             maximum: 140,
         },
+        latestPeriod: {
+            id: "period-1",
+            estimate: {current: 1.2, next1: 1.3, next2: 1.5, next3: 1.8},
+        },
         ...overrides,
     };
 }
@@ -98,6 +102,35 @@ describe("AddRecordDialog", () => {
     beforeEach(() => {
         axios.post.mockReset();
         mockFormatError.mockClear();
+    });
+
+    test("prefills the forward pe from the unreported period estimates", () => {
+        render(<AddRecordDialog {...createProps()}/>);
+
+        expect(screen.getByLabelText("Forward PE")).toHaveValue("20.78");
+    });
+
+    test("leaves the forward pe empty when the latest period is reported", () => {
+        render(<AddRecordDialog {...createProps({
+            latestPeriod: {
+                id: "period-1",
+                financial: {revenue: 100},
+                estimate: {current: 1.2, next1: 1.3, next2: 1.5, next3: 1.8},
+            },
+        })}/>);
+
+        expect(screen.getByLabelText("Forward PE")).toHaveValue("");
+    });
+
+    test("leaves the forward pe empty when an estimate is missing", () => {
+        render(<AddRecordDialog {...createProps({
+            latestPeriod: {
+                id: "period-1",
+                estimate: {current: 1.2, next1: 1.3, next2: 1.5},
+            },
+        })}/>);
+
+        expect(screen.getByLabelText("Forward PE")).toHaveValue("");
     });
 
     test("prefills values from indicators and assets and normalizes blank optional fields on submit", async () => {
@@ -119,6 +152,7 @@ describe("AddRecordDialog", () => {
         fireEvent.change(screen.getByLabelText("PO"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("PE"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("PCF"), {target: {value: ""}});
+        fireEvent.change(screen.getByLabelText("Forward PE"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("DY"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("assets quantity sum"), {target: {value: ""}});
         fireEvent.change(screen.getByLabelText("assets avg purchase price"), {target: {value: ""}});
@@ -134,6 +168,7 @@ describe("AddRecordDialog", () => {
             priceToOperatingIncome: null,
             priceToNetIncome: null,
             priceToFreeCashFlow: null,
+            forwardPe: null,
             dividendYield: null,
             sumAssetQuantity: null,
             avgAssetPrice: null,

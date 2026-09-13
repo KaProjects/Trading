@@ -153,20 +153,6 @@ export const Period = ({period, previousPeriod, isLatest = true, periodPosition,
             stretch={stretch}
             highlightTitle={stretch}
         >
-            <Box
-                data-period-scroll={stretch ? "true" : undefined}
-                sx={stretch ? {flex: "1 1 auto", minHeight: 0, overflow: "auto"} : undefined}
-            >
-                <ContentEditor
-                    key={researchVersion}
-                    content={research}
-                    update={(value) => updateResearch(period.id, value)}
-                    style={{margin: "5px 5px 10px 5px"}}
-                    locked={stretch}
-                    editTrigger={stretch ? undefined : contentEditSignal}
-                />
-            </Box>
-
             {period.financial &&
                 <>
                     <Typography sx={{color: 'text.secondary', fontSize: 14}}>
@@ -188,6 +174,20 @@ export const Period = ({period, previousPeriod, isLatest = true, periodPosition,
                     </Typography>
                 </>
             }
+
+            <Box
+                data-period-scroll={stretch ? "true" : undefined}
+                sx={stretch ? {flex: "1 1 auto", minHeight: 0, overflow: "auto"} : undefined}
+            >
+                <ContentEditor
+                    key={researchVersion}
+                    content={research}
+                    update={(value) => updateResearch(period.id, value)}
+                    style={{margin: "5px 5px 10px 5px"}}
+                    locked={stretch}
+                    editTrigger={stretch ? undefined : contentEditSignal}
+                />
+            </Box>
             {!stretch && period.estimate &&
                 <>
                     <Typography data-testid="period-estimates" sx={{color: 'text.secondary', fontSize: 14}}>
@@ -240,7 +240,9 @@ export const Period = ({period, previousPeriod, isLatest = true, periodPosition,
                 handleClose={() => setOpenContentEditor(false)}
                 save={saveResearch}
             />
-            <PeriodTargetSummary stats={period.targetStats} currency={currency}/>
+            {!(stretch && period.financial) &&
+                <PeriodTargetSummary stats={period.targetStats} currency={currency}/>
+            }
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
                        position: "absolute", top: "6px", right: "8px", zIndex: 1,

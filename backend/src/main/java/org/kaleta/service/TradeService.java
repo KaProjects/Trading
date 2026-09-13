@@ -192,7 +192,9 @@ public class TradeService
         List<Asset> assets = new ArrayList<>();
         for (Trade trade : tradeDao.list(true, companyId, null, null, null, null))
         {
-            assets.add(arithmeticService.computeAsset(currentPrice, trade.getQuantity(), trade.getPurchasePrice()));
+            Asset asset = arithmeticService.computeAsset(currentPrice, trade.getQuantity(), trade.getPurchasePrice());
+            asset.setPurchaseDate(trade.getPurchaseDate().toLocalDate());
+            assets.add(asset);
         }
 
         Assets model = new Assets();
@@ -357,6 +359,16 @@ public class TradeService
 
         BigDecimal avgPurchasePrice = purchaseCosts.divide(sumQuantity, 2, RoundingMode.HALF_UP);
 
-        return arithmeticService.computeAsset(currentPrice, sumQuantity,  avgPurchasePrice);
+        Asset aggregate = arithmeticService.computeAsset(currentPrice, sumQuantity,  avgPurchasePrice);
+
+        if (currentPrice != null && purchaseCosts.compareTo(BigDecimal.ZERO) != 0)
+        {
+            BigDecimal currentValue = currentPrice.multiply(sumQuantity);
+            aggregate.setProfitValue(currentValue.subtract(purchaseCosts));
+            aggregate.setProfitPercent(currentValue.divide(purchaseCosts, 4, RoundingMode.HALF_UP)
+                    .subtract(BigDecimal.ONE).multiply(new BigDecimal(100)));
+        }
+
+        return aggregate;
     }
 }

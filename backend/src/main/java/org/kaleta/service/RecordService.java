@@ -58,6 +58,8 @@ public class RecordService
         newRecord.setPriceToNetIncome(Utils.createNullableBigDecimal(dto.getPriceToNetIncome()));
         newRecord.setPriceToFreeCashFlow(Utils.createNullableBigDecimal(dto.getPriceToFreeCashFlow()));
 
+        newRecord.setForwardPe(Utils.createNullableBigDecimal(dto.getForwardPe()));
+
         newRecord.setDividendYield(Utils.createNullableBigDecimal(dto.getDividendYield()));
 
         newRecord.setSumAssetQuantity(Utils.createNullableBigDecimal(dto.getSumAssetQuantity()));
@@ -207,6 +209,9 @@ public class RecordService
         if (dto.getDividendYield() != null) {
             record.setDividendYield(dto.getDividendYield().isBlank() ? null : new BigDecimal(dto.getDividendYield()));
         }
+        if (dto.getForwardPe() != null) {
+            record.setForwardPe(dto.getForwardPe().isBlank() ? null : new BigDecimal(dto.getForwardPe()));
+        }
         if (dto.getPriceToRevenues() != null) record.setPriceToRevenues(Utils.createNullableBigDecimal(dto.getPriceToRevenues()));
         if (dto.getPriceToGrossProfit() != null) record.setPriceToGrossProfit(Utils.createNullableBigDecimal(dto.getPriceToGrossProfit()));
         if (dto.getPriceToOperatingIncome() != null) record.setPriceToOperatingIncome(Utils.createNullableBigDecimal(dto.getPriceToOperatingIncome()));
@@ -252,6 +257,8 @@ public class RecordService
         record.setPriceToOperatingIncome(recordEntity.getPriceToOperatingIncome());
         record.setPriceToNetIncome(recordEntity.getPriceToNetIncome());
         record.setPriceToFreeCashFlow(recordEntity.getPriceToFreeCashFlow());
+
+        record.setForwardPe(recordEntity.getForwardPe());
 
         record.setDividendYield(recordEntity.getDividendYield());
 
