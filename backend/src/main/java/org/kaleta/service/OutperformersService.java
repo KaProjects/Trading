@@ -23,6 +23,7 @@ import org.kaleta.rest.dto.TargetOutperformerDto;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,10 +42,13 @@ public class OutperformersService
     private static final int TARGET_WINDOW_MONTHS = 3;
     private static final int ESTIMATE_MAX_AGE_MONTHS = 3;
     private static final int FINANCIAL_MAX_AGE_MONTHS = 3;
+    private static final int HALF_YEAR_MAX_AGE_MONTHS = 6;
+    private static final int FISCAL_YEAR_MAX_AGE_MONTHS = 12;
     private static final int PRICE_MAX_AGE_DAYS = 7;
     private static final int MIN_MARGIN_QUARTERS = 4;
     private static final Set<PeriodType> QUARTER_TYPES = Set.of(
             PeriodType.Q1, PeriodType.Q2, PeriodType.Q3, PeriodType.Q4);
+    private static final Set<PeriodType> HALF_YEAR_TYPES = Set.of(PeriodType.H1, PeriodType.H2);
     private static final Map<String, Integer> SENTIMENT_WEIGHTS = Map.of(
             "positive", 2,
             "neutral", 1);
@@ -157,22 +161,37 @@ public class OutperformersService
                 .orElse(null);
         if (latestReported == null || periods.getTtm() == null) return;
 
-        if (latestReported.getReportDate() != null
-                && latestReported.getReportDate().toLocalDate().isBefore(today.minusMonths(FINANCIAL_MAX_AGE_MONTHS))) {
-            disqualify(dto.getMarginsDisqualified(), company,
-                    "financial data is stale (reported " + latestReported.getReportDate().toLocalDate() + ")");
-            return;
+        PeriodType latestType = latestReported.getName().getType();
+        Set<PeriodType> cadenceTypes = cadenceTypes(latestType);
+        int quartersPerPeriod = quartersPerPeriod(latestType);
+        int requiredPeriods = MIN_MARGIN_QUARTERS / quartersPerPeriod;
+
+        if (quartersPerPeriod == 1) {
+            if (latestReported.getReportDate() != null
+                    && latestReported.getReportDate().toLocalDate().isBefore(today.minusMonths(FINANCIAL_MAX_AGE_MONTHS))) {
+                disqualify(dto.getMarginsDisqualified(), company,
+                        "financial data is stale (reported " + latestReported.getReportDate().toLocalDate() + ")");
+                return;
+            }
+        } else {
+            int maxAgeMonths = quartersPerPeriod == 2 ? HALF_YEAR_MAX_AGE_MONTHS : FISCAL_YEAR_MAX_AGE_MONTHS;
+            if (latestReported.getEndingMonth() != null
+                    && latestReported.getEndingMonth().isBefore(YearMonth.from(today.minusMonths(maxAgeMonths)))) {
+                disqualify(dto.getMarginsDisqualified(), company,
+                        "financial data is stale (period ended " + latestReported.getEndingMonth() + ")");
+                return;
+            }
         }
 
-        List<Periods.Period> reportedQuarters = periods.getPeriods().stream()
+        List<Periods.Period> reportedPeriods = periods.getPeriods().stream()
                 .filter(period -> period.getFinancial() != null)
-                .filter(period -> QUARTER_TYPES.contains(period.getName().getType()))
+                .filter(period -> cadenceTypes.contains(period.getName().getType()))
                 .toList();
-        List<Periods.Period> consecutiveQuarters = latestConsecutiveQuarters(reportedQuarters);
-        if (consecutiveQuarters.size() < MIN_MARGIN_QUARTERS) {
+        List<Periods.Period> consecutivePeriods = latestConsecutivePeriods(reportedPeriods, quartersPerPeriod);
+        if (consecutivePeriods.size() < requiredPeriods) {
             disqualify(dto.getMarginsDisqualified(), company,
-                    "fewer than " + MIN_MARGIN_QUARTERS + " consecutive quarterly reports available ("
-                            + consecutiveQuarters.size() + ")");
+                    "fewer than " + requiredPeriods + " consecutive " + cadenceName(quartersPerPeriod)
+                            + " reports available (" + consecutivePeriods.size() + ")");
             return;
         }
 
@@ -185,12 +204,12 @@ public class OutperformersService
         dto.getMargins().add(entry);
     }
 
-    private List<Periods.Period> latestConsecutiveQuarters(List<Periods.Period> quartersNewestFirst)
+    private List<Periods.Period> latestConsecutivePeriods(List<Periods.Period> periodsNewestFirst, int quartersPerPeriod)
     {
         List<Periods.Period> result = new ArrayList<>();
         Integer previousIndex = null;
-        for (Periods.Period period : quartersNewestFirst) {
-            int index = quarterIndex(period.getName());
+        for (Periods.Period period : periodsNewestFirst) {
+            int index = periodIndex(period.getName(), quartersPerPeriod);
             if (previousIndex != null && previousIndex - index != 1) break;
             result.add(period);
             previousIndex = index;
@@ -198,9 +217,33 @@ public class OutperformersService
         return result;
     }
 
-    private int quarterIndex(PeriodName name)
+    private int periodIndex(PeriodName name, int quartersPerPeriod)
     {
-        return name.getYear().getValue() * 4 + (name.getType().getNumber() - 1);
+        int periodsPerYear = MIN_MARGIN_QUARTERS / quartersPerPeriod;
+        return name.getYear().getValue() * periodsPerYear + (name.getType().getNumber() - 1);
+    }
+
+    private Set<PeriodType> cadenceTypes(PeriodType type)
+    {
+        if (QUARTER_TYPES.contains(type)) return QUARTER_TYPES;
+        if (HALF_YEAR_TYPES.contains(type)) return HALF_YEAR_TYPES;
+        return Set.of(PeriodType.FY);
+    }
+
+    private int quartersPerPeriod(PeriodType type)
+    {
+        if (QUARTER_TYPES.contains(type)) return 1;
+        if (HALF_YEAR_TYPES.contains(type)) return 2;
+        return 4;
+    }
+
+    private String cadenceName(int quartersPerPeriod)
+    {
+        return switch (quartersPerPeriod) {
+            case 1 -> "quarterly";
+            case 2 -> "half-year";
+            default -> "fiscal-year";
+        };
     }
 
     private void addSentiment(

@@ -194,9 +194,25 @@ class OutperformersServiceTest
     }
 
     @Test
-    void get_disqualifiesNonQuarterlyReporterFromMargins()
+    void get_includesFiscalYearReporterWithOneRecentReport()
     {
-        Periods periods = periodWithSingleFinancial("25FY", LocalDate.now().minusDays(10));
+        Periods periods = periodWithSingleFinancial("25FY", LocalDate.now().minusMonths(2),
+                YearMonth.from(LocalDate.now().minusMonths(8)));
+        when(periodService.getBy(1L)).thenReturn(periods);
+        when(targetDao.listByPeriodIds(List.of(10L))).thenReturn(List.of());
+
+        OutperformersDto result = outperformersService.get();
+
+        assertThat(result.getMargins(), hasSize(1));
+        assertThat(result.getMargins().getFirst().getTicker(), is("NVDA"));
+        assertThat(result.getMarginsDisqualified(), is(empty()));
+    }
+
+    @Test
+    void get_disqualifiesFiscalYearReporterEndedMoreThanTwelveMonthsAgo()
+    {
+        Periods periods = periodWithSingleFinancial("25FY", LocalDate.now().minusMonths(2),
+                YearMonth.from(LocalDate.now().minusMonths(13)));
         when(periodService.getBy(1L)).thenReturn(periods);
         when(targetDao.listByPeriodIds(List.of(10L))).thenReturn(List.of());
 
@@ -204,7 +220,50 @@ class OutperformersServiceTest
 
         assertThat(result.getMargins(), is(empty()));
         assertThat(result.getMarginsDisqualified(), hasSize(1));
-        assertThat(result.getMarginsDisqualified().getFirst().getReason(), containsString("consecutive quarterly"));
+        assertThat(result.getMarginsDisqualified().getFirst().getReason(), containsString("period ended"));
+    }
+
+    @Test
+    void get_includesHalfYearReporterWithTwoConsecutiveReports()
+    {
+        Periods periods = periodsWithConsecutiveHalves("25H2", YearMonth.from(LocalDate.now().minusMonths(4)));
+        when(periodService.getBy(1L)).thenReturn(periods);
+        when(targetDao.listByPeriodIds(List.of(10L, 11L))).thenReturn(List.of());
+
+        OutperformersDto result = outperformersService.get();
+
+        assertThat(result.getMargins(), hasSize(1));
+        assertThat(result.getMarginsDisqualified(), is(empty()));
+    }
+
+    @Test
+    void get_disqualifiesHalfYearReporterWithSingleReport()
+    {
+        Periods periods = periodWithSingleFinancial("25H2", LocalDate.now().minusMonths(1),
+                YearMonth.from(LocalDate.now().minusMonths(4)));
+        when(periodService.getBy(1L)).thenReturn(periods);
+        when(targetDao.listByPeriodIds(List.of(10L))).thenReturn(List.of());
+
+        OutperformersDto result = outperformersService.get();
+
+        assertThat(result.getMargins(), is(empty()));
+        assertThat(result.getMarginsDisqualified(), hasSize(1));
+        assertThat(result.getMarginsDisqualified().getFirst().getReason(),
+                containsString("fewer than 2 consecutive half-year reports available (1)"));
+    }
+
+    @Test
+    void get_disqualifiesHalfYearReporterEndedMoreThanSixMonthsAgo()
+    {
+        Periods periods = periodsWithConsecutiveHalves("25H2", YearMonth.from(LocalDate.now().minusMonths(7)));
+        when(periodService.getBy(1L)).thenReturn(periods);
+        when(targetDao.listByPeriodIds(List.of(10L, 11L))).thenReturn(List.of());
+
+        OutperformersDto result = outperformersService.get();
+
+        assertThat(result.getMargins(), is(empty()));
+        assertThat(result.getMarginsDisqualified(), hasSize(1));
+        assertThat(result.getMarginsDisqualified().getFirst().getReason(), containsString("period ended"));
     }
 
     @Test
@@ -430,10 +489,15 @@ class OutperformersServiceTest
 
     private Periods periodWithSingleFinancial(String periodName, LocalDate reportDate)
     {
+        return periodWithSingleFinancial(periodName, reportDate, YearMonth.of(2025, 7));
+    }
+
+    private Periods periodWithSingleFinancial(String periodName, LocalDate reportDate, YearMonth endingMonth)
+    {
         Periods.Period period = new Periods.Period();
         period.setId(10L);
         period.setName(PeriodName.valueOf(periodName));
-        period.setEndingMonth(YearMonth.of(2025, 7));
+        period.setEndingMonth(endingMonth);
         period.setReportDate(Date.valueOf(reportDate));
         period.setFinancial(new Periods.Financial());
 
@@ -441,6 +505,35 @@ class OutperformersServiceTest
         periods.getPeriods().add(period);
         periods.setTtm(ttmFinancial());
         return periods;
+    }
+
+    private Periods periodsWithConsecutiveHalves(String latestPeriodName, YearMonth latestEndingMonth)
+    {
+        Periods periods = new Periods();
+        PeriodName name = PeriodName.valueOf(latestPeriodName);
+        YearMonth endingMonth = latestEndingMonth;
+        long id = 10L;
+        for (int i = 0; i < 2; i++) {
+            Periods.Period period = new Periods.Period();
+            period.setId(id++);
+            period.setName(name);
+            period.setEndingMonth(endingMonth);
+            period.setReportDate(Date.valueOf(LocalDate.now().minusMonths(1)));
+            period.setFinancial(new Periods.Financial());
+            periods.getPeriods().add(period);
+            name = previousHalf(name);
+            endingMonth = endingMonth.minusMonths(6);
+        }
+        periods.setTtm(ttmFinancial());
+        return periods;
+    }
+
+    private PeriodName previousHalf(PeriodName name)
+    {
+        int year = name.getYear().getValue();
+        return name.getType().getNumber() == 1
+                ? PeriodName.valueOf(String.format("%02dH2", (year - 1) % 100))
+                : PeriodName.valueOf(String.format("%02dH1", year % 100));
     }
 
     private Periods periodsWithConsecutiveFinancials(String latestPeriodName, LocalDate latestReportDate)

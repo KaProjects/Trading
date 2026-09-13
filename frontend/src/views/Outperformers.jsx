@@ -73,8 +73,10 @@ const TAB_CONFIG = [
                 "The company has at least one reported period (financials on file).",
             ],
             soft: [
-                "The latest reported period's report date is no more than 3 months old.",
-                "At least 4 consecutive quarterly (Q1–Q4) reports are available; fewer would make the TTM figures unreliable.",
+                "The latest report is recent enough for its reporting cadence: a quarterly report date is no more than "
+                    + "3 months old, a half-year period ended no more than 6 months ago, a fiscal year no more than 12 months ago.",
+                "At least 4 quarters of reporting are covered by consecutive reports of that cadence: 4 quarters, "
+                    + "2 half-years or 1 fiscal year; less would make the TTM figures unreliable.",
             ],
         },
     },
