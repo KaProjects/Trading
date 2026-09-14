@@ -2,6 +2,7 @@ import logging
 
 from firebase_admin import db
 
+from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from firebase_repository import ticker_from_firebase_key
 from gemini.retriever import StockDataRetrieverRunner
@@ -23,11 +24,13 @@ class CompanyOnboardingWatcher:
         gemini: StockDataRetrieverRunner,
         finnhub: FinnhubEarningsRetrieverRunner,
         polygon: PolygonNewsRetrieverRunner,
+        discord: DiscordClient,
         error_reporter: ErrorReporter,
     ) -> None:
         self.gemini = gemini
         self.finnhub = finnhub
         self.polygon = polygon
+        self.discord = discord
         self.errors = error_reporter
         self._known_company_keys: set[str] = set()
 
@@ -88,3 +91,8 @@ class CompanyOnboardingWatcher:
             return
         self.finnhub.process_company(ticker, None)
         self.polygon.process_company(ticker)
+
+        self.log.info("Onboarding completed for %s", ticker)
+        self.discord.post_eventlog({
+            "content": f"✅ Onboarding completed for {ticker}",
+        })

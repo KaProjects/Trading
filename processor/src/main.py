@@ -131,6 +131,7 @@ def create_app(
             gemini=stock_runner,
             finnhub=finnhub_runner,
             polygon=polygon_runner,
+            discord=discord,
             error_reporter=errors,
         ),
         errors=errors,

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import create_autospec, patch
 
 from company_onboarding import CompanyOnboardingWatcher
+from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from gemini.retriever import StockDataRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
@@ -21,6 +22,7 @@ def make_watcher():
             instance=True,
         ),
         polygon=create_autospec(PolygonNewsRetrieverRunner, instance=True),
+        discord=create_autospec(DiscordClient, instance=True),
         error_reporter=create_autospec(ErrorReporter, instance=True),
     )
     watcher.log = create_autospec(logging.Logger, instance=True)
@@ -49,6 +51,18 @@ def test_new_placeholder_company_triggers_full_onboarding_chain():
     watcher.gemini.onboard_company.assert_called_once_with("NVDA")
     watcher.finnhub.process_company.assert_called_once_with("NVDA", None)
     watcher.polygon.process_company.assert_called_once_with("NVDA")
+    watcher.discord.post_eventlog.assert_called_once_with({
+        "content": "✅ Onboarding completed for NVDA",
+    })
+
+
+def test_failed_step_does_not_post_a_completion_message():
+    watcher = make_watcher()
+    watcher.gemini.onboard_company.return_value = None
+
+    watcher._on_event(make_event("/NVDA", ""))
+
+    watcher.discord.post_eventlog.assert_not_called()
 
 
 def test_dotted_ticker_is_translated_from_its_firebase_key():

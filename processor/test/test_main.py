@@ -156,6 +156,7 @@ def test_create_app_initializes_dependencies_from_validated_config():
     assert app.onboarding_watcher.gemini is app.stock_runner
     assert app.onboarding_watcher.finnhub is app.finnhub_runner
     assert app.onboarding_watcher.polygon is app.polygon_runner
+    assert app.onboarding_watcher.discord is discord
     assert app.onboarding_watcher.errors is errors
 
 
