@@ -217,6 +217,51 @@ def test_run_sends_sorted_company_insights_to_gemini(runner):
     runner.errors.report.assert_not_called()
 
 
+def test_process_company_fetches_scoped_news_and_persists_sentiment(runner):
+    runner.client.get_latest_news.return_value = news_response()
+    analysis = CompanySentimentAnalysis(
+        ticker="AAPL",
+        statistics=SentimentStatistics(total=1, positive=1),
+        key_takeaways=["Demand remained strong."],
+    )
+    runner.gemini.get_news_sentiment_analysis.return_value = [analysis]
+    runner.discord.post_if_channel_exists.return_value = "message-url"
+
+    runner.process_company("AAPL")
+
+    runner.client.get_latest_news.assert_called_once_with(ticker="AAPL")
+    sent_companies = (
+        runner.gemini.get_news_sentiment_analysis.call_args.args[0]
+    )
+    assert [company.ticker for company in sent_companies] == ["AAPL"]
+    assert len(sent_companies[0].insights) == 1
+    runner.service.upsert_sentiment_analysis.assert_called_once_with(
+        analysis
+    )
+    runner.discord.post_if_channel_exists.assert_called_once_with(
+        "AAPL",
+        ticker_news_sentiment(analysis),
+    )
+    runner.discord.post_eventlog.assert_not_called()
+
+
+def test_process_company_skips_gemini_when_ticker_has_no_insights(runner):
+    empty_response = NewsResponse.model_validate({
+        "count": 0,
+        "status": "OK",
+        "results": [],
+    })
+    runner.client.get_latest_news.return_value = empty_response
+
+    runner.process_company("NVDA")
+
+    runner.client.get_latest_news.assert_called_once_with(ticker="NVDA")
+    runner.gemini.get_news_sentiment_analysis.assert_not_called()
+    runner.service.upsert_sentiment_analysis.assert_not_called()
+    runner.discord.post_if_channel_exists.assert_not_called()
+    runner.discord.post_eventlog.assert_not_called()
+
+
 def test_failed_sentiment_persistence_is_reported_and_skipped(runner):
     failed = CompanySentimentAnalysis(
         ticker="AAPL",

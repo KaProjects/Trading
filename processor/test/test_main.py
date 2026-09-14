@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from schedule import Scheduler
 
 from cmc.retriever import BtcFearAndGreedRetrieverRunner
+from company_onboarding import CompanyOnboardingWatcher
 from config import AppConfig
 from error_reporting import ErrorReporter
 from gemini.retriever import StockDataRetrieverRunner
@@ -50,6 +51,10 @@ def make_application():
         stock_runner=create_autospec(StockDataRetrieverRunner, instance=True),
         polygon_runner=create_autospec(
             PolygonNewsRetrieverRunner,
+            instance=True,
+        ),
+        onboarding_watcher=create_autospec(
+            CompanyOnboardingWatcher,
             instance=True,
         ),
         errors=errors,
@@ -148,6 +153,10 @@ def test_create_app_initializes_dependencies_from_validated_config():
     assert app.errors is errors
     assert app.timezone == "UTC"
     assert app.poll_interval_seconds == 5
+    assert app.onboarding_watcher.gemini is app.stock_runner
+    assert app.onboarding_watcher.finnhub is app.finnhub_runner
+    assert app.onboarding_watcher.polygon is app.polygon_runner
+    assert app.onboarding_watcher.errors is errors
 
 
 def test_create_discord_client_uses_bot_configuration():
@@ -212,5 +221,6 @@ def test_run_forever_uses_injected_sleeper():
     with pytest.raises(StopLoop):
         app.run_forever()
 
+    app.onboarding_watcher.start.assert_called_once_with()
     app.scheduler.run_pending.assert_called_once_with()
     app.sleeper.assert_called_once_with(60)

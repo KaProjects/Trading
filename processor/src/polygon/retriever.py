@@ -121,6 +121,21 @@ class PolygonNewsRetrieverRunner:
             )
             return []
 
+    def process_company(self, ticker: str) -> None:
+        response = self.client.get_latest_news(ticker=ticker)
+        response = self._deduplicate_news_response(response)
+        company_news = self._group_by_company({ticker: None}, response)[
+            ticker
+        ]
+        if not company_news.insights:
+            return
+
+        analyses = self.gemini.get_news_sentiment_analysis([
+            CompanyInsights(ticker=ticker, insights=company_news.insights),
+        ])
+        persisted_analyses = self._persist_news_sentiment_analyses(analyses)
+        self._notify_news_sentiment_analyses(persisted_analyses)
+
     def _deduplicate_news_response(
         self,
         response: NewsResponse,

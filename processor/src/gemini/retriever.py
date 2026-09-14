@@ -203,6 +203,12 @@ class StockDataRetrieverRunner:
             return True
         return company.info.current_quarter_id not in company.quarters
 
+    def onboard_company(self, ticker: str) -> Company | None:
+        company = self._initialize_company(ticker)
+        if company is not None:
+            self._retrieve_price_targets({ticker: company})
+        return company
+
     def _initialize_company(self, company_id: str) -> Company | None:
         result = self.client.get_initial_stock_data(company_id)
         company = result.company

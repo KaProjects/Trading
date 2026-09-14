@@ -182,6 +182,21 @@ class TestFinnhubEarningsRetriever:
         ]
 
 
+    def test_process_company_directly_initializes_new_company(self, runner):
+        """Test Case: process_company can be called standalone for a single
+        new ticker, e.g. by the company-onboarding watcher."""
+        earnings_dict = {"26Q1": make_earnings()}
+        runner.client.get_earnings.return_value = earnings_dict
+
+        runner.process_company("AAPL", None)
+
+        runner.service.init_company.assert_called_once_with(
+            "AAPL",
+            earnings_dict,
+        )
+        runner.discord_post_earnings.assert_called_once()
+
+
 def make_real_runner():
     runner = object.__new__(FinnhubEarningsRetrieverRunner)
     runner.discord = create_autospec(DiscordClient, instance=True)

@@ -51,30 +51,7 @@ class FinnhubEarningsRetrieverRunner:
             companies: dict[str, Company] = self.service.get_companies()
             for company_id in companies:
                 try:
-                    earnings: dict[str, Earnings] = self.client.get_earnings(company_id)
-                    if len(earnings) == 0: continue
-                    if companies.get(company_id) is None:
-                        self.service.init_company(company_id, earnings)
-                        for quarter_id in earnings.__reversed__():
-                            self.discord_post_earnings(company_id, quarter_id, None, earnings[quarter_id])
-                    else:
-                        no_change = True
-                        for quarter_id in earnings.__reversed__():
-                            if quarter_id not in companies[company_id].root:
-                                no_change = False
-                                self.service.init_quarter(company_id, quarter_id, earnings[quarter_id])
-                                self.discord_post_earnings(company_id, quarter_id, None, earnings[quarter_id])
-                            else:
-                                latest = companies[company_id].root[quarter_id].root[max(companies[company_id].root[quarter_id].root)]
-                                now = earnings[quarter_id]
-
-                                if not self.almost_equals_earnings(latest, now):
-                                    no_change = False
-                                    self.service.new_earnings(company_id, quarter_id, earnings[quarter_id])
-                                    self.discord_post_earnings(company_id, quarter_id, latest, now)
-                        if no_change:
-                            self.log.info(LogMsg.NO_CHANGE.format(company_id=company_id))
-
+                    self.process_company(company_id, companies.get(company_id))
                     self.sleeper(5)
                 except Exception as exception:
                     self.log.error(ErrMsg.ERROR_PROCESSING_COMPANY.format(company_id=company_id))
@@ -92,6 +69,35 @@ class FinnhubEarningsRetrieverRunner:
                 source=self.name,
                 operation="run",
             )
+
+    def process_company(
+        self,
+        company_id: str,
+        existing: Company | None,
+    ) -> None:
+        earnings: dict[str, Earnings] = self.client.get_earnings(company_id)
+        if len(earnings) == 0: return
+        if existing is None:
+            self.service.init_company(company_id, earnings)
+            for quarter_id in earnings.__reversed__():
+                self.discord_post_earnings(company_id, quarter_id, None, earnings[quarter_id])
+        else:
+            no_change = True
+            for quarter_id in earnings.__reversed__():
+                if quarter_id not in existing.root:
+                    no_change = False
+                    self.service.init_quarter(company_id, quarter_id, earnings[quarter_id])
+                    self.discord_post_earnings(company_id, quarter_id, None, earnings[quarter_id])
+                else:
+                    latest = existing.root[quarter_id].root[max(existing.root[quarter_id].root)]
+                    now = earnings[quarter_id]
+
+                    if not self.almost_equals_earnings(latest, now):
+                        no_change = False
+                        self.service.new_earnings(company_id, quarter_id, earnings[quarter_id])
+                        self.discord_post_earnings(company_id, quarter_id, latest, now)
+            if no_change:
+                self.log.info(LogMsg.NO_CHANGE.format(company_id=company_id))
 
     def discord_post_earnings(
         self,

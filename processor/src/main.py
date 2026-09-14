@@ -7,6 +7,7 @@ from schedule import Scheduler
 
 import utils
 from cmc.retriever import BtcFearAndGreedRetrieverRunner
+from company_onboarding import CompanyOnboardingWatcher
 from config import AppConfig
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
@@ -23,6 +24,7 @@ class Application:
     finnhub_runner: FinnhubEarningsRetrieverRunner
     stock_runner: StockDataRetrieverRunner
     polygon_runner: PolygonNewsRetrieverRunner
+    onboarding_watcher: CompanyOnboardingWatcher
     errors: ErrorReporter
     timezone: str
     poll_interval_seconds: float = 60
@@ -52,6 +54,7 @@ class Application:
         self.scheduler.run_pending()
 
     def run_forever(self) -> None:
+        self.onboarding_watcher.start()
         self.configure_jobs()
         while True:
             self.run_pending()
@@ -99,26 +102,35 @@ def create_app(
         discord=discord,
     )
     utils.init_firebase(config.firebase)
+    finnhub_runner = FinnhubEarningsRetrieverRunner(
+        finnhub_api_key=config.finnhub_api_key.get_secret_value(),
+        discord=discord,
+        error_reporter=errors,
+    )
+    stock_runner = StockDataRetrieverRunner(
+        gemini_api_key=config.gemini_api_key.get_secret_value(),
+        discord=discord,
+        error_reporter=errors,
+    )
+    polygon_runner = PolygonNewsRetrieverRunner(
+        polygon_api_key=config.polygon_api_key.get_secret_value(),
+        gemini_api_key=config.gemini_api_key.get_secret_value(),
+        discord=discord,
+        error_reporter=errors,
+    )
     return Application(
         btc_runner=BtcFearAndGreedRetrieverRunner(
             cmc_api_key=config.cmc_api_key.get_secret_value(),
             discord=discord,
             error_reporter=errors,
         ),
-        finnhub_runner=FinnhubEarningsRetrieverRunner(
-            finnhub_api_key=config.finnhub_api_key.get_secret_value(),
-            discord=discord,
-            error_reporter=errors,
-        ),
-        stock_runner=StockDataRetrieverRunner(
-            gemini_api_key=config.gemini_api_key.get_secret_value(),
-            discord=discord,
-            error_reporter=errors,
-        ),
-        polygon_runner=PolygonNewsRetrieverRunner(
-            polygon_api_key=config.polygon_api_key.get_secret_value(),
-            gemini_api_key=config.gemini_api_key.get_secret_value(),
-            discord=discord,
+        finnhub_runner=finnhub_runner,
+        stock_runner=stock_runner,
+        polygon_runner=polygon_runner,
+        onboarding_watcher=CompanyOnboardingWatcher(
+            gemini=stock_runner,
+            finnhub=finnhub_runner,
+            polygon=polygon_runner,
             error_reporter=errors,
         ),
         errors=errors,

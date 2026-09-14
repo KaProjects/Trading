@@ -135,6 +135,65 @@ class TestStockDataRetriever:
         runner.client.get_initial_stock_data.assert_called_once_with("AAPL")
         runner.service.init_company.assert_called_once_with(id="AAPL", data=mock_company)
 
+    def test_onboard_company_initializes_and_retrieves_targets_on_success(
+        self,
+        runner,
+    ):
+        quarter = make_quarter(quarter_id="26Q1")
+        mock_company = make_company("AAPL", "26Q1", {"26Q1": quarter})
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(mock_company)
+        )
+        runner._retrieve_price_targets = create_autospec(
+            runner._retrieve_price_targets
+        )
+
+        result = runner.onboard_company("AAPL")
+
+        assert result == mock_company
+        runner.service.init_company.assert_called_once_with(
+            id="AAPL",
+            data=mock_company,
+        )
+        runner._retrieve_price_targets.assert_called_once_with(
+            {"AAPL": mock_company}
+        )
+
+    def test_onboard_company_skips_targets_when_initialization_fails(
+        self,
+        runner,
+    ):
+        current_quarter = make_quarter(quarter_id="26Q3")
+        reported_quarter = make_quarter(
+            quarter_id="26Q2",
+            reported_net_income="200",
+        )
+        company = make_company(
+            "ASML",
+            "26Q3",
+            {
+                "26Q3": current_quarter,
+                "26Q2": reported_quarter,
+            },
+            currency="€",
+        )
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(
+                company,
+                errors=["26Q2 revenue unavailable."],
+                raw_response='{"errors":["revenue unavailable"]}',
+            )
+        )
+        runner._retrieve_price_targets = create_autospec(
+            runner._retrieve_price_targets
+        )
+
+        result = runner.onboard_company("ASML")
+
+        assert result is None
+        runner.service.init_company.assert_not_called()
+        runner._retrieve_price_targets.assert_not_called()
+
     def test_usd_optional_fields_are_warned_and_persisted(
         self,
         runner,
