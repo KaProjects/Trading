@@ -5,6 +5,10 @@ import {
     Box,
     Button,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     Divider,
     Link,
     Paper,
@@ -21,7 +25,9 @@ import {
 } from "@mui/material";
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import axios from "axios";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import {backend} from "../properties";
+import {COMPACT_TABS_BREAKPOINT, MainBarTabs} from "./component/MainBarTabs";
 import {
     formatDate,
     formatDecimals,
@@ -502,8 +508,10 @@ export const Onboarding = () => {
     const [alert, setAlert] = useState(null)
     const [lookup, setLookup] = useState(null)
     const [tab, setTab] = useState("overview")
+    const compactTabs = useMediaQuery(`(max-width:${COMPACT_TABS_BREAKPOINT}px)`)
     const [pushing, setPushing] = useState(false)
     const [pushed, setPushed] = useState(false)
+    const [confirming, setConfirming] = useState(false)
 
     const normalized = ticker.trim().toUpperCase()
     const invalid = normalized !== "" && !TICKER_PATTERN.test(normalized)
@@ -570,6 +578,7 @@ export const Onboarding = () => {
     function pushToFirebase() {
         if (pushing || pushed || !researchTicker) return
 
+        setConfirming(false)
         setPushing(true)
         setAlert(null)
         axios.post(backend + "/onboarding/firebase", null, {params: {ticker: researchTicker}})
@@ -611,7 +620,7 @@ export const Onboarding = () => {
                             variant="outlined"
                             data-testid="onboarding-push"
                             disabled={!researchTicker || pushing || pushed}
-                            onClick={pushToFirebase}
+                            onClick={() => setConfirming(true)}
                             sx={{marginTop: "2px"}}
                         >
                             {pushing ? <CircularProgress size={22}/> : "Push to Firebase"}
@@ -656,26 +665,35 @@ export const Onboarding = () => {
 
             {researchTicker &&
                 <Section title=" ">
-                    <Tabs
-                        value={tab}
-                        onChange={(event, value) => setTab(value)}
-                        variant="scrollable"
-                        scrollButtons="auto"
-                        sx={{minHeight: "38px", marginBottom: "8px", "& .MuiTab-root": {minHeight: "38px"}}}
-                    >
-                        {tabs.map(entry => (
-                            <Tab
-                                key={entry.name}
-                                value={entry.name}
-                                label={
-                                    <Box sx={{display: "flex", alignItems: "center", gap: "6px"}}>
-                                        {entry.title}
-                                        {entry.section.loading && <CircularProgress size={12}/>}
-                                    </Box>
-                                }
+                    {compactTabs
+                        ? <Box sx={{display: "flex", justifyContent: "center", marginBottom: "8px"}}>
+                            <MainBarTabs
+                                labels={tabs.map(entry => entry.title)}
+                                value={tabs.findIndex(entry => entry.name === tab)}
+                                setValue={index => setTab(tabs[index].name)}
                             />
-                        ))}
-                    </Tabs>
+                        </Box>
+                        : <Tabs
+                            value={tab}
+                            onChange={(event, value) => setTab(value)}
+                            variant="scrollable"
+                            scrollButtons="auto"
+                            sx={{minHeight: "38px", marginBottom: "8px", "& .MuiTab-root": {minHeight: "38px"}}}
+                        >
+                            {tabs.map(entry => (
+                                <Tab
+                                    key={entry.name}
+                                    value={entry.name}
+                                    label={
+                                        <Box sx={{display: "flex", alignItems: "center", gap: "6px"}}>
+                                            {entry.title}
+                                            {entry.section.loading && <CircularProgress size={12}/>}
+                                        </Box>
+                                    }
+                                />
+                            ))}
+                        </Tabs>
+                    }
                     {tabs.filter(entry => entry.name === tab).map(entry => (
                         <Box key={entry.name} data-testid={`onboarding-tab-${entry.name}`}>
                             <SectionState
@@ -689,6 +707,21 @@ export const Onboarding = () => {
                     ))}
                 </Section>
             }
+
+            <Dialog open={confirming} onClose={() => setConfirming(false)}>
+                <DialogTitle>Add {lookup?.ticker} to Firebase?</DialogTitle>
+                <DialogContent>
+                    <Typography sx={{fontSize: 14}}>
+                        The processor starts the initialization of {lookup?.ticker} on its next run and
+                        stores the retrieved data in Firebase, from where this app can import it.
+                        The data is then kept up to date periodically.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirming(false)}>Cancel</Button>
+                    <Button onClick={pushToFirebase} data-testid="onboarding-push-confirm">Add</Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     )
 }

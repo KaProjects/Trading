@@ -372,13 +372,40 @@ describe("Onboarding", () => {
         await waitFor(() => expect(screen.getByTestId("onboarding-push")).not.toBeDisabled());
 
         fireEvent.click(screen.getByTestId("onboarding-push"));
-        fireEvent.click(screen.getByTestId("onboarding-push"));
+
+        const dialog = await screen.findByRole("dialog");
+        expect(dialog).toHaveTextContent("Add ORCL to Firebase?");
+        expect(dialog).toHaveTextContent("kept up to date periodically");
+        expect(axios.post).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByTestId("onboarding-push-confirm"));
+        fireEvent.click(screen.getByTestId("onboarding-push-confirm"));
 
         await waitFor(() => expect(screen.getByTestId("onboarding-pushed")).toBeInTheDocument());
         expect(axios.post).toHaveBeenCalledTimes(1);
         expect(axios.post).toHaveBeenCalledWith(
             "/api/onboarding/firebase", null, {params: {ticker: "ORCL"}});
         expect(screen.getByTestId("onboarding-push")).toBeDisabled();
+    });
+
+    test("does not push when the confirmation is cancelled", async () => {
+        arrangeRoutes({
+            lookup: lookupResponse(), targets: "pending", financials: "pending",
+            estimates: "pending", news: "pending",
+        });
+
+        render(<Onboarding/>);
+
+        fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "ORCL"}});
+        fireEvent.click(screen.getByRole("button", {name: "Check"}));
+        await waitFor(() => expect(screen.getByTestId("onboarding-push")).not.toBeDisabled());
+
+        fireEvent.click(screen.getByTestId("onboarding-push"));
+        fireEvent.click(await screen.findByRole("button", {name: "Cancel"}));
+
+        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+        expect(axios.post).not.toHaveBeenCalled();
+        expect(screen.getByTestId("onboarding-push")).not.toBeDisabled();
     });
 
     test("keeps the push button disabled for a known or unknown ticker", async () => {
@@ -411,7 +438,9 @@ describe("Onboarding", () => {
         await waitFor(() => expect(screen.getByTestId("onboarding-push")).not.toBeDisabled());
 
         fireEvent.click(screen.getByTestId("onboarding-push"));
+        fireEvent.click(await screen.findByTestId("onboarding-push-confirm"));
         await waitFor(() => expect(screen.getByTestId("onboarding-push")).toBeDisabled());
+        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
         fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "CRM"}});
         fireEvent.click(screen.getByRole("button", {name: "Check"}));
