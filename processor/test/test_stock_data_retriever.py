@@ -156,7 +156,8 @@ class TestStockDataRetriever:
             data=mock_company,
         )
         runner._retrieve_price_targets.assert_called_once_with(
-            {"AAPL": mock_company}
+            {"AAPL": mock_company},
+            lookback_days=30,
         )
 
     def test_onboard_company_skips_targets_when_initialization_fails(

@@ -7,7 +7,10 @@ from error_reporting import ErrorReporter
 from firebase_repository import ticker_from_firebase_key
 from gemini.retriever import StockDataRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
-from polygon.retriever import PolygonNewsRetrieverRunner
+from polygon.retriever import (
+    ONBOARDING_NEWS_LOOKBACK_DAYS,
+    PolygonNewsRetrieverRunner,
+)
 
 RUNNER_NAME = "CompanyOnboarding"
 COMPANIES_PATH = "company"
@@ -107,7 +110,10 @@ class CompanyOnboardingWatcher:
         if company is None:
             return
         self.finnhub.process_company(ticker, None)
-        self.polygon.process_company(ticker)
+        self.polygon.process_company(
+            ticker,
+            previous_days=ONBOARDING_NEWS_LOOKBACK_DAYS,
+        )
 
         self.log.info("Onboarding completed for %s", ticker)
         self.discord.post_eventlog({

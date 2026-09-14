@@ -25,6 +25,8 @@ from gemini.strings import ErrorMsg, LogMsg
 
 RUNNER_NAME = "StockDataRetriever"
 PRICE_TARGET_DUPLICATE_WINDOW_DAYS = 7
+PRICE_TARGET_LOOKBACK_DAYS = 2
+PRICE_TARGET_ONBOARDING_LOOKBACK_DAYS = 30
 REPORTED_QUARTER_DATA_FIELDS = (
     "reported_eps",
     "reported_revenues",
@@ -206,7 +208,10 @@ class StockDataRetrieverRunner:
     def onboard_company(self, ticker: str) -> Company | None:
         company = self._initialize_company(ticker)
         if company is not None:
-            self._retrieve_price_targets({ticker: company})
+            self._retrieve_price_targets(
+                {ticker: company},
+                lookback_days=PRICE_TARGET_ONBOARDING_LOOKBACK_DAYS,
+            )
         return company
 
     def _initialize_company(self, company_id: str) -> Company | None:
@@ -443,6 +448,8 @@ class StockDataRetrieverRunner:
     def _retrieve_price_targets(
         self,
         companies: dict[str, Company | None],
+        *,
+        lookback_days: int = PRICE_TARGET_LOOKBACK_DAYS,
     ) -> None:
         tickers = sorted(
             company_id
@@ -450,7 +457,7 @@ class StockDataRetrieverRunner:
             if company is not None
         )
         today = datetime.now().date()
-        start_date = today - timedelta(days=2)
+        start_date = today - timedelta(days=lookback_days)
         end_date = today
         institutions = InstitutionRegistry(
             self.service.get_institutions()

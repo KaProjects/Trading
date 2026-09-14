@@ -229,7 +229,10 @@ def test_process_company_fetches_scoped_news_and_persists_sentiment(runner):
 
     runner.process_company("AAPL")
 
-    runner.client.get_latest_news.assert_called_once_with(ticker="AAPL")
+    runner.client.get_latest_news.assert_called_once_with(
+        ticker="AAPL",
+        previous_days=7,
+    )
     sent_companies = (
         runner.gemini.get_news_sentiment_analysis.call_args.args[0]
     )
@@ -255,7 +258,10 @@ def test_process_company_skips_gemini_when_ticker_has_no_insights(runner):
 
     runner.process_company("NVDA")
 
-    runner.client.get_latest_news.assert_called_once_with(ticker="NVDA")
+    runner.client.get_latest_news.assert_called_once_with(
+        ticker="NVDA",
+        previous_days=7,
+    )
     runner.gemini.get_news_sentiment_analysis.assert_not_called()
     runner.service.upsert_sentiment_analysis.assert_not_called()
     runner.discord.post_if_channel_exists.assert_not_called()

@@ -24,6 +24,7 @@ from polygon.service import FirebaseService
 RUNNER_NAME = "PolygonNews"
 UNMAPPED_MIN_ARTICLE_COUNT = 5
 UNMAPPED_IGNORED_TICKER_PREFIXES = ("GOOG", "JPM", "BRK.", "ORCL")
+ONBOARDING_NEWS_LOOKBACK_DAYS = 30
 logger = logging.getLogger(RUNNER_NAME)
 
 
@@ -121,8 +122,16 @@ class PolygonNewsRetrieverRunner:
             )
             return []
 
-    def process_company(self, ticker: str) -> None:
-        response = self.client.get_latest_news(ticker=ticker)
+    def process_company(
+        self,
+        ticker: str,
+        *,
+        previous_days: int | None = 7,
+    ) -> None:
+        response = self.client.get_latest_news(
+            ticker=ticker,
+            previous_days=previous_days,
+        )
         response = self._deduplicate_news_response(response)
         company_news = self._group_by_company({ticker: None}, response)[
             ticker

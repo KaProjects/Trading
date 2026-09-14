@@ -65,7 +65,10 @@ def test_new_placeholder_company_triggers_full_onboarding_chain():
 
     watcher.gemini.onboard_company.assert_called_once_with("NVDA")
     watcher.finnhub.process_company.assert_called_once_with("NVDA", None)
-    watcher.polygon.process_company.assert_called_once_with("NVDA")
+    watcher.polygon.process_company.assert_called_once_with(
+        "NVDA",
+        previous_days=30,
+    )
     watcher.discord.post_eventlog.assert_called_once_with({
         "content": "✅ Onboarding completed for NVDA",
     })
