@@ -7,6 +7,7 @@ import org.kaleta.firebase.FirebaseStore;
 import org.kaleta.model.FirebaseCompany;
 import org.kaleta.model.FirebaseInstitution;
 import org.kaleta.persistence.entity.CompanyWithStats;
+import org.kaleta.rest.dto.ActionableCompanyDto;
 import org.kaleta.rest.dto.FirebaseCompanyDiffDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.kaleta.rest.dto.FirebaseInstitutionsDto;
@@ -29,6 +30,8 @@ public class FirebaseDiffService
     FirebaseStore firebaseStore;
     @Inject
     CompanyService companyService;
+    @Inject
+    TargetService targetService;
 
     public FirebaseCompanyDiffDto getCompanyDiff()
     {
@@ -47,9 +50,14 @@ public class FirebaseDiffService
     {
         FirebaseService.AllCompaniesResult result = firebaseService.getAllCompanies();
         Set<String> known = databaseTickers();
+        Map<String, ActionableCompanyDto> importable = targetService.getCompaniesWithImportCandidates().stream()
+                .collect(Collectors.toMap(
+                        actionable -> normalize(actionable.getCompany().getTicker()),
+                        actionable -> actionable,
+                        (first, second) -> first));
 
         List<FirebaseStatsDto.CompanyStats> companies = result.companies().entrySet().stream()
-                .map(entry -> toStats(entry.getKey(), entry.getValue(), known))
+                .map(entry -> toStats(entry.getKey(), entry.getValue(), known, importable))
                 .sorted(Comparator.comparing(FirebaseStatsDto.CompanyStats::ticker))
                 .toList();
 
@@ -61,6 +69,12 @@ public class FirebaseDiffService
         return firebaseStore.findCompany(ticker)
                 .orElseThrow(() -> new InvalidInputException(
                         "Firebase has no data for ticker '" + ticker + "'"));
+    }
+
+    public void updateCompanyEnabled(String ticker, boolean enabled)
+    {
+        getCompany(ticker);
+        firebaseStore.updateCompanyEnabled(ticker, enabled);
     }
 
     public FirebaseInstitutionsDto getInstitutions()
@@ -130,7 +144,11 @@ public class FirebaseDiffService
                 aliases);
     }
 
-    private FirebaseStatsDto.CompanyStats toStats(String ticker, FirebaseCompany company, Set<String> known)
+    private FirebaseStatsDto.CompanyStats toStats(
+            String ticker,
+            FirebaseCompany company,
+            Set<String> known,
+            Map<String, ActionableCompanyDto> importable)
     {
         int quarters = 0;
         int targets = 0;
@@ -148,13 +166,18 @@ public class FirebaseDiffService
 
         int newsSentiments = company == null ? 0 : size(company.getPgn());
 
+        ActionableCompanyDto actionable = importable.get(normalize(ticker));
+
         return new FirebaseStatsDto.CompanyStats(
                 ticker,
                 known.contains(normalize(ticker)),
+                company == null || company.getEnabled() == null || company.getEnabled(),
                 quarters,
                 targets,
                 earnings,
-                newsSentiments);
+                newsSentiments,
+                actionable == null ? 0 : actionable.getImportablePeriodsCount(),
+                actionable == null ? 0 : actionable.getImportableTargetsCount());
     }
 
     private Set<String> databaseTickers()

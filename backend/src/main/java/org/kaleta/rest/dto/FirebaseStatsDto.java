@@ -17,8 +17,11 @@ public record FirebaseStatsDto(List<CompanyStats> companies, List<String> warnin
     public record CompanyStats(
             String ticker,
             boolean inDatabase,
+            boolean enabled,
             int geminiQuarters,
             int geminiTargets,
             int finnhubEarnings,
-            int newsSentiments) {}
+            int newsSentiments,
+            int importablePeriods,
+            int importableTargets) {}
 }

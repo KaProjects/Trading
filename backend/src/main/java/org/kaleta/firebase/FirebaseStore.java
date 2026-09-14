@@ -49,4 +49,6 @@ public interface FirebaseStore
     void deleteTarget(String ticker, String key);
 
     void createCompany(String ticker);
+
+    void updateCompanyEnabled(String ticker, boolean enabled);
 }

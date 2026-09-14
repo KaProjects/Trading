@@ -17,6 +17,7 @@ import java.util.Map;
 @RegisterForReflection
 public class FirebaseCompany
 {
+    private Boolean enabled;
     private Map<String, Map<String, FinnhubEarnings>> fhe;
     private Gemini gemini;
     private Map<String, NewsSentiment> pgn;

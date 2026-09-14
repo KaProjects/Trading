@@ -205,6 +205,12 @@ public class RealtimeFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public void updateCompanyEnabled(String ticker, boolean enabled)
+    {
+        company(ticker).updateChildrenAsync(Map.of("enabled", enabled));
+    }
+
+    @Override
     public void mergeInstitutions(String sourceKey, String targetKey, Map<String, String> aliases)
     {
         Map<String, Object> updates = new LinkedHashMap<>();

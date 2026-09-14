@@ -222,6 +222,13 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public void updateCompanyEnabled(String ticker, boolean enabled)
+    {
+        FirebaseCompany company = companies.get(ticker.replace(".", "-"));
+        if (company != null) company.setEnabled(enabled);
+    }
+
+    @Override
     public void deleteTarget(String ticker, String key)
     {
         FirebaseCompany company = companies.get(ticker);

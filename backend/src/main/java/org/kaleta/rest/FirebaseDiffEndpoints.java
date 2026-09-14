@@ -13,6 +13,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.model.FirebaseCompany;
+import org.kaleta.rest.dto.CompanyEnabledDto;
 import org.kaleta.rest.dto.FirebaseCompanyDiffDto;
 import org.kaleta.rest.dto.FirebaseInstitutionsDto;
 import org.kaleta.rest.dto.FirebaseStatsDto;
@@ -40,6 +41,17 @@ public class FirebaseDiffEndpoints
             @NotNull @org.kaleta.rest.validation.ValidTicker @PathParam("ticker") String ticker)
     {
         return firebaseDiffService.getCompany(ticker);
+    }
+
+    @PUT
+    @Path("/company/{ticker}/enabled")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response updateCompanyEnabled(
+            @NotNull @org.kaleta.rest.validation.ValidTicker @PathParam("ticker") String ticker,
+            @Valid @NotNull CompanyEnabledDto dto)
+    {
+        firebaseDiffService.updateCompanyEnabled(ticker, dto.isEnabled());
+        return Response.noContent().build();
     }
 
     @GET

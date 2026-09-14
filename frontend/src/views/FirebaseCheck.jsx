@@ -34,6 +34,7 @@ import {backend} from "../properties";
 import {formatError} from "../service/FormattingService";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {Loader} from "./component/Loader";
 import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
 import {STICKY_COLUMN_BODY_SX, STICKY_COLUMN_HEAD_SX} from "./component/tableStyles";
@@ -84,57 +85,6 @@ function MissingCompanies({onAdd}) {
         </Section>
     )
 }
-
-function NotImported() {
-    const {data, loaded, error} = useData("/company/lists/actionable")
-    const navigate = useNavigate()
-
-    function openResearch(ticker) {
-        recordEvent(window.location.pathname + "#redirect:/research")
-        navigate({
-            pathname: "/research",
-            search: `?${new URLSearchParams({company: ticker})}`,
-        })
-    }
-
-    if (!loaded) return <Loader error={error}/>
-
-    return (
-        <Section title={`${data.length} companies with something left to import`}>
-            {data.length === 0
-                ? <Typography color="text.secondary">Nothing is waiting to be imported.</Typography>
-                : <TableContainer component={Paper} sx={{width: "100%"}}>
-                    <Table size="small" stickyHeader>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell sx={STICKY_COLUMN_HEAD_SX}>Ticker</TableCell>
-                                <TableCell align="right">Periods</TableCell>
-                                <TableCell align="right">Targets</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {data.map(row => (
-                                <TableRow
-                                    key={row.company.id}
-                                    hover
-                                    sx={{cursor: "pointer"}}
-                                    onClick={() => openResearch(row.company.ticker)}
-                                >
-                                    <TableCell sx={{...STICKY_COLUMN_BODY_SX, color: "primary.main"}}>
-                                        {row.company.ticker}
-                                    </TableCell>
-                                    <TableCell align="right">{row.importablePeriodsCount || "-"}</TableCell>
-                                    <TableCell align="right">{row.importableTargetsCount || "-"}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            }
-        </Section>
-    )
-}
-
 
 function isEmpty(value) {
     return value === null || value === undefined || value === ""
@@ -241,48 +191,223 @@ function CompanyDetail({ticker, onBack}) {
     )
 }
 
-function Stats({onSelect}) {
+function FirebaseCompanies() {
     const {data, loaded, error} = useData("/firebase/stats")
+    const [enabledFilter, setEnabledFilter] = useState("both")
+    const [overrides, setOverrides] = useState({})
+    const [toggleError, setToggleError] = useState(null)
+
+    function toggleEnabled(company, enabled) {
+        setOverrides(current => ({...current, [company.ticker]: enabled}))
+        setToggleError(null)
+
+        axios.put(`${backend}/firebase/company/${company.ticker}/enabled`, {enabled})
+            .catch(requestError => {
+                setToggleError(formatError(requestError))
+                setOverrides(current => {
+                    const reverted = {...current}
+                    delete reverted[company.ticker]
+                    return reverted
+                })
+            })
+    }
+
     if (!loaded) return <Loader error={error}/>
 
+    const withOverrides = data.companies.map(company => ({
+        ...company,
+        enabled: overrides[company.ticker] ?? company.enabled,
+    }))
+    const visible = withOverrides.filter(company =>
+        enabledFilter === "both" || (enabledFilter === "yes") === company.enabled)
+
     return (
-        <Section title={`Firebase content of ${data.companies.length} companies`}>
+        <Section title={`${visible.length} of ${data.companies.length} companies in Firebase`}>
+            {toggleError &&
+                <Alert severity="error" variant="filled" sx={{marginBottom: "12px"}}>
+                    <AlertTitle>{toggleError.title}</AlertTitle>{toggleError.message}
+                </Alert>
+            }
+
+            <Box sx={{marginBottom: "12px"}}>
+                <FlagFilter
+                    yesLabel="enabled"
+                    noLabel="disabled"
+                    value={enabledFilter}
+                    setValue={setEnabledFilter}
+                />
+            </Box>
+
+            {visible.length === 0
+                ? <Typography color="text.secondary" sx={{fontSize: 13}}>
+                    No company matches the selected filter.
+                </Typography>
+                : <Paper variant="outlined">
+                    {visible.map((company, index) => (
+                        <Box
+                            key={company.ticker}
+                            data-testid={`firebase-company-${company.ticker}`}
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: "12px",
+                                padding: "8px 12px",
+                                borderTop: index === 0 ? "none" : "1px solid",
+                                borderTopColor: "divider",
+                            }}
+                        >
+                            <Typography sx={{
+                                fontSize: 14,
+                                color: company.inDatabase ? "text.primary" : "warning.main",
+                                fontWeight: company.inDatabase ? undefined : 600,
+                            }}>
+                                {company.ticker}
+                            </Typography>
+                            <FlagSwitch
+                                onLabel="enabled"
+                                offLabel="disabled"
+                                checked={company.enabled}
+                                onToggle={event => toggleEnabled(company, event.target.checked)}
+                            />
+                        </Box>
+                    ))}
+                </Paper>
+            }
+        </Section>
+    )
+}
+
+function importable(row) {
+    return row.importablePeriods + row.importableTargets
+}
+
+function ImportableCell({value, importable, testId, label, onOpen}) {
+    const redirects = importable > 0
+
+    return (
+        <TableCell
+            align="right"
+            data-testid={redirects ? testId : undefined}
+            aria-label={redirects ? label : undefined}
+            onClick={redirects
+                ? event => {
+                    event.stopPropagation()
+                    onOpen()
+                }
+                : undefined}
+            sx={{
+                whiteSpace: "nowrap",
+                "& .redirect": {opacity: 0, transition: "opacity 120ms ease-in-out"},
+                "&:hover .redirect": {opacity: 1},
+            }}
+        >
+            {redirects &&
+                <>
+                    <Box
+                        component="span"
+                        className="redirect"
+                        sx={{display: "inline-flex", verticalAlign: "middle", marginRight: "3px",
+                            color: "warning.main"}}
+                    >
+                        <OpenInNewIcon sx={{width: 16}}/>
+                    </Box>
+                    <Box component="span" sx={{color: "warning.main", fontWeight: 600, marginRight: "4px"}}>
+                        ({importable})
+                    </Box>
+                </>
+            }
+            {value}
+        </TableCell>
+    )
+}
+
+function Stats({onSelect}) {
+    const {data, loaded, error} = useData("/firebase/stats")
+    const [filter, setFilter] = useState("all")
+    const navigate = useNavigate()
+
+    function openResearch(ticker) {
+        recordEvent(window.location.pathname + "#redirect:/research")
+        navigate({
+            pathname: "/research",
+            search: `?${new URLSearchParams({company: ticker})}`,
+        })
+    }
+
+    if (!loaded) return <Loader error={error}/>
+
+    const visible = filter === "all" ? data.companies : data.companies.filter(row => importable(row) > 0)
+    const title = filter === "all"
+        ? `Firebase content of ${data.companies.length} companies`
+        : `${visible.length} of ${data.companies.length} companies with something left to import`
+
+    return (
+        <Section title={title}>
             <Warnings warnings={data.warnings}/>
-            <TableContainer component={Paper} sx={{width: "100%"}}>
-                <Table size="small" stickyHeader>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={STICKY_COLUMN_HEAD_SX}>Ticker</TableCell>
-                            <TableCell align="right">Quarters</TableCell>
-                            <TableCell align="right">Targets</TableCell>
-                            <TableCell align="right">Earnings</TableCell>
-                            <TableCell align="right">Sentiments</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {data.companies.map(row => (
-                            <TableRow
-                                key={row.ticker}
-                                hover
-                                sx={{cursor: "pointer"}}
-                                onClick={() => onSelect(row.ticker)}
-                            >
-                                <TableCell sx={{
-                                    ...STICKY_COLUMN_BODY_SX,
-                                    color: row.inDatabase ? "primary.main" : "warning.main",
-                                    fontWeight: row.inDatabase ? undefined : 600,
-                                }}>
-                                    {row.ticker}
-                                </TableCell>
-                                <TableCell align="right">{row.geminiQuarters}</TableCell>
-                                <TableCell align="right">{row.geminiTargets}</TableCell>
-                                <TableCell align="right">{row.finnhubEarnings}</TableCell>
-                                <TableCell align="right">{row.newsSentiments}</TableCell>
+            <Box sx={{marginBottom: "8px"}}>
+                <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={filter}
+                    onChange={(event, next) => next && setFilter(next)}
+                    sx={{"& .MuiToggleButton-root": {fontSize: 11, padding: "2px 10px"}}}
+                >
+                    <ToggleButton value="all">all</ToggleButton>
+                    <ToggleButton value="importable">not imported</ToggleButton>
+                </ToggleButtonGroup>
+            </Box>
+            {visible.length === 0
+                ? <Typography color="text.secondary">Nothing is waiting to be imported.</Typography>
+                : <TableContainer component={Paper} sx={{width: "100%"}}>
+                    <Table size="small" stickyHeader>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={STICKY_COLUMN_HEAD_SX}>Ticker</TableCell>
+                                <TableCell align="right">Quarters</TableCell>
+                                <TableCell align="right">Targets</TableCell>
+                                <TableCell align="right">Earnings</TableCell>
+                                <TableCell align="right">Sentiments</TableCell>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                            {visible.map(row => (
+                                <TableRow
+                                    key={row.ticker}
+                                    data-testid="firebase-stats-row"
+                                    hover
+                                    sx={{cursor: "pointer"}}
+                                    onClick={() => onSelect(row.ticker)}
+                                >
+                                    <TableCell sx={{
+                                        ...STICKY_COLUMN_BODY_SX,
+                                        color: row.inDatabase ? "primary.main" : "warning.main",
+                                        fontWeight: row.inDatabase ? undefined : 600,
+                                    }}>
+                                        {row.ticker}
+                                    </TableCell>
+                                    <ImportableCell
+                                        value={row.geminiQuarters}
+                                        importable={row.inDatabase ? row.importablePeriods : 0}
+                                        testId="firebase-import-periods"
+                                        label={`Open research of ${row.ticker} to import periods`}
+                                        onOpen={() => openResearch(row.ticker)}
+                                    />
+                                    <ImportableCell
+                                        value={row.geminiTargets}
+                                        importable={row.inDatabase ? row.importableTargets : 0}
+                                        testId="firebase-import-targets"
+                                        label={`Open research of ${row.ticker} to import targets`}
+                                        onOpen={() => openResearch(row.ticker)}
+                                    />
+                                    <TableCell align="right">{row.finnhubEarnings}</TableCell>
+                                    <TableCell align="right">{row.newsSentiments}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            }
         </Section>
     )
 }
@@ -570,24 +695,26 @@ export const FirebaseCheck = props => {
         window.location.href = `/research?${new URLSearchParams({company: addedTicker})}`
     }
 
-    const swipe = useSwipeNavigation(props.firebaseTabsIndex, props.setFirebaseTabsIndex, 4)
+    const swipe = useSwipeNavigation(props.firebaseTabsIndex, props.setFirebaseTabsIndex, 3)
 
     return (
         <Box sx={SWIPE_AREA_SX} {...swipe}>
             {props.firebaseTabsIndex === 0 &&
-                <MissingCompanies
-                    key={refreshKey}
-                    onAdd={ticker => {
-                        setAddedTicker(ticker)
-                        props.setOpenEditCompany({ticker})
-                    }}
-                />
+                <>
+                    <MissingCompanies
+                        key={refreshKey}
+                        onAdd={ticker => {
+                            setAddedTicker(ticker)
+                            props.setOpenEditCompany({ticker})
+                        }}
+                    />
+                    <FirebaseCompanies/>
+                </>
             }
-            {props.firebaseTabsIndex === 1 && <NotImported/>}
-            {props.firebaseTabsIndex === 2 && (selectedTicker
+            {props.firebaseTabsIndex === 1 && (selectedTicker
                 ? <CompanyDetail ticker={selectedTicker} onBack={() => setSelectedTicker(null)}/>
                 : <Stats onSelect={setSelectedTicker}/>)}
-            {props.firebaseTabsIndex === 3 && <Institutions/>}
+            {props.firebaseTabsIndex === 2 && <Institutions/>}
 
             <EditCompanyDialog {...props} triggerRefresh={companySaved}/>
         </Box>
