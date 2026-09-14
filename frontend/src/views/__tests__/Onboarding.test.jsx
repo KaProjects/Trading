@@ -30,6 +30,13 @@ function estimatesResponse(overrides = {}) {
             next2: {eps: 7.7, change: 20.5},
             next3: {eps: 8.07, change: 26.29},
         },
+        revenueProjection: {
+            ttm: {eps: 38960000000, change: null},
+            current: {eps: 40330000000, change: 3.52},
+            next1: {eps: 41700000000, change: 7.03},
+            next2: {eps: 43060000000, change: 10.52},
+            next3: {eps: 44760000000, change: 14.89},
+        },
         warnings: [],
         ...overrides,
     };
@@ -233,7 +240,7 @@ describe("Onboarding", () => {
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
             "/api/onboarding/financials", {params: {ticker: "ORCL"}}));
 
-        fireEvent.click(await screen.findByRole("tab", {name: /Reported financials/}));
+        fireEvent.click(await screen.findByRole("tab", {name: /Financials/}));
 
         const table = await screen.findByTestId("onboarding-financials");
         const quarters = screen.getAllByTestId("onboarding-financials-quarter");
@@ -264,13 +271,13 @@ describe("Onboarding", () => {
         fireEvent.click(await screen.findByRole("tab", {name: /Analyst research/}));
         expect(await screen.findByTestId("onboarding-targets")).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole("tab", {name: /Reported financials/}));
+        fireEvent.click(screen.getByRole("tab", {name: /Financials/}));
 
         expect(await screen.findByTestId("onboarding-financials-error")).toBeInTheDocument();
         expect(screen.queryByTestId("onboarding-targets")).not.toBeInTheDocument();
     });
 
-    test("shows the eps projection from finnhub earnings", async () => {
+    test("shows the eps and revenue projections from finnhub earnings", async () => {
         arrangeRoutes({
             lookup: lookupResponse(), targets: "pending", financials: "pending",
             estimates: estimatesResponse(), news: "pending",
@@ -284,13 +291,19 @@ describe("Onboarding", () => {
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
             "/api/onboarding/estimates", {params: {ticker: "ORCL"}}));
 
-        fireEvent.click(await screen.findByRole("tab", {name: /EPS estimates/}));
+        fireEvent.click(await screen.findByRole("tab", {name: /Estimates/}));
 
         const projection = await screen.findByTestId("onboarding-estimates-projection");
         expect(projection).toHaveTextContent("6.39");
         expect(projection).toHaveTextContent("+26.3%");
         expect(screen.getByTestId("onboarding-estimates-reported")).toHaveTextContent("27Q2");
         expect(screen.getByTestId("onboarding-estimates-estimated")).toHaveTextContent("28Q2");
+
+        const revenue = screen.getByTestId("onboarding-revenue-projection");
+        expect(revenue).toHaveTextContent("39B");
+        expect(revenue).toHaveTextContent("+14.9%");
+        expect(screen.getByTestId("onboarding-revenue-reported")).toHaveTextContent("10.2B");
+        expect(screen.getByTestId("onboarding-revenue-estimated")).toHaveTextContent("11.8B");
     });
 
     test("shows the news sentiment counts and articles", async () => {

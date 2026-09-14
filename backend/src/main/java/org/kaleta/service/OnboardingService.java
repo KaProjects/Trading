@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -289,7 +290,12 @@ public class OnboardingService
         }
 
         return new OnboardingEstimatesDto(
-                normalized, reported, estimated, projection(reported, estimated), warnings);
+                normalized,
+                reported,
+                estimated,
+                projection(reported, estimated, OnboardingEstimatesDto.Quarter::eps),
+                projection(reported, estimated, OnboardingEstimatesDto.Quarter::revenue),
+                warnings);
     }
 
     private OnboardingEstimatesDto.Quarter quarter(
@@ -305,13 +311,14 @@ public class OnboardingService
 
     private OnboardingEstimatesDto.Projection projection(
             List<OnboardingEstimatesDto.Quarter> reported,
-            List<OnboardingEstimatesDto.Quarter> estimated)
+            List<OnboardingEstimatesDto.Quarter> estimated,
+            Function<OnboardingEstimatesDto.Quarter, BigDecimal> value)
     {
         if (reported.size() < ESTIMATE_QUARTERS) return null;
 
         List<BigDecimal> values = new ArrayList<>();
-        reported.forEach(quarter -> values.add(quarter.eps()));
-        estimated.forEach(quarter -> values.add(quarter.eps()));
+        reported.forEach(quarter -> values.add(value.apply(quarter)));
+        estimated.forEach(quarter -> values.add(value.apply(quarter)));
 
         List<BigDecimal> windows = new ArrayList<>();
         for (int offset = 0; offset + ESTIMATE_QUARTERS <= values.size(); offset++) {

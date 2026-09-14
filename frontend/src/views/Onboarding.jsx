@@ -307,7 +307,7 @@ const SENTIMENT_COLORS = {
     negative: "error.dark",
 }
 
-function QuarterList({title, quarters, testId}) {
+function QuarterList({title, quarters, format, testId}) {
     if (!quarters || quarters.length === 0) return null
 
     return (
@@ -316,7 +316,7 @@ function QuarterList({title, quarters, testId}) {
             <Box sx={{display: "flex", gap: "14px", justifyContent: "center", marginTop: "2px"}}>
                 {quarters.map(quarter => (
                     <Box key={`${quarter.label}-${quarter.date}`} sx={{textAlign: "center", minWidth: "42px"}}>
-                        <Box sx={{fontFamily: "Roboto", fontSize: 15, fontWeight: 500}}>{decimals(quarter.eps)}</Box>
+                        <Box sx={{fontFamily: "Roboto", fontSize: 15, fontWeight: 500}}>{format(quarter)}</Box>
                         <Box sx={{color: "text.secondary", fontSize: 11}}>{quarter.label}</Box>
                     </Box>
                 ))}
@@ -325,7 +325,7 @@ function QuarterList({title, quarters, testId}) {
     )
 }
 
-function QuarterEps({reported, estimated}) {
+function QuarterValues({reported, estimated, format, reportedTitle, estimatedTitle, testId}) {
     if ((!reported || reported.length === 0) && (!estimated || estimated.length === 0)) return null
 
     return (
@@ -337,16 +337,26 @@ function QuarterEps({reported, estimated}) {
             flexWrap: "wrap",
             marginTop: "12px",
         }}>
-            <QuarterList title="Reported EPS" quarters={reported} testId="onboarding-estimates-reported"/>
+            <QuarterList
+                title={reportedTitle}
+                quarters={reported}
+                format={format}
+                testId={`${testId}-reported`}
+            />
             {reported?.length > 0 && estimated?.length > 0 &&
                 <ArrowRightAltIcon sx={{color: "text.secondary", marginTop: "20px"}}/>
             }
-            <QuarterList title="Estimated EPS" quarters={estimated} testId="onboarding-estimates-estimated"/>
+            <QuarterList
+                title={estimatedTitle}
+                quarters={estimated}
+                format={format}
+                testId={`${testId}-estimated`}
+            />
         </Box>
     )
 }
 
-function Projection({projection}) {
+function Projection({projection, format, testId}) {
     if (!projection) return null
 
     const windows = [
@@ -358,7 +368,7 @@ function Projection({projection}) {
     ].filter(entry => entry.window)
 
     return (
-        <Box data-testid="onboarding-estimates-projection" sx={{
+        <Box data-testid={testId} sx={{
             display: "flex",
             gap: "16px",
             flexWrap: "wrap",
@@ -370,7 +380,7 @@ function Projection({projection}) {
                         {formatPercent(entry.window.change, true, 1) || "\u00a0"}
                     </Box>
                     <Box sx={{fontFamily: "Roboto", fontSize: 17, fontWeight: 600}}>
-                        {decimals(entry.window.eps)}
+                        {format(entry.window.eps)}
                     </Box>
                     <Box sx={{color: "text.secondary", fontSize: 11}}>{entry.label}</Box>
                 </Box>
@@ -380,11 +390,48 @@ function Projection({projection}) {
 }
 
 function Estimates({estimates}) {
+    const eps = quarter => decimals(quarter.eps)
+    const revenue = quarter => quarter.revenue === null || quarter.revenue === undefined
+        ? "-"
+        : formatMillionsRounded(Number(quarter.revenue) / 1000000)
+
     return (
         <Paper data-testid="onboarding-estimates" sx={{padding: "12px"}}>
             <Warnings warnings={estimates.warnings}/>
-            <Projection projection={estimates.projection}/>
-            <QuarterEps reported={estimates.reported} estimated={estimates.estimated}/>
+
+            <Typography sx={{color: "text.secondary", fontSize: 12, fontWeight: 600}}>EPS</Typography>
+            <Projection
+                projection={estimates.projection}
+                format={value => decimals(value)}
+                testId="onboarding-estimates-projection"
+            />
+            <QuarterValues
+                reported={estimates.reported}
+                estimated={estimates.estimated}
+                format={eps}
+                reportedTitle="Reported EPS"
+                estimatedTitle="Estimated EPS"
+                testId="onboarding-estimates"
+            />
+
+            <Divider sx={{margin: "16px 0 12px 0"}}/>
+
+            <Typography sx={{color: "text.secondary", fontSize: 12, fontWeight: 600}}>Revenue</Typography>
+            <Projection
+                projection={estimates.revenueProjection}
+                format={value => value === null || value === undefined
+                    ? "-"
+                    : formatMillionsRounded(Number(value) / 1000000)}
+                testId="onboarding-revenue-projection"
+            />
+            <QuarterValues
+                reported={estimates.reported}
+                estimated={estimates.estimated}
+                format={revenue}
+                reportedTitle="Reported revenue"
+                estimatedTitle="Estimated revenue"
+                testId="onboarding-revenue"
+            />
         </Paper>
     )
 }
@@ -485,14 +532,14 @@ export const Onboarding = () => {
         },
         {
             name: "financials",
-            title: "Reported financials",
+            title: "Financials",
             section: financials,
             loadingText: "Asking Gemini for the last four reported quarters...",
             render: data => <Financials financials={data}/>,
         },
         {
             name: "estimates",
-            title: "EPS estimates",
+            title: "Estimates",
             section: estimates,
             loadingText: "Loading Finnhub earnings...",
             render: data => <Estimates estimates={data}/>,

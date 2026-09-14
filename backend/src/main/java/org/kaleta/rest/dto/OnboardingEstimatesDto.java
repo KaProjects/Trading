@@ -8,6 +8,7 @@ public record OnboardingEstimatesDto(
         List<Quarter> reported,
         List<Quarter> estimated,
         Projection projection,
+        Projection revenueProjection,
         List<String> warnings)
 {
     public record Quarter(

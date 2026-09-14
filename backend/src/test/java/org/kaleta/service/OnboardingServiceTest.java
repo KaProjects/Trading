@@ -310,6 +310,9 @@ public class OnboardingServiceTest
         assertThat(result.projection().current().change().doubleValue(), is(25.0));
         assertThat(result.projection().next3().eps(), is(new BigDecimal("8.00")));
         assertThat(result.projection().next3().change().doubleValue(), is(100.0));
+        assertThat(result.revenueProjection().ttm().eps(), is(new BigDecimal("4000.00")));
+        assertThat(result.revenueProjection().next3().eps(), is(new BigDecimal("8000.00")));
+        assertThat(result.revenueProjection().next3().change().doubleValue(), is(100.0));
         assertThat(result.warnings(), is(empty()));
     }
 
@@ -407,7 +410,9 @@ public class OnboardingServiceTest
             LocalDate date, int year, int quarter, BigDecimal actual, BigDecimal estimate)
     {
         return new FinnhubEarnings(
-                date.toString(), year, quarter, "amc", actual, estimate, null, null);
+                date.toString(), year, quarter, "amc", actual, estimate,
+                actual == null ? null : actual.multiply(new BigDecimal("1000")),
+                estimate == null ? null : estimate.multiply(new BigDecimal("1000")));
     }
 
     private static GeminiFinancials.Quarter quarter(String id, BigDecimal revenue, BigDecimal eps)
