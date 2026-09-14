@@ -3,17 +3,77 @@
     "NVDA": {
       "name": "NVIDIA Corporation",
       "description": "NVIDIA designs accelerated computing platforms, graphics processors, networking products, and related software.",
-      "website": "https://www.nvidia.com"
+      "website": "https://www.nvidia.com",
+      "exchange": "XNAS",
+      "currency": "usd",
+      "locale": "us",
+      "type": "CS",
+      "active": true,
+      "industry": "SEMICONDUCTORS & RELATED DEVICES",
+      "listDate": "1999-01-22",
+      "marketCap": 4230000000000,
+      "sharesOutstanding": 24390000000,
+      "employees": 36000
     },
     "AMD": {
       "name": "Advanced Micro Devices, Inc.",
       "description": "AMD designs high-performance and adaptive computing products.",
-      "website": "https://www.amd.com"
+      "website": "https://www.amd.com",
+      "exchange": "XNAS",
+      "currency": "usd",
+      "locale": "us",
+      "type": "CS",
+      "active": true,
+      "industry": "SEMICONDUCTORS & RELATED DEVICES",
+      "listDate": "1979-09-30",
+      "marketCap": 836000000000,
+      "sharesOutstanding": 1620000000,
+      "employees": 28000
     },
     "INTC": {
       "name": "Intel Corporation",
       "description": "Intel designs and manufactures semiconductor products and computing platforms.",
-      "website": "https://www.intel.com"
+      "website": "https://www.intel.com",
+      "exchange": "XNAS",
+      "currency": "usd",
+      "locale": "us",
+      "type": "CS",
+      "active": true,
+      "industry": "SEMICONDUCTORS & RELATED DEVICES",
+      "listDate": "1978-10-13",
+      "marketCap": 109000000000,
+      "sharesOutstanding": 4360000000,
+      "employees": 108900
+    },
+    "ORCL": {
+      "name": "Oracle Corporation",
+      "description": "Oracle offers cloud infrastructure, database software and enterprise applications, with data-center capacity expanding to serve AI workloads.",
+      "website": "https://www.oracle.com",
+      "exchange": "XNYS",
+      "currency": "usd",
+      "locale": "us",
+      "type": "CS",
+      "active": true,
+      "industry": "SERVICES-PREPACKAGED SOFTWARE",
+      "listDate": "1986-03-12",
+      "marketCap": 655000000000,
+      "sharesOutstanding": 2800000000,
+      "employees": 159000
+    },
+    "CRM": {
+      "name": "Salesforce, Inc.",
+      "description": "Salesforce provides customer relationship management software and a platform of sales, service, marketing and analytics applications.",
+      "website": "https://www.salesforce.com",
+      "exchange": "XNYS",
+      "currency": "usd",
+      "locale": "us",
+      "type": "CS",
+      "active": true,
+      "industry": "SERVICES-PREPACKAGED SOFTWARE",
+      "listDate": "2004-06-23",
+      "marketCap": 248000000000,
+      "sharesOutstanding": 963000000,
+      "employees": 76000
     }
   },
   "financials": {
@@ -252,6 +312,115 @@
         "splitFrom": 10,
         "splitTo": 1,
         "daysAgo": 800
+      }
+    ]
+  },
+  "news": {
+    "CRM": [
+      {
+        "id": "dev-2",
+        "title": "Salesforce expands Agentforce to service teams",
+        "publisher": "Reuters",
+        "publishedUtc": "2026-09-12T13:30:00Z",
+        "articleUrl": "https://example.test/news/2",
+        "description": "The company extended its agentic AI tier to customer-service seats.",
+        "insights": [
+          {
+            "ticker": "CRM",
+            "sentiment": "positive",
+            "sentimentReasoning": "New product tier broadens the addressable base."
+          }
+        ]
+      },
+      {
+        "id": "dev-5",
+        "title": "Analysts weigh Salesforce pricing changes",
+        "publisher": "Bloomberg",
+        "publishedUtc": "2026-09-09T13:30:00Z",
+        "articleUrl": "https://example.test/news/5",
+        "description": "Consumption pricing draws mixed reactions ahead of renewals.",
+        "insights": [
+          {
+            "ticker": "CRM",
+            "sentiment": "neutral",
+            "sentimentReasoning": "Impact depends on renewal timing."
+          }
+        ]
+      },
+      {
+        "id": "dev-9",
+        "title": "Salesforce loses enterprise deal to rival suite",
+        "publisher": "Business Wire",
+        "publishedUtc": "2026-09-05T13:30:00Z",
+        "articleUrl": "https://example.test/news/9",
+        "description": "A large retail customer moved part of its estate to a competing platform.",
+        "insights": [
+          {
+            "ticker": "CRM",
+            "sentiment": "negative",
+            "sentimentReasoning": "Competitive loss in a flagship account."
+          }
+        ]
+      },
+      {
+        "id": "dev-14",
+        "title": "Data Cloud crosses a new usage milestone",
+        "publisher": "Reuters",
+        "publishedUtc": "2026-08-31T13:30:00Z",
+        "articleUrl": "https://example.test/news/14",
+        "description": "Usage of the data platform doubled year over year.",
+        "insights": [
+          {
+            "ticker": "CRM",
+            "sentiment": "positive",
+            "sentimentReasoning": "Usage growth supports the AI attach thesis."
+          }
+        ]
+      },
+      {
+        "id": "dev-21",
+        "title": "Salesforce buys a small analytics vendor",
+        "publisher": "CNBC",
+        "publishedUtc": "2026-08-24T13:30:00Z",
+        "articleUrl": "https://example.test/news/21",
+        "description": "The acquisition adds engineering talent in analytics.",
+        "insights": [
+          {
+            "ticker": "CRM",
+            "sentiment": "neutral",
+            "sentimentReasoning": "Deal is too small to move estimates."
+          }
+        ]
+      },
+      {
+        "id": "dev-26",
+        "title": "Cloud spending survey points to steady budgets",
+        "publisher": "Barron's",
+        "publishedUtc": "2026-08-19T13:30:00Z",
+        "articleUrl": "https://example.test/news/26",
+        "description": "IT buyers expect flat to slightly higher software budgets.",
+        "insights": [
+          {
+            "ticker": "CRM",
+            "sentiment": "positive",
+            "sentimentReasoning": "Budget stability supports subscription growth."
+          }
+        ]
+      },
+      {
+        "id": "dev-40",
+        "title": "Older article outside the window",
+        "publisher": "Reuters",
+        "publishedUtc": "2026-08-05T13:30:00Z",
+        "articleUrl": "https://example.test/news/40",
+        "description": "This one is older than a month.",
+        "insights": [
+          {
+            "ticker": "CRM",
+            "sentiment": "negative",
+            "sentimentReasoning": "Should not appear in a one-month window."
+          }
+        ]
       }
     ]
   }

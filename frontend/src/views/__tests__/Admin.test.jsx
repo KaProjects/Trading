@@ -23,7 +23,8 @@ describe("Admin", () => {
     test("lists every admin page as a title-only card", () => {
         render(<Admin/>);
 
-        const titles = ["Companies", "Stock Split", "Firebase Check", "Trade Import", "Dividend Import", "API Docs"];
+        const titles = ["Companies", "Stock Split", "Firebase Check", "Company Onboarding",
+            "Trade Import", "Dividend Import", "API Docs"];
         titles.forEach(title => expect(screen.getByText(title)).toBeInTheDocument());
         expect(screen.getAllByRole("button")).toHaveLength(titles.length);
     });

@@ -9,6 +9,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
+import org.kaleta.client.dto.PolygonNews;
 import org.kaleta.client.dto.PolygonSplit;
 
 import java.io.IOException;
@@ -32,6 +33,7 @@ public class InMemoryPolygonClient implements PolygonClient
     private final Map<String, Map<String, PolygonPriceRange>> priceRanges;
     private final Map<String, PolygonCompanyProfile> companyProfiles;
     private final Map<String, List<DevSplit>> splits;
+    private final Map<String, List<PolygonNews>> news;
 
     @Inject
     public InMemoryPolygonClient(
@@ -43,6 +45,7 @@ public class InMemoryPolygonClient implements PolygonClient
         this.priceRanges = data.priceRanges() == null ? Map.of() : data.priceRanges();
         this.companyProfiles = data.companyProfiles() == null ? Map.of() : data.companyProfiles();
         this.splits = data.splits() == null ? Map.of() : data.splits();
+        this.news = data.news() == null ? Map.of() : data.news();
     }
 
     @Override
@@ -83,6 +86,17 @@ public class InMemoryPolygonClient implements PolygonClient
                 .toList();
     }
 
+    @Override
+    public List<PolygonNews> getNews(String ticker, String publishedFrom, int limit)
+    {
+        return news.getOrDefault(normalize(ticker), List.of()).stream()
+                .filter(article -> article.publishedUtc() != null
+                        && article.publishedUtc().compareTo(publishedFrom) >= 0)
+                .sorted(Comparator.comparing(PolygonNews::publishedUtc).reversed())
+                .limit(limit)
+                .toList();
+    }
+
     private PolygonData load(ObjectMapper objectMapper, String dataFile)
     {
         Path path = Path.of(dataFile).toAbsolutePath().normalize();
@@ -104,7 +118,8 @@ public class InMemoryPolygonClient implements PolygonClient
             Map<String, Map<String, PolygonFinancials>> financials,
             Map<String, Map<String, PolygonPriceRange>> priceRanges,
             Map<String, PolygonCompanyProfile> companyProfiles,
-            Map<String, List<DevSplit>> splits)
+            Map<String, List<DevSplit>> splits,
+            Map<String, List<PolygonNews>> news)
     {
     }
 

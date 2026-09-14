@@ -50,5 +50,89 @@
       "pc": "56.35",
       "t": "1784901600"
     }
+  },
+  "earningsCalendar": {
+    "CRM": [
+      {
+        "date": "2025-08-27",
+        "year": 2026,
+        "quarter": 3,
+        "hour": "amc",
+        "epsActual": 1.42,
+        "epsEstimate": 1.39,
+        "revenueActual": 9240000000,
+        "revenueEstimate": 9180000000
+      },
+      {
+        "date": "2025-11-26",
+        "year": 2026,
+        "quarter": 4,
+        "hour": "amc",
+        "epsActual": 1.54,
+        "epsEstimate": 1.5,
+        "revenueActual": 9610000000,
+        "revenueEstimate": 9550000000
+      },
+      {
+        "date": "2026-02-25",
+        "year": 2027,
+        "quarter": 1,
+        "hour": "amc",
+        "epsActual": 1.62,
+        "epsEstimate": 1.58,
+        "revenueActual": 9870000000,
+        "revenueEstimate": 9800000000
+      },
+      {
+        "date": "2026-05-27",
+        "year": 2027,
+        "quarter": 2,
+        "hour": "amc",
+        "epsActual": 1.81,
+        "epsEstimate": 1.72,
+        "revenueActual": 10240000000,
+        "revenueEstimate": 10120000000
+      },
+      {
+        "date": "2026-11-27",
+        "year": 2027,
+        "quarter": 3,
+        "hour": "amc",
+        "epsActual": null,
+        "epsEstimate": 1.88,
+        "revenueActual": null,
+        "revenueEstimate": 10610000000
+      },
+      {
+        "date": "2027-02-26",
+        "year": 2027,
+        "quarter": 4,
+        "hour": "amc",
+        "epsActual": null,
+        "epsEstimate": 1.96,
+        "revenueActual": null,
+        "revenueEstimate": 10980000000
+      },
+      {
+        "date": "2027-05-28",
+        "year": 2028,
+        "quarter": 1,
+        "hour": "amc",
+        "epsActual": null,
+        "epsEstimate": 2.05,
+        "revenueActual": null,
+        "revenueEstimate": 11340000000
+      },
+      {
+        "date": "2027-08-27",
+        "year": 2028,
+        "quarter": 2,
+        "hour": "amc",
+        "epsActual": null,
+        "epsEstimate": 2.18,
+        "revenueActual": null,
+        "revenueEstimate": 11760000000
+      }
+    ]
   }
 }

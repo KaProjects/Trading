@@ -1,0 +1,132 @@
+{
+  "companyTargets": {
+    "CRM": {
+      "targets": [
+        {
+          "institution": "Morgan Stanley",
+          "date": "2026-09-09",
+          "price": 320,
+          "rating": "Overweight",
+          "source": "https://www.morganstanley.com/research/salesforce",
+          "overview": "Raised the target after agentic AI seats beat plan for a second quarter, with the analyst arguing that Data Cloud attach is finally translating into net-new subscription revenue rather than migrations.",
+          "keyTakeaways": [
+            "Agentforce deal count roughly doubled quarter over quarter, mostly in existing accounts.",
+            "Data Cloud attach on new enterprise deals is now the main driver of seat expansion.",
+            "Operating margin guidance is unchanged despite higher inference costs."
+          ]
+        },
+        {
+          "institution": "Goldman Sachs",
+          "date": "2026-09-02",
+          "price": 305,
+          "rating": "Buy",
+          "source": "https://www.goldmansachs.com/research/salesforce-update",
+          "overview": "Maintains a constructive view on margin expansion but trims growth assumptions for the core Sales Cloud, noting that pricing rather than seats carried the quarter.",
+          "keyTakeaways": [
+            "Core Sales Cloud growth is decelerating to the high single digits.",
+            "List-price increases contributed more than seat growth this quarter.",
+            "Buyback pace supports mid-teens EPS growth even on slower revenue."
+          ]
+        },
+        {
+          "institution": "UBS",
+          "date": "2026-08-24",
+          "price": 285,
+          "rating": "Neutral",
+          "source": "https://www.ubs.com/global/en/investment-bank/research.html",
+          "overview": "Keeps a neutral stance, viewing the AI narrative as largely priced in and flagging that consumption-based pricing makes near-term revenue harder to forecast.",
+          "keyTakeaways": [
+            "Consumption pricing adds variance to quarterly revenue recognition.",
+            "Valuation already reflects a successful Agentforce ramp."
+          ]
+        }
+      ],
+      "report": {
+        "overview": "The three trusted institutions covering Salesforce in the last month agree that AI-driven products are now moving the numbers, but disagree on how much of that is already in the price. Morgan Stanley and Goldman Sachs see durable margin expansion and raise or hold constructive targets, while UBS argues the Agentforce ramp is fully discounted and points to consumption pricing as a source of forecast risk. The spread between the high and low target is roughly 12%, which is narrow for a name with this much AI-related debate.",
+        "keyTakeaways": [
+          "All three houses treat Data Cloud attach as the key metric to watch, not total seat count.",
+          "Bulls and bears differ on valuation, not on the direction of the product cycle.",
+          "Consumption-based pricing is the most cited source of near-term estimate risk.",
+          "Margin guidance held flat despite higher AI inference costs, which every note called out."
+        ]
+      }
+    }
+  },
+  "companyFinancials": {
+    "CRM": {
+      "quarters": [
+        {
+          "id": "27Q2",
+          "name": "Q2 2027",
+          "endingMonth": "2026-07",
+          "reportDate": "2026-08-27",
+          "revenue": 10240,
+          "grossProfit": 7890,
+          "operatingIncome": 2150,
+          "netIncome": 1720,
+          "capex": 210,
+          "freeCashFlow": 2980,
+          "dividend": 410,
+          "shares": 955,
+          "adjustedEps": 1.81,
+          "priceMin": 232.5,
+          "priceMax": 289.4
+        },
+        {
+          "id": "27Q1",
+          "name": "Q1 2027",
+          "endingMonth": "2026-04",
+          "reportDate": "2026-05-28",
+          "revenue": 9870,
+          "grossProfit": 7580,
+          "operatingIncome": 1980,
+          "netIncome": 1560,
+          "capex": 195,
+          "freeCashFlow": 5310,
+          "dividend": 400,
+          "shares": 962,
+          "adjustedEps": 1.62,
+          "priceMin": 241.1,
+          "priceMax": 302.8
+        },
+        {
+          "id": "26Q4",
+          "name": "Q4 2026",
+          "endingMonth": "2026-01",
+          "reportDate": "2026-02-25",
+          "revenue": 9610,
+          "grossProfit": 7340,
+          "operatingIncome": 1890,
+          "netIncome": 1490,
+          "capex": 188,
+          "freeCashFlow": 2240,
+          "dividend": 395,
+          "shares": 968,
+          "adjustedEps": 1.54,
+          "priceMin": 255.0,
+          "priceMax": 321.7
+        },
+        {
+          "id": "26Q3",
+          "name": "Q3 2026",
+          "endingMonth": "2025-10",
+          "reportDate": "2025-11-26",
+          "revenue": 9240,
+          "grossProfit": 7020,
+          "operatingIncome": 1760,
+          "netIncome": 1380,
+          "capex": 176,
+          "freeCashFlow": 1910,
+          "dividend": 0,
+          "shares": 974,
+          "adjustedEps": 1.42,
+          "priceMin": 244.8,
+          "priceMax": 310.2
+        }
+      ],
+      "notes": [
+        "Dividend for Q3 2026 could not be verified and is reported as zero by the primary source."
+      ]
+    }
+  }
+}

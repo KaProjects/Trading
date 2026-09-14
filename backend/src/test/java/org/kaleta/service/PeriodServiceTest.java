@@ -325,7 +325,8 @@ public class PeriodServiceTest
     void updateFinancial()
     {
         Company company = Generator.generateCompany();
-        Period period = Generator.generatePeriod(company, true);
+        Period period = Generator.generatePeriod(
+                company, true, PeriodName.valueOf("25Q3"), YearMonth.of(2025, 9));
 
         when(periodDao.get(period.getId())).thenReturn(period);
         when(periodDao.get(null)).thenThrow(NoResultException.class);

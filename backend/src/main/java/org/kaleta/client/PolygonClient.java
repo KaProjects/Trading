@@ -3,6 +3,7 @@ package org.kaleta.client;
 import org.kaleta.client.dto.PolygonFinancials;
 import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
+import org.kaleta.client.dto.PolygonNews;
 import org.kaleta.client.dto.PolygonSplit;
 
 import java.util.List;
@@ -23,4 +24,6 @@ public interface PolygonClient
             String to) throws RequestFailureException;
 
     List<PolygonSplit> getSplits(String ticker, String executedFrom) throws RequestFailureException;
+
+    List<PolygonNews> getNews(String ticker, String publishedFrom, int limit) throws RequestFailureException;
 }

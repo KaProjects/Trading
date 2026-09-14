@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.kaleta.client.dto.FinnhubEarnings;
 import org.kaleta.client.dto.FinnhubQuote;
 
 import java.io.IOException;
@@ -12,6 +13,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @ApplicationScoped
 @IfBuildProperty(name = "finnhub.mode", stringValue = "real", enableIfMissing = true)
@@ -57,6 +63,40 @@ public class ProductionFinnhubClient implements FinnhubClient
         {
             throw new RequestFailureException("Finnhub request failed: " + exception.getMessage(), exception);
         }
+    }
+
+    @Override
+    public List<FinnhubEarnings> earningsCalendar(String ticker, LocalDate from, LocalDate to)
+            throws RequestFailureException
+    {
+        HttpRequest request = HttpRequest.newBuilder().GET()
+                .uri(URI.create(apiUrl + "calendar/earnings?symbol=" + encode(ticker)
+                        + "&from=" + from + "&to=" + to + authQuery))
+                .build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new RequestFailureException(errorMessage(response));
+            }
+
+            List<FinnhubEarnings> earnings = new ArrayList<>();
+            for (JsonNode node : objectMapper.readTree(response.body()).path("earningsCalendar")) {
+                earnings.add(objectMapper.treeToValue(node, FinnhubEarnings.class));
+            }
+            return earnings;
+        }
+        catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new RequestFailureException("Finnhub request was interrupted", exception);
+        }
+        catch (IOException exception) {
+            throw new RequestFailureException("Finnhub request failed: " + exception.getMessage(), exception);
+        }
+    }
+
+    private static String encode(String value)
+    {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private String errorMessage(HttpResponse<String> response)

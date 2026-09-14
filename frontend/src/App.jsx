@@ -13,6 +13,7 @@ import {Companies} from "./views/Companies";
 import {Admin} from "./views/Admin";
 import {StockSplit} from "./views/StockSplit";
 import {FirebaseCheck} from "./views/FirebaseCheck";
+import {Onboarding} from "./views/Onboarding";
 import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
 import {Outperformers} from "./views/Outperformers";
@@ -200,6 +201,7 @@ export const App = () => {
                             <Route exact path="/admin/companies" element={<Companies {...props}/>}/>
                             <Route exact path="/admin/split" element={<StockSplit {...props}/>}/>
                             <Route exact path="/admin/firebase" element={<FirebaseCheck {...props}/>}/>
+                            <Route exact path="/admin/onboarding" element={<Onboarding {...props}/>}/>
                             <Route exact path="/analytics" element={<Analytics {...props}/>}/>
                             <Route exact path="/outperformers" element={<Outperformers {...props}/>}/>
                             <Route exact path="/admin/import/trades" element={<TradeImport/>}/>

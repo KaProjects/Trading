@@ -12,6 +12,7 @@ import {
 import StoreIcon from "@mui/icons-material/Store";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import CloudSyncIcon from "@mui/icons-material/CloudSync";
+import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import ApiIcon from "@mui/icons-material/Api";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -25,6 +26,7 @@ const ADMIN_GROUPS = [
             {title: "Companies", icon: StoreIcon, path: "/admin/companies"},
             {title: "Stock Split", icon: CallSplitIcon, path: "/admin/split"},
             {title: "Firebase Check", icon: CloudSyncIcon, path: "/admin/firebase"},
+            {title: "Company Onboarding", icon: TravelExploreIcon, path: "/admin/onboarding"},
         ],
     },
     {

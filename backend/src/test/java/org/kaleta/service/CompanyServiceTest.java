@@ -166,7 +166,9 @@ public class CompanyServiceTest
         PolygonCompanyProfile profile = new PolygonCompanyProfile(
                 "NVIDIA Corporation",
                 "Accelerated computing company",
-                "https://www.nvidia.com");
+                "https://www.nvidia.com",
+                "XNAS", "usd", "us", "CS", true, "SEMICONDUCTORS & RELATED DEVICES", "1999-01-22",
+                null, null, null);
         when(polygonClient.getCompanyProfile("NVDA")).thenReturn(Optional.of(profile));
 
         assertThat(companyService.getPolygonCompanyProfile("NVDA"), is(profile));

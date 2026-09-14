@@ -1,8 +1,13 @@
-package org.kaleta.client.dto;
+package org.kaleta.rest.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
-public record PolygonCompanyProfile(
+public record OnboardingLookupDto(
+        String ticker,
+        boolean found,
+        boolean inDatabase,
+        boolean inFirebase,
         String name,
         String description,
         String website,
@@ -15,6 +20,7 @@ public record PolygonCompanyProfile(
         String listDate,
         BigDecimal marketCap,
         BigDecimal sharesOutstanding,
-        Integer employees)
+        Integer employees,
+        List<String> warnings)
 {
 }

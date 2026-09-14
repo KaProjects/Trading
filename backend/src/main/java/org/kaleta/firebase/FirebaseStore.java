@@ -47,4 +47,6 @@ public interface FirebaseStore
     void updateQuarterEndingMonth(String ticker, String quarterId, String endingMonth);
 
     void deleteTarget(String ticker, String key);
+
+    void createCompany(String ticker);
 }

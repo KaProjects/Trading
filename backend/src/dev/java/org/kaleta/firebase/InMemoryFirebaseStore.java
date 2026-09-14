@@ -216,6 +216,12 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public void createCompany(String ticker)
+    {
+        companies.putIfAbsent(ticker.replace(".", "-"), new FirebaseCompany());
+    }
+
+    @Override
     public void deleteTarget(String ticker, String key)
     {
         FirebaseCompany company = companies.get(ticker);

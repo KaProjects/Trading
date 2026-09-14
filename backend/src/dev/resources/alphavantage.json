@@ -216,6 +216,26 @@
         "currency": "GBP",
         "matchScore": 0.93
       }
+    ],
+    "ORCL": [
+      {
+        "symbol": "ORCL",
+        "name": "Oracle Corporation",
+        "type": "Equity",
+        "region": "United States",
+        "currency": "USD",
+        "matchScore": 1.0
+      }
+    ],
+    "CRM": [
+      {
+        "symbol": "CRM",
+        "name": "Salesforce, Inc.",
+        "type": "Equity",
+        "region": "United States",
+        "currency": "USD",
+        "matchScore": 1.0
+      }
     ]
   },
   "quotes": {

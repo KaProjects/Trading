@@ -199,6 +199,12 @@ public class RealtimeFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public void createCompany(String ticker)
+    {
+        company(ticker).setValueAsync("");
+    }
+
+    @Override
     public void mergeInstitutions(String sourceKey, String targetKey, Map<String, String> aliases)
     {
         Map<String, Object> updates = new LinkedHashMap<>();
