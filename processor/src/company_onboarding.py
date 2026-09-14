@@ -58,28 +58,45 @@ class CompanyOnboardingWatcher:
         ]
 
         if not segments:
-            # Initial connection, or a reconnect resync: seeds the known
-            # set from the full snapshot without onboarding anything that
-            # already existed before this listener started watching.
+            # Initial connection, or a reconnect resync: a placeholder
+            # still sitting here (never attempted, or a previous attempt
+            # that failed without ever writing real data) is retried, same
+            # as if it had just been added. There is no separate "already
+            # failed" record - the node staying a placeholder *is* that
+            # record, and it is naturally cleared by deleting the node.
             if isinstance(event.data, dict):
-                self._known_company_keys.update(event.data.keys())
+                for company_key, company_data in event.data.items():
+                    self._handle_company_change(company_key, company_data)
             return
 
         company_key = segments[0]
 
         if len(segments) == 1 and event.data is None:
             # Removed: a later re-add is a genuinely new addition again,
-            # which is how a failed onboarding attempt gets retried.
+            # which is how a failed onboarding attempt gets retried without
+            # waiting for a restart.
             self._known_company_keys.discard(company_key)
             return
 
+        if len(segments) != 1:
+            # Nested write under an already-existing company; not relevant
+            # to onboarding.
+            self._known_company_keys.add(company_key)
+            return
+
+        self._handle_company_change(company_key, event.data)
+
+    def _handle_company_change(
+        self,
+        company_key: str,
+        company_data: object,
+    ) -> None:
         if company_key in self._known_company_keys:
             return
         self._known_company_keys.add(company_key)
 
-        if len(segments) != 1 or isinstance(event.data, dict):
-            # Not a fresh placeholder node (e.g. a nested write for a
-            # company whose top-level creation we never observed) - ignore.
+        if isinstance(company_data, dict):
+            # Already has real data from a previous successful onboarding.
             return
 
         self._onboard(ticker_from_firebase_key(company_key))

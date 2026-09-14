@@ -7,6 +7,7 @@ from firebase_admin import db
 
 from error_reporting import ErrorReporter
 from firebase_repository import (
+    mark_company_enabled,
     parse_company_snapshot,
     ticker_to_firebase_key,
 )
@@ -71,6 +72,7 @@ class FirebaseService:
         db.reference(
             f"{company_path(analysis.ticker)}/{analysis_id}"
         ).set(record.model_dump(mode="json"))
+        mark_company_enabled(analysis.ticker)
         self.log.info(
             "Upserted Polygon news sentiment analysis for %s as %s",
             analysis.ticker,

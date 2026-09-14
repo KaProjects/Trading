@@ -44,6 +44,23 @@ def test_get_companies_reads_pgn_nodes_and_preserves_missing_roots():
     }
 
 
+def test_get_companies_excludes_companies_disabled_for_research():
+    database_reference = MagicMock(spec_set=["get"])
+    database_reference.get.return_value = {
+        "AAPL": {"enabled": False, "pgn": {}},
+        "MSFT": {"pgn": None},
+    }
+
+    with patch(
+        "polygon.service.db.reference",
+        autospec=True,
+        return_value=database_reference,
+    ):
+        companies = FirebaseService().get_companies()
+
+    assert companies == {"MSFT": None}
+
+
 def test_upsert_sentiment_analysis_creates_dated_record_without_total():
     service = FirebaseService()
     analysis = CompanySentimentAnalysis(
@@ -76,13 +93,15 @@ def test_upsert_sentiment_analysis_creates_dated_record_without_total():
 
     assert result == analysis_id
     assert analysis_id.startswith("2026-08-26-")
-    reference.assert_called_once_with(
+    reference.assert_any_call(
         f"{company_path('BRK.B')}/{analysis_id}"
     )
-    database_reference.set.assert_called_once_with(
+    reference.assert_any_call("company/BRK-B/enabled")
+    database_reference.set.assert_any_call(
         NewsSentimentRecord.from_analysis(analysis).model_dump(mode="json")
     )
-    persisted = database_reference.set.call_args.args[0]
+    database_reference.set.assert_any_call(True)
+    persisted = database_reference.set.call_args_list[0].args[0]
     assert persisted == {
         "sentiment": {
             "mixed": 1,

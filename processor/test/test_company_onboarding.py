@@ -29,15 +29,30 @@ def make_watcher():
     return watcher
 
 
-def test_initial_snapshot_seeds_known_keys_without_onboarding():
+def test_initial_snapshot_skips_already_initialized_companies():
     watcher = make_watcher()
+
+    watcher._on_event(make_event("/", {
+        "AAPL": {"gemini": {"info": {}}},
+    }))
+
+    watcher.gemini.onboard_company.assert_not_called()
+    assert watcher._known_company_keys == {"AAPL"}
+
+
+def test_initial_snapshot_retries_a_placeholder_left_over_from_before_restart():
+    """A company that was never successfully onboarded - whether it's
+    brand new or a previous attempt failed - is still just a placeholder
+    node, so a restart (e.g. a redeploy) retries it automatically."""
+    watcher = make_watcher()
+    watcher.gemini.onboard_company.return_value = None
 
     watcher._on_event(make_event("/", {
         "AAPL": {"gemini": {"info": {}}},
         "MSFT": "",
     }))
 
-    watcher.gemini.onboard_company.assert_not_called()
+    watcher.gemini.onboard_company.assert_called_once_with("MSFT")
     assert watcher._known_company_keys == {"AAPL", "MSFT"}
 
 

@@ -2,11 +2,14 @@ import logging
 from collections.abc import Collection
 from typing import TypeVar
 
+from firebase_admin import db
 from pydantic import BaseModel, ValidationError
 
 from error_reporting import ErrorReporter
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
+ENABLED_FIELD = "enabled"
+COMPANIES_PATH = "company"
 
 
 def ticker_from_firebase_key(company_key: str) -> str:
@@ -15,6 +18,15 @@ def ticker_from_firebase_key(company_key: str) -> str:
 
 def ticker_to_firebase_key(ticker: str) -> str:
     return ticker.replace(".", "-")
+
+
+def mark_company_enabled(company_id: str) -> None:
+    # Called by every service method that may be the first to create a
+    # company's node (gemini/finnhub/polygon can each discover a new ticker
+    # first); always safe, since a disabled company is excluded from
+    # get_companies() and so can never reach one of those methods again.
+    company_key = ticker_to_firebase_key(company_id)
+    db.reference(f"{COMPANIES_PATH}/{company_key}/{ENABLED_FIELD}").set(True)
 
 
 def parse_company_snapshot(
@@ -39,6 +51,10 @@ def parse_company_snapshot(
         company_id = ticker_from_firebase_key(company_key)
         if not isinstance(company_data, dict):
             companies[company_id] = None
+            continue
+        if not company_data.get(ENABLED_FIELD, True):
+            # Deprecated company: data stays in Firebase, but no runner
+            # spends API calls researching it further.
             continue
 
         model_data = company_data.get(data_root)

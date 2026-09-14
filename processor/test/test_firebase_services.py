@@ -17,6 +17,7 @@ from gemini.service import FirebaseService as GeminiFirebaseService
 from gemini.service import company_path as gemini_company_path
 from gemini.service import create_target_id
 from gemini.service import institutions_path
+from myfinnhub.models import Earnings
 from myfinnhub.service import company_path as finnhub_company_path
 from myfinnhub.service import FirebaseService as FinnhubFirebaseService
 
@@ -158,6 +159,30 @@ def test_firebase_service_treats_non_object_companies_as_uninitialized(
     service.log.error.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("service_class", "reference_path", "data_root"),
+    [
+        (GeminiFirebaseService, "gemini.service.db.reference", "gemini"),
+        (FinnhubFirebaseService, "myfinnhub.service.db.reference", "fhe"),
+    ],
+)
+def test_firebase_service_excludes_companies_disabled_for_research(
+    service_class,
+    reference_path,
+    data_root,
+):
+    snapshot = {
+        "AAPL": {"enabled": False, data_root: None},
+        "MSFT": {data_root: None},
+    }
+    service = make_service(service_class)
+    with patch(reference_path, autospec=True, return_value=FakeReference(snapshot)):
+        companies = service.get_companies()
+
+    assert companies == {"MSFT": None}
+    service.errors.report.assert_not_called()
+
+
 def test_gemini_service_treats_partial_company_as_uninitialized():
     service = make_service(GeminiFirebaseService)
     snapshot = {
@@ -215,7 +240,7 @@ def test_firebase_validation_error_is_reported_with_company_context():
 
 def test_gemini_company_initialization_preserves_existing_targets():
     service = make_service(GeminiFirebaseService)
-    company_reference = MagicMock(spec_set=["update"])
+    company_reference = MagicMock(spec_set=["update", "set"])
     quarter = Quarter(
         name="Q2 2026",
         id="26Q2",
@@ -239,13 +264,32 @@ def test_gemini_company_initialization_preserves_existing_targets():
     ) as reference:
         service.init_company("SKHY", company)
 
-    reference.assert_called_once_with(gemini_company_path("SKHY"))
+    reference.assert_any_call(gemini_company_path("SKHY"))
     company_reference.update.assert_called_once_with({
         "info": company.info.model_dump(mode="json"),
         "quarters": {
             "26Q2": quarter.model_dump(mode="json"),
         },
     })
+    reference.assert_any_call("company/SKHY/enabled")
+    company_reference.set.assert_called_once_with(True)
+
+
+def test_finnhub_company_initialization_marks_company_enabled():
+    service = make_service(FinnhubFirebaseService)
+    company_reference = MagicMock(spec_set=["set"])
+    earnings = {"26Q1": Earnings(report="2026-04-27-bmo", epse=1.0, reve=1_000_000)}
+
+    with patch(
+        "myfinnhub.service.db.reference",
+        autospec=True,
+        return_value=company_reference,
+    ) as reference:
+        service.init_company("AAPL", earnings)
+
+    reference.assert_any_call(finnhub_company_path("AAPL"))
+    reference.assert_any_call("company/AAPL/enabled")
+    assert company_reference.set.call_args_list[-1].args == (True,)
 
 
 def test_gemini_company_initialization_rejects_missing_current_quarter():

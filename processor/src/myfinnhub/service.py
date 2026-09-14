@@ -5,6 +5,7 @@ from firebase_admin import db
 
 from error_reporting import ErrorReporter
 from firebase_repository import (
+    mark_company_enabled,
     parse_company_snapshot,
     ticker_to_firebase_key,
 )
@@ -46,6 +47,7 @@ class FirebaseService:
 
         company = Company.model_validate(quarters)
         db.reference(company_path(company_id)).set(company.model_dump(mode="json"))
+        mark_company_enabled(company_id)
         self.log.info(LogMsg.COMPANY_INIT.format(company_id=company_id, n_quarters=str(len(quarters))))
 
     def init_quarter(self, company_id, quarter_id, earnings: Earnings):

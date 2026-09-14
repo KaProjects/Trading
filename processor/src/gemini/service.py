@@ -7,6 +7,7 @@ from firebase_admin import db
 
 from error_reporting import ErrorReporter
 from firebase_repository import (
+    mark_company_enabled,
     parse_company_snapshot,
     ticker_to_firebase_key,
 )
@@ -106,6 +107,7 @@ class FirebaseService:
                 for quarter_id, quarter in data.quarters.items()
             },
         })
+        mark_company_enabled(id)
         self.log.info(LogMsg.COMPANY_INIT.format(company_id=id, quarter_id=data.info.current_quarter_id, n_quarters=str(len(data.quarters))))
 
     def update_report_date(self, new_report_date: ReportDate) -> None:
