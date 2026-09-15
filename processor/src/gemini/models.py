@@ -370,6 +370,60 @@ class InstitutionRating(BaseModel):
     media_shock_value: InstitutionRatingDimension
 
 
+class InstitutionResolution(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    institution: InstitutionName = Field(
+        description=(
+            "Exact candidate institution name, copied verbatim from the "
+            "NEW INSTITUTIONS list."
+        ),
+    )
+    is_alias: bool = Field(
+        description=(
+            "True if this candidate refers to the same real institution as "
+            "one of the EXISTING INSTITUTIONS under a different name, "
+            "spelling, abbreviation, or legal-entity variant; false if it "
+            "is a genuinely distinct institution not already tracked."
+        ),
+    )
+    alias_of: InstitutionName | None = Field(
+        default=None,
+        description=(
+            "When is_alias is true, the exact matching name copied "
+            "verbatim from EXISTING INSTITUTIONS; null when is_alias is "
+            "false."
+        ),
+    )
+    institutional_weight: InstitutionRatingDimension | None = Field(
+        default=None,
+        description=(
+            "0-10 Institutional Execution Weight (\"Wall Street Tier\") "
+            "score and one-sentence explanation; required when is_alias is "
+            "false, null when is_alias is true."
+        ),
+    )
+    media_shock_value: InstitutionRatingDimension | None = Field(
+        default=None,
+        description=(
+            "0-10 Media & Shock Value (\"Headline Tier\") score and "
+            "one-sentence explanation; required when is_alias is false, "
+            "null when is_alias is true."
+        ),
+    )
+
+
+class InstitutionResolutions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    resolutions: list[InstitutionResolution] = Field(
+        description=(
+            "One resolution per name in NEW INSTITUTIONS, in the same "
+            "order they were requested."
+        ),
+    )
+
+
 class InstitutionRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

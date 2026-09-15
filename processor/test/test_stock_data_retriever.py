@@ -17,6 +17,10 @@ from gemini.models import (
     Company,
     CompanyTarget,
     Info,
+    InstitutionRating,
+    InstitutionRatingDimension,
+    InstitutionResolution,
+    InstitutionResolutions,
     InstitutionRecord,
     Quarter,
     ReportDate,
@@ -27,6 +31,7 @@ from gemini.models import (
     TargetReport,
 )
 from gemini.service import FirebaseService
+from gemini.institutions import InstitutionRegistry
 from gemini.retriever import StockDataRetrieverRunner
 
 
@@ -805,6 +810,20 @@ class TestStockDataRetriever:
         runner.client.get_price_targets.return_value = TargetCandidates(
             targets=[target]
         )
+        rating_dimension = InstitutionRatingDimension(
+            score="4.0/10",
+            description="Widely distributed but limited execution weight.",
+        )
+        runner.client.resolve_new_institutions.return_value = (
+            InstitutionResolutions(resolutions=[
+                InstitutionResolution(
+                    institution="Important Research",
+                    is_alias=False,
+                    institutional_weight=rating_dimension,
+                    media_shock_value=rating_dimension,
+                ),
+            ])
+        )
 
         runner.run()
 
@@ -813,6 +832,10 @@ class TestStockDataRetriever:
             date(2026, 7, 19),
             date(2026, 7, 21),
         )
+        runner.client.resolve_new_institutions.assert_called_once_with(
+            ["Important Research"],
+            [],
+        )
         runner.service.create_institutions.assert_called_once_with({
             "important-research": InstitutionRecord(
                 name="Important Research",
@@ -820,6 +843,10 @@ class TestStockDataRetriever:
                     "important-research": "Important Research",
                 },
                 enabled=True,
+                rating=InstitutionRating(
+                    institutional_weight=rating_dimension,
+                    media_shock_value=rating_dimension,
+                ),
             ),
         })
         runner.service.upsert_target.assert_called_once_with(
@@ -863,6 +890,179 @@ class TestStockDataRetriever:
         }]
         runner.client.get_target_report.assert_not_called()
         runner.errors.report.assert_not_called()
+
+    def make_resolved_target(self, institution: InstitutionRecord):
+        target = Target(
+            ticker="AAPL",
+            institution=institution.name,
+            date="2026-07-20",
+            price="225.50",
+            source="https://research.example.com/aapl",
+        )
+        return (target, institution)
+
+    def test_reconcile_new_institutions_attaches_ratings_for_distinct_institutions(
+        self,
+        runner,
+    ):
+        institutions = InstitutionRegistry({})
+        candidate = institutions.resolve_or_create("Important Research")
+        resolved_targets = [self.make_resolved_target(candidate)]
+        dimension = InstitutionRatingDimension(
+            score="7.0/10",
+            description="Solid institutional distribution.",
+        )
+        runner.client.resolve_new_institutions.return_value = (
+            InstitutionResolutions(resolutions=[
+                InstitutionResolution(
+                    institution="Important Research",
+                    is_alias=False,
+                    institutional_weight=dimension,
+                    media_shock_value=dimension,
+                ),
+            ])
+        )
+
+        result = runner._reconcile_new_institutions(
+            resolved_targets,
+            institutions,
+        )
+
+        runner.client.resolve_new_institutions.assert_called_once_with(
+            ["Important Research"],
+            [],
+        )
+        assert result == resolved_targets
+        assert institutions.new_institutions[
+            "important-research"
+        ].rating == InstitutionRating(
+            institutional_weight=dimension,
+            media_shock_value=dimension,
+        )
+        runner.service.add_institution_alias.assert_not_called()
+
+    def test_reconcile_new_institutions_merges_alias_into_existing_institution(
+        self,
+        runner,
+    ):
+        existing = InstitutionRecord(
+            name="JPMorgan",
+            aliases={"jpmorgan": "JPMorgan"},
+            enabled=True,
+            trusted=True,
+        )
+        institutions = InstitutionRegistry({"jpmorgan": existing})
+        candidate = institutions.resolve_or_create("JPM Securities")
+        resolved_targets = [self.make_resolved_target(candidate)]
+        runner.client.resolve_new_institutions.return_value = (
+            InstitutionResolutions(resolutions=[
+                InstitutionResolution(
+                    institution="JPM Securities",
+                    is_alias=True,
+                    alias_of="JPMorgan",
+                ),
+            ])
+        )
+
+        result = runner._reconcile_new_institutions(
+            resolved_targets,
+            institutions,
+        )
+
+        runner.client.resolve_new_institutions.assert_called_once_with(
+            ["JPM Securities"],
+            ["JPMorgan"],
+        )
+        assert "jpm-securities" not in institutions.new_institutions
+        runner.service.add_institution_alias.assert_called_once_with(
+            institution_id="jpmorgan",
+            alias_key="jpm-securities",
+            alias_name="JPM Securities",
+        )
+        assert len(result) == 1
+        remapped_target, remapped_institution = result[0]
+        assert remapped_institution is existing
+        assert remapped_target.institution == "JPMorgan"
+
+    def test_reconcile_new_institutions_leaves_unmatched_candidate_untouched(
+        self,
+        runner,
+    ):
+        institutions = InstitutionRegistry({})
+        candidate = institutions.resolve_or_create("Important Research")
+        resolved_targets = [self.make_resolved_target(candidate)]
+        runner.client.resolve_new_institutions.return_value = (
+            InstitutionResolutions(resolutions=[])
+        )
+
+        result = runner._reconcile_new_institutions(
+            resolved_targets,
+            institutions,
+        )
+
+        assert result == resolved_targets
+        assert institutions.new_institutions["important-research"] is (
+            candidate
+        )
+        runner.service.add_institution_alias.assert_not_called()
+
+    def test_reconcile_new_institutions_leaves_candidate_unrated_when_gemini_omits_scores(
+        self,
+        runner,
+    ):
+        """Regression test: is_alias=false with missing rating scores
+        (Gemini not honoring the "required when is_alias is false"
+        instruction) must not crash - the candidate is just left unrated,
+        same as any other unresolved candidate."""
+        institutions = InstitutionRegistry({})
+        candidate = institutions.resolve_or_create("Important Research")
+        resolved_targets = [self.make_resolved_target(candidate)]
+        runner.client.resolve_new_institutions.return_value = (
+            InstitutionResolutions(resolutions=[
+                InstitutionResolution(
+                    institution="Important Research",
+                    is_alias=False,
+                ),
+            ])
+        )
+
+        result = runner._reconcile_new_institutions(
+            resolved_targets,
+            institutions,
+        )
+
+        assert result == resolved_targets
+        assert institutions.new_institutions[
+            "important-research"
+        ].rating is None
+        runner.service.add_institution_alias.assert_not_called()
+
+    def test_reconcile_new_institutions_falls_back_on_gemini_failure(
+        self,
+        runner,
+    ):
+        institutions = InstitutionRegistry({})
+        candidate = institutions.resolve_or_create("Important Research")
+        resolved_targets = [self.make_resolved_target(candidate)]
+        error = RuntimeError("Gemini unavailable")
+        runner.client.resolve_new_institutions.side_effect = error
+
+        result = runner._reconcile_new_institutions(
+            resolved_targets,
+            institutions,
+        )
+
+        assert result == resolved_targets
+        assert institutions.new_institutions["important-research"] is (
+            candidate
+        )
+        runner.errors.report.assert_called_once_with(
+            error,
+            logger=runner.log,
+            source=runner.name,
+            operation="resolve_new_institutions",
+            context={"institutions": "Important Research"},
+        )
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")

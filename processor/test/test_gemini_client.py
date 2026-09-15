@@ -17,6 +17,8 @@ from gemini.client import (
 )
 from gemini.models import (
     InitialCompanyResponse,
+    InstitutionResolution,
+    InstitutionResolutions,
     Quarter,
     ReportDates,
     Target,
@@ -409,6 +411,71 @@ def test_get_target_report_appends_structured_report_to_original_target():
     assert "500 characters" in request.kwargs["contents"]
     assert request.kwargs["config"]["response_json_schema"] == (
         TargetReport.model_json_schema()
+    )
+
+
+def test_resolve_new_institutions_parses_alias_and_rating_response():
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = """
+        {
+          "resolutions": [
+            {
+              "institution": "JPM Securities",
+              "is_alias": true,
+              "alias_of": "JPMorgan"
+            },
+            {
+              "institution": "Melius Research",
+              "is_alias": false,
+              "institutional_weight": {
+                "score": "5.0/10",
+                "description": "Independent boutique with limited underwriting flow."
+              },
+              "media_shock_value": {
+                "score": "4.5/10",
+                "description": "Occasionally generates tech-sector headlines."
+              }
+            }
+          ]
+        }
+        """
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        result = client.resolve_new_institutions(
+            ["JPM Securities", "Melius Research"],
+            ["JPMorgan"],
+        )
+
+    assert result == InstitutionResolutions(resolutions=[
+        InstitutionResolution(
+            institution="JPM Securities",
+            is_alias=True,
+            alias_of="JPMorgan",
+        ),
+        InstitutionResolution(
+            institution="Melius Research",
+            is_alias=False,
+            institutional_weight={
+                "score": "5.0/10",
+                "description": (
+                    "Independent boutique with limited underwriting flow."
+                ),
+            },
+            media_shock_value={
+                "score": "4.5/10",
+                "description": (
+                    "Occasionally generates tech-sector headlines."
+                ),
+            },
+        ),
+    ])
+    request = constructor.return_value.models.generate_content.call_args
+    contents = request.kwargs["contents"]
+    assert "['JPM Securities', 'Melius Research']" in contents
+    assert "['JPMorgan']" in contents
+    assert "Do not rename, reformat,\n        expand, abbreviate" in contents
+    assert request.kwargs["config"]["response_json_schema"] == (
+        InstitutionResolutions.model_json_schema()
     )
 
 

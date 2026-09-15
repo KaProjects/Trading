@@ -93,6 +93,21 @@ class FirebaseService:
             ", ".join(sorted(institutions)),
         )
 
+    def add_institution_alias(
+        self,
+        institution_id: str,
+        alias_key: str,
+        alias_name: str,
+    ) -> None:
+        db.reference(
+            f"{institutions_path}/{institution_id}/aliases/{alias_key}"
+        ).set(alias_name)
+        self.log.info(
+            "Added alias %r to institution %s",
+            alias_name,
+            institution_id,
+        )
+
     def init_company(self, id: str, data: Company) -> None:
         current_quarter_id = data.info.current_quarter_id
         if current_quarter_id not in data.quarters:

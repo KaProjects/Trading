@@ -10,6 +10,7 @@ from pydantic import BaseModel, ValidationError
 from gemini.models import (
     Company,
     InitialCompanyResponse,
+    InstitutionResolutions,
     Quarter,
     ReportDates,
     TARGET_REPORT_OVERVIEW_MAX_LENGTH,
@@ -521,6 +522,66 @@ class GeminiClient:
             },
         )
         return target.model_copy(update={"report": report})
+
+    def resolve_new_institutions(
+        self,
+        new_institution_names: list[str],
+        existing_institution_names: list[str],
+    ) -> InstitutionResolutions:
+        self.log.info(
+            "Running Gemini client.resolve_new_institutions..."
+        )
+        prompt = f"""
+        You are deduplicating and rating equity research institutions before
+        adding them to a tracked institution list.
+
+        EXISTING INSTITUTIONS (already tracked, canonical names):
+        {existing_institution_names}
+
+        NEW INSTITUTIONS (candidates found in recent price-target data, not
+        yet confirmed to be distinct from the institutions above):
+        {new_institution_names}
+
+        For each entry in NEW INSTITUTIONS, determine whether it refers to
+        the exact same real-world institution as one of the EXISTING
+        INSTITUTIONS, just under a different name, spelling, abbreviation,
+        or legal-entity variant - for example, "JPM Securities" and
+        "JPMorgan" are the same institution - or whether it is a genuinely
+        distinct institution not already tracked.
+
+        If it is an alias of an existing institution: set is_alias to true,
+        set alias_of to the exact matching name copied verbatim from
+        EXISTING INSTITUTIONS, and leave institutional_weight and
+        media_shock_value null.
+
+        If it is a genuinely new, distinct institution: set is_alias to
+        false, leave alias_of null, and rate it on two scales, each from 0
+        to 10.
+
+        Institutional Execution Weight (the "Wall Street Tier"): measures raw
+        capital, trading volume, underwriting lead management, and how much
+        major institutional asset managers (like BlackRock or Fidelity) move
+        millions of dollars based on the firm's research.
+
+        Media & Shock Value Rating (the "Headline Tier"): measures retail
+        brand visibility, press quote frequency, and the degree to which
+        non-consensus price targets generate social media hype and intraday
+        price volatility.
+
+        Use one decimal place and the "X.X/10" format for both scores. Write
+        each description as a single sentence that explains the score.
+
+        You are being asked only for alias detection and ratings, never for
+        name corrections or standardization. Do not rename, reformat,
+        expand, abbreviate, translate, or otherwise alter any institution
+        name copied into your response. Copy each name exactly,
+        character-for-character, from the lists above.
+
+        Return an InstitutionResolutions model whose resolutions field
+        contains exactly one entry per name in NEW INSTITUTIONS, in the same
+        order.
+        """
+        return self.__ask(prompt, InstitutionResolutions)
 
     def get_news_sentiment_analysis(
         self,

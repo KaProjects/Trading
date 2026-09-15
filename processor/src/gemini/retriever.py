@@ -9,10 +9,14 @@ from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from gemini import discord_templates
 from gemini.client import GeminiClient
-from gemini.institutions import InstitutionRegistry
+from gemini.institutions import (
+    InstitutionRegistry,
+    normalize_institution_name,
+)
 from gemini.models import (
     Company,
     CompanyTarget,
+    InstitutionRating,
     InstitutionRecord,
     Quarter,
     ReportDate,
@@ -478,10 +482,12 @@ class StockDataRetrieverRunner:
                 institution,
             ))
 
+        resolved_targets = self._reconcile_new_institutions(
+            resolved_targets,
+            institutions,
+        )
         if institutions.new_institutions:
-            self.service.create_institutions(
-                institutions.new_institutions
-            )
+            self.service.create_institutions(institutions.new_institutions)
             self._notify_new_institutions(
                 list(institutions.new_institutions.values())
             )
@@ -551,6 +557,100 @@ class StockDataRetrieverRunner:
             rating=candidate.rating,
             source=candidate.source,
         )
+
+    def _reconcile_new_institutions(
+        self,
+        resolved_targets: list[tuple[Target, InstitutionRecord]],
+        institutions: InstitutionRegistry,
+    ) -> list[tuple[Target, InstitutionRecord]]:
+        if not institutions.new_institutions:
+            return resolved_targets
+
+        new_names = [
+            institution.name
+            for institution in institutions.new_institutions.values()
+        ]
+        existing_names = [
+            institution.name
+            for candidate_key, institution in institutions.institutions.items()
+            if candidate_key not in institutions.new_institutions
+        ]
+
+        try:
+            resolutions = self.client.resolve_new_institutions(
+                new_names,
+                existing_names,
+            )
+        except Exception as exception:
+            self.report_error(
+                exception,
+                operation="resolve_new_institutions",
+                context={"institutions": ", ".join(new_names)},
+            )
+            return resolved_targets
+
+        resolutions_by_name = {
+            normalize_institution_name(resolution.institution): resolution
+            for resolution in resolutions.resolutions
+        }
+
+        redirects: dict[str, InstitutionRecord] = {}
+        for candidate_key, candidate in list(
+            institutions.new_institutions.items()
+        ):
+            resolution = resolutions_by_name.get(
+                normalize_institution_name(candidate.name)
+            )
+            if resolution is None:
+                continue
+
+            if (
+                not resolution.is_alias
+                and resolution.institutional_weight is not None
+                and resolution.media_shock_value is not None
+            ):
+                institutions.new_institutions[candidate_key] = (
+                    candidate.model_copy(update={
+                        "rating": InstitutionRating(
+                            institutional_weight=(
+                                resolution.institutional_weight
+                            ),
+                            media_shock_value=resolution.media_shock_value,
+                        ),
+                    })
+                )
+                continue
+
+            canonical = institutions.resolve(resolution.alias_of or "")
+            if canonical is None:
+                continue
+
+            del institutions.new_institutions[candidate_key]
+            self.service.add_institution_alias(
+                institution_id=institutions.canonical_key(canonical.name),
+                alias_key=candidate_key,
+                alias_name=candidate.name,
+            )
+            redirects[candidate_key] = canonical
+
+        if not redirects:
+            return resolved_targets
+
+        reconciled: list[tuple[Target, InstitutionRecord]] = []
+        for target, institution in resolved_targets:
+            canonical = redirects.get(
+                normalize_institution_name(institution.name)
+            )
+            if canonical is None:
+                reconciled.append((target, institution))
+            else:
+                reconciled.append((
+                    target.model_copy(
+                        update={"institution": canonical.name}
+                    ),
+                    canonical,
+                ))
+        return reconciled
 
     def _notify_new_institutions(
         self,
