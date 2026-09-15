@@ -489,6 +489,17 @@ function FlagFilter({yesLabel, noLabel, value, setValue}) {
     )
 }
 
+function RatingLine({score}) {
+    if (!score) return null
+
+    return (
+        <Typography sx={{fontSize: 12, color: "text.secondary"}}>
+            <Box component="span" sx={{color: "text.primary", marginRight: "6px"}}>{score.score}</Box>
+            {score.description}
+        </Typography>
+    )
+}
+
 function Institutions() {
     const [reloadKey, setReloadKey] = useState(0)
     const {data, loaded, error} = useData(`/firebase/institutions?v=${reloadKey}`)
@@ -617,10 +628,15 @@ function Institutions() {
                             <Box sx={{minWidth: 0}}>
                                 <Typography sx={{fontSize: 14}}>{institution.name}</Typography>
                                 {institution.aliases.length > 1 &&
-                                    <Typography sx={{fontSize: 12, color: "text.secondary"}}>
+                                    <Typography sx={{fontSize: 11, lineHeight: 1.2,
+                                        color: "text.secondary", marginTop: "-2px"}}>
                                         {institution.aliases.join(", ")}
                                     </Typography>
                                 }
+                                <Box sx={{marginTop: "8px"}}>
+                                    <RatingLine score={institution.rating?.institutionalWeight}/>
+                                    <RatingLine score={institution.rating?.mediaShockValue}/>
+                                </Box>
                             </Box>
                             <Box sx={{display: "flex", flexDirection: "column", gap: "4px",
                                 alignItems: "flex-end", flexShrink: 0}}>

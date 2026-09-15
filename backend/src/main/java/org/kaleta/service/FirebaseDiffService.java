@@ -141,7 +141,22 @@ public class FirebaseDiffService
                 name,
                 institution.isEnabled(),
                 institution.isTrusted(),
-                aliases);
+                aliases,
+                toRating(institution.getRating()));
+    }
+
+    private FirebaseInstitutionsDto.Rating toRating(FirebaseInstitution.Rating rating)
+    {
+        if (rating == null) return null;
+        return new FirebaseInstitutionsDto.Rating(
+                toScore(rating.getInstitutional_weight()),
+                toScore(rating.getMedia_shock_value()));
+    }
+
+    private FirebaseInstitutionsDto.Score toScore(FirebaseInstitution.Rating.Score score)
+    {
+        if (score == null) return null;
+        return new FirebaseInstitutionsDto.Score(score.getScore(), score.getDescription());
     }
 
     private FirebaseStatsDto.CompanyStats toStats(

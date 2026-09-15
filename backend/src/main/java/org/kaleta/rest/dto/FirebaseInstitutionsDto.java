@@ -19,5 +19,12 @@ public record FirebaseInstitutionsDto(List<Institution> institutions, List<Strin
             String name,
             boolean enabled,
             boolean trusted,
-            List<String> aliases) {}
+            List<String> aliases,
+            Rating rating) {}
+
+    @RegisterForReflection
+    public record Rating(Score institutionalWeight, Score mediaShockValue) {}
+
+    @RegisterForReflection
+    public record Score(String score, String description) {}
 }

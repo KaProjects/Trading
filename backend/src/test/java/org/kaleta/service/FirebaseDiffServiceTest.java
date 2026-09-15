@@ -7,8 +7,10 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 import org.kaleta.firebase.FirebaseStore;
 import org.kaleta.model.FirebaseCompany;
+import org.kaleta.model.FirebaseInstitution;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.rest.dto.ActionableCompanyDto;
+import org.kaleta.rest.dto.FirebaseInstitutionsDto;
 import org.kaleta.rest.dto.FirebaseStatsDto;
 import org.kaleta.rest.error.InvalidInputException;
 
@@ -42,6 +44,44 @@ public class FirebaseDiffServiceTest
 
     @Inject
     FirebaseDiffService firebaseDiffService;
+
+    @Test
+    void getInstitutions_includesRating()
+    {
+        FirebaseInstitution ubs = new FirebaseInstitution();
+        ubs.setName("UBS");
+        ubs.setEnabled(true);
+        ubs.setTrusted(true);
+        FirebaseInstitution.Rating rating = new FirebaseInstitution.Rating();
+        FirebaseInstitution.Rating.Score weight = new FirebaseInstitution.Rating.Score();
+        weight.setScore("3.5/10");
+        weight.setDescription("niche independent research provider");
+        FirebaseInstitution.Rating.Score shock = new FirebaseInstitution.Rating.Score();
+        shock.setScore("2.5/10");
+        shock.setDescription("quiet, technical research profile");
+        rating.setInstitutional_weight(weight);
+        rating.setMedia_shock_value(shock);
+        ubs.setRating(rating);
+        FirebaseInstitution jefferies = new FirebaseInstitution();
+        jefferies.setName("Jefferies");
+
+        when(firebaseStore.findAllInstitutions()).thenReturn(Map.of(
+                "ubs", ubs,
+                "jefferies", jefferies));
+
+        List<FirebaseInstitutionsDto.Institution> institutions =
+                firebaseDiffService.getInstitutions().institutions();
+
+        assertThat(institutions.get(0).name(), is("Jefferies"));
+        assertThat(institutions.get(0).rating(), is((FirebaseInstitutionsDto.Rating) null));
+        assertThat(institutions.get(1).name(), is("UBS"));
+        assertThat(institutions.get(1).rating().institutionalWeight().score(), is("3.5/10"));
+        assertThat(institutions.get(1).rating().institutionalWeight().description(),
+                is("niche independent research provider"));
+        assertThat(institutions.get(1).rating().mediaShockValue().score(), is("2.5/10"));
+        assertThat(institutions.get(1).rating().mediaShockValue().description(),
+                is("quiet, technical research profile"));
+    }
 
     @Test
     void getStats_includesImportableCountsAndEnabledFlag()

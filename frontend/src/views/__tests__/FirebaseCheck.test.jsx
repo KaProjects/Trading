@@ -183,3 +183,60 @@ describe("FirebaseCheck companies", () => {
         expect(screen.getByText("1 of 2 companies in Firebase")).toBeInTheDocument();
     });
 });
+
+describe("FirebaseCheck institutions", () => {
+    beforeEach(() => {
+        axios.get.mockReset();
+        axios.put.mockReset();
+        mockNavigate.mockReset();
+    });
+
+    function arrangeInstitutions(institutions) {
+        axios.get.mockImplementation(url => {
+            if (url.includes("/firebase/institutions")) {
+                return Promise.resolve({data: {institutions, warnings: []}});
+            }
+            if (url.endsWith("/firebase/stats")) {
+                return Promise.resolve({data: {companies: [], warnings: []}});
+            }
+            return Promise.resolve({data: {onlyInFirebase: [], warnings: []}});
+        });
+    }
+
+    test("shows the rating scores below the name and aliases", async () => {
+        arrangeInstitutions([
+            {
+                key: "arete", name: "Arete", enabled: true, trusted: true,
+                aliases: ["Arete", "Arete Research"],
+                rating: {
+                    institutionalWeight: {
+                        score: "3.5/10",
+                        description: "Operates as a niche independent research provider.",
+                    },
+                    mediaShockValue: {
+                        score: "2.5/10",
+                        description: "Maintains a quiet, technical research profile.",
+                    },
+                },
+            },
+            {
+                key: "craig-hallum", name: "Craig-Hallum", enabled: true, trusted: false,
+                aliases: ["Craig-Hallum"], rating: null,
+            },
+        ]);
+
+        renderPage(2);
+
+        const arete = await screen.findByTestId("institution-arete");
+        expect(within(arete).getByText("Arete, Arete Research")).toBeInTheDocument();
+        expect(within(arete).getByText("3.5/10")).toBeInTheDocument();
+        expect(within(arete).getByText(
+            /Operates as a niche independent research provider\./)).toBeInTheDocument();
+        expect(within(arete).getByText("2.5/10")).toBeInTheDocument();
+        expect(within(arete).getByText(
+            /Maintains a quiet, technical research profile\./)).toBeInTheDocument();
+
+        const craigHallum = screen.getByTestId("institution-craig-hallum");
+        expect(within(craigHallum).getByText("Craig-Hallum")).toBeInTheDocument();
+    });
+});
