@@ -356,6 +356,20 @@ class CompanyTarget(TargetFields):
     )
 
 
+class InstitutionRatingDimension(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    score: str
+    description: str
+
+
+class InstitutionRating(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    institutional_weight: InstitutionRatingDimension
+    media_shock_value: InstitutionRatingDimension
+
+
 class InstitutionRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -363,6 +377,10 @@ class InstitutionRecord(BaseModel):
     aliases: dict[str, InstitutionName] = Field(default_factory=dict)
     enabled: bool = True
     trusted: bool = False
+    # A handful of institutions still carry the old free-text rating this
+    # replaces; accept both shapes so a stale record doesn't break parsing
+    # before this backfill has run everywhere.
+    rating: InstitutionRating | str | None = None
 
 
 class TargetCandidate(TargetFields):
