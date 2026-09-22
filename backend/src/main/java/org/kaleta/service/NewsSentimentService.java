@@ -73,14 +73,90 @@ public class NewsSentimentService
                 window.end());
         warnings.addAll(firebaseResult.warnings());
 
-        List<NewsSentimentDto> records = map(ticker, firebaseResult.records(), warnings).stream()
-                .filter(record -> window.contains(record.date()))
-                .sorted(Comparator.comparing(NewsSentimentDto::date).reversed())
-                .toList();
+        FirebaseService.BullBearCasesResult casesResult = firebaseService.getBullBearCases(
+                ticker,
+                window.start(),
+                window.end());
+        warnings.addAll(casesResult.warnings());
+
+        List<NewsSentimentDto> records = merge(
+                map(ticker, firebaseResult.records(), warnings).stream()
+                        .filter(record -> window.contains(record.date()))
+                        .toList(),
+                cases(ticker, casesResult.records(), window, warnings));
+
         return new NewsSentimentPeriodDto(
                 records,
                 new NewsSentimentPeriodDto.Window(window.start(), window.end()),
                 warnings);
+    }
+
+    private List<NewsSentimentDto> merge(
+            List<NewsSentimentDto> sentiments,
+            Map<LocalDate, NewsSentimentDto> cases)
+    {
+        Map<LocalDate, NewsSentimentDto> merged = new LinkedHashMap<>(cases);
+        for (NewsSentimentDto sentiment : sentiments) {
+            NewsSentimentDto bullBearCase = cases.get(sentiment.date());
+            merged.put(sentiment.date(), bullBearCase == null
+                    ? sentiment
+                    : sentiment.withCases(bullBearCase.bull(), bullBearCase.bear()));
+        }
+        return merged.values().stream()
+                .sorted(Comparator.comparing(NewsSentimentDto::date).reversed())
+                .toList();
+    }
+
+    private Map<LocalDate, NewsSentimentDto> cases(
+            String ticker,
+            Map<String, FirebaseCompany.Gemini.BullBear> records,
+            PeriodDateWindowService.DateWindow window,
+            List<String> warnings)
+    {
+        Map<LocalDate, NewsSentimentDto> result = new LinkedHashMap<>();
+        for (Map.Entry<String, FirebaseCompany.Gemini.BullBear> entry : records.entrySet()) {
+            try {
+                LocalDate date = date(entry.getKey());
+                if (!window.contains(date)) continue;
+                result.put(date, new NewsSentimentDto(
+                        entry.getKey(),
+                        date,
+                        0,
+                        Map.of(),
+                        List.of(),
+                        points(entry.getValue().getBull()),
+                        points(entry.getValue().getBear()),
+                        true));
+            } catch (RuntimeException exception) {
+                String warning = ExternalWarnings.unavailable(
+                        "Firebase bull/bear case '" + entry.getKey() + "' for " + ticker,
+                        exception);
+                Log.warn(warning, exception);
+                warnings.add(warning);
+            }
+        }
+        return result;
+    }
+
+    private List<NewsSentimentDto.Point> points(List<FirebaseCompany.Gemini.BullBear.Point> points)
+    {
+        if (points == null) return List.of();
+        return points.stream()
+                .filter(point -> point != null && point.getPoint() != null && !point.getPoint().isBlank())
+                .map(point -> new NewsSentimentDto.Point(point.getPoint(), point.getReasoning()))
+                .toList();
+    }
+
+    private LocalDate date(String key)
+    {
+        if (key == null || key.length() < 10) {
+            throw new IllegalArgumentException("record key does not start with YYYY-MM-DD");
+        }
+        try {
+            return LocalDate.parse(key.substring(0, 10));
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException("record key does not start with YYYY-MM-DD", exception);
+        }
     }
 
     private List<NewsSentimentDto> map(
@@ -152,6 +228,7 @@ public class NewsSentimentService
                     "key takeaway is longer than " + MAX_TAKEAWAY_LENGTH + " characters");
         }
 
-        return new NewsSentimentDto(id, date, total, validatedStats, keyTakeaways);
+        return new NewsSentimentDto(
+                id, date, total, validatedStats, keyTakeaways, List.of(), List.of(), false);
     }
 }

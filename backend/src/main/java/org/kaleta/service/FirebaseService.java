@@ -73,6 +73,17 @@ public class FirebaseService
         }
     }
 
+    public record BullBearCasesResult(
+            Map<String, FirebaseCompany.Gemini.BullBear> records,
+            List<String> warnings)
+    {
+        public BullBearCasesResult
+        {
+            records = Collections.unmodifiableMap(new LinkedHashMap<>(records));
+            warnings = List.copyOf(warnings);
+        }
+    }
+
     public record NewsSentimentsResult(
             Map<String, FirebaseCompany.NewsSentiment> records,
             List<String> warnings)
@@ -207,6 +218,24 @@ public class FirebaseService
                     List.of());
         } catch (RuntimeException exception) {
             return unavailableNewsSentiments(ticker, exception);
+        }
+    }
+
+    public BullBearCasesResult getBullBearCases(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive)
+    {
+        try {
+            return new BullBearCasesResult(
+                    firebaseStore.findBullBearCases(ticker, startInclusive, endExclusive),
+                    List.of());
+        } catch (RuntimeException exception) {
+            String warning = ExternalWarnings.unavailable(
+                    "Firebase bull/bear cases for " + ticker,
+                    exception);
+            Log.warn(warning, exception);
+            return new BullBearCasesResult(Map.of(), List.of(warning));
         }
     }
 

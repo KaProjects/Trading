@@ -9,7 +9,7 @@ import {LatestNewsSentiment} from "../LatestNewsSentiment";
 describe("LatestNewsSentiment", () => {
     beforeEach(() => axios.get.mockReset());
 
-    test("loads the latest record and toggles its key takeaways", async () => {
+    test("loads the latest record and opens the sentiment dialog", async () => {
         axios.get.mockResolvedValue({
             data: {
                 record: {
@@ -23,10 +23,11 @@ describe("LatestNewsSentiment", () => {
             },
         });
 
-        render(<LatestNewsSentiment companyId="company-1"/>);
+        const onOpen = jest.fn();
+        render(<LatestNewsSentiment companyId="company-1" onOpen={onOpen}/>);
 
         expect(screen.getByTestId("latest-news-sentiment-loading")).toBeInTheDocument();
-        expect(await screen.findByText("Latest news")).toBeInTheDocument();
+        expect(await screen.findByText("Analysis")).toBeInTheDocument();
         expect(screen.getByText("23.08.2026")).toBeInTheDocument();
         expect(screen.getByText("5 articles")).toBeInTheDocument();
         expect(screen.getByTestId("sentiment-breakdown")).toHaveTextContent(
@@ -34,9 +35,10 @@ describe("LatestNewsSentiment", () => {
         );
         expect(axios.get).toHaveBeenCalledWith("/api/news-sentiment/company/company-1/latest");
 
-        fireEvent.click(screen.getByRole("button", {name: "Toggle latest news sentiment takeaways"}));
-        expect(screen.getByText("Demand remains broad.")).toBeInTheDocument();
-        expect(screen.getByText("Valuation is the main risk.")).toBeInTheDocument();
+        expect(screen.queryByText("Demand remains broad.")).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Latest news sentiment"}));
+        expect(onOpen).toHaveBeenCalled();
     });
 
     test("renders nothing when Firebase returns a warning", async () => {

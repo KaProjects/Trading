@@ -2,7 +2,7 @@ import {BorderedSection} from "./BorderedSection";
 import React, {useState} from "react";
 import {Badge, Box, Button, Stack, Typography} from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
-import {formatDate, formatDecimals, formatError, formatMillions, formatMillionsRounded, formatPercent, formatPeriodName} from "../../service/FormattingService";
+import {formatDate, formatDecimals, formatError, formatMillions, formatMillionsRounded, formatPercent, formatPeriodName, formatTargetStats} from "../../service/FormattingService";
 import {nextPeriod} from "../../service/PeriodService";
 import axios from "axios";
 import {backend} from "../../properties";
@@ -12,8 +12,8 @@ import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financial
 import {ReactComponent as EpsEstimatesPlusIcon} from "../../assets/icons/estimates-plus-eps.svg";
 import {ReactComponent as RevenueEstimatesPlusIcon} from "../../assets/icons/estimates-plus-revenue.svg";
 import EditNoteIcon from "@mui/icons-material/EditNote";
-import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
+import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
 
 export function hasUnexpectedEndingMonth(period, previousPeriod) {
@@ -113,6 +113,13 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
         return null
     }
 
+    const estimatesShown = !stretch && Boolean(period.estimate)
+    const revenueEstimatesShown = !stretch && Boolean(period.revenueEstimate)
+    const targetsShown = !(stretch && period.financial)
+        && Boolean(formatTargetStats(period.targetStats))
+        && targetCandidateCount === 0
+        && !targetCandidateFailed
+
     return (
         <BorderedSection
             title={
@@ -191,7 +198,14 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                 />
             </Box>
             {!stretch && period.estimate &&
-                <>
+                <Box
+                    data-testid="period-estimates-view"
+                    aria-label="Add EPS Estimates"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openEstimateDialog?.(period)}
+                    sx={{cursor: "pointer"}}
+                >
                     <Typography data-testid="period-estimates" sx={{color: 'text.secondary', fontSize: 14}}>
                         {"Estimates: "}
                         <Box component="span" sx={{display: {xs: "none", sm: "inline"}}}>
@@ -211,10 +225,17 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                         <Box sx={{display: {xs: "none", sm: "flex"}, justifyContent: "center"}}>({formatEstimatePastTotal(period.estimate.pastTotal)})</Box>
                         <Box sx={{marginLeft: {xs: 0, sm: "20px"}}}>({formatEstimateChanges(period.estimate)})</Box>
                     </Box>
-                </>
+                </Box>
             }
             {!stretch && period.revenueEstimate &&
-                <>
+                <Box
+                    data-testid="period-revenue-estimates-view"
+                    aria-label="Add Revenue Estimates"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openRevenueEstimateDialog?.(period)}
+                    sx={{cursor: "pointer"}}
+                >
                     <Typography data-testid="period-revenue-estimates" sx={{color: 'text.secondary', fontSize: 14}}>
                         {"Revenues: "}
                         <Box component="span" sx={{display: {xs: "none", sm: "inline"}}}>
@@ -234,7 +255,7 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                         <Box sx={{display: {xs: "none", sm: "flex"}, justifyContent: "center"}}>({formatRevenueEstimatePastTotal(period.revenueEstimate.pastTotal)})</Box>
                         <Box sx={{marginLeft: {xs: 0, sm: "20px"}}}>({formatEstimateChanges(period.revenueEstimate)})</Box>
                     </Box>
-                </>
+                </Box>
             }
             <ContentEditorDialog
                 open={openContentEditor}
@@ -244,7 +265,11 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                 save={saveResearch}
             />
             {!(stretch && period.financial) &&
-                <PeriodTargetSummary stats={period.targetStats} currency={currency}/>
+                <PeriodTargetSummary
+                    stats={period.targetStats}
+                    currency={currency}
+                    onOpen={() => openTargetDialog?.(period)}
+                />
             }
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
@@ -265,42 +290,48 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                         </Button>
                     </Tooltip>
                 }
-                <Tooltip title="Add EPS Estimates" placement="left">
-                    <Button aria-label="Add EPS Estimates" onClick={() => openEstimateDialog?.(period)}>
-                        <EpsEstimatesPlusIcon/>
-                    </Button>
-                </Tooltip>
-                <Tooltip title="Add Revenue Estimates" placement="left">
-                    <Button aria-label="Add Revenue Estimates" onClick={() => openRevenueEstimateDialog?.(period)}>
-                        <RevenueEstimatesPlusIcon/>
-                    </Button>
-                </Tooltip>
-                <Tooltip
-                    title={targetCandidateFailed
-                        ? "Manage Targets (availability could not be checked)"
-                        : targetCandidateCount > 0
-                        ? `Manage Targets (${targetCandidateCount} available to import)`
-                        : "Manage Targets"}
-                    placement="left"
-                >
-                    <Button aria-label="Manage Targets" onClick={() => openTargetDialog?.(period)}>
-                        <Badge
-                            badgeContent={targetCandidateFailed ? "!" : targetCandidateCount}
-                            color={targetCandidateFailed ? "error" : "success"}
-                            sx={{
-                                "& .MuiBadge-badge": {
-                                    minWidth: "12px",
-                                    height: "12px",
-                                    padding: 0,
-                                    fontSize: "0.55rem",
-                                    lineHeight: 1,
-                                },
-                            }}
-                        >
-                            <TrackChangesIcon/>
-                        </Badge>
-                    </Button>
-                </Tooltip>
+                {!estimatesShown &&
+                    <Tooltip title="Add EPS Estimates" placement="left">
+                        <Button aria-label="Add EPS Estimates" onClick={() => openEstimateDialog?.(period)}>
+                            <EpsEstimatesPlusIcon/>
+                        </Button>
+                    </Tooltip>
+                }
+                {!revenueEstimatesShown &&
+                    <Tooltip title="Add Revenue Estimates" placement="left">
+                        <Button aria-label="Add Revenue Estimates" onClick={() => openRevenueEstimateDialog?.(period)}>
+                            <RevenueEstimatesPlusIcon/>
+                        </Button>
+                    </Tooltip>
+                }
+                {!targetsShown &&
+                    <Tooltip
+                        title={targetCandidateFailed
+                            ? "Manage Targets (availability could not be checked)"
+                            : targetCandidateCount > 0
+                            ? `Manage Targets (${targetCandidateCount} available to import)`
+                            : "Manage Targets"}
+                        placement="left"
+                    >
+                        <Button aria-label="Manage Targets" onClick={() => openTargetDialog?.(period)}>
+                            <Badge
+                                badgeContent={targetCandidateFailed ? "!" : targetCandidateCount}
+                                color={targetCandidateFailed ? "error" : "success"}
+                                sx={{
+                                    "& .MuiBadge-badge": {
+                                        minWidth: "12px",
+                                        height: "12px",
+                                        padding: 0,
+                                        fontSize: "0.55rem",
+                                        lineHeight: 1,
+                                    },
+                                }}
+                            >
+                                <TrackChangesIcon/>
+                            </Badge>
+                        </Button>
+                    </Tooltip>
+                }
                 <Tooltip title="View News Sentiment" placement="left">
                     <Button aria-label="View News Sentiment" onClick={() => openNewsSentimentDialog?.(period)}>
                         <NewspaperOutlinedIcon sx={{color: "info.main"}}/>

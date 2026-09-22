@@ -47,6 +47,23 @@ public class FirebaseCompany
         private Info info;
         private Map<String, Quarter> quarters;
         private Map<String, Target> targets;
+        private Map<String, BullBear> bull_bear;
+
+        @Data
+        @RegisterForReflection
+        public static class BullBear
+        {
+            private List<Point> bull;
+            private List<Point> bear;
+
+            @Data
+            @RegisterForReflection
+            public static class Point
+            {
+                private String point;
+                private String reasoning;
+            }
+        }
 
         @Data
         @RegisterForReflection

@@ -73,6 +73,54 @@ class NewsSentimentEndpointsTest
     }
 
     @Test
+    void getByPeriodMergesBullBearCasesByDate()
+    {
+        Map<String, FirebaseCompany.NewsSentiment> records = new LinkedHashMap<>();
+        records.put("2025-01-05-news", sentiment(Map.of("positive", 2), "News only"));
+        records.put("2025-02-02-both", sentiment(Map.of("neutral", 1), "News and case"));
+        when(firebaseService.getNewsSentiments(
+                "RCH",
+                java.time.LocalDate.parse("2024-11-15"),
+                java.time.LocalDate.parse("2025-02-15")))
+                .thenReturn(new FirebaseService.NewsSentimentsResult(records, List.of()));
+
+        Map<String, FirebaseCompany.Gemini.BullBear> cases = new LinkedHashMap<>();
+        cases.put("2025-02-02-abc123", bullBear("Demand", "Concentration"));
+        cases.put("2025-02-09-def456", bullBear("Backlog", null));
+        when(firebaseService.getBullBearCases(
+                "RCH",
+                java.time.LocalDate.parse("2024-11-15"),
+                java.time.LocalDate.parse("2025-02-15")))
+                .thenReturn(new FirebaseService.BullBearCasesResult(cases, List.of()));
+
+        NewsSentimentPeriodDto result = given().when()
+                .get(PATH + "/period/" + PERIOD_ID)
+                .then().log().ifError()
+                .statusCode(Response.Status.OK.getStatusCode())
+                .contentType(ContentType.JSON)
+                .extract().as(NewsSentimentPeriodDto.class);
+
+        assertThat(result.records(), hasSize(3));
+
+        assertThat(result.records().get(0).date().toString(), is("2025-02-09"));
+        assertThat(result.records().get(0).total(), is(0));
+        assertThat(result.records().get(0).keyTakeaways(), hasSize(0));
+        assertThat(result.records().get(0).bull().getFirst().point(), is("Backlog"));
+        assertThat(result.records().get(0).bear(), hasSize(0));
+        assertThat(result.records().get(0).bullBearAnalysed(), is(true));
+
+        assertThat(result.records().get(1).date().toString(), is("2025-02-02"));
+        assertThat(result.records().get(1).keyTakeaways(), contains("News and case"));
+        assertThat(result.records().get(1).bull().getFirst().point(), is("Demand"));
+        assertThat(result.records().get(1).bear().getFirst().point(), is("Concentration"));
+
+        assertThat(result.records().get(2).date().toString(), is("2025-01-05"));
+        assertThat(result.records().get(2).bull(), hasSize(0));
+        assertThat(result.records().get(2).bear(), hasSize(0));
+        assertThat(result.records().get(2).bullBearAnalysed(), is(false));
+    }
+
+    @Test
     void getByPeriodUsesHalfOpenDateWindow()
     {
         Map<String, FirebaseCompany.NewsSentiment> records = new LinkedHashMap<>();
@@ -84,6 +132,11 @@ class NewsSentimentEndpointsTest
                 java.time.LocalDate.parse("2024-11-15"),
                 java.time.LocalDate.parse("2025-02-15")))
                 .thenReturn(new FirebaseService.NewsSentimentsResult(records, List.of()));
+        when(firebaseService.getBullBearCases(
+                "RCH",
+                java.time.LocalDate.parse("2024-11-15"),
+                java.time.LocalDate.parse("2025-02-15")))
+                .thenReturn(new FirebaseService.BullBearCasesResult(Map.of(), List.of()));
 
         NewsSentimentPeriodDto result = given().when()
                 .get(PATH + "/period/" + PERIOD_ID)
@@ -123,6 +176,22 @@ class NewsSentimentEndpointsTest
         getValidationError(PATH + "/period/0", VALID_ID);
         get400(PATH + "/company/4294967295/latest", "company with id '4294967295' not found");
         get400(PATH + "/period/4294967295", "period with id '4294967295' not found");
+    }
+
+    private FirebaseCompany.Gemini.BullBear bullBear(String bull, String bear)
+    {
+        FirebaseCompany.Gemini.BullBear bullBearCase = new FirebaseCompany.Gemini.BullBear();
+        if (bull != null) bullBearCase.setBull(List.of(point(bull)));
+        if (bear != null) bullBearCase.setBear(List.of(point(bear)));
+        return bullBearCase;
+    }
+
+    private FirebaseCompany.Gemini.BullBear.Point point(String value)
+    {
+        FirebaseCompany.Gemini.BullBear.Point point = new FirebaseCompany.Gemini.BullBear.Point();
+        point.setPoint(value);
+        point.setReasoning("reasoning of " + value);
+        return point;
     }
 
     private FirebaseCompany.NewsSentiment sentiment(Map<String, Integer> values, String... takeaways)

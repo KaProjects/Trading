@@ -168,6 +168,22 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public Map<String, FirebaseCompany.Gemini.BullBear> findBullBearCases(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive)
+    {
+        Map<String, FirebaseCompany.Gemini.BullBear> result = new LinkedHashMap<>();
+        bullBearCases(ticker).entrySet().stream()
+                .filter(entry -> entry.getKey() != null)
+                .filter(entry -> entry.getKey().compareTo(startInclusive.toString()) >= 0)
+                .filter(entry -> entry.getKey().compareTo(endExclusive.toString()) <= 0)
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+        return Collections.unmodifiableMap(result);
+    }
+
+    @Override
     public Map<String, FirebaseCompany.NewsSentiment> findLatestNewsSentiments(String ticker)
     {
         Map<String, FirebaseCompany.NewsSentiment> result = new LinkedHashMap<>();
@@ -239,6 +255,15 @@ public class InMemoryFirebaseStore implements FirebaseStore
     List<FirebaseAsset> getAssets()
     {
         return List.copyOf(assets);
+    }
+
+    private Map<String, FirebaseCompany.Gemini.BullBear> bullBearCases(String ticker)
+    {
+        FirebaseCompany company = companies.get(ticker.replace(".", "-"));
+        if (company == null || company.getGemini() == null || company.getGemini().getBull_bear() == null) {
+            return Map.of();
+        }
+        return company.getGemini().getBull_bear();
     }
 
     private Map<String, FirebaseCompany.NewsSentiment> newsSentiments(String ticker)

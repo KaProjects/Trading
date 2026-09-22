@@ -45,6 +45,7 @@ public class RealtimeFirebaseStore implements FirebaseStore
         private static final String TARGETS = "targets";
         private static final String FINNHUB_EARNINGS = "fhe";
         private static final String NEWS_SENTIMENT = "pgn";
+        private static final String BULL_BEAR = "bull_bear";
     }
 
     private final FirebaseDatabase database;
@@ -243,6 +244,27 @@ public class RealtimeFirebaseStore implements FirebaseStore
     private DatabaseReference company(String ticker)
     {
         return database.getReference(FirebasePath.COMPANY).child(ticker);
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.Gemini.BullBear> findBullBearCases(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive)
+    {
+        Query query = bullBearCases(ticker)
+                .orderByKey()
+                .startAt(startInclusive.toString())
+                .endAt(endExclusive.toString());
+        return readChildren(query, FirebaseCompany.Gemini.BullBear.class);
+    }
+
+    private DatabaseReference bullBearCases(String ticker)
+    {
+        return database.getReference(FirebasePath.COMPANY)
+                .child(ticker.replace(".", "-"))
+                .child(FirebasePath.GEMINI)
+                .child(FirebasePath.BULL_BEAR);
     }
 
     private DatabaseReference newsSentiments(String ticker)

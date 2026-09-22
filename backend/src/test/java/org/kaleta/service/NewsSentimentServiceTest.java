@@ -60,6 +60,11 @@ class NewsSentimentServiceTest
         when(companyService.findEntity(COMPANY_ID)).thenReturn(current.getCompany());
         when(periodService.get(PERIOD_ID)).thenReturn(current);
         when(periodDao.list(COMPANY_ID)).thenReturn(List.of(current, previous));
+        when(firebaseService.getBullBearCases(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new FirebaseService.BullBearCasesResult(Map.of(), List.of()));
     }
 
     @Test

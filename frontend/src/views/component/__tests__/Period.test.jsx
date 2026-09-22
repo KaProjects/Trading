@@ -92,6 +92,79 @@ describe("Period", () => {
         expect(openNewsSentimentDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
     });
 
+    function renderPeriod(period, props = {}) {
+        return render(
+            <Period
+                period={{id: "period-1", name: {year: "2025", type: "FY"}, endingMonth: "2025-12", ...period}}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+                openEditDialog={jest.fn()}
+                targetCandidateCount={0}
+                {...props}
+            />
+        );
+    }
+
+    test("opens the dialogs from the rendered views instead of the action buttons", () => {
+        const openEstimateDialog = jest.fn();
+        const openRevenueEstimateDialog = jest.fn();
+        const openTargetDialog = jest.fn();
+        const openNewsSentimentDialog = jest.fn();
+
+        renderPeriod(
+            {
+                estimate: {current: 1.62, next1: 1.85, next2: null, next3: 2.76},
+                revenueEstimate: {current: 1000, next1: 1200, next2: null, next3: 1500},
+                targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
+            },
+            {openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog}
+        );
+
+        fireEvent.click(screen.getByTestId("period-estimates-view"));
+        expect(openEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
+
+        fireEvent.click(screen.getByTestId("period-revenue-estimates-view"));
+        expect(openRevenueEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
+
+        fireEvent.click(screen.getByTestId("period-target-summary"));
+        expect(openTargetDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
+
+        expect(screen.queryByRole("button", {name: "Manage Targets"})).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "View News Sentiment"}));
+        expect(openNewsSentimentDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
+    });
+
+    test("keeps the action buttons when the views are missing", () => {
+        renderPeriod({});
+
+        expect(screen.getByRole("button", {name: "Add EPS Estimates"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add Revenue Estimates"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Manage Targets"})).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "View News Sentiment"})).toBeInTheDocument();
+        expect(screen.queryByTestId("period-target-summary")).not.toBeInTheDocument();
+    });
+
+    test("keeps the targets button while candidates can be imported", () => {
+        renderPeriod(
+            {targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175}},
+            {targetCandidateCount: 2}
+        );
+
+        expect(screen.getByTestId("period-target-summary")).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Manage Targets"})).toHaveTextContent("2");
+    });
+
+    test("keeps the targets button when the candidate check failed", () => {
+        renderPeriod(
+            {targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175}},
+            {targetCandidateFailed: true}
+        );
+
+        expect(screen.getByRole("button", {name: "Manage Targets"})).toHaveTextContent("!");
+    });
+
     test("updates research through axios", async () => {
         render(
             <Period

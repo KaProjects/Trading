@@ -40,6 +40,11 @@ public interface FirebaseStore
 
     Map<String, FirebaseCompany.NewsSentiment> findLatestNewsSentiments(String ticker);
 
+    Map<String, FirebaseCompany.Gemini.BullBear> findBullBearCases(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive);
+
     void replaceAssets(List<FirebaseAsset> assets);
 
     void updateQuarter(String ticker, String quarterId, FirebaseCompany.Gemini.Quarter quarter);

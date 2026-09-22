@@ -2,23 +2,17 @@ import {
     Box,
     ButtonBase,
     CircularProgress,
-    Collapse,
 } from "@mui/material";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
-import React, {useEffect, useState} from "react";
+import React from "react";
 import {formatDate} from "../../service/FormattingService";
 import {useData} from "../../service/BackendService";
 import {SentimentBreakdown} from "./SentimentBreakdown";
 
-export const LatestNewsSentiment = ({companyId, sx}) => {
-    const [expanded, setExpanded] = useState(false);
+export const LatestNewsSentiment = ({companyId, onOpen, sx}) => {
     const {data, loaded, error} = useData(`/news-sentiment/company/${companyId}/latest`);
     const record = data?.record;
-    const canExpand = (record?.keyTakeaways?.length ?? 0) > 0;
-
-    useEffect(() => setExpanded(false), [companyId, record?.id]);
 
     if (!loaded) {
         if (error) return null;
@@ -48,43 +42,21 @@ export const LatestNewsSentiment = ({companyId, sx}) => {
             }}
         >
             <ButtonBase
-                aria-expanded={canExpand ? expanded : undefined}
-                aria-label={canExpand ? "Toggle latest news sentiment takeaways" : "Latest news sentiment"}
-                disabled={!canExpand}
-                onClick={() => setExpanded(value => !value)}
+                aria-label="Latest news sentiment"
+                onClick={onOpen}
                 sx={{width: "100%", padding: "5px 7px", textAlign: "left", alignItems: "flex-start", gap: "7px"}}
             >
                 <NewspaperOutlinedIcon sx={{fontSize: 17, color: "info.main", marginTop: "1px", flexShrink: 0}}/>
                 <Box sx={{flex: 1, minWidth: 0}}>
                     <Box sx={{display: "flex", alignItems: "center", gap: "6px", color: "text.secondary", fontSize: 11}}>
-                        <Box component="span" sx={{fontWeight: 600, color: "text.primary"}}>Latest news</Box>
+                        <Box component="span" sx={{fontWeight: 600, color: "text.primary"}}>Analysis</Box>
                         <Box component="span">{formatDate(record.date)}</Box>
                         <Box component="span">{record.total} {record.total === 1 ? "article" : "articles"}</Box>
                     </Box>
                     <SentimentBreakdown stats={record.stats} total={record.total}/>
                 </Box>
-                {canExpand && (expanded
-                    ? <ExpandLessIcon sx={{fontSize: 17, color: "text.secondary"}}/>
-                    : <ExpandMoreIcon sx={{fontSize: 17, color: "text.secondary"}}/>)
-                }
+                <ChevronRightIcon sx={{fontSize: 17, color: "text.secondary", flexShrink: 0}}/>
             </ButtonBase>
-            <Collapse in={expanded} unmountOnExit>
-                <Box
-                    component="ul"
-                    sx={{
-                        margin: "0 10px 7px 34px",
-                        paddingLeft: "14px",
-                        paddingTop: "5px",
-                        display: "grid",
-                        rowGap: "3px",
-                        color: "text.secondary",
-                        fontSize: 12,
-                        lineHeight: 1.4,
-                    }}
-                >
-                    {record.keyTakeaways.map(takeaway => <li key={takeaway}>{takeaway}</li>)}
-                </Box>
-            </Collapse>
         </Box>
     );
 };

@@ -642,6 +642,7 @@ export const Research = props => {
                                 />
                                 <LatestNewsSentiment
                                     companyId={data.company.id}
+                                    onOpen={() => setOpenNewsSentimentDialog(data.periods?.[0])}
                                     sx={{marginTop: {xs: "2px", sm: "8px"}}}
                                 />
 

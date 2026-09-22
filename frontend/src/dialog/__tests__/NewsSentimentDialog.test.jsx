@@ -1,4 +1,4 @@
-import {fireEvent, render, screen, waitFor} from "@testing-library/react";
+import {fireEvent, render, screen, waitFor, within} from "@testing-library/react";
 import axios from "axios";
 
 jest.mock("axios");
@@ -19,7 +19,7 @@ const period = {id: "period-1", name: {year: "2026", type: "Q2"}};
 describe("NewsSentimentDialog", () => {
     beforeEach(() => axios.get.mockReset());
 
-    test("loads period records and expands their key takeaways", async () => {
+    test("shows the latest analysis and pages back to the older ones", async () => {
         axios.get.mockResolvedValue({
             data: {
                 records: [
@@ -29,6 +29,9 @@ describe("NewsSentimentDialog", () => {
                         total: 4,
                         stats: {positive: 2, mixed: 1, negative: 1},
                         keyTakeaways: ["Demand broadened.", "Competition increased."],
+                        bull: [{point: "Capacity sold out", reasoning: "orders exceed supply"}],
+                        bear: [],
+                        bullBearAnalysed: true,
                     },
                     {
                         id: "2026-08-16-older",
@@ -36,6 +39,9 @@ describe("NewsSentimentDialog", () => {
                         total: 2,
                         stats: {neutral: 2},
                         keyTakeaways: [],
+                        bull: [],
+                        bear: [],
+                        bullBearAnalysed: false,
                     },
                 ],
                 window: {start: "2026-05-27", end: "2026-08-27"},
@@ -54,13 +60,32 @@ describe("NewsSentimentDialog", () => {
 
         expect(screen.getByRole("progressbar", {name: "Loading news sentiment"})).toBeInTheDocument();
         expect(await screen.findByText("23.08.2026")).toBeInTheDocument();
-        expect(screen.getByText("16.08.2026")).toBeInTheDocument();
         expect(screen.getByText("4 articles")).toBeInTheDocument();
+        expect(screen.getByText("Demand broadened.")).toBeVisible();
+        expect(screen.getByText("Competition increased.")).toBeVisible();
+        expect(screen.getByText("16.08.2026")).not.toBeVisible();
+        expect(screen.getByTestId("sentiment-position")).toHaveTextContent("1 / 2");
         expect(axios.get).toHaveBeenCalledWith("/api/news-sentiment/period/period-1");
 
-        fireEvent.click(screen.getByText("23.08.2026"));
-        expect(screen.getByText("Demand broadened.")).toBeInTheDocument();
-        expect(screen.getByText("Competition increased.")).toBeInTheDocument();
+        expect(screen.getByText("Capacity sold out")).toBeVisible();
+        expect(screen.getByText("orders exceed supply")).toBeVisible();
+        expect(within(screen.getByTestId("sentiment-bear-case"))
+            .getByText("The analysis found no bear points.")).toBeVisible();
+        expect(screen.getByRole("button", {name: "Newer analysis"})).toBeDisabled();
+
+        fireEvent.click(screen.getByRole("button", {name: "Older analysis"}));
+
+        expect(screen.getByText("16.08.2026")).toBeVisible();
+        expect(screen.getByText("2 articles")).toBeVisible();
+        expect(screen.getByText("No news was analysed this week.")).toBeVisible();
+        expect(screen.getByText("23.08.2026")).not.toBeVisible();
+        expect(within(screen.getByTestId("sentiment-bull-case")).getByText("Not part of this weekly analysis."))
+            .toBeVisible();
+        expect(screen.getByTestId("sentiment-position")).toHaveTextContent("2 / 2");
+        expect(screen.getByRole("button", {name: "Older analysis"})).toBeDisabled();
+
+        fireEvent.click(screen.getByRole("button", {name: "Newer analysis"}));
+        expect(screen.getByText("23.08.2026")).toBeVisible();
     });
 
     test("keeps the dialog usable when Firebase returns a warning", async () => {
@@ -84,7 +109,7 @@ describe("NewsSentimentDialog", () => {
 
         expect(await screen.findByText("Some expected news sentiment data could not be loaded")).toBeInTheDocument();
         expect(screen.getByText("Firebase news sentiment could not be loaded")).toBeInTheDocument();
-        expect(screen.getByText("No news sentiment records are available for this period.")).toBeInTheDocument();
+        expect(screen.getByText("No analysis is available for this period.")).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", {name: "Close"}));
         expect(handleClose).toHaveBeenCalled();
     });
