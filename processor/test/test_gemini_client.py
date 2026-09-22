@@ -16,6 +16,9 @@ from gemini.client import (
     InvalidQuarterReportResponse,
 )
 from gemini.models import (
+    BullBearContext,
+    CompanyBullBear,
+    CompanyBullBearCases,
     InitialCompanyResponse,
     InstitutionResolution,
     InstitutionResolutions,
@@ -477,6 +480,111 @@ def test_resolve_new_institutions_parses_alias_and_rating_response():
     assert request.kwargs["config"]["response_json_schema"] == (
         InstitutionResolutions.model_json_schema()
     )
+
+
+def test_get_bull_bear_cases_parses_response_in_request_order():
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = """
+        {
+          "cases": [
+            {
+              "ticker": "AAPL",
+              "bull": [
+                {"point": "Demand keeps outgrowing capacity",
+                 "reasoning": "Enterprise adoption accelerated 40% YoY."}
+              ],
+              "bear": [
+                {"point": "Margins under pressure",
+                 "reasoning": "Input costs rose faster than pricing."}
+              ]
+            },
+            {
+              "ticker": "MSFT",
+              "bull": [
+                {"point": "Cloud backlog growing",
+                 "reasoning": "Azure bookings accelerated again."}
+              ],
+              "bear": [
+                {"point": "Capex intensity rising",
+                 "reasoning": "Data center build-out weighs on free cash flow."}
+              ]
+            }
+          ]
+        }
+        """
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+        contexts = [
+            BullBearContext(
+                ticker="AAPL",
+                period="26Q3",
+                research="REPORTED FINANCIALS OF 26Q3:\nrevenue 46740",
+            ),
+            BullBearContext(
+                ticker="MSFT",
+                period="26Q2",
+                research="REPORTED FINANCIALS OF 26Q2:\nrevenue 65000",
+            ),
+        ]
+
+        result = client.get_bull_bear_cases(contexts)
+
+    assert result == [
+        CompanyBullBear(
+            ticker="AAPL",
+            bull=[{
+                "point": "Demand keeps outgrowing capacity",
+                "reasoning": "Enterprise adoption accelerated 40% YoY.",
+            }],
+            bear=[{
+                "point": "Margins under pressure",
+                "reasoning": "Input costs rose faster than pricing.",
+            }],
+        ),
+        CompanyBullBear(
+            ticker="MSFT",
+            bull=[{
+                "point": "Cloud backlog growing",
+                "reasoning": "Azure bookings accelerated again.",
+            }],
+            bear=[{
+                "point": "Capex intensity rising",
+                "reasoning": (
+                    "Data center build-out weighs on free cash flow."
+                ),
+            }],
+        ),
+    ]
+    request = constructor.return_value.models.generate_content.call_args
+    contents = request.kwargs["contents"]
+    assert "COMPANY TICKER:\nAAPL" in contents
+    assert "FISCAL PERIOD:\n26Q3" in contents
+    assert "REPORTED FINANCIALS OF 26Q3:\nrevenue 46740" in contents
+    assert "COMPANY TICKER:\nMSFT" in contents
+    assert request.kwargs["config"]["response_json_schema"] == (
+        CompanyBullBearCases.model_json_schema()
+    )
+
+
+def test_get_bull_bear_cases_rejects_reordered_response():
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = """
+        {
+          "cases": [
+            {
+              "ticker": "MSFT",
+              "bull": [{"point": "x", "reasoning": "y"}],
+              "bear": [{"point": "x", "reasoning": "y"}]
+            }
+          ]
+        }
+        """
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+        contexts = [
+            BullBearContext(ticker="AAPL", period="26Q3", research="r"),
+        ]
+
+        with pytest.raises(ValueError, match="order differs from input"):
+            client.get_bull_bear_cases(contexts)
 
 
 def test_get_target_report_truncates_overflow_and_logs_target(caplog):

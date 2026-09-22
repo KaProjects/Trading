@@ -8,7 +8,11 @@ from google.genai import types
 from pydantic import BaseModel, ValidationError
 
 from gemini.models import (
+    BULL_BEAR_POINTS_MAX_COUNT,
+    BullBearContext,
     Company,
+    CompanyBullBear,
+    CompanyBullBearCases,
     InitialCompanyResponse,
     InstitutionResolutions,
     Quarter,
@@ -661,3 +665,62 @@ class GeminiClient:
                 strict=True,
             )
         ]
+
+    def get_bull_bear_cases(
+        self,
+        contexts: list[BullBearContext],
+    ) -> list[CompanyBullBear]:
+        self.log.info("Running Gemini client.get_bull_bear_cases...")
+        companies_block = "\n\n".join(
+            f"COMPANY TICKER:\n{context.ticker}\n\n"
+            f"FISCAL PERIOD:\n{context.period}\n\n"
+            f"RESEARCH COLLECTED FOR THIS PERIOD:\n{context.research}"
+            for context in contexts
+        )
+        prompt = f"""
+        You are an equity analyst writing the bull and the bear case for each
+        of the following companies, one fiscal period at a time.
+
+        {companies_block}
+
+        Build each company's cases from its own research above. Use Google
+        Search only to confirm or complete what the research already
+        indicates, never to introduce an unrelated storyline, and never mix
+        research or conclusions across companies.
+
+        For each company, return up to {BULL_BEAR_POINTS_MAX_COUNT} bull
+        points and up to {BULL_BEAR_POINTS_MAX_COUNT} bear points, ordered
+        from the strongest to the weakest. Each point names a business driver
+        or a business risk: demand, pricing, margins, competition, customer
+        concentration, execution, capital intensity, regulation or a
+        comparable qualitative factor. Its reasoning explains why it matters
+        for this company in this period and what evidence in the research
+        supports it.
+
+        Never write about the share price, price targets, valuation
+        multiples or whether the stock is cheap or expensive. Do not repeat
+        the same factor on both sides, do not invent facts that the research
+        does not support, and keep every point specific to that company
+        rather than to its whole industry.
+
+        Some companies will have thin research: only financials and
+        estimates, a single bare price target with no analyst rationale, or
+        no news coverage at all. When the research does not honestly support
+        a point on a side without inventing facts or reaching for a generic
+        industry-wide observation, return fewer points on that side, down to
+        an empty list - never pad either side to meet a target count.
+
+        Return a CompanyBullBearCases model whose cases field contains
+        exactly one entry per company listed above, in the same order, with
+        the ticker field copied verbatim.
+        """
+        response = self.__ask(prompt, CompanyBullBearCases)
+
+        expected_tickers = [context.ticker for context in contexts]
+        actual_tickers = [case.ticker for case in response.cases]
+        if actual_tickers != expected_tickers:
+            raise ValueError(
+                "Gemini bull/bear company order differs from input: "
+                f"expected={expected_tickers}, actual={actual_tickers}"
+            )
+        return response.cases

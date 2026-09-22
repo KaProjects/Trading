@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 TARGET_REPORT_OVERVIEW_MAX_LENGTH = 1000
 TARGET_REPORT_TAKEAWAY_MAX_LENGTH = 500
 TARGET_REPORT_TAKEAWAYS_MAX_COUNT = 4
+BULL_BEAR_POINTS_MAX_COUNT = 3
+BULL_BEAR_POINT_MAX_LENGTH = 120
+BULL_BEAR_REASONING_MAX_LENGTH = 600
 
 EndingMonth = Annotated[
     str,
@@ -307,6 +310,73 @@ class TargetReport(BaseModel):
                 )
             normalized.append(takeaway)
         return normalized
+
+
+class BullBearPoint(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    point: str = Field(
+        max_length=BULL_BEAR_POINT_MAX_LENGTH,
+        description=(
+            "The business driver or risk itself, at most "
+            f"{BULL_BEAR_POINT_MAX_LENGTH} characters."
+        ),
+    )
+    reasoning: str = Field(
+        max_length=BULL_BEAR_REASONING_MAX_LENGTH,
+        description=(
+            "Why it matters for this company in this period, grounded in "
+            f"the provided research, at most {BULL_BEAR_REASONING_MAX_LENGTH} "
+            "characters."
+        ),
+    )
+
+
+class BullBearContext(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ticker: Ticker
+    period: QuarterId = Field(
+        description="Fiscal quarter identifier in YYQX format."
+    )
+    research: str = Field(
+        description="Pre-formatted research context for this company."
+    )
+
+
+class CompanyBullBear(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ticker: Ticker = Field(
+        description="Exact ticker from the requested company list."
+    )
+    bull: list[BullBearPoint] = Field(
+        max_length=BULL_BEAR_POINTS_MAX_COUNT,
+        description=(
+            f"Zero to {BULL_BEAR_POINTS_MAX_COUNT} points supporting the "
+            "company, strongest first; empty when the research does not "
+            "honestly support any."
+        ),
+    )
+    bear: list[BullBearPoint] = Field(
+        max_length=BULL_BEAR_POINTS_MAX_COUNT,
+        description=(
+            f"Zero to {BULL_BEAR_POINTS_MAX_COUNT} points working against "
+            "the company, strongest first; empty when the research does "
+            "not honestly support any."
+        ),
+    )
+
+
+class CompanyBullBearCases(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    cases: list[CompanyBullBear] = Field(
+        description=(
+            "One bull/bear case per requested company, in the same order "
+            "they were requested."
+        ),
+    )
 
 
 class TargetFields(BaseModel):

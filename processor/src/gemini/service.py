@@ -1,4 +1,5 @@
 import hashlib
+import json
 import logging
 from datetime import datetime
 from urllib.parse import urlsplit
@@ -13,6 +14,7 @@ from firebase_repository import (
 )
 from gemini.models import (
     Company,
+    CompanyBullBear,
     CompanyTarget,
     InstitutionRecord,
     Quarter,
@@ -45,6 +47,19 @@ def create_target_id(company_id: str, target: CompanyTarget) -> str:
     identity = f"{company_id}|{institution}|{source}"
     suffix = hashlib.sha256(identity.encode()).hexdigest()[:6]
     return f"{target.date.isoformat()}-{suffix}"
+
+
+def create_bull_bear_id(company_id: str, case: CompanyBullBear) -> str:
+    identity = json.dumps(
+        case.model_dump(mode="json", exclude={"ticker"}),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    suffix = hashlib.sha256(
+        f"{company_id.casefold()}|{identity}".encode()
+    ).hexdigest()[:6]
+    return f"{datetime.now().date().isoformat()}-{suffix}"
 
 
 class FirebaseService:
@@ -172,3 +187,30 @@ class FirebaseService:
             )
         )
         return target_id
+
+    def upsert_bull_bear(
+        self,
+        company_id: str,
+        case: CompanyBullBear,
+    ) -> str | None:
+        if not case.bull and not case.bear:
+            # Firebase silently drops empty-array fields, and a bull_bear
+            # value with both empty would collapse to nothing at all, so
+            # skip the write rather than log a misleading "upserted".
+            self.log.info(
+                "Nothing to persist for %s bull/bear case: research did "
+                "not support any point on either side",
+                company_id,
+            )
+            return None
+
+        bull_bear_id = create_bull_bear_id(company_id, case)
+        db.reference(
+            f"{company_path(company_id)}/bull_bear/{bull_bear_id}"
+        ).set(case.model_dump(mode="json", exclude={"ticker"}))
+        self.log.info(
+            "Upserted bull/bear case for %s as %s",
+            company_id,
+            bull_bear_id,
+        )
+        return bull_bear_id

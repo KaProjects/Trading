@@ -7,6 +7,7 @@ import pytest
 from error_reporting import ErrorReporter
 from gemini.models import (
     Company,
+    CompanyBullBear,
     CompanyTarget,
     Info,
     InstitutionRecord,
@@ -15,6 +16,7 @@ from gemini.models import (
 )
 from gemini.service import FirebaseService as GeminiFirebaseService
 from gemini.service import company_path as gemini_company_path
+from gemini.service import create_bull_bear_id
 from gemini.service import create_target_id
 from gemini.service import institutions_path
 from myfinnhub.models import Earnings
@@ -454,4 +456,63 @@ def test_gemini_target_write_uses_stable_date_prefixed_id():
     )
     target_reference.set.assert_called_once_with(
         target.model_dump(mode="json")
+    )
+
+
+def test_gemini_bull_bear_write_uses_stable_date_prefixed_id():
+    service = make_service(GeminiFirebaseService)
+    bull_bear_reference = MagicMock(spec_set=["set"])
+    case = CompanyBullBear(
+        ticker="AAPL",
+        bull=[{
+            "point": "Demand keeps outgrowing capacity",
+            "reasoning": "Enterprise adoption accelerated 40% YoY.",
+        }],
+        bear=[{
+            "point": "Margins under pressure",
+            "reasoning": "Input costs rose faster than pricing.",
+        }],
+    )
+    bull_bear_id = create_bull_bear_id("AAPL", case)
+
+    with patch(
+        "gemini.service.db.reference",
+        autospec=True,
+        return_value=bull_bear_reference,
+    ) as reference:
+        result = service.upsert_bull_bear("AAPL", case)
+
+    assert result == bull_bear_id
+    reference.assert_called_once_with(
+        f"{gemini_company_path('AAPL')}/bull_bear/{bull_bear_id}"
+    )
+    bull_bear_reference.set.assert_called_once_with(
+        case.model_dump(mode="json", exclude={"ticker"})
+    )
+    assert "ticker" not in bull_bear_reference.set.call_args.args[0]
+
+
+def test_company_bull_bear_allows_a_one_sided_or_empty_case():
+    case = CompanyBullBear(ticker="AAPL", bull=[], bear=[])
+
+    assert case.bull == []
+    assert case.bear == []
+
+
+def test_gemini_bull_bear_write_is_skipped_when_both_sides_are_empty():
+    service = make_service(GeminiFirebaseService)
+    case = CompanyBullBear(ticker="AAPL", bull=[], bear=[])
+
+    with patch(
+        "gemini.service.db.reference",
+        autospec=True,
+    ) as reference:
+        result = service.upsert_bull_bear("AAPL", case)
+
+    assert result is None
+    reference.assert_not_called()
+    service.log.info.assert_called_once_with(
+        "Nothing to persist for %s bull/bear case: research did "
+        "not support any point on either side",
+        "AAPL",
     )

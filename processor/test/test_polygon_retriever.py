@@ -1,11 +1,27 @@
 import logging
+from datetime import date, timedelta
 from unittest.mock import call, create_autospec
 
 import pytest
 
 from error_reporting import ErrorReporter
 from gemini.client import GeminiClient
+from gemini.models import (
+    Company as GeminiCompany,
+    CompanyBullBear,
+    CompanyTarget,
+    Info as GeminiInfo,
+    Quarter as GeminiQuarter,
+    TargetReport,
+)
+from gemini.service import FirebaseService as GeminiFirebaseService
 from discord.client import DiscordClient
+from myfinnhub.models import (
+    Company as FinnhubCompany,
+    Earnings,
+    Quarter as FinnhubQuarter,
+)
+from myfinnhub.service import FirebaseService as FinnhubFirebaseService
 from polygon.client import PolygonClient
 from polygon.discord_templates import (
     eventlog_news_sentiment,
@@ -13,8 +29,10 @@ from polygon.discord_templates import (
 )
 from polygon.models import (
     CompanyNews,
+    CompanyNewsHistory,
     CompanySentimentAnalysis,
     NewsResponse,
+    NewsSentimentRecord,
     SentimentStatistics,
 )
 from polygon.retriever import PolygonNewsRetrieverRunner
@@ -68,11 +86,17 @@ def runner():
     gemini = create_autospec(GeminiClient, instance=True)
     discord = create_autospec(DiscordClient, instance=True)
     service = create_autospec(FirebaseService, instance=True)
+    gemini_service = create_autospec(GeminiFirebaseService, instance=True)
+    gemini_service.get_companies.return_value = {}
+    finnhub_service = create_autospec(FinnhubFirebaseService, instance=True)
+    finnhub_service.get_companies.return_value = {}
     errors = create_autospec(ErrorReporter, instance=True)
     instance = PolygonNewsRetrieverRunner(
         client=client,
         gemini=gemini,
         service=service,
+        gemini_service=gemini_service,
+        finnhub_service=finnhub_service,
         discord=discord,
         error_reporter=errors,
     )
@@ -448,3 +472,318 @@ def test_run_reports_failure_and_returns_empty_list(runner):
         source=runner.name,
         operation="run",
     )
+
+
+def make_gemini_quarter(**overrides):
+    data = {
+        "name": "Q3 2026",
+        "id": "26Q3",
+        "ending_month": "26-09",
+        "report_date_previous_quarter": "2026-06-01",
+        "report_date_this_quarter": "2026-09-09",
+    }
+    data.update(overrides)
+    return GeminiQuarter(**data)
+
+
+def make_gemini_company(
+    ticker="AAPL",
+    current_quarter_id="26Q4",
+    quarters=None,
+    targets=None,
+):
+    return GeminiCompany(
+        info=GeminiInfo(
+            ticker=ticker,
+            last_update="2026-09-09",
+            current_quarter_id=current_quarter_id,
+        ),
+        quarters=quarters or {},
+        targets=targets or {},
+    )
+
+
+def make_earnings(report, **overrides):
+    data = {"epsa": None, "epse": None, "reva": None, "reve": None}
+    data.update(overrides)
+    return Earnings(report=report, **data)
+
+
+class TestGenerateBullBearCases:
+    def test_financials_section_includes_a_capped_recent_quarter_trend(
+        self,
+        runner,
+    ):
+        quarters = {
+            quarter_id: make_gemini_quarter(
+                id=quarter_id,
+                reported_revenues=str(revenue),
+            )
+            for quarter_id, revenue in [
+                ("25Q3", 40000),
+                ("25Q4", 41000),
+                ("26Q1", 42000),
+                ("26Q2", 43000),
+                ("26Q3", 44000),
+            ]
+        }
+
+        recent = runner._recent_reported_quarters(
+            quarters,
+            count=4,
+        )
+
+        assert [quarter.id for quarter in recent] == [
+            "25Q4", "26Q1", "26Q2", "26Q3",
+        ]
+
+        research = runner._format_reported_financials(recent)
+        assert research.startswith(
+            "REPORTED FINANCIALS BY QUARTER (millions of the reporting "
+            "currency), oldest to newest:"
+        )
+        assert "25Q3" not in research
+        assert "25Q4: revenue 41000" in research
+        assert "26Q3: revenue 44000" in research
+        lines = research.splitlines()[1:]
+        assert [line.split(":")[0] for line in lines] == [
+            "25Q4", "26Q1", "26Q2", "26Q3",
+        ]
+
+    def test_builds_context_from_all_three_sources_and_persists_result(
+        self,
+        runner,
+    ):
+        today = date.today()
+        report_date = today - timedelta(days=5)
+        recent_target_date = today - timedelta(days=3)
+        old_target_date = report_date - timedelta(days=1)
+        recent_sentiment_key = f"{(today - timedelta(days=1)).isoformat()}-abc123"
+        old_sentiment_key = f"{(report_date - timedelta(days=1)).isoformat()}-def456"
+
+        quarter = make_gemini_quarter(
+            report_date_this_quarter=report_date.isoformat(),
+            reported_revenues="46740",
+            reported_net_income="19310",
+        )
+        target_with_report = CompanyTarget(
+            institution="Morgan Stanley",
+            date=recent_target_date.isoformat(),
+            price="250",
+            rating="Overweight",
+            source="https://research.example.com/aapl",
+            report=TargetReport(
+                overview="Agentic seats beat plan.",
+                key_takeaways=["Data cloud attach improved."],
+            ),
+        )
+        old_target = CompanyTarget(
+            institution="UBS",
+            date=old_target_date.isoformat(),
+            price="200",
+            rating="Neutral",
+            source="https://research.example.com/aapl-old",
+        )
+        gemini_company = make_gemini_company(
+            current_quarter_id="26Q4",
+            quarters={"26Q3": quarter},
+            targets={"t1": target_with_report, "t2": old_target},
+        )
+        runner.gemini_service.get_companies.return_value = {
+            "AAPL": gemini_company,
+        }
+
+        finnhub_company = FinnhubCompany(root={
+            "26Q3": FinnhubQuarter(root={
+                "20260901": make_earnings(
+                    "2026-09-01-bmo", epsa="1.2", reva="46700",
+                ),
+            }),
+            "26Q4": FinnhubQuarter(root={
+                "20260901": make_earnings(
+                    "2026-09-01-bmo", epse="1.4", reve="48000",
+                ),
+                "20260910": make_earnings(
+                    "2026-09-10-bmo", epse="1.5", reve="48500",
+                ),
+            }),
+        })
+        runner.finnhub_service.get_companies.return_value = {
+            "AAPL": finnhub_company,
+        }
+
+        sentiment_history = CompanyNewsHistory(root={
+            recent_sentiment_key: NewsSentimentRecord(
+                sentiment={"positive": 22, "neutral": 13, "negative": 4},
+                key_takeaways=["Data center momentum is strong."],
+            ),
+            old_sentiment_key: NewsSentimentRecord(
+                sentiment={"positive": 2, "neutral": 6, "negative": 3},
+                key_takeaways=["Outdated context."],
+            ),
+        })
+        companies = {"AAPL": sentiment_history}
+
+        result_case = CompanyBullBear(
+            ticker="AAPL",
+            bull=[{"point": "Demand strong", "reasoning": "Because X."}],
+            bear=[{"point": "Margins soft", "reasoning": "Because Y."}],
+        )
+        runner.gemini.get_bull_bear_cases.return_value = [result_case]
+
+        runner._generate_bull_bear_cases(companies)
+
+        runner.gemini.get_bull_bear_cases.assert_called_once()
+        contexts = runner.gemini.get_bull_bear_cases.call_args.args[0]
+        assert [context.ticker for context in contexts] == ["AAPL"]
+        research = contexts[0].research
+        assert contexts[0].period == "26Q3"
+
+        assert "REPORTED FINANCIALS BY QUARTER" in research
+        assert "26Q3: revenue 46740" in research
+        assert "revenue 46740" in research
+        assert "net income 19310" in research
+
+        assert "FORWARD ESTIMATES" in research
+        assert "26Q4: estimated EPS 1.5, estimated revenue 48500" in research
+        assert "26Q3" not in research.split("FORWARD ESTIMATES")[1].split(
+            "INSTITUTIONAL"
+        )[0]
+
+        assert "Morgan Stanley" in research
+        assert "Agentic seats beat plan." in research
+        assert "Data cloud attach improved." in research
+        assert "UBS" not in research
+
+        assert "Data center momentum is strong." in research
+        assert "Outdated context." not in research
+
+        runner.gemini_service.upsert_bull_bear.assert_called_once_with(
+            "AAPL",
+            result_case,
+        )
+        runner.errors.report.assert_not_called()
+
+    def test_runs_for_enabled_companies_without_fresh_news(self, runner):
+        today = date.today()
+        report_date = today - timedelta(days=5)
+        quarter = make_gemini_quarter(
+            report_date_this_quarter=report_date.isoformat(),
+            reported_revenues="1000",
+        )
+        gemini_company = make_gemini_company(
+            current_quarter_id="26Q4",
+            quarters={"26Q3": quarter},
+        )
+        runner.gemini_service.get_companies.return_value = {
+            "AAPL": gemini_company,
+        }
+        runner.finnhub_service.get_companies.return_value = {}
+        runner.gemini.get_bull_bear_cases.return_value = [
+            CompanyBullBear(
+                ticker="AAPL",
+                bull=[{"point": "p", "reasoning": "r"}],
+                bear=[{"point": "p", "reasoning": "r"}],
+            ),
+        ]
+
+        # No sentiment history at all this ticker - still processed.
+        runner._generate_bull_bear_cases({"AAPL": None})
+
+        runner.gemini.get_bull_bear_cases.assert_called_once()
+        runner.gemini_service.upsert_bull_bear.assert_called_once()
+
+    def test_skips_company_with_no_gemini_data(self, runner):
+        runner.gemini_service.get_companies.return_value = {"AAPL": None}
+        runner.finnhub_service.get_companies.return_value = {}
+
+        runner._generate_bull_bear_cases({"AAPL": None})
+
+        runner.gemini.get_bull_bear_cases.assert_not_called()
+
+    def test_skips_company_with_no_reported_quarter(self, runner):
+        unreported_quarter = make_gemini_quarter(
+            reported_revenues=None,
+            report_date_this_quarter=None,
+        )
+        gemini_company = make_gemini_company(
+            quarters={"26Q3": unreported_quarter},
+        )
+        runner.gemini_service.get_companies.return_value = {
+            "AAPL": gemini_company,
+        }
+        runner.finnhub_service.get_companies.return_value = {}
+
+        runner._generate_bull_bear_cases({"AAPL": None})
+
+        runner.gemini.get_bull_bear_cases.assert_not_called()
+
+    def test_reports_failure_when_gemini_call_fails(self, runner):
+        report_date = date.today() - timedelta(days=5)
+        quarter = make_gemini_quarter(
+            report_date_this_quarter=report_date.isoformat(),
+            reported_revenues="1000",
+        )
+        gemini_company = make_gemini_company(quarters={"26Q3": quarter})
+        runner.gemini_service.get_companies.return_value = {
+            "AAPL": gemini_company,
+        }
+        runner.finnhub_service.get_companies.return_value = {}
+        error = RuntimeError("Gemini unavailable")
+        runner.gemini.get_bull_bear_cases.side_effect = error
+
+        runner._generate_bull_bear_cases({"AAPL": None})
+
+        runner.errors.report.assert_called_once_with(
+            error,
+            logger=runner.log,
+            source=runner.name,
+            operation="generate_bull_bear_cases",
+            context={"company_count": "1"},
+        )
+        runner.gemini_service.upsert_bull_bear.assert_not_called()
+
+    def test_reports_persistence_failure_per_company(self, runner):
+        report_date = date.today() - timedelta(days=5)
+        quarter = make_gemini_quarter(
+            report_date_this_quarter=report_date.isoformat(),
+            reported_revenues="1000",
+        )
+        runner.gemini_service.get_companies.return_value = {
+            "AAPL": make_gemini_company(
+                ticker="AAPL",
+                quarters={"26Q3": quarter},
+            ),
+            "MSFT": make_gemini_company(
+                ticker="MSFT",
+                quarters={"26Q3": quarter},
+            ),
+        }
+        runner.finnhub_service.get_companies.return_value = {}
+        aapl_case = CompanyBullBear(
+            ticker="AAPL",
+            bull=[{"point": "p", "reasoning": "r"}],
+            bear=[{"point": "p", "reasoning": "r"}],
+        )
+        msft_case = CompanyBullBear(
+            ticker="MSFT",
+            bull=[{"point": "p", "reasoning": "r"}],
+            bear=[{"point": "p", "reasoning": "r"}],
+        )
+        runner.gemini.get_bull_bear_cases.return_value = [
+            aapl_case,
+            msft_case,
+        ]
+        error = RuntimeError("Firebase unavailable")
+        runner.gemini_service.upsert_bull_bear.side_effect = [error, "ok"]
+
+        runner._generate_bull_bear_cases({"AAPL": None, "MSFT": None})
+
+        assert runner.gemini_service.upsert_bull_bear.call_count == 2
+        runner.errors.report.assert_called_once_with(
+            error,
+            logger=runner.log,
+            source=runner.name,
+            operation="persist_bull_bear_case",
+            context={"ticker": "AAPL"},
+        )
