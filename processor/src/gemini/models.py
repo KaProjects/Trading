@@ -8,6 +8,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StringConstraints,
+    ValidationError,
     ValidationInfo,
     field_validator,
     model_validator,
@@ -79,6 +80,49 @@ def _target_from_validation(info: ValidationInfo) -> str:
         if isinstance(target, str):
             return target
     return "unknown target"
+
+
+def _dropped_items_sink(info: ValidationInfo | None) -> list | None:
+    if info is None or not isinstance(info.context, dict):
+        return None
+    sink = info.context.get("dropped_items")
+    return sink if isinstance(sink, list) else None
+
+
+def _drop_invalid_items(
+    data: object,
+    *,
+    list_field: str,
+    item_model: type[BaseModel],
+    info: ValidationInfo | None = None,
+) -> object:
+    # One hallucinated or malformed row must never fail an entire batched
+    # Gemini response and lose every other, valid item in it.
+    if not isinstance(data, dict):
+        return data
+    raw_items = data.get(list_field)
+    if not isinstance(raw_items, list):
+        return data
+
+    dropped_sink = _dropped_items_sink(info)
+    kept = []
+    for index, raw_item in enumerate(raw_items):
+        try:
+            item_model.model_validate(raw_item)
+        except ValidationError as exception:
+            logger.warning(
+                "Dropping invalid %s entry at index %d: %s",
+                item_model.__name__,
+                index,
+                exception,
+            )
+            if dropped_sink is not None:
+                dropped_sink.append(
+                    (item_model.__name__, index, str(exception))
+                )
+            continue
+        kept.append(raw_item)
+    return {**data, list_field: kept}
 
 
 class Info(BaseModel):
@@ -378,6 +422,16 @@ class CompanyBullBearCases(BaseModel):
         ),
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def drop_invalid_cases(cls, data, info: ValidationInfo):
+        return _drop_invalid_items(
+            data,
+            list_field="cases",
+            item_model=CompanyBullBear,
+            info=info,
+        )
+
 
 class TargetFields(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
@@ -414,6 +468,13 @@ class TargetFields(BaseModel):
             "when a direct URL is unavailable."
         ),
     )
+
+    @field_validator("price", mode="before")
+    @classmethod
+    def strip_thousands_separators(cls, value):
+        if isinstance(value, str):
+            return value.replace(",", "")
+        return value
 
 
 class CompanyTarget(TargetFields):
@@ -493,6 +554,16 @@ class InstitutionResolutions(BaseModel):
         ),
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def drop_invalid_resolutions(cls, data, info: ValidationInfo):
+        return _drop_invalid_items(
+            data,
+            list_field="resolutions",
+            item_model=InstitutionResolution,
+            info=info,
+        )
+
 
 class InstitutionRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -527,6 +598,16 @@ class TargetCandidates(BaseModel):
             "tickers and date interval; an empty list is valid."
         ),
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def drop_invalid_targets(cls, data, info: ValidationInfo):
+        return _drop_invalid_items(
+            data,
+            list_field="targets",
+            item_model=TargetCandidate,
+            info=info,
+        )
 
 
 class Target(CompanyTarget):
@@ -670,6 +751,16 @@ class ReportDates(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     report_dates: list[ReportDate]
+
+    @model_validator(mode="before")
+    @classmethod
+    def drop_invalid_report_dates(cls, data, info: ValidationInfo):
+        return _drop_invalid_items(
+            data,
+            list_field="report_dates",
+            item_model=ReportDate,
+            info=info,
+        )
 
     @model_validator(mode="after")
     def identities_are_unique(self):

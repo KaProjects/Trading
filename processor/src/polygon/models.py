@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Annotated
 
@@ -7,10 +8,14 @@ from pydantic import (
     Field,
     RootModel,
     StringConstraints,
+    ValidationError,
+    ValidationInfo,
     model_validator,
 )
 
 from domain_types import Ticker
+
+logger = logging.getLogger(__name__)
 
 SentimentTakeaway = Annotated[
     str,
@@ -201,6 +206,42 @@ class CompanySentimentSummaries(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     companies: list[CompanySentimentSummary]
+
+    @model_validator(mode="before")
+    @classmethod
+    def drop_invalid_companies(cls, data, info: ValidationInfo):
+        # One malformed company entry must never fail this whole batched
+        # response and lose every other company's synthesized takeaways.
+        if not isinstance(data, dict):
+            return data
+        raw_companies = data.get("companies")
+        if not isinstance(raw_companies, list):
+            return data
+
+        dropped_sink = None
+        if info is not None and isinstance(info.context, dict):
+            sink = info.context.get("dropped_items")
+            if isinstance(sink, list):
+                dropped_sink = sink
+
+        kept = []
+        for index, raw_company in enumerate(raw_companies):
+            try:
+                CompanySentimentSummary.model_validate(raw_company)
+            except ValidationError as exception:
+                logger.warning(
+                    "Dropping invalid CompanySentimentSummary entry at "
+                    "index %d: %s",
+                    index,
+                    exception,
+                )
+                if dropped_sink is not None:
+                    dropped_sink.append(
+                        ("CompanySentimentSummary", index, str(exception))
+                    )
+                continue
+            kept.append(raw_company)
+        return {**data, "companies": kept}
 
     @model_validator(mode="after")
     def company_tickers_are_unique(self):

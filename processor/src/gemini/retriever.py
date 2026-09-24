@@ -69,14 +69,18 @@ class StockDataRetrieverRunner:
         discord: DiscordClient | None = None,
         error_reporter: ErrorReporter | None = None,
     ) -> None:
+        self.errors = error_reporter or ErrorReporter(environment="local")
         if client is None:
             if gemini_api_key is None:
                 raise ValueError("gemini_api_key is required without a client")
-            client = GeminiClient(api_key=gemini_api_key, model=self.model)
+            client = GeminiClient(
+                api_key=gemini_api_key,
+                model=self.model,
+                error_reporter=self.errors,
+            )
         if discord is None:
             raise ValueError("discord is required")
 
-        self.errors = error_reporter or ErrorReporter(environment="local")
         self.client = client
         self.service = (
             service
@@ -496,7 +500,9 @@ class StockDataRetrieverRunner:
             institutions,
         )
 
-        notifiable_targets: dict[str, list[Target]] = {}
+        notifiable_targets: dict[
+            str, list[tuple[Target, InstitutionRecord]]
+        ] = {}
         for target, institution in sorted(
             resolved_targets,
             key=lambda resolved: resolved[0].date,
@@ -522,14 +528,17 @@ class StockDataRetrieverRunner:
                 continue
 
             if institution.trusted:
-                target = self._enrich_price_target(target)
-                if target is None:
-                    continue
+                # Enrichment failing (a bad Gemini response, a network
+                # error) must not cost us the target itself - fall back to
+                # persisting it unenriched rather than losing it entirely.
+                enriched_target = self._enrich_price_target(target)
+                if enriched_target is not None:
+                    target = enriched_target
 
             if self._persist_price_target(target):
                 ticker_target_dates[target_key] = target.date
                 notifiable_targets.setdefault(target.ticker, []).append(
-                    target
+                    (target, institution)
                 )
 
         for ticker, ticker_targets in notifiable_targets.items():
@@ -700,32 +709,44 @@ class StockDataRetrieverRunner:
     def _notify_price_targets(
         self,
         ticker: str,
-        targets: list[Target],
+        targets: list[tuple[Target, InstitutionRecord]],
     ) -> None:
         reported_targets = [
-            target for target in targets if target.report is not None
+            (target, institution)
+            for target, institution in targets
+            if target.report is not None
         ]
         plain_targets = [
-            target for target in targets if target.report is None
+            (target, institution)
+            for target, institution in targets
+            if target.report is None
         ]
 
-        for target in reported_targets:
-            self._notify_price_target(target)
+        for target, institution in reported_targets:
+            self._notify_price_target(target, institution)
 
         if len(plain_targets) == 1:
-            self._notify_price_target(plain_targets[0])
+            self._notify_price_target(*plain_targets[0])
         elif plain_targets:
-            self._notify_grouped_price_targets(ticker, plain_targets)
+            self._notify_grouped_price_targets(
+                ticker,
+                [target for target, _institution in plain_targets],
+            )
 
-    def _notify_price_target(self, target: Target) -> None:
+    def _notify_price_target(
+        self,
+        target: Target,
+        institution: InstitutionRecord | None = None,
+    ) -> None:
+        rating = institution.rating if institution is not None else None
         try:
             if self.discord.post_if_channel_exists(
                 target.ticker,
-                discord_templates.ticker_price_target(target),
+                discord_templates.ticker_price_target(target, rating=rating),
             ):
                 return
             self.discord.post_eventlog(
-                discord_templates.price_target(target),
+                discord_templates.price_target(target, rating=rating),
             )
         except Exception as exception:
             self.report_error(

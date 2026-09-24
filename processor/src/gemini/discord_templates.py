@@ -1,6 +1,6 @@
 import logging
 
-from gemini.models import InstitutionRecord, Quarter, Target
+from gemini.models import InstitutionRating, InstitutionRecord, Quarter, Target
 
 logger = logging.getLogger(__name__)
 DISCORD_EMBED_DESCRIPTION_MAX_LENGTH = 4096
@@ -56,11 +56,17 @@ def quarter_report_link(
     }
 
 
-def price_target(target: Target) -> dict[str, object]:
+def price_target(
+    target: Target,
+    *,
+    rating: InstitutionRating | str | None = None,
+) -> dict[str, object]:
     return {
         "username": TARGET_REPORTER_USERNAME,
         "avatar_url": TARGET_REPORTER_AVATAR_URL,
-        "embeds": [_price_target_embed(target, ticker_prefix=True)],
+        "embeds": [
+            _price_target_embed(target, ticker_prefix=True, rating=rating)
+        ],
     }
 
 
@@ -113,9 +119,15 @@ def _price_targets_embed(
     }
 
 
-def ticker_price_target(target: Target) -> dict[str, object]:
+def ticker_price_target(
+    target: Target,
+    *,
+    rating: InstitutionRating | str | None = None,
+) -> dict[str, object]:
     return {
-        "embeds": [_price_target_embed(target, ticker_prefix=False)],
+        "embeds": [
+            _price_target_embed(target, ticker_prefix=False, rating=rating)
+        ],
     }
 
 
@@ -123,6 +135,7 @@ def _price_target_embed(
     target: Target,
     *,
     ticker_prefix: bool,
+    rating: InstitutionRating | str | None = None,
 ) -> dict[str, object]:
     price_target_title = f"Price target ${target.price} | {target.institution}"
     title = (
@@ -131,22 +144,42 @@ def _price_target_embed(
         else f"🎯 {price_target_title}"
     )
 
+    field_value = (
+        f"{target.rating or 'Not provided'}\n"
+        f"{target.date.isoformat()}\n"
+        f"source: {target.source}"
+    )
+    institution_rating = _format_institution_rating(rating)
+    if institution_rating:
+        field_value += f"\n\n{institution_rating}"
+
     return {
         "title": title,
         "color": 0xF1C40F,
         "fields": [
             {
                 "name": DISCORD_SPACER,
-                "value": (
-                    f"{target.rating or 'Not provided'}\n"
-                    f"{target.date.isoformat()}\n"
-                    f"source: {target.source}"
-                ),
+                "value": field_value,
                 "inline": False,
             },
         ],
         **_target_report_description(target),
     }
+
+
+def _format_institution_rating(
+    rating: InstitutionRating | str | None,
+) -> str:
+    # Older institution records may still carry the free-text rating this
+    # replaced; only the structured shape has the two scores to show.
+    if not isinstance(rating, InstitutionRating):
+        return ""
+    return (
+        f"Institutional Weight: {rating.institutional_weight.score} — "
+        f"{rating.institutional_weight.description}\n"
+        f"Media Shock Value: {rating.media_shock_value.score} — "
+        f"{rating.media_shock_value.description}"
+    )
 
 
 def _target_report_description(target: Target) -> dict[str, str]:

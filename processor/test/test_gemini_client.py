@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import date
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -368,6 +368,51 @@ def test_get_price_targets_returns_python_objects_and_uses_targets_schema():
     )
 
 
+def test_get_price_targets_reports_dropped_entries_as_discord_warning():
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = """
+        {
+          "targets": [
+            {
+              "ticker": "AAPL",
+              "institution": "Important Research",
+              "date": "2026-07-15",
+              "price": 225.5,
+              "rating": "Outperform",
+              "source": "https://research.example.com/aapl"
+            },
+            {
+              "ticker": "tourism",
+              "institution": "Important Research",
+              "date": "2026-07-15",
+              "price": -1,
+              "source": "https://research.example.com/bad"
+            }
+          ]
+        }
+        """
+        error_reporter = Mock()
+        client = GeminiClient(
+            api_key="gemini-key",
+            model="gemini-model",
+            error_reporter=error_reporter,
+        )
+
+        targets = client.get_price_targets(
+            ["AAPL"],
+            date(2026, 7, 13),
+            date(2026, 7, 19),
+        )
+
+    assert [target.ticker for target in targets.targets] == ["AAPL"]
+    error_reporter.report_warning_message.assert_called_once()
+    call = error_reporter.report_warning_message.call_args
+    assert "TargetCandidate" in call.args[0]
+    assert call.kwargs["source"] == "GeminiClient"
+    assert call.kwargs["operation"] == "get_price_targets"
+    assert call.kwargs["context"] == {"dropped_count": 1}
+
+
 def test_get_target_report_appends_structured_report_to_original_target():
     with patch("gemini.client.genai.Client", autospec=True) as constructor:
         constructor.return_value.models.generate_content.return_value.text = """
@@ -565,7 +610,9 @@ def test_get_bull_bear_cases_parses_response_in_request_order():
     )
 
 
-def test_get_bull_bear_cases_rejects_reordered_response():
+def test_get_bull_bear_cases_skips_company_missing_from_response(caplog):
+    """A company Gemini dropped or garbled must not cost every other
+    company its case - it's just skipped and logged, not a hard failure."""
     with patch("gemini.client.genai.Client", autospec=True) as constructor:
         constructor.return_value.models.generate_content.return_value.text = """
         {
@@ -581,10 +628,48 @@ def test_get_bull_bear_cases_rejects_reordered_response():
         client = GeminiClient(api_key="gemini-key", model="gemini-model")
         contexts = [
             BullBearContext(ticker="AAPL", period="26Q3", research="r"),
+            BullBearContext(ticker="MSFT", period="26Q2", research="r"),
         ]
 
-        with pytest.raises(ValueError, match="order differs from input"):
-            client.get_bull_bear_cases(contexts)
+        with caplog.at_level(logging.WARNING, logger="gemini.client"):
+            result = client.get_bull_bear_cases(contexts)
+
+    assert [case.ticker for case in result] == ["MSFT"]
+    assert "missing AAPL" in caplog.text
+
+
+def test_get_bull_bear_cases_reports_missing_company_as_discord_warning():
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = """
+        {
+          "cases": [
+            {
+              "ticker": "MSFT",
+              "bull": [{"point": "x", "reasoning": "y"}],
+              "bear": [{"point": "x", "reasoning": "y"}]
+            }
+          ]
+        }
+        """
+        error_reporter = Mock()
+        client = GeminiClient(
+            api_key="gemini-key",
+            model="gemini-model",
+            error_reporter=error_reporter,
+        )
+        contexts = [
+            BullBearContext(ticker="AAPL", period="26Q3", research="r"),
+            BullBearContext(ticker="MSFT", period="26Q2", research="r"),
+        ]
+
+        client.get_bull_bear_cases(contexts)
+
+    error_reporter.report_warning_message.assert_called_once()
+    call = error_reporter.report_warning_message.call_args
+    assert "AAPL" in call.args[0]
+    assert call.kwargs["source"] == "GeminiClient"
+    assert call.kwargs["operation"] == "get_bull_bear_cases"
+    assert call.kwargs["context"] == {"skipped_count": 1}
 
 
 def test_get_target_report_truncates_overflow_and_logs_target(caplog):
@@ -720,7 +805,12 @@ def test_get_news_sentiment_analysis_returns_validated_company_results():
     ) in request.kwargs["contents"]
 
 
-def test_get_news_sentiment_analysis_rejects_changed_company_ticker():
+def test_get_news_sentiment_analysis_defaults_missing_company_to_empty_takeaways(
+    caplog,
+):
+    """A company Gemini dropped or garbled must not cost every other
+    company its takeaways - it still gets a result (statistics are always
+    computed locally), just with no synthesized takeaways, and a warning."""
     companies = [
         CompanyInsights(
             ticker="AAPL",
@@ -745,8 +835,14 @@ def test_get_news_sentiment_analysis_rejects_changed_company_ticker():
         )
         client = GeminiClient(api_key="gemini-key", model="gemini-model")
 
-        with pytest.raises(ValueError, match="company order differs"):
-            client.get_news_sentiment_analysis(companies)
+        with caplog.at_level(logging.WARNING, logger="gemini.client"):
+            result = client.get_news_sentiment_analysis(companies)
+
+    assert len(result) == 1
+    assert result[0].ticker == "AAPL"
+    assert result[0].key_takeaways == []
+    assert result[0].statistics.total == 1
+    assert "missing AAPL" in caplog.text
 
 
 @pytest.mark.parametrize("missing_value", [None, "", "omitted"])

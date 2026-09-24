@@ -10,6 +10,8 @@ from gemini.models import (
     CompanyTarget,
     Info,
     InitialCompanyResponse,
+    InstitutionResolution,
+    InstitutionResolutions,
     Quarter,
     ReportDate,
     ReportDates,
@@ -23,6 +25,7 @@ from myfinnhub.models import Earnings
 from polygon.models import (
     CompanyInsights,
     CompanyNewsInsight,
+    CompanySentimentSummaries,
     NewsInsight,
     SentimentStatistics,
 )
@@ -219,6 +222,120 @@ def test_target_schema_describes_every_output_field():
     assert "errors" in initial_schema["required"]
     assert initial_schema["properties"]["errors"]["description"]
     assert "currency" in initial_schema["$defs"]["InitialInfo"]["required"]
+
+
+def test_target_candidates_drops_invalid_rows_without_failing_the_batch(
+    caplog,
+):
+    """Regression test: a production response mixed valid targets with
+    hallucinated rows whose ticker was a macro topic ("tourism", "energy")
+    and whose price was a comma-formatted aggregate figure. That failed
+    validation for the entire batch, losing every company's targets for
+    the day. Invalid rows must be dropped instead."""
+    valid_target = {
+        "ticker": "AAPL",
+        "institution": "Morgan Stanley",
+        "date": "2026-09-09",
+        "price": "250.00",
+        "rating": "Overweight",
+        "source": "https://research.example.com/aapl",
+    }
+    invalid_ticker = {
+        "ticker": "tourism",
+        "institution": "Example Research",
+        "date": "2026-09-09",
+        "price": "70,166,666.67",
+        "rating": None,
+        "source": "https://example.com/tourism-outlook",
+    }
+
+    with caplog.at_level(logging.WARNING, logger="gemini.models"):
+        candidates = TargetCandidates.model_validate({
+            "targets": [invalid_ticker, valid_target],
+        })
+
+    assert len(candidates.targets) == 1
+    assert candidates.targets[0].ticker == "AAPL"
+    assert "Dropping invalid TargetCandidate entry at index 0" in caplog.text
+
+
+def test_target_candidate_strips_thousands_separators_from_price():
+    candidate = TargetCandidate(
+        ticker="AAPL",
+        institution="Morgan Stanley",
+        date="2026-09-09",
+        price="1,038,799.30",
+        source="https://research.example.com/aapl",
+    )
+
+    assert candidate.price == Decimal("1038799.30")
+
+
+def test_institution_resolutions_drops_invalid_rows_without_failing_the_batch(
+    caplog,
+):
+    valid = {
+        "institution": "Melius Research",
+        "is_alias": False,
+        "institutional_weight": {"score": "5.0/10", "description": "d"},
+        "media_shock_value": {"score": "4.5/10", "description": "d"},
+    }
+    invalid = {
+        "institution": "",
+        "is_alias": False,
+    }
+
+    with caplog.at_level(logging.WARNING, logger="gemini.models"):
+        resolutions = InstitutionResolutions.model_validate({
+            "resolutions": [invalid, valid],
+        })
+
+    assert len(resolutions.resolutions) == 1
+    assert resolutions.resolutions[0].institution == "Melius Research"
+    assert "Dropping invalid InstitutionResolution entry at index 0" in (
+        caplog.text
+    )
+
+
+def test_company_sentiment_summaries_drops_invalid_rows_without_failing_the_batch(
+    caplog,
+):
+    valid = {"ticker": "AAPL", "key_takeaways": ["Demand remained strong."]}
+    invalid = {"ticker": "not-a-ticker", "key_takeaways": []}
+
+    with caplog.at_level(logging.WARNING, logger="polygon.models"):
+        summaries = CompanySentimentSummaries.model_validate({
+            "companies": [invalid, valid],
+        })
+
+    assert [company.ticker for company in summaries.companies] == ["AAPL"]
+    assert (
+        "Dropping invalid CompanySentimentSummary entry at index 0"
+        in caplog.text
+    )
+
+
+def test_report_dates_drops_invalid_rows_without_failing_the_batch(caplog):
+    valid = {
+        "ticker": "AAPL",
+        "quarter": "26Q3",
+        "report_date": "2026-09-09",
+    }
+    invalid = {
+        "ticker": "not a ticker",
+        "quarter": "26Q3",
+        "report_date": "2026-09-09",
+    }
+
+    with caplog.at_level(logging.WARNING, logger="gemini.models"):
+        report_dates = ReportDates.model_validate({
+            "report_dates": [invalid, valid],
+        })
+
+    assert [report.ticker for report in report_dates.report_dates] == [
+        "AAPL",
+    ]
+    assert "Dropping invalid ReportDate entry at index 0" in caplog.text
 
 
 def test_target_report_normalizes_oversized_gemini_response(caplog):

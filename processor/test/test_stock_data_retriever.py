@@ -1375,7 +1375,7 @@ class TestStockDataRetriever:
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")
-    def test_failed_trusted_target_enrichment_is_not_persisted(
+    def test_failed_trusted_target_enrichment_falls_back_to_unenriched_target(
         self,
         mock_datetime,
         mock_is_past,
@@ -1413,9 +1413,17 @@ class TestStockDataRetriever:
 
         runner.run()
 
-        runner.service.upsert_target.assert_not_called()
-        runner.discord.post_if_channel_exists.assert_not_called()
-        runner.discord.post_eventlog.assert_not_called()
+        runner.service.upsert_target.assert_called_once_with(
+            "AMD",
+            CompanyTarget(
+                institution="Baird",
+                date="2026-07-21",
+                price="250",
+                rating="Outperform",
+                source="https://research.example.com/amd",
+            ),
+        )
+        runner.discord.post_eventlog.assert_called_once()
         runner.errors.report.assert_called_once_with(
             exception,
             logger=runner.log,
@@ -1461,6 +1469,61 @@ class TestStockDataRetriever:
         )
         runner.discord.post_eventlog.assert_not_called()
         runner.errors.report.assert_not_called()
+
+    def test_price_target_appends_institution_rating_below_rating_value(
+        self,
+        runner,
+    ):
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-07-24",
+            price="1250",
+            rating="Outperform",
+            source="investing.com",
+        )
+        institution = InstitutionRecord(
+            name="Baird",
+            aliases={"baird": "Baird"},
+            enabled=True,
+            rating=InstitutionRating(
+                institutional_weight=InstitutionRatingDimension(
+                    score="8.5/10",
+                    description="Moves significant institutional capital.",
+                ),
+                media_shock_value=InstitutionRatingDimension(
+                    score="4.0/10",
+                    description="Rarely drives retail headlines.",
+                ),
+            ),
+        )
+        runner.discord.post_if_channel_exists.return_value = True
+
+        runner._notify_price_target(target, institution)
+
+        runner.discord.post_if_channel_exists.assert_called_once_with(
+            "AMD",
+            {
+                "embeds": [{
+                    "title": "🎯 Price target $1250 | Baird",
+                    "color": 15844367,
+                    "fields": [{
+                        "name": "​",
+                        "value": (
+                            "Outperform\n"
+                            "2026-07-24\n"
+                            "source: investing.com\n"
+                            "\n"
+                            "Institutional Weight: 8.5/10 — Moves "
+                            "significant institutional capital.\n"
+                            "Media Shock Value: 4.0/10 — Rarely drives "
+                            "retail headlines."
+                        ),
+                        "inline": False,
+                    }],
+                }],
+            },
+        )
 
     def test_price_target_with_report_moves_institution_into_ticker_channel_title(
         self,

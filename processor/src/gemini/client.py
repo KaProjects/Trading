@@ -7,6 +7,7 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, ValidationError
 
+from error_reporting import ErrorReporter
 from gemini.models import (
     BULL_BEAR_POINTS_MAX_COUNT,
     BullBearContext,
@@ -109,8 +110,9 @@ class QuarterReportResult:
 class GeminiClient:
     log = logger
 
-    def __init__(self, api_key, model):
+    def __init__(self, api_key, model, *, error_reporter: ErrorReporter | None = None):
         self.model = model
+        self.errors = error_reporter
         self.client = genai.Client(
             api_key=api_key,
             http_options=types.HttpOptions(
@@ -130,6 +132,7 @@ class GeminiClient:
         prompt: str,
         response_model: type[BaseModel],
         *,
+        operation: str,
         validation_context: dict[str, object] | None = None,
         use_google_search: bool = True,
     ):
@@ -138,9 +141,41 @@ class GeminiClient:
             response_model,
             use_google_search=use_google_search,
         )
-        return response_model.model_validate_json(
+        dropped_items: list[tuple[str, int, str]] = []
+        context = {**(validation_context or {}), "dropped_items": dropped_items}
+        result = response_model.model_validate_json(
             response.text,
-            context=validation_context,
+            context=context,
+        )
+        if dropped_items:
+            self._report_dropped_items(operation, dropped_items)
+        return result
+
+    def _report_dropped_items(
+        self,
+        operation: str,
+        dropped_items: list[tuple[str, int, str]],
+    ) -> None:
+        # Invalid batch entries are already skipped-and-kept (never fail the
+        # whole response); still surface them as a warning so a persistent
+        # pattern of bad entries doesn't go unnoticed.
+        if self.errors is None:
+            return
+        message = (
+            "Dropped invalid entries from a batched Gemini response:\n"
+            + "\n".join(
+                f"{index}. {model_name} entry {item_index}: {reason}"
+                for index, (model_name, item_index, reason) in enumerate(
+                    dropped_items, start=1
+                )
+            )
+        )
+        self.errors.report_warning_message(
+            message,
+            logger=self.log,
+            source="GeminiClient",
+            operation=operation,
+            context={"dropped_count": len(dropped_items)},
         )
 
     def __request(
@@ -342,7 +377,7 @@ class GeminiClient:
         Update the dates in the list and send it back to me. 
         Do not change quarter or ticker values and do not reorder the list.
         """
-        return self.__ask(prompt, ReportDates)
+        return self.__ask(prompt, ReportDates, operation="revalidate_report_dates")
 
     def get_quarter_report(
         self,
@@ -460,6 +495,13 @@ class GeminiClient:
 
         A valid Target must satisfy every rule below:
 
+        - ticker is exactly one of REQUESTED TICKERS, character for character.
+          Never a sector, industry, country, or macroeconomic topic, and never a
+          ticker that is not in REQUESTED TICKERS.
+        - price is a plain per-share dollar figure with no thousands separators,
+          currency symbols, or other formatting. Never an aggregate figure such
+          as company revenue, market capitalization, deal size, or an economic
+          statistic.
         - Its source explicitly identifies the company or ticker, institution, new
           target price, and action date.
         - date is the date the analyst action was announced, not the publication date
@@ -487,7 +529,7 @@ class GeminiClient:
         its source. An empty targets list is the correct result when nothing
         qualifies.
         """
-        return self.__ask(prompt, TargetCandidates)
+        return self.__ask(prompt, TargetCandidates, operation="get_price_targets")
 
     def get_target_report(self, target: Target) -> Target:
         self.log.info("Running Gemini client.get_target_report...")
@@ -518,6 +560,7 @@ class GeminiClient:
         report = self.__ask(
             prompt,
             TargetReport,
+            operation="get_target_report",
             validation_context={
                 "target": (
                     f"{target.ticker} / {target.institution} / "
@@ -585,7 +628,9 @@ class GeminiClient:
         contains exactly one entry per name in NEW INSTITUTIONS, in the same
         order.
         """
-        return self.__ask(prompt, InstitutionResolutions)
+        return self.__ask(
+            prompt, InstitutionResolutions, operation="resolve_new_institutions"
+        )
 
     def get_news_sentiment_analysis(
         self,
@@ -634,37 +679,51 @@ class GeminiClient:
         response = self.__ask(
             prompt,
             CompanySentimentSummaries,
+            operation="get_news_sentiment_analysis",
             use_google_search=False,
         )
         return self._combine_news_sentiment_analysis(companies, response)
 
-    @staticmethod
     def _combine_news_sentiment_analysis(
+        self,
         companies: list[CompanyInsights],
         response: CompanySentimentSummaries,
     ) -> list[CompanySentimentAnalysis]:
-        expected_tickers = [company.ticker for company in companies]
-        actual_tickers = [company.ticker for company in response.companies]
-        if actual_tickers != expected_tickers:
-            raise ValueError(
-                "Gemini news sentiment company order differs from input: "
-                f"expected={expected_tickers}, actual={actual_tickers}"
-            )
+        # Matched by ticker, not position: a company Gemini dropped or
+        # garbled must not cost every other company its takeaways too.
+        summaries_by_ticker = {
+            summary.ticker: summary for summary in response.companies
+        }
 
-        return [
-            CompanySentimentAnalysis(
-                ticker=summary.ticker,
+        results = []
+        missing_tickers = []
+        for company in companies:
+            summary = summaries_by_ticker.get(company.ticker)
+            if summary is None:
+                missing_tickers.append(company.ticker)
+                logger.warning(
+                    "Gemini news sentiment response missing %s; using no "
+                    "synthesized takeaways for it",
+                    company.ticker,
+                )
+            results.append(CompanySentimentAnalysis(
+                ticker=company.ticker,
                 statistics=SentimentStatistics.from_insights(
-                    source.insights
+                    company.insights
                 ),
-                key_takeaways=summary.key_takeaways,
+                key_takeaways=summary.key_takeaways if summary else [],
+            ))
+        if missing_tickers and self.errors is not None:
+            self.errors.report_warning_message(
+                "Gemini news sentiment response omitted these companies; "
+                "they were kept with no synthesized takeaways:\n"
+                + ", ".join(missing_tickers),
+                logger=self.log,
+                source="GeminiClient",
+                operation="get_news_sentiment_analysis",
+                context={"missing_count": len(missing_tickers)},
             )
-            for source, summary in zip(
-                companies,
-                response.companies,
-                strict=True,
-            )
-        ]
+        return results
 
     def get_bull_bear_cases(
         self,
@@ -714,13 +773,33 @@ class GeminiClient:
         exactly one entry per company listed above, in the same order, with
         the ticker field copied verbatim.
         """
-        response = self.__ask(prompt, CompanyBullBearCases)
+        response = self.__ask(
+            prompt, CompanyBullBearCases, operation="get_bull_bear_cases"
+        )
 
-        expected_tickers = [context.ticker for context in contexts]
-        actual_tickers = [case.ticker for case in response.cases]
-        if actual_tickers != expected_tickers:
-            raise ValueError(
-                "Gemini bull/bear company order differs from input: "
-                f"expected={expected_tickers}, actual={actual_tickers}"
+        # Matched by ticker, not position: a company Gemini dropped or
+        # garbled must not cost every other company its case too.
+        cases_by_ticker = {case.ticker: case for case in response.cases}
+        results = []
+        skipped_tickers = []
+        for context in contexts:
+            case = cases_by_ticker.get(context.ticker)
+            if case is None:
+                skipped_tickers.append(context.ticker)
+                logger.warning(
+                    "Gemini bull/bear response missing %s; skipping it "
+                    "this run",
+                    context.ticker,
+                )
+                continue
+            results.append(case)
+        if skipped_tickers and self.errors is not None:
+            self.errors.report_warning_message(
+                "Gemini bull/bear response omitted these companies; they "
+                "were skipped this run:\n" + ", ".join(skipped_tickers),
+                logger=self.log,
+                source="GeminiClient",
+                operation="get_bull_bear_cases",
+                context={"skipped_count": len(skipped_tickers)},
             )
-        return response.cases
+        return results

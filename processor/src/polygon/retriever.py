@@ -53,6 +53,7 @@ class PolygonNewsRetrieverRunner:
         discord: DiscordClient | None = None,
         error_reporter: ErrorReporter | None = None,
     ) -> None:
+        self.errors = error_reporter or ErrorReporter(environment="local")
         if client is None:
             if polygon_api_key is None:
                 raise ValueError(
@@ -67,11 +68,11 @@ class PolygonNewsRetrieverRunner:
             gemini = GeminiClient(
                 api_key=gemini_api_key,
                 model=self.model,
+                error_reporter=self.errors,
             )
         if discord is None:
             raise ValueError("discord is required")
 
-        self.errors = error_reporter or ErrorReporter(environment="local")
         self.client = client
         self.gemini = gemini
         self.discord = discord
