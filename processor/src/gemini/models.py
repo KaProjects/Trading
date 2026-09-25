@@ -234,8 +234,9 @@ class Quarter(BaseModel):
     reported_shares: Decimal | None = Field(
         default=None,
         description=(
-            "Reported number of shares in millions of shares; for example, "
-            "5104 means 5.104 billion shares."
+            "Reported diluted weighted-average shares outstanding in "
+            "millions of shares; for example, 5104 means 5.104 billion "
+            "shares."
         ),
     )
     price_min: Decimal | None = Field(
@@ -695,7 +696,10 @@ class InitialQuarter(Quarter):
         )
     )
     reported_shares: Decimal | None = Field(
-        description="Reported number of shares in millions of shares, or null."
+        description=(
+            "Reported diluted weighted-average shares outstanding in "
+            "millions of shares, or null."
+        )
     )
     price_min: Decimal | None = Field(
         description=(

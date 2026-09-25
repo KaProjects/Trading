@@ -232,7 +232,8 @@ class GeminiClient:
 
         Then, for all already reported quarters, retrieve reported data: revenues,
         gross profit, operating income, net income, capital expenditures, free
-        cash flow, number of shares of the company, and dividends.
+        cash flow, number of shares of the company (diluted weighted-average
+        shares outstanding), and dividends.
         Return financial totals in millions of the reporting currency stored in
         info.currency and the number of shares in millions of shares. For example,
         return 16130 for 16.13 billion in that reporting currency and 5104 for
@@ -408,7 +409,8 @@ class GeminiClient:
         Otherwise, collect the report data according to this template {data}, fill empty values, don't change anything else.
         Specifically, we are looking for reported: revenues, gross profit,
         operating income, net income, capital expenditures, free cash flow,
-        number of shares of the company, and dividends.
+        number of shares of the company (diluted weighted-average shares
+        outstanding), and dividends.
         The company's original financial reporting currency is {currency}. Return
         financial totals in millions of {currency} without converting them to USD,
         and return the number of shares in millions of shares. For example, return
