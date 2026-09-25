@@ -289,7 +289,13 @@ public class ImportService
             String periodName,
             String endingMonth)
     {
-        if (endingMonth == null || endingMonth.isBlank()) return;
+        if (endingMonth == null || endingMonth.isBlank()) {
+            addWarningText(
+                    result.getWarnings(),
+                    "Alpha Vantage data for " + periodName + " and " + ticker
+                            + " was not loaded because the ending month of the period is unknown");
+            return;
+        }
 
         loadAlphaVantageCashFlow(result, ticker, companyCurrency, periodName, endingMonth);
         loadAlphaVantageIncomeStatement(result, ticker, companyCurrency, periodName, endingMonth);
@@ -320,12 +326,15 @@ public class ImportService
             String endingMonth)
     {
         try {
+            String sourceName = "Alpha Vantage shares for " + periodName + " and " + ticker;
             Optional<AlphaVantageShares> shares = alphaVantageClient
                     .getShares(ticker, periodName, endingMonth);
-            if (shares.isEmpty()) return;
+            if (shares.isEmpty()) {
+                addMissingWarning(result.getWarnings(), sourceName);
+                return;
+            }
 
             AlphaVantageShares values = shares.get();
-            String sourceName = "Alpha Vantage shares for " + periodName + " and " + ticker;
             if (!hasMatchingCurrency(
                     result.getWarnings(),
                     sourceName,
@@ -352,8 +361,13 @@ public class ImportService
         try {
             Optional<AlphaVantageEarnings> earnings = alphaVantageClient
                     .getEarnings(ticker, periodName, endingMonth);
-            earnings.ifPresent(values -> result.getAlphaVantage()
-                    .setAdjustedEps(toString(values.reportedEps())));
+            if (earnings.isEmpty()) {
+                addMissingWarning(
+                        result.getWarnings(),
+                        "Alpha Vantage earnings for " + periodName + " and " + ticker);
+                return;
+            }
+            result.getAlphaVantage().setAdjustedEps(toString(earnings.get().reportedEps()));
         } catch (Exception exception) {
             addWarning(
                     result.getWarnings(),
@@ -398,12 +412,15 @@ public class ImportService
             String endingMonth)
     {
         try {
+            String sourceName = "Alpha Vantage income statement for " + periodName + " and " + ticker;
             Optional<AlphaVantageIncomeStatement> statement = alphaVantageClient
                     .getIncomeStatement(ticker, periodName, endingMonth);
-            if (statement.isEmpty()) return;
+            if (statement.isEmpty()) {
+                addMissingWarning(result.getWarnings(), sourceName);
+                return;
+            }
 
             AlphaVantageIncomeStatement values = statement.get();
-            String sourceName = "Alpha Vantage income statement for " + periodName + " and " + ticker;
             if (!hasMatchingCurrency(
                     result.getWarnings(),
                     sourceName,
@@ -433,12 +450,15 @@ public class ImportService
             String endingMonth)
     {
         try {
+            String sourceName = "Alpha Vantage cash flow for " + periodName + " and " + ticker;
             Optional<AlphaVantageCashFlow> cashFlow = alphaVantageClient
                     .getCashFlow(ticker, periodName, endingMonth);
-            if (cashFlow.isEmpty()) return;
+            if (cashFlow.isEmpty()) {
+                addMissingWarning(result.getWarnings(), sourceName);
+                return;
+            }
 
             AlphaVantageCashFlow values = cashFlow.get();
-            String sourceName = "Alpha Vantage cash flow for " + periodName + " and " + ticker;
             if (!hasMatchingCurrency(
                     result.getWarnings(),
                     sourceName,
@@ -527,6 +547,17 @@ public class ImportService
                     "Polygon.io price data for " + ticker,
                     exception);
         }
+    }
+
+    private void addMissingWarning(List<String> warnings, String source)
+    {
+        addWarningText(warnings, source + " is not available");
+    }
+
+    private void addWarningText(List<String> warnings, String warning)
+    {
+        Log.warn(warning);
+        warnings.add(warning);
     }
 
     private void addWarning(List<String> warnings, String source, Exception exception)

@@ -177,7 +177,9 @@ class ImportServiceTest
         assertThat(result.getAlphaVantage().getAdjustedEps(), is("7.42"));
         assertThat(result.getAlphaVantage().getPriceHigh(), is("1550.4"));
         assertThat(result.getAlphaVantage().getPriceLow(), is("1178.2"));
-        assertThat(result.getWarnings(), is(java.util.List.of()));
+        assertThat(result.getWarnings(), is(java.util.List.of(
+                "Alpha Vantage cash flow for 26Q2 and ASML.AMS is not available",
+                "Alpha Vantage income statement for 26Q2 and ASML.AMS is not available")));
         verify(alphaVantageClient).getCashFlow("ASML.AMS", "26Q2", "2026-06");
         verify(alphaVantageClient).getIncomeStatement("ASML.AMS", "26Q2", "2026-06");
         verify(alphaVantageClient).getShares("ASML.AMS", "26Q2", "2026-06");
@@ -200,7 +202,9 @@ class ImportServiceTest
 
         assertThat(result.getWarnings(), is(java.util.List.of(
                 "Alpha Vantage ticker for non-USD company ASML is not configured. "
-                        + "Configure it in the company edit dialog to load all Alpha Vantage suggestions.")));
+                        + "Configure it in the company edit dialog to load all Alpha Vantage suggestions.",
+                "Alpha Vantage cash flow for 26Q2 and ASML is not available",
+                "Alpha Vantage income statement for 26Q2 and ASML is not available")));
         verify(alphaVantageClient, never()).getShares("ASML", "26Q2", "2026-06");
         verify(alphaVantageClient, never()).getEarnings("ASML", "26Q2", "2026-06");
     }

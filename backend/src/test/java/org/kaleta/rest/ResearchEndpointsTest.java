@@ -391,7 +391,9 @@ public class ResearchEndpointsTest
         assertThat(dto.getPolygon().getAdjustedEps(), is(nullValue()));
         assertThat(dto.getWarnings(), is(List.of(
                 "Firebase/Gemini financial data for 25Q2 and RCH was ignored because reported currency € "
-                        + "does not match the company's configured currency $")));
+                        + "does not match the company's configured currency $",
+                "Alpha Vantage cash flow for 25Q2 and RCH is not available",
+                "Alpha Vantage income statement for 25Q2 and RCH is not available")));
         verify(firebaseService, never()).getLatestActualEps("RCH", "25Q2");
     }
 
@@ -424,7 +426,9 @@ public class ResearchEndpointsTest
         assertThat(dto.getPolygon().getPriceLow(), is(nullValue()));
         assertThat(dto.getWarnings(), is(List.of(
                 "Alpha Vantage ticker for non-USD company SHELL is not configured. "
-                        + "Configure it in the company edit dialog to load all Alpha Vantage suggestions.")));
+                        + "Configure it in the company edit dialog to load all Alpha Vantage suggestions.",
+                "Alpha Vantage cash flow for 25Q2 and SHELL is not available",
+                "Alpha Vantage income statement for 25Q2 and SHELL is not available")));
         verify(polygonClient, never()).getPriceRange("SHELL", "2025-05-28", "2025-08-27");
     }
 
@@ -460,6 +464,8 @@ public class ResearchEndpointsTest
         assertThat(dto.getPolygon().getPriceHigh(), is(nullValue()));
         assertThat(dto.getPolygon().getPriceLow(), is(nullValue()));
         assertThat(dto.getWarnings(), containsInAnyOrder(
+                "Alpha Vantage cash flow for 25Q2 and RCH is not available",
+                "Alpha Vantage income statement for 25Q2 and RCH is not available",
                 "Polygon.io financial data for 25Q2 and RCH was ignored because reported currency EUR "
                         + "does not match the company's configured currency USD",
                 "Polygon.io price data for RCH was ignored because reported currency EUR "
@@ -488,6 +494,8 @@ public class ResearchEndpointsTest
 
         assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
         assertThat(dto.getWarnings(), is(List.of(
+                "Alpha Vantage data for 25Q2 and RCH was not loaded because the ending month of the period "
+                        + "is unknown",
                 "Polygon.io financial data for 25Q2 and RCH was ignored because Polygon.io did not provide "
                         + "its reported currency; expected USD")));
     }
@@ -585,6 +593,7 @@ public class ResearchEndpointsTest
 
         assertThat(dto.getAlphaVantage().getRevenue(), is(nullValue()));
         assertThat(dto.getWarnings(), is(List.of(
+                "Alpha Vantage cash flow for 25Q2 and RCH is not available",
                 "Alpha Vantage income statement for 25Q2 and RCH was ignored because Alpha Vantage did not "
                         + "provide its reported currency; expected USD")));
     }
@@ -701,7 +710,9 @@ public class ResearchEndpointsTest
         assertThat(dto.getPolygon().getRevenue(), is(nullValue()));
         assertThat(dto.getAlphaVantage(), is(notNullValue()));
         assertThat(dto.getAlphaVantage().getRevenue(), is(nullValue()));
-        assertThat(dto.getWarnings().size(), is(0));
+        assertThat(dto.getWarnings(), is(List.of(
+                "Alpha Vantage data for 25Q2 and RCH was not loaded because the ending month of the period "
+                        + "is unknown")));
     }
 
     @Test
