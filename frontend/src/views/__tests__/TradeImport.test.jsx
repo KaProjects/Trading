@@ -79,6 +79,34 @@ describe("TradeImport", () => {
         expect(await screen.findByRole("button", {name: "Template copied"})).toBeInTheDocument();
     });
 
+    test("copies the template without the clipboard api", async () => {
+        Object.defineProperty(navigator, "clipboard", {configurable: true, value: undefined});
+        document.execCommand = jest.fn().mockReturnValue(true);
+
+        render(<TradeImport/>);
+
+        fireEvent.click(screen.getByRole("button", {name: "Copy CSV template"}));
+
+        await waitFor(() => expect(document.execCommand).toHaveBeenCalledWith("copy"));
+        expect(await screen.findByRole("button", {name: "Template copied"})).toBeInTheDocument();
+        expect(screen.queryByText("Template could not be copied")).not.toBeInTheDocument();
+    });
+
+    test("reports a failed copy when no mechanism works", async () => {
+        Object.defineProperty(navigator, "clipboard", {
+            configurable: true,
+            value: {writeText: jest.fn().mockRejectedValue(new Error("denied"))},
+        });
+        document.execCommand = jest.fn().mockReturnValue(false);
+
+        render(<TradeImport/>);
+
+        fireEvent.click(screen.getByRole("button", {name: "Copy CSV template"}));
+
+        expect(await screen.findByText("Template could not be copied")).toBeInTheDocument();
+        expect(screen.getByText("Copying is not supported in this browser")).toBeInTheDocument();
+    });
+
     test("previews a dropped file and imports only normalized server rows", async () => {
         axios.post
             .mockResolvedValueOnce({data: validPreview})

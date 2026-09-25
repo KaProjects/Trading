@@ -596,7 +596,7 @@ describe("Research", () => {
         expect(screen.getByText("latest-news-sentiment:company-1")).toBeInTheDocument();
         expect(screen.getByTestId("trading-view-overview")).toHaveAttribute("data-symbol", "NASDAQ:AAPL");
         expect(screen.getByTestId("trading-view-overview")).toHaveAttribute("data-margin-top", "1px");
-        expect(screen.getByTestId("trading-view-overview")).toHaveAttribute("data-width-sm", "520px");
+        expect(screen.getByTestId("trading-view-overview")).toHaveAttribute("data-width-sm", "550px");
         expect(screen.getByTestId("trading-view-overview").parentElement).toContainElement(
             screen.getByRole("button", {name: "Edit AAPL"})
         );

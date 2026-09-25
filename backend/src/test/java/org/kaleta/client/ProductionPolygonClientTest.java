@@ -160,7 +160,8 @@ class ProductionPolygonClientTest
                       "fiscal_year": "2026",
                       "financials": {
                         "income_statement": {
-                          "basic_average_shares": {"value": 1000000, "unit": "shares"},
+                          "basic_average_shares": {"value": 900000, "unit": "shares"},
+                          "diluted_average_shares": {"value": 1000000, "unit": "shares"},
                           "revenues": {"value": 2000000, "unit": "%s"},
                           "gross_profit": {"value": 1200000, "unit": "%s"},
                           "operating_income_loss": {"value": 800000, "unit": "%s"},

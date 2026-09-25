@@ -252,7 +252,7 @@ public class ProductionPolygonClient implements PolygonClient
                 ? null
                 : result.financials().incomeStatement();
         return new PolygonFinancials(
-                value(statement == null ? null : statement.basicAverageShares()),
+                value(statement == null ? null : statement.dilutedAverageShares()),
                 value(statement == null ? null : statement.revenues()),
                 value(statement == null ? null : statement.grossProfit()),
                 value(statement == null ? null : statement.operatingIncomeLoss()),
@@ -348,7 +348,7 @@ public class ProductionPolygonClient implements PolygonClient
     @JsonIgnoreProperties(ignoreUnknown = true)
     @RegisterForReflection
     private record IncomeStatement(
-            @JsonProperty("basic_average_shares") Metric basicAverageShares,
+            @JsonProperty("diluted_average_shares") Metric dilutedAverageShares,
             Metric revenues,
             @JsonProperty("gross_profit") Metric grossProfit,
             @JsonProperty("operating_income_loss") Metric operatingIncomeLoss,

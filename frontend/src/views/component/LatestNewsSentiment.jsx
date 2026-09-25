@@ -34,7 +34,7 @@ export const LatestNewsSentiment = ({companyId, onOpen, sx}) => {
             data-testid="latest-news-sentiment"
             sx={{
                 ...sx,
-                maxWidth: "520px",
+                maxWidth: "550px",
                 borderLeft: "3px solid",
                 borderColor: "info.main",
                 bgcolor: "rgba(25, 118, 210, 0.04)",

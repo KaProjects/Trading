@@ -33,6 +33,18 @@ const selectFields = (rows, fields) => rows.map(row => Object.fromEntries(
     fields.map(field => [field, row[field]]),
 ));
 
+function copyWithTextArea(text) {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    const copied = document.execCommand("copy");
+    document.body.removeChild(area);
+    if (!copied) throw new Error("Copying is not supported in this browser");
+}
+
 export const CsvImportPage = ({
     entity,
     entityPlural,
@@ -57,14 +69,21 @@ export const CsvImportPage = ({
 
     async function copyTemplate() {
         try {
-            if (!navigator.clipboard?.writeText) {
-                throw new Error("Clipboard access is not available in this browser");
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(template);
+            } else {
+                copyWithTextArea(template);
             }
-            await navigator.clipboard.writeText(template);
             setTemplateCopied(true);
             setAlert(null);
         } catch (error) {
-            setAlert({title: "Template could not be copied", message: error.message});
+            try {
+                copyWithTextArea(template);
+                setTemplateCopied(true);
+                setAlert(null);
+            } catch (fallbackError) {
+                setAlert({title: "Template could not be copied", message: fallbackError.message});
+            }
         }
     }
 

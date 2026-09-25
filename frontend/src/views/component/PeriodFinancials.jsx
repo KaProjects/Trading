@@ -191,7 +191,7 @@ export const PeriodFinancials = ({ttm, financials = [], indicators, marketCap, o
         <Box
             sx={{
                 ...sx,
-                maxWidth: "520px",
+                maxWidth: "550px",
                 borderLeft: "3px solid",
                 borderColor: "success.main",
                 bgcolor: "rgba(46, 125, 50, 0.04)",

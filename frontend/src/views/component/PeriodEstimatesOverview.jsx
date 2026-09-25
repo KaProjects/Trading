@@ -67,7 +67,7 @@ export const PeriodEstimatesOverview = ({
     return (
         <Box sx={{
             ...sx,
-            maxWidth: "520px",
+            maxWidth: "550px",
             borderLeft: "3px solid",
             borderColor: "warning.main",
             bgcolor: "rgba(237, 108, 2, 0.04)",

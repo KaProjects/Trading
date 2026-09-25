@@ -414,7 +414,7 @@ export const Research = props => {
                                         alignItems: "flex-end",
                                         justifyContent: !hasTradingView ? "space-between" : "flex-start",
                                         boxSizing: "border-box",
-                                        width: !hasTradingView ? {xs: "100%", sm: "520px"} : {xs: "100%", sm: "fit-content"},
+                                        width: !hasTradingView ? {xs: "100%", sm: "550px"} : {xs: "100%", sm: "fit-content"},
                                         paddingRight: !hasTradingView ? {xs: "30px", sm: 0} : 0,
                                     }}>
                                         <Box sx={{
@@ -430,8 +430,8 @@ export const Research = props => {
                                                     company={data.company}
                                                     onUnavailable={() => setUnavailableTradingViewSymbol(tradingViewSymbol)}
                                                     sx={{
-                                                        width: {xs: "auto", sm: "520px"},
-                                                        flex: {xs: "1 1 auto", sm: "0 0 520px"},
+                                                        width: {xs: "auto", sm: "550px"},
+                                                        flex: {xs: "1 1 auto", sm: "0 0 550px"},
                                                         minWidth: 0,
                                                         marginTop: "1px",
                                                     }}
@@ -496,7 +496,7 @@ export const Research = props => {
                                     display: "flex",
                                     alignItems: "flex-end",
                                     justifyContent: !hasTradingView ? "space-between" : "flex-start",
-                                    width: !hasTradingView ? {sm: "520px"} : "auto",
+                                    width: !hasTradingView ? {sm: "550px"} : "auto",
                                     paddingRight: !hasTradingView ? {xs: "30px", sm: 0} : 0,
                                 }}>
                                     {!hasTradingView && data.company.sector &&
