@@ -71,7 +71,12 @@ def parse_company_snapshot(
         try:
             companies[company_id] = model.model_validate(model_data)
         except ValidationError as exception:
-            companies[company_id] = None
+            # Existing, previously-valid data that no longer parses (for
+            # example an added field the model doesn't know yet) is not the
+            # same as "this company has no data" - the caller must not
+            # treat it as needing (re-)initialization. Leave it out of the
+            # result entirely so this run simply skips it, rather than
+            # mapping it to None like the genuinely-absent cases below.
             if error_reporter is None:
                 logger.error(
                     "Ignoring invalid %s data for company %s: %s",

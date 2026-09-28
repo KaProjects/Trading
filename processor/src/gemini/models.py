@@ -413,6 +413,15 @@ class CompanyBullBear(BaseModel):
     )
 
 
+class StoredBullBear(BaseModel):
+    # The persisted shape written by upsert_bull_bear: same as
+    # CompanyBullBear but without ticker, which isn't stored per-case.
+    model_config = ConfigDict(extra="forbid")
+
+    bull: list[BullBearPoint]
+    bear: list[BullBearPoint]
+
+
 class CompanyBullBearCases(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -626,6 +635,7 @@ class Company(BaseModel):
     info: Info
     quarters: dict[QuarterId, Quarter]
     targets: dict[str, CompanyTarget] = Field(default_factory=dict)
+    bull_bear: dict[str, StoredBullBear] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def quarter_keys_match_ids(self):

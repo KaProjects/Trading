@@ -212,6 +212,12 @@ def test_gemini_service_treats_partial_company_as_uninitialized():
 
 
 def test_firebase_validation_error_is_reported_with_company_context():
+    # Existing data that fails to parse (e.g. a schema change the model
+    # doesn't know yet) must not be reported as None: the runner treats
+    # None as "needs (re-)initialization" and would re-run the whole
+    # initialization flow against a company that already has real data.
+    # It must be left out of the result entirely instead, so the runner
+    # simply skips it for this run.
     service = make_service(GeminiFirebaseService)
     snapshot = {
         "AAPL": {
@@ -229,7 +235,7 @@ def test_firebase_validation_error_is_reported_with_company_context():
     ):
         companies = service.get_companies()
 
-    assert companies == {"AAPL": None}
+    assert companies == {}
     error = service.errors.report.call_args.args[0]
     service.errors.report.assert_called_once_with(
         error,

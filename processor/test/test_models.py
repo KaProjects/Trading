@@ -131,6 +131,55 @@ def test_gemini_company_serialization_round_trip():
     ) == report_dates
 
 
+def test_gemini_company_accepts_stored_bull_bear_data():
+    # Regression test: production incident where upsert_bull_bear's stored
+    # shape under gemini/bull_bear/<id> (bull/bear only, no ticker) wasn't
+    # a field on Company yet, so extra="forbid" rejected every company
+    # that had a bull/bear case - and the caller treated that parse
+    # failure the same as "no data", re-triggering full initialization
+    # for companies that already had complete data.
+    quarter = Quarter(
+        id="26Q1",
+        name="Q1 2026",
+        ending_month="26-03",
+        report_date_previous_quarter="2026-01-20",
+        report_date_this_quarter="2026-04-27",
+    )
+    stored_data = {
+        "info": {
+            "ticker": "WDC",
+            "currency": "$",
+            "last_update": "2026-04-27",
+            "current_quarter_id": "26Q1",
+        },
+        "quarters": {"26Q1": quarter.model_dump(mode="json")},
+        "bull_bear": {
+            "2026-09-27-a19df8": {
+                "bull": [{
+                    "point": "Growing AI storage demand.",
+                    "reasoning": "Backlog grew for a third straight quarter.",
+                }],
+                "bear": [{
+                    "point": "Pricing pressure on legacy drives.",
+                    "reasoning": (
+                        "Commodity pricing continues to weigh on margins "
+                        "returned to shareholders."
+                    ),
+                }],
+            },
+        },
+    }
+
+    company = Company.model_validate(stored_data)
+
+    assert company.bull_bear["2026-09-27-a19df8"].bull[0].point == (
+        "Growing AI storage demand."
+    )
+    assert company.bull_bear["2026-09-27-a19df8"].bear[0].point == (
+        "Pricing pressure on legacy drives."
+    )
+
+
 @pytest.mark.parametrize(
     "invalid_quarter_id",
     ["Q1", "2026Q1", "26Q5", "invalid"],
