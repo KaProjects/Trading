@@ -416,10 +416,13 @@ class CompanyBullBear(BaseModel):
 class StoredBullBear(BaseModel):
     # The persisted shape written by upsert_bull_bear: same as
     # CompanyBullBear but without ticker, which isn't stored per-case.
+    # Firebase silently drops empty-array fields on write, so a case with
+    # points on only one side is missing the other side's key entirely -
+    # default to empty rather than requiring both.
     model_config = ConfigDict(extra="forbid")
 
-    bull: list[BullBearPoint]
-    bear: list[BullBearPoint]
+    bull: list[BullBearPoint] = Field(default_factory=list)
+    bear: list[BullBearPoint] = Field(default_factory=list)
 
 
 class CompanyBullBearCases(BaseModel):

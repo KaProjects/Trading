@@ -180,6 +180,47 @@ def test_gemini_company_accepts_stored_bull_bear_data():
     )
 
 
+@pytest.mark.parametrize("missing_side", ["bull", "bear"])
+def test_gemini_company_accepts_stored_bull_bear_missing_empty_side(
+    missing_side,
+):
+    # Regression test: Firebase silently drops empty-array fields on
+    # write, so a case with points on only one side is missing the other
+    # side's key entirely once read back - that must default to an empty
+    # list, not fail validation as a required field.
+    quarter = Quarter(
+        id="26Q1",
+        name="Q1 2026",
+        ending_month="26-03",
+        report_date_previous_quarter="2026-01-20",
+        report_date_this_quarter="2026-04-27",
+    )
+    present_side = "bear" if missing_side == "bull" else "bull"
+    stored_data = {
+        "info": {
+            "ticker": "GEV",
+            "currency": "$",
+            "last_update": "2026-04-27",
+            "current_quarter_id": "26Q1",
+        },
+        "quarters": {"26Q1": quarter.model_dump(mode="json")},
+        "bull_bear": {
+            "2026-09-27-c5e623": {
+                present_side: [{
+                    "point": "Surging order backlog.",
+                    "reasoning": "Bookings doubled year-over-year.",
+                }],
+            },
+        },
+    }
+
+    company = Company.model_validate(stored_data)
+
+    case = company.bull_bear["2026-09-27-c5e623"]
+    assert getattr(case, missing_side) == []
+    assert len(getattr(case, present_side)) == 1
+
+
 @pytest.mark.parametrize(
     "invalid_quarter_id",
     ["Q1", "2026Q1", "26Q5", "invalid"],
