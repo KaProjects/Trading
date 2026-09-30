@@ -1,5 +1,5 @@
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -1629,27 +1629,34 @@ class TestStockDataRetriever:
         runner.errors.report.assert_not_called()
 
     @pytest.mark.parametrize(
-        ("days_old", "should_persist"),
+        ("existing_target_date", "should_persist"),
         [
-            (7, False),
-            (8, True),
+            # The quarter boundary itself (report_date_previous_quarter)
+            # still belongs to the previous quarter, so a same-quarter
+            # match to it never happens - not a duplicate.
+            ("2026-01-20", True),
+            # The day after the boundary is the first day of the current
+            # quarter - a same institution/price match here is a
+            # duplicate no matter how many days have since passed.
+            ("2026-01-21", False),
+            ("2026-07-14", False),
         ],
     )
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")
-    def test_same_price_target_uses_seven_day_duplicate_window(
+    def test_same_price_target_is_duplicate_within_current_quarter_only(
         self,
         mock_datetime,
         mock_is_past,
         runner,
-        days_old,
+        existing_target_date,
         should_persist,
     ):
         today = date(2026, 7, 21)
         mock_datetime.now.return_value = datetime(2026, 7, 21)
         existing_target = CompanyTarget(
             institution="Baird",
-            date=today - timedelta(days=days_old),
+            date=existing_target_date,
             price="400",
             rating="Outperform",
             source="existing.example.com",

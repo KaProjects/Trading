@@ -28,7 +28,6 @@ from gemini.service import FirebaseService
 from gemini.strings import ErrorMsg, LogMsg
 
 RUNNER_NAME = "StockDataRetriever"
-PRICE_TARGET_DUPLICATE_WINDOW_DAYS = 7
 PRICE_TARGET_LOOKBACK_DAYS = 2
 PRICE_TARGET_ONBOARDING_LOOKBACK_DAYS = 30
 REPORTED_QUARTER_DATA_FIELDS = (
@@ -499,6 +498,7 @@ class StockDataRetrieverRunner:
             companies,
             institutions,
         )
+        quarter_start_dates = self._quarter_start_dates(companies)
 
         notifiable_targets: dict[
             str, list[tuple[Target, InstitutionRecord]]
@@ -520,10 +520,12 @@ class StockDataRetrieverRunner:
                 {},
             )
             latest_target_date = ticker_target_dates.get(target_key)
+            quarter_start = quarter_start_dates.get(target.ticker)
             if (
                 latest_target_date is not None
-                and (target.date - latest_target_date).days
-                <= PRICE_TARGET_DUPLICATE_WINDOW_DAYS
+                and quarter_start is not None
+                and latest_target_date > quarter_start
+                and target.date > quarter_start
             ):
                 continue
 
@@ -806,6 +808,27 @@ class StockDataRetrieverRunner:
                     ticker_dates[target_key] = target.date
             latest_dates[ticker] = ticker_dates
         return latest_dates
+
+    @staticmethod
+    def _quarter_start_dates(
+        companies: dict[str, Company | None],
+    ) -> dict[str, date]:
+        # The current fiscal quarter starts the day after the previous
+        # quarter's report date; that date itself still belongs to the
+        # previous quarter.
+        quarter_starts = {}
+        for ticker, company in companies.items():
+            if company is None:
+                continue
+            current_quarter = company.quarters.get(
+                company.info.current_quarter_id
+            )
+            if current_quarter is None:
+                continue
+            quarter_starts[ticker] = (
+                current_quarter.report_date_previous_quarter
+            )
+        return quarter_starts
 
     @staticmethod
     def _price_target_key(
