@@ -205,6 +205,14 @@ def _build_gemini_runner(
         firebase_snapshot=firebase_snapshot,
         error_reporter=error_reporter,
     )
+    finnhub_service = _build_firebase_service(
+        args,
+        config,
+        production_factory=FinnhubFirebaseService,
+        fake_factory=FakeFinnhubFirebaseService,
+        firebase_snapshot=firebase_snapshot,
+        error_reporter=error_reporter,
+    )
     discord = _build_discord_client(
         args,
         config,
@@ -212,6 +220,7 @@ def _build_gemini_runner(
     return StockDataRetrieverRunner(
         client=gemini_client,
         service=service,
+        finnhub_service=finnhub_service,
         discord=discord,
         error_reporter=error_reporter,
     )

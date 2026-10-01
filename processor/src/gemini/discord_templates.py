@@ -1,9 +1,14 @@
 import logging
+from decimal import Decimal
 
 from gemini.models import InstitutionRating, InstitutionRecord, Quarter, Target
+from myfinnhub.models import Earnings
 
 logger = logging.getLogger(__name__)
 DISCORD_EMBED_DESCRIPTION_MAX_LENGTH = 4096
+# Finnhub's revenueEstimate/revenueActual are raw currency units; Gemini's
+# reported_revenues is in millions.
+FINNHUB_REVENUE_SCALE = Decimal(1_000_000)
 DISCORD_SPACER = "\u200b"
 QUARTER_REPORTER_USERNAME = "Quarterly Results Reporter"
 QUARTER_REPORTER_AVATAR_URL = (
@@ -18,6 +23,10 @@ TARGET_REPORTER_AVATAR_URL = (
 def quarter_report(
     quarter: Quarter,
     ticker: str,
+    *,
+    qoq_quarter: Quarter | None = None,
+    yoy_quarter: Quarter | None = None,
+    estimates: Earnings | None = None,
 ) -> dict[str, object]:
     return {
         "username": QUARTER_REPORTER_USERNAME,
@@ -26,17 +35,29 @@ def quarter_report(
             _quarter_report_embed(
                 quarter,
                 title=f"{ticker} - {quarter.name} report",
+                qoq_quarter=qoq_quarter,
+                yoy_quarter=yoy_quarter,
+                estimates=estimates,
             )
         ],
     }
 
 
-def ticker_quarter_report(quarter: Quarter) -> dict[str, object]:
+def ticker_quarter_report(
+    quarter: Quarter,
+    *,
+    qoq_quarter: Quarter | None = None,
+    yoy_quarter: Quarter | None = None,
+    estimates: Earnings | None = None,
+) -> dict[str, object]:
     return {
         "embeds": [
             _quarter_report_embed(
                 quarter,
                 title=f"{quarter.name} report",
+                qoq_quarter=qoq_quarter,
+                yoy_quarter=yoy_quarter,
+                estimates=estimates,
             )
         ],
     }
@@ -240,11 +261,283 @@ def format_financial(value: object) -> str:
     return str(round(result, 2)) + "M"
 
 
+def _percent_change(
+    new: Decimal | None,
+    old: Decimal | None,
+) -> Decimal | None:
+    # Dividing by abs(old) instead of old keeps the sign of the result
+    # meaningful (an improving loss reads as positive) even when the
+    # baseline is negative; only an exact zero baseline is unusable.
+    if new is None or old is None or old == 0:
+        return None
+    return (new - old) / abs(old) * 100
+
+
+def _format_signed_percent(value: Decimal, *, unit: str = "%") -> str:
+    # No direction icon: the sign on the value already says up or down,
+    # and every icon tried (colored emoji, plain triangle) either clashed
+    # visually with plain text or just added noise on top of the sign.
+    # Triple-digit-plus swings (common for a newly profitable or
+    # fast-scaling quarter) don't need decimal precision.
+    precision = 0 if abs(value) >= 100 else 1
+    return f"{value:+.{precision}f}{unit}"
+
+
+def _change_text(
+    current: Decimal | None,
+    qoq_quarter: Quarter | None,
+    yoy_quarter: Quarter | None,
+    field: str,
+    *,
+    unit: str = "%",
+) -> str:
+    # The QoQ/YoY order is explained once in the section's field name
+    # ("Financials (QoQ/YoY)"), so when both are present the values alone
+    # ("+12.5% +27.5%") are unambiguous. Only fall back to a per-value
+    # label when just one side is available, since position alone can't
+    # disambiguate a single lone value.
+    qoq_change = (
+        _percent_change(current, getattr(qoq_quarter, field))
+        if qoq_quarter is not None
+        else None
+    )
+    yoy_change = (
+        _percent_change(current, getattr(yoy_quarter, field))
+        if yoy_quarter is not None
+        else None
+    )
+    if qoq_change is not None and yoy_change is not None:
+        return (
+            f"{_format_signed_percent(qoq_change, unit=unit)}, "
+            f"{_format_signed_percent(yoy_change, unit=unit)}"
+        )
+    if qoq_change is not None:
+        return f"{_format_signed_percent(qoq_change, unit=unit)} QoQ"
+    if yoy_change is not None:
+        return f"{_format_signed_percent(yoy_change, unit=unit)} YoY"
+    return ""
+
+
+def _financial_line(
+    label: str,
+    quarter: Quarter,
+    qoq_quarter: Quarter | None,
+    yoy_quarter: Quarter | None,
+    field: str,
+) -> str:
+    # One logical line, QoQ/YoY detail trailing in italicized parens -
+    # Discord's own word-wrap already puts it on a second line on a
+    # narrow (mobile) screen while keeping it on one line where it fits.
+    current = getattr(quarter, field)
+    line = f"{label}: {format_financial(current) or '-'}"
+    change = _change_text(current, qoq_quarter, yoy_quarter, field)
+    if change:
+        line += f" *({change})*"
+    return line
+
+
+def _eps_line(quarter: Quarter) -> str:
+    # No QoQ/YoY here: EPS moves in lockstep with Net Income, which
+    # already carries that comparison above it.
+    current = quarter.reported_eps
+    return f"EPS: {current if current is not None else '-'}"
+
+
+def _margin(
+    profit: Decimal | None,
+    revenue: Decimal | None,
+) -> Decimal | None:
+    # A non-positive revenue makes profit / revenue meaningless (sign
+    # flips, or a division by zero), regardless of the profit's own sign.
+    if profit is None or revenue is None or revenue <= 0:
+        return None
+    return profit / revenue * 100
+
+
+def _margin_change_text(
+    current_margin: Decimal,
+    qoq_quarter: Quarter | None,
+    yoy_quarter: Quarter | None,
+    profit_field: str,
+) -> str:
+    qoq_margin = (
+        _margin(
+            getattr(qoq_quarter, profit_field), qoq_quarter.reported_revenues
+        )
+        if qoq_quarter is not None
+        else None
+    )
+    yoy_margin = (
+        _margin(
+            getattr(yoy_quarter, profit_field), yoy_quarter.reported_revenues
+        )
+        if yoy_quarter is not None
+        else None
+    )
+    qoq_delta = None if qoq_margin is None else current_margin - qoq_margin
+    yoy_delta = None if yoy_margin is None else current_margin - yoy_margin
+    if qoq_delta is not None and yoy_delta is not None:
+        return (
+            f"{_format_signed_percent(qoq_delta, unit='pp')}, "
+            f"{_format_signed_percent(yoy_delta, unit='pp')}"
+        )
+    if qoq_delta is not None:
+        return f"{_format_signed_percent(qoq_delta, unit='pp')} QoQ"
+    if yoy_delta is not None:
+        return f"{_format_signed_percent(yoy_delta, unit='pp')} YoY"
+    return ""
+
+
+def _margin_line(
+    label: str,
+    quarter: Quarter,
+    qoq_quarter: Quarter | None,
+    yoy_quarter: Quarter | None,
+    profit_field: str,
+) -> str | None:
+    current_margin = _margin(
+        getattr(quarter, profit_field),
+        quarter.reported_revenues,
+    )
+    if current_margin is None:
+        return None
+
+    line = f"{label}: {current_margin:.1f}%"
+    change = _margin_change_text(
+        current_margin, qoq_quarter, yoy_quarter, profit_field
+    )
+    if change:
+        line += f" *({change})*"
+    return line
+
+
+def _estimates_field(
+    quarter: Quarter,
+    estimates: Earnings | None,
+) -> dict[str, object] | None:
+    if estimates is None:
+        return None
+
+    # The actual value already appears as the headline figure in
+    # Financials; repeating it here would be redundant, so this only
+    # states the estimate and the beat/miss result against it.
+    lines = []
+    eps_surprise = _percent_change(quarter.reported_eps, estimates.epse)
+    if eps_surprise is not None:
+        verb = "beat" if eps_surprise >= 0 else "miss"
+        lines.append(
+            f"EPS: est. {estimates.epse} "
+            f"*({verb} {_format_signed_percent(eps_surprise)})*"
+        )
+    # Finnhub reports revenue in raw currency units; Gemini's reported_*
+    # fields are in millions, so the estimate must be rescaled before it's
+    # comparable.
+    revenue_estimate = (
+        estimates.reve / FINNHUB_REVENUE_SCALE
+        if estimates.reve is not None
+        else None
+    )
+    revenue_surprise = _percent_change(
+        quarter.reported_revenues, revenue_estimate
+    )
+    if revenue_surprise is not None:
+        verb = "beat" if revenue_surprise >= 0 else "miss"
+        lines.append(
+            f"Revenue: est. {format_financial(revenue_estimate)} "
+            f"*({verb} {_format_signed_percent(revenue_surprise)})*"
+        )
+    if not lines:
+        return None
+    return {"name": "vs. Estimates", "value": "\n".join(lines), "inline": False}
+
+
 def _quarter_report_embed(
     quarter: Quarter,
     *,
     title: str,
+    qoq_quarter: Quarter | None = None,
+    yoy_quarter: Quarter | None = None,
+    estimates: Earnings | None = None,
 ) -> dict[str, object]:
+    financials_value = "\n".join([
+        _financial_line(
+            "Revenue", quarter, qoq_quarter, yoy_quarter, "reported_revenues"
+        ),
+        _financial_line(
+            "Gross Profit",
+            quarter,
+            qoq_quarter,
+            yoy_quarter,
+            "reported_gross_profit",
+        ),
+        _financial_line(
+            "Oper. Income",
+            quarter,
+            qoq_quarter,
+            yoy_quarter,
+            "reported_operating_income",
+        ),
+        _financial_line(
+            "Net Income",
+            quarter,
+            qoq_quarter,
+            yoy_quarter,
+            "reported_net_income",
+        ),
+        f"CapEx: {format_financial(quarter.reported_capex) or '-'}",
+        (
+            "Free Cash Flow: "
+            f"{format_financial(quarter.reported_free_cash_flow) or '-'}"
+        ),
+        f"Divs: {format_financial(quarter.reported_div) or '-'}",
+        f"Shares: {format_financial(quarter.reported_shares) or '-'}",
+        _eps_line(quarter),
+    ])
+    # The QoQ/YoY order is stated once in the section name instead of on
+    # every line - see _change_text.
+    change_suffix = (
+        " (QoQ/YoY)" if qoq_quarter is not None or yoy_quarter is not None
+        else ""
+    )
+    fields = [
+        {
+            "name": f"**Financials**{change_suffix}",
+            "value": financials_value,
+            "inline": False,
+        },
+    ]
+
+    estimates_field = _estimates_field(quarter, estimates)
+    if estimates_field is not None:
+        fields.append(estimates_field)
+
+    margin_lines = [
+        line
+        for line in (
+            _margin_line(
+                label, quarter, qoq_quarter, yoy_quarter, profit_field
+            )
+            for label, profit_field in (
+                ("Gross Margin", "reported_gross_profit"),
+                ("Oper. Margin", "reported_operating_income"),
+                ("Net Margin", "reported_net_income"),
+            )
+        )
+        if line is not None
+    ]
+    if margin_lines:
+        fields.append({
+            "name": "Margins",
+            "value": "\n".join(margin_lines),
+            "inline": False,
+        })
+
+    fields.append({
+        "name": "Price Range (from previous report)",
+        "value": f"Low: ${quarter.price_min} — High: ${quarter.price_max}",
+        "inline": False,
+    })
+
     return {
         "title": title,
         "description": (
@@ -252,29 +545,5 @@ def _quarter_report_embed(
             f"reported: {quarter.report_date_this_quarter}"
         ),
         "color": 3066993,
-        "fields": [
-            {
-                "name": "Financials",
-                "value": (
-                    f"**Revenues:** {format_financial(quarter.reported_revenues)}\n"
-                    f"**Gross Profit:** {format_financial(quarter.reported_gross_profit)}\n"
-                    f"**Oper. Income:** {format_financial(quarter.reported_operating_income)}\n"
-                    f"**Net Income:** {format_financial(quarter.reported_net_income)}\n"
-                    f"**CapEx:** {format_financial(quarter.reported_capex)}\n"
-                    f"**Free Cash Flow:** {format_financial(quarter.reported_free_cash_flow)}\n"
-                    f"**Divs:** {format_financial(quarter.reported_div)}\n"
-                    f"**Shares:** {format_financial(quarter.reported_shares)}\n"
-                    f"**EPS:** {quarter.reported_eps}"
-                ),
-                "inline": False,
-            },
-            {
-                "name": "Price Range (from previous report)",
-                "value": (
-                    f"Low: **${quarter.price_min}** — "
-                    f"High: **${quarter.price_max}**"
-                ),
-                "inline": False,
-            },
-        ],
+        "fields": fields,
     }

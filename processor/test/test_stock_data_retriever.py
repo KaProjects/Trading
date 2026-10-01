@@ -33,6 +33,10 @@ from gemini.models import (
 from gemini.service import FirebaseService
 from gemini.institutions import InstitutionRegistry
 from gemini.retriever import StockDataRetrieverRunner
+from myfinnhub.models import Company as FinnhubCompany
+from myfinnhub.models import Earnings
+from myfinnhub.models import Quarter as FinnhubQuarter
+from myfinnhub.service import FirebaseService as FinnhubFirebaseService
 
 
 def make_quarter(
@@ -106,12 +110,22 @@ def make_quarter_report_result(quarter, raw_response=""):
     )
 
 
+def make_earnings(report="2026-08-04", **overrides):
+    data = {"epsa": None, "epse": None, "reva": None, "reve": None}
+    data.update(overrides)
+    return Earnings(report=report, **data)
+
+
 class TestStockDataRetriever:
     @pytest.fixture
     def runner(self):
         instance = object.__new__(StockDataRetrieverRunner)
         instance.client = create_autospec(GeminiClient, instance=True)
         instance.service = create_autospec(FirebaseService, instance=True)
+        instance.finnhub_service = create_autospec(
+            FinnhubFirebaseService,
+            instance=True,
+        )
         instance.discord = create_autospec(
             DiscordClient,
             instance=True,
@@ -122,6 +136,7 @@ class TestStockDataRetriever:
             targets=[]
         )
         instance.service.get_institutions.return_value = {}
+        instance.finnhub_service.get_companies.return_value = {}
         instance.discord.post_if_channel_exists.return_value = None
         yield instance
 
@@ -2072,8 +2087,306 @@ class TestStockDataRetriever:
         assert payload["username"] == "Quarterly Results Reporter"
         assert payload["avatar_url"].endswith("/1390/1390704.png")
         financials = payload["embeds"][0]["fields"][0]["value"]
-        assert "**CapEx:** 75.0M" in financials
-        assert "**Free Cash Flow:** 180.0M" in financials
+        assert "CapEx: 75.0M" in financials
+        assert "Free Cash Flow: 180.0M" in financials
+
+    def test_quarter_report_shows_dash_for_missing_capex_fcf_divs_shares(
+        self,
+        runner,
+    ):
+        payload = discord_templates.quarter_report(
+            make_quarter(quarter_id="26Q2"),
+            "AAPL",
+        )
+
+        financials = payload["embeds"][0]["fields"][0]["value"]
+        assert "CapEx: -" in financials
+        assert "Free Cash Flow: -" in financials
+        assert "Divs: -" in financials
+        assert "Shares: -" in financials
+
+    def test_quarter_report_shows_qoq_and_yoy_percent_change(self, runner):
+        current_quarter = make_complete_quarter(
+            quarter_id="26Q2",
+            reported_revenues="1000",
+            reported_eps="1.25",
+        )
+        qoq_quarter = make_complete_quarter(
+            quarter_id="26Q1",
+            reported_revenues="800",
+            reported_eps="1.00",
+        )
+        yoy_quarter = make_complete_quarter(
+            quarter_id="25Q2",
+            reported_revenues="500",
+            reported_eps="0.50",
+        )
+
+        payload = discord_templates.quarter_report(
+            current_quarter,
+            "AAPL",
+            qoq_quarter=qoq_quarter,
+            yoy_quarter=yoy_quarter,
+        )
+
+        financials = payload["embeds"][0]["fields"][0]["value"]
+        assert "Revenue: 1.0B *(+25.0%, +100%)*" in financials
+        assert "EPS: 1.25" in financials
+
+    def test_quarter_report_drops_decimal_at_100_percent_threshold(
+        self,
+        runner,
+    ):
+        baseline = make_quarter(quarter_id="26Q1", reported_net_income="100")
+
+        under_100 = make_quarter(
+            quarter_id="26Q2", reported_net_income="199"
+        )
+        payload = discord_templates.quarter_report(
+            under_100, "AAPL", qoq_quarter=baseline,
+        )
+        financials = payload["embeds"][0]["fields"][0]["value"]
+        assert "Net Income: 199.0M *(+99.0% QoQ)*" in financials
+
+        at_100 = make_quarter(quarter_id="26Q2", reported_net_income="200")
+        payload = discord_templates.quarter_report(
+            at_100, "AAPL", qoq_quarter=baseline,
+        )
+        financials = payload["embeds"][0]["fields"][0]["value"]
+        assert "Net Income: 200.0M *(+100% QoQ)*" in financials
+
+    def test_quarter_report_change_uses_abs_denominator_for_negative_baseline(
+        self,
+        runner,
+    ):
+        # A loss narrowing from -100 to -50 is an improvement; the naive
+        # (new - old) / old formula would show it as a decline because the
+        # baseline is negative.
+        current_quarter = make_quarter(
+            quarter_id="26Q2",
+            reported_net_income="-50",
+        )
+        qoq_quarter = make_quarter(
+            quarter_id="26Q1",
+            reported_net_income="-100",
+        )
+
+        payload = discord_templates.quarter_report(
+            current_quarter,
+            "AAPL",
+            qoq_quarter=qoq_quarter,
+        )
+
+        financials = payload["embeds"][0]["fields"][0]["value"]
+        assert "Net Income: -50.0M *(+50.0% QoQ)*" in financials
+
+    def test_quarter_report_omits_yoy_when_comparison_quarter_unavailable(
+        self,
+        runner,
+    ):
+        current_quarter = make_complete_quarter(
+            quarter_id="26Q2",
+            reported_revenues="1000",
+        )
+        qoq_quarter = make_complete_quarter(
+            quarter_id="26Q1",
+            reported_revenues="800",
+        )
+
+        payload = discord_templates.quarter_report(
+            current_quarter,
+            "AAPL",
+            qoq_quarter=qoq_quarter,
+            yoy_quarter=None,
+        )
+
+        financials = payload["embeds"][0]["fields"][0]["value"]
+        assert "Revenue: 1.0B *(+25.0% QoQ)*" in financials
+        assert "YoY" not in financials
+
+    def test_quarter_report_margins_in_percentage_points(self, runner):
+        current_quarter = make_complete_quarter(
+            quarter_id="26Q2",
+            reported_revenues="1000",
+            reported_gross_profit="500",
+            reported_operating_income="300",
+            reported_net_income="200",
+        )
+        qoq_quarter = make_complete_quarter(
+            quarter_id="26Q1",
+            reported_revenues="800",
+            reported_gross_profit="320",
+            reported_operating_income="160",
+            reported_net_income="80",
+        )
+
+        payload = discord_templates.quarter_report(
+            current_quarter,
+            "AAPL",
+            qoq_quarter=qoq_quarter,
+        )
+
+        fields_by_name = {
+            field["name"]: field["value"]
+            for field in payload["embeds"][0]["fields"]
+        }
+        assert fields_by_name["Margins"] == (
+            "Gross Margin: 50.0% *(+10.0pp QoQ)*\n"
+            "Oper. Margin: 30.0% *(+10.0pp QoQ)*\n"
+            "Net Margin: 20.0% *(+10.0pp QoQ)*"
+        )
+
+    def test_quarter_report_skips_margin_when_revenue_is_nonpositive(
+        self,
+        runner,
+    ):
+        current_quarter = make_quarter(
+            quarter_id="26Q2",
+            reported_revenues="0",
+            reported_net_income="-50",
+        )
+
+        payload = discord_templates.quarter_report(current_quarter, "AAPL")
+
+        field_names = {
+            field["name"] for field in payload["embeds"][0]["fields"]
+        }
+        assert "Margins" not in field_names
+
+    def test_quarter_report_vs_estimates_shows_beat_and_miss(self, runner):
+        current_quarter = make_quarter(
+            quarter_id="26Q2",
+            reported_eps="1.38",
+            reported_revenues="11536",
+        )
+        # reve is Finnhub's raw-dollar estimate (millions * 1,000,000).
+        estimates = make_earnings(epse="1.25", reve="11180000000")
+
+        payload = discord_templates.quarter_report(
+            current_quarter,
+            "AAPL",
+            estimates=estimates,
+        )
+
+        fields_by_name = {
+            field["name"]: field["value"]
+            for field in payload["embeds"][0]["fields"]
+        }
+        assert fields_by_name["vs. Estimates"] == (
+            "EPS: est. 1.25 *(beat +10.4%)*\n"
+            "Revenue: est. 11.18B *(beat +3.2%)*"
+        )
+
+    def test_quarter_report_omits_estimates_field_when_unavailable(
+        self,
+        runner,
+    ):
+        current_quarter = make_quarter(quarter_id="26Q2")
+
+        payload = discord_templates.quarter_report(current_quarter, "AAPL")
+
+        field_names = {
+            field["name"] for field in payload["embeds"][0]["fields"]
+        }
+        assert "vs. Estimates" not in field_names
+
+    @pytest.mark.parametrize(
+        ("quarter_id", "quarters_back", "expected"),
+        [
+            ("26Q2", 1, "26Q1"),
+            ("26Q1", 1, "25Q4"),
+            ("26Q4", 1, "26Q3"),
+            ("26Q2", 4, "25Q2"),
+            ("26Q1", 4, "25Q1"),
+        ],
+    )
+    def test_quarter_id_offset(
+        self,
+        runner,
+        quarter_id,
+        quarters_back,
+        expected,
+    ):
+        assert (
+            StockDataRetrieverRunner._quarter_id_offset(
+                quarter_id,
+                quarters_back,
+            )
+            == expected
+        )
+
+    @patch("utils.is_past_date")
+    @patch("gemini.retriever.datetime")
+    def test_reporting_includes_qoq_yoy_and_estimates_from_history(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 8, 4)
+        mock_is_past.return_value = True
+        qoq_quarter = make_complete_quarter(
+            quarter_id="26Q1",
+            report_date="2026-05-05",
+            reported_revenues="800",
+        )
+        yoy_quarter = make_complete_quarter(
+            quarter_id="25Q2",
+            report_date="2025-08-05",
+            reported_revenues="500",
+        )
+        current_quarter = make_quarter(
+            quarter_id="26Q2",
+            report_date="2026-08-04",
+            previous_report_date="2026-05-05",
+        )
+        company = make_company(
+            "AAPL",
+            "26Q2",
+            {
+                "26Q1": qoq_quarter,
+                "25Q2": yoy_quarter,
+                "26Q2": current_quarter,
+            },
+        )
+        runner.service.get_companies.return_value = {"AAPL": company}
+        reported_quarter = make_complete_quarter(
+            quarter_id="26Q2",
+            report_date="2026-08-04",
+            previous_report_date="2026-05-05",
+            reported_revenues="1000",
+        )
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(reported_quarter)
+        )
+        runner.compose_new_quarter = create_autospec(
+            runner.compose_new_quarter,
+            return_value=make_quarter(
+                quarter_id="26Q3",
+                report_date="",
+                previous_report_date="2026-08-04",
+            ),
+        )
+        finnhub_company = FinnhubCompany(root={
+            "26Q2": FinnhubQuarter(root={
+                "20260801": make_earnings(
+                    "2026-08-01", epse="1.20", reve="950000000",
+                ),
+            }),
+        })
+        runner.finnhub_service.get_companies.return_value = {
+            "AAPL": finnhub_company,
+        }
+
+        runner.run()
+
+        payload = runner.discord.post_earnings.call_args.args[0]
+        fields_by_name = {
+            field["name"]: field["value"]
+            for field in payload["embeds"][0]["fields"]
+        }
+        assert "**Financials** (QoQ/YoY)" in fields_by_name
+        assert "vs. Estimates" in fields_by_name
 
     @patch("gemini.retriever.datetime")
     def test_check_report_dates_next_week_logs_error_when_not_sunday(self, mock_datetime, runner):

@@ -26,6 +26,9 @@ from gemini.models import (
 )
 from gemini.service import FirebaseService
 from gemini.strings import ErrorMsg, LogMsg
+from myfinnhub.models import Company as FinnhubCompany
+from myfinnhub.models import Earnings as FinnhubEarnings
+from myfinnhub.service import FirebaseService as FinnhubFirebaseService
 
 RUNNER_NAME = "StockDataRetriever"
 PRICE_TARGET_LOOKBACK_DAYS = 2
@@ -65,6 +68,7 @@ class StockDataRetrieverRunner:
         gemini_api_key: str | None = None,
         client: GeminiClient | None = None,
         service: FirebaseService | None = None,
+        finnhub_service: FinnhubFirebaseService | None = None,
         discord: DiscordClient | None = None,
         error_reporter: ErrorReporter | None = None,
     ) -> None:
@@ -86,11 +90,15 @@ class StockDataRetrieverRunner:
             if service is not None
             else FirebaseService(error_reporter=self.errors)
         )
+        self.finnhub_service = finnhub_service or FinnhubFirebaseService(
+            error_reporter=self.errors,
+        )
         self.discord = discord
 
     def run(self):
         try:
             companies: dict = self.service.get_companies()
+            finnhub_companies = self.finnhub_service.get_companies()
             report_dates = ReportDates(report_dates=list())
             for company_id in companies:
                 try:
@@ -174,6 +182,8 @@ class StockDataRetrieverRunner:
                                     self._notify_quarter_report(
                                         company_id,
                                         current_quarter_reported,
+                                        company,
+                                        finnhub_companies.get(company_id),
                                     )
                             else:
                                 report_dates.report_dates.append(ReportDate(ticker=company_id, quarter=current_quarter.id, report_date=current_quarter.report_date_this_quarter))
@@ -871,14 +881,32 @@ class StockDataRetrieverRunner:
         self,
         ticker: str,
         quarter: Quarter,
+        company: Company,
+        finnhub_company: FinnhubCompany | None,
     ) -> None:
+        qoq_quarter = company.quarters.get(
+            self._quarter_id_offset(quarter.id, 1)
+        )
+        yoy_quarter = company.quarters.get(
+            self._quarter_id_offset(quarter.id, 4)
+        )
+        estimates = self._quarter_estimates(finnhub_company, quarter.id)
+
         earnings_report = discord_templates.quarter_report(
             quarter,
             ticker,
+            qoq_quarter=qoq_quarter,
+            yoy_quarter=yoy_quarter,
+            estimates=estimates,
         )
         message_url = self.discord.post_if_channel_exists(
             ticker,
-            discord_templates.ticker_quarter_report(quarter),
+            discord_templates.ticker_quarter_report(
+                quarter,
+                qoq_quarter=qoq_quarter,
+                yoy_quarter=yoy_quarter,
+                estimates=estimates,
+            ),
         )
         if not message_url:
             self.discord.post_earnings(earnings_report)
@@ -887,6 +915,30 @@ class StockDataRetrieverRunner:
         self.discord.post_earnings(
             discord_templates.quarter_report_link(ticker, message_url)
         )
+
+    @staticmethod
+    def _quarter_id_offset(quarter_id: str, quarters_back: int) -> str:
+        year = int(quarter_id[:2])
+        quarter = int(quarter_id[3])
+        total = quarter - 1 - quarters_back
+        year += total // 4
+        quarter = total % 4 + 1
+        return f"{year % 100:02d}Q{quarter}"
+
+    @staticmethod
+    def _quarter_estimates(
+        finnhub_company: FinnhubCompany | None,
+        quarter_id: str,
+    ) -> FinnhubEarnings | None:
+        if finnhub_company is None:
+            return None
+        finnhub_quarter = finnhub_company.root.get(quarter_id)
+        if finnhub_quarter is None:
+            return None
+        snapshots = finnhub_quarter.root
+        if not snapshots:
+            return None
+        return snapshots[max(snapshots)]
 
     def compose_new_quarter(self, previous_quarter: Quarter) -> Quarter:
         previous_id_year = int(previous_quarter.id[:2])
