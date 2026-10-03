@@ -1,7 +1,7 @@
 import React from "react";
 import {fireEvent, render, screen} from "@testing-library/react";
 
-jest.mock("../../properties", () => ({backend: "/api", apiDocsUrl: "http://localhost:9090/api/docs/"}));
+jest.mock("../../properties", () => ({backend: "/api", apiDocsUrl: "/api/docs/"}));
 
 import {Admin} from "../Admin";
 
@@ -47,7 +47,7 @@ describe("Admin", () => {
 
         fireEvent.click(screen.getByText("API Docs"));
 
-        expect(window.open).toHaveBeenCalledWith("http://localhost:9090/api/docs/", "_blank");
+        expect(window.open).toHaveBeenCalledWith("/api/docs/", "_blank");
         expect(window.location.href).toBe("");
     });
 });
