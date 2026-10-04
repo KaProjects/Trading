@@ -9,7 +9,10 @@ from pydantic import BaseModel
 from cmc.models import BitcoinQuote, FearAndGreedReading
 from dev import data
 from error_reporting import ErrorReporter
-from firebase_repository import parse_company_snapshot
+from firebase_repository import (
+    parse_company_snapshot,
+    ticker_to_firebase_key,
+)
 from gemini.client import InitialCompanyResult, QuarterReportResult
 from gemini.institutions import (
     InstitutionRegistry,
@@ -26,6 +29,7 @@ from gemini.models import (
     TargetCandidates,
 )
 from gemini.service import create_target_id, required_company_fields
+from indicators.models import Indicators, PriceIndicator
 from myfinnhub.models import (
     Company as FinnhubCompany,
     Earnings,
@@ -399,6 +403,28 @@ class FakeGeminiFirebaseService:
         if company is None:
             raise KeyError(f"Unknown fake company: {company_id}")
         return company
+
+
+class FakeIndicatorsFirebaseService:
+    def __init__(
+        self,
+        snapshot: object,
+        error_reporter: ErrorReporter | None = None,
+    ) -> None:
+        self.snapshot = snapshot if isinstance(snapshot, dict) else {}
+
+    def get_prices(self, company_ids) -> dict[str, PriceIndicator]:
+        prices = {}
+        for company_id in company_ids:
+            company = self.snapshot.get(ticker_to_firebase_key(company_id))
+            node = company.get("indicators") if isinstance(company, dict) else None
+            if node is None:
+                continue
+            price = Indicators.model_validate(node).price
+            if price is not None:
+                prices[company_id] = price
+        _log_operation("FAKE GET", "Firebase /company/*/indicators/price")
+        return prices
 
 
 class FakeFinnhubFirebaseService:

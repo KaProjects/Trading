@@ -13,6 +13,7 @@ from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from gemini.retriever import StockDataRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
+from polygon.prices_retriever import PolygonPricesRetrieverRunner
 from polygon.retriever import PolygonNewsRetrieverRunner
 
 logger = logging.getLogger(__name__)
@@ -21,9 +22,10 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Application:
     btc_runner: BtcFearAndGreedRetrieverRunner
+    polygon_prices_runner: PolygonPricesRetrieverRunner
     finnhub_runner: FinnhubEarningsRetrieverRunner
     stock_runner: StockDataRetrieverRunner
-    polygon_runner: PolygonNewsRetrieverRunner
+    polygon_news_runner: PolygonNewsRetrieverRunner
     onboarding_watcher: CompanyOnboardingWatcher
     errors: ErrorReporter
     timezone: str
@@ -39,14 +41,17 @@ class Application:
         self.scheduler.every().day.at("03:00", self.timezone).do(
             self.btc_runner.run
         )
-        self.scheduler.every().day.at("07:00", self.timezone).do(
+        self.scheduler.every().day.at("07:30", self.timezone).do(
+            self.polygon_prices_runner.run
+        )
+        self.scheduler.every().day.at("07:45", self.timezone).do(
             self.finnhub_runner.run
         )
         self.scheduler.every().day.at("08:00", self.timezone).do(
             self.stock_runner.run
         )
         self.scheduler.every().sunday.at("09:00", self.timezone).do(
-            self.polygon_runner.run
+            self.polygon_news_runner.run
         )
         self._jobs_configured = True
 
@@ -112,10 +117,14 @@ def create_app(
         discord=discord,
         error_reporter=errors,
     )
-    polygon_runner = PolygonNewsRetrieverRunner(
+    polygon_news_runner = PolygonNewsRetrieverRunner(
         polygon_api_key=config.polygon_api_key.get_secret_value(),
         gemini_api_key=config.gemini_api_key.get_secret_value(),
         discord=discord,
+        error_reporter=errors,
+    )
+    polygon_prices_runner = PolygonPricesRetrieverRunner(
+        polygon_api_key=config.polygon_api_key.get_secret_value(),
         error_reporter=errors,
     )
     return Application(
@@ -124,13 +133,14 @@ def create_app(
             discord=discord,
             error_reporter=errors,
         ),
+        polygon_prices_runner=polygon_prices_runner,
         finnhub_runner=finnhub_runner,
         stock_runner=stock_runner,
-        polygon_runner=polygon_runner,
+        polygon_news_runner=polygon_news_runner,
         onboarding_watcher=CompanyOnboardingWatcher(
             gemini=stock_runner,
             finnhub=finnhub_runner,
-            polygon=polygon_runner,
+            polygon_news=polygon_news_runner,
             discord=discord,
             error_reporter=errors,
         ),

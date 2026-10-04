@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import Mock, call, create_autospec, patch
 
@@ -7,6 +8,7 @@ from requests import Session
 from requests.exceptions import Timeout
 
 from polygon.client import (
+    GROUPED_DAILY_TIMEOUT_SECONDS,
     RATE_LIMIT_MAX_RETRIES,
     RATE_LIMIT_RETRY_DELAY_SECONDS,
     PolygonClient,
@@ -189,3 +191,96 @@ def test_get_latest_news_raises_after_rate_limit_retries(client, caplog):
     assert session.get.call_count == RATE_LIMIT_MAX_RETRIES + 1
     assert sleeper.call_count == RATE_LIMIT_MAX_RETRIES
     assert "still rate limited after 3 retries" in caplog.text
+
+
+def bar(ticker, close):
+    return {
+        "T": ticker,
+        "c": close,
+        "o": 1.0,
+        "h": 2.0,
+        "l": 0.5,
+        "v": 100.0,
+        "vw": 1.1,
+        "t": 1790971200000,
+        "n": 10,
+    }
+
+
+def grouped_payload(*bars):
+    return {
+        "queryCount": len(bars),
+        "resultsCount": len(bars),
+        "adjusted": True,
+        "status": "OK",
+        "request_id": "request-123",
+        "results": list(bars),
+    }
+
+
+def test_get_grouped_daily_requests_the_date_and_parses_closes(client):
+    instance, session, _ = client
+    session.get.return_value = response(
+        grouped_payload(bar("MU", 1074.89), bar("BRK.B", 502.65))
+    )
+
+    result = instance.get_grouped_daily(date(2026, 10, 2))
+
+    session.get.assert_called_once_with(
+        "https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/"
+        "2026-10-02",
+        params={"adjusted": "true"},
+        timeout=GROUPED_DAILY_TIMEOUT_SECONDS,
+    )
+    assert {bar.ticker: bar.close for bar in result.results} == {
+        "MU": Decimal("1074.89"),
+        "BRK.B": Decimal("502.65"),
+    }
+
+
+def test_get_grouped_daily_has_no_results_on_a_non_trading_day(client):
+    instance, session, _ = client
+    session.get.return_value = response({
+        "queryCount": 0,
+        "resultsCount": 0,
+        "adjusted": True,
+        "status": "OK",
+        "request_id": "request-123",
+    })
+
+    assert instance.get_grouped_daily(date(2026, 10, 3)).results == []
+
+
+def test_get_grouped_daily_drops_invalid_bars_and_keeps_the_rest(client):
+    instance, session, _ = client
+    session.get.return_value = response(grouped_payload(
+        bar("MU", 1074.89),
+        {"T": "NOCLOSE"},
+        bar("ZERO", 0),
+        bar("NVDA", 233.95),
+    ))
+
+    result = instance.get_grouped_daily(date(2026, 10, 2))
+
+    assert [bar.ticker for bar in result.results] == ["MU", "NVDA"]
+
+
+def test_get_grouped_daily_raises_typed_error_on_invalid_response(client):
+    instance, session, _ = client
+    session.get.return_value = response({"results": "not-a-list"})
+
+    with pytest.raises(PolygonClientError, match="invalid response"):
+        instance.get_grouped_daily(date(2026, 10, 2))
+
+
+def test_get_grouped_daily_retries_rate_limit(client):
+    instance, session, sleeper = client
+    session.get.side_effect = [
+        response({}, status_code=429),
+        response(grouped_payload(bar("MU", 1074.89))),
+    ]
+
+    result = instance.get_grouped_daily(date(2026, 10, 2))
+
+    sleeper.assert_called_once_with(RATE_LIMIT_RETRY_DELAY_SECONDS)
+    assert [bar.ticker for bar in result.results] == ["MU"]

@@ -16,6 +16,7 @@ from main import (
     create_error_reporter,
 )
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
+from polygon.prices_retriever import PolygonPricesRetrieverRunner
 from polygon.retriever import PolygonNewsRetrieverRunner
 
 
@@ -44,12 +45,16 @@ def make_application():
             BtcFearAndGreedRetrieverRunner,
             instance=True,
         ),
+        polygon_prices_runner=create_autospec(
+            PolygonPricesRetrieverRunner,
+            instance=True,
+        ),
         finnhub_runner=create_autospec(
             FinnhubEarningsRetrieverRunner,
             instance=True,
         ),
         stock_runner=create_autospec(StockDataRetrieverRunner, instance=True),
-        polygon_runner=create_autospec(
+        polygon_news_runner=create_autospec(
             PolygonNewsRetrieverRunner,
             instance=True,
         ),
@@ -69,10 +74,11 @@ def test_application_configures_jobs_in_explicit_timezone():
     app.configure_jobs()
     app.configure_jobs()
 
-    assert len(app.scheduler.jobs) == 4
+    assert len(app.scheduler.jobs) == 5
     assert [job.at_time.strftime("%H:%M") for job in app.scheduler.jobs] == [
         "03:00",
-        "07:00",
+        "07:30",
+        "07:45",
         "08:00",
         "09:00",
     ]
@@ -85,9 +91,10 @@ def test_application_configures_jobs_in_explicit_timezone():
         job.job_func()
 
     app.btc_runner.run.assert_called_once()
+    app.polygon_prices_runner.run.assert_called_once()
     app.finnhub_runner.run.assert_called_once()
     app.stock_runner.run.assert_called_once()
-    app.polygon_runner.run.assert_called_once()
+    app.polygon_news_runner.run.assert_called_once()
     assert app.scheduler.jobs[-1].start_day == "sunday"
 
 
@@ -98,6 +105,7 @@ def test_application_configures_jobs_in_explicit_timezone():
         FinnhubEarningsRetrieverRunner,
         StockDataRetrieverRunner,
         PolygonNewsRetrieverRunner,
+        PolygonPricesRetrieverRunner,
     ],
 )
 def test_runner_logger_uses_runner_name(runner_type):
@@ -120,7 +128,11 @@ def test_create_app_initializes_dependencies_from_validated_config():
         patch(
             "main.PolygonNewsRetrieverRunner",
             autospec=True,
-        ) as polygon_runner,
+        ) as polygon_news_runner,
+        patch(
+            "main.PolygonPricesRetrieverRunner",
+            autospec=True,
+        ) as polygon_prices_runner,
     ):
         app = create_app(
             config,
@@ -144,10 +156,14 @@ def test_create_app_initializes_dependencies_from_validated_config():
         discord=discord,
         error_reporter=errors,
     )
-    polygon_runner.assert_called_once_with(
+    polygon_news_runner.assert_called_once_with(
         polygon_api_key="polygon",
         gemini_api_key="gemini",
         discord=discord,
+        error_reporter=errors,
+    )
+    polygon_prices_runner.assert_called_once_with(
+        polygon_api_key="polygon",
         error_reporter=errors,
     )
     assert app.errors is errors
@@ -155,7 +171,7 @@ def test_create_app_initializes_dependencies_from_validated_config():
     assert app.poll_interval_seconds == 5
     assert app.onboarding_watcher.gemini is app.stock_runner
     assert app.onboarding_watcher.finnhub is app.finnhub_runner
-    assert app.onboarding_watcher.polygon is app.polygon_runner
+    assert app.onboarding_watcher.polygon_news is app.polygon_news_runner
     assert app.onboarding_watcher.discord is discord
     assert app.onboarding_watcher.errors is errors
 

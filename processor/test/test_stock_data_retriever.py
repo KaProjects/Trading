@@ -1,5 +1,6 @@
 import logging
 from datetime import date, datetime
+from decimal import Decimal
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -33,6 +34,8 @@ from gemini.models import (
 from gemini.service import FirebaseService
 from gemini.institutions import InstitutionRegistry
 from gemini.retriever import StockDataRetrieverRunner
+from indicators.models import PriceIndicator
+from indicators.service import FirebaseService as IndicatorsFirebaseService
 from myfinnhub.models import Company as FinnhubCompany
 from myfinnhub.models import Earnings
 from myfinnhub.models import Quarter as FinnhubQuarter
@@ -126,6 +129,10 @@ class TestStockDataRetriever:
             FinnhubFirebaseService,
             instance=True,
         )
+        instance.indicators_service = create_autospec(
+            IndicatorsFirebaseService,
+            instance=True,
+        )
         instance.discord = create_autospec(
             DiscordClient,
             instance=True,
@@ -137,6 +144,7 @@ class TestStockDataRetriever:
         )
         instance.service.get_institutions.return_value = {}
         instance.finnhub_service.get_companies.return_value = {}
+        instance.indicators_service.get_prices.return_value = {}
         instance.discord.post_if_channel_exists.return_value = None
         yield instance
 
@@ -2417,3 +2425,301 @@ class TestStockDataRetriever:
         assert fields[0]["value"] == "AAPL - 25Q4"
         assert fields[-1]["name"] == "**Friday** (2026-05-01)"
         assert fields[-1]["value"] == "MSFT - 25Q4"
+
+    def test_single_target_shows_upside_to_latest_close_below_the_title(
+        self,
+        runner,
+    ):
+        target = Target(
+            ticker="MU",
+            institution="Baird",
+            date="2026-10-05",
+            price="1250",
+            rating="Outperform",
+            source="investing.com",
+        )
+
+        embed = discord_templates.ticker_price_target(
+            target,
+            close=Decimal("1074.89"),
+        )["embeds"][0]
+
+        assert embed["description"] == (
+            "+16.3% upside from latest close ($1074.89)"
+        )
+
+    def test_target_below_the_latest_close_shows_a_negative_percent(
+        self,
+        runner,
+    ):
+        target = Target(
+            ticker="MU",
+            institution="Baird",
+            date="2026-10-05",
+            price="1000",
+            source="investing.com",
+        )
+
+        embed = discord_templates.price_target(
+            target,
+            close=Decimal("1074.89"),
+        )["embeds"][0]
+
+        assert embed["description"] == "-7.0% downside from latest close ($1074.89)"
+
+    def test_price_line_comes_before_the_research_report(self, runner):
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-10-05",
+            price="250",
+            source="investing.com",
+            report=TargetReport(
+                overview="Baird expects stronger demand.",
+                key_takeaways=["The target was raised."],
+            ),
+        )
+
+        embed = discord_templates.ticker_price_target(
+            target,
+            close=Decimal("200"),
+        )["embeds"][0]
+
+        assert embed["description"] == (
+            "+25.0% upside from latest close ($200)\n\n"
+            "**Overview**\nBaird expects stronger demand.\n\n"
+            "**Key takeaways**\n• The target was raised.\n\n\u200b"
+        )
+
+    def test_single_target_has_no_description_without_a_close(self, runner):
+        target = Target(
+            ticker="AMD",
+            institution="Baird",
+            date="2026-10-05",
+            price="250",
+            source="investing.com",
+        )
+
+        embed = discord_templates.ticker_price_target(target)["embeds"][0]
+
+        assert "description" not in embed
+
+    def test_aggregate_target_lines_end_with_an_italic_percent_bracket(
+        self,
+        runner,
+    ):
+        targets = [
+            Target(
+                ticker="AMD",
+                institution="Baird",
+                date="2026-10-05",
+                price="250",
+                source="a.example.com",
+            ),
+            Target(
+                ticker="AMD",
+                institution="Wedbush",
+                date="2026-10-05",
+                price="190",
+                source="b.example.com",
+            ),
+            Target(
+                ticker="AMD",
+                institution="Rosenblatt",
+                date="2026-10-05",
+                price="450",
+                source="c.example.com",
+            ),
+        ]
+
+        with_close = discord_templates.ticker_price_targets(
+            targets,
+            close=Decimal("200"),
+        )["embeds"][0]["description"]
+        without_close = discord_templates.ticker_price_targets(targets)[
+            "embeds"
+        ][0]["description"]
+
+        assert with_close == (
+            "Baird: $250 *(+25.0%)*\n"
+            "Wedbush: $190 *(-5.0%)*\n"
+            "Rosenblatt: $450 *(+125%)*"
+        )
+        assert without_close == (
+            "Baird: $250\nWedbush: $190\nRosenblatt: $450"
+        )
+
+    def _run_single_target(self, runner):
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company(
+                "AAPL",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+            ),
+        }
+        runner.service.get_institutions.return_value = {
+            "baird": InstitutionRecord(
+                name="Baird",
+                aliases={"baird": "Baird"},
+                enabled=True,
+            ),
+        }
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution="Baird",
+                    date="2026-07-21",
+                    price="230",
+                    rating="Outperform",
+                    source="new.example.com",
+                ),
+            ]
+        )
+        runner.run()
+        return runner.discord.post_eventlog.call_args.args[0]["embeds"][0]
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_price_posted_only_when_retrieved_on_the_run_date(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        runner.indicators_service.get_prices.return_value = {
+            "AAPL": PriceIndicator(value=Decimal("200"), retrieved_on=date(2026, 7, 21)),
+        }
+
+        embed = self._run_single_target(runner)
+
+        runner.indicators_service.get_prices.assert_called_once_with(["AAPL"])
+        assert embed["description"] == "+15.0% upside from latest close ($200)"
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_stale_price_is_left_out(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        runner.indicators_service.get_prices.return_value = {
+            "AAPL": PriceIndicator(value=Decimal("200"), retrieved_on=date(2026, 7, 20)),
+        }
+
+        embed = self._run_single_target(runner)
+
+        assert "description" not in embed
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_missing_price_is_left_out(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+
+        embed = self._run_single_target(runner)
+
+        assert "description" not in embed
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_price_lookup_failure_does_not_block_the_target_post(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        failure = RuntimeError("firebase unavailable")
+        runner.indicators_service.get_prices.side_effect = failure
+
+        embed = self._run_single_target(runner)
+
+        assert "description" not in embed
+        runner.errors.report.assert_called_once_with(
+            failure,
+            logger=runner.log,
+            source=runner.name,
+            operation="retrieve_latest_closes",
+            context={"count": "1"},
+        )
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_no_price_lookup_when_nothing_is_posted(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company(
+                "AAPL",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+            ),
+        }
+
+        runner.run()
+
+        runner.indicators_service.get_prices.assert_not_called()
+
+    @patch("utils.is_past_date", return_value=False)
+    @patch("gemini.retriever.datetime")
+    def test_aggregate_post_gets_percent_brackets_from_todays_price(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 7, 21)
+        runner.indicators_service.get_prices.return_value = {
+            "AAPL": PriceIndicator(value=Decimal("200"), retrieved_on=date(2026, 7, 21)),
+        }
+        runner.service.get_companies.return_value = {
+            "AAPL": make_company(
+                "AAPL",
+                "26Q2",
+                {"26Q2": make_quarter(quarter_id="26Q2")},
+            ),
+        }
+        runner.service.get_institutions.return_value = {
+            "baird": InstitutionRecord(
+                name="Baird",
+                aliases={"baird": "Baird"},
+                enabled=True,
+            ),
+            "wedbush": InstitutionRecord(
+                name="Wedbush",
+                aliases={"wedbush": "Wedbush"},
+                enabled=True,
+            ),
+        }
+        runner.client.get_price_targets.return_value = TargetCandidates(
+            targets=[
+                TargetCandidate(
+                    ticker="AAPL",
+                    institution=institution,
+                    date="2026-07-21",
+                    price=price,
+                    source=f"{institution.lower()}.example.com",
+                )
+                for institution, price in (("Baird", "230"), ("Wedbush", "190"))
+            ]
+        )
+
+        runner.run()
+
+        embed = runner.discord.post_eventlog.call_args.args[0]["embeds"][0]
+        assert embed["title"] == "🎯 AAPL | New price targets"
+        assert embed["description"] == (
+            "Baird: $230 *(+15.0%)*\nWedbush: $190 *(-5.0%)*"
+        )

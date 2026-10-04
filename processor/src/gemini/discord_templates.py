@@ -81,12 +81,18 @@ def price_target(
     target: Target,
     *,
     rating: InstitutionRating | str | None = None,
+    close: Decimal | None = None,
 ) -> dict[str, object]:
     return {
         "username": TARGET_REPORTER_USERNAME,
         "avatar_url": TARGET_REPORTER_AVATAR_URL,
         "embeds": [
-            _price_target_embed(target, ticker_prefix=True, rating=rating)
+            _price_target_embed(
+                target,
+                ticker_prefix=True,
+                rating=rating,
+                close=close,
+            )
         ],
     }
 
@@ -107,20 +113,37 @@ def new_institutions(
     }
 
 
-def price_targets(ticker: str, targets: list[Target]) -> dict[str, object]:
+def price_targets(
+    ticker: str,
+    targets: list[Target],
+    *,
+    close: Decimal | None = None,
+) -> dict[str, object]:
     return {
         "username": TARGET_REPORTER_USERNAME,
         "avatar_url": TARGET_REPORTER_AVATAR_URL,
         "embeds": [
-            _price_targets_embed(targets, title=f"🎯 {ticker} | New price targets")
+            _price_targets_embed(
+                targets,
+                title=f"🎯 {ticker} | New price targets",
+                close=close,
+            )
         ],
     }
 
 
-def ticker_price_targets(targets: list[Target]) -> dict[str, object]:
+def ticker_price_targets(
+    targets: list[Target],
+    *,
+    close: Decimal | None = None,
+) -> dict[str, object]:
     return {
         "embeds": [
-            _price_targets_embed(targets, title="🎯 New price targets")
+            _price_targets_embed(
+                targets,
+                title="🎯 New price targets",
+                close=close,
+            )
         ],
     }
 
@@ -129,25 +152,48 @@ def _price_targets_embed(
     targets: list[Target],
     *,
     title: str,
+    close: Decimal | None = None,
 ) -> dict[str, object]:
     return {
         "title": title,
         "color": 0xF1C40F,
         "description": "\n".join(
-            f"{target.institution}: ${target.price}"
-            for target in targets
+            _price_target_line(target, close) for target in targets
         ),
     }
+
+
+def _price_target_line(target: Target, close: Decimal | None) -> str:
+    line = f"{target.institution}: ${target.price}"
+    upside = _upside_to_target(target, close)
+    if upside is not None:
+        line += f" *({_format_signed_percent(upside)})*"
+    return line
+
+
+def _upside_to_target(
+    target: Target,
+    close: Decimal | None,
+) -> Decimal | None:
+    if close is None:
+        return None
+    return _percent_change(target.price, close)
 
 
 def ticker_price_target(
     target: Target,
     *,
     rating: InstitutionRating | str | None = None,
+    close: Decimal | None = None,
 ) -> dict[str, object]:
     return {
         "embeds": [
-            _price_target_embed(target, ticker_prefix=False, rating=rating)
+            _price_target_embed(
+                target,
+                ticker_prefix=False,
+                rating=rating,
+                close=close,
+            )
         ],
     }
 
@@ -157,6 +203,7 @@ def _price_target_embed(
     *,
     ticker_prefix: bool,
     rating: InstitutionRating | str | None = None,
+    close: Decimal | None = None,
 ) -> dict[str, object]:
     price_target_title = f"Price target ${target.price} | {target.institution}"
     title = (
@@ -184,7 +231,7 @@ def _price_target_embed(
                 "inline": False,
             },
         ],
-        **_target_report_description(target),
+        **_target_description(target, close),
     }
 
 
@@ -203,18 +250,32 @@ def _format_institution_rating(
     )
 
 
-def _target_report_description(target: Target) -> dict[str, str]:
-    if target.report is None:
+def _target_description(
+    target: Target,
+    close: Decimal | None,
+) -> dict[str, str]:
+    sections = []
+    upside = _upside_to_target(target, close)
+    if upside is not None:
+        # Directly under the title, ahead of any research report.
+        direction = "upside" if upside >= 0 else "downside"
+        sections.append(
+            f"{_format_signed_percent(upside)} {direction} from latest "
+            f"close (${close:f})"
+        )
+    if target.report is not None:
+        takeaways = "\n".join(
+            f"• {takeaway}"
+            for takeaway in target.report.key_takeaways
+        )
+        sections.append(
+            f"**Overview**\n{target.report.overview}\n\n"
+            f"**Key takeaways**\n{takeaways}\n\n{DISCORD_SPACER}"
+        )
+    if not sections:
         return {}
 
-    takeaways = "\n".join(
-        f"• {takeaway}"
-        for takeaway in target.report.key_takeaways
-    )
-    description = (
-        f"**Overview**\n{target.report.overview}\n\n"
-        f"**Key takeaways**\n{takeaways}\n\n{DISCORD_SPACER}"
-    )
+    description = "\n\n".join(sections)
     if len(description) > DISCORD_EMBED_DESCRIPTION_MAX_LENGTH:
         logger.warning(
             "Truncated Discord target report description for %s / %s / %s / "

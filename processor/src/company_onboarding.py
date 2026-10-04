@@ -26,13 +26,13 @@ class CompanyOnboardingWatcher:
         *,
         gemini: StockDataRetrieverRunner,
         finnhub: FinnhubEarningsRetrieverRunner,
-        polygon: PolygonNewsRetrieverRunner,
+        polygon_news: PolygonNewsRetrieverRunner,
         discord: DiscordClient,
         error_reporter: ErrorReporter,
     ) -> None:
         self.gemini = gemini
         self.finnhub = finnhub
-        self.polygon = polygon
+        self.polygon_news = polygon_news
         self.discord = discord
         self.errors = error_reporter
         self._known_company_keys: set[str] = set()
@@ -110,7 +110,7 @@ class CompanyOnboardingWatcher:
         if company is None:
             return
         self.finnhub.process_company(ticker, None)
-        self.polygon.process_company(
+        self.polygon_news.process_company(
             ticker,
             previous_days=ONBOARDING_NEWS_LOOKBACK_DAYS,
         )

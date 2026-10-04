@@ -26,6 +26,7 @@ from gemini.models import (
 )
 from gemini.service import FirebaseService
 from gemini.strings import ErrorMsg, LogMsg
+from indicators.service import FirebaseService as IndicatorsFirebaseService
 from myfinnhub.models import Company as FinnhubCompany
 from myfinnhub.models import Earnings as FinnhubEarnings
 from myfinnhub.service import FirebaseService as FinnhubFirebaseService
@@ -69,6 +70,7 @@ class StockDataRetrieverRunner:
         client: GeminiClient | None = None,
         service: FirebaseService | None = None,
         finnhub_service: FinnhubFirebaseService | None = None,
+        indicators_service: IndicatorsFirebaseService | None = None,
         discord: DiscordClient | None = None,
         error_reporter: ErrorReporter | None = None,
     ) -> None:
@@ -92,6 +94,10 @@ class StockDataRetrieverRunner:
         )
         self.finnhub_service = finnhub_service or FinnhubFirebaseService(
             error_reporter=self.errors,
+        )
+        self.indicators_service = (
+            indicators_service
+            or IndicatorsFirebaseService(error_reporter=self.errors)
         )
         self.discord = discord
 
@@ -553,8 +559,13 @@ class StockDataRetrieverRunner:
                     (target, institution)
                 )
 
+        closes = self._latest_closes(list(notifiable_targets), today)
         for ticker, ticker_targets in notifiable_targets.items():
-            self._notify_price_targets(ticker, ticker_targets)
+            self._notify_price_targets(
+                ticker,
+                ticker_targets,
+                close=closes.get(ticker),
+            )
 
         self.log.info(
             LogMsg.TARGETS_RETRIEVED.format(
@@ -722,6 +733,7 @@ class StockDataRetrieverRunner:
         self,
         ticker: str,
         targets: list[tuple[Target, InstitutionRecord]],
+        close: Decimal | None = None,
     ) -> None:
         reported_targets = [
             (target, institution)
@@ -735,30 +747,40 @@ class StockDataRetrieverRunner:
         ]
 
         for target, institution in reported_targets:
-            self._notify_price_target(target, institution)
+            self._notify_price_target(target, institution, close)
 
         if len(plain_targets) == 1:
-            self._notify_price_target(*plain_targets[0])
+            self._notify_price_target(*plain_targets[0], close)
         elif plain_targets:
             self._notify_grouped_price_targets(
                 ticker,
                 [target for target, _institution in plain_targets],
+                close,
             )
 
     def _notify_price_target(
         self,
         target: Target,
         institution: InstitutionRecord | None = None,
+        close: Decimal | None = None,
     ) -> None:
         rating = institution.rating if institution is not None else None
         try:
             if self.discord.post_if_channel_exists(
                 target.ticker,
-                discord_templates.ticker_price_target(target, rating=rating),
+                discord_templates.ticker_price_target(
+                    target,
+                    rating=rating,
+                    close=close,
+                ),
             ):
                 return
             self.discord.post_eventlog(
-                discord_templates.price_target(target, rating=rating),
+                discord_templates.price_target(
+                    target,
+                    rating=rating,
+                    close=close,
+                ),
             )
         except Exception as exception:
             self.report_error(
@@ -771,15 +793,20 @@ class StockDataRetrieverRunner:
         self,
         ticker: str,
         targets: list[Target],
+        close: Decimal | None = None,
     ) -> None:
         try:
             if self.discord.post_if_channel_exists(
                 ticker,
-                discord_templates.ticker_price_targets(targets),
+                discord_templates.ticker_price_targets(targets, close=close),
             ):
                 return
             self.discord.post_eventlog(
-                discord_templates.price_targets(ticker, targets),
+                discord_templates.price_targets(
+                    ticker,
+                    targets,
+                    close=close,
+                ),
             )
         except Exception as exception:
             self.report_error(
@@ -787,6 +814,31 @@ class StockDataRetrieverRunner:
                 operation="notify_price_targets",
                 context={"ticker": ticker, "count": str(len(targets))},
             )
+
+    def _latest_closes(
+        self,
+        tickers: list[str],
+        today: date,
+    ) -> dict[str, Decimal]:
+        # A price is shown only if today's retrieval produced it: a stale one
+        # (the price job failed or hasn't run yet) is left out rather than
+        # presented as current, and no failure here may block the post.
+        if not tickers:
+            return {}
+        try:
+            prices = self.indicators_service.get_prices(tickers)
+        except Exception as exception:
+            self.report_error(
+                exception,
+                operation="retrieve_latest_closes",
+                context={"count": str(len(tickers))},
+            )
+            return {}
+        return {
+            ticker: price.value
+            for ticker, price in prices.items()
+            if price.retrieved_on == today
+        }
 
     @staticmethod
     def _price_target_context(target: Target) -> dict[str, str]:

@@ -6,11 +6,13 @@ from datetime import date, timedelta
 from requests import Session
 from requests.exceptions import RequestException
 
-from polygon.models import NewsResponse
+from polygon.models import GroupedDailyResponse, NewsResponse
 
 logger = logging.getLogger(__name__)
 RATE_LIMIT_MAX_RETRIES = 3
 RATE_LIMIT_RETRY_DELAY_SECONDS = 30.0
+# One grouped-daily response covers every US ticker (~12k bars, ~2 MB).
+GROUPED_DAILY_TIMEOUT_SECONDS = 60.0
 
 
 class PolygonClientError(RuntimeError):
@@ -70,14 +72,45 @@ class PolygonClient:
             parameters=parameters,
         )
 
+    def get_grouped_daily(self, day: date) -> GroupedDailyResponse:
+        # Daily bars for every US ticker in one call. A non-trading day
+        # (weekend or holiday) comes back OK with no results.
+        payload = self._get_json(
+            f"{self.BASE_URL}/v2/aggs/grouped/locale/us/market/stocks/"
+            f"{day.isoformat()}",
+            parameters={"adjusted": "true"},
+            timeout=GROUPED_DAILY_TIMEOUT_SECONDS,
+        )
+        try:
+            return GroupedDailyResponse.model_validate(payload)
+        except (TypeError, ValueError) as exception:
+            raise PolygonClientError(
+                "Polygon returned an invalid response"
+            ) from exception
+
     def _get_news(
         self,
         url: str,
         *,
         parameters: dict[str, object] | None = None,
     ) -> NewsResponse:
+        payload = self._get_json(url, parameters=parameters)
+        try:
+            return NewsResponse.model_validate(payload)
+        except (TypeError, ValueError) as exception:
+            raise PolygonClientError(
+                "Polygon returned an invalid response"
+            ) from exception
+
+    def _get_json(
+        self,
+        url: str,
+        *,
+        parameters: dict[str, object] | None = None,
+        timeout: float | None = None,
+    ) -> object:
         request_arguments: dict[str, object] = {
-            "timeout": self.timeout,
+            "timeout": self.timeout if timeout is None else timeout,
         }
         if parameters is not None:
             request_arguments["params"] = parameters
@@ -118,8 +151,8 @@ class PolygonClient:
             )
 
         try:
-            return NewsResponse.model_validate(response.json())
-        except (TypeError, ValueError) as exception:
+            return response.json()
+        except ValueError as exception:
             raise PolygonClientError(
                 "Polygon returned an invalid response"
             ) from exception

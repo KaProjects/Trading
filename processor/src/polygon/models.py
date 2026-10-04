@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated
 
 from pydantic import (
@@ -77,6 +78,47 @@ class NewsResponse(BaseModel):
     status: str | None = None
     request_id: str | None = None
     next_url: str | None = None
+
+
+class DailyBar(BaseModel):
+    model_config = ConfigDict(extra="ignore", allow_inf_nan=False)
+
+    ticker: str = Field(alias="T")
+    close: Decimal = Field(alias="c", gt=0)
+
+
+class GroupedDailyResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    results: list[DailyBar] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def drop_invalid_bars(cls, data):
+        # One malformed bar among thousands must never discard every other
+        # bar; a wanted ticker whose bar was dropped is simply reported as
+        # not found by the caller.
+        if not isinstance(data, dict):
+            return data
+        raw_bars = data.get("results")
+        if raw_bars is None:
+            return {**data, "results": []}
+        if not isinstance(raw_bars, list):
+            return data
+
+        kept = []
+        for raw_bar in raw_bars:
+            try:
+                kept.append(DailyBar.model_validate(raw_bar))
+            except ValidationError:
+                continue
+        if len(kept) != len(raw_bars):
+            logger.warning(
+                "Dropped %d invalid Polygon daily bar(s) out of %d",
+                len(raw_bars) - len(kept),
+                len(raw_bars),
+            )
+        return {**data, "results": kept}
 
 
 class CompanyNews(BaseModel):

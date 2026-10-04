@@ -21,7 +21,10 @@ def make_watcher():
             FinnhubEarningsRetrieverRunner,
             instance=True,
         ),
-        polygon=create_autospec(PolygonNewsRetrieverRunner, instance=True),
+        polygon_news=create_autospec(
+            PolygonNewsRetrieverRunner,
+            instance=True,
+        ),
         discord=create_autospec(DiscordClient, instance=True),
         error_reporter=create_autospec(ErrorReporter, instance=True),
     )
@@ -65,7 +68,7 @@ def test_new_placeholder_company_triggers_full_onboarding_chain():
 
     watcher.gemini.onboard_company.assert_called_once_with("NVDA")
     watcher.finnhub.process_company.assert_called_once_with("NVDA", None)
-    watcher.polygon.process_company.assert_called_once_with(
+    watcher.polygon_news.process_company.assert_called_once_with(
         "NVDA",
         previous_days=30,
     )
@@ -100,7 +103,7 @@ def test_failed_gemini_initialization_stops_the_pipeline():
 
     watcher.gemini.onboard_company.assert_called_once_with("NVDA")
     watcher.finnhub.process_company.assert_not_called()
-    watcher.polygon.process_company.assert_not_called()
+    watcher.polygon_news.process_company.assert_not_called()
 
 
 def test_edit_to_an_already_known_company_does_not_trigger_onboarding():

@@ -16,6 +16,7 @@ from dev.fakes import (
     FakeFinnhubFirebaseService,
     FakeGeminiClient,
     FakeGeminiFirebaseService,
+    FakeIndicatorsFirebaseService,
     FakePolygonClient,
     FakePolygonFirebaseService,
 )
@@ -24,6 +25,7 @@ from error_reporting import ErrorReporter
 from gemini.client import GeminiClient
 from gemini.retriever import StockDataRetrieverRunner
 from gemini.service import FirebaseService as GeminiFirebaseService
+from indicators.service import FirebaseService as IndicatorsFirebaseService
 from myfinnhub.client import FinnhubClient
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from myfinnhub.service import FirebaseService as FinnhubFirebaseService
@@ -213,6 +215,14 @@ def _build_gemini_runner(
         firebase_snapshot=firebase_snapshot,
         error_reporter=error_reporter,
     )
+    indicators_service = _build_firebase_service(
+        args,
+        config,
+        production_factory=IndicatorsFirebaseService,
+        fake_factory=FakeIndicatorsFirebaseService,
+        firebase_snapshot=firebase_snapshot,
+        error_reporter=error_reporter,
+    )
     discord = _build_discord_client(
         args,
         config,
@@ -221,6 +231,7 @@ def _build_gemini_runner(
         client=gemini_client,
         service=service,
         finnhub_service=finnhub_service,
+        indicators_service=indicators_service,
         discord=discord,
         error_reporter=error_reporter,
     )
