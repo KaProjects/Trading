@@ -6,6 +6,7 @@ import {
     Button,
     Checkbox,
     CircularProgress,
+    Collapse,
     Dialog,
     DialogActions,
     DialogContent,
@@ -19,6 +20,7 @@ import {
 } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import axios from "axios";
 import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
@@ -109,6 +111,7 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
     const [alert, setAlert] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [highlightedTargetIds, setHighlightedTargetIds] = useState(new Set());
+    const [expandedTargetIds, setExpandedTargetIds] = useState(new Set());
 
     const savedTargetStats = targetStats(targets);
     const targetDateWindow = dateWindow(period);
@@ -128,6 +131,7 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
         setAlert(null);
         setSubmitted(false);
         setHighlightedTargetIds(new Set());
+        setExpandedTargetIds(new Set());
         setMode("list");
         loadTargets();
         loadCandidateCount();
@@ -344,6 +348,20 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
 
     const takeaways = item => [item.takeaway1, item.takeaway2, item.takeaway3, item.takeaway4].filter(Boolean);
 
+    // Saved targets read as a list of equally tall rows: the overview and takeaways stay
+    // collapsed until asked for, so scanning institutions and prices does not mean
+    // scrolling past several paragraphs. Only rows that have something to show get a toggle.
+    const hasBody = item => Boolean(item.overview) || takeaways(item).length > 0;
+    const isExpanded = item => expandedTargetIds.has(item.id);
+
+    function toggleTargetExpanded(targetId) {
+        setExpandedTargetIds(previous => {
+            const next = new Set(previous);
+            if (next.has(targetId)) next.delete(targetId); else next.add(targetId);
+            return next;
+        });
+    }
+
     const targetDetails = item => (
         <>
             <Typography sx={{fontWeight: 600}}>
@@ -516,8 +534,23 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
                                 data-testid={`target-${item.id}`}
                                 data-highlighted={highlightedTargetIds.has(item.id)}
                                 variant="outlined"
+                                role={hasBody(item) ? "button" : undefined}
+                                tabIndex={hasBody(item) ? 0 : undefined}
+                                aria-expanded={hasBody(item) ? isExpanded(item) : undefined}
+                                aria-label={hasBody(item)
+                                    ? `${isExpanded(item) ? "Collapse" : "Expand"} target ${item.institution}`
+                                    : undefined}
+                                onClick={hasBody(item) ? () => toggleTargetExpanded(item.id) : undefined}
+                                onKeyDown={hasBody(item)
+                                    ? event => {
+                                        if (event.key !== "Enter" && event.key !== " ") return;
+                                        event.preventDefault();
+                                        toggleTargetExpanded(item.id);
+                                    }
+                                    : undefined}
                                 sx={{
                                     padding: 1.5,
+                                    cursor: hasBody(item) ? "pointer" : "default",
                                     borderColor: highlightedTargetIds.has(item.id) ? "success.main" : undefined,
                                     backgroundColor: highlightedTargetIds.has(item.id)
                                         ? "rgba(46, 125, 50, 0.10)"
@@ -536,25 +569,49 @@ export const TargetDialog = ({open, handleClose, triggerRefresh, company, period
                                             opacity: 1,
                                             pointerEvents: "auto",
                                         },
+                                        ...(hasBody(item) && !highlightedTargetIds.has(item.id)
+                                            ? {"&:hover": {backgroundColor: "action.hover"}}
+                                            : {}),
                                     },
                                 }}
                             >
                                 <Box sx={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1}}>
                                     <Box>{targetDetails(item)}</Box>
-                                    <Tooltip title="Delete target">
-                                        <IconButton
-                                            className="deleteTarget"
-                                            aria-label={`Delete target ${item.institution}`}
-                                            color="error"
-                                            size="small"
-                                            disabled={submitting}
-                                            onClick={() => setPendingDelete(item)}
-                                        >
-                                            <DeleteIcon fontSize="small"/>
-                                        </IconButton>
-                                    </Tooltip>
+                                    <Box sx={{display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0}}>
+                                        <Tooltip title="Delete target">
+                                            <IconButton
+                                                className="deleteTarget"
+                                                aria-label={`Delete target ${item.institution}`}
+                                                color="error"
+                                                size="small"
+                                                disabled={submitting}
+                                                onClick={event => {
+                                                    event.stopPropagation();
+                                                    setPendingDelete(item);
+                                                }}
+                                            >
+                                                <DeleteIcon fontSize="small"/>
+                                            </IconButton>
+                                        </Tooltip>
+                                        {/* Purely an indicator of the row's state; the row itself is the control. */}
+                                        {hasBody(item) &&
+                                            <ExpandMoreIcon
+                                                aria-hidden
+                                                fontSize="small"
+                                                sx={{
+                                                    color: "text.secondary",
+                                                    transform: isExpanded(item) ? "rotate(180deg)" : "none",
+                                                    transition: "transform 150ms ease-in-out",
+                                                }}
+                                            />
+                                        }
+                                    </Box>
                                 </Box>
-                                {targetBody(item)}
+                                {hasBody(item) &&
+                                    <Collapse in={isExpanded(item)} unmountOnExit>
+                                        {targetBody(item)}
+                                    </Collapse>
+                                }
                             </Paper>
                         ))}
                     </Stack>

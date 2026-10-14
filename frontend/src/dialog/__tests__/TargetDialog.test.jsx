@@ -85,8 +85,8 @@ describe("TargetDialog", () => {
         await waitForRequestsToSettle();
         expect(screen.getByText("Northstar | $175.25")).toBeInTheDocument();
         expect(screen.getByText("10.07.2025 | Buy")).toBeInTheDocument();
-        expect(screen.getByText("Demand remains strong.")).toBeInTheDocument();
-        expect(screen.getByText("Margins are expanding.")).toBeInTheDocument();
+        expect(screen.queryByText("Demand remains strong.")).not.toBeInTheDocument();
+        expect(screen.queryByText("Margins are expanding.")).not.toBeInTheDocument();
         expect(screen.getByText("2")).toBeInTheDocument();
         expect(screen.getByText("Some expected target data could not be loaded")).toBeInTheDocument();
         expect(screen.getByText("Firebase targets for NVDA could not be loaded completely")).toBeInTheDocument();
@@ -97,6 +97,83 @@ describe("TargetDialog", () => {
         expect(screen.getByTestId("target-target-1")).toHaveAttribute("data-highlighted", "false");
         expect(axios.get).toHaveBeenCalledWith("/api/target/period-1");
         expect(axios.get).toHaveBeenCalledWith("/api/target/period-1/sync/count");
+    });
+
+    test("keeps a target's overview and takeaways collapsed until it is expanded", async () => {
+        arrangeGetResponses({targets: [target()], count: 0});
+
+        render(
+            <TargetDialog
+                open
+                handleClose={jest.fn()}
+                triggerRefresh={triggerRefresh}
+                company={company}
+                period={period}
+            />
+        );
+
+        await waitForRequestsToSettle();
+
+        const expand = screen.getByRole("button", {name: "Expand target Northstar"});
+        expect(expand).toHaveAttribute("aria-expanded", "false");
+        expect(screen.queryByText("Demand remains strong.")).not.toBeInTheDocument();
+
+        fireEvent.click(expand);
+
+        const collapse = screen.getByRole("button", {name: "Collapse target Northstar"});
+        expect(collapse).toHaveAttribute("aria-expanded", "true");
+        expect(screen.getByText("Demand remains strong.")).toBeInTheDocument();
+        expect(screen.getByText("Margins are expanding.")).toBeInTheDocument();
+
+        fireEvent.click(collapse);
+
+        expect(screen.getByRole("button", {name: "Expand target Northstar"})).toBeInTheDocument();
+    });
+
+    test("expands from a click anywhere on the row, and delete does not expand it", async () => {
+        arrangeGetResponses({targets: [target()], count: 0});
+
+        render(
+            <TargetDialog
+                open
+                handleClose={jest.fn()}
+                triggerRefresh={triggerRefresh}
+                company={company}
+                period={period}
+            />
+        );
+
+        await waitForRequestsToSettle();
+
+        fireEvent.click(screen.getByText("Northstar | $175.25"));
+        expect(screen.getByText("Demand remains strong.")).toBeInTheDocument();
+
+        // The delete icon sits inside the row, so its click must not also toggle it.
+        fireEvent.click(screen.getByRole("button", {name: "Delete target Northstar"}));
+        expect(screen.getByText("Demand remains strong.")).toBeInTheDocument();
+        expect(screen.getByTestId("target-target-1")).toHaveAttribute("aria-expanded", "true");
+    });
+
+    test("offers no expand toggle for a target without an overview or takeaways", async () => {
+        arrangeGetResponses({
+            targets: [target({overview: null, takeaway1: null, takeaway2: null, takeaway3: null, takeaway4: null})],
+            count: 0,
+        });
+
+        render(
+            <TargetDialog
+                open
+                handleClose={jest.fn()}
+                triggerRefresh={triggerRefresh}
+                company={company}
+                period={period}
+            />
+        );
+
+        await waitForRequestsToSettle();
+
+        expect(screen.getByText("Northstar | $175.25")).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: /Expand target/})).not.toBeInTheDocument();
     });
 
     test("validates and manually creates a target", async () => {
