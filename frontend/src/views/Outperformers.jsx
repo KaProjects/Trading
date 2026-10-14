@@ -1,6 +1,10 @@
 import React, {useState} from "react";
 import {
+    Alert,
+    AlertTitle,
     Box,
+    Button,
+    CircularProgress,
     Paper,
     Table,
     TableBody,
@@ -11,7 +15,11 @@ import {
     TableSortLabel,
     Typography,
 } from "@mui/material";
+import SyncIcon from "@mui/icons-material/Sync";
+import axios from "axios";
 import {useData} from "../service/BackendService";
+import {backend} from "../properties";
+import {formatError} from "../service/FormattingService";
 import {Loader} from "./component/Loader";
 import {STICKY_COLUMN_BODY_SX, STICKY_COLUMN_HEAD_SX, TABLE_CONTAINER_SX} from "./component/tableStyles";
 import {SWIPE_AREA_SX, useSwipeNavigation} from "./component/useSwipeNavigation";
@@ -157,7 +165,7 @@ function RatingCriteria({criteria}) {
     );
 }
 
-function OutperformersTable({columns, rows, disqualified, criteria, sort, setSort}) {
+function OutperformersTable({columns, rows, disqualified, criteria, sort, setSort, syncPrices, syncing}) {
     function handleSort(columnKey) {
         setSort(previous => ({
             key: columnKey,
@@ -166,6 +174,8 @@ function OutperformersTable({columns, rows, disqualified, criteria, sort, setSor
     }
 
     const sortedRows = sortRows(rows, sort);
+    // Only the companies held back by a stale or missing quote can be fixed from here.
+    const syncableTickers = disqualified.filter(entry => entry.priceSyncable).map(entry => entry.ticker);
 
     return (
         <>
@@ -223,9 +233,30 @@ function OutperformersTable({columns, rows, disqualified, criteria, sort, setSor
                         <TableHead>
                             <TableRow>
                                 <TableCell colSpan={2}>
-                                    <Typography sx={{fontSize: 13, color: "text.secondary"}}>
-                                        Met the basic criteria, but not currently qualified
-                                    </Typography>
+                                    <Box sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 1,
+                                    }}>
+                                        <Typography sx={{fontSize: 13, color: "text.secondary"}}>
+                                            Met the basic criteria, but not currently qualified
+                                        </Typography>
+                                        {syncableTickers.length > 0 &&
+                                            <Button
+                                                size="small"
+                                                disabled={syncing}
+                                                startIcon={syncing
+                                                    ? <CircularProgress size={14}/>
+                                                    : <SyncIcon fontSize="small"/>}
+                                                onClick={() => syncPrices(syncableTickers)}
+                                            >
+                                                {syncing
+                                                    ? "Syncing prices"
+                                                    : `Sync prices (${syncableTickers.length})`}
+                                            </Button>
+                                        }
+                                    </Box>
                                 </TableCell>
                             </TableRow>
                         </TableHead>
@@ -247,6 +278,9 @@ function OutperformersTable({columns, rows, disqualified, criteria, sort, setSor
 export const Outperformers = props => {
     const {data, loaded, error} = useData("/outperformers");
     const [sorts, setSorts] = useState(TAB_CONFIG.map(config => config.defaultSort));
+    const [synced, setSynced] = useState(null);
+    const [syncing, setSyncing] = useState(false);
+    const [syncAlert, setSyncAlert] = useState(null);
     const tab = props.outperformersTabsIndex ?? 0;
     const swipe = useSwipeNavigation(tab, props.setOutperformersTabsIndex, TAB_CONFIG.length);
 
@@ -258,6 +292,33 @@ export const Outperformers = props => {
         )));
     }
 
+    function syncPrices(tickers) {
+        setSyncing(true);
+        setSyncAlert(null);
+        axios.post(`${backend}/outperformers/prices/sync`, tickers)
+            .then(response => {
+                const result = response.data;
+                setSynced(result.outperformers);
+                setSyncAlert({
+                    severity: result.warnings?.length > 0 ? "warning" : "success",
+                    title: result.updated === 1
+                        ? "1 price updated"
+                        : `${result.updated} prices updated`,
+                    messages: result.warnings ?? [],
+                });
+            })
+            .catch(requestError => {
+                const formatted = formatError(requestError);
+                setSyncAlert({
+                    severity: "error",
+                    title: formatted.title,
+                    messages: [formatted.message],
+                });
+            })
+            .finally(() => setSyncing(false));
+    }
+
+    const shown = synced ?? data;
     const activeConfig = TAB_CONFIG[tab];
 
     return (
@@ -276,13 +337,26 @@ export const Outperformers = props => {
             }}
             {...swipe}
         >
+            {syncAlert &&
+                <Alert
+                    severity={syncAlert.severity}
+                    onClose={() => setSyncAlert(null)}
+                    sx={{marginBottom: 1}}
+                >
+                    <AlertTitle>{syncAlert.title}</AlertTitle>
+                    {syncAlert.messages.map(message => <Box key={message}>{message}</Box>)}
+                </Alert>
+            }
+
             <OutperformersTable
                 columns={activeConfig.columns}
-                rows={data[activeConfig.dataKey] ?? []}
-                disqualified={data[activeConfig.disqualifiedKey] ?? []}
+                rows={shown[activeConfig.dataKey] ?? []}
+                disqualified={shown[activeConfig.disqualifiedKey] ?? []}
                 criteria={activeConfig.criteria}
                 sort={sorts[tab]}
                 setSort={updater => setSortForTab(tab, updater)}
+                syncPrices={syncPrices}
+                syncing={syncing}
             />
         </Box>
     );

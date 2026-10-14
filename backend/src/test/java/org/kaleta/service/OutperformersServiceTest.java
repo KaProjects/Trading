@@ -19,6 +19,7 @@ import org.kaleta.persistence.entity.Target;
 import org.kaleta.rest.dto.EpsOutperformerDto;
 import org.kaleta.rest.dto.MarginOutperformerDto;
 import org.kaleta.rest.dto.OutperformersDto;
+import org.kaleta.rest.dto.OutperformersPriceSyncDto;
 import org.kaleta.rest.dto.SentimentOutperformerDto;
 import org.kaleta.rest.dto.TargetOutperformerDto;
 
@@ -37,8 +38,11 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -57,6 +61,8 @@ class OutperformersServiceTest
     @InjectMock
     @MockitoConfig(convertScopes = true)
     FirebaseService firebaseService;
+    @InjectMock
+    LatestService latestService;
 
     @Inject
     OutperformersService outperformersService;
@@ -66,7 +72,8 @@ class OutperformersServiceTest
     @BeforeEach
     void before()
     {
-        reset(companyService, periodService, estimateService, targetDao, latestDao, firebaseService);
+        reset(companyService, periodService, estimateService, targetDao, latestDao, firebaseService,
+                latestService);
 
         company = new CompanyWithStats();
         company.setId(1L);
@@ -425,6 +432,7 @@ class OutperformersServiceTest
         assertThat(result.getTargets(), is(empty()));
         assertThat(result.getTargetsDisqualified(), hasSize(1));
         assertThat(result.getTargetsDisqualified().getFirst().getReason(), containsString("price is stale"));
+        assertThat(result.getTargetsDisqualified().getFirst().isPriceSyncable(), is(true));
     }
 
     @Test
@@ -446,6 +454,7 @@ class OutperformersServiceTest
         assertThat(result.getTargets(), is(empty()));
         assertThat(result.getTargetsDisqualified(), hasSize(1));
         assertThat(result.getTargetsDisqualified().getFirst().getReason(), containsString("no cached price"));
+        assertThat(result.getTargetsDisqualified().getFirst().isPriceSyncable(), is(true));
     }
 
     @Test
@@ -605,5 +614,84 @@ class OutperformersServiceTest
         target.setDate(Date.valueOf(date));
         target.setPrice(new BigDecimal(price));
         return target;
+    }
+
+    @Test
+    void get_doesNotMarkANonPriceDisqualificationAsSyncable()
+    {
+        Periods periods = periodsWithLatest("25Q2");
+        when(periodService.getBy(1L)).thenReturn(periods);
+        when(targetDao.listByPeriodIds(List.of(10L)))
+                .thenReturn(List.of(target(LocalDate.now().minusDays(10), "180")));
+
+        OutperformersDto result = outperformersService.get();
+
+        assertThat(result.getTargetsDisqualified(), hasSize(1));
+        assertThat(result.getTargetsDisqualified().getFirst().isPriceSyncable(), is(false));
+    }
+
+    @Test
+    void syncPrices_storesTheFreshQuoteAndReturnsTheRecomputedView()
+    {
+        when(latestDao.list(1L)).thenReturn(List.of());
+        when(latestService.getSyncedForWithWarnings(1L)).thenReturn(new LatestService.SyncResult(
+                new Latest(company, LocalDateTime.now(), new BigDecimal("200")),
+                List.of()));
+
+        OutperformersPriceSyncDto result = outperformersService.syncPrices(List.of("NVDA"));
+
+        assertThat(result.getUpdated(), is(1));
+        assertThat(result.getWarnings(), is(empty()));
+        assertThat(result.getOutperformers(), is(notNullValue()));
+    }
+
+    @Test
+    void syncPrices_doesNotCountAQuoteThatCameBackUnchanged()
+    {
+        LocalDateTime unchanged = LocalDateTime.now().minusDays(10);
+        when(latestDao.list(1L)).thenReturn(List.of(
+                new Latest(company, unchanged, new BigDecimal("200"))));
+        when(latestService.getSyncedForWithWarnings(1L)).thenReturn(new LatestService.SyncResult(
+                new Latest(company, unchanged, new BigDecimal("200")),
+                List.of("Finnhub quote for NVDA is not available")));
+
+        OutperformersPriceSyncDto result = outperformersService.syncPrices(List.of("NVDA"));
+
+        assertThat(result.getUpdated(), is(0));
+        assertThat(result.getWarnings(), contains("Finnhub quote for NVDA is not available"));
+    }
+
+    @Test
+    void syncPrices_warnsAboutAnUnknownTickerWithoutCallingTheQuoteSource()
+    {
+        OutperformersPriceSyncDto result = outperformersService.syncPrices(List.of("ZZZZ"));
+
+        assertThat(result.getUpdated(), is(0));
+        assertThat(result.getWarnings(), contains("No company is known for the ticker ZZZZ"));
+        verify(latestService, never()).getSyncedForWithWarnings(1L);
+    }
+
+    @Test
+    void syncPrices_turnsAFailingQuoteIntoAWarningAndKeepsGoing()
+    {
+        when(latestDao.list(1L)).thenReturn(List.of());
+        when(latestService.getSyncedForWithWarnings(1L))
+                .thenThrow(new IllegalStateException("boom"));
+
+        OutperformersPriceSyncDto result = outperformersService.syncPrices(List.of("NVDA"));
+
+        assertThat(result.getUpdated(), is(0));
+        assertThat(result.getWarnings(), contains("Latest price for NVDA could not be synchronized"));
+        assertThat(result.getOutperformers(), is(notNullValue()));
+    }
+
+    @Test
+    void syncPrices_handlesAnEmptyRequest()
+    {
+        OutperformersPriceSyncDto result = outperformersService.syncPrices(List.of());
+
+        assertThat(result.getUpdated(), is(0));
+        assertThat(result.getWarnings(), is(empty()));
+        assertThat(result.getOutperformers(), is(notNullValue()));
     }
 }

@@ -1,5 +1,6 @@
 package org.kaleta.service;
 
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.kaleta.model.FirebaseCompany;
@@ -17,12 +18,14 @@ import org.kaleta.rest.dto.DisqualifiedCompanyDto;
 import org.kaleta.rest.dto.EpsOutperformerDto;
 import org.kaleta.rest.dto.MarginOutperformerDto;
 import org.kaleta.rest.dto.OutperformersDto;
+import org.kaleta.rest.dto.OutperformersPriceSyncDto;
 import org.kaleta.rest.dto.SentimentOutperformerDto;
 import org.kaleta.rest.dto.TargetOutperformerDto;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -32,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class OutperformersService
@@ -67,6 +71,8 @@ public class OutperformersService
     FirebaseService firebaseService;
     @Inject
     ArithmeticService arithmeticService;
+    @Inject
+    LatestService latestService;
 
     public OutperformersDto get()
     {
@@ -330,13 +336,14 @@ public class OutperformersService
 
         Latest latest = latestDao.list(company.getId()).stream().findFirst().orElse(null);
         if (latest == null || latest.getPrice() == null) {
-            disqualify(dto.getTargetsDisqualified(), company, "no cached price available");
+            disqualify(dto.getTargetsDisqualified(), company, "no cached price available", true);
             return;
         }
         if (latest.getDatetime() != null
                 && latest.getDatetime().toLocalDate().isBefore(today.minusDays(PRICE_MAX_AGE_DAYS))) {
             disqualify(dto.getTargetsDisqualified(), company,
-                    "cached price is stale (last updated " + latest.getDatetime().toLocalDate() + ")");
+                    "cached price is stale (last updated " + latest.getDatetime().toLocalDate() + ")",
+                    true);
             return;
         }
 
@@ -355,9 +362,71 @@ public class OutperformersService
 
     private void disqualify(List<DisqualifiedCompanyDto> list, CompanyWithStats company, String reason)
     {
+        disqualify(list, company, reason, false);
+    }
+
+    private void disqualify(
+            List<DisqualifiedCompanyDto> list,
+            CompanyWithStats company,
+            String reason,
+            boolean priceSyncable)
+    {
         DisqualifiedCompanyDto entry = new DisqualifiedCompanyDto();
         entry.setTicker(company.getTicker());
         entry.setReason(reason);
+        entry.setPriceSyncable(priceSyncable);
         list.add(entry);
+    }
+
+    /**
+     * Re-reads the latest quote for the given tickers from the external price sources and stores it,
+     * so that companies held back only by a stale or missing cached price can qualify again. The
+     * recomputed view is returned with the result, because that is the only reason to call this.
+     */
+    public OutperformersPriceSyncDto syncPrices(List<String> tickers)
+    {
+        OutperformersPriceSyncDto result = new OutperformersPriceSyncDto();
+
+        Set<String> requested = tickers == null ? Set.of() : tickers.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(ticker -> !ticker.isEmpty())
+                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+
+        if (!requested.isEmpty()) {
+            Map<String, Long> companyIdsByTicker = companyService.getAllWithStats().stream()
+                    .collect(Collectors.toMap(
+                            CompanyWithStats::getTicker,
+                            CompanyWithStats::getId,
+                            (first, ignored) -> first));
+
+            for (String ticker : requested) {
+                Long companyId = companyIdsByTicker.get(ticker);
+                if (companyId == null) {
+                    result.getWarnings().add("No company is known for the ticker " + ticker);
+                    continue;
+                }
+
+                LocalDateTime before = latestDao.list(companyId).stream().findFirst()
+                        .map(Latest::getDatetime)
+                        .orElse(null);
+                try {
+                    LatestService.SyncResult syncResult = latestService.getSyncedForWithWarnings(companyId);
+                    result.getWarnings().addAll(syncResult.warnings());
+
+                    LocalDateTime after = syncResult.latest() == null
+                            ? null
+                            : syncResult.latest().getDatetime();
+                    if (after != null && !after.equals(before)) result.setUpdated(result.getUpdated() + 1);
+                } catch (RuntimeException exception) {
+                    String warning = "Latest price for " + ticker + " could not be synchronized";
+                    Log.warn(warning, exception);
+                    result.getWarnings().add(warning);
+                }
+            }
+        }
+
+        result.setOutperformers(get());
+        return result;
     }
 }

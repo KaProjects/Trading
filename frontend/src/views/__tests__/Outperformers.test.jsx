@@ -1,4 +1,8 @@
-import {fireEvent, render, screen} from "@testing-library/react";
+import {act, fireEvent, render, screen, waitFor} from "@testing-library/react";
+import axios from "axios";
+
+jest.mock("axios");
+jest.mock("../../properties", () => ({backend: "/api"}));
 
 const mockUseData = jest.fn();
 
@@ -34,11 +38,20 @@ const data = {
         {ticker: "NVDA", price: 200, averageTarget: 211, percentDiff: 5.5},
     ],
     targetsDisqualified: [
-        {ticker: "AMD", reason: "cached price is stale (last updated 2026-01-01)"},
+        {ticker: "AMD", reason: "cached price is stale (last updated 2026-01-01)", priceSyncable: true},
+        {ticker: "MU", reason: "no cached price available", priceSyncable: true},
+        {ticker: "INTC", reason: "only 2 targets in the last 3 months (need 5)", priceSyncable: false},
     ],
 };
 
-beforeEach(() => mockUseData.mockReset());
+beforeEach(() => {
+    mockUseData.mockReset();
+    axios.post.mockReset();
+});
+
+function openTargetsTab() {
+    render(<Outperformers outperformersTabsIndex={3}/>);
+}
 
 test("shows the loader while data is loading", () => {
     mockUseData.mockReturnValue({data: null, loaded: false, error: null});
@@ -139,4 +152,71 @@ test("reverses sort order when a column header is clicked twice", () => {
     fireEvent.click(screen.getByText("+4Q change"));
     rows = screen.getAllByRole("row").slice(1, 3);
     expect(rows[0]).toHaveTextContent("AMD");
+});
+
+test("offers a price sync for exactly the companies a stale or missing quote held back", () => {
+    mockUseData.mockReturnValue({data, loaded: true, error: null});
+
+    openTargetsTab();
+
+    expect(screen.getByRole("button", {name: "Sync prices (2)"})).toBeInTheDocument();
+});
+
+test("does not offer a price sync on a tab where nothing is price related", () => {
+    mockUseData.mockReturnValue({data, loaded: true, error: null});
+
+    render(<Outperformers outperformersTabsIndex={0}/>);
+
+    expect(screen.queryByRole("button", {name: /Sync prices/})).not.toBeInTheDocument();
+});
+
+test("syncs the stale prices and shows the refreshed table", async () => {
+    mockUseData.mockReturnValue({data, loaded: true, error: null});
+    axios.post.mockResolvedValue({
+        data: {
+            updated: 2,
+            warnings: [],
+            outperformers: {
+                ...data,
+                targets: [
+                    {ticker: "NVDA", price: 200, averageTarget: 211, percentDiff: 5.5},
+                    {ticker: "AMD", price: 150, averageTarget: 180, percentDiff: 20},
+                ],
+                targetsDisqualified: [
+                    {ticker: "INTC", reason: "only 2 targets in the last 3 months (need 5)", priceSyncable: false},
+                ],
+            },
+        },
+    });
+
+    openTargetsTab();
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", {name: "Sync prices (2)"}));
+    });
+
+    expect(axios.post).toHaveBeenCalledWith("/api/outperformers/prices/sync", ["AMD", "MU"]);
+    await waitFor(() => expect(screen.getByText("2 prices updated")).toBeInTheDocument());
+    expect(screen.getByText("AMD")).toBeInTheDocument();
+    expect(screen.queryByRole("button", {name: /Sync prices/})).not.toBeInTheDocument();
+});
+
+test("reports sync warnings without losing the refreshed data", async () => {
+    mockUseData.mockReturnValue({data, loaded: true, error: null});
+    axios.post.mockResolvedValue({
+        data: {
+            updated: 1,
+            warnings: ["Finnhub quote for MU is not available"],
+            outperformers: data,
+        },
+    });
+
+    openTargetsTab();
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", {name: "Sync prices (2)"}));
+    });
+
+    await waitFor(() => expect(screen.getByText("1 price updated")).toBeInTheDocument());
+    expect(screen.getByText("Finnhub quote for MU is not available")).toBeInTheDocument();
 });

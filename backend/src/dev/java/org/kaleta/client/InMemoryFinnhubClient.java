@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
@@ -36,10 +37,30 @@ public class InMemoryFinnhubClient implements FinnhubClient
         this.earningsCalendar = data.earningsCalendar() == null ? Map.of() : data.earningsCalendar();
     }
 
+    /**
+     * A fixture carrying the literal timestamp {@value #NOW} is resolved to the current second on
+     * every call. A fixed epoch would make every fake quote permanently stale, which stops the dev
+     * environment from showing anything that depends on a price being recent - the outperformers
+     * price sync, for one, could update a row but never clear the staleness it exists to clear.
+     */
+    private static final String NOW = "now";
+
     @Override
     public FinnhubQuote quote(String ticker)
     {
-        return quotes.get(ticker.toUpperCase(Locale.ROOT));
+        FinnhubQuote quote = quotes.get(ticker.toUpperCase(Locale.ROOT));
+        if (quote == null || !NOW.equals(quote.getT())) return quote;
+
+        FinnhubQuote resolved = new FinnhubQuote();
+        resolved.setC(quote.getC());
+        resolved.setD(quote.getD());
+        resolved.setDp(quote.getDp());
+        resolved.setH(quote.getH());
+        resolved.setL(quote.getL());
+        resolved.setO(quote.getO());
+        resolved.setPc(quote.getPc());
+        resolved.setT(String.valueOf(Instant.now().getEpochSecond()));
+        return resolved;
     }
 
     @Override
