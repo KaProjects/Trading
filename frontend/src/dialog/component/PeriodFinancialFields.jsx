@@ -4,11 +4,11 @@ import {validateNumber} from "../../service/ValidationService";
 import {DialogTextField} from "./DialogTextField";
 
 export const EMPTY_PERIOD_FINANCIAL_VALUES = {
-    shares: "",
     revenue: "",
     grossProfit: "",
     operatingIncome: "",
     netIncome: "",
+    shares: "",
     dividend: "",
     adjustedEps: "",
     priceHigh: "",
@@ -37,15 +37,6 @@ const EDIT_FINANCIAL_GRID_STYLE = {
 }
 
 const FINANCIAL_FIELDS = [
-    {
-        key: "shares",
-        id: "company-financial-shares",
-        label: "Shares (in Millions)",
-        required: true,
-        integerConstraint: 8,
-        decimalConstraint: 2,
-        allowNegative: false,
-    },
     {
         key: "revenue",
         id: "company-financial-revenue",
@@ -79,6 +70,15 @@ const FINANCIAL_FIELDS = [
         integerConstraint: 8,
         decimalConstraint: 2,
         allowNegative: true,
+    },
+    {
+        key: "shares",
+        id: "company-financial-shares",
+        label: "Shares (in Millions)",
+        required: true,
+        integerConstraint: 8,
+        decimalConstraint: 2,
+        allowNegative: false,
     },
     {
         key: "adjustedEps",
