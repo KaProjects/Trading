@@ -13,6 +13,10 @@ public record OnboardingLookupDto(
         String website,
         String exchange,
         String currency,
+        /** {@code exchange} as an Exchange constant, or null when it is not one this app supports. */
+        String appExchange,
+        /** {@code currency} as a Currency constant, or null when no supported currency uses that ISO code. */
+        String appCurrency,
         String locale,
         String type,
         Boolean active,

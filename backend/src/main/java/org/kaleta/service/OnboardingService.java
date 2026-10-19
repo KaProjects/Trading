@@ -14,6 +14,8 @@ import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonNews;
 import org.kaleta.firebase.FirebaseStore;
 import org.kaleta.persistence.entity.CompanyWithStats;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.model.FirebaseInstitution;
 import org.kaleta.rest.dto.OnboardingLookupDto;
 import org.kaleta.rest.dto.OnboardingEstimatesDto;
@@ -25,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.List;
@@ -65,10 +68,15 @@ public class OnboardingService
 
         boolean inDatabase = databaseTickers().contains(normalized);
         boolean inFirebase = isInFirebase(normalized, warnings);
-        if (inDatabase || inFirebase) {
+        // Firebase and the local database are separate destinations. The profile is still worth
+        // fetching when the company is missing from one of them, because that is what the
+        // remaining action is prefilled from; only a company that is already in both has nothing
+        // left to do and is not worth a Polygon request.
+        if (inDatabase && inFirebase) {
             return new OnboardingLookupDto(
-                    normalized, false, inDatabase, inFirebase,
+                    normalized, false, true, true,
                     null, null, null, null, null, null, null, null, null, null, null, null, null,
+                    null, null,
                     warnings);
         }
 
@@ -77,13 +85,15 @@ public class OnboardingService
         return new OnboardingLookupDto(
                 normalized,
                 profile != null,
-                false,
-                false,
+                inDatabase,
+                inFirebase,
                 profile == null ? null : profile.name(),
                 profile == null ? null : profile.description(),
                 profile == null ? null : profile.website(),
                 profile == null ? null : profile.exchange(),
                 profile == null ? null : profile.currency(),
+                appExchange(profile),
+                appCurrency(profile),
                 profile == null ? null : profile.locale(),
                 profile == null ? null : profile.type(),
                 profile == null ? null : profile.active(),
@@ -154,11 +164,8 @@ public class OnboardingService
     {
         String normalized = ticker.trim().toUpperCase(Locale.ROOT);
 
-        if (databaseTickers().contains(normalized)) {
-            throw new InvalidInputException(
-                    "Company '" + normalized + "' already exists in the database");
-        }
-
+        // Only Firebase matters here. A company this app already tracks is exactly the case that
+        // needs pushing, so its presence in the database is not a reason to refuse.
         List<String> warnings = new ArrayList<>();
         if (isInFirebase(normalized, warnings)) {
             throw new InvalidInputException(
@@ -457,5 +464,35 @@ public class OnboardingService
                 .map(CompanyWithStats::getTicker)
                 .map(value -> value.trim().toUpperCase(Locale.ROOT))
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * Polygon reports the exchange as a MIC code, which is exactly how the Exchange constants are
+     * named, so a supported exchange maps straight across. Anything else stays null and is left to
+     * be picked by hand.
+     */
+    private String appExchange(PolygonCompanyProfile profile)
+    {
+        if (profile == null || profile.exchange() == null) return null;
+
+        String code = profile.exchange().trim().toUpperCase(Locale.ROOT);
+        return Arrays.stream(Exchange.values())
+                .map(Enum::name)
+                .filter(code::equals)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /** Polygon reports an ISO currency code, which Currency carries for exactly this purpose. */
+    private String appCurrency(PolygonCompanyProfile profile)
+    {
+        if (profile == null || profile.currency() == null) return null;
+
+        String isoCode = profile.currency().trim();
+        return Arrays.stream(Currency.values())
+                .filter(value -> value.getIsoCode().equalsIgnoreCase(isoCode))
+                .map(Enum::name)
+                .findFirst()
+                .orElse(null);
     }
 }

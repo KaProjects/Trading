@@ -27,7 +27,11 @@ import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import axios from "axios";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {backend} from "../properties";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import {COMPACT_TABS_BREAKPOINT, MainBarTabs} from "./component/MainBarTabs";
+import {SWIPE_AREA_SX, useSwipeNavigation} from "./component/useSwipeNavigation";
+import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
 import {
     formatDate,
     formatDecimals,
@@ -63,13 +67,25 @@ function decimals(value) {
     return value === null || value === undefined ? "-" : formatDecimals(Number(value), 0, 2)
 }
 
-function useOnboardingSection(path, ticker) {
+/**
+ * Loads one onboarding tab. A manual section is not fetched when the ticker is checked:
+ * it waits for run(), because asking Gemini for analyst research is slow and costs a
+ * request per attempt, so it should be a deliberate act rather than a side effect of
+ * pressing Check. Changing the ticker always clears whatever was loaded before.
+ */
+function useOnboardingSection(path, ticker, manual = false) {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
+    // Which ticker the user asked this section for. Storing the ticker rather than a counter
+    // means a new ticker makes the section inactive again on its own, with no second effect
+    // resetting state underneath a request that is already in flight.
+    const [requestedFor, setRequestedFor] = useState(null)
+
+    const active = Boolean(ticker) && (!manual || requestedFor === ticker)
 
     useEffect(() => {
-        if (!ticker) {
+        if (!active) {
             setData(null)
             setError(null)
             setLoading(false)
@@ -94,9 +110,9 @@ function useOnboardingSection(path, ticker) {
         return () => {
             current = false
         }
-    }, [path, ticker])
+    }, [path, ticker, active])
 
-    return {data, loading, error}
+    return {data, loading, error, requested: active && manual, run: () => setRequestedFor(ticker)}
 }
 
 function Section({title, children}) {
@@ -139,6 +155,55 @@ function Takeaways({items}) {
             ))}
         </Box>
     )
+}
+
+/**
+ * One destination a company can be in: Firebase, or this app's database. The status and the
+ * action that resolves it sit together on one compact line - a tick or a dash, the
+ * destination, then the button right beside it - so the two read as one statement rather
+ * than as a label and a far-away control. The two destinations are independent: a company
+ * can be in either, both, or neither.
+ */
+function DestinationRow({testId, destination, present, action}) {
+    return (
+        <Box
+            data-testid={testId}
+            sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                minHeight: "30px",
+                paddingLeft: "8px",
+                borderLeft: "3px solid",
+                borderColor: present ? "success.main" : "warning.main",
+            }}
+        >
+            {present
+                ? <CheckCircleOutlineIcon sx={{fontSize: 16, color: "success.main"}}/>
+                : <RemoveCircleOutlineIcon sx={{fontSize: 16, color: "warning.main"}}/>}
+            <Typography sx={{fontSize: 13, color: "text.secondary", minWidth: 58}}>
+                {destination}
+            </Typography>
+            <Typography sx={{fontSize: 13, fontWeight: 600, minWidth: 54}}>
+                {present ? "present" : "missing"}
+            </Typography>
+            {!present && action}
+        </Box>
+    )
+}
+
+/**
+ * The action sits on the same line as the status it resolves, so it is styled to read as part
+ * of that sentence rather than as a separate control: text button, sentence case, the same
+ * type scale as the words beside it.
+ */
+const ROW_ACTION_SX = {
+    fontSize: 13,
+    textTransform: "none",
+    paddingX: "6px",
+    paddingY: 0,
+    minWidth: 0,
+    minHeight: 0,
 }
 
 function SectionState({name, loading, error, loadingText}) {
@@ -502,7 +567,7 @@ function News({news}) {
     )
 }
 
-export const Onboarding = () => {
+export const Onboarding = props => {
     const [ticker, setTicker] = useState("")
     const [loading, setLoading] = useState(false)
     const [alert, setAlert] = useState(null)
@@ -515,13 +580,47 @@ export const Onboarding = () => {
 
     const normalized = ticker.trim().toUpperCase()
     const invalid = normalized !== "" && !TICKER_PATTERN.test(normalized)
+    // Firebase and this app are two separate places a company can be missing from, and being
+    // in one says nothing about the other. The research tabs only need a company that exists
+    // somewhere upstream; the two actions are gated on their own flag.
     const known = lookup && (lookup.inDatabase || lookup.inFirebase)
-    const researchTicker = lookup && lookup.found && !known ? lookup.ticker : null
+    const researchTicker = lookup && lookup.found && !lookup.inFirebase ? lookup.ticker : null
+    // A company counts as real once Polygon found it or we already track it somewhere. Pushing to
+    // Firebase only needs the ticker - the processor fills in the rest - so a company we already
+    // hold in the database can be pushed even when Polygon has no profile for it.
+    const realCompany = Boolean(lookup && (lookup.found || lookup.inDatabase || lookup.inFirebase))
+    const missingFromFirebase = Boolean(realCompany && !lookup.inFirebase)
+    const missingFromApp = Boolean(realCompany && !lookup.inDatabase)
 
-    const targets = useOnboardingSection("/onboarding/targets", researchTicker)
-    const financials = useOnboardingSection("/onboarding/financials", researchTicker)
+    function createInApp() {
+        if (!lookup || !missingFromApp) return
+
+        props.setOpenEditCompany({
+            ticker: lookup.ticker,
+            currency: lookup.appCurrency ?? "",
+            exchange: lookup.appExchange ?? "",
+            name: lookup.name ?? "",
+            description: lookup.description ?? "",
+            website: lookup.website ?? "",
+        })
+    }
+
+    const targets = useOnboardingSection("/onboarding/targets", researchTicker, true)
+    const financials = useOnboardingSection("/onboarding/financials", researchTicker, true)
     const estimates = useOnboardingSection("/onboarding/estimates", researchTicker)
     const news = useOnboardingSection("/onboarding/news", researchTicker)
+
+    // Analyst research and financials are the two Gemini retrievals. They are slow and cost a
+    // request each, so they are confirmed together from the overview rather than starting by
+    // themselves when the ticker is checked. Estimates and news are cheap and stay automatic.
+    const geminiLoading = targets.loading || financials.loading
+
+    // Either Gemini tab can start the pair, so confirming on one also fills the other.
+    function runGemini() {
+        if (geminiLoading) return
+        targets.run()
+        financials.run()
+    }
 
     const tabs = [
         {
@@ -537,6 +636,7 @@ export const Onboarding = () => {
             section: targets,
             loadingText: "Asking Gemini for price targets of trusted institutions...",
             render: data => <AnalystResearch targets={data}/>,
+            manual: true,
         },
         {
             name: "financials",
@@ -544,6 +644,7 @@ export const Onboarding = () => {
             section: financials,
             loadingText: "Asking Gemini for the last four reported quarters...",
             render: data => <Financials financials={data}/>,
+            manual: true,
         },
         {
             name: "estimates",
@@ -561,6 +662,13 @@ export const Onboarding = () => {
         },
     ]
 
+    // The tabs are tracked by name, the swipe hook counts in indexes.
+    const tabIndex = Math.max(tabs.findIndex(entry => entry.name === tab), 0)
+    const swipe = useSwipeNavigation(
+        tabIndex,
+        index => setTab(tabs[index].name),
+        tabs.length)
+
     function check() {
         if (loading || normalized === "" || invalid) return
 
@@ -576,12 +684,12 @@ export const Onboarding = () => {
     }
 
     function pushToFirebase() {
-        if (pushing || pushed || !researchTicker) return
+        if (pushing || pushed || !missingFromFirebase) return
 
         setConfirming(false)
         setPushing(true)
         setAlert(null)
-        axios.post(backend + "/onboarding/firebase", null, {params: {ticker: researchTicker}})
+        axios.post(backend + "/onboarding/firebase", null, {params: {ticker: lookup.ticker}})
             .then(() => setPushed(true))
             .catch(error => setAlert(formatError(error)))
             .finally(() => setPushing(false))
@@ -591,10 +699,17 @@ export const Onboarding = () => {
         <Box sx={{paddingBottom: "24px"}}>
             <Section title="Company onboarding">
                 <Paper sx={{padding: "12px"}}>
+                    <Box sx={{
+                        display: "flex",
+                        flexDirection: {xs: "column", sm: "row"},
+                        alignItems: {xs: "stretch", sm: "flex-start"},
+                        justifyContent: "space-between",
+                        gap: "12px",
+                    }}>
                     <Box
                         component="form"
                         onSubmit={event => {event.preventDefault(); check()}}
-                        sx={{display: "flex", gap: "8px", alignItems: "flex-start"}}
+                        sx={{display: "flex", gap: "8px", alignItems: "flex-start", flexShrink: 0}}
                     >
                         <TextField
                             id="trader-onboarding-ticker"
@@ -614,24 +729,54 @@ export const Onboarding = () => {
                         >
                             {loading ? <CircularProgress size={22}/> : "Check"}
                         </Button>
-                        <Box sx={{flexGrow: 1}}/>
-                        <Button
-                            type="button"
-                            variant="outlined"
-                            data-testid="onboarding-push"
-                            disabled={!researchTicker || pushing || pushed}
-                            onClick={() => setConfirming(true)}
-                            sx={{marginTop: "2px"}}
-                        >
-                            {pushing ? <CircularProgress size={22}/> : "Push to Firebase"}
-                        </Button>
                     </Box>
-                    {pushed &&
-                        <Alert severity="success" data-testid="onboarding-pushed" sx={{marginTop: "4px"}}>
-                            {lookup?.ticker} was added to the Firebase company list.
-                            The processor initializes it on its next run.
-                        </Alert>
+                    {realCompany &&
+                        <Box
+                            data-testid="onboarding-state"
+                            sx={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "4px",
+                                marginTop: {xs: 0, sm: "4px"},
+                                alignItems: "flex-start",
+                            }}
+                        >
+                            <DestinationRow
+                                testId="onboarding-state-firebase"
+                                destination="Firebase"
+                                present={lookup.inFirebase || pushed}
+                                action={
+                                    <Button
+                                        type="button"
+                                        size="small"
+                                        data-testid="onboarding-push"
+                                        disabled={pushing}
+                                        onClick={() => setConfirming(true)}
+                                        sx={ROW_ACTION_SX}
+                                    >
+                                        {pushing ? <CircularProgress size={14}/> : "Push to Firebase"}
+                                    </Button>
+                                }
+                            />
+                            <DestinationRow
+                                testId="onboarding-state-app"
+                                destination="This app"
+                                present={lookup.inDatabase}
+                                action={
+                                    <Button
+                                        type="button"
+                                        size="small"
+                                        data-testid="onboarding-create"
+                                        onClick={createInApp}
+                                        sx={ROW_ACTION_SX}
+                                    >
+                                        Create in app
+                                    </Button>
+                                }
+                            />
+                        </Box>
                     }
+                    </Box>
                 </Paper>
             </Section>
 
@@ -643,18 +788,9 @@ export const Onboarding = () => {
                 </Section>
             }
 
-            {lookup && (known || !lookup.found || lookup.warnings?.length > 0) &&
+            {lookup && (known || lookup.found || !lookup.found || lookup.warnings?.length > 0) &&
                 <Section title=" ">
                     <Warnings warnings={lookup.warnings}/>
-                    {known &&
-                        <Alert severity="info" data-testid="onboarding-known">
-                            {lookup.ticker} is already tracked
-                            {lookup.inDatabase && lookup.inFirebase
-                                ? " in the database and in Firebase"
-                                : lookup.inDatabase ? " in the database" : " in Firebase"}
-                            . Nothing to onboard.
-                        </Alert>
-                    }
                     {!known && !lookup.found &&
                         <Alert severity="error" data-testid="onboarding-not-found">
                             No company found for {lookup.ticker}. Check the ticker and try another one.
@@ -694,8 +830,37 @@ export const Onboarding = () => {
                             ))}
                         </Tabs>
                     }
+                    <Box
+                        sx={{...SWIPE_AREA_SX, touchAction: "pan-y"}}
+                        {...swipe}
+                    >
                     {tabs.filter(entry => entry.name === tab).map(entry => (
                         <Box key={entry.name} data-testid={`onboarding-tab-${entry.name}`}>
+                            {entry.manual && !entry.section.requested &&
+                                <Paper
+                                    data-testid={`onboarding-${entry.name}-confirm`}
+                                    sx={{
+                                        padding: "12px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: "12px",
+                                        flexWrap: "wrap",
+                                    }}
+                                >
+                                    <Typography sx={{fontSize: 13, color: "text.secondary"}}>
+                                        Analyst research and financials are retrieved from Gemini and
+                                        can take a few minutes. Confirm to start both.
+                                    </Typography>
+                                    <Button
+                                        variant="outlined"
+                                        data-testid="onboarding-run-gemini"
+                                        onClick={runGemini}
+                                    >
+                                        Run Gemini retrievals
+                                    </Button>
+                                </Paper>
+                            }
                             <SectionState
                                 name={entry.name}
                                 loading={entry.section.loading}
@@ -705,8 +870,11 @@ export const Onboarding = () => {
                             {entry.section.data && entry.render(entry.section.data)}
                         </Box>
                     ))}
+                    </Box>
                 </Section>
             }
+
+            <EditCompanyDialog {...props} triggerRefresh={() => check()}/>
 
             <Dialog open={confirming} onClose={() => setConfirming(false)}>
                 <DialogTitle>Add {lookup?.ticker} to Firebase?</DialogTitle>

@@ -2,6 +2,9 @@ import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import axios from "axios";
 
 jest.mock("axios");
+jest.mock("../../dialog/EditCompanyDialog", () => ({
+    EditCompanyDialog: () => <div data-testid="edit-company-dialog"/>,
+}));
 jest.mock("../../properties", () => ({
     backend: "/api",
 }));
@@ -190,10 +193,15 @@ describe("Onboarding", () => {
         fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "ORCL"}});
         fireEvent.click(screen.getByRole("button", {name: "Check"}));
 
+        fireEvent.click(await screen.findByRole("tab", {name: /Analyst research/}));
+        expect(axios.get).not.toHaveBeenCalledWith(
+            "/api/onboarding/targets", {params: {ticker: "ORCL"}});
+
+        fireEvent.click(screen.getByTestId("onboarding-run-gemini"));
+
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
             "/api/onboarding/targets", {params: {ticker: "ORCL"}}));
-
-        fireEvent.click(await screen.findByRole("tab", {name: /Analyst research/}));
+        expect(screen.queryByTestId("onboarding-targets-confirm")).not.toBeInTheDocument();
 
         const research = await screen.findByTestId("onboarding-targets");
         expect(screen.getByTestId("onboarding-target-stats")).toHaveTextContent("2@(320-285)~302.5$");
@@ -202,7 +210,10 @@ describe("Onboarding", () => {
         expect(screen.getAllByTestId("onboarding-target")).toHaveLength(2);
         expect(screen.getAllByTestId("onboarding-target")[0]).toHaveTextContent("Morgan Stanley");
         expect(screen.getAllByTestId("onboarding-target")[0]).toHaveTextContent("320$");
-        expect(screen.queryByTestId("onboarding-targets-loading")).not.toBeInTheDocument();
+        // setData and setLoading(false) land in separate microtasks, so the loading panel can
+        // still be on screen for one render after the targets appear.
+        await waitFor(() =>
+            expect(screen.queryByTestId("onboarding-targets-loading")).not.toBeInTheDocument());
     });
 
     test("shows an empty research result without targets", async () => {
@@ -222,6 +233,7 @@ describe("Onboarding", () => {
         fireEvent.click(screen.getByRole("button", {name: "Check"}));
 
         fireEvent.click(await screen.findByRole("tab", {name: /Analyst research/}));
+        fireEvent.click(screen.getByTestId("onboarding-run-gemini"));
 
         expect(await screen.findByTestId("onboarding-targets-report"))
             .toHaveTextContent("nothing published in the window");
@@ -237,10 +249,11 @@ describe("Onboarding", () => {
         fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "ORCL"}});
         fireEvent.click(screen.getByRole("button", {name: "Check"}));
 
+        fireEvent.click(await screen.findByRole("tab", {name: /Financials/}));
+        fireEvent.click(screen.getByTestId("onboarding-run-gemini"));
+
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
             "/api/onboarding/financials", {params: {ticker: "ORCL"}}));
-
-        fireEvent.click(await screen.findByRole("tab", {name: /Financials/}));
 
         const table = await screen.findByTestId("onboarding-financials");
         const quarters = screen.getAllByTestId("onboarding-financials-quarter");
@@ -269,6 +282,7 @@ describe("Onboarding", () => {
         fireEvent.click(screen.getByRole("button", {name: "Check"}));
 
         fireEvent.click(await screen.findByRole("tab", {name: /Analyst research/}));
+        fireEvent.click(screen.getByTestId("onboarding-run-gemini"));
         expect(await screen.findByTestId("onboarding-targets")).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole("tab", {name: /Financials/}));
@@ -344,7 +358,12 @@ describe("Onboarding", () => {
 
         expect(await screen.findByTestId("onboarding-tab-overview")).toBeInTheDocument();
         expect(screen.getByTestId("onboarding-profile")).toHaveTextContent("Oracle Corporation");
-        await waitFor(() => expect(axios.get).toHaveBeenCalledTimes(5));
+        // lookup, estimates and news; both Gemini retrievals wait for the overview button.
+        await waitFor(() => expect(axios.get).toHaveBeenCalledTimes(3));
+        expect(axios.get).not.toHaveBeenCalledWith(
+            "/api/onboarding/targets", {params: {ticker: "ORCL"}});
+        expect(axios.get).not.toHaveBeenCalledWith(
+            "/api/onboarding/financials", {params: {ticker: "ORCL"}});
         expect(screen.getAllByRole("tab")).toHaveLength(5);
         expect(screen.queryByTestId("onboarding-tab-news")).not.toBeInTheDocument();
 
@@ -355,7 +374,7 @@ describe("Onboarding", () => {
         expect(screen.getByTestId("onboarding-news-sentiment")).toHaveTextContent("4 articles");
     });
 
-    test("pushes a new ticker to firebase once and then stays disabled", async () => {
+    test("pushes a new ticker to firebase once and reports it in the Firebase row", async () => {
         arrangeRoutes({
             lookup: lookupResponse(), targets: "pending", financials: "pending",
             estimates: "pending", news: "pending",
@@ -364,7 +383,7 @@ describe("Onboarding", () => {
 
         render(<Onboarding/>);
 
-        expect(screen.getByTestId("onboarding-push")).toBeDisabled();
+        expect(screen.queryByTestId("onboarding-push")).not.toBeInTheDocument();
 
         fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "ORCL"}});
         fireEvent.click(screen.getByRole("button", {name: "Check"}));
@@ -381,11 +400,12 @@ describe("Onboarding", () => {
         fireEvent.click(screen.getByTestId("onboarding-push-confirm"));
         fireEvent.click(screen.getByTestId("onboarding-push-confirm"));
 
-        await waitFor(() => expect(screen.getByTestId("onboarding-pushed")).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByTestId("onboarding-state-firebase"))
+            .toHaveTextContent("Firebasepresent"));
+        expect(screen.queryByTestId("onboarding-push")).not.toBeInTheDocument();
         expect(axios.post).toHaveBeenCalledTimes(1);
         expect(axios.post).toHaveBeenCalledWith(
             "/api/onboarding/firebase", null, {params: {ticker: "ORCL"}});
-        expect(screen.getByTestId("onboarding-push")).toBeDisabled();
     });
 
     test("does not push when the confirmation is cancelled", async () => {
@@ -408,9 +428,9 @@ describe("Onboarding", () => {
         expect(screen.getByTestId("onboarding-push")).not.toBeDisabled();
     });
 
-    test("keeps the push button disabled for a known or unknown ticker", async () => {
+    test("disables both actions for a company that is in Firebase and in the app", async () => {
         arrangeRoutes({lookup: lookupResponse({
-            ticker: "NVDA", found: false, inDatabase: true, inFirebase: false,
+            ticker: "NVDA", found: false, inDatabase: true, inFirebase: true,
             name: null, description: null, website: null, currency: null, locale: null,
         })});
 
@@ -419,9 +439,98 @@ describe("Onboarding", () => {
         fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "NVDA"}});
         fireEvent.click(screen.getByRole("button", {name: "Check"}));
 
-        await screen.findByTestId("onboarding-known");
-        expect(screen.getByTestId("onboarding-push")).toBeDisabled();
+        expect(await screen.findByTestId("onboarding-state-firebase"))
+            .toHaveTextContent("Firebasepresent");
+        expect(screen.getByTestId("onboarding-state-app"))
+            .toHaveTextContent("This apppresent");
+        expect(screen.queryByTestId("onboarding-push")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("onboarding-create")).not.toBeInTheDocument();
         expect(axios.post).not.toHaveBeenCalled();
+    });
+
+    test("offers only the Firebase push for a company that exists in the app alone", async () => {
+        arrangeRoutes({
+            lookup: lookupResponse({inDatabase: true, inFirebase: false}),
+            targets: "pending", financials: "pending", estimates: "pending", news: "pending",
+        });
+
+        render(<Onboarding/>);
+
+        fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "ORCL"}});
+        fireEvent.click(screen.getByRole("button", {name: "Check"}));
+
+        expect(await screen.findByTestId("onboarding-state-firebase"))
+            .toHaveTextContent("Firebasemissing");
+        expect(screen.getByTestId("onboarding-state-app"))
+            .toHaveTextContent("This apppresent");
+        expect(screen.getByTestId("onboarding-push")).not.toBeDisabled();
+        expect(screen.queryByTestId("onboarding-create")).not.toBeInTheDocument();
+    });
+
+    test("offers only the create action for a company that exists in Firebase alone", async () => {
+        arrangeRoutes({lookup: lookupResponse({inDatabase: false, inFirebase: true})});
+
+        render(<Onboarding/>);
+
+        fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "ORCL"}});
+        fireEvent.click(screen.getByRole("button", {name: "Check"}));
+
+        expect(await screen.findByTestId("onboarding-state-firebase"))
+            .toHaveTextContent("Firebasepresent");
+        expect(screen.getByTestId("onboarding-state-app"))
+            .toHaveTextContent("This appmissing");
+        expect(screen.queryByTestId("onboarding-push")).not.toBeInTheDocument();
+        expect(screen.getByTestId("onboarding-create")).not.toBeDisabled();
+    });
+
+    test("still offers the Firebase push for a tracked company Polygon has no profile for", async () => {
+        arrangeRoutes({lookup: lookupResponse({
+            ticker: "OUTA", found: false, inDatabase: true, inFirebase: false,
+            name: null, description: null, website: null, currency: null, locale: null,
+        })});
+        axios.post.mockResolvedValue({});
+
+        render(<Onboarding/>);
+
+        fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "OUTA"}});
+        fireEvent.click(screen.getByRole("button", {name: "Check"}));
+
+        expect(await screen.findByTestId("onboarding-state-firebase"))
+            .toHaveTextContent("Firebasemissing");
+        expect(screen.getByTestId("onboarding-state-app"))
+            .toHaveTextContent("This apppresent");
+
+        fireEvent.click(screen.getByTestId("onboarding-push"));
+        fireEvent.click(await screen.findByTestId("onboarding-push-confirm"));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
+            "/api/onboarding/firebase", null, {params: {ticker: "OUTA"}}));
+    });
+
+    test("opens the create dialog prefilled with the mapped profile", async () => {
+        const setOpenEditCompany = jest.fn();
+        arrangeRoutes({
+            lookup: lookupResponse({appExchange: "XNYS", appCurrency: "$"}),
+            targets: "pending", financials: "pending", estimates: "pending", news: "pending",
+        });
+
+        render(<Onboarding setOpenEditCompany={setOpenEditCompany}/>);
+
+        fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "ORCL"}});
+        fireEvent.click(screen.getByRole("button", {name: "Check"}));
+
+        // The button is on screen from the first render, disabled until the lookup lands.
+        await waitFor(() => expect(screen.getByTestId("onboarding-create")).not.toBeDisabled());
+        fireEvent.click(screen.getByTestId("onboarding-create"));
+
+        expect(setOpenEditCompany).toHaveBeenCalledWith({
+            ticker: "ORCL",
+            currency: "$",
+            exchange: "XNYS",
+            name: "Oracle Corporation",
+            description: "Cloud and database company.",
+            website: "https://oracle.com",
+        });
     });
 
     test("re-enables the push button after checking another valid ticker", async () => {
@@ -446,12 +555,13 @@ describe("Onboarding", () => {
         fireEvent.click(screen.getByRole("button", {name: "Check"}));
 
         await waitFor(() => expect(screen.getByTestId("onboarding-push")).not.toBeDisabled());
-        expect(screen.queryByTestId("onboarding-pushed")).not.toBeInTheDocument();
+        expect(screen.getByTestId("onboarding-state-firebase"))
+            .toHaveTextContent("Firebasemissing");
     });
 
-    test("does not ask gemini for a company that is already tracked", async () => {
+    test("asks for nothing beyond the lookup when the company is in both places", async () => {
         axios.get.mockResolvedValue({data: lookupResponse({
-            ticker: "NVDA", found: false, inDatabase: true, inFirebase: false,
+            ticker: "NVDA", found: false, inDatabase: true, inFirebase: true,
             name: null, description: null, website: null, currency: null, locale: null,
         })});
 
@@ -460,7 +570,7 @@ describe("Onboarding", () => {
         fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "NVDA"}});
         fireEvent.click(screen.getByRole("button", {name: "Check"}));
 
-        await screen.findByTestId("onboarding-known");
+        await screen.findByTestId("onboarding-state");
         expect(axios.get).toHaveBeenCalledTimes(1);
         expect(axios.get).toHaveBeenCalledWith("/api/onboarding/lookup", {params: {ticker: "NVDA"}});
     });
@@ -476,8 +586,10 @@ describe("Onboarding", () => {
         fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "NVDA"}});
         fireEvent.click(screen.getByRole("button", {name: "Check"}));
 
-        expect(await screen.findByTestId("onboarding-known"))
-            .toHaveTextContent("NVDA is already tracked in the database and in Firebase. Nothing to onboard.");
+        expect(await screen.findByTestId("onboarding-state-firebase"))
+            .toHaveTextContent("Firebasepresent");
+        expect(screen.getByTestId("onboarding-state-app"))
+            .toHaveTextContent("This apppresent");
         expect(screen.queryByTestId("onboarding-profile")).not.toBeInTheDocument();
         expect(screen.queryByTestId("onboarding-not-found")).not.toBeInTheDocument();
     });

@@ -67,14 +67,17 @@ export const EditCompanyDialog = props => {
             setAlert(null)
             setSubmitting(false)
             setTicker(company.ticker ?? "")
-            setCurrency(company.id ? company.currency : "")
-            setName(company.id ? company.name ?? "" : "")
-            setDescription(company.id ? company.description ?? "" : "")
-            setWebsite(company.id ? company.website ?? "" : "")
+            // A new company may arrive prefilled - company onboarding hands over what the Polygon
+            // profile gave it - so these read from the object rather than being blanked for a
+            // create. The callers that open an empty create pass {} and still start blank.
+            setCurrency(company.currency ?? "")
+            setName(company.name ?? "")
+            setDescription(company.description ?? "")
+            setWebsite(company.website ?? "")
             setProfileLoading(false)
-            const exchangeKey = company.id
-                ? (typeof company.exchange === "string" ? company.exchange : company.exchange?.key)
-                : ""
+            const exchangeKey = typeof company.exchange === "string"
+                ? company.exchange
+                : company.exchange?.key
             const selectedExchange = props.exchanges.find(value => value.key === exchangeKey) ?? ""
             setExchange(selectedExchange)
             const selectedAlphaVantageTicker = company.id ? company.alphaVantageTicker ?? "" : ""

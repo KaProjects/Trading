@@ -86,6 +86,8 @@ public class OnboardingServiceTest
         assertThat(result.website(), is("https://oracle.com"));
         assertThat(result.exchange(), is("XNYS"));
         assertThat(result.currency(), is("usd"));
+        assertThat(result.appExchange(), is("XNYS"));
+        assertThat(result.appCurrency(), is("$"));
         assertThat(result.locale(), is("us"));
         assertThat(result.industry(), is("SERVICES-PREPACKAGED SOFTWARE"));
         assertThat(result.marketCap(), is(new BigDecimal("655000000000")));
@@ -97,32 +99,64 @@ public class OnboardingServiceTest
     }
 
     @Test
-    void lookup_companyInDatabaseSkipsExternalSources() throws Exception
+    void lookup_companyOnlyInDatabaseStillLoadsTheProfileForTheFirebaseStep() throws Exception
     {
         arrangeDatabase("AMD", "NVDA");
         when(firebaseStore.findCompany("NVDA")).thenReturn(Optional.empty());
+        when(polygonClient.getCompanyProfile("NVDA")).thenReturn(Optional.of(profile()));
 
         OnboardingLookupDto result = onboardingService.lookup("nvda");
 
-        assertThat(result.found(), is(false));
+        assertThat(result.found(), is(true));
         assertThat(result.inDatabase(), is(true));
         assertThat(result.inFirebase(), is(false));
-        assertThat(result.name(), is(nullValue()));
-        verify(polygonClient, never()).getCompanyProfile(any());
+        assertThat(result.name(), is("Oracle Corporation"));
     }
 
     @Test
-    void lookup_companyInFirebaseSkipsExternalSources() throws Exception
+    void lookup_companyOnlyInFirebaseStillLoadsTheProfileForTheCreateStep() throws Exception
     {
         arrangeDatabase("AMD");
+        when(firebaseStore.findCompany("ORCL")).thenReturn(Optional.of(new FirebaseCompany()));
+        when(polygonClient.getCompanyProfile("ORCL")).thenReturn(Optional.of(profile()));
+
+        OnboardingLookupDto result = onboardingService.lookup("ORCL");
+
+        assertThat(result.found(), is(true));
+        assertThat(result.inDatabase(), is(false));
+        assertThat(result.inFirebase(), is(true));
+        assertThat(result.appCurrency(), is("$"));
+    }
+
+    @Test
+    void lookup_companyInBothPlacesSkipsExternalSources() throws Exception
+    {
+        arrangeDatabase("AMD", "ORCL");
         when(firebaseStore.findCompany("ORCL")).thenReturn(Optional.of(new FirebaseCompany()));
 
         OnboardingLookupDto result = onboardingService.lookup("ORCL");
 
         assertThat(result.found(), is(false));
-        assertThat(result.inDatabase(), is(false));
+        assertThat(result.inDatabase(), is(true));
         assertThat(result.inFirebase(), is(true));
+        assertThat(result.name(), is(nullValue()));
         verify(polygonClient, never()).getCompanyProfile(any());
+    }
+
+    @Test
+    void lookup_leavesAnUnsupportedExchangeAndCurrencyUnmapped() throws Exception
+    {
+        arrangeDatabase();
+        when(firebaseStore.findCompany("XTKS")).thenReturn(Optional.empty());
+        when(polygonClient.getCompanyProfile("XTKS"))
+                .thenReturn(Optional.of(profile("XTKS", "jpy")));
+
+        OnboardingLookupDto result = onboardingService.lookup("XTKS");
+
+        assertThat(result.exchange(), is("XTKS"));
+        assertThat(result.currency(), is("jpy"));
+        assertThat(result.appExchange(), is(nullValue()));
+        assertThat(result.appCurrency(), is(nullValue()));
     }
 
     @Test
@@ -434,19 +468,27 @@ public class OnboardingServiceTest
     }
 
     @Test
-    void pushToFirebase_refusesKnownCompanies() throws Exception
+    void pushToFirebase_refusesACompanyThatIsAlreadyInFirebase() throws Exception
     {
-        arrangeDatabase("NVDA");
+        arrangeDatabase();
         when(firebaseStore.findCompany("ORCL")).thenReturn(Optional.of(new FirebaseCompany()));
 
-        assertThat(assertThrows(InvalidInputException.class,
-                        () -> onboardingService.pushToFirebase("NVDA")).getMessage(),
-                containsString("already exists in the database"));
         assertThat(assertThrows(InvalidInputException.class,
                         () -> onboardingService.pushToFirebase("ORCL")).getMessage(),
                 containsString("already exists in Firebase"));
 
         verify(firebaseStore, never()).createCompany(any());
+    }
+
+    @Test
+    void pushToFirebase_pushesACompanyThisAppAlreadyTracks() throws Exception
+    {
+        arrangeDatabase("OUTA");
+        when(firebaseStore.findCompany("OUTA")).thenReturn(Optional.empty());
+
+        onboardingService.pushToFirebase("OUTA");
+
+        verify(firebaseStore).createCompany("OUTA");
     }
 
     @Test
@@ -464,9 +506,14 @@ public class OnboardingServiceTest
 
     private static PolygonCompanyProfile profile()
     {
+        return profile("XNYS", "usd");
+    }
+
+    private static PolygonCompanyProfile profile(String exchange, String currency)
+    {
         return new PolygonCompanyProfile(
                 "Oracle Corporation", "Cloud and database company.", "https://oracle.com",
-                "XNYS", "usd", "us", "CS", true, "SERVICES-PREPACKAGED SOFTWARE", "1986-03-12",
+                exchange, currency, "us", "CS", true, "SERVICES-PREPACKAGED SOFTWARE", "1986-03-12",
                 new BigDecimal("655000000000"), new BigDecimal("2800000000"), 159000);
     }
 
