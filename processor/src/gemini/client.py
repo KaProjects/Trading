@@ -37,6 +37,18 @@ GEMINI_RETRY_INITIAL_DELAY_SECONDS = 2.0
 GEMINI_RETRY_MAX_DELAY_SECONDS = 30.0
 GEMINI_RETRYABLE_HTTP_STATUS_CODES = [408, 429, 500, 502, 503, 504]
 INITIAL_COMPANY_QUARTER_COUNT = 5
+OPTIONAL_PROFIT_LINES_GUIDANCE = """
+        Gross profit exists only for companies that report a cost of revenue,
+        such as manufacturers, retailers and software companies. Banks and
+        insurers (for example JPMorgan Chase) do not report one: for those,
+        leave reported_gross_profit null. Never copy revenues or any other
+        figure into it and never estimate or derive it.
+        Likewise, operating income exists only for companies that report an
+        operating result. Banks and insurers (for example JPMorgan Chase)
+        report pre-tax income instead and have none: for those, leave
+        reported_operating_income null, and never substitute pre-tax income,
+        net interest income or any other figure for it.
+"""
 
 
 def _quarter_ids_ending_at(
@@ -251,6 +263,10 @@ class GeminiClient:
         subtracting the previous cumulative period and use figures from the same
         accounting period and currency.
 
+        {OPTIONAL_PROFIT_LINES_GUIDANCE}
+        A null reported_gross_profit or reported_operating_income for such a
+        company is expected and needs no entry in errors.
+
         Then, for all already reported quarters, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
 
@@ -390,10 +406,11 @@ class GeminiClient:
         data = current_quarter.model_dump(mode="json")
         if currency == "$":
             completeness = """
-            All reported financial and price fields except reported_capex and
-            reported_free_cash_flow must be populated. Those two optional fields
-            may be null when they cannot be found and verified. Return every
-            value you did find.
+            All reported financial and price fields except reported_capex,
+            reported_free_cash_flow, reported_gross_profit and
+            reported_operating_income must be populated. Those four optional
+            fields may be null when they cannot be found and verified. Return
+            every value you did find.
             """
         else:
             completeness = """
@@ -428,6 +445,8 @@ class GeminiClient:
         subtracting the previous cumulative period and use figures from the same
         accounting period and currency. Try to retrieve these two values, but
         reported_capex and reported_free_cash_flow are optional and may be null.
+
+        {OPTIONAL_PROFIT_LINES_GUIDANCE}
         
         For price_min and price_max, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).

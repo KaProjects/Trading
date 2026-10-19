@@ -192,14 +192,16 @@ class Quarter(BaseModel):
         default=None,
         description=(
             "Reported gross profit in millions of the company's original "
-            "reporting currency."
+            "reporting currency; null for companies that do not report "
+            "one, such as banks and insurers."
         ),
     )
     reported_operating_income: Decimal | None = Field(
         default=None,
         description=(
             "Reported operating income in millions of the company's original "
-            "reporting currency."
+            "reporting currency; null for companies that do not report "
+            "one, such as banks and insurers."
         ),
     )
     reported_net_income: Decimal | None = Field(
@@ -674,13 +676,15 @@ class InitialQuarter(Quarter):
     reported_gross_profit: Decimal | None = Field(
         description=(
             "Reported gross profit in millions of the company's original "
-            "reporting currency, or null."
+            "reporting currency, or null (always null for companies that "
+            "do not report one, such as banks and insurers)."
         )
     )
     reported_operating_income: Decimal | None = Field(
         description=(
             "Reported operating income in millions of the company's original "
-            "reporting currency, or null."
+            "reporting currency, or null (always null for companies that "
+            "do not report one, such as banks and insurers)."
         )
     )
     reported_net_income: Decimal | None = Field(

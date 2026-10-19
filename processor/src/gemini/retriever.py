@@ -51,9 +51,14 @@ REQUIRED_REPORTED_QUARTER_FIELDS = frozenset({
     "reported_revenues",
     "reported_net_income",
 })
+# Gross profit and operating income are optional because banks and
+# insurers (JPMorgan) have none; requiring them made Gemini copy revenues
+# or pre-tax income into them just to get the report accepted.
 OPTIONAL_QUARTER_REPORT_FIELDS = frozenset({
     "reported_capex",
     "reported_free_cash_flow",
+    "reported_gross_profit",
+    "reported_operating_income",
 })
 logger = logging.getLogger(RUNNER_NAME)
 

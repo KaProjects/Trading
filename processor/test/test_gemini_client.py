@@ -908,6 +908,72 @@ def test_get_quarter_report_accepts_complete_response():
     assert "Never use a year-to-date value as a quarterly value" in prompt
 
 
+def test_get_quarter_report_leaves_unreported_profit_lines_null_for_banks():
+    original = make_quarter()
+    response_data = complete_quarter_data()
+    response_data["reported_gross_profit"] = None
+    response_data["reported_operating_income"] = None
+
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            json.dumps(response_data)
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        result = client.get_quarter_report("JPM", original, "$")
+
+    assert result.quarter.reported_gross_profit is None
+    assert result.quarter.reported_operating_income is None
+    prompt = " ".join(
+        constructor.return_value.models.generate_content.call_args.kwargs[
+            "contents"
+        ].split()
+    )
+    assert (
+        "except reported_capex, reported_free_cash_flow, "
+        "reported_gross_profit and reported_operating_income must be "
+        "populated"
+    ) in prompt
+    assert "Banks and insurers (for example JPMorgan Chase)" in prompt
+    assert (
+        "leave reported_gross_profit null. Never copy revenues or any other "
+        "figure into it"
+    ) in prompt
+    assert (
+        "leave reported_operating_income null, and never substitute "
+        "pre-tax income"
+    ) in prompt
+
+
+def test_initial_company_prompt_leaves_unreported_profit_lines_null_for_banks():
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            json.dumps(initial_company_data())
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        client.get_initial_stock_data("ASML")
+
+    prompt = " ".join(
+        constructor.return_value.models.generate_content.call_args.kwargs[
+            "contents"
+        ].split()
+    )
+    assert "Banks and insurers (for example JPMorgan Chase)" in prompt
+    assert (
+        "leave reported_gross_profit null. Never copy revenues or any other "
+        "figure into it"
+    ) in prompt
+    assert (
+        "leave reported_operating_income null, and never substitute "
+        "pre-tax income"
+    ) in prompt
+    assert (
+        "A null reported_gross_profit or reported_operating_income for "
+        "such a company is expected and needs no entry in errors"
+    ) in prompt
+
+
 def test_get_quarter_report_rejects_missing_structure_with_raw_response():
     original = make_quarter()
     response_data = complete_quarter_data()

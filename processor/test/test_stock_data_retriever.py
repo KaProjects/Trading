@@ -611,9 +611,15 @@ class TestStockDataRetriever:
             "company_id": "ASML",
             "currency": "€",
             "quarter_id": "25Q4",
-            "missing_field_count": 7,
+            "missing_field_count": 5,
         }
-        assert "reported_gross_profit" in warning_call.args[0]
+        # Gross profit and operating income are optional (banks and
+        # insurers have neither), so their absence is never reported as
+        # missing. Numbered list lines only: the raw Gemini response
+        # that follows legitimately contains the keys.
+        assert ". reported_gross_profit" not in warning_call.args[0]
+        assert ". reported_operating_income" not in warning_call.args[0]
+        assert ". reported_eps" in warning_call.args[0]
         assert raw_response in warning_call.args[0]
 
     @patch("utils.is_past_date", return_value=True)
@@ -739,6 +745,57 @@ class TestStockDataRetriever:
         runner.service.create_quarter.assert_called_once_with(
             "NVDA",
             next_quarter,
+        )
+        runner.errors.report_error_message.assert_not_called()
+        runner.errors.report_warning_message.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "missing_fields",
+        [
+            ("reported_gross_profit",),
+            ("reported_operating_income",),
+            ("reported_gross_profit", "reported_operating_income"),
+        ],
+        ids=["gross-profit", "operating-income", "both"],
+    )
+    @patch("utils.is_past_date", return_value=True)
+    @patch("gemini.retriever.datetime")
+    def test_usd_quarter_report_accepts_missing_profit_lines(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+        missing_fields,
+    ):
+        # Banks and insurers (JPMorgan) have no gross profit or
+        # operating income; neither may fail the report or warn.
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        current_quarter = make_quarter(report_date="2026-04-20")
+        company = make_company("JPM", "25Q4", {"25Q4": current_quarter})
+        reported_quarter = make_complete_quarter(
+            report_date="2026-04-20",
+            **dict.fromkeys(missing_fields),
+        )
+        runner.service.get_companies.return_value = {"JPM": company}
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(reported_quarter)
+        )
+        next_quarter = make_quarter(
+            quarter_id="26Q1",
+            report_date="",
+            ending_month="26-06",
+            previous_report_date="2026-04-20",
+        )
+        runner.compose_new_quarter = create_autospec(
+            runner.compose_new_quarter,
+            return_value=next_quarter,
+        )
+
+        runner.run()
+
+        runner.service.report_quarter.assert_called_once_with(
+            "JPM",
+            reported_quarter,
         )
         runner.errors.report_error_message.assert_not_called()
         runner.errors.report_warning_message.assert_not_called()
