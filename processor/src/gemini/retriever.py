@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import utils
-from discord.client import DiscordClient
+from discord.client import DiscordClient, ThreadedPost
 from error_reporting import ErrorReporter
 from gemini import discord_templates
 from gemini.client import GeminiClient
@@ -737,88 +737,98 @@ class StockDataRetrieverRunner:
     def _notify_price_targets(
         self,
         ticker: str,
-        targets: list[tuple[Target, InstitutionRecord]],
+        entries: list[tuple[Target, InstitutionRecord]],
         close: Decimal | None = None,
     ) -> None:
-        reported_targets = [
-            (target, institution)
-            for target, institution in targets
-            if target.report is not None
-        ]
-        plain_targets = [
-            (target, institution)
-            for target, institution in targets
-            if target.report is None
-        ]
-
-        for target, institution in reported_targets:
-            self._notify_price_target(target, institution, close)
-
-        if len(plain_targets) == 1:
-            self._notify_price_target(*plain_targets[0], close)
-        elif plain_targets:
-            self._notify_grouped_price_targets(
-                ticker,
-                [target for target, _institution in plain_targets],
-                close,
-            )
-
-    def _notify_price_target(
-        self,
-        target: Target,
-        institution: InstitutionRecord | None = None,
-        close: Decimal | None = None,
-    ) -> None:
-        rating = institution.rating if institution is not None else None
+        # One list post for everything retrieved for the ticker, trusted
+        # and untrusted institutions alike, with every target's details in
+        # a thread under it in the same order.
+        targets = [target for target, _institution in entries]
+        context = {"ticker": ticker, "count": str(len(targets))}
         try:
-            if self.discord.post_if_channel_exists(
-                target.ticker,
-                discord_templates.ticker_price_target(
-                    target,
-                    rating=rating,
-                    close=close,
-                ),
-            ):
-                return
-            self.discord.post_eventlog(
-                discord_templates.price_target(
-                    target,
-                    rating=rating,
-                    close=close,
-                ),
-            )
-        except Exception as exception:
-            self.report_error(
-                exception,
-                operation="notify_price_target",
-                context=self._price_target_context(target),
-            )
-
-    def _notify_grouped_price_targets(
-        self,
-        ticker: str,
-        targets: list[Target],
-        close: Decimal | None = None,
-    ) -> None:
-        try:
-            if self.discord.post_if_channel_exists(
+            posted = self.discord.post_with_thread_if_channel_exists(
                 ticker,
                 discord_templates.ticker_price_targets(targets, close=close),
-            ):
-                return
-            self.discord.post_eventlog(
-                discord_templates.price_targets(
+                thread_name=discord_templates.price_targets_thread_name(
                     ticker,
                     targets,
+                ),
+                thread_payloads=discord_templates.price_targets_thread_payloads(
+                    [
+                        (target, institution.rating)
+                        for target, institution in entries
+                    ],
                     close=close,
                 ),
             )
+            if posted is not None:
+                self._warn_if_thread_undelivered(
+                    posted,
+                    f"the {len(targets)} price target(s) for {ticker}",
+                    context,
+                )
+                return
+            self._post_price_targets_to_eventlog(ticker, entries, close)
         except Exception as exception:
             self.report_error(
                 exception,
                 operation="notify_price_targets",
-                context={"ticker": ticker, "count": str(len(targets))},
+                context=context,
             )
+
+    def _post_price_targets_to_eventlog(
+        self,
+        ticker: str,
+        entries: list[tuple[Target, InstitutionRecord]],
+        close: Decimal | None,
+    ) -> None:
+        # No ticker channel: the webhook cannot carry a thread, so
+        # researched targets go inline one by one (they hold the report)
+        # and the rest as a list, or alone when there is just one.
+        researched = [e for e in entries if e[0].report is not None]
+        plain = [e for e in entries if e[0].report is None]
+        for target, institution in researched:
+            self.discord.post_eventlog(
+                discord_templates.price_target(
+                    target,
+                    rating=institution.rating,
+                    close=close,
+                ),
+            )
+        if len(plain) == 1:
+            target, institution = plain[0]
+            self.discord.post_eventlog(
+                discord_templates.price_target(
+                    target,
+                    rating=institution.rating,
+                    close=close,
+                ),
+            )
+        elif plain:
+            self.discord.post_eventlog(
+                discord_templates.price_targets(
+                    ticker,
+                    [target for target, _institution in plain],
+                    close=close,
+                ),
+            )
+
+    def _warn_if_thread_undelivered(
+        self,
+        posted: ThreadedPost,
+        subject: str,
+        context: dict[str, str],
+    ) -> None:
+        if posted.thread_error is None:
+            return
+        self.errors.report_warning_message(
+            f"The details of {subject} were not delivered as a thread: "
+            f"{posted.thread_error}. Post: {posted.url}",
+            logger=self.log,
+            source=self.name,
+            operation="notify_price_target_thread",
+            context=context,
+        )
 
     def _latest_closes(
         self,

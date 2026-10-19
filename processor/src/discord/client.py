@@ -1,6 +1,7 @@
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 
 from requests import Response, Session
 from requests.exceptions import RequestException
@@ -13,12 +14,23 @@ RATE_LIMIT_MAX_RETRIES = 3
 RATE_LIMIT_MAX_WAIT_SECONDS = 30.0
 RATE_LIMIT_SAFETY_MARGIN_SECONDS = 0.05
 SUPPRESS_NOTIFICATIONS_FLAG = 1 << 12
+THREAD_NAME_MAX_LENGTH = 100
+THREAD_AUTO_ARCHIVE_MINUTES = 60
 
 logger = logging.getLogger(__name__)
 
 
 class DiscordClientError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class ThreadedPost:
+    url: str
+    # Set when the details could not be delivered as a thread as
+    # intended (creation failed, so they went inline, or some messages
+    # failed); the caller decides how loudly to report it.
+    thread_error: str | None = None
 
 
 class DiscordClient:
@@ -84,6 +96,60 @@ class DiscordClient:
         return (
             f"{DISCORD_CHANNEL_URL}/{self.guild_id}/{channel_id}/{message_id}"
         )
+
+    def post_with_thread_if_channel_exists(
+        self,
+        channel_name: str,
+        payload: dict[str, object],
+        *,
+        thread_name: str,
+        thread_payloads: Sequence[dict[str, object]],
+    ) -> ThreadedPost | None:
+        normalized_name = self._normalize_channel_name(channel_name)
+        channel_id = self._resolve_channel_id(normalized_name)
+        if channel_id is None:
+            return None
+
+        response = self._post_to_channel(channel_id, payload)
+        message_id = self._message_id(response)
+        url = (
+            f"{DISCORD_CHANNEL_URL}/{self.guild_id}/{channel_id}/{message_id}"
+        )
+
+        thread_error = None
+        try:
+            destination_id = self._start_thread(
+                channel_id,
+                message_id,
+                thread_name,
+            )
+        except DiscordClientError as exception:
+            # A missing permission must not cost the details: fall back to
+            # plain follow-up messages in the channel itself.
+            logger.warning(
+                "Could not start a thread under %s; posting its details "
+                "inline: %s",
+                url,
+                exception,
+            )
+            destination_id = channel_id
+            thread_error = f"thread creation failed ({exception})"
+
+        failures = []
+        for thread_payload in thread_payloads:
+            try:
+                self._post_to_channel(destination_id, thread_payload)
+            except DiscordClientError as exception:
+                failures.append(str(exception))
+        if failures:
+            failed = (
+                f"{len(failures)} of {len(thread_payloads)} detail messages "
+                f"failed ({failures[0]})"
+            )
+            thread_error = (
+                failed if thread_error is None else f"{thread_error}; {failed}"
+            )
+        return ThreadedPost(url=url, thread_error=thread_error)
 
     def post_btc(self, payload: dict[str, object]) -> None:
         self._post_to_webhook(self.btc_webhook_key, payload)
@@ -187,6 +253,51 @@ class DiscordClient:
                 f"{response.text}"
             )
         return response
+
+    def _start_thread(
+        self,
+        channel_id: str,
+        message_id: str,
+        name: str,
+    ) -> str:
+        url = (
+            f"{DISCORD_API_URL}/channels/{channel_id}/messages/"
+            f"{message_id}/threads"
+        )
+        try:
+            response = self._request_with_rate_limit_retry(
+                lambda: self.session.post(
+                    url,
+                    headers=self._headers(),
+                    json={
+                        "name": name[:THREAD_NAME_MAX_LENGTH],
+                        "auto_archive_duration": THREAD_AUTO_ARCHIVE_MINUTES,
+                    },
+                    timeout=self.timeout,
+                ),
+                operation="thread",
+            )
+        except RequestException as exception:
+            raise DiscordClientError(
+                "Discord thread request failed"
+            ) from exception
+
+        if not 200 <= response.status_code < 300:
+            raise DiscordClientError(
+                f"Discord thread returned {response.status_code}: "
+                f"{response.text}"
+            )
+        try:
+            data = response.json()
+        except (RequestException, ValueError) as exception:
+            raise DiscordClientError(
+                "Discord thread response was not valid JSON"
+            ) from exception
+        if not isinstance(data, dict) or not data.get("id"):
+            raise DiscordClientError(
+                "Discord thread response did not contain a thread ID"
+            )
+        return str(data["id"])
 
     def _post_to_webhook(
         self,

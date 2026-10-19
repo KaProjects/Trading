@@ -5,7 +5,7 @@ from unittest.mock import create_autospec, patch
 
 import pytest
 
-from discord.client import DiscordClient
+from discord.client import DiscordClient, ThreadedPost
 from error_reporting import ErrorReporter
 from gemini import discord_templates
 from gemini.client import (
@@ -146,6 +146,7 @@ class TestStockDataRetriever:
         instance.finnhub_service.get_companies.return_value = {}
         instance.indicators_service.get_prices.return_value = {}
         instance.discord.post_if_channel_exists.return_value = None
+        instance.discord.post_with_thread_if_channel_exists.return_value = None
         yield instance
 
     @patch("utils.is_past_date")
@@ -1516,125 +1517,243 @@ class TestStockDataRetriever:
             },
         )
 
-    def test_price_target_uses_compact_ticker_channel_payload(self, runner):
-        target = Target(
+    @staticmethod
+    def _researched_target():
+        return Target(
             ticker="AMD",
             institution="Baird",
             date="2026-07-24",
             price="1250",
             rating="Outperform",
             source="investing.com",
+            report=TargetReport(
+                overview="Baird expects stronger data-center demand.",
+                key_takeaways=["The price target was increased to $1250."],
+            ),
         )
-        runner.discord.post_if_channel_exists.return_value = True
 
-        runner._notify_price_target(target)
+    @staticmethod
+    def _plain_entries():
+        rating = InstitutionRating(
+            institutional_weight=InstitutionRatingDimension(
+                score="8.5/10",
+                description="Moves significant institutional capital.",
+            ),
+            media_shock_value=InstitutionRatingDimension(
+                score="4.0/10",
+                description="Rarely drives retail headlines.",
+            ),
+        )
+        baird = Target(
+            ticker="AAPL",
+            institution="Baird",
+            date="2026-07-24",
+            price="250",
+            rating="Outperform",
+            source="investing.com",
+        )
+        wedbush = Target(
+            ticker="AAPL",
+            institution="Wedbush",
+            date="2026-07-24",
+            price="190",
+            source="wedbush.example.com",
+        )
+        return [
+            (baird, InstitutionRecord(
+                name="Baird",
+                aliases={"baird": "Baird"},
+                rating=rating,
+            )),
+            (wedbush, InstitutionRecord(
+                name="Wedbush",
+                aliases={"wedbush": "Wedbush"},
+            )),
+        ]
 
-        runner.discord.post_if_channel_exists.assert_called_once_with(
-            "AMD",
-            {
-                "embeds": [{
-                    "title": "🎯 Price target $1250 | Baird",
-                    "color": 15844367,
-                    "fields": [{
-                        "name": "​",
-                        "value": (
-                            "Outperform\n"
-                            "2026-07-24\n"
-                            "source: investing.com"
-                        ),
-                        "inline": False,
-                    }],
+    def test_targets_post_a_list_with_details_in_a_thread(
+        self,
+        runner,
+    ):
+        entries = self._plain_entries()
+        runner.discord.post_with_thread_if_channel_exists.return_value = (
+            ThreadedPost(url="https://discord.com/channels/g/c/m")
+        )
+
+        runner._notify_price_targets("AAPL", entries, Decimal("200"))
+
+        call = runner.discord.post_with_thread_if_channel_exists.call_args
+        channel, listing = call.args
+        assert channel == "AAPL"
+        assert listing == {
+            "embeds": [{
+                "title": "🎯 New price targets",
+                "color": 15844367,
+                "description": (
+                    "Baird: $250 *(+25.0%)*\nWedbush: $190 *(-5.0%)*"
+                ),
+            }],
+        }
+        assert call.kwargs["thread_name"] == "AAPL · Baird, Wedbush - details"
+        baird_message, wedbush_message = call.kwargs["thread_payloads"]
+        # Each institution's details look like the old single-target post.
+        assert baird_message == {
+            "embeds": [{
+                "title": "🎯 Price target $250 | Baird",
+                "color": 15844367,
+                "description": "+25.0% upside from latest close ($200)",
+                "fields": [{
+                    "name": "​",
+                    "value": (
+                        "Outperform\n"
+                        "2026-07-24\n"
+                        "source: investing.com\n"
+                        "\n"
+                        "Institutional Weight: 8.5/10 — Moves "
+                        "significant institutional capital.\n"
+                        "Media Shock Value: 4.0/10 — Rarely drives "
+                        "retail headlines."
+                    ),
+                    "inline": False,
                 }],
-            },
+            }],
+        }
+        wedbush_embed = wedbush_message["embeds"][0]
+        assert wedbush_embed["title"] == "🎯 Price target $190 | Wedbush"
+        assert wedbush_embed["description"] == (
+            "-5.0% downside from latest close ($200)"
+        )
+        assert wedbush_embed["fields"][0]["value"] == (
+            "Not provided\n2026-07-24\nsource: wedbush.example.com"
+        )
+        runner.discord.post_if_channel_exists.assert_not_called()
+        runner.discord.post_eventlog.assert_not_called()
+        runner.errors.report.assert_not_called()
+        runner.errors.report_warning_message.assert_not_called()
+
+    def test_single_target_is_posted_as_a_list_too(self, runner):
+        entries = self._plain_entries()[:1]
+        runner.discord.post_with_thread_if_channel_exists.return_value = (
+            ThreadedPost(url="https://discord.com/channels/g/c/m")
+        )
+
+        runner._notify_price_targets("AAPL", entries)
+
+        call = runner.discord.post_with_thread_if_channel_exists.call_args
+        assert call.args[1]["embeds"][0]["title"] == (
+            "🎯 New price targets"
+        )
+        assert call.args[1]["embeds"][0]["description"] == "Baird: $250"
+        assert call.kwargs["thread_name"] == "AAPL · Baird - details"
+        assert len(call.kwargs["thread_payloads"]) == 1
+
+    def test_trusted_and_untrusted_targets_share_one_list_and_thread(
+        self,
+        runner,
+    ):
+        researched = self._researched_target().model_copy(
+            update={"ticker": "AAPL", "price": Decimal("250")},
+        )
+        baird = InstitutionRecord(
+            name="Baird",
+            aliases={"baird": "Baird"},
+            trusted=True,
+        )
+        plain = self._plain_entries()[1]
+        runner.discord.post_with_thread_if_channel_exists.return_value = (
+            ThreadedPost(url="https://discord.com/channels/g/c/m")
+        )
+
+        runner._notify_price_targets(
+            "AAPL",
+            [(researched, baird), plain],
+            Decimal("200"),
+        )
+
+        runner.discord.post_with_thread_if_channel_exists.assert_called_once()
+        call = runner.discord.post_with_thread_if_channel_exists.call_args
+        # Trusted institutions are bold; the list keeps the given order.
+        assert call.args[1]["embeds"][0]["description"] == (
+            "**Baird: $250** *(+25.0%)*\nWedbush: $190 *(-5.0%)*"
+        )
+        assert call.kwargs["thread_name"] == "AAPL · Baird, Wedbush - details"
+        trusted_message, untrusted_message = call.kwargs["thread_payloads"]
+        # The trusted target's thread message is the full report post.
+        trusted_embed = trusted_message["embeds"][0]
+        assert trusted_embed["title"] == "🎯 Price target $250 | Baird"
+        assert trusted_embed["description"].startswith(
+            "+25.0% upside from latest close ($200)\n\n**Overview**\n"
+            "Baird expects stronger data-center demand."
+        )
+        assert "• The price target was increased to $1250." in (
+            trusted_embed["description"]
+        )
+        assert trusted_embed["fields"][0]["value"].startswith(
+            "Outperform\n2026-07-24"
+        )
+        assert untrusted_message["embeds"][0]["title"] == (
+            "🎯 Price target $190 | Wedbush"
         )
         runner.discord.post_eventlog.assert_not_called()
         runner.errors.report.assert_not_called()
+        runner.errors.report_warning_message.assert_not_called()
 
-    def test_price_target_appends_institution_rating_below_rating_value(
+    def test_researched_targets_without_a_channel_are_posted_inline(
         self,
         runner,
     ):
-        target = Target(
-            ticker="AMD",
-            institution="Baird",
-            date="2026-07-24",
-            price="1250",
-            rating="Outperform",
-            source="investing.com",
-        )
-        institution = InstitutionRecord(
-            name="Baird",
-            aliases={"baird": "Baird"},
-            enabled=True,
-            rating=InstitutionRating(
-                institutional_weight=InstitutionRatingDimension(
-                    score="8.5/10",
-                    description="Moves significant institutional capital.",
-                ),
-                media_shock_value=InstitutionRatingDimension(
-                    score="4.0/10",
-                    description="Rarely drives retail headlines.",
-                ),
-            ),
-        )
-        runner.discord.post_if_channel_exists.return_value = True
+        researched = self._researched_target()
+        runner.discord.post_with_thread_if_channel_exists.return_value = None
 
-        runner._notify_price_target(target, institution)
-
-        runner.discord.post_if_channel_exists.assert_called_once_with(
+        runner._notify_price_targets(
             "AMD",
-            {
-                "embeds": [{
-                    "title": "🎯 Price target $1250 | Baird",
-                    "color": 15844367,
-                    "fields": [{
-                        "name": "​",
-                        "value": (
-                            "Outperform\n"
-                            "2026-07-24\n"
-                            "source: investing.com\n"
-                            "\n"
-                            "Institutional Weight: 8.5/10 — Moves "
-                            "significant institutional capital.\n"
-                            "Media Shock Value: 4.0/10 — Rarely drives "
-                            "retail headlines."
-                        ),
-                        "inline": False,
-                    }],
-                }],
-            },
+            [(researched, InstitutionRecord(name="Baird"))],
         )
 
-    def test_price_target_with_report_moves_institution_into_ticker_channel_title(
+        embed = runner.discord.post_eventlog.call_args.args[0]["embeds"][0]
+        assert embed["title"] == "🎯 AMD | Price target $1250 | Baird"
+        assert "**Overview**" in embed["description"]
+
+    def test_targets_without_a_channel_fall_back_to_eventlog(
         self,
         runner,
     ):
-        report = TargetReport(
-            overview="Baird expects stronger data-center demand.",
-            key_takeaways=["The price target was increased to $1250."],
-        )
-        target = Target(
-            ticker="AMD",
-            institution="Baird",
-            date="2026-07-24",
-            price="1250",
-            rating="Outperform",
-            source="investing.com",
-            report=report,
-        )
-        runner.discord.post_if_channel_exists.return_value = True
+        entries = self._plain_entries()
+        runner.discord.post_with_thread_if_channel_exists.return_value = None
 
-        runner._notify_price_target(target)
+        runner._notify_price_targets("AAPL", entries[:1])
+        runner._notify_price_targets("AAPL", entries)
 
-        payload = runner.discord.post_if_channel_exists.call_args.args[1]
-        embed = payload["embeds"][0]
-        assert embed["title"] == "🎯 Price target $1250 | Baird"
-        assert embed["fields"] == [{
-            "name": "​",
-            "value": "Outperform\n2026-07-24\nsource: investing.com",
-            "inline": False,
-        }]
-        assert "description" in embed
+        single, several = (
+            call.args[0]["embeds"][0]
+            for call in runner.discord.post_eventlog.call_args_list
+        )
+        # One target keeps its full inline post, several the list.
+        assert single["title"] == "🎯 AAPL | Price target $250 | Baird"
+        assert single["fields"][0]["value"].startswith("Outperform")
+        assert several["title"] == "🎯 AAPL | New price targets"
+        runner.discord.post_if_channel_exists.assert_not_called()
+
+    def test_undelivered_thread_is_reported_as_a_warning(
+        self,
+        runner,
+    ):
+        entries = self._plain_entries()
+        runner.discord.post_with_thread_if_channel_exists.return_value = (
+            ThreadedPost(
+                url="https://discord.com/channels/g/c/m",
+                thread_error="thread creation failed (Missing Access)",
+            )
+        )
+
+        runner._notify_price_targets("AAPL", entries)
+
+        runner.errors.report_warning_message.assert_called_once()
+        warning = runner.errors.report_warning_message.call_args
+        assert "Missing Access" in warning.args[0]
+        assert warning.kwargs["context"] == {"ticker": "AAPL", "count": "2"}
+        runner.errors.report.assert_not_called()
+        runner.discord.post_eventlog.assert_not_called()
 
     @patch("utils.is_past_date", return_value=False)
     @patch("gemini.retriever.datetime")

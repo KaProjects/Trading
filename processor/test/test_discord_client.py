@@ -9,6 +9,7 @@ from discord.client import (
     SUPPRESS_NOTIFICATIONS_FLAG,
     DiscordClient,
     DiscordClientError,
+    ThreadedPost,
 )
 
 API_URL = "https://discord.com/api/v10"
@@ -327,3 +328,131 @@ def test_channel_lookup_failure_uses_errorlog_fallback(discord_client):
         "Delivery fallback for #btc: Discord channel lookup request failed"
     )
     assert fallback_payload["content"].endswith("\ntest")
+
+
+def channel_message_call(channel_id, payload):
+    return call(
+        f"{API_URL}/channels/{channel_id}/messages",
+        headers=HEADERS,
+        json={**payload, "flags": SUPPRESS_NOTIFICATIONS_FLAG},
+        timeout=3.0,
+    )
+
+
+def test_post_with_thread_posts_message_then_details_in_a_thread(
+    discord_client,
+):
+    client, session = discord_client
+    session.post.side_effect = [
+        response(data={"id": "message-id"}),
+        response(data={"id": "thread-id"}),
+        response(),
+        response(),
+    ]
+
+    posted = client.post_with_thread_if_channel_exists(
+        "btc",
+        {"content": "main"},
+        thread_name="BTC details",
+        thread_payloads=[{"content": "one"}, {"content": "two"}],
+    )
+
+    assert posted == ThreadedPost(
+        url="https://discord.com/channels/guild-id/btc-id/message-id",
+    )
+    assert session.post.call_args_list == [
+        channel_message_call("btc-id", {"content": "main"}),
+        call(
+            f"{API_URL}/channels/btc-id/messages/message-id/threads",
+            headers=HEADERS,
+            json={"name": "BTC details", "auto_archive_duration": 60},
+            timeout=3.0,
+        ),
+        channel_message_call("thread-id", {"content": "one"}),
+        channel_message_call("thread-id", {"content": "two"}),
+    ]
+
+
+def test_post_with_thread_skips_missing_channel_without_posting(
+    discord_client,
+):
+    client, session = discord_client
+
+    posted = client.post_with_thread_if_channel_exists(
+        "missing",
+        {"content": "main"},
+        thread_name="details",
+        thread_payloads=[{"content": "one"}],
+    )
+
+    assert posted is None
+    session.post.assert_not_called()
+
+
+def test_post_with_thread_falls_back_to_inline_when_thread_is_refused(
+    discord_client,
+):
+    client, session = discord_client
+    session.post.side_effect = [
+        response(data={"id": "message-id"}),
+        response(403, text='{"message": "Missing Access", "code": 50001}'),
+        response(),
+        response(),
+    ]
+
+    posted = client.post_with_thread_if_channel_exists(
+        "btc",
+        {"content": "main"},
+        thread_name="details",
+        thread_payloads=[{"content": "one"}, {"content": "two"}],
+    )
+
+    assert posted.url == (
+        "https://discord.com/channels/guild-id/btc-id/message-id"
+    )
+    assert posted.thread_error.startswith("thread creation failed (")
+    assert "403" in posted.thread_error
+    # The details are not lost: they follow the main post in the channel.
+    assert session.post.call_args_list[2:] == [
+        channel_message_call("btc-id", {"content": "one"}),
+        channel_message_call("btc-id", {"content": "two"}),
+    ]
+
+
+def test_post_with_thread_reports_a_failed_detail_message_and_continues(
+    discord_client,
+):
+    client, session = discord_client
+    session.post.side_effect = [
+        response(data={"id": "message-id"}),
+        response(data={"id": "thread-id"}),
+        response(500, text="boom"),
+        response(),
+    ]
+
+    posted = client.post_with_thread_if_channel_exists(
+        "btc",
+        {"content": "main"},
+        thread_name="details",
+        thread_payloads=[{"content": "one"}, {"content": "two"}],
+    )
+
+    assert "1 of 2 detail messages failed" in posted.thread_error
+    assert session.post.call_count == 4
+
+
+def test_post_with_thread_truncates_long_thread_names(discord_client):
+    client, session = discord_client
+    session.post.side_effect = [
+        response(data={"id": "message-id"}),
+        response(data={"id": "thread-id"}),
+    ]
+
+    client.post_with_thread_if_channel_exists(
+        "btc",
+        {"content": "main"},
+        thread_name="x" * 150,
+        thread_payloads=[],
+    )
+
+    assert session.post.call_args_list[1].kwargs["json"]["name"] == "x" * 100

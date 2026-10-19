@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from decimal import Decimal
 
 from gemini.models import InstitutionRating, InstitutionRecord, Quarter, Target
@@ -10,6 +11,8 @@ DISCORD_EMBED_DESCRIPTION_MAX_LENGTH = 4096
 # reported_revenues is in millions.
 FINNHUB_REVENUE_SCALE = Decimal(1_000_000)
 DISCORD_SPACER = "\u200b"
+TARGET_EMBED_COLOR = 0xF1C40F
+PRICE_TARGETS_TITLE = "New price targets"
 QUARTER_REPORTER_USERNAME = "Quarterly Results Reporter"
 QUARTER_REPORTER_AVATAR_URL = (
     "https://cdn-icons-png.flaticon.com/512/1390/1390704.png"
@@ -97,6 +100,31 @@ def price_target(
     }
 
 
+def price_targets_thread_name(
+    ticker: str,
+    targets: list[Target],
+) -> str:
+    institutions = ", ".join(
+        dict.fromkeys(target.institution for target in targets)
+    )
+    return f"{ticker} · {institutions} - details"
+
+
+def price_targets_thread_payloads(
+    entries: Sequence[tuple[Target, InstitutionRating | str | None]],
+    *,
+    close: Decimal | None = None,
+) -> list[dict[str, object]]:
+    # One message per institution in the list, in list order, each laid out
+    # like a single target post: price, institution, upside, the research
+    # report when there is one, then rating, date, source and the
+    # institution's own rating.
+    return [
+        ticker_price_target(target, rating=rating, close=close)
+        for target, rating in entries
+    ]
+
+
 def new_institutions(
     institutions: list[InstitutionRecord],
 ) -> dict[str, object]:
@@ -125,7 +153,7 @@ def price_targets(
         "embeds": [
             _price_targets_embed(
                 targets,
-                title=f"🎯 {ticker} | New price targets",
+                title=f"🎯 {ticker} | {PRICE_TARGETS_TITLE}",
                 close=close,
             )
         ],
@@ -141,7 +169,7 @@ def ticker_price_targets(
         "embeds": [
             _price_targets_embed(
                 targets,
-                title="🎯 New price targets",
+                title=f"🎯 {PRICE_TARGETS_TITLE}",
                 close=close,
             )
         ],
@@ -165,10 +193,25 @@ def _price_targets_embed(
 
 def _price_target_line(target: Target, close: Decimal | None) -> str:
     line = f"{target.institution}: ${target.price}"
+    # Targets with our own research come from trusted institutions; bold
+    # them so they stand out in the list.
+    if target.report is not None:
+        line = f"**{line}**"
     upside = _upside_to_target(target, close)
     if upside is not None:
         line += f" *({_format_signed_percent(upside)})*"
     return line
+
+
+def _upside_line(target: Target, close: Decimal | None) -> str | None:
+    upside = _upside_to_target(target, close)
+    if upside is None:
+        return None
+    direction = "upside" if upside >= 0 else "downside"
+    return (
+        f"{_format_signed_percent(upside)} {direction} from latest close "
+        f"(${close:f})"
+    )
 
 
 def _upside_to_target(
@@ -212,27 +255,33 @@ def _price_target_embed(
         else f"🎯 {price_target_title}"
     )
 
-    field_value = (
-        f"{target.rating or 'Not provided'}\n"
-        f"{target.date.isoformat()}\n"
-        f"source: {target.source}"
-    )
-    institution_rating = _format_institution_rating(rating)
-    if institution_rating:
-        field_value += f"\n\n{institution_rating}"
-
     return {
         "title": title,
         "color": 0xF1C40F,
         "fields": [
             {
                 "name": DISCORD_SPACER,
-                "value": field_value,
+                "value": _target_details_text(target, rating),
                 "inline": False,
             },
         ],
         **_target_description(target, close),
     }
+
+
+def _target_details_text(
+    target: Target,
+    rating: InstitutionRating | str | None,
+) -> str:
+    details = (
+        f"{target.rating or 'Not provided'}\n"
+        f"{target.date.isoformat()}\n"
+        f"source: {target.source}"
+    )
+    institution_rating = _format_institution_rating(rating)
+    if institution_rating:
+        details += f"\n\n{institution_rating}"
+    return details
 
 
 def _format_institution_rating(
@@ -255,14 +304,10 @@ def _target_description(
     close: Decimal | None,
 ) -> dict[str, str]:
     sections = []
-    upside = _upside_to_target(target, close)
-    if upside is not None:
+    upside_line = _upside_line(target, close)
+    if upside_line is not None:
         # Directly under the title, ahead of any research report.
-        direction = "upside" if upside >= 0 else "downside"
-        sections.append(
-            f"{_format_signed_percent(upside)} {direction} from latest "
-            f"close (${close:f})"
-        )
+        sections.append(upside_line)
     if target.report is not None:
         takeaways = "\n".join(
             f"• {takeaway}"

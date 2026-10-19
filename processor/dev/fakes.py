@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from cmc.models import BitcoinQuote, FearAndGreedReading
 from dev import data
+from discord.client import ThreadedPost
 from error_reporting import ErrorReporter
 from firebase_repository import (
     parse_company_snapshot,
@@ -244,6 +245,29 @@ class ConsoleDiscordClient:
         return (
             "https://discord.com/channels/dev-guild/"
             f"{channel_name.casefold()}/dev-message"
+        )
+
+    def post_with_thread_if_channel_exists(
+        self,
+        channel_name: str,
+        payload: object,
+        *,
+        thread_name: str,
+        thread_payloads: object,
+    ) -> ThreadedPost | None:
+        if not self.channel_exists(channel_name):
+            return None
+        self.post(channel_name, payload)
+        _log_exchange(
+            "FAKE POST",
+            f"Discord thread '{thread_name}' under #{channel_name}",
+            thread_payloads,
+        )
+        return ThreadedPost(
+            url=(
+                "https://discord.com/channels/dev-guild/"
+                f"{channel_name.casefold()}/dev-message"
+            )
         )
 
     def post_btc(self, payload: object) -> None:
