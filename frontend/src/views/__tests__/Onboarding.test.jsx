@@ -3,7 +3,9 @@ import axios from "axios";
 
 jest.mock("axios");
 jest.mock("../../dialog/EditCompanyDialog", () => ({
-    EditCompanyDialog: () => <div data-testid="edit-company-dialog"/>,
+    EditCompanyDialog: ({triggerRefresh}) => (
+        <button data-testid="edit-company-dialog" onClick={triggerRefresh}>save</button>
+    ),
 }));
 jest.mock("../../properties", () => ({
     backend: "/api",
@@ -505,6 +507,35 @@ describe("Onboarding", () => {
 
         await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
             "/api/onboarding/firebase", null, {params: {ticker: "OUTA"}}));
+    });
+
+    test("creating the company does not re-run the Gemini retrievals", async () => {
+        arrangeRoutes({
+            lookup: lookupResponse(), targets: targetsResponse(), financials: financialsResponse(),
+            estimates: "pending", news: "pending",
+        });
+
+        render(<Onboarding setOpenEditCompany={jest.fn()}/>);
+
+        fireEvent.change(screen.getByLabelText("Ticker"), {target: {value: "ORCL"}});
+        fireEvent.click(screen.getByRole("button", {name: "Check"}));
+
+        fireEvent.click(await screen.findByRole("tab", {name: /Analyst research/}));
+        fireEvent.click(screen.getByTestId("onboarding-run-gemini"));
+        await screen.findByTestId("onboarding-targets");
+
+        const geminiCalls = () => axios.get.mock.calls.filter(
+            ([url]) => url.endsWith("/targets") || url.endsWith("/financials")).length;
+        expect(geminiCalls()).toBe(2);
+
+        // The dialog reports a successful save the way the real one does.
+        fireEvent.click(screen.getByTestId("edit-company-dialog"));
+
+        await waitFor(() => expect(screen.getByTestId("onboarding-state-app"))
+            .toHaveTextContent("This apppresent"));
+        expect(geminiCalls()).toBe(2);
+        expect(screen.getByTestId("onboarding-targets")).toBeInTheDocument();
+        expect(screen.queryByTestId("onboarding-targets-confirm")).not.toBeInTheDocument();
     });
 
     test("opens the create dialog prefilled with the mapped profile", async () => {

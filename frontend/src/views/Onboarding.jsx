@@ -592,6 +592,10 @@ export const Onboarding = props => {
     const missingFromFirebase = Boolean(realCompany && !lookup.inFirebase)
     const missingFromApp = Boolean(realCompany && !lookup.inDatabase)
 
+    function companyCreated() {
+        setLookup(previous => previous ? {...previous, inDatabase: true} : previous)
+    }
+
     function createInApp() {
         if (!lookup || !missingFromApp) return
 
@@ -874,7 +878,7 @@ export const Onboarding = props => {
                 </Section>
             }
 
-            <EditCompanyDialog {...props} triggerRefresh={() => check()}/>
+            <EditCompanyDialog {...props} triggerRefresh={companyCreated}/>
 
             <Dialog open={confirming} onClose={() => setConfirming(false)}>
                 <DialogTitle>Add {lookup?.ticker} to Firebase?</DialogTitle>
