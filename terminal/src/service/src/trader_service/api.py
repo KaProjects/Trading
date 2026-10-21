@@ -25,6 +25,7 @@ from trader_service.control import run_control
 from trader_service.events import EventBus
 from trader_service.models import (
     AccountSummary,
+    ConnectionState,
     Contract,
     Fill,
     ModifyOrderRequest,
@@ -38,6 +39,7 @@ from trader_service.models import (
     ActivityNote,
     Side,
     Status,
+    Watchlist,
 )
 from trader_service.prices.base import PriceFeed, price_symbol
 from trader_service.prices.fake import FakePrices
@@ -78,19 +80,36 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
     """`control` opens the app's private channel (our stdin) carrying unlock/lock messages (D3.3)."""
     prices.add_listener(lambda price: bus.publish("price", price))
 
+    def update_price_stream() -> None:
+        """Real price streams run only while the app is unlocked and the broker session is connected:
+        Stop, a lost session or a lock closes the Finnhub WebSocket; login/unlock reopens it."""
+        prices.set_active(store.unlocked and broker.status().state == ConnectionState.CONNECTED)
+
+    async def follow_status() -> None:
+        queue = bus.subscribe()
+        try:
+            while True:
+                if (await queue.get()).type == "status":
+                    update_price_stream()
+        finally:
+            bus.unsubscribe(queue)
+
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         await prices.start()
         await broker.start()
         await store.start()
-        control_task = None
+        tasks = [asyncio.create_task(follow_status())]
         if control is not None:
-            control_task = asyncio.create_task(run_control(await control(), store, on_control_eof, prices))
+            tasks.append(asyncio.create_task(
+                run_control(await control(), store, on_control_eof, prices, on_change=update_price_stream)))
+        update_price_stream()
         yield
-        if control_task is not None:
-            control_task.cancel()
+        for task in tasks:
+            task.cancel()
+        for task in tasks:
             with contextlib.suppress(asyncio.CancelledError):
-                await control_task
+                await task
         await store.stop()
         await broker.stop()
         await prices.stop()
@@ -202,6 +221,12 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         store.record(note.kind, **note.detail)
 
     # --- orders --------------------------------------------------------------------------------------
+
+    @app.put("/watchlist")
+    async def watchlist(request: Watchlist) -> Watchlist:
+        """Planner rows (T8): their prices stream like positions. Not persisted (D8.2)."""
+        broker.set_watchlist(set(request.conids))
+        return request
 
     @app.get("/prices")
     async def all_prices() -> list[Price]:

@@ -225,3 +225,41 @@ def test_contracts_carry_feed_symbol_and_prices_snapshot(logged_in):
     assert shop == {"NYSE": "SHOP", "TSE": "SHOP.TO"}
     symbols = {p["symbol"] for p in logged_in.get("/prices").json()}
     assert symbols == {"AAPL", "MSFT", "NVDA", "ASML.AS", "SAP.DE"}
+
+
+def test_watchlist_streams_extra_symbols_and_account_has_fx(logged_in):
+    assert logged_in.get("/account").json()["fx_to_base"] == {"USD": "1", "EUR": "1.08", "CAD": "0.73"}
+    assert logged_in.put("/watchlist", json={"conids": [9599491, 195014120]}).status_code == 200
+    symbols = {p["symbol"] for p in logged_in.get("/prices").json()}
+    assert {"F", "SHOP.TO"} <= symbols
+    assert logged_in.put("/watchlist", json={"conids": []}).status_code == 200
+    assert "F" not in {p["symbol"] for p in logged_in.get("/prices").json()}
+    assert logged_in.put("/watchlist", json={"conids": [1]}).status_code == 404
+
+
+def test_price_stream_only_while_unlocked_and_connected(tmp_path):
+    class SpyPrices(FakePrices):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.active = []
+
+        def set_active(self, active):
+            self.active.append(active)
+
+    bus = EventBus()
+    prices = SpyPrices(seed_prices(load_seed()), tick_interval=None, rng_seed=1)
+    broker = FakeBroker(bus, prices, FAST)
+    store = Store(broker, bus, Vault(tmp_path / "data"))
+    app = create_app(broker, prices, bus, store)
+    with TestClient(app) as client:
+        assert prices.active[-1] is False  # locked + disconnected
+        client.post("/login")
+        wait_connected(client)
+        assert prices.active[-1] is False  # connected but still locked
+        store.unlock(bytes(32))
+        client.post("/dev/drop-connection")  # any status event re-evaluates
+        wait_connected(client)
+        assert prices.active[-1] is True
+        client.post("/logout")
+        time.sleep(0.05)
+        assert prices.active[-1] is False  # Stop

@@ -71,7 +71,7 @@ public enum OrderSummary {
                             locale: Locale = .current) -> String {
         let number = Decimal.FormatStyle.number.locale(locale)
         let quantity = request.quantity.value.formatted(number.precision(.fractionLength(0...4)))
-        let limit = request.limitPrice.value.formatted(number.precision(.fractionLength(2...4)))
+        let limit = request.limitPrice.value.formatted(number.precision(.fractionLength(2)))
         let total = value.value.formatted(number.precision(.fractionLength(2)))
         let session = request.outsideRth ? " +ext hours" : ""
         return "\(request.side.rawValue) \(quantity) \(contract.symbol) (\(contract.name) · "
@@ -166,7 +166,8 @@ public enum OrderNotification: Equatable, Sendable {
     public func body(for order: Order) -> String {
         let format = Decimal.FormatStyle.number.precision(.fractionLength(0...4))
         let filled = order.filled.value.formatted(format), total = order.quantity.value.formatted(format)
-        let price = order.avgFillPrice.map { " at avg \($0.value.formatted(format)) \(order.contract.currency)" } ?? ""
+        let priceFormat = Decimal.FormatStyle.number.precision(.fractionLength(2))
+        let price = order.avgFillPrice.map { " at avg \($0.value.formatted(priceFormat)) \(order.contract.currency)" } ?? ""
         switch self {
         case .filled: return "\(total) shares\(price) (order #\(order.orderId))"
         case .partiallyFilled: return "\(filled) of \(total) shares\(price) (order #\(order.orderId))"

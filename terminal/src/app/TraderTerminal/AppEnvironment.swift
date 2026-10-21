@@ -18,6 +18,13 @@ enum AppEnvironment {
         set { UserDefaults.standard.set(newValue, forKey: "fakeAutoLogin") }
     }
 
+    /// D0.2: price feed for the fake environment — "fake" (simulated, default) or "finnhub" (real prices, opt-in in
+    /// the Developer menu). Paper/production always use Finnhub.
+    static var fakePriceFeed: String {
+        get { UserDefaults.standard.string(forKey: "fakePriceFeed.v2") ?? "fake" }
+        set { UserDefaults.standard.set(newValue, forKey: "fakePriceFeed.v2") }
+    }
+
     /// Implemented broker adapters (paper and production arrive with T1/T7).
     static let available: Set<BrokerEnvironment> = [.fake]
 

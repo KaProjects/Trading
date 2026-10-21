@@ -30,6 +30,15 @@ struct TraderTerminalApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = AppModel()
 
+    /// No macOS window state restoration: it restored the main window to a stale monitor. The window frame is
+    /// remembered by `rememberWindowFrame` instead.
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        UserDefaults.standard.set(false, forKey: "NSQuitAlwaysKeepsWindows")
+    }
+
+    func applicationShouldSaveApplicationState(_ app: NSApplication) -> Bool { false }
+    func applicationShouldRestoreApplicationState(_ app: NSApplication) -> Bool { false }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         signal(SIGPIPE, SIG_IGN)  // a write to a dead service's stdin must fail, not kill the app
         model.start()

@@ -227,7 +227,7 @@ extension ServiceIntegrationTests {
     @Test func texts() {
         let partial = order("Submitted", filled: 200)
         #expect(partial.statusText == "Partially filled 200 / 600")
-        #expect(OrderNotification.partiallyFilled.body(for: partial).hasPrefix("200 of 600 shares at avg 39 USD"))
+        #expect(OrderNotification.partiallyFilled.body(for: partial).hasPrefix("200 of 600 shares at avg 39"))
         #expect(order("Rejected", filled: 0, reason: "Insufficient funds").statusText == "Rejected: Insufficient funds")
     }
 }

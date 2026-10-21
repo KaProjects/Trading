@@ -87,6 +87,7 @@ class FakeBroker(Broker):
         self._approve = asyncio.Event()
         self._status = Status(state=ConnectionState.DISCONNECTED, environment=Environment.FAKE, since=_now())
         self._prices.add_listener(self._on_price)
+        self._watchlist: set[int] = set()
         self._load(self._seed)
 
     # --- lifecycle -------------------------------------------------------------------------------
@@ -249,7 +250,8 @@ class FakeBroker(Broker):
             net_liquidation=(total_cash + market_value).quantize(CENT),
             total_cash=total_cash.quantize(CENT), available_funds=available.quantize(CENT),
             buying_power=available.quantize(CENT),
-            cash=[CashBalance(currency=c, amount=a.quantize(CENT)) for c, a in sorted(self._cash.items())])
+            cash=[CashBalance(currency=c, amount=a.quantize(CENT)) for c, a in sorted(self._cash.items())],
+            fx_to_base=dict(self._fx))
 
     def positions(self) -> list[Position]:
         self._require_connected()
@@ -427,7 +429,14 @@ class FakeBroker(Broker):
     def _next_exec_id(self) -> str:
         return f"FAKE-{next(self._exec_ids):06d}"
 
+    def set_watchlist(self, conids: set[int]) -> None:
+        for conid in conids:
+            self.contract(conid)  # raises UnknownContract
+        self._watchlist = set(conids)
+        self._update_price_subscriptions()
+
     def _update_price_subscriptions(self) -> None:
-        """D4.4: stream symbols of positions + open orders."""
+        """D4.4: stream symbols of positions + open orders (+ planner watchlist, T8)."""
         conids = set(self._positions) | {o.contract.conid for o in self._orders.values() if o.status.is_active}
+        conids |= self._watchlist
         self._prices.subscribe({price_symbol(self._contracts[c]) for c in conids})

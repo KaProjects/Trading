@@ -53,8 +53,9 @@ def handle_message(line: bytes, store: Store, prices: PriceFeed | None = None) -
 
 
 async def run_control(reader: asyncio.StreamReader, store: Store, on_eof: Callable[[], None],
-                      prices: PriceFeed | None = None) -> None:
+                      prices: PriceFeed | None = None, on_change: Callable[[], None] = lambda: None) -> None:
     while line := await reader.readline():
         handle_message(line, store, prices)
+        on_change()
     store.lock()
     on_eof()

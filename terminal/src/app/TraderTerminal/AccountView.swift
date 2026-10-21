@@ -246,7 +246,7 @@ struct SideText: View {
 
 enum Format {
     static func money(_ amount: Amount, _ currency: String) -> String {
-        amount.value.formatted(.currency(code: currency).precision(.fractionLength(2...4)))
+        amount.value.formatted(.currency(code: currency).precision(.fractionLength(2)))
     }
 
     static func quantity(_ amount: Amount) -> String {

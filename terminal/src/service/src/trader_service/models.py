@@ -66,6 +66,7 @@ class AccountSummary(BaseModel):
     available_funds: Decimal
     buying_power: Decimal
     cash: list[CashBalance]
+    fx_to_base: dict[str, Decimal] = {}  # units of base currency per unit of each currency (T8 planner)
 
 
 class Position(BaseModel):
@@ -200,6 +201,12 @@ class RuleThresholds(BaseModel):
         if self.pct_of_account_strong < self.pct_of_account_warn:
             raise ValueError("pct_of_account_strong must be >= pct_of_account_warn")
         return self
+
+
+class Watchlist(BaseModel):
+    """Extra contracts whose prices are streamed (T8 planner rows), on top of positions and open orders."""
+
+    conids: list[int] = Field(default_factory=list, max_length=40)
 
 
 class ActivityNote(BaseModel):

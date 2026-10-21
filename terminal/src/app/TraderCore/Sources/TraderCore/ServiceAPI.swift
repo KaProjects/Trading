@@ -60,6 +60,12 @@ public struct ServiceAPI: Sendable {
         return try await call("GET", "/contracts?symbol=\(query)")
     }
 
+    /// T8: stream prices for these contracts too (planner rows). Not persisted.
+    public func setWatchlist(_ conids: [Int]) async throws {
+        let body = try JSONSerialization.data(withJSONObject: ["conids": conids])
+        try check(try await http.send("PUT", "/watchlist", json: body))
+    }
+
     /// Latest price of every streamed symbol; afterwards follow `price` events.
     public func prices() async throws -> [Quote] { try await call("GET", "/prices") }
 

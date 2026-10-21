@@ -57,7 +57,7 @@ final class OrderTicketModel {
         tif = TimeInForce(rawValue: order.tif) ?? .day
         outsideRth = order.outsideRth
         quantityText = order.quantity.value.formatted(.number.precision(.fractionLength(0...4)).grouping(.never))
-        limitText = order.limitPrice.value.formatted(.number.precision(.fractionLength(2...4)).grouping(.never))
+        limitText = order.limitPrice.value.formatted(.number.precision(.fractionLength(2)).grouping(.never))
         Task {
             quote = try? await api.quote(conid: order.contract.conid)
             inputsChanged()

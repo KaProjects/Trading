@@ -86,6 +86,26 @@ public struct AccountSummary: Codable, Sendable, Equatable {
     public let availableFunds: Amount
     public let buyingPower: Amount
     public let cash: [CashBalance]
+    /// Units of base currency per unit of each currency (T8). Optional: snapshots saved before T8 lack it.
+    public let fxToBase: [String: Amount]?
+
+    public init(accountId: String, baseCurrency: String, netLiquidation: Amount, totalCash: Amount,
+                availableFunds: Amount, buyingPower: Amount, cash: [CashBalance], fxToBase: [String: Amount]?) {
+        self.accountId = accountId
+        self.baseCurrency = baseCurrency
+        self.netLiquidation = netLiquidation
+        self.totalCash = totalCash
+        self.availableFunds = availableFunds
+        self.buyingPower = buyingPower
+        self.cash = cash
+        self.fxToBase = fxToBase
+    }
+
+    /// nil when the rate is unknown.
+    public func rate(_ currency: String) -> Decimal? {
+        if currency == baseCurrency { return 1 }
+        return fxToBase?[currency]?.value
+    }
 }
 
 public struct Position: Codable, Sendable, Identifiable, Hashable {

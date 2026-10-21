@@ -50,6 +50,7 @@ async def finnhub():
         feed = FinnhubPrices(ws_url=f"ws://127.0.0.1:{port}", rest_url="https://finnhub.test/api/v1",
                              http=httpx.AsyncClient(transport=httpx.MockTransport(fake.rest)), max_symbols=3)
         await feed.start()
+        feed.set_active(True)  # the app is unlocked and the broker connected
         yield feed, fake
         await feed.stop()
 
@@ -102,3 +103,29 @@ async def test_reconnects_after_disconnect(finnhub):
         await socket.close()
     await until(lambda: len(fake.tokens) == 2, timeout=5)  # back off 1 s, reconnect
     await until(lambda: fake.subscribed.count("AAPL") == 2)
+
+
+async def test_pause_closes_stream_and_resume_reopens(finnhub):
+    feed, fake = finnhub
+    feed.set_key(KEY)
+    feed.subscribe({"AAPL"})
+    await until(lambda: len(fake.clients) == 1)
+    feed.set_active(False)  # lock / Stop / session lost
+    await until(lambda: len(fake.clients) == 0 and not feed.connected)
+    await asyncio.sleep(0.2)
+    assert len(fake.tokens) == 1  # no reconnect while paused
+    assert feed.last("AAPL") is not None  # last price kept (shown as stale)
+    feed.set_active(True)
+    await until(lambda: len(fake.clients) == 1)
+    await until(lambda: fake.subscribed.count("AAPL") == 2)
+
+
+async def test_inactive_feed_never_connects():
+    feed = FinnhubPrices(ws_url="ws://127.0.0.1:9", http=httpx.AsyncClient(transport=httpx.MockTransport(
+        lambda r: httpx.Response(500))))
+    await feed.start()
+    feed.set_key(KEY)
+    feed.subscribe({"AAPL"})
+    await asyncio.sleep(0.2)
+    assert not feed.connected
+    await feed.stop()

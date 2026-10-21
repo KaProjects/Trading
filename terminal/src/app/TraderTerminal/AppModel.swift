@@ -19,11 +19,15 @@ final class AppModel {
     private(set) var autoApprove2FA = true
     private(set) var fakeAutoLogin = AppEnvironment.fakeAutoLogin
     private(set) var hasFinnhubKey = KeychainStore.hasFinnhubKey
+    private(set) var priceFeed = AppEnvironment.fakePriceFeed
     /// Account data shown in the window: live while connected, else the last saved snapshot (greyed out).
     private(set) var account: AccountSnapshot?
     private(set) var accountIsLive = false
     /// Latest price per feed symbol (T4): loaded on refresh, then updated from `price` events.
     private(set) var quotes: [String: Quote] = [:]
+    /// T8 planner rows: scratchpad, kept in memory only (D8.2).
+    private(set) var planRows: [PlanRow] = []
+    var planQuantityText: [UUID: String] = [:]
     /// Open order ticket (T5), nil when closed.
     private(set) var ticket: OrderTicketModel?
 
@@ -40,6 +44,7 @@ final class AppModel {
     @ObservationIgnored private var knownOrders: [Int: Order] = [:]
     @ObservationIgnored private var restarts: [Date] = []
     @ObservationIgnored private var quitting = false
+    @ObservationIgnored private var plannedRestart = false
     @ObservationIgnored private let logger = Logger(subsystem: "org.kaleta.trader-terminal", category: "app")
 
     init() {
@@ -50,7 +55,7 @@ final class AppModel {
 
     func start() {
         KeychainStore.removeLegacyFinnhubKey()
-        UserDefaults.standard.removeObject(forKey: "fakePriceFeed")  // old Developer switch
+        UserDefaults.standard.removeObject(forKey: "fakePriceFeed")  // first version of the Developer switch
         hasFinnhubKey = KeychainStore.hasFinnhubKey
         notifier.requestAuthorization()
         launchService()
@@ -79,7 +84,7 @@ final class AppModel {
         let service = ServiceProcess(
             executable: executable,
             arguments: ["--env", environment.rawValue, "--socket", AppEnvironment.socketPath, "--watch-stdin",
-                        "--log-level", "warning", "--prices", environment == .fake ? "fake" : "finnhub"],
+                        "--log-level", "warning", "--prices", environment == .fake ? priceFeed : "finnhub"],
             onExit: { [weak self] code in Task { @MainActor in self?.serviceExited(code: code) } })
         do {
             try service.start()
@@ -100,6 +105,7 @@ final class AppModel {
                 slowResponses = false
                 if environment == .fake, let auto = try? await api.autoApprove2FA() { autoApprove2FA = auto }
                 startStreams()
+                await syncWatchlist()  // a restarted service has forgotten the planner tickers
                 if !locked, await sendDataKey() { await refreshAccount() }  // service restarted while unlocked
                 await autoLogInIfFake()
                 return
@@ -115,6 +121,11 @@ final class AppModel {
         process = nil
         status = nil
         guard !quitting else { return }
+        if plannedRestart {
+            plannedRestart = false
+            launchService()
+            return
+        }
         logger.error("service exited with code \(code)")
         restarts = restarts.filter { $0 > Date().addingTimeInterval(-60) } + [Date()]
         guard restarts.count <= 3 else {
@@ -232,10 +243,12 @@ final class AppModel {
         return false
     }
 
-    /// T4: the Finnhub key goes to the service over the private pipe, like the data key. The fake environment
-    /// always uses simulated prices, so it never needs (or uses) the real key.
+    /// T4: the Finnhub key goes to the service over the private pipe, like the data key — whenever the service
+    /// uses Finnhub (paper/production, or the fake environment with real prices).
+    private var usesFinnhub: Bool { environment != .fake || priceFeed == "finnhub" }
+
     private func sendFinnhubKey() {
-        guard environment != .fake, let process else { return }
+        guard usesFinnhub, let process else { return }
         do {
             if let key = try KeychainStore.finnhubKey() { try process.send(.finnhubKey(key)) }
         } catch {
@@ -246,12 +259,61 @@ final class AppModel {
     func saveFinnhubKey(_ key: String) throws {
         try KeychainStore.saveFinnhubKey(key)
         hasFinnhubKey = true
-        if environment != .fake { try? process?.send(.finnhubKey(key)) }
+        if usesFinnhub { try? process?.send(.finnhubKey(key)) }
     }
 
     func deleteFinnhubKey() {
         KeychainStore.deleteFinnhubKey()
         hasFinnhubKey = false
+    }
+
+    /// Developer menu (fake only): real Finnhub ↔ simulated prices. Restarts the service.
+    func setPriceFeed(_ feed: String) {
+        guard environment == .fake, feed != priceFeed else { return }
+        priceFeed = feed
+        AppEnvironment.fakePriceFeed = feed
+        quotes = [:]
+        plannedRestart = true
+        process?.stop(grace: 2)
+    }
+
+    // MARK: - Planner (T8)
+
+    func addPlanRow(_ contract: Contract) {
+        planRows.append(PlanRow(contract: contract))
+        Task { await syncWatchlist() }
+    }
+
+    func removePlanRow(_ id: UUID) {
+        planRows.removeAll { $0.id == id }
+        planQuantityText[id] = nil
+        Task { await syncWatchlist() }
+    }
+
+    func setPlanQuantity(_ id: UUID, text: String) {
+        planQuantityText[id] = text
+        guard let index = planRows.firstIndex(where: { $0.id == id }) else { return }
+        planRows[index].quantity = DecimalInput.parse(text).flatMap { $0 > 0 ? $0 : nil }
+    }
+
+    func clearPlan() {
+        planRows = []
+        planQuantityText = [:]
+        Task { await syncWatchlist() }
+    }
+
+    /// Planner tickers get live prices like positions.
+    private func syncWatchlist() async {
+        guard phase == .running else { return }
+        let conids = Array(Set(planRows.map(\.contract.conid))).sorted()
+        do {
+            try await api.setWatchlist(conids)
+            if let current = try? await api.prices() {
+                for quote in current { quotes[quote.symbol] = quote }
+            }
+        } catch {
+            lastError = "Could not stream planner prices"
+        }
     }
 
     private func didLock() {

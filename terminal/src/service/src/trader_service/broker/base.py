@@ -95,5 +95,9 @@ class Broker(ABC):
         """Lets a retried POST /orders return the original order instead of re-running checks."""
 
     @abstractmethod
+    def set_watchlist(self, conids: set[int]) -> None:
+        """Stream prices for these contracts too (planner), besides positions and open orders."""
+
+    @abstractmethod
     def fx_rate(self, currency: str) -> Decimal:
         """Units of base currency per one unit of `currency`."""

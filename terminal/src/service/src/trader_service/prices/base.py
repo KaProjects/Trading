@@ -30,6 +30,9 @@ class PriceFeed(ABC):
     @abstractmethod
     def add_listener(self, listener: PriceListener) -> None: ...
 
+    def set_active(self, active: bool) -> None:
+        """Stream only while the app is unlocked and the broker session is connected. Default: always on."""
+
     @abstractmethod
     def snapshot(self) -> list[Price]:
         """Latest price of every streamed symbol (the app loads this once, then follows `price` events)."""

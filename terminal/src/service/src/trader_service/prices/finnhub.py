@@ -46,6 +46,8 @@ class FinnhubPrices(PriceFeed):
         self._listeners: list[PriceListener] = []
         self._tasks: set[asyncio.Task] = set()
         self._run_task: asyncio.Task | None = None
+        self._active = False  # off until the app is unlocked and the broker connected (see api.py)
+        self._active_changed = asyncio.Event()
         self.connected = False
 
     # --- PriceFeed ---------------------------------------------------------------------------------
@@ -67,6 +69,12 @@ class FinnhubPrices(PriceFeed):
             self._key = key
             self._key_changed.set()
 
+    def set_active(self, active: bool) -> None:
+        """Close the WebSocket when inactive (locked / logged out / session lost); reopen when active again."""
+        if active != self._active:
+            self._active = active
+            self._active_changed.set()
+
     def subscribe(self, symbols: set[str]) -> None:
         wanted = set(sorted(symbols)[:self._max_symbols])
         if len(symbols) > self._max_symbols:
@@ -74,7 +82,8 @@ class FinnhubPrices(PriceFeed):
         new = wanted - self._wanted
         self._wanted = wanted
         for symbol in new:
-            self._spawn(self._fetch_quote(symbol))
+            if self._active:
+                self._spawn(self._fetch_quote(symbol))
         if self._socket is not None:
             self._spawn(self._sync_subscriptions())
 
@@ -139,19 +148,28 @@ class FinnhubPrices(PriceFeed):
     async def _run(self) -> None:
         attempt = 0
         while True:
-            while self._key is None:
-                await self._key_changed.wait()
+            while self._key is None or not self._active:
+                self._active_changed.clear()
+                waiters = [asyncio.create_task(self._key_changed.wait()), asyncio.create_task(self._active_changed.wait())]
+                await asyncio.wait(waiters, return_when=asyncio.FIRST_COMPLETED)
+                for waiter in waiters:
+                    waiter.cancel()
             self._key_changed.clear()
+            self._active_changed.clear()
+            for symbol in self._wanted:  # refresh first prices / previous close after a pause
+                self._spawn(self._fetch_quote(symbol))
             try:
                 async with self._connect(f"{self._ws_url}?token={self._key}") as socket:
                     self._socket, self._streaming, self.connected, attempt = socket, set(), True, 0
                     await self._sync_subscriptions()
                     reader = asyncio.create_task(self._read(socket))
                     key_change = asyncio.create_task(self._key_changed.wait())
-                    done, _ = await asyncio.wait({reader, key_change}, return_when=asyncio.FIRST_COMPLETED)
-                    for task in (reader, key_change):
+                    active_change = asyncio.create_task(self._active_changed.wait())
+                    done, _ = await asyncio.wait({reader, key_change, active_change},
+                                                 return_when=asyncio.FIRST_COMPLETED)
+                    for task in (reader, key_change, active_change):
                         task.cancel()
-                    if reader in done and reader.exception():
+                    if reader in done and not reader.cancelled() and reader.exception():
                         raise reader.exception()
             except asyncio.CancelledError:
                 raise
@@ -159,8 +177,8 @@ class FinnhubPrices(PriceFeed):
                 log.warning("finnhub stream disconnected: %s", type(error).__name__)
             finally:
                 self._socket, self.connected = None, False
-            if self._key_changed.is_set():
-                continue  # new key: reconnect immediately
+            if self._key_changed.is_set() or self._active_changed.is_set() or not self._active:
+                continue  # new key or paused/resumed: no back-off
             await asyncio.sleep(BACKOFF[min(attempt, len(BACKOFF) - 1)])
             attempt += 1
 
