@@ -7,16 +7,18 @@ import signal
 import socket
 import stat
 import sys
-import threading
 from pathlib import Path
 
 import uvicorn
 
 from trader_service.api import create_app
+from trader_service.control import open_stdin
 from trader_service.broker.fake import FakeBroker, load_seed, seed_prices
 from trader_service.events import EventBus
 from trader_service.models import Environment
 from trader_service.prices.fake import FakePrices
+from trader_service.store import Store
+from trader_service.vault import Vault
 
 DEFAULT_SOCKET = Path.home() / "Library/Application Support/org.kaleta.trader-terminal.dev/service.sock"
 
@@ -40,26 +42,17 @@ def bind_unix_socket(path: Path) -> socket.socket:
     return sock
 
 
-def build(environment: Environment):
+def build(environment: Environment, data_dir: Path, control: bool = False):
     bus = EventBus()
     if environment != Environment.FAKE:
         raise SystemExit(f"Environment '{environment}' is not implemented yet (IBKR adapter comes with T1)")
     seed = load_seed()
     prices = FakePrices(seed_prices(seed))
     broker = FakeBroker(bus, prices, seed=seed)
-    return create_app(broker, prices, bus)
-
-
-def watch_stdin(server: uvicorn.Server) -> None:
-    """The app keeps our stdin open for its whole lifetime (D3.3 will also send the data key over it).
-    EOF means the app is gone, so shut down gracefully."""
-
-    def wait_for_eof() -> None:
-        while sys.stdin.buffer.readline():
-            pass
-        server.should_exit = True
-
-    threading.Thread(target=wait_for_eof, name="stdin-watch", daemon=True).start()
+    store = Store(broker, bus, Vault(data_dir))
+    # EOF on the control channel = the app is gone -> SIGTERM ourselves for uvicorn's graceful shutdown.
+    return create_app(broker, prices, bus, store, control=open_stdin if control else None,
+                      on_control_eof=lambda: signal.raise_signal(signal.SIGTERM))
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -67,17 +60,17 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--env", type=Environment, choices=list(Environment), default=Environment.FAKE)
     parser.add_argument("--socket", type=Path, default=DEFAULT_SOCKET)
     parser.add_argument("--log-level", default="info")
+    parser.add_argument("--data-dir", type=Path,
+                        help="encrypted data folder (default: <socket folder>/<env>)")
     parser.add_argument("--watch-stdin", action="store_true",
-                        help="exit when stdin closes (the app holds the pipe; app quits or crashes -> service stops)")
+                        help="read the app's control channel (unlock/lock) on stdin; exit when it closes")
     args = parser.parse_args(argv)
 
-    app = build(args.env)
+    app = build(args.env, args.data_dir or args.socket.parent / args.env.value, control=args.watch_stdin)
     sock = bind_unix_socket(args.socket)
     server = uvicorn.Server(uvicorn.Config(app, log_level=args.log_level, ws="auto"))
     # uvicorn re-raises SIGTERM after its graceful shutdown; turn it into a normal exit so `finally` cleans up.
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
-    if args.watch_stdin:
-        watch_stdin(server)
     try:
         asyncio.run(server.serve(sockets=[sock]))
     finally:

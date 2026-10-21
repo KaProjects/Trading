@@ -26,6 +26,11 @@ public final class ServiceProcess: @unchecked Sendable {
 
     public var isRunning: Bool { process.isRunning }
 
+    /// D3.3: the data key and lock signal travel over this private pipe, never over the socket.
+    public func send(_ message: ControlMessage) throws {
+        try stdin.fileHandleForWriting.write(contentsOf: message.line)
+    }
+
     public func start() throws {
         try process.run()
     }
@@ -41,5 +46,20 @@ public final class ServiceProcess: @unchecked Sendable {
 
     public func waitUntilExit() {
         process.waitUntilExit()
+    }
+}
+
+public enum ControlMessage: Sendable {
+    case unlock(dataKey: Data)
+    case lock
+
+    var line: Data {
+        let object: [String: String] = switch self {
+        case .unlock(let key): ["type": "unlock", "data_key": key.base64EncodedString()]
+        case .lock: ["type": "lock"]
+        }
+        var data = (try? JSONSerialization.data(withJSONObject: object)) ?? Data()
+        data.append(0x0A)
+        return data
     }
 }

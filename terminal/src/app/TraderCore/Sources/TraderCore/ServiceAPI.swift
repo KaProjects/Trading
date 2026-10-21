@@ -24,6 +24,37 @@ public struct ServiceAPI: Sendable {
     public func login() async throws -> BrokerStatus { try await call("POST", "/login") }
     public func logout() async throws -> BrokerStatus { try await call("POST", "/logout") }
 
+    public func vaultUnlocked() async throws -> Bool {
+        let response = try await http.send("GET", "/vault")
+        try check(response)
+        let object = try JSONSerialization.jsonObject(with: response.body) as? [String: Any]
+        return object?["unlocked"] as? Bool ?? false
+    }
+
+    public func account() async throws -> AccountSummary { try await call("GET", "/account") }
+    public func positions() async throws -> [Position] { try await call("GET", "/positions") }
+    public func orders() async throws -> [Order] { try await call("GET", "/orders") }
+    public func fills(days: Int = 7) async throws -> [Fill] { try await call("GET", "/fills?days=\(days)") }
+    public func history(days: Int) async throws -> [Fill] { try await call("GET", "/history?days=\(days)") }
+
+    /// Live data in one go (used after connect and on account/position/order/fill events).
+    public func liveSnapshot() async throws -> AccountSnapshot {
+        async let account = account()
+        async let positions = positions()
+        async let orders = orders()
+        async let fills = fills()
+        return try await AccountSnapshot(asOf: Date(), account: account, positions: positions, orders: orders,
+                                         fills: fills)
+    }
+
+    /// Last saved snapshot; nil when none was saved yet. Throws 423 while the service is locked.
+    public func savedSnapshot() async throws -> AccountSnapshot? {
+        let response = try await http.send("GET", "/snapshot")
+        try check(response)
+        if response.body == Data("null".utf8) { return nil }
+        return try ServiceJSON.decoder.decode(AccountSnapshot.self, from: response.body)
+    }
+
     public func dev(_ action: DevAction) async throws {
         try check(try await http.send("POST", action.rawValue))
     }

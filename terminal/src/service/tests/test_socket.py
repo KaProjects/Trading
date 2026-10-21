@@ -78,3 +78,50 @@ def test_service_exits_when_stdin_closes():
         if proc.poll() is None:
             proc.kill()
         shutil.rmtree(folder.parent)
+
+
+def test_unlock_over_stdin_writes_only_encrypted_files():
+    import base64
+    import json
+
+    folder = Path(tempfile.mkdtemp(prefix="tt-")) / "app"
+    sock = folder / "service.sock"
+    proc = subprocess.Popen([sys.executable, "-m", "trader_service.main", "--env", "fake", "--socket", str(sock),
+                             "--log-level", "warning", "--watch-stdin"], stdin=subprocess.PIPE)
+    try:
+        transport = httpx.HTTPTransport(uds=str(sock))
+        deadline = time.monotonic() + 10
+        while True:
+            assert time.monotonic() < deadline, "service not serving"
+            try:
+                with httpx.Client(transport=transport, base_url="http://service") as c:
+                    c.post("/login").raise_for_status()
+                break
+            except httpx.TransportError:
+                time.sleep(0.05)
+        with httpx.Client(transport=transport, base_url="http://service") as c:
+            while c.get("/status").json()["state"] != "connected":
+                assert time.monotonic() < deadline
+                time.sleep(0.05)
+            assert c.get("/snapshot").status_code == 423
+            proc.stdin.write(json.dumps({"type": "unlock", "data_key": base64.b64encode(bytes(range(32))).decode()})
+                             .encode() + b"\n")
+            proc.stdin.flush()
+            while not c.get("/vault").json()["unlocked"]:
+                assert time.monotonic() < deadline
+                time.sleep(0.05)
+            assert c.get("/snapshot").json()["account"]["account_id"] == "FAKE0001"
+
+        files = list((folder / "fake").iterdir())
+        assert {f.name.split("-")[0] for f in files} >= {"snapshot.enc", "activity", "trades"}
+        for f in files:
+            raw = f.read_bytes()
+            assert raw.startswith(b"TTE1"), f.name
+            for secret in (b"FAKE0001", b"AAPL", b"25000"):
+                assert secret not in raw, (f.name, secret)
+        proc.stdin.close()
+        assert proc.wait(timeout=10) == 0
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+        shutil.rmtree(folder.parent)

@@ -14,11 +14,13 @@ struct MainWindow: View {
             Group {
                 if shown.isLocked {
                     LockedView(model: model)
+                } else if let account = model.account {
+                    AccountView(snapshot: account, isLive: model.accountIsLive)
                 } else {
                     ContentUnavailableView {
                         Label(shown.title, systemImage: "chart.line.uptrend.xyaxis")
                     } description: {
-                        Text(shown.detail ?? "Account data (funds, positions, orders) comes with T3.")
+                        Text(shown.detail ?? (shown.canLogIn ? "Log in to see your account." : ""))
                     } actions: {
                         if shown.canLogIn {
                             Button("Log in") { Task { await model.logIn() } }
@@ -45,6 +47,9 @@ struct MainWindow: View {
             }
             EnvironmentBadge(environment: model.environment)
             if !shown.isLocked {
+                if shown.canLogIn {
+                    Button("Log in") { Task { await model.logIn() } }
+                }
                 if shown.canStop {
                     Button("Stop") { Task { await model.stop() } }
                 }

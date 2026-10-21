@@ -8,15 +8,20 @@ from trader_service.api import create_app
 from trader_service.broker.fake import FakeBroker, load_seed, seed_prices
 from trader_service.events import EventBus
 from trader_service.prices.fake import FakePrices
+from trader_service.store import Store
+from trader_service.vault import Vault
 
 AAPL, MSFT = 265598, 272093
 
 
 @pytest.fixture
-def client():
+def client(tmp_path):
     bus = EventBus()
     prices = FakePrices(seed_prices(load_seed()), tick_interval=None, rng_seed=1)
-    app = create_app(FakeBroker(bus, prices, FAST), prices, bus)
+    broker = FakeBroker(bus, prices, FAST)
+    store = Store(broker, bus, Vault(tmp_path / "data"), snapshot_interval=0.05)
+    app = create_app(broker, prices, bus, store)
+    app.state.test_store = store
     with TestClient(app) as client:
         yield client
 
@@ -140,3 +145,18 @@ def test_manual_2fa_approval_mode(client):
     client.post("/login")
     client.post("/dev/2fa/approve")
     wait_connected(client)
+
+
+def test_persisted_data_needs_unlock(logged_in):
+    assert logged_in.get("/vault").json() == {"unlocked": False}
+    response = logged_in.get("/snapshot")
+    assert response.status_code == 423 and response.json()["error"] == "locked"
+    assert logged_in.get("/history").status_code == 423
+
+
+def test_snapshot_and_history_after_unlock(logged_in):
+    logged_in.app.state.test_store.unlock(bytes(32))
+    assert logged_in.get("/vault").json() == {"unlocked": True}
+    snapshot = logged_in.get("/snapshot").json()
+    assert snapshot["account"]["account_id"] == "FAKE0001" and len(snapshot["positions"]) == 5
+    assert len(logged_in.get("/history", params={"days": 30}).json()) == 4  # seeded 7-day fills copied

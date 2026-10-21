@@ -5,6 +5,8 @@ import contextlib
 from contextlib import asynccontextmanager
 from decimal import Decimal
 
+from collections.abc import Awaitable, Callable
+
 from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -19,6 +21,7 @@ from trader_service.broker.base import (
     UnknownOrder,
 )
 from trader_service.broker.fake import FakeBroker
+from trader_service.control import run_control
 from trader_service.events import EventBus
 from trader_service.models import (
     AccountSummary,
@@ -36,6 +39,8 @@ from trader_service.models import (
 from trader_service.prices.base import PriceFeed, price_symbol
 from trader_service.prices.fake import FakePrices
 from trader_service.rules import RuleSettings, preview_order
+from trader_service.store import Store
+from trader_service.vault import VaultLocked
 
 ERROR_STATUS = {
     NotConnected: 409,
@@ -64,15 +69,27 @@ class SetPrice(BaseModel):
     price: Decimal
 
 
-def create_app(broker: Broker, prices: PriceFeed, bus: EventBus,
-               rules: RuleSettings = RuleSettings()) -> FastAPI:
+def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
+               rules: RuleSettings = RuleSettings(),
+               control: Callable[[], Awaitable[asyncio.StreamReader]] | None = None,
+               on_control_eof: Callable[[], None] = lambda: None) -> FastAPI:
+    """`control` opens the app's private channel (our stdin) carrying unlock/lock messages (D3.3)."""
     prices.add_listener(lambda price: bus.publish("price", price))
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         await prices.start()
         await broker.start()
+        await store.start()
+        control_task = None
+        if control is not None:
+            control_task = asyncio.create_task(run_control(await control(), store, on_control_eof))
         yield
+        if control_task is not None:
+            control_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await control_task
+        await store.stop()
         await broker.stop()
         await prices.stop()
 
@@ -89,6 +106,10 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus,
     async def broker_error(_: Request, exc: BrokerError) -> JSONResponse:
         return JSONResponse(status_code=ERROR_STATUS.get(type(exc), 400),
                             content={"error": exc.code, "message": str(exc)})
+
+    @app.exception_handler(VaultLocked)
+    async def vault_locked(_: Request, exc: VaultLocked) -> JSONResponse:
+        return JSONResponse(status_code=423, content={"error": "locked", "message": "Unlock with Touch ID first"})
 
     @app.exception_handler(OrderBlocked)
     async def order_blocked(_: Request, exc: OrderBlocked) -> JSONResponse:
@@ -141,6 +162,22 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus,
     @app.get("/contracts")
     async def contracts(symbol: str = Query(min_length=1, max_length=20)) -> list[Contract]:
         return broker.lookup_contract(symbol)
+
+    # --- persisted data (needs the data key, D3.3) -------------------------------------------------------
+
+    @app.get("/vault")
+    async def vault() -> dict:
+        return {"unlocked": store.unlocked}
+
+    @app.get("/snapshot")
+    async def snapshot() -> JSONResponse:
+        """Last saved account state, shown greyed out while not connected."""
+        return JSONResponse(store.snapshot())
+
+    @app.get("/history")
+    async def history(days: int = Query(30, ge=1, le=3660)) -> list[dict]:
+        """Own trade history (every fill ever seen), beyond IBKR's 7-day window."""
+        return store.history(days)
 
     # --- orders --------------------------------------------------------------------------------------
 

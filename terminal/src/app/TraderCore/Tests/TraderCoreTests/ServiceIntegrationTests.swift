@@ -97,3 +97,30 @@ import Testing
         #expect(!FileManager.default.fileExists(atPath: service.socketPath))
     }
 }
+
+extension ServiceIntegrationTests {
+    @Test func accountDataAndSnapshotAfterUnlockOverStdin() async throws {
+        let service = try await startService()
+        defer { service.process.stop(grace: 1) }
+        _ = try await service.api.login()
+        try await service.api.dev(.approve2FA)
+        try await Task.sleep(for: .milliseconds(100))
+
+        let live = try await service.api.liveSnapshot()
+        #expect(live.account.accountId == "FAKE0001")
+        #expect(live.account.totalCash == Amount(Decimal(string: "33640.00")!))
+        #expect(live.positions.count == 5 && live.orders.count == 1 && live.fills.count == 4)
+        #expect(live.positions.first { $0.contract.symbol == "AAPL" }?.quantity == Amount(50))
+
+        await #expect(throws: ServiceError.self) { _ = try await service.api.savedSnapshot() }  // 423 locked
+        try service.process.send(.unlock(dataKey: Data(repeating: 7, count: 32)))
+        try await Task.sleep(for: .milliseconds(300))
+        let saved = try #require(try await service.api.savedSnapshot())
+        #expect(saved.account == live.account)
+        #expect(try await service.api.history(days: 30).count == 4)
+
+        try service.process.send(.lock)
+        try await Task.sleep(for: .milliseconds(200))
+        await #expect(throws: ServiceError.self) { _ = try await service.api.savedSnapshot() }
+    }
+}

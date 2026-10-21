@@ -16,6 +16,9 @@ final class AppModel {
     private(set) var startsAtLogin = SMAppService.mainApp.status == .enabled
     private(set) var slowResponses = false
     private(set) var autoApprove2FA = true
+    /// Account data shown in the window: live while connected, else the last saved snapshot (greyed out).
+    private(set) var account: AccountSnapshot?
+    private(set) var accountIsLive = false
 
     var presentation: StatusPresentation { .make(locked: locked, phase: phase, status: status) }
 
@@ -25,12 +28,13 @@ final class AppModel {
     @ObservationIgnored private var process: ServiceProcess?
     @ObservationIgnored private var streamTask: Task<Void, Never>?
     @ObservationIgnored private var heartbeatTask: Task<Void, Never>?
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
     @ObservationIgnored private var restarts: [Date] = []
     @ObservationIgnored private var quitting = false
     @ObservationIgnored private let logger = Logger(subsystem: "org.kaleta.trader-terminal", category: "app")
 
     init() {
-        appLock.onLock = { [weak self] in self?.locked = true }
+        appLock.onLock = { [weak self] in self?.didLock() }
     }
 
     // MARK: - Service lifecycle
@@ -84,6 +88,7 @@ final class AppModel {
                 slowResponses = false
                 if environment == .fake, let auto = try? await api.autoApprove2FA() { autoApprove2FA = auto }
                 startStreams()
+                if !locked, await sendDataKey() { await refreshAccount() }  // service restarted while unlocked
                 return
             }
             try? await Task.sleep(for: .milliseconds(200))
@@ -139,9 +144,67 @@ final class AppModel {
     }
 
     private func handle(_ message: Data) {
-        guard let event = try? ServiceEvent.parse(message), event.type == "status",
-              let update = try? ServiceJSON.decoder.decode(BrokerStatus.self, from: event.data) else { return }
-        apply(update)
+        guard let event = try? ServiceEvent.parse(message) else { return }
+        switch event.type {
+        case "status":
+            guard let update = try? ServiceJSON.decoder.decode(BrokerStatus.self, from: event.data) else { return }
+            apply(update)
+            scheduleAccountRefresh()
+        case "account", "position", "order", "fill":
+            scheduleAccountRefresh()
+        default:
+            break  // prices: T4
+        }
+    }
+
+    // MARK: - Account data (T3)
+
+    /// Coalesces bursts of events (a fill emits order + fill + position + account) into one reload.
+    private func scheduleAccountRefresh() {
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            await self?.refreshAccount()
+        }
+    }
+
+    func refreshAccount() async {
+        guard !locked, phase == .running else { return }
+        if status?.state == .connected, let live = try? await api.liveSnapshot() {
+            account = live
+            accountIsLive = true
+            return
+        }
+        accountIsLive = false
+        if let saved = try? await api.savedSnapshot() { account = saved }
+    }
+
+    /// D3.3: after Touch ID, read the data key with the same LAContext (no second prompt) and hand it to
+    /// the service over its private stdin pipe. Waits until the service has applied it.
+    private func sendDataKey() async -> Bool {
+        guard let context = appLock.context, let process else { return false }
+        do {
+            let key = try KeychainStore.dataKey(environment: environment.rawValue, context: context)
+            try process.send(.unlock(dataKey: key))
+        } catch {
+            lastError = "Could not unlock saved data: \(error.localizedDescription)"
+            return false
+        }
+        for _ in 0..<40 {
+            if (try? await api.vaultUnlocked()) == true { return true }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        lastError = "Service did not accept the data key"
+        return false
+    }
+
+    private func didLock() {
+        locked = true
+        account = nil
+        accountIsLive = false
+        refreshTask?.cancel()
+        try? process?.send(.lock)
     }
 
     private func apply(_ update: BrokerStatus) {
@@ -161,6 +224,7 @@ final class AppModel {
         if ok {
             locked = false
             if phase == .running, let current = try? await api.status() { apply(current) }
+            if phase == .running, await sendDataKey() { await refreshAccount() }
         }
         return ok
     }
