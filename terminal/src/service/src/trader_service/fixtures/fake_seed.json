@@ -1,0 +1,33 @@
+{
+  "_note": "Fake data for the FakeBroker only. Not a real account; contract IDs are illustrative.",
+  "account_id": "FAKE0001",
+  "base_currency": "USD",
+  "fx_to_base": {"USD": "1", "EUR": "1.08", "CAD": "0.73"},
+  "cash": {"USD": "25000.00", "EUR": "8000.00"},
+  "contracts": [
+    {"conid": 265598, "symbol": "AAPL", "name": "Apple Inc", "primary_exchange": "NASDAQ", "currency": "USD", "price": "228.40"},
+    {"conid": 272093, "symbol": "MSFT", "name": "Microsoft Corp", "primary_exchange": "NASDAQ", "currency": "USD", "price": "455.10"},
+    {"conid": 4815747, "symbol": "NVDA", "name": "NVIDIA Corp", "primary_exchange": "NASDAQ", "currency": "USD", "price": "138.75"},
+    {"conid": 117589399, "symbol": "ASML", "name": "ASML Holding NV", "primary_exchange": "AEB", "currency": "EUR", "price": "712.30"},
+    {"conid": 14204, "symbol": "SAP", "name": "SAP SE", "primary_exchange": "IBIS", "currency": "EUR", "price": "236.80"},
+    {"conid": 195014116, "symbol": "SHOP", "name": "Shopify Inc", "primary_exchange": "NYSE", "currency": "USD", "price": "112.60"},
+    {"conid": 195014120, "symbol": "SHOP", "name": "Shopify Inc", "primary_exchange": "TSE", "currency": "CAD", "price": "154.20"},
+    {"conid": 999999, "symbol": "REJECT", "name": "Always-rejected test contract", "primary_exchange": "NYSE", "currency": "USD", "price": "10.00"}
+  ],
+  "positions": [
+    {"conid": 265598, "quantity": "50", "avg_cost": "190.00"},
+    {"conid": 272093, "quantity": "20", "avg_cost": "410.00"},
+    {"conid": 4815747, "quantity": "100", "avg_cost": "120.00"},
+    {"conid": 117589399, "quantity": "10", "avg_cost": "650.00"},
+    {"conid": 14204, "quantity": "30", "avg_cost": "210.00"}
+  ],
+  "open_orders": [
+    {"conid": 272093, "side": "BUY", "quantity": "10", "limit_price": "400.00", "tif": "GTC", "order_ref": "seed-1"}
+  ],
+  "fills": [
+    {"conid": 265598, "side": "BUY", "quantity": "50", "price": "190.00", "days_ago": 6},
+    {"conid": 4815747, "side": "BUY", "quantity": "150", "price": "120.00", "days_ago": 4},
+    {"conid": 4815747, "side": "SELL", "quantity": "50", "price": "135.20", "days_ago": 2},
+    {"conid": 14204, "side": "BUY", "quantity": "30", "price": "210.00", "days_ago": 1}
+  ]
+}
