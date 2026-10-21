@@ -85,7 +85,7 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         await store.start()
         control_task = None
         if control is not None:
-            control_task = asyncio.create_task(run_control(await control(), store, on_control_eof))
+            control_task = asyncio.create_task(run_control(await control(), store, on_control_eof, prices))
         yield
         if control_task is not None:
             control_task.cancel()
@@ -202,6 +202,11 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         store.record(note.kind, **note.detail)
 
     # --- orders --------------------------------------------------------------------------------------
+
+    @app.get("/prices")
+    async def all_prices() -> list[Price]:
+        """Latest price per streamed symbol (positions + open orders, D4.4)."""
+        return prices.snapshot()
 
     @app.get("/quote")
     async def quote(conid: int) -> Price | None:

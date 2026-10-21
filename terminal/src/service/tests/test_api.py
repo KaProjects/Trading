@@ -218,3 +218,10 @@ def test_preview_of_a_modification_excludes_the_order_itself(logged_in):
     assert logged_in.post("/orders/preview", json=same).json()["block"]["code"] == "sell_exceeds_position"
     preview = logged_in.post("/orders/preview", json=same, params={"modify_order_id": order["order_id"]}).json()
     assert preview["block"] is None
+
+
+def test_contracts_carry_feed_symbol_and_prices_snapshot(logged_in):
+    shop = {c["primary_exchange"]: c["price_symbol"] for c in logged_in.get("/contracts", params={"symbol": "SHOP"}).json()}
+    assert shop == {"NYSE": "SHOP", "TSE": "SHOP.TO"}
+    symbols = {p["symbol"] for p in logged_in.get("/prices").json()}
+    assert symbols == {"AAPL", "MSFT", "NVDA", "ASML.AS", "SAP.DE"}

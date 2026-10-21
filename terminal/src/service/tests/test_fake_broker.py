@@ -92,9 +92,9 @@ async def test_positions_orders_fills_and_lookup(connected):
 
 
 async def test_price_subscriptions_follow_positions_and_orders(connected, prices):
-    assert prices._symbols == {"AAPL", "MSFT", "NVDA", "ASML.AEB", "SAP.IBIS"}
+    assert prices._symbols == {"AAPL", "MSFT", "NVDA", "ASML.AS", "SAP.DE"}
     await connected.place_order(order(conid=SHOP_TSE, limit="100", ref="shop"))
-    assert "SHOP.TSE" in prices._symbols
+    assert "SHOP.TO" in prices._symbols
 
 
 # --- orders ---------------------------------------------------------------------------------------------

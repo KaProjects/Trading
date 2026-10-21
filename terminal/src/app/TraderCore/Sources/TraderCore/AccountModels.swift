@@ -33,9 +33,11 @@ public struct Contract: Codable, Sendable, Hashable {
     public let exchange: String
     public let primaryExchange: String
     public let currency: String
+    /// Symbol in the price feed (`AAPL`, `SAP.DE`, `SHOP.TO`). Optional: snapshots saved before T4 lack it.
+    public let priceSymbol: String?
 
     public init(conid: Int, symbol: String, name: String, secType: String, exchange: String,
-                primaryExchange: String, currency: String) {
+                primaryExchange: String, currency: String, priceSymbol: String? = nil) {
         self.conid = conid
         self.symbol = symbol
         self.name = name
@@ -43,6 +45,31 @@ public struct Contract: Codable, Sendable, Hashable {
         self.exchange = exchange
         self.primaryExchange = primaryExchange
         self.currency = currency
+        self.priceSymbol = priceSymbol
+    }
+
+    public var feedSymbol: String { priceSymbol ?? symbol }
+}
+
+/// Position + live price (T4): market value, unrealized P&L, day change.
+public struct PricedPosition: Sendable, Identifiable {
+    public var id: Int { position.id }
+
+    public let position: Position
+    public let quote: Quote?
+    public let isStale: Bool
+
+    public init(position: Position, quote: Quote?, now: Date = Date(), staleAfter: TimeInterval = 60) {
+        self.position = position
+        self.quote = quote
+        isStale = quote.map { now.timeIntervalSince($0.time) > staleAfter } ?? true
+    }
+
+    public var marketValue: Amount? { quote.map { Amount(position.quantity.value * $0.last.value) } }
+    public var unrealizedPnL: Amount? { marketValue.map { Amount($0.value - position.costBasis.value) } }
+    public var unrealizedPct: Amount? {
+        guard let pnl = unrealizedPnL, position.costBasis.value != 0 else { return nil }
+        return Amount(pnl.value / position.costBasis.value * 100)
     }
 }
 
@@ -67,6 +94,13 @@ public struct Position: Codable, Sendable, Identifiable, Hashable {
     public let avgCost: Amount
     public let costBasis: Amount
     public var id: Int { contract.conid }
+
+    public init(contract: Contract, quantity: Amount, avgCost: Amount, costBasis: Amount) {
+        self.contract = contract
+        self.quantity = quantity
+        self.avgCost = avgCost
+        self.costBasis = costBasis
+    }
 }
 
 public enum OrderSide: String, Codable, Sendable { case buy = "BUY", sell = "SELL" }

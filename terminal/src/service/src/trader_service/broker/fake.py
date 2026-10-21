@@ -40,8 +40,7 @@ from trader_service.models import (
     Status,
     TimeInForce,
 )
-from trader_service.prices.base import price_symbol
-from trader_service.prices.fake import FakePrices
+from trader_service.prices.base import PriceFeed, price_symbol
 
 CENT = Decimal("0.01")
 REJECT_SYMBOL = "REJECT"
@@ -77,7 +76,7 @@ def _now() -> datetime:
 
 
 class FakeBroker(Broker):
-    def __init__(self, bus: EventBus, prices: FakePrices, config: FakeConfig | None = None,
+    def __init__(self, bus: EventBus, prices: PriceFeed, config: FakeConfig | None = None,
                  seed: dict | None = None) -> None:
         self._bus = bus
         self._prices = prices

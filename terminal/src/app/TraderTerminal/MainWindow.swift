@@ -15,7 +15,7 @@ struct MainWindow: View {
                 if shown.isLocked {
                     LockedView(model: model)
                 } else if let account = model.account {
-                    AccountView(snapshot: account, isLive: model.accountIsLive,
+                    AccountView(snapshot: account, isLive: model.accountIsLive, quotes: model.quotes,
                                 trade: model.canTrade ? { model.openTicket(contract: $0, side: $1) } : nil,
                                 newOrder: model.canTrade ? { model.openTicket() } : nil,
                                 orderActions: model.canTrade ? OrderActions(

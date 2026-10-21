@@ -2,6 +2,7 @@
 
     {"type": "unlock", "data_key": "<base64, 32 bytes>"}   after Touch ID
     {"type": "lock"}                                       sleep / screen lock / window closed
+    {"type": "finnhub_key", "key": "<api key>"}            price feed key from the Keychain (T4)
     EOF                                                    the app quit or crashed -> shut down
 """
 
@@ -13,6 +14,7 @@ import logging
 import sys
 from collections.abc import Callable
 
+from trader_service.prices.base import PriceFeed
 from trader_service.store import Store
 
 log = logging.getLogger(__name__)
@@ -25,7 +27,7 @@ async def open_stdin() -> asyncio.StreamReader:
     return reader
 
 
-def handle_message(line: bytes, store: Store) -> None:
+def handle_message(line: bytes, store: Store, prices: PriceFeed | None = None) -> None:
     try:
         message = json.loads(line)
         kind = message["type"]
@@ -40,12 +42,19 @@ def handle_message(line: bytes, store: Store) -> None:
             log.warning("ignoring invalid unlock message")
     elif kind == "lock":
         store.lock()
+    elif kind == "finnhub_key":
+        key = message.get("key")
+        if isinstance(key, str) and key and prices is not None and hasattr(prices, "set_key"):
+            prices.set_key(key)
+        else:
+            log.warning("ignoring finnhub_key message")
     else:
         log.warning("ignoring unknown control message type")
 
 
-async def run_control(reader: asyncio.StreamReader, store: Store, on_eof: Callable[[], None]) -> None:
+async def run_control(reader: asyncio.StreamReader, store: Store, on_eof: Callable[[], None],
+                      prices: PriceFeed | None = None) -> None:
     while line := await reader.readline():
-        handle_message(line, store)
+        handle_message(line, store, prices)
     store.lock()
     on_eof()

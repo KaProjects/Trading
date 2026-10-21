@@ -33,6 +33,38 @@ enum KeychainStore {
         return key
     }
 
+    // MARK: - Finnhub API key (D4.2): Touch ID protected, shared by all environments of this build
+
+    private static let finnhubAccount = "finnhub-api-key"
+
+    static func finnhubKey(context: LAContext?) throws -> String? {
+        try read(account: finnhubAccount, context: context).map { String(decoding: $0, as: UTF8.self) }
+    }
+
+    static func saveFinnhubKey(_ key: String) throws {
+        deleteFinnhubKey()
+        try add(account: finnhubAccount, value: Data(key.utf8), userPresence: true)
+    }
+
+    static func deleteFinnhubKey() {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: finnhubAccount,
+            kSecUseDataProtectionKeychain: true,
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+
+    static var hasFinnhubKey: Bool {
+        let context = LAContext()
+        context.interactionNotAllowed = true  // only check existence, never prompt
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: finnhubAccount,
+            kSecUseDataProtectionKeychain: true, kSecUseAuthenticationContext: context,
+        ]
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        return status == errSecSuccess || status == errSecInteractionNotAllowed
+    }
+
     private static func read(account: String, context: LAContext?) throws -> Data? {
         var query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,

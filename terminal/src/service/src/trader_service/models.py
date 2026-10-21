@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator
 
 
 class Environment(StrEnum):
@@ -30,6 +30,11 @@ class Status(BaseModel):
     message: str | None = None
 
 
+# IBKR primary exchange -> Finnhub symbol suffix (T4). US listings use the plain ticker.
+FEED_SUFFIX = {"IBIS": "DE", "XETRA": "DE", "FWB": "F", "AEB": "AS", "SBF": "PA", "LSE": "L", "TSE": "TO",
+               "VENTURE": "V", "SWX": "SW", "EBS": "SW", "BVME": "MI", "BM": "MC"}
+
+
 class Contract(BaseModel):
     conid: int
     symbol: str
@@ -38,6 +43,14 @@ class Contract(BaseModel):
     exchange: str = "SMART"
     primary_exchange: str
     currency: str
+
+    @computed_field
+    @property
+    def price_symbol(self) -> str:
+        """Symbol in the price feed: `AAPL`, `SAP.DE`, `SHOP.TO` (Finnhub convention)."""
+        if self.currency == "USD":
+            return self.symbol
+        return f"{self.symbol}.{FEED_SUFFIX.get(self.primary_exchange, self.primary_exchange)}"
 
 
 class CashBalance(BaseModel):

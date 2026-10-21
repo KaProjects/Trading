@@ -1,4 +1,5 @@
 import AppKit
+import LocalAuthentication
 import Observation
 import os
 import ServiceManagement
@@ -17,9 +18,13 @@ final class AppModel {
     private(set) var slowResponses = false
     private(set) var autoApprove2FA = true
     private(set) var fakeAutoLogin = AppEnvironment.fakeAutoLogin
+    private(set) var priceFeed = AppEnvironment.fakePriceFeed
+    private(set) var hasFinnhubKey = KeychainStore.hasFinnhubKey
     /// Account data shown in the window: live while connected, else the last saved snapshot (greyed out).
     private(set) var account: AccountSnapshot?
     private(set) var accountIsLive = false
+    /// Latest price per feed symbol (T4): loaded on refresh, then updated from `price` events.
+    private(set) var quotes: [String: Quote] = [:]
     /// Open order ticket (T5), nil when closed.
     private(set) var ticket: OrderTicketModel?
 
@@ -36,6 +41,7 @@ final class AppModel {
     @ObservationIgnored private var knownOrders: [Int: Order] = [:]
     @ObservationIgnored private var restarts: [Date] = []
     @ObservationIgnored private var quitting = false
+    @ObservationIgnored private var plannedRestart = false
     @ObservationIgnored private let logger = Logger(subsystem: "org.kaleta.trader-terminal", category: "app")
 
     init() {
@@ -72,7 +78,7 @@ final class AppModel {
         let service = ServiceProcess(
             executable: executable,
             arguments: ["--env", environment.rawValue, "--socket", AppEnvironment.socketPath, "--watch-stdin",
-                        "--log-level", "warning"],
+                        "--log-level", "warning", "--prices", environment == .fake ? priceFeed : "finnhub"],
             onExit: { [weak self] code in Task { @MainActor in self?.serviceExited(code: code) } })
         do {
             try service.start()
@@ -108,6 +114,11 @@ final class AppModel {
         process = nil
         status = nil
         guard !quitting else { return }
+        if plannedRestart {
+            plannedRestart = false
+            launchService()
+            return
+        }
         logger.error("service exited with code \(code)")
         restarts = restarts.filter { $0 > Date().addingTimeInterval(-60) } + [Date()]
         guard restarts.count <= 3 else {
@@ -166,8 +177,12 @@ final class AppModel {
             scheduleAccountRefresh()
         case "account", "position", "fill":
             scheduleAccountRefresh()
+        case "price":
+            if let quote = try? ServiceJSON.decoder.decode(Quote.self, from: event.data), !locked {
+                quotes[quote.symbol] = quote
+            }
         default:
-            break  // prices: T4
+            break
         }
     }
 
@@ -188,6 +203,9 @@ final class AppModel {
         if status?.state == .connected, let live = try? await api.liveSnapshot() {
             account = live
             accountIsLive = true
+            if let current = try? await api.prices() {
+                quotes = Dictionary(current.map { ($0.symbol, $0) }, uniquingKeysWith: { $1 })
+            }
             return
         }
         accountIsLive = false
@@ -201,6 +219,7 @@ final class AppModel {
         do {
             // Fake data is not sensitive: the fake environment uses a key without Touch ID, so auto log-in works
             // and switching the toggle never strands files. Paper and production always need Touch ID.
+            defer { sendFinnhubKey(context: context) }
             let key = environment == .fake
                 ? try KeychainStore.dataKey(environment: environment.rawValue, context: nil, userPresence: false)
                 : try KeychainStore.dataKey(environment: environment.rawValue, context: context)
@@ -217,10 +236,43 @@ final class AppModel {
         return false
     }
 
+    /// T4: the Finnhub key goes to the service over the private pipe, like the data key. Only when the service
+    /// actually uses Finnhub (paper/production, or the fake environment switched to real prices).
+    private func sendFinnhubKey(context: LAContext) {
+        guard environment != .fake || priceFeed == "finnhub", let process else { return }
+        do {
+            if let key = try KeychainStore.finnhubKey(context: context) { try process.send(.finnhubKey(key)) }
+        } catch {
+            lastError = "Could not read the Finnhub key: \(error.localizedDescription)"
+        }
+    }
+
+    func saveFinnhubKey(_ key: String) throws {
+        try KeychainStore.saveFinnhubKey(key)
+        hasFinnhubKey = true
+        if environment != .fake || priceFeed == "finnhub" { try? process?.send(.finnhubKey(key)) }
+    }
+
+    func deleteFinnhubKey() {
+        KeychainStore.deleteFinnhubKey()
+        hasFinnhubKey = false
+    }
+
+    /// Developer menu (fake only): switch simulated ↔ Finnhub prices. Restarts the service.
+    func setPriceFeed(_ feed: String) {
+        guard environment == .fake, feed != priceFeed else { return }
+        priceFeed = feed
+        AppEnvironment.fakePriceFeed = feed
+        quotes = [:]
+        plannedRestart = true
+        process?.stop(grace: 2)
+    }
+
     private func didLock() {
         locked = true
         ticket = nil
         account = nil
+        quotes = [:]
         accountIsLive = false
         refreshTask?.cancel()
         try? process?.send(.lock)

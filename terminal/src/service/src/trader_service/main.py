@@ -17,6 +17,7 @@ from trader_service.broker.fake import FakeBroker, load_seed, seed_prices
 from trader_service.events import EventBus
 from trader_service.models import Environment
 from trader_service.prices.fake import FakePrices
+from trader_service.prices.finnhub import FinnhubPrices
 from trader_service.store import Store
 from trader_service.vault import Vault
 
@@ -42,12 +43,13 @@ def bind_unix_socket(path: Path) -> socket.socket:
     return sock
 
 
-def build(environment: Environment, data_dir: Path, control: bool = False):
+def build(environment: Environment, data_dir: Path, control: bool = False, price_feed: str = "fake"):
     bus = EventBus()
     if environment != Environment.FAKE:
         raise SystemExit(f"Environment '{environment}' is not implemented yet (IBKR adapter comes with T1)")
     seed = load_seed()
-    prices = FakePrices(seed_prices(seed))
+    # D0.2: the fake broker uses simulated prices by default, or real Finnhub prices (key over the control channel).
+    prices = FinnhubPrices() if price_feed == "finnhub" else FakePrices(seed_prices(seed))
     broker = FakeBroker(bus, prices, seed=seed)
     store = Store(broker, bus, Vault(data_dir))
     # EOF on the control channel = the app is gone -> SIGTERM ourselves for uvicorn's graceful shutdown.
@@ -60,13 +62,16 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--env", type=Environment, choices=list(Environment), default=Environment.FAKE)
     parser.add_argument("--socket", type=Path, default=DEFAULT_SOCKET)
     parser.add_argument("--log-level", default="info")
+    parser.add_argument("--prices", choices=["fake", "finnhub"], default="fake",
+                        help="price feed for the fake environment (paper/production always use finnhub)")
     parser.add_argument("--data-dir", type=Path,
                         help="encrypted data folder (default: <socket folder>/<env>)")
     parser.add_argument("--watch-stdin", action="store_true",
                         help="read the app's control channel (unlock/lock) on stdin; exit when it closes")
     args = parser.parse_args(argv)
 
-    app = build(args.env, args.data_dir or args.socket.parent / args.env.value, control=args.watch_stdin)
+    app = build(args.env, args.data_dir or args.socket.parent / args.env.value, control=args.watch_stdin,
+                price_feed=args.prices)
     sock = bind_unix_socket(args.socket)
     server = uvicorn.Server(uvicorn.Config(app, log_level=args.log_level, ws="auto"))
     # uvicorn re-raises SIGTERM after its graceful shutdown; turn it into a normal exit so `finally` cleans up.

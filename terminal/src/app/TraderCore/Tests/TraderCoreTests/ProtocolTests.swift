@@ -144,3 +144,29 @@ import Testing
         }
     }
 }
+
+@Suite struct PricedPositionTests {
+    let contract = Contract(conid: 1, symbol: "AAPL", name: "Apple", secType: "STK", exchange: "SMART",
+                            primaryExchange: "NASDAQ", currency: "USD", priceSymbol: "AAPL")
+
+    @Test func valuesFromQuote() throws {
+        let position = Position(contract: contract, quantity: Amount(50), avgCost: Amount(190), costBasis: Amount(9500))
+        let now = Date()
+        let quote = Quote(symbol: "AAPL", last: Amount(Decimal(string: "228.4")!), prevClose: Amount(225),
+                          changePct: Amount(Decimal(string: "1.51")!), time: now.addingTimeInterval(-5))
+        let priced = PricedPosition(position: position, quote: quote, now: now)
+        #expect(priced.marketValue == Amount(11420))
+        #expect(priced.unrealizedPnL == Amount(1920))
+        let pct = try #require(priced.unrealizedPct).value
+        #expect(pct > Decimal(string: "20.2")! && pct < Decimal(string: "20.22")!)  // 1920 / 9500 = 20.21 %
+        #expect(!priced.isStale)
+        #expect(PricedPosition(position: position, quote: quote, now: now.addingTimeInterval(120)).isStale)
+        #expect(PricedPosition(position: position, quote: nil).marketValue == nil)
+    }
+
+    @Test func oldSnapshotsWithoutFeedSymbolStillDecode() throws {
+        let json = #"{"conid":1,"symbol":"SAP","name":"SAP SE","sec_type":"STK","exchange":"SMART","primary_exchange":"IBIS","currency":"EUR"}"#
+        let decoded = try ServiceJSON.decoder.decode(Contract.self, from: Data(json.utf8))
+        #expect(decoded.feedSymbol == "SAP")
+    }
+}

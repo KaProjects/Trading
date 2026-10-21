@@ -5,6 +5,7 @@ import TraderCore
 struct AccountView: View {
     let snapshot: AccountSnapshot
     let isLive: Bool
+    var quotes: [String: Quote] = [:]
     /// Opens the order ticket pre-filled from a position row (T5). Nil while not connected.
     var trade: ((Contract, OrderSide) -> Void)?
     /// Opens an empty order ticket (T5). Nil while not connected.
@@ -50,7 +51,7 @@ struct AccountView: View {
                 }
             }
             switch tab {
-            case .positions: PositionsTable(positions: snapshot.positions, trade: trade)
+            case .positions: PositionsTable(positions: snapshot.positions, quotes: quotes, trade: trade)
             case .orders: OrdersTable(orders: snapshot.orders, actions: orderActions)
             case .fills: FillsTable(fills: snapshot.fills)
             }
@@ -96,23 +97,58 @@ struct FundsView: View {
 
 struct PositionsTable: View {
     let positions: [Position]
+    var quotes: [String: Quote] = [:]
     var trade: ((Contract, OrderSide) -> Void)?
 
     var body: some View {
-        Table(positions) {
-            TableColumn("Symbol") { Text($0.contract.symbol).fontWeight(.semibold) }
-                .width(min: 60, ideal: 70)
-            TableColumn("Name") { Text($0.contract.name) }
-            TableColumn("Exchange") { Text($0.contract.primaryExchange) }
-                .width(min: 60, ideal: 70)
-            TableColumn("Quantity") { Text(Format.quantity($0.quantity)).monospacedDigit() }
-                .alignment(.trailing)
-            TableColumn("Avg cost") { Text(Format.money($0.avgCost, $0.contract.currency)).monospacedDigit() }
-                .alignment(.trailing)
-            TableColumn("Cost basis") { Text(Format.money($0.costBasis, $0.contract.currency)).monospacedDigit() }
-                .alignment(.trailing)
+        // Re-evaluate staleness every few seconds even when no price arrives.
+        TimelineView(.periodic(from: .now, by: 5)) { context in
+            table(now: context.date)
         }
-        .contextMenu(forSelectionType: Position.ID.self) { ids in
+    }
+
+    private func table(now: Date) -> some View {
+        let rows = positions.map { PricedPosition(position: $0, quote: quotes[$0.contract.feedSymbol], now: now) }
+        return Table(rows, columns: {
+            TableColumn("Symbol") { (row: PricedPosition) in Text(row.position.contract.symbol).fontWeight(.semibold) }
+                .width(min: 60, ideal: 70)
+            TableColumn("Name") { (row: PricedPosition) in Text(row.position.contract.name) }
+            TableColumn("Quantity") { (row: PricedPosition) in
+                Text(Format.quantity(row.position.quantity)).monospacedDigit()
+            }
+            .alignment(.trailing)
+            TableColumn("Avg cost") { (row: PricedPosition) in
+                Text(Format.money(row.position.avgCost, row.position.contract.currency)).monospacedDigit()
+            }
+            .alignment(.trailing)
+            TableColumn("Last") { (row: PricedPosition) in
+                Text(row.quote.map { Format.money($0.last, row.position.contract.currency) } ?? "—")
+                    .monospacedDigit()
+                    .foregroundStyle(row.isStale ? .secondary : .primary)
+                    .help(row.isStale ? "No price update for over a minute" : "")
+            }
+            .alignment(.trailing)
+            TableColumn("Day") { (row: PricedPosition) in
+                Text(row.quote.map { Format.signedPercent($0.changePct) } ?? "—")
+                    .monospacedDigit()
+                    .foregroundStyle(Format.color(row.quote?.changePct))
+            }
+            .alignment(.trailing)
+            TableColumn("Market value") { (row: PricedPosition) in
+                Text(row.marketValue.map { Format.money($0, row.position.contract.currency) } ?? "—").monospacedDigit()
+            }
+            .alignment(.trailing)
+            TableColumn("Unrealized P&L") { (row: PricedPosition) in
+                Text(row.unrealizedPnL.map { pnl in
+                    "\(Format.signedMoney(pnl, row.position.contract.currency))"
+                        + (row.unrealizedPct.map { "  \(Format.signedPercent($0))" } ?? "")
+                } ?? "—")
+                .monospacedDigit()
+                .foregroundStyle(Format.color(row.unrealizedPnL))
+            }
+            .alignment(.trailing)
+        })
+        .contextMenu(forSelectionType: Int.self) { ids in
             if let trade, let id = ids.first, let position = positions.first(where: { $0.id == id }) {
                 Button("Buy \(position.contract.symbol)…") { trade(position.contract, .buy) }
                 Button("Sell \(position.contract.symbol)…") { trade(position.contract, .sell) }
@@ -218,6 +254,15 @@ enum Format {
 
     static func percent(_ amount: Amount) -> String {
         "\(amount.value.formatted(.number.precision(.fractionLength(0...1)))) %"
+    }
+
+    static func signedMoney(_ amount: Amount, _ currency: String) -> String {
+        (amount.value >= 0 ? "+" : "") + money(amount, currency)
+    }
+
+    static func color(_ amount: Amount?) -> Color {
+        guard let value = amount?.value, value != 0 else { return .secondary }
+        return value > 0 ? .green : .red
     }
 
     static func signedPercent(_ amount: Amount) -> String {

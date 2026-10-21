@@ -60,6 +60,9 @@ public struct ServiceAPI: Sendable {
         return try await call("GET", "/contracts?symbol=\(query)")
     }
 
+    /// Latest price of every streamed symbol; afterwards follow `price` events.
+    public func prices() async throws -> [Quote] { try await call("GET", "/prices") }
+
     /// Last price, nil when the feed has none yet.
     public func quote(conid: Int) async throws -> Quote? {
         let response = try await http.send("GET", "/quote?conid=\(conid)")

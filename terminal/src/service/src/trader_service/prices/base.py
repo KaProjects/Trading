@@ -9,11 +9,8 @@ PriceListener = Callable[[Price], None]
 
 
 def price_symbol(contract: Contract) -> str:
-    """Feed symbol for a contract: plain ticker for USD listings, `TICKER.EXCHANGE` otherwise
-    (keeps e.g. SHOP on NYSE and SHOP on TSE apart). Provider-specific mapping is refined in T4."""
-    if contract.currency == "USD":
-        return contract.symbol
-    return f"{contract.symbol}.{contract.primary_exchange}"
+    """Feed symbol for a contract (see `Contract.price_symbol`): keeps SHOP (NYSE) and SHOP.TO (TSX) apart."""
+    return contract.price_symbol
 
 
 class PriceFeed(ABC):
@@ -32,3 +29,7 @@ class PriceFeed(ABC):
 
     @abstractmethod
     def add_listener(self, listener: PriceListener) -> None: ...
+
+    @abstractmethod
+    def snapshot(self) -> list[Price]:
+        """Latest price of every streamed symbol (the app loads this once, then follows `price` events)."""

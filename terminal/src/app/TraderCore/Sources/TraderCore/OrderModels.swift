@@ -86,6 +86,14 @@ public struct Quote: Codable, Sendable, Equatable {
     public let prevClose: Amount
     public let changePct: Amount
     public let time: Date
+
+    public init(symbol: String, last: Amount, prevClose: Amount, changePct: Amount, time: Date) {
+        self.symbol = symbol
+        self.last = last
+        self.prevClose = prevClose
+        self.changePct = changePct
+        self.time = time
+    }
 }
 
 /// Parses what the user typed: accepts the Mac's locale ("182,50" in Czech) and plain "182.50".

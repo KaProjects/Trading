@@ -50,6 +50,9 @@ class FakePrices(PriceFeed):
     def last(self, symbol: str) -> Price | None:
         return self._prices.get(symbol)
 
+    def snapshot(self) -> list[Price]:
+        return [self._prices[s] for s in sorted(self._symbols) if s in self._prices]
+
     def add_listener(self, listener: PriceListener) -> None:
         self._listeners.append(listener)
 

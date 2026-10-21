@@ -52,11 +52,13 @@ public final class ServiceProcess: @unchecked Sendable {
 public enum ControlMessage: Sendable {
     case unlock(dataKey: Data)
     case lock
+    case finnhubKey(String)
 
     var line: Data {
         let object: [String: String] = switch self {
         case .unlock(let key): ["type": "unlock", "data_key": key.base64EncodedString()]
         case .lock: ["type": "lock"]
+        case .finnhubKey(let key): ["type": "finnhub_key", "key": key]
         }
         var data = (try? JSONSerialization.data(withJSONObject: object)) ?? Data()
         data.append(0x0A)

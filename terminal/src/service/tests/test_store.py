@@ -154,3 +154,18 @@ async def test_control_messages(store, caplog):
     handle_message(b'{"type": "unlock", "data_key": "!!!"}', store)
     assert not store.unlocked
     assert secret not in caplog.text
+
+
+async def test_finnhub_key_message_reaches_feed_and_is_not_logged(store, caplog):
+    class Feed:
+        key = None
+
+        def set_key(self, key):
+            self.key = key
+
+    feed = Feed()
+    handle_message(b'{"type": "finnhub_key", "key": "secret-finnhub-key"}', store, feed)
+    assert feed.key == "secret-finnhub-key"
+    handle_message(b'{"type": "finnhub_key", "key": ""}', store, feed)
+    assert feed.key == "secret-finnhub-key"
+    assert "secret-finnhub-key" not in caplog.text

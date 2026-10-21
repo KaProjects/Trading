@@ -7,6 +7,8 @@ struct SettingsView: View {
     @State private var fields: [Field: String] = [:]
     @State private var message: String?
     @State private var saving = false
+    @State private var finnhubKey = ""
+    @State private var keyMessage: String?
 
     enum Field: CaseIterable {
         case pctWarn, pctStrong, valueWarn, quantityWarn, priceDeviation
@@ -28,6 +30,30 @@ struct SettingsView: View {
                 ForEach(Field.allCases, id: \.self) { field in
                     TextField(field.label, text: Binding(get: { fields[field] ?? "" }, set: { fields[field] = $0 }))
                         .multilineTextAlignment(.trailing)
+                }
+            }
+            Section("Market data — Finnhub (real-time prices, T4)") {
+                SecureField("API key", text: $finnhubKey, prompt: Text(model.hasFinnhubKey ? "saved — enter to replace" : "paste key"))
+                HStack {
+                    Text(keyMessage ?? (model.hasFinnhubKey ? "Stored in the Keychain, protected by Touch ID." : "No key saved."))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if model.hasFinnhubKey {
+                        Button("Remove", role: .destructive) {
+                            model.deleteFinnhubKey()
+                            keyMessage = "Removed."
+                        }
+                    }
+                    Button("Save Key") {
+                        do {
+                            try model.saveFinnhubKey(finnhubKey.trimmingCharacters(in: .whitespacesAndNewlines))
+                            finnhubKey = ""
+                            keyMessage = "Saved."
+                        } catch {
+                            keyMessage = error.localizedDescription
+                        }
+                    }
+                    .disabled(finnhubKey.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
             HStack {
