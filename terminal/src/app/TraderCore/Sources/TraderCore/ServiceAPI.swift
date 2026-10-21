@@ -55,6 +55,41 @@ public struct ServiceAPI: Sendable {
         return try ServiceJSON.decoder.decode(AccountSnapshot.self, from: response.body)
     }
 
+    public func contracts(symbol: String) async throws -> [Contract] {
+        let query = symbol.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+        return try await call("GET", "/contracts?symbol=\(query)")
+    }
+
+    /// Last price, nil when the feed has none yet.
+    public func quote(conid: Int) async throws -> Quote? {
+        let response = try await http.send("GET", "/quote?conid=\(conid)")
+        try check(response)
+        if response.body == Data("null".utf8) { return nil }
+        return try ServiceJSON.decoder.decode(Quote.self, from: response.body)
+    }
+
+    public func preview(_ request: OrderRequest) async throws -> OrderPreview {
+        try await call("POST", "/orders/preview", body: request)
+    }
+
+    /// Throws `ServiceError.http(422, "sell_exceeds_position", …)` when blocked (D5.3).
+    public func placeOrder(_ request: OrderRequest) async throws -> Order {
+        precondition(request.orderRef != nil, "orderRef is required to send an order")
+        return try await call("POST", "/orders", body: request)
+    }
+
+    public func ruleThresholds() async throws -> RuleThresholds { try await call("GET", "/settings/rules") }
+
+    public func saveRuleThresholds(_ thresholds: RuleThresholds) async throws -> RuleThresholds {
+        try await call("PUT", "/settings/rules", body: thresholds)
+    }
+
+    /// Activity log entries only the app knows about (e.g. order dialog cancelled).
+    public func note(_ kind: String, detail: [String: String] = [:]) async throws {
+        let body = try JSONSerialization.data(withJSONObject: ["kind": kind, "detail": detail])
+        try check(try await http.send("POST", "/activity", json: body))
+    }
+
     public func dev(_ action: DevAction) async throws {
         try check(try await http.send("POST", action.rawValue))
     }
@@ -82,7 +117,15 @@ public struct ServiceAPI: Sendable {
     }
 
     private func call<T: Decodable>(_ method: String, _ path: String) async throws -> T {
-        let response = try await http.send(method, path)
+        try await call(method, path, json: nil)
+    }
+
+    private func call<T: Decodable, B: Encodable>(_ method: String, _ path: String, body: B) async throws -> T {
+        try await call(method, path, json: try ServiceJSON.encoder.encode(body))
+    }
+
+    private func call<T: Decodable>(_ method: String, _ path: String, json: Data?) async throws -> T {
+        let response = try await http.send(method, path, json: json)
         try check(response)
         return try ServiceJSON.decoder.decode(T.self, from: response.body)
     }

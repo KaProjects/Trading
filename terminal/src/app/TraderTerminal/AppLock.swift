@@ -39,10 +39,20 @@ final class AppLock {
         return success
     }
 
+    /// Fake environment auto log-in only (Debug builds): unlocked without Touch ID, no authenticated context.
+    func unlockWithoutAuthentication() {
+        guard context == nil else { return }
+        context = LAContext()
+        skippedAuthentication = true
+    }
+
+    private(set) var skippedAuthentication = false
+
     func lock() {
         guard context != nil else { return }
         context?.invalidate()
         context = nil
+        skippedAuthentication = false
         onLock?()
     }
 }

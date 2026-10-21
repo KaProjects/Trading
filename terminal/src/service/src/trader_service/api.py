@@ -33,6 +33,9 @@ from trader_service.models import (
     OrderRequest,
     PlaceOrderRequest,
     Position,
+    Price,
+    RuleThresholds,
+    ActivityNote,
     Side,
     Status,
 )
@@ -70,7 +73,6 @@ class SetPrice(BaseModel):
 
 
 def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
-               rules: RuleSettings = RuleSettings(),
                control: Callable[[], Awaitable[asyncio.StreamReader]] | None = None,
                on_control_eof: Callable[[], None] = lambda: None) -> FastAPI:
     """`control` opens the app's private channel (our stdin) carrying unlock/lock messages (D3.3)."""
@@ -124,8 +126,15 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         pending_sells = sum((o.remaining for o in broker.open_orders()
                              if o.contract.conid == contract.conid and o.side == Side.SELL
                              and o.order_id != exclude_order_id), Decimal(0))
+        reserved = Decimal(0)
+        if exclude_order_id is not None:
+            current = broker.order(exclude_order_id)
+            if current.side == Side.BUY and current.status.is_active:
+                reserved = current.remaining * current.limit_price * broker.fx_rate(current.contract.currency)
         return preview_order(request, contract, account, broker.fx_rate(contract.currency), position,
-                             pending_sells, prices.last(price_symbol(contract)), rules)
+                             pending_sells, prices.last(price_symbol(contract)),
+                             RuleSettings.from_thresholds(store.rule_thresholds()),
+                             reserved_by_this_order=reserved)
 
     # --- connection ------------------------------------------------------------------------------
 
@@ -179,7 +188,25 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         """Own trade history (every fill ever seen), beyond IBKR's 7-day window."""
         return store.history(days)
 
+    @app.get("/settings/rules")
+    async def get_rules() -> RuleThresholds:
+        return store.rule_thresholds()
+
+    @app.put("/settings/rules")
+    async def put_rules(thresholds: RuleThresholds) -> RuleThresholds:
+        store.save_rule_thresholds(thresholds)  # 423 while locked
+        return thresholds
+
+    @app.post("/activity", status_code=204)
+    async def activity(note: ActivityNote) -> None:
+        store.record(note.kind, **note.detail)
+
     # --- orders --------------------------------------------------------------------------------------
+
+    @app.get("/quote")
+    async def quote(conid: int) -> Price | None:
+        """Last price for a contract (fake prices now, Finnhub with T4). Used to pre-fill the limit price."""
+        return prices.last(price_symbol(broker.contract(conid)))
 
     @app.post("/orders/preview")
     async def order_preview(request: OrderRequest) -> OrderPreview:
@@ -192,6 +219,8 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
             return existing
         checked = preview(request)
         if checked.block:
+            store.record("order_blocked", order_ref=request.order_ref, symbol=checked.contract.symbol,
+                         side=request.side, quantity=str(request.quantity), reason=checked.block.code)
             raise OrderBlocked(checked)
         return await broker.place_order(request)
 

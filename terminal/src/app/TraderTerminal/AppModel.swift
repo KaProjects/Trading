@@ -16,13 +16,16 @@ final class AppModel {
     private(set) var startsAtLogin = SMAppService.mainApp.status == .enabled
     private(set) var slowResponses = false
     private(set) var autoApprove2FA = true
+    private(set) var fakeAutoLogin = AppEnvironment.fakeAutoLogin
     /// Account data shown in the window: live while connected, else the last saved snapshot (greyed out).
     private(set) var account: AccountSnapshot?
     private(set) var accountIsLive = false
+    /// Open order ticket (T5), nil when closed.
+    private(set) var ticket: OrderTicketModel?
 
     var presentation: StatusPresentation { .make(locked: locked, phase: phase, status: status) }
 
-    @ObservationIgnored private let api = ServiceAPI(socketPath: AppEnvironment.socketPath)
+    @ObservationIgnored let api = ServiceAPI(socketPath: AppEnvironment.socketPath)
     @ObservationIgnored private let appLock = AppLock()
     @ObservationIgnored private let notifier = Notifier()
     @ObservationIgnored private var process: ServiceProcess?
@@ -89,6 +92,7 @@ final class AppModel {
                 if environment == .fake, let auto = try? await api.autoApprove2FA() { autoApprove2FA = auto }
                 startStreams()
                 if !locked, await sendDataKey() { await refreshAccount() }  // service restarted while unlocked
+                await autoLogInIfFake()
                 return
             }
             try? await Task.sleep(for: .milliseconds(200))
@@ -185,7 +189,11 @@ final class AppModel {
     private func sendDataKey() async -> Bool {
         guard let context = appLock.context, let process else { return false }
         do {
-            let key = try KeychainStore.dataKey(environment: environment.rawValue, context: context)
+            // Fake data is not sensitive: the fake environment uses a key without Touch ID, so auto log-in works
+            // and switching the toggle never strands files. Paper and production always need Touch ID.
+            let key = environment == .fake
+                ? try KeychainStore.dataKey(environment: environment.rawValue, context: nil, userPresence: false)
+                : try KeychainStore.dataKey(environment: environment.rawValue, context: context)
             try process.send(.unlock(dataKey: key))
         } catch {
             lastError = "Could not unlock saved data: \(error.localizedDescription)"
@@ -201,6 +209,7 @@ final class AppModel {
 
     private func didLock() {
         locked = true
+        ticket = nil
         account = nil
         accountIsLive = false
         refreshTask?.cancel()
@@ -220,13 +229,34 @@ final class AppModel {
 
     @discardableResult
     func unlock() async -> Bool {
-        let ok = await appLock.unlock()
+        let ok: Bool
+        if environment == .fake && fakeAutoLogin {
+            appLock.unlockWithoutAuthentication()
+            ok = true
+        } else {
+            ok = await appLock.unlock()
+        }
         if ok {
             locked = false
             if phase == .running, let current = try? await api.status() { apply(current) }
             if phase == .running, await sendDataKey() { await refreshAccount() }
         }
         return ok
+    }
+
+    /// Debug builds, fake environment: unlock without Touch ID and log in to the fake broker (no clicks).
+    private func autoLogInIfFake() async {
+        guard environment == .fake, fakeAutoLogin else { return }
+        if locked { await unlock() }
+        if let state = status?.state, [.disconnected, .loginRequired, .loginFailed].contains(state) {
+            await logIn()
+        }
+    }
+
+    func toggleFakeAutoLogin() {
+        fakeAutoLogin.toggle()
+        AppEnvironment.fakeAutoLogin = fakeAutoLogin
+        if fakeAutoLogin { Task { await autoLogInIfFake() } }
     }
 
     func logIn() async {
@@ -236,6 +266,18 @@ final class AppModel {
 
     func stop() async {
         await perform { try await self.apply(self.api.logout()) }
+    }
+
+    var canTrade: Bool { !locked && phase == .running && status?.state == .connected }
+
+    func openTicket(contract: Contract? = nil, side: OrderSide = .buy) {
+        guard canTrade else { return }
+        ticket = OrderTicketModel(api: api, contract: contract, side: side)
+    }
+
+    func closeTicket() {
+        ticket = nil
+        scheduleAccountRefresh()
     }
 
     func lockNow() {

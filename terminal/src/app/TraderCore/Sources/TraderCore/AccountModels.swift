@@ -33,6 +33,17 @@ public struct Contract: Codable, Sendable, Hashable {
     public let exchange: String
     public let primaryExchange: String
     public let currency: String
+
+    public init(conid: Int, symbol: String, name: String, secType: String, exchange: String,
+                primaryExchange: String, currency: String) {
+        self.conid = conid
+        self.symbol = symbol
+        self.name = name
+        self.secType = secType
+        self.exchange = exchange
+        self.primaryExchange = primaryExchange
+        self.currency = currency
+    }
 }
 
 public struct CashBalance: Codable, Sendable, Hashable {

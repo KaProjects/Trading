@@ -31,26 +31,39 @@ def test_small_order_has_no_warnings():
 
 
 def test_share_of_account_warn_and_strong():
-    assert codes(preview(qty="110"))["pct_of_account"] == WarningLevel.WARN  # 11 %
-    strong = preview(qty="300")  # 30 %
+    assert "pct_of_account" not in codes(preview(qty="250"))  # 25 % is not above 25 %
+    assert codes(preview(qty="260"))["pct_of_account"] == WarningLevel.WARN  # 26 %
+    strong = preview(qty="510", side=Side.SELL, position="600")  # 51 %
     assert codes(strong)["pct_of_account"] == WarningLevel.STRONG
-    assert strong.warnings[0].message == "This order is 30 % of your account"
+    assert strong.warnings[0].message == "This order is 51 % of your account"
 
 
 def test_high_value_and_quantity_never_block():
-    result = preview(qty="1500", limit="10", last=price("10"))  # 15 000, 1 500 shares
+    # 105 000 value, 1 500 shares; a sell of an owned position, so no funds block either
+    result = preview(qty="1500", limit="70", side=Side.SELL, position="1500", last=price("70"))
     assert {"high_value", "high_quantity"} <= codes(result).keys()
     assert result.block is None
+    assert "high_value" not in codes(preview(qty="1000", limit="100", side=Side.SELL, position="1000"))
 
 
 def test_value_converted_to_base_currency():
-    result = preview(qty="100", limit="100", fx="1.08")
-    assert result.value_base == D("10800.00") and "high_value" in codes(result)
+    result = preview(qty="1000", limit="100", fx="1.08", side=Side.SELL, position="1000")
+    assert result.value_base == D("108000.00") and "high_value" in codes(result)
 
 
-def test_above_available_funds():
-    assert "above_available_funds" in codes(preview(qty="600", limit="100"))
-    assert "above_available_funds" not in codes(preview(qty="600", limit="100", side=Side.SELL, position="600"))
+def test_buy_above_available_funds_is_blocked():
+    assert preview(qty="500", limit="100").block is None  # exactly the 50 000 available
+    blocked = preview(qty="501", limit="100")
+    assert blocked.block.code == "insufficient_funds"
+    assert blocked.block.message == "Not enough funds: order ≈ 50,100.00 USD, available 50,000.00 USD"
+    assert preview(qty="600", limit="100", side=Side.SELL, position="600").block is None
+
+
+def test_modified_buy_counts_its_own_reserved_funds():
+    request = OrderRequest(conid=1, side=Side.BUY, quantity=D(510), limit_price=D(100))
+    result = preview_order(request, AAPL, ACCOUNT, D(1), D(0), D(0), price(), now=NOW,
+                           reserved_by_this_order=D(2000))
+    assert result.block is None
 
 
 def test_price_deviation_warns_above_5_percent_both_ways():

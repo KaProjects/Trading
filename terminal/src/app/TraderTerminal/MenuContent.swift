@@ -72,6 +72,9 @@ struct DeveloperItems: View {
                 }
             }
             Section("Fake broker") {
+                Button(model.fakeAutoLogin ? "✓ Auto Log-in (no Touch ID)" : "Auto Log-in (no Touch ID)") {
+                    model.toggleFakeAutoLogin()
+                }
                 Button(model.autoApprove2FA ? "✓ Auto-approve 2FA (1 s)" : "Auto-approve 2FA (1 s)") {
                     Task { await model.toggleAutoApprove2FA() }
                 }
@@ -94,6 +97,11 @@ struct AppCommands: Commands {
     let model: AppModel
 
     var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("New Order…") { model.openTicket() }
+                .keyboardShortcut("n")
+                .disabled(!model.canTrade)
+        }
         CommandMenu("Session") {
             let shown = model.presentation
             Button(shown.title.hasPrefix("Login failed") ? "Retry Log in" : "Log in") {

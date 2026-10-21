@@ -5,6 +5,10 @@ import TraderCore
 struct AccountView: View {
     let snapshot: AccountSnapshot
     let isLive: Bool
+    /// Opens the order ticket pre-filled from a position row (T5). Nil while not connected.
+    var trade: ((Contract, OrderSide) -> Void)?
+    /// Opens an empty order ticket (T5). Nil while not connected.
+    var newOrder: (() -> Void)?
     @State private var tab: Tab = .positions
 
     enum Tab: Hashable { case positions, orders, fills }
@@ -18,15 +22,24 @@ struct AccountView: View {
                     .foregroundStyle(.secondary)
             }
             FundsView(account: snapshot.account)
-            Picker("", selection: $tab) {
-                Text("Positions (\(snapshot.positions.count))").tag(Tab.positions)
-                Text("Open orders (\(snapshot.orders.count))").tag(Tab.orders)
-                Text("Fills · 7 days (\(snapshot.fills.count))").tag(Tab.fills)
+            HStack {
+                Picker("", selection: $tab) {
+                    Text("Positions (\(snapshot.positions.count))").tag(Tab.positions)
+                    Text("Open orders (\(snapshot.orders.count))").tag(Tab.orders)
+                    Text("Fills · 7 days (\(snapshot.fills.count))").tag(Tab.fills)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                Spacer()
+                if let newOrder {
+                    Button("New Order", systemImage: "plus", action: newOrder)
+                        .buttonStyle(.borderedProminent)
+                        .help("New limit order (⌘N)")
+                }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
             switch tab {
-            case .positions: PositionsTable(positions: snapshot.positions)
+            case .positions: PositionsTable(positions: snapshot.positions, trade: trade)
             case .orders: OrdersTable(orders: snapshot.orders)
             case .fills: FillsTable(fills: snapshot.fills)
             }
@@ -72,6 +85,7 @@ struct FundsView: View {
 
 struct PositionsTable: View {
     let positions: [Position]
+    var trade: ((Contract, OrderSide) -> Void)?
 
     var body: some View {
         Table(positions) {
@@ -86,6 +100,12 @@ struct PositionsTable: View {
                 .alignment(.trailing)
             TableColumn("Cost basis") { Text(Format.money($0.costBasis, $0.contract.currency)).monospacedDigit() }
                 .alignment(.trailing)
+        }
+        .contextMenu(forSelectionType: Position.ID.self) { ids in
+            if let trade, let id = ids.first, let position = positions.first(where: { $0.id == id }) {
+                Button("Buy \(position.contract.symbol)…") { trade(position.contract, .buy) }
+                Button("Sell \(position.contract.symbol)…") { trade(position.contract, .sell) }
+            }
         }
     }
 }
@@ -152,5 +172,13 @@ enum Format {
 
     static func quantity(_ amount: Amount) -> String {
         amount.value.formatted(.number.precision(.fractionLength(0...4)))
+    }
+
+    static func percent(_ amount: Amount) -> String {
+        "\(amount.value.formatted(.number.precision(.fractionLength(0...1)))) %"
+    }
+
+    static func signedPercent(_ amount: Amount) -> String {
+        "\(amount.value.formatted(.number.precision(.fractionLength(2)).sign(strategy: .always()))) %"
     }
 }

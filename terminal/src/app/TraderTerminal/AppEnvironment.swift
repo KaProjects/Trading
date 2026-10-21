@@ -11,6 +11,13 @@ enum AppEnvironment {
     static let defaultBroker: BrokerEnvironment = .production
     #endif
 
+    /// Debug builds, fake environment: unlock without Touch ID and log in to the fake broker at launch.
+    /// Never applies to paper or production. Toggle in the Developer menu (stored in UserDefaults).
+    static var fakeAutoLogin: Bool {
+        get { isDebugBuild && (UserDefaults.standard.object(forKey: "fakeAutoLogin") as? Bool ?? true) }
+        set { UserDefaults.standard.set(newValue, forKey: "fakeAutoLogin") }
+    }
+
     /// Implemented broker adapters (paper and production arrive with T1/T7).
     static let available: Set<BrokerEnvironment> = [.fake]
 

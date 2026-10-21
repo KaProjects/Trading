@@ -14,6 +14,10 @@ struct TraderTerminalApp: App {
         .defaultSize(width: 720, height: 460)
         .commands { AppCommands(model: delegate.model) }
 
+        Settings {
+            SettingsView(model: delegate.model)
+        }
+
         MenuBarExtra {
             MenuContent(model: delegate.model)
         } label: {

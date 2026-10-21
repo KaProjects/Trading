@@ -20,27 +20,28 @@ enum KeychainStore {
     private static var service: String { Bundle.main.bundleIdentifier ?? "org.kaleta.trader-terminal.dev" }
 
     /// The 32-byte key encrypting everything the service persists (D3.2/D3.3). Created on first use.
-    static func dataKey(environment: String, context: LAContext) throws -> Data {
-        let account = "data-key.\(environment)"
+    /// `userPresence: false` is only for the fake environment's auto log-in (Debug builds): fake data, no Touch ID.
+    static func dataKey(environment: String, context: LAContext?, userPresence: Bool = true) throws -> Data {
+        let account = userPresence ? "data-key.\(environment)" : "data-key.\(environment).no-touch-id"
         if let existing = try read(account: account, context: context) {
             return existing
         }
         var key = Data(count: 32)
         let result = key.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!) }
         guard result == errSecSuccess else { throw KeychainError.status(result) }
-        try add(account: account, value: key)
+        try add(account: account, value: key, userPresence: userPresence)
         return key
     }
 
-    private static func read(account: String, context: LAContext) throws -> Data? {
-        let query: [CFString: Any] = [
+    private static func read(account: String, context: LAContext?) throws -> Data? {
+        var query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
             kSecAttrAccount: account,
             kSecUseDataProtectionKeychain: true,
-            kSecUseAuthenticationContext: context,
             kSecReturnData: true,
         ]
+        if let context { query[kSecUseAuthenticationContext] = context }
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         switch status {
@@ -50,10 +51,10 @@ enum KeychainStore {
         }
     }
 
-    private static func add(account: String, value: Data) throws {
+    private static func add(account: String, value: Data, userPresence: Bool) throws {
         var error: Unmanaged<CFError>?
         guard let access = SecAccessControlCreateWithFlags(
-            nil, kSecAttrAccessibleWhenUnlockedThisDeviceOnly, .userPresence, &error
+            nil, kSecAttrAccessibleWhenUnlockedThisDeviceOnly, userPresence ? .userPresence : [], &error
         ) else {
             throw error!.takeRetainedValue() as Error
         }

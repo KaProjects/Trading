@@ -126,3 +126,21 @@ import Testing
         #expect(StatusNotification.forTransition(from: .loggingIn, to: .loggingIn) == nil)
     }
 }
+
+@Suite struct DecimalInputTests {
+    @Test func parsesLocaleAndPlainInput() {
+        let us = Locale(identifier: "en_US"), cz = Locale(identifier: "cs_CZ")
+        #expect(DecimalInput.parse("182.50", locale: us) == Decimal(string: "182.50"))
+        #expect(DecimalInput.parse("1,250.5", locale: us) == Decimal(string: "1250.5"))
+        #expect(DecimalInput.parse("182,50", locale: cz) == Decimal(string: "182.50"))
+        #expect(DecimalInput.parse("1 250,5", locale: cz) == Decimal(string: "1250.5"))
+        #expect(DecimalInput.parse(" 10 ", locale: us) == 10)
+    }
+
+    @Test func rejectsGarbage() {
+        let us = Locale(identifier: "en_US")
+        for text in ["", "abc", "-5", "1.2.3", "1e5"] {
+            #expect(DecimalInput.parse(text, locale: us) == nil, "\(text)")
+        }
+    }
+}

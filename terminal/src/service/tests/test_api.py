@@ -69,7 +69,7 @@ def test_account_data_endpoints_use_decimal_strings(logged_in):
 
 def test_preview_returns_warnings_without_placing(logged_in):
     preview = logged_in.post("/orders/preview", json=body(qty="100", limit="250")).json()
-    assert {w["code"] for w in preview["warnings"]} >= {"pct_of_account", "high_value", "price_deviation"}
+    assert {w["code"] for w in preview["warnings"]} == {"pct_of_account", "price_deviation"}  # ~30 %, +9.6 %
     assert preview["block"] is None
     assert len(logged_in.get("/orders").json()) == 1
 
@@ -160,3 +160,53 @@ def test_snapshot_and_history_after_unlock(logged_in):
     snapshot = logged_in.get("/snapshot").json()
     assert snapshot["account"]["account_id"] == "FAKE0001" and len(snapshot["positions"]) == 5
     assert len(logged_in.get("/history", params={"days": 30}).json()) == 4  # seeded 7-day fills copied
+
+
+def test_rule_thresholds_are_saved_encrypted_and_used(logged_in):
+    defaults = logged_in.get("/settings/rules").json()
+    assert (defaults["pct_of_account_warn"], defaults["pct_of_account_strong"], defaults["order_value_warn"]) \
+        == ("25", "50", "100000")
+    assert logged_in.put("/settings/rules", json={**defaults, "quantity_warn": "5"}).status_code == 423  # locked
+    store = logged_in.app.state.test_store
+    store.unlock(bytes(32))
+    assert logged_in.put("/settings/rules", json={**defaults, "quantity_warn": "5"}).status_code == 200
+    preview = logged_in.post("/orders/preview", json=body(qty="6", limit="228")).json()
+    assert "high_quantity" in {w["code"] for w in preview["warnings"]}
+    store.lock()
+    store.unlock(bytes(32))  # reloaded from settings.enc
+    assert logged_in.get("/settings/rules").json()["quantity_warn"] == "5"
+
+
+def test_invalid_thresholds_rejected(logged_in):
+    logged_in.app.state.test_store.unlock(bytes(32))
+    bad = {"pct_of_account_warn": "30", "pct_of_account_strong": "20"}
+    assert logged_in.put("/settings/rules", json=bad).status_code == 422
+    assert logged_in.put("/settings/rules", json={"quantity_warn": "-1"}).status_code == 422
+
+
+def test_blocked_and_cancelled_attempts_are_logged(logged_in):
+    from datetime import UTC, datetime
+
+    store = logged_in.app.state.test_store
+    store.unlock(bytes(32))
+    logged_in.post("/orders", json=body(side="SELL", qty="51", limit="300", ref="too-many"))
+    assert logged_in.post("/activity", json={"kind": "order_dialog_cancelled",
+                                             "detail": {"symbol": "AAPL"}}).status_code == 204
+    assert logged_in.post("/activity", json={"kind": "anything"}).status_code == 422
+    kinds = [e["kind"] for e in store.activity(f"{datetime.now(UTC):%Y-%m}")]
+    assert "order_blocked" in kinds and "order_dialog_cancelled" in kinds
+
+
+def test_quote(logged_in):
+    assert logged_in.get("/quote", params={"conid": AAPL}).json()["last"] == "228.40"
+    assert logged_in.get("/quote", params={"conid": 1}).status_code == 404
+
+
+def test_insufficient_funds_blocks_new_buy_but_not_its_own_modification(logged_in):
+    order = logged_in.post("/orders", json=body(qty="10", limit="200", ref="b1")).json()  # reserves 2 000
+    # available is now 27 640: a new 28 000 buy is blocked ...
+    blocked = logged_in.post("/orders", json=body(qty="140", limit="200", ref="b2"))
+    assert blocked.status_code == 422 and blocked.json()["error"] == "insufficient_funds"
+    # ... but growing the existing order to 28 000 is fine: its own 2 000 count back in
+    assert logged_in.patch(f"/orders/{order['order_id']}", json={"quantity": "140"}).status_code == 200
+    assert logged_in.patch(f"/orders/{order['order_id']}", json={"quantity": "200"}).status_code == 422

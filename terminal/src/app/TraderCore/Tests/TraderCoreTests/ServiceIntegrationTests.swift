@@ -124,3 +124,50 @@ extension ServiceIntegrationTests {
         await #expect(throws: ServiceError.self) { _ = try await service.api.savedSnapshot() }
     }
 }
+
+extension ServiceIntegrationTests {
+    @Test func previewPlaceAndBlockedOrder() async throws {
+        let service = try await startService()
+        defer { service.process.stop(grace: 1) }
+        _ = try await service.api.login()
+        try await service.api.dev(.approve2FA)
+        try await Task.sleep(for: .milliseconds(100))
+
+        let contracts = try await service.api.contracts(symbol: "shop")
+        #expect(Set(contracts.map(\.primaryExchange)) == ["NYSE", "TSE"])
+        let aapl = try #require(try await service.api.contracts(symbol: "AAPL").first)
+
+        var request = OrderRequest(conid: aapl.conid, side: .buy, quantity: Amount(100), limitPrice: Amount(250))
+        let preview = try await service.api.preview(request)
+        #expect(preview.value == Amount(25000))
+        #expect(Set(preview.warnings.map(\.code)) == ["pct_of_account", "price_deviation"])
+        #expect(preview.block == nil)
+
+        request.quantity = Amount(1)
+        request.orderRef = "swift-1"
+        let order = try await service.api.placeOrder(request)
+        let again = try await service.api.placeOrder(request)
+        #expect(order.orderId == again.orderId)
+
+        let sell = OrderRequest(conid: aapl.conid, side: .sell, quantity: Amount(1000), limitPrice: Amount(230),
+                                orderRef: "swift-2")
+        do {
+            _ = try await service.api.placeOrder(sell)
+            Issue.record("selling more than owned must be blocked")
+        } catch ServiceError.http(let status, let code, _) {
+            #expect(status == 422 && code == "sell_exceeds_position")
+        }
+        let rules = try await service.api.ruleThresholds()
+        #expect(rules.quantityWarn == Amount(1000))
+    }
+
+    @Test func summaryLine() {
+        let contract = Contract(conid: 1, symbol: "AAPL", name: "Apple Inc", secType: "STK", exchange: "SMART",
+                                primaryExchange: "NASDAQ", currency: "USD")
+        let request = OrderRequest(conid: 1, side: .buy, quantity: Amount(100),
+                                   limitPrice: Amount(Decimal(string: "182.5")!))
+        let line = OrderSummary.line(request, contract: contract, value: Amount(18250),
+                                     locale: Locale(identifier: "en_US"))
+        #expect(line == "BUY 100 AAPL (Apple Inc · NASDAQ · USD) LMT 182.50 DAY ≈ 18,250.00 USD")
+    }
+}

@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 
 class Environment(StrEnum):
@@ -171,3 +171,26 @@ class Event(BaseModel):
     type: str
     data: dict
     time: datetime
+
+
+class RuleThresholds(BaseModel):
+    """User-configurable warning thresholds (D5.4, D5.5). Stored encrypted in settings.enc."""
+
+    pct_of_account_warn: Decimal = Field(Decimal(25), gt=0, le=100)
+    pct_of_account_strong: Decimal = Field(Decimal(50), gt=0, le=100)
+    order_value_warn: Decimal = Field(Decimal(100_000), gt=0)  # base currency
+    quantity_warn: Decimal = Field(Decimal(1_000), gt=0)
+    price_deviation_warn: Decimal = Field(Decimal(5), gt=0, le=100)  # percent from last price
+
+    @model_validator(mode="after")
+    def strong_not_below_warn(self) -> "RuleThresholds":
+        if self.pct_of_account_strong < self.pct_of_account_warn:
+            raise ValueError("pct_of_account_strong must be >= pct_of_account_warn")
+        return self
+
+
+class ActivityNote(BaseModel):
+    """Things only the app knows about, e.g. an order dialog cancelled before sending."""
+
+    kind: str = Field(pattern="^(order_dialog_cancelled)$")
+    detail: dict = {}

@@ -1,5 +1,5 @@
-"""Order checks (D5.3–D5.5): size and price warnings that never block, and the one hard block —
-selling more than owned. Pure functions so the rules are easy to test and identical for every broker."""
+"""Order checks (D5.3–D5.5): size and price warnings that never block, and two hard blocks —
+selling more than owned and buying for more than the available funds. Pure functions so the rules are easy to test and identical for every broker."""
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -13,6 +13,7 @@ from trader_service.models import (
     OrderRequest,
     OrderWarning,
     Price,
+    RuleThresholds,
     Side,
     WarningLevel,
 )
@@ -22,12 +23,18 @@ CENT = Decimal("0.01")
 
 @dataclass(frozen=True)
 class RuleSettings:
-    pct_of_account_warn: Decimal = Decimal(10)
-    pct_of_account_strong: Decimal = Decimal(25)
-    order_value_warn: Decimal = Decimal(10_000)  # in base currency
+    pct_of_account_warn: Decimal = Decimal(25)
+    pct_of_account_strong: Decimal = Decimal(50)
+    order_value_warn: Decimal = Decimal(100_000)  # in base currency
     quantity_warn: Decimal = Decimal(1_000)
     price_deviation_warn: Decimal = Decimal(5)  # percent from last price
     price_stale_after: timedelta = timedelta(seconds=60)
+
+    @classmethod
+    def from_thresholds(cls, t: RuleThresholds) -> "RuleSettings":
+        return cls(pct_of_account_warn=t.pct_of_account_warn, pct_of_account_strong=t.pct_of_account_strong,
+                   order_value_warn=t.order_value_warn, quantity_warn=t.quantity_warn,
+                   price_deviation_warn=t.price_deviation_warn)
 
 
 def preview_order(
@@ -40,6 +47,7 @@ def preview_order(
     price: Price | None,
     settings: RuleSettings = RuleSettings(),
     now: datetime | None = None,
+    reserved_by_this_order: Decimal = Decimal(0),
 ) -> OrderPreview:
     now = now or datetime.now(UTC)
     value = request.quantity * request.limit_price
@@ -62,10 +70,6 @@ def preview_order(
         warnings.append(OrderWarning(code="high_quantity", level=WarningLevel.WARN,
                                      message=f"High quantity: {request.quantity:,} shares"))
 
-    if request.side == Side.BUY and value_base > account.available_funds:
-        warnings.append(OrderWarning(code="above_available_funds", level=WarningLevel.STRONG,
-                                     message="Order value is above available funds (IBKR will reject it)"))
-
     if price is None:
         warnings.append(OrderWarning(code="price_missing", level=WarningLevel.WARN,
                                      message="No current price available"))
@@ -85,6 +89,13 @@ def preview_order(
         if pending_sell_quantity:
             detail += f", {pending_sell_quantity} already in open sell orders"
         block = OrderBlock(code="sell_exceeds_position", message=f"Cannot sell {request.quantity}: {detail}")
+
+    # A modified buy already reserves funds; count them back in so it isn't blocked by itself.
+    available = account.available_funds + reserved_by_this_order
+    if request.side == Side.BUY and value_base > available:
+        block = OrderBlock(code="insufficient_funds",
+                           message=f"Not enough funds: order ≈ {value_base:,.2f} {account.base_currency}, "
+                                   f"available {available:,.2f} {account.base_currency}")
 
     return OrderPreview(
         contract=contract, value=value.quantize(CENT), value_base=value_base.quantize(CENT),

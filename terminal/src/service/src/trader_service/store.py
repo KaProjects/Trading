@@ -15,12 +15,13 @@ from typing import Any
 
 from trader_service.broker.base import Broker, BrokerError
 from trader_service.events import EventBus
-from trader_service.models import ConnectionState, Event
+from trader_service.models import ConnectionState, Event, RuleThresholds
 from trader_service.vault import Vault, VaultCorrupt
 
 log = logging.getLogger(__name__)
 
 SNAPSHOT = "snapshot.enc"
+SETTINGS = "settings.enc"
 SNAPSHOT_EVENTS = {"account", "position", "order", "fill", "status"}
 
 
@@ -44,6 +45,7 @@ class Store:
         self._pending_fills: list[dict] = []
         self._dirty = False
         self._tasks: list[asyncio.Task] = []
+        self._thresholds = RuleThresholds()
 
     # --- lifecycle -------------------------------------------------------------------------------
 
@@ -66,6 +68,8 @@ class Store:
     def unlock(self, key: bytes) -> None:
         self._vault.unlock(key)
         self.record("vault", action="unlocked")
+        saved = self._read(SETTINGS) or {}
+        self._thresholds = RuleThresholds(**saved.get("rules", {}))
         self._flush_pending()
         self._prune_activity()
         self._sync_recent_fills()
@@ -95,7 +99,18 @@ class Store:
     def activity(self, month: str) -> list[dict]:
         return self._read(f"activity-{month}.enc") or []
 
+    def rule_thresholds(self) -> RuleThresholds:
+        """Defaults until unlocked; the saved values after."""
+        return self._thresholds
+
     # --- writes ------------------------------------------------------------------------------------
+
+    def save_rule_thresholds(self, thresholds: RuleThresholds) -> None:
+        settings = self._read(SETTINGS) or {}
+        settings["rules"] = thresholds.model_dump(mode="json")
+        self._vault.write(SETTINGS, settings)
+        self._thresholds = thresholds
+        self.record("settings", rules=settings["rules"])
 
     def record(self, kind: str, **detail: Any) -> None:
         entry = {"time": datetime.now(UTC).isoformat(), "kind": kind, **detail}

@@ -15,7 +15,9 @@ struct MainWindow: View {
                 if shown.isLocked {
                     LockedView(model: model)
                 } else if let account = model.account {
-                    AccountView(snapshot: account, isLive: model.accountIsLive)
+                    AccountView(snapshot: account, isLive: model.accountIsLive,
+                                trade: model.canTrade ? { model.openTicket(contract: $0, side: $1) } : nil,
+                                newOrder: model.canTrade ? { model.openTicket() } : nil)
                 } else {
                     ContentUnavailableView {
                         Label(shown.title, systemImage: "chart.line.uptrend.xyaxis")
@@ -33,6 +35,10 @@ struct MainWindow: View {
         }
         .frame(minWidth: 520, minHeight: 320)
         .onDisappear { model.windowClosed() }
+        .sheet(item: Binding(get: { model.ticket.map(TicketBox.init) }, set: { if $0 == nil { model.closeTicket() } })) {
+            OrderTicketView(ticket: $0.ticket, environment: model.environment,
+                            accountId: model.status?.accountId, close: model.closeTicket)
+        }
     }
 
     private func header(_ shown: StatusPresentation) -> some View {
@@ -97,4 +103,10 @@ struct LockedView: View {
                 .keyboardShortcut(.defaultAction)
         }
     }
+}
+
+/// `sheet(item:)` needs Identifiable; one ticket at a time.
+private struct TicketBox: Identifiable {
+    let ticket: OrderTicketModel
+    var id: ObjectIdentifier { ObjectIdentifier(ticket) }
 }
