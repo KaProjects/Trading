@@ -28,12 +28,20 @@ final class AppModel {
     /// T8 planner rows: scratchpad, kept in memory only (D8.2).
     private(set) var planRows: [PlanRow] = []
     var planQuantityText: [UUID: String] = [:]
+    /// Planned volume per row in thousands of base currency (D8.5); fills the quantity once a price is known.
+    var planVolumeText: [UUID: String] = [:]
+    /// Expected return per row, percent of cost (user's estimate).
+    var planReturnText: [UUID: String] = [:]
+    @ObservationIgnored private var volumeWaitingForPrice: Set<UUID> = []
+    @ObservationIgnored private var devPresetAdded = false
     /// Open order ticket (T5), nil when closed.
     private(set) var ticket: OrderTicketModel?
 
     var presentation: StatusPresentation { .make(locked: locked, phase: phase, status: status) }
 
     @ObservationIgnored let api = ServiceAPI(socketPath: AppEnvironment.socketPath)
+    /// T9: committed plan → buy orders review.
+    let basket: PlanBasketModel
     @ObservationIgnored private let appLock = AppLock()
     @ObservationIgnored private let notifier = Notifier()
     @ObservationIgnored private var process: ServiceProcess?
@@ -48,6 +56,7 @@ final class AppModel {
     @ObservationIgnored private let logger = Logger(subsystem: "org.kaleta.trader-terminal", category: "app")
 
     init() {
+        basket = PlanBasketModel(api: api)
         appLock.onLock = { [weak self] in self?.didLock() }
     }
 
@@ -180,6 +189,7 @@ final class AppModel {
                     notifier.post(notification, for: order)
                 }
                 knownOrders[order.orderId] = order
+                basket.orderUpdated(order)
             }
             scheduleAccountRefresh()
         case "account", "position", "fill":
@@ -187,6 +197,9 @@ final class AppModel {
         case "price":
             if let quote = try? ServiceJSON.decoder.decode(Quote.self, from: event.data), !locked {
                 quotes[quote.symbol] = quote
+                for row in planRows where volumeWaitingForPrice.contains(row.id) && row.contract.feedSymbol == quote.symbol {
+                    applyVolume(row.id)
+                }
             }
         default:
             break
@@ -279,26 +292,106 @@ final class AppModel {
 
     // MARK: - Planner (T8)
 
+    /// The plan as the Planner shows it (nil without account data).
+    var planSummary: PlannerSummary? {
+        account.map { PlannerSummary.make(account: $0.account, positions: $0.positions, orders: $0.orders,
+                                          quotes: quotes, rows: planRows) }
+    }
+
+    func commitPlan() async {
+        guard let plan = planSummary else { return }
+        await basket.commit(plan)
+    }
+
+    func placeBasket() async {
+        guard let plan = planSummary, let account = account?.account else { return }
+        await basket.place(account: account, available: plan.available)
+        scheduleAccountRefresh()
+    }
+
+    /// All orders placed → clear the review and the plan for a fresh start.
+    func resetPlan() {
+        basket.reset()
+        guard !basket.isFrozen else { return }
+        planRows = []
+        planQuantityText = [:]
+        planVolumeText = [:]
+        planReturnText = [:]
+        volumeWaitingForPrice = []
+        Task { await syncWatchlist() }
+    }
+
     func addPlanRow(_ contract: Contract) {
+        guard !basket.isFrozen else { return }
         planRows.append(PlanRow(contract: contract))
         Task { await syncWatchlist() }
     }
 
     func removePlanRow(_ id: UUID) {
+        guard !basket.isFrozen else { return }
         planRows.removeAll { $0.id == id }
         planQuantityText[id] = nil
+        planVolumeText[id] = nil
+        planReturnText[id] = nil
+        volumeWaitingForPrice.remove(id)
         Task { await syncWatchlist() }
     }
 
+    /// D8.5: "30" = 30 000 in base currency → whole shares at the live price, rounded up, written into the
+    /// (still editable) quantity. Computed once per volume entry; later price moves only change the cost.
+    func setPlanReturn(_ id: UUID, text: String) {
+        guard !basket.isFrozen else { return }
+        planReturnText[id] = text
+    }
+
+    func planReturnPercent(_ id: UUID) -> Decimal? {
+        DecimalInput.parse(planReturnText[id] ?? "").flatMap { $0 > 0 ? $0 : nil }
+    }
+
+    func setPlanVolume(_ id: UUID, text: String) {
+        guard !basket.isFrozen else { return }
+        // The field re-submits its unchanged text on focus/commit: only a real edit recalculates the quantity.
+        guard planVolumeText[id, default: ""] != text else { return }
+        planVolumeText[id] = text
+        volumeWaitingForPrice.remove(id)
+        applyVolume(id)  // an empty (or 0) volume never touches the quantity
+    }
+
+    private func applyVolume(_ id: UUID) {
+        guard let row = planRows.first(where: { $0.id == id }),
+              let thousands = DecimalInput.parse(planVolumeText[id] ?? ""), thousands > 0 else { return }
+        guard let quote = quotes[row.contract.feedSymbol], let account = account?.account,
+              let rate = account.rate(row.contract.currency),
+              let shares = PlanVolume.quantity(thousands: thousands, price: quote.last.value, fxToBase: rate) else {
+            volumeWaitingForPrice.insert(id)  // fill in as soon as a price arrives
+            return
+        }
+        volumeWaitingForPrice.remove(id)
+        writeQuantity(id, text: shares.formatted(.number.precision(.fractionLength(0)).grouping(.never)))
+    }
+
+    /// Typed by hand: clears the volume (it no longer applies) and wins over a volume still waiting for a price.
     func setPlanQuantity(_ id: UUID, text: String) {
+        guard !basket.isFrozen else { return }
+        guard planQuantityText[id, default: ""] != text else { return }
+        volumeWaitingForPrice.remove(id)
+        planVolumeText[id] = nil  // a hand-edited quantity replaces the volume: clear it
+        writeQuantity(id, text: text)
+    }
+
+    private func writeQuantity(_ id: UUID, text: String) {
         planQuantityText[id] = text
         guard let index = planRows.firstIndex(where: { $0.id == id }) else { return }
         planRows[index].quantity = DecimalInput.parse(text).flatMap { $0 > 0 ? $0 : nil }
     }
 
     func clearPlan() {
+        guard !basket.isFrozen else { return }
         planRows = []
         planQuantityText = [:]
+        planVolumeText = [:]
+        planReturnText = [:]
+        volumeWaitingForPrice = []
         Task { await syncWatchlist() }
     }
 
@@ -329,6 +422,7 @@ final class AppModel {
     private func apply(_ update: BrokerStatus) {
         let previous = status?.state
         status = update
+        if update.state == .connected { Task { await addDevPlannerPreset() } }  // ticker lookup needs a session
         lastError = nil
         if let notification = StatusNotification.forTransition(from: previous, to: update.state), previous != nil {
             notifier.post(notification)
@@ -360,6 +454,21 @@ final class AppModel {
         if locked { await unlock() }
         if let state = status?.state, [.disconnected, .loginRequired, .loginFailed].contains(state) {
             await logIn()
+        }
+    }
+
+    /// Debug + fake: the Planner opens with the preset rows (SNDK, MU at 30k) once per launch, if the plan is empty.
+    private func addDevPlannerPreset() async {
+        guard AppEnvironment.isDebugBuild, environment == .fake, planRows.isEmpty, !devPresetAdded,
+              status?.state == .connected else { return }
+        devPresetAdded = true
+        for item in AppEnvironment.devPlannerPreset {
+            guard let contract = try? await api.contracts(symbol: item.symbol).first else { continue }
+            addPlanRow(contract)
+            if let id = planRows.last?.id {
+                setPlanVolume(id, text: item.volume)
+                setPlanReturn(id, text: item.expectedReturn)
+            }
         }
     }
 

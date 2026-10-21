@@ -20,7 +20,7 @@ struct AccountView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if !isLive {
-                Label("Not connected — saved data as of \(snapshot.asOf.formatted(date: .abbreviated, time: .shortened))",
+                Label("Not connected — saved data as of \(Format.dateTime(snapshot.asOf))",
                       systemImage: "clock.arrow.circlepath")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -218,8 +218,8 @@ struct FillsTable: View {
 
     var body: some View {
         Table(fills) {
-            TableColumn("Time") { Text($0.time.formatted(date: .abbreviated, time: .shortened)) }
-                .width(min: 110, ideal: 140)
+            TableColumn("Time") { Text(Format.dateTime($0.time)) }
+                .width(min: 150, ideal: 180)
             TableColumn("Symbol") { Text($0.contract.symbol).fontWeight(.semibold) }
                 .width(min: 60, ideal: 70)
             TableColumn("Side") { SideText(side: $0.side) }
@@ -251,6 +251,11 @@ enum Format {
 
     static func quantity(_ amount: Amount) -> String {
         amount.value.formatted(.number.precision(.fractionLength(0...4)))
+    }
+
+    /// "21 Oct 2026, 22:00 UTC+2" — the Mac's time zone with its offset.
+    static func dateTime(_ date: Date) -> String {
+        "\(date.formatted(date: .abbreviated, time: .shortened)) \(LocalTime.offsetLabel(for: date))"
     }
 
     static func percent(_ amount: Amount) -> String {

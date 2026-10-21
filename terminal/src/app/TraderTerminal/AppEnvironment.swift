@@ -25,6 +25,12 @@ enum AppEnvironment {
         set { UserDefaults.standard.set(newValue, forKey: "fakePriceFeed.v2") }
     }
 
+    /// Debug builds, fake environment: open on the Planner with these rows pre-filled (ticker, volume in thousands),
+    /// so they don't have to be typed after every restart.
+    static let devPlannerPreset: [(symbol: String, volume: String, expectedReturn: String)] = [
+        ("SNDK", "30", "15"), ("MU", "30", "12"),
+    ]
+
     /// Implemented broker adapters (paper and production arrive with T1/T7).
     static let available: Set<BrokerEnvironment> = [.fake]
 

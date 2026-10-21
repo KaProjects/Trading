@@ -151,7 +151,7 @@ import Testing
 
     @Test func valuesFromQuote() throws {
         let position = Position(contract: contract, quantity: Amount(50), avgCost: Amount(190), costBasis: Amount(9500))
-        let now = Date()
+        let now = Date(timeIntervalSince1970: 1_792_594_800)  // Wed 2026-10-21 15:00 UTC = 11:00 New York (open)
         let quote = Quote(symbol: "AAPL", last: Amount(Decimal(string: "228.4")!), prevClose: Amount(225),
                           changePct: Amount(Decimal(string: "1.51")!), time: now.addingTimeInterval(-5))
         let priced = PricedPosition(position: position, quote: quote, now: now)
@@ -168,5 +168,72 @@ import Testing
         let json = #"{"conid":1,"symbol":"SAP","name":"SAP SE","sec_type":"STK","exchange":"SMART","primary_exchange":"IBIS","currency":"EUR"}"#
         let decoded = try ServiceJSON.decoder.decode(Contract.self, from: Data(json.utf8))
         #expect(decoded.feedSymbol == "SAP")
+    }
+}
+
+
+@Suite struct USMarketTests {
+    func utc(_ text: String) -> Date { try! Date.ISO8601FormatStyle().parse(text) }
+
+    @Test func regularSession() {
+        #expect(USMarket.isRegularSession(utc("2026-10-21T13:30:00Z")))   // 09:30 New York
+        #expect(!USMarket.isRegularSession(utc("2026-10-21T13:29:00Z")))  // 09:29
+        #expect(!USMarket.isRegularSession(utc("2026-10-21T20:00:00Z")))  // 16:00 close
+        #expect(!USMarket.isRegularSession(utc("2026-10-24T15:00:00Z")))  // Saturday
+        #expect(USMarket.isRegularSession(utc("2026-12-01T15:00:00Z")))   // 10:00 in winter time
+    }
+
+    @Test func nextOpen() {
+        #expect(USMarket.nextOpen(after: utc("2026-10-21T21:14:00Z")) == utc("2026-10-22T13:30:00Z"))  // Wed evening → Thu
+        #expect(USMarket.nextOpen(after: utc("2026-10-23T21:00:00Z")) == utc("2026-10-26T13:30:00Z"))  // Fri evening → Mon
+        #expect(USMarket.nextOpen(after: utc("2026-10-22T12:00:00Z")) == utc("2026-10-22T13:30:00Z"))  // pre-market
+        #expect(USMarket.nextOpen(after: utc("2026-12-01T13:00:00Z")) == utc("2026-12-01T14:30:00Z"))  // winter time
+    }
+
+    @Test func closedMarketPricesAreNotStale() {
+        let contract = Contract(conid: 1, symbol: "A", name: "A", secType: "STK", exchange: "SMART",
+                                primaryExchange: "NASDAQ", currency: "USD", priceSymbol: "A")
+        let position = Position(contract: contract, quantity: Amount(1), avgCost: Amount(1), costBasis: Amount(1))
+        let evening = utc("2026-10-21T21:14:00Z")
+        let quote = Quote(symbol: "A", last: Amount(1), prevClose: Amount(1), changePct: Amount(0),
+                          time: utc("2026-10-21T20:00:00Z"))
+        #expect(!PricedPosition(position: position, quote: quote, now: evening).isStale)
+    }
+}
+
+
+@Suite struct LocalTimeTests {
+    let open = try! Date.ISO8601FormatStyle().parse("2026-10-22T13:30:00Z")
+    let winter = try! Date.ISO8601FormatStyle().parse("2026-12-01T14:30:00Z")
+
+    @Test func offsetLabels() {
+        #expect(LocalTime.offsetLabel(for: open, in: TimeZone(identifier: "Europe/Prague")!) == "UTC+2")
+        #expect(LocalTime.offsetLabel(for: winter, in: TimeZone(identifier: "Europe/Prague")!) == "UTC+1")
+        #expect(LocalTime.offsetLabel(for: open, in: TimeZone(identifier: "Asia/Kolkata")!) == "UTC+5:30")
+        #expect(LocalTime.offsetLabel(for: open, in: TimeZone(identifier: "America/New_York")!) == "UTC−4")
+        #expect(LocalTime.offsetLabel(for: open, in: TimeZone(identifier: "UTC")!) == "UTC")
+    }
+
+    @Test func weekdayTime() {
+        let text = LocalTime.weekdayTime(open, in: TimeZone(identifier: "Europe/Prague")!, locale: Locale(identifier: "en_GB"))
+        #expect(text == "Thu 15:30 UTC+2")
+    }
+}
+
+@Suite struct NumericInputTests {
+    @Test func quantitiesAreDigitsOnly() {
+        #expect(NumericInput.sanitize("12a3", allowsDecimal: false) == "123")
+        #expect(NumericInput.sanitize("-5", allowsDecimal: false) == "5")
+        #expect(NumericInput.sanitize("1.5", allowsDecimal: false) == "15")
+        #expect(NumericInput.sanitize("abc", allowsDecimal: false) == "")
+        #expect(NumericInput.sanitize(" 1 000 ", allowsDecimal: false) == "1000")
+    }
+
+    @Test func decimalsKeepOneSeparator() {
+        #expect(NumericInput.sanitize("2.5", allowsDecimal: true) == "2.5")
+        #expect(NumericInput.sanitize("2,5", allowsDecimal: true) == "2,5")
+        #expect(NumericInput.sanitize("1.2.3", allowsDecimal: true) == "1.23")
+        #expect(NumericInput.sanitize("+30k", allowsDecimal: true) == "30")
+        #expect(NumericInput.sanitize("1e5", allowsDecimal: true) == "15")
     }
 }

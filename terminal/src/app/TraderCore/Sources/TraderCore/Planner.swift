@@ -79,3 +79,54 @@ public struct PlannerSummary: Sendable {
                               remaining: available - plannedTotal)
     }
 }
+
+public enum PlanVolume {
+    /// Whole shares to buy for a planned volume (D8.5): `thousands` × 1 000 in the account's base currency,
+    /// divided by the live price converted to base currency, rounded **up**. nil without a usable price.
+    public static func quantity(thousands: Decimal, price: Decimal, fxToBase: Decimal) -> Decimal? {
+        let unitCost = price * fxToBase
+        guard thousands > 0, unitCost > 0 else { return nil }
+        var shares = thousands * 1000 / unitCost
+        var rounded = Decimal()
+        NSDecimalRound(&rounded, &shares, 0, .up)
+        return rounded
+    }
+}
+
+public extension PlannerSummary {
+    /// Share of total holdings (weight breakdown), in percent. nil when nothing is held.
+    func weight(of holding: Holding) -> Decimal? {
+        holdingsTotal > 0 ? holding.marketValueBase / holdingsTotal * 100 : nil
+    }
+
+    /// Share of "available to invest", in percent. nil without a cost or without available money.
+    func weight(of planned: Planned) -> Decimal? {
+        guard let cost = planned.costBase, available > 0 else { return nil }
+        return cost / available * 100
+    }
+
+    /// Planned total and what is left, as shares of "available to invest" (together 100 %).
+    var plannedWeight: Decimal? { available > 0 ? plannedTotal / available * 100 : nil }
+    var remainingWeight: Decimal? { available > 0 ? remaining / available * 100 : nil }
+}
+
+/// T8: expected return of planned purchases (user's estimate, in percent of cost).
+public enum PlanReturn {
+    /// Cost × percent / 100. nil without a cost or a percent.
+    public static func amount(cost: Decimal?, percent: Decimal?) -> Decimal? {
+        guard let cost, let percent else { return nil }
+        return cost * percent / 100
+    }
+
+    /// Σ expected returns and their share of the cost of the rows that have one (nil when none do).
+    public static func total(_ items: [(cost: Decimal?, percent: Decimal?)]) -> (amount: Decimal, percent: Decimal)? {
+        let counted = items.compactMap { item -> (Decimal, Decimal)? in
+            guard let cost = item.cost, let amount = amount(cost: cost, percent: item.percent) else { return nil }
+            return (cost, amount)
+        }
+        let cost = counted.reduce(Decimal(0)) { $0 + $1.0 }
+        guard !counted.isEmpty, cost > 0 else { return nil }
+        let amount = counted.reduce(Decimal(0)) { $0 + $1.1 }
+        return (amount, amount / cost * 100)
+    }
+}

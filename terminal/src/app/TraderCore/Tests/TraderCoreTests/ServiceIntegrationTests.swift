@@ -108,7 +108,7 @@ extension ServiceIntegrationTests {
 
         let live = try await service.api.liveSnapshot()
         #expect(live.account.accountId == "FAKE0001")
-        #expect(live.account.totalCash == Amount(Decimal(string: "33640.00")!))
+        #expect(live.account.totalCash == Amount(Decimal(string: "133640.00")!))
         #expect(live.positions.count == 5 && live.orders.count == 1 && live.fills.count == 4)
         #expect(live.positions.first { $0.contract.symbol == "AAPL" }?.quantity == Amount(50))
 
@@ -137,10 +137,11 @@ extension ServiceIntegrationTests {
         #expect(Set(contracts.map(\.primaryExchange)) == ["NYSE", "TSE"])
         let aapl = try #require(try await service.api.contracts(symbol: "AAPL").first)
 
-        var request = OrderRequest(conid: aapl.conid, side: .buy, quantity: Amount(100), limitPrice: Amount(250))
+        var request = OrderRequest(conid: aapl.conid, side: .buy, quantity: Amount(200), limitPrice: Amount(250))
         let preview = try await service.api.preview(request)
-        #expect(preview.value == Amount(25000))
-        #expect(Set(preview.warnings.map(\.code)) == ["pct_of_account", "price_deviation"])
+        #expect(preview.value == Amount(50000))
+        // info lines ("market closed") depend on the clock
+        #expect(Set(preview.warnings.filter { $0.level != .info }.map(\.code)) == ["pct_of_account", "price_deviation"])
         #expect(preview.block == nil)
 
         request.quantity = Amount(1)

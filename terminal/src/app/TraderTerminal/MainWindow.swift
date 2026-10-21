@@ -8,7 +8,9 @@ struct MainWindow: View {
     let model: AppModel
 
     enum Section: Hashable { case overview, planner }
-    @State private var section: Section = .overview
+    /// Debug + fake environment opens on the Planner (with the dev preset); otherwise the Overview.
+    @State private var section: Section = AppEnvironment.isDebugBuild && AppEnvironment.defaultBroker == .fake
+        ? .planner : .overview
 
     var body: some View {
         let shown = model.presentation

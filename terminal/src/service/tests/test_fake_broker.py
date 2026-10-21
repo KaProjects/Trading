@@ -74,10 +74,10 @@ async def test_require_login_and_logout(connected):
 async def test_account_summary_from_seed(connected):
     summary = connected.account_summary()
     assert summary.base_currency == "USD"
-    assert summary.total_cash == D("33640.00")  # 25000 USD + 8000 EUR * 1.08
+    assert summary.total_cash == D("133640.00")  # 125000 USD + 8000 EUR * 1.08
     # one seeded open BUY 10 MSFT @ 400 reserves 4000
-    assert summary.available_funds == D("29640.00")
-    assert {c.currency: c.amount for c in summary.cash} == {"EUR": D("8000.00"), "USD": D("25000.00")}
+    assert summary.available_funds == D("129640.00")
+    assert {c.currency: c.amount for c in summary.cash} == {"EUR": D("8000.00"), "USD": D("125000.00")}
     assert summary.net_liquidation > summary.total_cash
 
 
@@ -113,7 +113,7 @@ async def test_limit_buy_waits_then_fills_when_price_crosses(connected, prices):
     assert aapl.quantity == 60
     assert aapl.avg_cost == D("194.92")  # (50*190 + 10*219.50) / 60
     usd = next(c for c in connected.account_summary().cash if c.currency == "USD")
-    assert usd.amount == D("25000") - D("2195.00") - D("1.00")
+    assert usd.amount == D("125000") - D("2195.00") - D("1.00")
 
 
 async def test_marketable_limit_fills_on_submit(connected):
@@ -142,13 +142,13 @@ async def test_selling_whole_position_removes_it(connected, prices):
 
 async def test_rejections(connected):
     assert (await connected.place_order(order(conid=REJECT, ref="a"))).status == OrderStatus.REJECTED
-    poor = await connected.place_order(order(qty="1000", limit="200", ref="b"))
+    poor = await connected.place_order(order(qty="1000", limit="200", ref="b"))  # 200 000 > 129 640
     assert (poor.status, poor.reject_reason) == (OrderStatus.REJECTED, "Insufficient funds")
     assert (await connected.place_order(order(limit="0", ref="c"))).status == OrderStatus.REJECTED
 
 
 async def test_buy_using_most_of_available_funds_is_accepted(connected):
-    # 29 640 available; the new order must not reserve funds against itself
+    # 129 640 available; the new order must not reserve funds against itself
     placed = await connected.place_order(order(conid=NVDA, qty="200", limit="140", ref="most"))  # 28 000
     assert placed.status == OrderStatus.PENDING_SUBMIT
 

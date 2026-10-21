@@ -192,8 +192,8 @@ struct PreviewNotes: View {
                     .foregroundStyle(.red).fontWeight(.semibold)
             }
             ForEach(preview.warnings, id: \.self) { warning in
-                Label(warning.message, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(warning.level == .strong ? .red : .orange)
+                Label(warning.message, systemImage: warning.level == .info ? "info.circle" : "exclamationmark.triangle.fill")
+                    .foregroundStyle(warning.level == .strong ? .red : warning.level == .info ? .secondary : .orange)
             }
         }
     }

@@ -11,7 +11,7 @@ struct SettingsView: View {
     @State private var keyMessage: String?
 
     enum Field: CaseIterable {
-        case pctWarn, pctStrong, valueWarn, quantityWarn, priceDeviation
+        case pctWarn, pctStrong, valueWarn, quantityWarn, priceDeviation, planMarkup
 
         var label: String {
             switch self {
@@ -20,6 +20,7 @@ struct SettingsView: View {
             case .valueWarn: "High order value (base currency)"
             case .quantityWarn: "High quantity (shares)"
             case .priceDeviation: "Limit price away from last price (%)"
+            case .planMarkup: "Committed plan: limit above last price (%)"
             }
         }
     }
@@ -72,9 +73,10 @@ struct SettingsView: View {
     private var thresholds: RuleThresholds? {
         func value(_ field: Field) -> Amount? { DecimalInput.parse(fields[field] ?? "").map(Amount.init) }
         guard let pctWarn = value(.pctWarn), let pctStrong = value(.pctStrong), let valueWarn = value(.valueWarn),
-              let quantityWarn = value(.quantityWarn), let deviation = value(.priceDeviation) else { return nil }
+              let quantityWarn = value(.quantityWarn), let deviation = value(.priceDeviation),
+              let markup = value(.planMarkup) else { return nil }
         return RuleThresholds(pctOfAccountWarn: pctWarn, pctOfAccountStrong: pctStrong, orderValueWarn: valueWarn,
-                              quantityWarn: quantityWarn, priceDeviationWarn: deviation)
+                              quantityWarn: quantityWarn, priceDeviationWarn: deviation, planLimitMarkup: markup)
     }
 
     private func load() async {
@@ -86,7 +88,8 @@ struct SettingsView: View {
             let current = try await model.api.ruleThresholds()
             fields = [.pctWarn: current.pctOfAccountWarn.description, .pctStrong: current.pctOfAccountStrong.description,
                       .valueWarn: current.orderValueWarn.description, .quantityWarn: current.quantityWarn.description,
-                      .priceDeviation: current.priceDeviationWarn.description]
+                      .priceDeviation: current.priceDeviationWarn.description,
+                      .planMarkup: current.planLimitMarkup.description]
             message = nil
         } catch {
             message = "Service not available."

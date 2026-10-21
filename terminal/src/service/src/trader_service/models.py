@@ -156,6 +156,7 @@ class Price(BaseModel):
 
 
 class WarningLevel(StrEnum):
+    INFO = "info"  # shown, not a warning (e.g. market closed)
     WARN = "warn"
     STRONG = "strong"
 
@@ -195,6 +196,7 @@ class RuleThresholds(BaseModel):
     order_value_warn: Decimal = Field(Decimal(100_000), gt=0)  # base currency
     quantity_warn: Decimal = Field(Decimal(1_000), gt=0)
     price_deviation_warn: Decimal = Field(Decimal(5), gt=0, le=100)  # percent from last price
+    plan_limit_markup: Decimal = Field(Decimal(3), ge=0, le=50)  # T9: committed plan → limit = last + this %
 
     @model_validator(mode="after")
     def strong_not_below_warn(self) -> "RuleThresholds":

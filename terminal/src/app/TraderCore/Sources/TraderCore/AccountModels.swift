@@ -62,7 +62,8 @@ public struct PricedPosition: Sendable, Identifiable {
     public init(position: Position, quote: Quote?, now: Date = Date(), staleAfter: TimeInterval = 60) {
         self.position = position
         self.quote = quote
-        isStale = quote.map { now.timeIntervalSince($0.time) > staleAfter } ?? true
+        // Outside regular hours an old price is just the last trade, not stale (no grey-out).
+        isStale = quote.map { USMarket.isRegularSession(now) && now.timeIntervalSince($0.time) > staleAfter } ?? true
     }
 
     public var marketValue: Amount? { quote.map { Amount(position.quantity.value * $0.last.value) } }

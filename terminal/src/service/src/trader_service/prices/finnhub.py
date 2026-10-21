@@ -34,7 +34,8 @@ class FinnhubPrices(PriceFeed):
         self._ws_url = ws_url
         self._rest_url = rest_url
         self._max_symbols = max_symbols  # free tier limit (verify on finnhub.io)
-        self._http = http or httpx.AsyncClient(timeout=10)
+        # REST is used a few times a day: no keep-alive, so no idle sockets linger after Finnhub closes them.
+        self._http = http or httpx.AsyncClient(timeout=10, limits=httpx.Limits(max_keepalive_connections=0))
         self._connect = connect
         self._key: str | None = None
         self._key_changed = asyncio.Event()

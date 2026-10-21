@@ -1,8 +1,11 @@
+import time
 from datetime import UTC, datetime, timedelta
+
+import pytest
 
 from conftest import D
 from trader_service.models import AccountSummary, Contract, OrderRequest, Price, Side, WarningLevel
-from trader_service.rules import preview_order
+from trader_service.rules import local_time, preview_order
 
 NOW = datetime(2026, 10, 21, 15, 0, tzinfo=UTC)
 AAPL = Contract(conid=1, symbol="AAPL", name="Apple Inc", primary_exchange="NASDAQ", currency="USD")
@@ -92,3 +95,40 @@ def test_open_sell_orders_count_against_position():
     blocked = preview(side=Side.SELL, qty="5", position="10", pending_sells="6")
     assert blocked.block.message == "Cannot sell 5: you own 10, 6 already in open sell orders"
     assert preview(side=Side.SELL, qty="4", position="10", pending_sells="6").block is None
+
+
+def test_market_closed_is_info_not_stale():
+    evening = datetime(2026, 10, 21, 21, 14, tzinfo=UTC)  # 17:14 New York, after the close
+    result = preview_order(OrderRequest(conid=1, side=Side.BUY, quantity=D(1), limit_price=D(100)), AAPL, ACCOUNT,
+                           D(1), D(0), D(0), price(age_seconds=3600), now=evening)
+    found = {w.code: w for w in result.warnings}
+    assert "price_stale" not in found
+    assert found["market_closed"].level == WarningLevel.INFO
+    assert found["market_closed"].message == f"Market closed · last price {local_time(NOW - timedelta(hours=1))}"
+
+
+@pytest.mark.parametrize("zone, summer, winter", [
+    ("Europe/Prague", "22:00 UTC+2", "21:00 UTC+1"),
+    ("Asia/Kolkata", "01:30 UTC+5:30", "01:30 UTC+5:30"),
+    ("America/New_York", "16:00 UTC−4", "15:00 UTC−5"),
+    ("UTC", "20:00 UTC", "20:00 UTC"),
+])
+def test_local_time_uses_mac_zone_with_offset(monkeypatch, zone, summer, winter):
+    monkeypatch.setenv("TZ", zone)
+    time.tzset()
+    try:
+        assert local_time(datetime(2026, 10, 21, 20, 0, tzinfo=UTC)) == summer
+        assert local_time(datetime(2026, 12, 1, 20, 0, tzinfo=UTC)) == winter
+        assert local_time(datetime(2026, 12, 1, 20, 0, 5, tzinfo=UTC), seconds=True).startswith(winter[:5] + ":05")
+    finally:
+        monkeypatch.undo()
+        time.tzset()
+
+
+def test_us_regular_session():
+    from trader_service.market_hours import us_regular_session
+    assert us_regular_session(datetime(2026, 10, 21, 13, 30, tzinfo=UTC))      # 09:30 NY, Wednesday
+    assert not us_regular_session(datetime(2026, 10, 21, 13, 29, tzinfo=UTC))  # 09:29
+    assert not us_regular_session(datetime(2026, 10, 21, 20, 0, tzinfo=UTC))   # 16:00 close
+    assert not us_regular_session(datetime(2026, 10, 24, 15, 0, tzinfo=UTC))   # Saturday
+    assert us_regular_session(datetime(2026, 12, 1, 15, 0, tzinfo=UTC))        # 10:00 NY in winter time (UTC−5)

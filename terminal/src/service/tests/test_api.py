@@ -59,7 +59,7 @@ def test_not_connected_is_409(client):
 
 def test_account_data_endpoints_use_decimal_strings(logged_in):
     account = logged_in.get("/account").json()
-    assert account["total_cash"] == "33640.00"
+    assert account["total_cash"] == "133640.00"
     assert len(logged_in.get("/positions").json()) == 5
     assert len(logged_in.get("/orders").json()) == 1
     assert len(logged_in.get("/fills", params={"days": 7}).json()) == 4
@@ -68,8 +68,9 @@ def test_account_data_endpoints_use_decimal_strings(logged_in):
 
 
 def test_preview_returns_warnings_without_placing(logged_in):
-    preview = logged_in.post("/orders/preview", json=body(qty="100", limit="250")).json()
-    assert {w["code"] for w in preview["warnings"]} == {"pct_of_account", "price_deviation"}  # ~30 %, +9.6 %
+    preview = logged_in.post("/orders/preview", json=body(qty="200", limit="250")).json()
+    warnings = {w["code"] for w in preview["warnings"] if w["level"] != "info"}  # info depends on the clock
+    assert warnings == {"pct_of_account", "price_deviation"}  # ~27 %, +9.6 %
     assert preview["block"] is None
     assert len(logged_in.get("/orders").json()) == 1
 
@@ -166,6 +167,7 @@ def test_rule_thresholds_are_saved_encrypted_and_used(logged_in):
     defaults = logged_in.get("/settings/rules").json()
     assert (defaults["pct_of_account_warn"], defaults["pct_of_account_strong"], defaults["order_value_warn"]) \
         == ("25", "50", "100000")
+    assert defaults["plan_limit_markup"] == "3"
     assert logged_in.put("/settings/rules", json={**defaults, "quantity_warn": "5"}).status_code == 423  # locked
     store = logged_in.app.state.test_store
     store.unlock(bytes(32))
@@ -204,12 +206,12 @@ def test_quote(logged_in):
 
 def test_insufficient_funds_blocks_new_buy_but_not_its_own_modification(logged_in):
     order = logged_in.post("/orders", json=body(qty="10", limit="200", ref="b1")).json()  # reserves 2 000
-    # available is now 27 640: a new 28 000 buy is blocked ...
-    blocked = logged_in.post("/orders", json=body(qty="140", limit="200", ref="b2"))
+    # available is now 127 640: a new 128 000 buy is blocked ...
+    blocked = logged_in.post("/orders", json=body(qty="640", limit="200", ref="b2"))
     assert blocked.status_code == 422 and blocked.json()["error"] == "insufficient_funds"
-    # ... but growing the existing order to 28 000 is fine: its own 2 000 count back in
-    assert logged_in.patch(f"/orders/{order['order_id']}", json={"quantity": "140"}).status_code == 200
-    assert logged_in.patch(f"/orders/{order['order_id']}", json={"quantity": "200"}).status_code == 422
+    # ... but growing the existing order to 128 000 is fine: its own 2 000 count back in
+    assert logged_in.patch(f"/orders/{order['order_id']}", json={"quantity": "640"}).status_code == 200
+    assert logged_in.patch(f"/orders/{order['order_id']}", json={"quantity": "700"}).status_code == 422
 
 
 def test_preview_of_a_modification_excludes_the_order_itself(logged_in):

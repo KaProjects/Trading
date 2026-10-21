@@ -47,6 +47,13 @@ import Testing
         #expect(plan.plannedTotal == 1_650)
         #expect(plan.remaining == 32_900)
         #expect(!plan.isApproximate)
+
+        // weights: holdings of total holdings; plan of available to invest
+        #expect(plan.holdings.map { plan.weight(of: $0) } == [11_500 / Decimal(14_250) * 100, 2_750 / Decimal(14_250) * 100])
+        #expect(plan.weight(of: plan.planned[0]) == 1_100 / Decimal(34_550) * 100)
+        #expect(plan.weight(of: plan.planned[1]) == nil)
+        let total = plan.plannedWeight! + plan.remainingWeight!
+        #expect(abs(total - 100) < Decimal(string: "0.000001")!)
     }
 
     @Test func missingPriceFallsBackToCostBasisAndIsMarked() {
@@ -64,5 +71,37 @@ import Testing
         let plan = PlannerSummary.make(account: account, positions: [], orders: [], quotes: ["F": quote("F", 11)],
                                        rows: [PlanRow(contract: f, quantity: 5_000)])
         #expect(plan.remaining == -5_000)
+    }
+}
+
+@Suite struct PlanVolumeTests {
+    @Test func roundsUpToWholeShares() {
+        // 30k USD of NVDA at 221.20 → 135.62… → 136 shares
+        #expect(PlanVolume.quantity(thousands: 30, price: Decimal(string: "221.2")!, fxToBase: 1) == 136)
+        #expect(PlanVolume.quantity(thousands: 1, price: 250, fxToBase: 1) == 4)  // exactly 4.0 stays 4
+        #expect(PlanVolume.quantity(thousands: Decimal(string: "0.5")!, price: 1000, fxToBase: 1) == 1)
+    }
+
+    @Test func convertsForeignPricesToBase() {
+        // 10k USD of SAP at 236.80 EUR × 1.08 = 255.744 USD per share → 39.1… → 40
+        #expect(PlanVolume.quantity(thousands: 10, price: Decimal(string: "236.8")!,
+                                    fxToBase: Decimal(string: "1.08")!) == 40)
+    }
+
+    @Test func noPriceNoQuantity() {
+        #expect(PlanVolume.quantity(thousands: 30, price: 0, fxToBase: 1) == nil)
+        #expect(PlanVolume.quantity(thousands: 0, price: 100, fxToBase: 1) == nil)
+    }
+}
+
+@Suite struct PlanReturnTests {
+    @Test func amountAndTotal() {
+        #expect(PlanReturn.amount(cost: 30_000, percent: 12) == 3_600)
+        #expect(PlanReturn.amount(cost: nil, percent: 12) == nil)
+        #expect(PlanReturn.amount(cost: 30_000, percent: nil) == nil)
+        let total = PlanReturn.total([(30_000, 12), (10_000, 20), (5_000, nil)])!
+        #expect(total.amount == 5_600)
+        #expect(total.percent == 14)  // 5 600 / 40 000 — rows without a percent don't count
+        #expect(PlanReturn.total([(5_000, nil)]) == nil)
     }
 }

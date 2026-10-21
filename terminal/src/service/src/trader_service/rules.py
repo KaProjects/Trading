@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+from trader_service.market_hours import us_regular_session
 from trader_service.models import (
     AccountSummary,
     Contract,
@@ -19,6 +20,15 @@ from trader_service.models import (
 )
 
 CENT = Decimal("0.01")
+
+
+def local_time(moment: datetime, seconds: bool = False) -> str:
+    """The service runs on the user's Mac: its time zone, with the offset ("22:00 UTC+2")."""
+    local = moment.astimezone()
+    minutes = int((local.utcoffset() or timedelta(0)).total_seconds() // 60)
+    hours, rest = divmod(abs(minutes), 60)
+    zone = "UTC" if minutes == 0 else f"UTC{'+' if minutes > 0 else '−'}{hours}" + (f":{rest:02d}" if rest else "")
+    return f"{local.strftime('%H:%M:%S' if seconds else '%H:%M')} {zone}"
 
 
 @dataclass(frozen=True)
@@ -74,9 +84,12 @@ def preview_order(
         warnings.append(OrderWarning(code="price_missing", level=WarningLevel.WARN,
                                      message="No current price available"))
     else:
-        if now - price.time > settings.price_stale_after:
+        if not us_regular_session(now):
+            warnings.append(OrderWarning(code="market_closed", level=WarningLevel.INFO,
+                                         message=f"Market closed · last price {local_time(price.time)}"))
+        elif now - price.time > settings.price_stale_after:
             warnings.append(OrderWarning(code="price_stale", level=WarningLevel.WARN,
-                                         message=f"Last price is stale ({price.time:%H:%M:%S} UTC)"))
+                                         message=f"Last price is stale ({local_time(price.time, seconds=True)})"))
         deviation = (request.limit_price - price.last) / price.last * 100
         if abs(deviation) > settings.price_deviation_warn:
             warnings.append(OrderWarning(code="price_deviation", level=WarningLevel.WARN,

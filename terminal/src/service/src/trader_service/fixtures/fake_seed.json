@@ -3,7 +3,7 @@
   "account_id": "FAKE0001",
   "base_currency": "USD",
   "fx_to_base": {"USD": "1", "EUR": "1.08", "CAD": "0.73"},
-  "cash": {"USD": "25000.00", "EUR": "8000.00"},
+  "cash": {"USD": "125000.00", "EUR": "8000.00"},
   "contracts": [
     {"conid": 265598, "symbol": "AAPL", "name": "Apple Inc", "primary_exchange": "NASDAQ", "currency": "USD", "price": "228.40"},
     {"conid": 272093, "symbol": "MSFT", "name": "Microsoft Corp", "primary_exchange": "NASDAQ", "currency": "USD", "price": "455.10"},
