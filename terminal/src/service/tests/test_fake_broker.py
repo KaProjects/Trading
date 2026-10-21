@@ -202,3 +202,13 @@ async def test_reset_restores_seed(connected):
     await settle()
     connected.reset()
     assert next(p for p in connected.positions() if p.contract.symbol == "AAPL").quantity == 50
+
+
+async def test_cheap_stock_allows_testing_partial_fills(connected, prices):
+    placed = await connected.place_order(order(conid=9599491, qty="600", limit="11.50", ref="ford"))
+    await settle()
+    first = connected.order(placed.order_id)
+    assert (first.status, first.filled) == (OrderStatus.SUBMITTED, 200)  # marketable: first chunk at submit
+    prices.set_price("F", D("11.21"))
+    prices.set_price("F", D("11.22"))
+    assert connected.order(placed.order_id).status == OrderStatus.FILLED

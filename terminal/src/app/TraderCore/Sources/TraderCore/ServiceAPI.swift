@@ -68,9 +68,19 @@ public struct ServiceAPI: Sendable {
         return try ServiceJSON.decoder.decode(Quote.self, from: response.body)
     }
 
-    public func preview(_ request: OrderRequest) async throws -> OrderPreview {
-        try await call("POST", "/orders/preview", body: request)
+    /// `modifying`: check a change to an open order (its own reservations don't count against it).
+    public func preview(_ request: OrderRequest, modifying orderId: Int? = nil) async throws -> OrderPreview {
+        let query = orderId.map { "?modify_order_id=\($0)" } ?? ""
+        return try await call("POST", "/orders/preview\(query)", body: request)
     }
+
+    public func modifyOrder(_ orderId: Int, quantity: Amount, limitPrice: Amount) async throws -> Order {
+        try await call("PATCH", "/orders/\(orderId)", body: OrderChange(quantity: quantity, limitPrice: limitPrice))
+    }
+
+    public func cancelOrder(_ orderId: Int) async throws -> Order { try await call("DELETE", "/orders/\(orderId)") }
+
+    public func cancelAllOrders() async throws -> [Order] { try await call("DELETE", "/orders") }
 
     /// Throws `ServiceError.http(422, "sell_exceeds_position", …)` when blocked (D5.3).
     public func placeOrder(_ request: OrderRequest) async throws -> Order {

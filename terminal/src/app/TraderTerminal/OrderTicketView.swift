@@ -12,7 +12,7 @@ struct OrderTicketView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text(ticket.step == .editing ? "New limit order" : "Confirm order").font(.title2.weight(.semibold))
+                Text(title).font(.title2.weight(.semibold))
                 Spacer()
                 if let accountId { Text(accountId).foregroundStyle(.secondary) }
                 EnvironmentBadge(environment: environment)
@@ -26,7 +26,14 @@ struct OrderTicketView: View {
         }
         .padding(20)
         .frame(width: 560)
-        .onAppear { if ticket.contract == nil { symbolFocused = true } }
+        .onAppear { if ticket.contract == nil && !ticket.isModification { symbolFocused = true } }
+    }
+
+    private var title: String {
+        if let order = ticket.modifying {
+            return ticket.step == .editing ? "Modify order #\(order.orderId)" : "Confirm change #\(order.orderId)"
+        }
+        return ticket.step == .editing ? "New limit order" : "Confirm order"
     }
 
     // MARK: - Editing
@@ -36,6 +43,7 @@ struct OrderTicketView: View {
             Form {
                 TextField("Ticker", text: $ticket.symbol, prompt: Text("e.g. AAPL"))
                     .focused($symbolFocused)
+                    .disabled(ticket.isModification)
                     .onSubmit { Task { await ticket.lookUp() } }
                 if !ticket.candidates.isEmpty {
                     Picker("Listing", selection: Binding<Int?>(
@@ -68,6 +76,7 @@ struct OrderTicketView: View {
                     Text("Sell").tag(OrderSide.sell)
                 }
                 .pickerStyle(.segmented)
+                .disabled(ticket.isModification)
                 TextField("Quantity", text: $ticket.quantityText, prompt: Text("shares"))
                 TextField("Limit price", text: $ticket.limitText,
                           prompt: Text(ticket.contract?.currency ?? "price"))
@@ -75,7 +84,9 @@ struct OrderTicketView: View {
                     Text("Day").tag(TimeInForce.day)
                     Text("Good till cancelled").tag(TimeInForce.gtc)
                 }
+                .disabled(ticket.isModification)
                 Toggle("Allow outside regular trading hours", isOn: $ticket.outsideRth)
+                    .disabled(ticket.isModification)
             }
             .formStyle(.grouped)
 
@@ -122,7 +133,7 @@ struct OrderTicketView: View {
                     close()
                 }
                 .keyboardShortcut(.cancelAction)
-                Button("Send order") { Task { await ticket.send() } }
+                Button(ticket.isModification ? "Send change" : "Send order") { Task { await ticket.send() } }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .tint(ticket.side == .buy ? .green : .red)

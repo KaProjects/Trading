@@ -88,6 +88,26 @@ public struct Order: Codable, Sendable, Identifiable, Hashable {
     public let createdAt: Date
     public let updatedAt: Date
     public var id: Int { orderId }
+
+    public init(orderId: Int, orderRef: String, contract: Contract, side: OrderSide, quantity: Amount,
+                limitPrice: Amount, tif: String, outsideRth: Bool, status: String, filled: Amount, remaining: Amount,
+                avgFillPrice: Amount?, rejectReason: String?, createdAt: Date, updatedAt: Date) {
+        self.orderId = orderId
+        self.orderRef = orderRef
+        self.contract = contract
+        self.side = side
+        self.quantity = quantity
+        self.limitPrice = limitPrice
+        self.tif = tif
+        self.outsideRth = outsideRth
+        self.status = status
+        self.filled = filled
+        self.remaining = remaining
+        self.avgFillPrice = avgFillPrice
+        self.rejectReason = rejectReason
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
 public struct Fill: Codable, Sendable, Identifiable, Hashable {

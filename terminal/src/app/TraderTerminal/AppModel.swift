@@ -32,6 +32,8 @@ final class AppModel {
     @ObservationIgnored private var streamTask: Task<Void, Never>?
     @ObservationIgnored private var heartbeatTask: Task<Void, Never>?
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    /// Last known state per order, to notify only on real transitions (D6.2).
+    @ObservationIgnored private var knownOrders: [Int: Order] = [:]
     @ObservationIgnored private var restarts: [Date] = []
     @ObservationIgnored private var quitting = false
     @ObservationIgnored private let logger = Logger(subsystem: "org.kaleta.trader-terminal", category: "app")
@@ -154,7 +156,15 @@ final class AppModel {
             guard let update = try? ServiceJSON.decoder.decode(BrokerStatus.self, from: event.data) else { return }
             apply(update)
             scheduleAccountRefresh()
-        case "account", "position", "order", "fill":
+        case "order":
+            if let order = try? ServiceJSON.decoder.decode(Order.self, from: event.data) {
+                if let notification = OrderNotification.forUpdate(previous: knownOrders[order.orderId], current: order) {
+                    notifier.post(notification, for: order)
+                }
+                knownOrders[order.orderId] = order
+            }
+            scheduleAccountRefresh()
+        case "account", "position", "fill":
             scheduleAccountRefresh()
         default:
             break  // prices: T4
@@ -273,6 +283,21 @@ final class AppModel {
     func openTicket(contract: Contract? = nil, side: OrderSide = .buy) {
         guard canTrade else { return }
         ticket = OrderTicketModel(api: api, contract: contract, side: side)
+    }
+
+    func openModify(_ order: Order) {
+        guard canTrade else { return }
+        ticket = OrderTicketModel(api: api, modifying: order)
+    }
+
+    func cancel(_ order: Order) async {
+        await perform { _ = try await self.api.cancelOrder(order.orderId) }
+        scheduleAccountRefresh()
+    }
+
+    func cancelAll() async {
+        await perform { _ = try await self.api.cancelAllOrders() }
+        scheduleAccountRefresh()
     }
 
     func closeTicket() {

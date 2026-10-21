@@ -209,8 +209,9 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         return prices.last(price_symbol(broker.contract(conid)))
 
     @app.post("/orders/preview")
-    async def order_preview(request: OrderRequest) -> OrderPreview:
-        return preview(request)
+    async def order_preview(request: OrderRequest, modify_order_id: int | None = None) -> OrderPreview:
+        """`modify_order_id`: check a modification — the order's own reservations don't count against it."""
+        return preview(request, exclude_order_id=modify_order_id)
 
     @app.post("/orders")
     async def place_order(request: PlaceOrderRequest) -> Order:

@@ -171,3 +171,63 @@ extension ServiceIntegrationTests {
         #expect(line == "BUY 100 AAPL (Apple Inc · NASDAQ · USD) LMT 182.50 DAY ≈ 18,250.00 USD")
     }
 }
+
+extension ServiceIntegrationTests {
+    @Test func modifyCancelAndCancelAll() async throws {
+        let service = try await startService()
+        defer { service.process.stop(grace: 1) }
+        _ = try await service.api.login()
+        try await service.api.dev(.approve2FA)
+        try await Task.sleep(for: .milliseconds(100))
+
+        let aapl = 265598
+        let placed = try await service.api.placeOrder(
+            OrderRequest(conid: aapl, side: .buy, quantity: Amount(10), limitPrice: Amount(200), orderRef: "t6-1"))
+        try await Task.sleep(for: .milliseconds(500))  // PendingSubmit -> Submitted
+
+        let preview = try await service.api.preview(
+            OrderRequest(conid: aapl, side: .buy, quantity: Amount(140), limitPrice: Amount(200)), modifying: placed.orderId)
+        #expect(preview.block == nil)
+        let modified = try await service.api.modifyOrder(placed.orderId, quantity: Amount(12), limitPrice: Amount(201))
+        #expect(modified.quantity == Amount(12) && modified.limitPrice == Amount(201))
+
+        let cancelled = try await service.api.cancelOrder(placed.orderId)
+        #expect(cancelled.status == "Cancelled")
+        #expect(try await service.api.cancelAllOrders().count == 1)  // the seeded MSFT order
+        #expect(try await service.api.orders().isEmpty)
+    }
+}
+
+@Suite struct OrderNotificationTests {
+    func order(_ status: String, filled: Int, quantity: Int = 600, reason: String? = nil) -> Order {
+        let contract = Contract(conid: 1, symbol: "NVDA", name: "NVIDIA", secType: "STK", exchange: "SMART",
+                                primaryExchange: "NASDAQ", currency: "USD")
+        return Order(orderId: 7, orderRef: "r", contract: contract, side: .buy, quantity: Amount(Decimal(quantity)),
+                     limitPrice: Amount(40), tif: "DAY", outsideRth: false, status: status,
+                     filled: Amount(Decimal(filled)), remaining: Amount(Decimal(quantity - filled)),
+                     avgFillPrice: filled > 0 ? Amount(39) : nil, rejectReason: reason, createdAt: Date(), updatedAt: Date())
+    }
+
+    @Test func transitions() {
+        #expect(OrderNotification.forUpdate(previous: nil, current: order("PendingSubmit", filled: 0)) == nil)
+        #expect(OrderNotification.forUpdate(previous: order("PendingSubmit", filled: 0),
+                                            current: order("Submitted", filled: 0)) == nil)
+        #expect(OrderNotification.forUpdate(previous: order("Submitted", filled: 0),
+                                            current: order("Submitted", filled: 200)) == .partiallyFilled)
+        #expect(OrderNotification.forUpdate(previous: order("Submitted", filled: 200),
+                                            current: order("Submitted", filled: 200)) == nil)
+        #expect(OrderNotification.forUpdate(previous: order("Submitted", filled: 400),
+                                            current: order("Filled", filled: 600)) == .filled)
+        #expect(OrderNotification.forUpdate(previous: nil, current: order("Rejected", filled: 0, reason: "Insufficient funds"))
+                == .rejected)
+        #expect(OrderNotification.forUpdate(previous: order("Submitted", filled: 0),
+                                            current: order("Cancelled", filled: 0)) == .cancelled)
+    }
+
+    @Test func texts() {
+        let partial = order("Submitted", filled: 200)
+        #expect(partial.statusText == "Partially filled 200 / 600")
+        #expect(OrderNotification.partiallyFilled.body(for: partial).hasPrefix("200 of 600 shares at avg 39 USD"))
+        #expect(order("Rejected", filled: 0, reason: "Insufficient funds").statusText == "Rejected: Insufficient funds")
+    }
+}

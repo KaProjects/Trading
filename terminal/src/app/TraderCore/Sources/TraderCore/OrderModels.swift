@@ -108,3 +108,62 @@ public enum DecimalInput {
         return Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX"))
     }
 }
+
+struct OrderChange: Encodable {
+    let quantity: Amount
+    let limitPrice: Amount
+}
+
+public extension Order {
+    var isPartiallyFilled: Bool { filled.value > 0 && remaining.value > 0 }
+
+    /// "Submitted", "Partially filled 200 / 600", "Filled", "Cancelled", "Rejected: <reason>"
+    var statusText: String {
+        if isPartiallyFilled {
+            let format = Decimal.FormatStyle.number.precision(.fractionLength(0...4))
+            return "Partially filled \(filled.value.formatted(format)) / \(quantity.value.formatted(format))"
+        }
+        if status == "Rejected", let rejectReason { return "Rejected: \(rejectReason)" }
+        return status
+    }
+}
+
+/// Which order events deserve a notification (D6.2). Partial fills share one notification per order, updated
+/// in place, so a large order filling in chunks does not spam.
+public enum OrderNotification: Equatable, Sendable {
+    case filled, partiallyFilled, rejected, cancelled
+
+    public static func forUpdate(previous: Order?, current: Order) -> OrderNotification? {
+        if current.status == previous?.status && current.filled == previous?.filled { return nil }
+        switch current.status {
+        case "Filled": return .filled
+        case "Rejected": return previous?.status == "Rejected" ? nil : .rejected
+        case "Cancelled": return previous?.status == "Cancelled" ? nil : .cancelled
+        default:
+            if current.isPartiallyFilled && current.filled != previous?.filled { return .partiallyFilled }
+            return nil
+        }
+    }
+
+    public func title(for order: Order) -> String {
+        let side = order.side.rawValue, symbol = order.contract.symbol
+        switch self {
+        case .filled: return "\(side) \(symbol) filled"
+        case .partiallyFilled: return "\(side) \(symbol) partially filled"
+        case .rejected: return "\(side) \(symbol) rejected"
+        case .cancelled: return "\(side) \(symbol) cancelled"
+        }
+    }
+
+    public func body(for order: Order) -> String {
+        let format = Decimal.FormatStyle.number.precision(.fractionLength(0...4))
+        let filled = order.filled.value.formatted(format), total = order.quantity.value.formatted(format)
+        let price = order.avgFillPrice.map { " at avg \($0.value.formatted(format)) \(order.contract.currency)" } ?? ""
+        switch self {
+        case .filled: return "\(total) shares\(price) (order #\(order.orderId))"
+        case .partiallyFilled: return "\(filled) of \(total) shares\(price) (order #\(order.orderId))"
+        case .rejected: return order.rejectReason ?? "Rejected by the broker (order #\(order.orderId))"
+        case .cancelled: return "\(filled) of \(total) filled before cancel (order #\(order.orderId))"
+        }
+    }
+}

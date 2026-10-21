@@ -9,7 +9,10 @@ struct AccountView: View {
     var trade: ((Contract, OrderSide) -> Void)?
     /// Opens an empty order ticket (T5). Nil while not connected.
     var newOrder: (() -> Void)?
+    /// T6 actions on open orders. Nil while not connected.
+    var orderActions: OrderActions?
     @State private var tab: Tab = .positions
+    @State private var confirmCancelAll = false
 
     enum Tab: Hashable { case positions, orders, fills }
 
@@ -32,6 +35,14 @@ struct AccountView: View {
                 .labelsHidden()
                 .fixedSize()
                 Spacer()
+                if let orderActions, tab == .orders, !snapshot.orders.isEmpty {
+                    Button("Cancel All…", role: .destructive) { confirmCancelAll = true }
+                        .confirmationDialog("Cancel all \(snapshot.orders.count) open orders?",
+                                            isPresented: $confirmCancelAll) {
+                            Button("Cancel All Orders", role: .destructive) { orderActions.cancelAll() }
+                            Button("Keep Orders", role: .cancel) {}
+                        }
+                }
                 if let newOrder {
                     Button("New Order", systemImage: "plus", action: newOrder)
                         .buttonStyle(.borderedProminent)
@@ -40,7 +51,7 @@ struct AccountView: View {
             }
             switch tab {
             case .positions: PositionsTable(positions: snapshot.positions, trade: trade)
-            case .orders: OrdersTable(orders: snapshot.orders)
+            case .orders: OrdersTable(orders: snapshot.orders, actions: orderActions)
             case .fills: FillsTable(fills: snapshot.fills)
             }
         }
@@ -110,10 +121,41 @@ struct PositionsTable: View {
     }
 }
 
+struct OrderActions {
+    let modify: (Order) -> Void
+    let cancel: (Order) -> Void
+    let cancelAll: () -> Void
+}
+
 struct OrdersTable: View {
     let orders: [Order]
+    var actions: OrderActions?
+    @State private var toCancel: Order?
 
     var body: some View {
+        table
+            .contextMenu(forSelectionType: Order.ID.self) { ids in
+                if let actions, let id = ids.first, let order = orders.first(where: { $0.id == id }) {
+                    Button("Modify Order #\(order.orderId)…") { actions.modify(order) }
+                    Button("Cancel Order #\(order.orderId)…", role: .destructive) { toCancel = order }
+                }
+            } primaryAction: { ids in
+                if let actions, let id = ids.first, let order = orders.first(where: { $0.id == id }) {
+                    actions.modify(order)  // double-click
+                }
+            }
+            .confirmationDialog(toCancel.map { "Cancel order #\($0.orderId)?" } ?? "",
+                                isPresented: Binding(get: { toCancel != nil }, set: { if !$0 { toCancel = nil } }),
+                                presenting: toCancel) { order in
+                Button("Cancel Order", role: .destructive) { actions?.cancel(order) }
+                Button("Keep Order", role: .cancel) {}
+            } message: { order in
+                Text("\(order.side.rawValue) \(Format.quantity(order.remaining)) \(order.contract.symbol) "
+                     + "LMT \(Format.money(order.limitPrice, order.contract.currency)) — remaining quantity")
+            }
+    }
+
+    private var table: some View {
         Table(orders) {
             TableColumn("Symbol") { Text($0.contract.symbol).fontWeight(.semibold) }
                 .width(min: 60, ideal: 70)
@@ -127,7 +169,7 @@ struct OrdersTable: View {
                 Text("\(Format.quantity($0.filled)) / \(Format.quantity($0.remaining))").monospacedDigit()
             }
             .alignment(.trailing)
-            TableColumn("Status") { Text($0.status) }
+            TableColumn("Status") { Text($0.statusText).foregroundStyle($0.isPartiallyFilled ? .orange : .primary) }
             TableColumn("TIF") { Text($0.tif + ($0.outsideRth ? " · ext" : "")) }
                 .width(min: 40, ideal: 60)
         }

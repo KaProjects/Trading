@@ -210,3 +210,11 @@ def test_insufficient_funds_blocks_new_buy_but_not_its_own_modification(logged_i
     # ... but growing the existing order to 28 000 is fine: its own 2 000 count back in
     assert logged_in.patch(f"/orders/{order['order_id']}", json={"quantity": "140"}).status_code == 200
     assert logged_in.patch(f"/orders/{order['order_id']}", json={"quantity": "200"}).status_code == 422
+
+
+def test_preview_of_a_modification_excludes_the_order_itself(logged_in):
+    order = logged_in.post("/orders", json=body(side="SELL", qty="50", limit="300", ref="m1")).json()
+    same = {"conid": AAPL, "side": "SELL", "quantity": "50", "limit_price": "301"}
+    assert logged_in.post("/orders/preview", json=same).json()["block"]["code"] == "sell_exceeds_position"
+    preview = logged_in.post("/orders/preview", json=same, params={"modify_order_id": order["order_id"]}).json()
+    assert preview["block"] is None

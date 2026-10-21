@@ -12,6 +12,7 @@
     {"conid": 14204, "symbol": "SAP", "name": "SAP SE", "primary_exchange": "IBIS", "currency": "EUR", "price": "236.80"},
     {"conid": 195014116, "symbol": "SHOP", "name": "Shopify Inc", "primary_exchange": "NYSE", "currency": "USD", "price": "112.60"},
     {"conid": 195014120, "symbol": "SHOP", "name": "Shopify Inc", "primary_exchange": "TSE", "currency": "CAD", "price": "154.20"},
+    {"conid": 9599491, "symbol": "F", "name": "Ford Motor Co", "primary_exchange": "NYSE", "currency": "USD", "price": "11.20"},
     {"conid": 999999, "symbol": "REJECT", "name": "Always-rejected test contract", "primary_exchange": "NYSE", "currency": "USD", "price": "10.00"}
   ],
   "positions": [

@@ -33,15 +33,38 @@ final class OrderTicketModel {
     @ObservationIgnored private var lookupTask: Task<Void, Never>?
     /// Fixed once the user reviews; reused if a send has to be retried (never a second order).
     @ObservationIgnored private var orderRef: String?
+    /// T6: set when this ticket changes an open order instead of placing a new one.
+    let modifying: Order?
+    @ObservationIgnored private var lastSendUncertain = false
 
     init(api: ServiceAPI, contract: Contract? = nil, side: OrderSide = .buy) {
         self.api = api
+        self.modifying = nil
         self.side = side
         if let contract {
             symbol = contract.symbol
             Task { await select(contract) }
         }
     }
+
+    /// Modify an open order (T6): contract, side and time in force are fixed; quantity and limit can change.
+    init(api: ServiceAPI, modifying order: Order) {
+        self.api = api
+        self.modifying = order
+        symbol = order.contract.symbol
+        contract = order.contract
+        side = order.side
+        tif = TimeInForce(rawValue: order.tif) ?? .day
+        outsideRth = order.outsideRth
+        quantityText = order.quantity.value.formatted(.number.precision(.fractionLength(0...4)).grouping(.never))
+        limitText = order.limitPrice.value.formatted(.number.precision(.fractionLength(2...4)).grouping(.never))
+        Task {
+            quote = try? await api.quote(conid: order.contract.conid)
+            inputsChanged()
+        }
+    }
+
+    var isModification: Bool { modifying != nil }
 
     // MARK: - Inputs
 
@@ -136,7 +159,7 @@ final class OrderTicketModel {
             try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled, let self else { return }
             do {
-                let result = try await api.preview(request)
+                let result = try await api.preview(request, modifying: modifying?.orderId)
                 guard !Task.isCancelled else { return }
                 preview = result
                 previewError = nil
@@ -152,7 +175,7 @@ final class OrderTicketModel {
 
     func review() {
         guard canReview else { return }
-        orderRef = UUID().uuidString
+        if modifying == nil { orderRef = UUID().uuidString }
         step = .reviewing
     }
 
@@ -169,28 +192,37 @@ final class OrderTicketModel {
     }
 
     func send() async {
-        guard step == .reviewing || isRetryable, let request, request.orderRef != nil else { return }
+        guard step == .reviewing || isRetryable, let request, request.orderRef != nil || modifying != nil
+        else { return }
         step = .sending
+        lastSendUncertain = false
         do {
-            let order = try await api.placeOrder(request)
+            let order = if let modifying {
+                // Re-sending the same quantity/limit is harmless, so a modification can always be retried.
+                try await api.modifyOrder(modifying.orderId, quantity: request.quantity, limitPrice: request.limitPrice)
+            } else {
+                try await api.placeOrder(request)
+            }
             step = order.status == "Rejected" ? .failed("Rejected: \(order.rejectReason ?? "no reason")") : .sent(order)
         } catch ServiceError.http(_, _, let message) {
             orderRef = nil  // the service refused it: nothing was placed, a new review gets a new ref
             step = .failed(message ?? "Order refused")
         } catch {
+            lastSendUncertain = true
             step = .failed("Not sure the order was received: \(describe(error)). Retrying is safe.")
         }
     }
 
     /// After a transport error the same orderRef is kept, so retrying can never create a second order.
     var isRetryable: Bool {
-        if case .failed = step { return orderRef != nil }
-        return false
+        guard case .failed = step else { return false }
+        return orderRef != nil || (modifying != nil && lastSendUncertain)
     }
 
     var summary: String? {
         guard let request, let contract, let preview else { return nil }
-        return OrderSummary.line(request, contract: contract, value: preview.value)
+        let line = OrderSummary.line(request, contract: contract, value: preview.value)
+        return modifying.map { "MODIFY #\($0.orderId) → \(line)" } ?? line
     }
 
     private func describe(_ error: Error) -> String {

@@ -17,7 +17,11 @@ struct MainWindow: View {
                 } else if let account = model.account {
                     AccountView(snapshot: account, isLive: model.accountIsLive,
                                 trade: model.canTrade ? { model.openTicket(contract: $0, side: $1) } : nil,
-                                newOrder: model.canTrade ? { model.openTicket() } : nil)
+                                newOrder: model.canTrade ? { model.openTicket() } : nil,
+                                orderActions: model.canTrade ? OrderActions(
+                                    modify: { model.openModify($0) },
+                                    cancel: { order in Task { await model.cancel(order) } },
+                                    cancelAll: { Task { await model.cancelAll() } }) : nil)
                 } else {
                     ContentUnavailableView {
                         Label(shown.title, systemImage: "chart.line.uptrend.xyaxis")
