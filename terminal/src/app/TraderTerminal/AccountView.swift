@@ -146,6 +146,7 @@ struct PositionsTable: View {
                 .monospacedDigit()
                 .foregroundStyle(Format.color(row.unrealizedPnL))
             }
+            .width(min: 190, ideal: 220)
             .alignment(.trailing)
         })
         .contextMenu(forSelectionType: Int.self) { ids in

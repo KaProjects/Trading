@@ -35,7 +35,7 @@ struct SettingsView: View {
             Section("Market data — Finnhub (real-time prices, T4)") {
                 SecureField("API key", text: $finnhubKey, prompt: Text(model.hasFinnhubKey ? "saved — enter to replace" : "paste key"))
                 HStack {
-                    Text(keyMessage ?? (model.hasFinnhubKey ? "Stored in the Keychain, protected by Touch ID." : "No key saved."))
+                    Text(keyMessage ?? (model.hasFinnhubKey ? "Stored in the Keychain (this app only, no Touch ID)." : "No key saved."))
                         .foregroundStyle(.secondary)
                     Spacer()
                     if model.hasFinnhubKey {

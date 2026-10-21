@@ -71,16 +71,6 @@ struct DeveloperItems: View {
                         .disabled(!AppEnvironment.available.contains(environment) || environment == model.environment)
                 }
             }
-            Section("Prices") {
-                Button(model.priceFeed == "fake" ? "✓ Simulated Prices" : "   Simulated Prices") {
-                    model.setPriceFeed("fake")
-                }
-                Button(model.priceFeed == "finnhub" ? "✓ Finnhub Prices" : "   Finnhub Prices"
-                       + (model.hasFinnhubKey ? "" : " (add key in Settings)")) {
-                    model.setPriceFeed("finnhub")
-                }
-                .disabled(!model.hasFinnhubKey)
-            }
             Section("Fake broker") {
                 Button(model.fakeAutoLogin ? "✓ Auto Log-in (no Touch ID)" : "Auto Log-in (no Touch ID)") {
                     model.toggleFakeAutoLogin()

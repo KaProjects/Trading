@@ -33,36 +33,38 @@ enum KeychainStore {
         return key
     }
 
-    // MARK: - Finnhub API key (D4.2): Touch ID protected, shared by all environments of this build
+    // MARK: - Finnhub API key (D4.2): market data only, no account access → no Touch ID. Readable only by this
+    // app (code signature + keychain access group) while the Mac is unlocked; never leaves this device.
 
-    private static let finnhubAccount = "finnhub-api-key"
+    private static let finnhubAccount = "finnhub-api-key.app"
+    private static let legacyFinnhubAccount = "finnhub-api-key"  // T4 first cut, Touch ID protected
 
-    static func finnhubKey(context: LAContext?) throws -> String? {
-        try read(account: finnhubAccount, context: context).map { String(decoding: $0, as: UTF8.self) }
+    static func finnhubKey() throws -> String? {
+        try read(account: finnhubAccount, context: nil).map { String(decoding: $0, as: UTF8.self) }
     }
 
     static func saveFinnhubKey(_ key: String) throws {
         deleteFinnhubKey()
-        try add(account: finnhubAccount, value: Data(key.utf8), userPresence: true)
+        try add(account: finnhubAccount, value: Data(key.utf8), userPresence: false)
     }
 
     static func deleteFinnhubKey() {
+        delete(account: finnhubAccount)
+    }
+
+    /// The old copy can't be read without a fingerprint; drop it (deleting needs no authentication).
+    static func removeLegacyFinnhubKey() {
+        delete(account: legacyFinnhubAccount)
+    }
+
+    static var hasFinnhubKey: Bool { (try? finnhubKey()) != nil }
+
+    private static func delete(account: String) {
         let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: finnhubAccount,
+            kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: account,
             kSecUseDataProtectionKeychain: true,
         ]
         SecItemDelete(query as CFDictionary)
-    }
-
-    static var hasFinnhubKey: Bool {
-        let context = LAContext()
-        context.interactionNotAllowed = true  // only check existence, never prompt
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: finnhubAccount,
-            kSecUseDataProtectionKeychain: true, kSecUseAuthenticationContext: context,
-        ]
-        let status = SecItemCopyMatching(query as CFDictionary, nil)
-        return status == errSecSuccess || status == errSecInteractionNotAllowed
     }
 
     private static func read(account: String, context: LAContext?) throws -> Data? {
