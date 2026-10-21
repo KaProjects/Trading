@@ -7,6 +7,7 @@ import signal
 import socket
 import stat
 import sys
+import threading
 from pathlib import Path
 
 import uvicorn
@@ -49,11 +50,25 @@ def build(environment: Environment):
     return create_app(broker, prices, bus)
 
 
+def watch_stdin(server: uvicorn.Server) -> None:
+    """The app keeps our stdin open for its whole lifetime (D3.3 will also send the data key over it).
+    EOF means the app is gone, so shut down gracefully."""
+
+    def wait_for_eof() -> None:
+        while sys.stdin.buffer.readline():
+            pass
+        server.should_exit = True
+
+    threading.Thread(target=wait_for_eof, name="stdin-watch", daemon=True).start()
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="trader-service")
     parser.add_argument("--env", type=Environment, choices=list(Environment), default=Environment.FAKE)
     parser.add_argument("--socket", type=Path, default=DEFAULT_SOCKET)
     parser.add_argument("--log-level", default="info")
+    parser.add_argument("--watch-stdin", action="store_true",
+                        help="exit when stdin closes (the app holds the pipe; app quits or crashes -> service stops)")
     args = parser.parse_args(argv)
 
     app = build(args.env)
@@ -61,6 +76,8 @@ def main(argv: list[str] | None = None) -> None:
     server = uvicorn.Server(uvicorn.Config(app, log_level=args.log_level, ws="auto"))
     # uvicorn re-raises SIGTERM after its graceful shutdown; turn it into a normal exit so `finally` cleans up.
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    if args.watch_stdin:
+        watch_stdin(server)
     try:
         asyncio.run(server.serve(sockets=[sock]))
     finally:

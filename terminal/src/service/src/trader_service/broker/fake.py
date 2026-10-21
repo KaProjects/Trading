@@ -6,6 +6,7 @@ Login with a simulated 2FA wait, a seeded account, limit orders that fill agains
 
 import asyncio
 import contextlib
+import dataclasses
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -48,7 +49,7 @@ REJECT_SYMBOL = "REJECT"
 
 @dataclass
 class FakeConfig:
-    twofa_delay: float = 5.0  # seconds until the simulated phone approval (auto_approve)
+    twofa_delay: float = 1.0  # seconds until the simulated phone approval (auto_approve)
     auto_approve: bool = True
     twofa_timeout: float = 180.0  # D2.4
     submit_delay: float = 0.3  # PendingSubmit -> Submitted
@@ -157,6 +158,14 @@ class FakeBroker(Broker):
             raise NotConnected(f"Not connected (state: {self._status.state})")
 
     # --- developer menu (failure injection, D0.3) ---------------------------------------------------
+
+    def set_auto_approve(self, enabled: bool) -> None:
+        """Off: login waits for approve_2fa()/fail_2fa() like a real phone push (or the 2FA timeout)."""
+        self._config = dataclasses.replace(self._config, auto_approve=enabled)
+
+    @property
+    def auto_approve(self) -> bool:
+        return self._config.auto_approve
 
     def approve_2fa(self) -> None:
         self._approve.set()

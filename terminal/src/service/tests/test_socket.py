@@ -40,7 +40,7 @@ def test_socket_is_owner_only_and_serves_api(service):
     with httpx.Client(transport=httpx.HTTPTransport(uds=str(service)), base_url="http://service") as client:
         assert client.get("/status").json()["environment"] == "fake"
         client.post("/login")
-        deadline = time.monotonic() + 10  # fake 2FA takes 5 s by default
+        deadline = time.monotonic() + 10  # fake 2FA takes 1 s by default
         while client.get("/status").json()["state"] != "connected":
             assert time.monotonic() < deadline
             time.sleep(0.1)
@@ -54,3 +54,27 @@ def test_socket_removed_on_shutdown(service):
     proc.terminate()
     assert proc.wait(timeout=10) == 0
     assert not sock.exists()
+
+
+def test_service_exits_when_stdin_closes():
+    folder = Path(tempfile.mkdtemp(prefix="tt-")) / "app"
+    sock = folder / "service.sock"
+    proc = subprocess.Popen([sys.executable, "-m", "trader_service.main", "--env", "fake", "--socket", str(sock),
+                             "--log-level", "warning", "--watch-stdin"], stdin=subprocess.PIPE)
+    try:
+        deadline = time.monotonic() + 10
+        while True:
+            assert time.monotonic() < deadline, "service not serving"
+            try:
+                with httpx.Client(transport=httpx.HTTPTransport(uds=str(sock)), base_url="http://service") as c:
+                    c.get("/status").raise_for_status()
+                break
+            except httpx.TransportError:
+                time.sleep(0.05)
+        proc.stdin.close()  # the app went away
+        assert proc.wait(timeout=10) == 0
+        assert not sock.exists()
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+        shutil.rmtree(folder.parent)

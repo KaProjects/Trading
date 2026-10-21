@@ -1,0 +1,4 @@
+build/
+TraderTerminal.xcodeproj/
+TraderCore/.build/
+TraderCore/.swiftpm/

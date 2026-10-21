@@ -126,3 +126,17 @@ def test_dev_endpoints(logged_in):
     start = time.monotonic()
     logged_in.get("/status")
     assert time.monotonic() - start >= 0.2
+
+
+def test_manual_2fa_approval_mode(client):
+    assert client.get("/dev/2fa/auto").json() == {"enabled": True}
+    client.post("/dev/2fa/auto", json={"enabled": False})
+    assert client.get("/dev/2fa/auto").json() == {"enabled": False}
+    client.post("/login")
+    time.sleep(0.1)  # FAST config would have auto-approved by now
+    assert client.get("/status").json()["state"] == "logging_in"
+    client.post("/dev/2fa/fail")
+    assert client.get("/status").json()["state"] == "login_failed"
+    client.post("/login")
+    client.post("/dev/2fa/approve")
+    wait_connected(client)

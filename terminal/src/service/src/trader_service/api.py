@@ -55,6 +55,10 @@ class SlowRequest(BaseModel):
     seconds: float
 
 
+class AutoApprove(BaseModel):
+    enabled: bool
+
+
 class SetPrice(BaseModel):
     symbol: str
     price: Decimal
@@ -212,6 +216,14 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus,
         @app.post("/dev/2fa/approve", status_code=204)
         async def dev_approve() -> None:
             fake.approve_2fa()
+
+        @app.get("/dev/2fa/auto")
+        async def dev_get_auto_approve() -> AutoApprove:
+            return AutoApprove(enabled=fake.auto_approve)
+
+        @app.post("/dev/2fa/auto", status_code=204)
+        async def dev_set_auto_approve(request: AutoApprove) -> None:
+            fake.set_auto_approve(request.enabled)
 
         @app.post("/dev/2fa/fail", status_code=204)
         async def dev_fail() -> None:
