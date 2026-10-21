@@ -12,7 +12,7 @@ struct PlannerView: View {
 
     var body: some View {
         let plan = PlannerSummary.make(account: snapshot.account, positions: snapshot.positions,
-                                       orders: snapshot.orders, quotes: model.quotes, rows: model.planRows)
+                                       orders: snapshot.orders, quotes: model.quotes, rows: model.effectivePlanRows)
         let base = plan.baseCurrency
         ScrollView {
             // 8 columns: name | exp. volume | exp. return | exp. profit | weight | quantity | price | cost / market value
@@ -21,8 +21,21 @@ struct PlannerView: View {
 
                 // Holdings: weight · quantity · price · market value — the same last four columns as the plan.
                 sectionHeader("Holdings", columns: ["", "", "", "Weight", "Quantity", "Price", "Market value"])
-                ForEach(plan.holdings) { holding in
+                // Positions bought by this plan go last, below a separator, until Finish.
+                let newConids = model.basket.newlyBoughtConids
+                let existing = plan.holdings.filter { !newConids.contains($0.position.contract.conid) }
+                let bought = plan.holdings.filter { newConids.contains($0.position.contract.conid) }
+                ForEach(existing + bought) { holding in
                     let currency = holding.position.contract.currency
+                    if holding.id == bought.first?.id {
+                        GridRow {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Divider()
+                                Text("Bought by this plan").font(.caption).foregroundStyle(.secondary)
+                            }
+                            .gridCellColumns(8)
+                        }
+                    }
                     GridRow(alignment: .firstTextBaseline) {
                         Text(holding.position.contract.symbol).fontWeight(.semibold)
                         Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]).gridCellColumns(3)
@@ -94,15 +107,20 @@ struct PlannerView: View {
                           ? "Freeze the plan and prepare buy orders"
                           : "Needs ≥ 1 row, a quantity and price on every row, and nothing left negative")
             } else {
-                Spacer()
-                HStack(spacing: 10) {  // centred together
-                    Label("Plan committed", systemImage: "lock.fill").foregroundStyle(.secondary)
+                // Centred together: the label and, until orders are sent, Replan next to it.
+                let executed = model.basket.stage == .placing || model.basket.stage == .placed
+                HStack(spacing: 10) {
+                    if executed {
+                        Label("Plan executed", systemImage: "checkmark.seal.fill").foregroundStyle(.green)
+                    } else {
+                        Label("Plan committed", systemImage: "lock.fill").foregroundStyle(.secondary)
+                    }
                     if model.basket.stage == .committed {
                         Button("Replan") { model.basket.replan() }
                             .help("Undo the commit: edit the plan again (nothing has been sent)")
                     }
                 }
-                Spacer()
+                .frame(maxWidth: .infinity)
             }
         }
         .padding(.top, 8)

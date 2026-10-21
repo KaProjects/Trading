@@ -31,6 +31,13 @@ enum AppEnvironment {
         ("SNDK", "30", "15"), ("MU", "30", "12"),
     ]
 
+    /// Developer menu, Debug + fake only: let the planner place orders while the US market is closed (testing in
+    /// the evening). Off by default; never applies to paper or production.
+    static var devAllowPlacingWhenClosed: Bool {
+        get { isDebugBuild && defaultBroker == .fake && UserDefaults.standard.bool(forKey: "devAllowPlacingWhenClosed") }
+        set { UserDefaults.standard.set(newValue, forKey: "devAllowPlacingWhenClosed") }
+    }
+
     /// Implemented broker adapters (paper and production arrive with T1/T7).
     static let available: Set<BrokerEnvironment> = [.fake]
 

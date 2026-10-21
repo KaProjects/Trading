@@ -44,9 +44,11 @@ struct BasketView: View {
                     }
                 }
             }
-            HStack(alignment: .firstTextBaseline) {
+            HStack {
                 Spacer()
                 actions(reason: reason)
+                // Place sits on the right (like Commit plan); the status after placing is centred.
+                if basket.stage != .committed { Spacer() }
             }
             .padding(.top, 6)
         }
@@ -62,7 +64,8 @@ struct BasketView: View {
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             } else {
-                Label("Market closed", systemImage: "moon.zzz.fill")
+                Label(basket.allowPlacingWhenClosed ? "Market closed · placing allowed (dev)" : "Market closed",
+                      systemImage: "moon.zzz.fill")
                     .foregroundStyle(.orange)
                     .help("US regular session opens \(LocalTime.weekdayTime(USMarket.nextOpen(after: now)))")
             }
@@ -72,7 +75,9 @@ struct BasketView: View {
 
     /// Limit vs. live price in percent (negative = the price moved above the limit: the buy may not fill).
     private func headroom(_ line: PlanBasketModel.Line) -> Decimal? {
-        PlanCommit.limitHeadroom(limit: line.limit, last: model.quotes[line.contract.feedSymbol]?.last.value)
+        // Filled: compared with the execution price (fixed); otherwise with the live price.
+        let price = line.isFilled ? line.order?.avgFillPrice?.value : model.quotes[line.contract.feedSymbol]?.last.value
+        return PlanCommit.limitHeadroom(limit: line.shownLimit, last: price)
     }
 
     /// Only rows still to be sent are flagged; a placed order is already at the broker.
@@ -83,7 +88,12 @@ struct BasketView: View {
     private func row(_ line: PlanBasketModel.Line, base: String) -> some View {
         let contract = line.contract
         let room = headroom(line)
-        let value = line.quantity.flatMap { q in line.limit.map { q * $0 } }
+        // Filled: shares × average execution price. Otherwise quantity × limit.
+        let value: Decimal? = if line.isFilled, let order = line.order, let fill = order.avgFillPrice {
+            order.filled.value * fill.value
+        } else {
+            line.shownQuantity.flatMap { q in line.shownLimit.map { q * $0 } }
+        }
         let editable = line.isEditable && (basket.stage == .committed || basket.stage == .placed)
         // First-text-baseline: the price lines up with the other numbers; its note hangs below.
         return GridRow(alignment: .firstTextBaseline) {
@@ -91,14 +101,26 @@ struct BasketView: View {
                 Text("BUY").font(.caption.weight(.bold)).foregroundStyle(.green)
                 Text(contract.symbol).fontWeight(.semibold)
             }
-            NumericField(placeholder: "qty", text: Binding(get: { line.quantityText }, set: { basket.setQuantity(line.id, $0) }),
-                         isInvalid: line.quantity == nil && !line.isPlaced)
-                .disabled(!editable)
-            NumericField(placeholder: "limit", text: Binding(get: { line.limitText }, set: { basket.setLimit(line.id, $0) }),
-                         allowsDecimal: true, isInvalid: line.limit == nil && !line.isPlaced, width: 90)
-                .disabled(!editable)
+            if line.isPlaced {
+                // Placed: the live order's values — they follow changes made in the Overview.
+                Text(line.shownQuantity.map { Format.quantity(Amount($0)) } ?? "—").gridColumnAlignment(.trailing)
+                Text(line.shownLimit.map { Format.money(Amount($0), contract.currency) } ?? "—")
+                    .gridColumnAlignment(.trailing)
+            } else {
+                NumericField(placeholder: "qty", text: Binding(get: { line.quantityText }, set: { basket.setQuantity(line.id, $0) }),
+                             isInvalid: line.quantity == nil)
+                    .disabled(!editable)
+                NumericField(placeholder: "limit", text: Binding(get: { line.limitText }, set: { basket.setLimit(line.id, $0) }),
+                             allowsDecimal: true, isInvalid: line.limit == nil, width: 90)
+                    .disabled(!editable)
+            }
             VStack(alignment: .trailing, spacing: 0) {
-                Text(model.quotes[contract.feedSymbol].map { Format.money($0.last, contract.currency) } ?? "—")
+                // Live price while not filled; the execution price once filled.
+                if line.isFilled, let fill = line.order?.avgFillPrice {
+                    Text(Format.money(fill, contract.currency))
+                } else {
+                    Text(model.quotes[contract.feedSymbol].map { Format.money($0.last, contract.currency) } ?? "—")
+                }
                 if let room {
                     Text("\(Format.percent(Amount(abs(room)))) \(room < 0 ? "above" : "below") limit")
                         .font(.caption2)
@@ -200,17 +222,30 @@ struct BasketView: View {
                 Text("Placing orders…")
             }
         case .placed:
-            HStack(spacing: 10) {
+            // Centred like "Plan committed"; Reset below once nothing is still working at the broker.
+            VStack(spacing: 8) {
                 if basket.failedCount > 0 {
+                    Label("\(basket.failedCount) order\(basket.failedCount == 1 ? "" : "s") failed",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
                     Button("Retry \(basket.failedCount) failed") { Task { await model.placeBasket() } }
                         .disabled(reason != nil)
                         .help(reason ?? "Resend only the failed orders (same references, never duplicated)")
                 }
-                if basket.allPlaced {
-                    Label("All orders placed", systemImage: "checkmark.seal.fill").foregroundStyle(.green)
-                    Button("Reset") { model.resetPlan() }
+                if basket.anyWorking {
+                    Label("All orders placed · waiting for fills", systemImage: "clock")
+                        .foregroundStyle(.blue)
+                        .help("Change or cancel them in Overview → Open orders")
+                } else if basket.allFilled {
+                    Label("All orders filled", systemImage: "checkmark.seal.fill").foregroundStyle(.green)
+                } else if basket.failedCount == 0 {
+                    Label("Orders done · \(basket.cancelledCount) cancelled", systemImage: "minus.circle")
+                        .foregroundStyle(.secondary)
+                }
+                if basket.canReset {
+                    Button("Finish") { model.resetPlan() }
                         .buttonStyle(.borderedProminent)
-                        .help("Clear the plan and start a new one")
+                        .help("Clear the plan and the orders review and start a new plan")
                 }
             }
         case .planning:

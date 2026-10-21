@@ -25,12 +25,22 @@ final class PlanBasketModel {
         var preview: OrderPreview?
         var previewError: String?
         var result: BasketResult?
+        /// The live order once placed: follows fills and changes made elsewhere (Overview modify / cancel).
+        var order: Order?
 
         var quantity: Decimal? { DecimalInput.parse(quantityText).flatMap { $0 > 0 ? $0 : nil } }
         var limit: Decimal? { DecimalInput.parse(limitText).flatMap { $0 > 0 ? $0 : nil } }
         var isPlaced: Bool { result?.isPlaced == true }
         /// Editable while committed, and after placing only if it failed (fix and retry).
         var isEditable: Bool { !isPlaced }
+        var isFilled: Bool { order?.status == "Filled" }
+        var isCancelled: Bool { ["Cancelled", "ApiCancelled", "Rejected", "Inactive"].contains(order?.status ?? "") }
+        /// Placed and still waiting at the broker (not filled, not cancelled).
+        var isWorking: Bool { isPlaced && !isFilled && !isCancelled }
+
+        /// What the row shows: the live order once placed, the typed values before.
+        var shownQuantity: Decimal? { order?.quantity.value ?? quantity }
+        var shownLimit: Decimal? { order?.limitPrice.value ?? limit }
 
         var request: OrderRequest? {
             guard let quantity, let limit else { return nil }
@@ -42,11 +52,13 @@ final class PlanBasketModel {
     private(set) var stage: Stage = .planning
     /// Settings threshold for "limit price far from the price" (D5.4), loaded at commit; checked live in the review.
     private(set) var deviationWarn: Decimal = 5
+    /// Developer option (Debug + fake): ignore the market-closed block.
+    var allowPlacingWhenClosed = AppEnvironment.devAllowPlacingWhenClosed
     private(set) var lines: [Line] = []
 
     @ObservationIgnored private let api: ServiceAPI
     @ObservationIgnored private var previewTasks: [UUID: Task<Void, Never>] = [:]
-    @ObservationIgnored private var latestStatus: [Int: String] = [:]
+    @ObservationIgnored private var latestOrders: [Int: Order] = [:]
 
     init(api: ServiceAPI) {
         self.api = api
@@ -80,9 +92,9 @@ final class PlanBasketModel {
         stage = .planning
     }
 
-    /// After every order was placed: start over (the caller also clears the plan).
+    /// Once nothing is still working at the broker: start over (the caller also clears the plan).
     func reset() {
-        guard stage == .placed, allPlaced else { return }
+        guard canReset else { return }
         lines = []
         stage = .planning
     }
@@ -127,11 +139,12 @@ final class PlanBasketModel {
 
     /// Live order events keep the review rows' status current (PendingSubmit → Submitted → Filled …).
     func orderUpdated(_ order: Order) {
-        latestStatus[order.orderId] = order.status  // may arrive before the place-order reply
+        latestOrders[order.orderId] = order  // may arrive before the place-order reply
         guard let index = lines.firstIndex(where: {
             if case .placed(let orderId, _) = $0.result { orderId == order.orderId } else { false }
         }) else { return }
         lines[index].result = .placed(orderId: order.orderId, status: order.status)
+        lines[index].order = order
     }
 
     // MARK: - Checks
@@ -145,7 +158,7 @@ final class PlanBasketModel {
         let pending = lines.filter { !$0.isPlaced }
         if pending.isEmpty { return "Nothing to place" }
         // Hard rule (D9.5): DAY orders inside regular hours only — nothing is placed while the market is closed.
-        if !USMarket.isRegularSession(now) {
+        if !USMarket.isRegularSession(now) && !allowPlacingWhenClosed {
             return "Market closed · opens \(LocalTime.weekdayTime(USMarket.nextOpen(after: now)))"
         }
         if pending.contains(where: { $0.quantity == nil }) { return "Every order needs a quantity" }
@@ -166,6 +179,15 @@ final class PlanBasketModel {
     }
 
     var allPlaced: Bool { !lines.isEmpty && lines.allSatisfy(\.isPlaced) }
+    var allFilled: Bool { !lines.isEmpty && lines.allSatisfy(\.isFilled) }
+    var anyWorking: Bool { lines.contains(where: \.isWorking) }
+    var cancelledCount: Int { lines.filter(\.isCancelled).count }
+    /// Contracts this plan has bought shares of (filled or partly filled) — highlighted in Holdings until Finish.
+    var newlyBoughtConids: Set<Int> {
+        Set(lines.filter { ($0.order?.filled.value ?? 0) > 0 }.map(\.contract.conid))
+    }
+    /// Reset once nothing is still working at the broker (all filled, or cancelled e.g. from the Overview).
+    var canReset: Bool { stage == .placed && !lines.isEmpty && !anyWorking }
     var failedCount: Int { lines.filter { if case .failed = $0.result { true } else { false } }.count }
 
     // MARK: - Placing
@@ -179,10 +201,12 @@ final class PlanBasketModel {
             guard let request = line.request else { continue }
             let result: BasketResult
             do {
-                let order = try await api.placeOrder(request)
+                let reply = try await api.placeOrder(request)
+                let order = latestOrders[reply.orderId] ?? reply  // a newer event may have arrived first
                 result = order.status == "Rejected"
                     ? .failed("Rejected: \(order.rejectReason ?? "no reason")")
-                    : .placed(orderId: order.orderId, status: latestStatus[order.orderId] ?? order.status)
+                    : .placed(orderId: order.orderId, status: order.status)
+                if result.isPlaced { update(line.id) { $0.order = order } }
             } catch ServiceError.http(_, _, let message) {
                 result = .failed(message ?? "Refused")
             } catch {

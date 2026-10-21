@@ -5,11 +5,14 @@ public struct PlanRow: Identifiable, Sendable, Equatable {
     public let id: UUID
     public let contract: Contract
     public var quantity: Decimal?
+    /// Set once the row's order is filled: the execution price, used instead of the live price (T9).
+    public var fixedPrice: Decimal?
 
-    public init(id: UUID = UUID(), contract: Contract, quantity: Decimal? = nil) {
+    public init(id: UUID = UUID(), contract: Contract, quantity: Decimal? = nil, fixedPrice: Decimal? = nil) {
         self.id = id
         self.contract = contract
         self.quantity = quantity
+        self.fixedPrice = fixedPrice
     }
 }
 
@@ -64,7 +67,11 @@ public struct PlannerSummary: Sendable {
         }
         let available = cash - reserved
         let planned = rows.map { row -> Planned in
-            let quote = quotes[row.contract.feedSymbol]
+            // A filled row is frozen on its execution price; the others follow the live price.
+            let quote = row.fixedPrice.map {
+                Quote(symbol: row.contract.feedSymbol, last: Amount($0), prevClose: Amount($0), changePct: Amount(0),
+                      time: Date())
+            } ?? quotes[row.contract.feedSymbol]
             guard let quantity = row.quantity, let quote else {
                 return Planned(row: row, quote: quote, cost: nil, costBase: nil)
             }

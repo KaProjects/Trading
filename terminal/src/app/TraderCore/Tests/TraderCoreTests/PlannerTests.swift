@@ -105,3 +105,22 @@ import Testing
         #expect(PlanReturn.total([(5_000, nil)]) == nil)
     }
 }
+
+
+@Suite struct FrozenPlanRowTests {
+    @Test func filledRowUsesExecutionPriceNotLive() {
+        let account = AccountSummary(accountId: "X", baseCurrency: "USD", netLiquidation: Amount(100_000),
+                                     totalCash: Amount(0), availableFunds: Amount(0), buyingPower: Amount(0), cash: [],
+                                     fxToBase: ["USD": Amount(1)])
+        let contract = Contract(conid: 1, symbol: "MU", name: "MU", secType: "STK", exchange: "SMART",
+                                primaryExchange: "NASDAQ", currency: "USD", priceSymbol: "MU")
+        let live = ["MU": Quote(symbol: "MU", last: Amount(950), prevClose: Amount(900), changePct: Amount(0), time: Date())]
+        let frozen = PlannerSummary.make(account: account, positions: [], orders: [], quotes: live,
+                                         rows: [PlanRow(contract: contract, quantity: 33, fixedPrice: 914)])
+        #expect(frozen.planned[0].quote?.last == Amount(914))
+        #expect(frozen.planned[0].costBase == Decimal(33 * 914))
+        let moving = PlannerSummary.make(account: account, positions: [], orders: [], quotes: live,
+                                         rows: [PlanRow(contract: contract, quantity: 33)])
+        #expect(moving.planned[0].costBase == Decimal(33 * 950))
+    }
+}

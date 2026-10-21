@@ -81,6 +81,12 @@ struct DeveloperItems: View {
                 }
                 .disabled(!model.hasFinnhubKey && model.priceFeed != "finnhub")
             }
+            Section("Planner") {
+                Button(model.basket.allowPlacingWhenClosed ? "✓ Allow Placing When Market Closed"
+                                                           : "   Allow Placing When Market Closed") {
+                    model.toggleAllowPlacingWhenClosed()
+                }
+            }
             Section("Fake broker") {
                 Button(model.fakeAutoLogin ? "✓ Auto Log-in (no Touch ID)" : "Auto Log-in (no Touch ID)") {
                     model.toggleFakeAutoLogin()

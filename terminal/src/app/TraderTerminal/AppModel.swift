@@ -292,10 +292,23 @@ final class AppModel {
 
     // MARK: - Planner (T8)
 
+    /// Plan rows as shown: once a row's order is filled it is frozen on the execution (fill price and filled
+    /// shares), so its price, cost and expected profit stop following the market.
+    var effectivePlanRows: [PlanRow] {
+        planRows.map { row in
+            guard let line = basket.lines.first(where: { $0.id == row.id }), line.isFilled,
+                  let order = line.order, let fill = order.avgFillPrice else { return row }
+            var frozen = row
+            frozen.quantity = order.filled.value
+            frozen.fixedPrice = fill.value
+            return frozen
+        }
+    }
+
     /// The plan as the Planner shows it (nil without account data).
     var planSummary: PlannerSummary? {
         account.map { PlannerSummary.make(account: $0.account, positions: $0.positions, orders: $0.orders,
-                                          quotes: quotes, rows: planRows) }
+                                          quotes: quotes, rows: effectivePlanRows) }
     }
 
     func commitPlan() async {
@@ -470,6 +483,11 @@ final class AppModel {
                 setPlanReturn(id, text: item.expectedReturn)
             }
         }
+    }
+
+    func toggleAllowPlacingWhenClosed() {
+        AppEnvironment.devAllowPlacingWhenClosed = !basket.allowPlacingWhenClosed
+        basket.allowPlacingWhenClosed = AppEnvironment.devAllowPlacingWhenClosed
     }
 
     func toggleFakeAutoLogin() {
