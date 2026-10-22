@@ -9,6 +9,9 @@ struct SettingsView: View {
     @State private var saving = false
     @State private var finnhubKey = ""
     @State private var keyMessage: String?
+    @State private var ibkrUsername = ""
+    @State private var ibkrPassword = ""
+    @State private var ibkrMessage: String?
 
     enum Field: CaseIterable {
         case pctWarn, pctStrong, valueWarn, quantityWarn, priceDeviation, planMarkup
@@ -31,6 +34,39 @@ struct SettingsView: View {
                 ForEach(Field.allCases, id: \.self) { field in
                     TextField(field.label, text: Binding(get: { fields[field] ?? "" }, set: { fields[field] = $0 }))
                         .multilineTextAlignment(.trailing)
+                }
+            }
+            if model.environment != .fake {
+                Section("IBKR login — \(model.environment.label)") {
+                    TextField("Username", text: $ibkrUsername)
+                    SecureField("Password", text: $ibkrPassword,
+                                prompt: Text(model.hasIbkrCredentials ? "saved — enter both to replace" : ""))
+                    HStack {
+                        Text(ibkrMessage ?? (model.hasIbkrCredentials
+                                             ? "Stored in the Keychain behind Touch ID."
+                                             : "Needed for Log in. Stored in the Keychain behind Touch ID."))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if model.hasIbkrCredentials {
+                            Button("Remove", role: .destructive) {
+                                model.deleteIbkrCredentials()
+                                ibkrMessage = "Removed."
+                            }
+                        }
+                        Button("Save Login") {
+                            do {
+                                try model.saveIbkrCredentials(
+                                    username: ibkrUsername.trimmingCharacters(in: .whitespacesAndNewlines),
+                                    password: ibkrPassword)
+                                ibkrUsername = ""
+                                ibkrPassword = ""
+                                ibkrMessage = "Saved."
+                            } catch {
+                                ibkrMessage = error.localizedDescription
+                            }
+                        }
+                        .disabled(ibkrUsername.trimmingCharacters(in: .whitespaces).isEmpty || ibkrPassword.isEmpty)
+                    }
                 }
             }
             Section("Market data — Finnhub (real-time prices, T4)") {

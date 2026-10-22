@@ -53,12 +53,16 @@ public enum ControlMessage: Sendable {
     case unlock(dataKey: Data)
     case lock
     case finnhubKey(String)
+    /// T1: right before Log in; the service hands them to IBC and forgets them (D1.3).
+    case ibkrCredentials(username: String, password: String)
 
     var line: Data {
         let object: [String: String] = switch self {
         case .unlock(let key): ["type": "unlock", "data_key": key.base64EncodedString()]
         case .lock: ["type": "lock"]
         case .finnhubKey(let key): ["type": "finnhub_key", "key": key]
+        case .ibkrCredentials(let username, let password):
+            ["type": "ibkr_credentials", "username": username, "password": password]
         }
         var data = (try? JSONSerialization.data(withJSONObject: object)) ?? Data()
         data.append(0x0A)

@@ -9,7 +9,7 @@ import TraderCore
 @MainActor
 @Observable
 final class AppModel {
-    let environment = AppEnvironment.defaultBroker
+    let environment = AppEnvironment.selected
     private(set) var phase: ServicePhase = .starting
     private(set) var status: BrokerStatus?
     private(set) var locked = true
@@ -72,6 +72,7 @@ final class AppModel {
         UserDefaults.standard.removeObject(forKey: "fakePriceFeed")  // first version of the Developer switch
         UserDefaults.standard.removeObject(forKey: "devData.plannerPrefill")  // merged into devData.devPlans
         hasFinnhubKey = KeychainStore.hasFinnhubKey
+        hasIbkrCredentials = KeychainStore.hasIbkrCredentials(environment: environment.rawValue)
         notifier.requestAuthorization()
         launchService()
     }
@@ -566,7 +567,50 @@ final class AppModel {
 
     func logIn() async {
         if locked, !(await unlock()) { return }
+        if environment != .fake, !sendIbkrCredentials() { return }
         await perform { try await self.apply(self.api.login()) }
+    }
+
+    /// T1: credentials from the Keychain (with the unlock's Touch ID context) to the service, right before Log in.
+    private func sendIbkrCredentials() -> Bool {
+        guard let process, let context = appLock.context else { return false }
+        do {
+            guard let login = try KeychainStore.ibkrCredentials(environment: environment.rawValue, context: context)
+            else {
+                lastError = "Add your IBKR username and password in Settings"
+                return false
+            }
+            try process.send(.ibkrCredentials(username: login.username, password: login.password))
+            return true
+        } catch {
+            lastError = "Could not read the IBKR login: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    private(set) var hasIbkrCredentials = false
+
+    func saveIbkrCredentials(username: String, password: String) throws {
+        try KeychainStore.saveIbkrCredentials(environment: environment.rawValue, username: username,
+                                              password: password)
+        hasIbkrCredentials = true
+    }
+
+    func deleteIbkrCredentials() {
+        KeychainStore.deleteIbkrCredentials(environment: environment.rawValue)
+        hasIbkrCredentials = false
+    }
+
+    /// Developer menu (Debug): fake ↔ paper. The environment is fixed per run, so the app relaunches.
+    func switchEnvironment(_ target: BrokerEnvironment) {
+        guard AppEnvironment.isDebugBuild, target != environment, AppEnvironment.available.contains(target) else { return }
+        AppEnvironment.select(target)
+        let relaunch = Process()
+        relaunch.executableURL = URL(fileURLWithPath: "/bin/sh")
+        relaunch.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; open \"$0\"",
+                              Bundle.main.bundlePath]
+        try? relaunch.run()
+        NSApp.terminate(nil)
     }
 
     func stop() async {

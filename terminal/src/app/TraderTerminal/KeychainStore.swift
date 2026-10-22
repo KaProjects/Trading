@@ -33,6 +33,36 @@ enum KeychainStore {
         return key
     }
 
+    // MARK: - IBKR login (D1.3): username + password per environment, behind Touch ID. Read with the context of
+    // the app unlock, so Log in doesn't prompt again. Whether they exist is remembered in UserDefaults (no secret).
+
+    private struct IbkrLogin: Codable {
+        let username: String
+        let password: String
+    }
+
+    static func ibkrCredentials(environment: String, context: LAContext?) throws -> (username: String, password: String)? {
+        guard let data = try read(account: "ibkr-login.\(environment)", context: context),
+              let login = try? JSONDecoder().decode(IbkrLogin.self, from: data) else { return nil }
+        return (login.username, login.password)
+    }
+
+    static func saveIbkrCredentials(environment: String, username: String, password: String) throws {
+        deleteIbkrCredentials(environment: environment)
+        let data = try JSONEncoder().encode(IbkrLogin(username: username, password: password))
+        try add(account: "ibkr-login.\(environment)", value: data, userPresence: true)
+        UserDefaults.standard.set(true, forKey: "ibkrLoginSaved.\(environment)")
+    }
+
+    static func deleteIbkrCredentials(environment: String) {
+        delete(account: "ibkr-login.\(environment)")
+        UserDefaults.standard.removeObject(forKey: "ibkrLoginSaved.\(environment)")
+    }
+
+    static func hasIbkrCredentials(environment: String) -> Bool {
+        UserDefaults.standard.bool(forKey: "ibkrLoginSaved.\(environment)")
+    }
+
     // MARK: - Finnhub API key (D4.2): market data only, no account access → no Touch ID. Readable only by this
     // app (code signature + keychain access group) while the Mac is unlocked; never leaves this device.
 

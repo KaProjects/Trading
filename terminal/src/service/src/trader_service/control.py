@@ -3,6 +3,7 @@
     {"type": "unlock", "data_key": "<base64, 32 bytes>"}   after Touch ID
     {"type": "lock"}                                       sleep / screen lock / window closed
     {"type": "finnhub_key", "key": "<api key>"}            price feed key from the Keychain (T4)
+    {"type": "ibkr_credentials", "username": "…", "password": "…"}   right before Log in (T1, D1.3)
     EOF                                                    the app quit or crashed -> shut down
 """
 
@@ -27,7 +28,7 @@ async def open_stdin() -> asyncio.StreamReader:
     return reader
 
 
-def handle_message(line: bytes, store: Store, prices: PriceFeed | None = None) -> None:
+def handle_message(line: bytes, store: Store, prices: PriceFeed | None = None, broker=None) -> None:
     try:
         message = json.loads(line)
         kind = message["type"]
@@ -48,14 +49,22 @@ def handle_message(line: bytes, store: Store, prices: PriceFeed | None = None) -
             prices.set_key(key)
         else:
             log.warning("ignoring finnhub_key message")
+    elif kind == "ibkr_credentials":
+        username, password = message.get("username"), message.get("password")
+        if isinstance(username, str) and isinstance(password, str) and username and password \
+                and broker is not None and hasattr(broker, "set_credentials"):
+            broker.set_credentials(username, password)
+        else:
+            log.warning("ignoring ibkr_credentials message")
     else:
         log.warning("ignoring unknown control message type")
 
 
 async def run_control(reader: asyncio.StreamReader, store: Store, on_eof: Callable[[], None],
-                      prices: PriceFeed | None = None, on_change: Callable[[], None] = lambda: None) -> None:
+                      prices: PriceFeed | None = None, on_change: Callable[[], None] = lambda: None,
+                      broker=None) -> None:
     while line := await reader.readline():
-        handle_message(line, store, prices)
+        handle_message(line, store, prices, broker)
         on_change()
     store.lock()
     on_eof()

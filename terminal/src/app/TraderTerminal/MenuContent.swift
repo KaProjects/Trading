@@ -66,52 +66,55 @@ struct DeveloperItems: View {
         Group {
             Section("Environment") {
                 ForEach([BrokerEnvironment.fake, .paper], id: \.self) { environment in
-                    Button("\(environment == model.environment ? "✓ " : "   ")\(environment.label)"
-                           + (AppEnvironment.available.contains(environment) ? "" : " (with T1)")) {}
-                        .disabled(!AppEnvironment.available.contains(environment) || environment == model.environment)
+                    Button("\(environment == model.environment ? "✓ " : "   ")\(environment.label)") {
+                        model.switchEnvironment(environment)
+                    }
+                    .disabled(!AppEnvironment.available.contains(environment) || environment == model.environment)
                 }
             }
-            Section("Prices") {
-                Button(model.priceFeed == "fake" ? "✓ Simulated Prices" : "   Simulated Prices") {
-                    model.setPriceFeed("fake")
+            Group {
+                Section("Prices") {
+                    Button(model.priceFeed == "fake" ? "✓ Simulated Prices" : "   Simulated Prices") {
+                        model.setPriceFeed("fake")
+                    }
+                    Button(model.priceFeed == "finnhub" ? "✓ Finnhub Prices (real)" : "   Finnhub Prices (real)"
+                           + (model.hasFinnhubKey ? "" : " — add key in Settings")) {
+                        model.setPriceFeed("finnhub")
+                    }
+                    .disabled(!model.hasFinnhubKey && model.priceFeed != "finnhub")
                 }
-                Button(model.priceFeed == "finnhub" ? "✓ Finnhub Prices (real)" : "   Finnhub Prices (real)"
-                       + (model.hasFinnhubKey ? "" : " — add key in Settings")) {
-                    model.setPriceFeed("finnhub")
-                }
-                .disabled(!model.hasFinnhubKey && model.priceFeed != "finnhub")
-            }
-            Section("Planner") {
-                Button(model.basket.allowPlacingWhenClosed ? "✓ Allow Placing When Market Closed"
-                                                           : "   Allow Placing When Market Closed") {
-                    model.toggleAllowPlacingWhenClosed()
-                }
-            }
-            Section("Dev data") {
-                ForEach(AppEnvironment.DevData.allCases, id: \.self) { item in
-                    Button(model.devData.contains(item) ? "✓ \(item.label)" : "   \(item.label)") {
-                        model.toggleDevData(item)
+                Section("Planner") {
+                    Button(model.basket.allowPlacingWhenClosed ? "✓ Allow Placing When Market Closed"
+                                                               : "   Allow Placing When Market Closed") {
+                        model.toggleAllowPlacingWhenClosed()
                     }
                 }
+                Section("Dev data") {
+                    ForEach(AppEnvironment.DevData.allCases, id: \.self) { item in
+                        Button(model.devData.contains(item) ? "✓ \(item.label)" : "   \(item.label)") {
+                            model.toggleDevData(item)
+                        }
+                    }
+                }
+                Section("Fake broker") {
+                    Button(model.fakeAutoLogin ? "✓ Auto Log-in (no Touch ID)" : "Auto Log-in (no Touch ID)") {
+                        model.toggleFakeAutoLogin()
+                    }
+                    Button(model.autoApprove2FA ? "✓ Auto-approve 2FA (1 s)" : "Auto-approve 2FA (1 s)") {
+                        Task { await model.toggleAutoApprove2FA() }
+                    }
+                    Button("Approve 2FA") { Task { await model.dev(.approve2FA) } }
+                    Button("Fail 2FA (timeout)") { Task { await model.dev(.fail2FA) } }
+                    Button("Drop Connection") { Task { await model.dev(.dropConnection) } }
+                    Button("Require Login (daily restart)") { Task { await model.dev(.requireLogin) } }
+                    Button(model.slowResponses ? "✓ Slow Responses (2 s)" : "Slow Responses (2 s)") {
+                        Task { await model.toggleSlowResponses() }
+                    }
+                    Button("Reset Fake Account") { Task { await model.dev(.reset) } }
+                }
             }
-            Section("Fake broker") {
-                Button(model.fakeAutoLogin ? "✓ Auto Log-in (no Touch ID)" : "Auto Log-in (no Touch ID)") {
-                    model.toggleFakeAutoLogin()
-                }
-                Button(model.autoApprove2FA ? "✓ Auto-approve 2FA (1 s)" : "Auto-approve 2FA (1 s)") {
-                    Task { await model.toggleAutoApprove2FA() }
-                }
-                Button("Approve 2FA") { Task { await model.dev(.approve2FA) } }
-                Button("Fail 2FA (timeout)") { Task { await model.dev(.fail2FA) } }
-                Button("Drop Connection") { Task { await model.dev(.dropConnection) } }
-                Button("Require Login (daily restart)") { Task { await model.dev(.requireLogin) } }
-                Button(model.slowResponses ? "✓ Slow Responses (2 s)" : "Slow Responses (2 s)") {
-                    Task { await model.toggleSlowResponses() }
-                }
-                Button("Reset Fake Account") { Task { await model.dev(.reset) } }
-            }
+            .disabled(model.phase != .running || model.environment != .fake)  // the rest is for the fake broker
         }
-        .disabled(model.phase != .running || model.environment != .fake)
     }
 }
 

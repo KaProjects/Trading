@@ -14,6 +14,7 @@ import uvicorn
 from trader_service.api import create_app
 from trader_service.control import open_stdin
 from trader_service.broker.fake import FakeBroker, load_seed, seed_prices, with_dev_plan
+from trader_service.broker.ibkr import IbkrBroker
 from trader_service.events import EventBus
 from trader_service.models import Environment
 from trader_service.prices.fake import FakePrices
@@ -55,8 +56,12 @@ def clear_fake_data(data_dir: Path) -> None:
 def build(environment: Environment, data_dir: Path, control: bool = False, price_feed: str = "fake",
           dev_plan: bool = False, seed_transactions: bool = True):
     bus = EventBus()
-    if environment != Environment.FAKE:
-        raise SystemExit(f"Environment '{environment}' is not implemented yet (IBKR adapter comes with T1)")
+    if environment != Environment.FAKE:  # T1: IB Gateway via IBC, real prices from Finnhub
+        prices = FinnhubPrices()
+        broker = IbkrBroker(bus, prices, environment, data_dir)
+        store = Store(broker, bus, Vault(data_dir))
+        return create_app(broker, prices, bus, store, control=open_stdin if control else None,
+                          on_control_eof=lambda: signal.raise_signal(signal.SIGTERM))
     seed = load_seed()
     # The fake account resets to the seed on every start (D0.5), so its saved data must too — otherwise the
     # trade history / plans would not match the positions. Paper and production keep everything.

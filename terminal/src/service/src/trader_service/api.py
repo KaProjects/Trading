@@ -105,7 +105,8 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         tasks = [asyncio.create_task(follow_status())]
         if control is not None:
             tasks.append(asyncio.create_task(
-                run_control(await control(), store, on_control_eof, prices, on_change=update_price_stream)))
+                run_control(await control(), store, on_control_eof, prices, on_change=update_price_stream,
+                            broker=broker)))
         update_price_stream()
         yield
         for task in tasks:
@@ -192,7 +193,7 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
 
     @app.get("/contracts")
     async def contracts(symbol: str = Query(min_length=1, max_length=20)) -> list[Contract]:
-        return broker.lookup_contract(symbol)
+        return await broker.lookup_contract(symbol)
 
     # --- persisted data (needs the data key, D3.3) -------------------------------------------------------
 

@@ -89,7 +89,7 @@ async def test_positions_orders_fills_and_lookup(connected):
     assert len(fills) == 4 and fills[0].time >= fills[-1].time
     assert {f.exec_id for f in fills} == {"FAKE-SEED-1", "FAKE-SEED-2", "FAKE-SEED-3", "FAKE-SEED-4"}
     assert len(connected.fills(3)) == 2
-    assert {c.primary_exchange for c in connected.lookup_contract("shop")} == {"NYSE", "TSE"}
+    assert {c.primary_exchange for c in (await connected.lookup_contract("shop"))} == {"NYSE", "TSE"}
 
 
 async def test_price_subscriptions_follow_positions_and_orders(connected, prices):

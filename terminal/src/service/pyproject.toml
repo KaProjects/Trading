@@ -10,6 +10,7 @@ dependencies = [
     "cryptography>=50.0.2",
     "fastapi>=0.157.0",
     "httpx>=0.28.1",
+    "ib-async>=2.1.0",
     "uvicorn[standard]>=0.54.0",
     "websockets>=17.3",
 ]

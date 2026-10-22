@@ -1,4 +1,4 @@
-"""Broker adapter interface. FakeBroker implements it now, IbkrBroker (ib_async) in T1."""
+"""Broker adapter interface: FakeBroker (fake environment) and IbkrBroker (ib_async, paper / production)."""
 
 from abc import ABC, abstractmethod
 from decimal import Decimal
@@ -70,7 +70,7 @@ class Broker(ABC):
     def fills(self, days: int) -> list[Fill]: ...
 
     @abstractmethod
-    def lookup_contract(self, symbol: str) -> list[Contract]: ...
+    async def lookup_contract(self, symbol: str) -> list[Contract]: ...
 
     @abstractmethod
     def contract(self, conid: int) -> Contract: ...

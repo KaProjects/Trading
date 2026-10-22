@@ -57,8 +57,20 @@ enum AppEnvironment {
         set { UserDefaults.standard.set(newValue, forKey: "devAllowPlacingWhenClosed") }
     }
 
-    /// Implemented broker adapters (paper and production arrive with T1/T7).
-    static let available: Set<BrokerEnvironment> = [.fake]
+    /// Implemented broker adapters: fake, paper (T1). Production comes with T7.
+    static let available: Set<BrokerEnvironment> = [.fake, .paper]
+
+    /// The environment this run uses. Release: production. Debug: fake or paper, chosen in the Developer menu
+    /// (switching relaunches the app).
+    static var selected: BrokerEnvironment {
+        guard isDebugBuild else { return defaultBroker }
+        let saved = UserDefaults.standard.string(forKey: "debugEnvironment").flatMap(BrokerEnvironment.init)
+        return saved.flatMap { available.contains($0) && $0 != .production ? $0 : nil } ?? defaultBroker
+    }
+
+    static func select(_ environment: BrokerEnvironment) {
+        UserDefaults.standard.set(environment.rawValue, forKey: "debugEnvironment")
+    }
 
     static var supportDirectory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

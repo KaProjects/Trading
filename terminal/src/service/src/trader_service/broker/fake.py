@@ -301,7 +301,7 @@ class FakeBroker(Broker):
         since = _now() - timedelta(days=days)
         return sorted((f for f in self._fills if f.time >= since), key=lambda f: f.time, reverse=True)
 
-    def lookup_contract(self, symbol: str) -> list[Contract]:
+    async def lookup_contract(self, symbol: str) -> list[Contract]:
         self._require_connected()
         wanted = symbol.strip().upper()
         return [c for c in self._contracts.values() if c.symbol == wanted]
