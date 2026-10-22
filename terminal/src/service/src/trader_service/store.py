@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 
 SNAPSHOT = "snapshot.enc"
 SETTINGS = "settings.enc"
+PLANS = "plans.enc"
 SNAPSHOT_EVENTS = {"account", "position", "order", "fill", "status"}
 
 
@@ -35,7 +36,8 @@ def _parse(value: str) -> datetime:
 
 class Store:
     def __init__(self, broker: Broker, bus: EventBus, vault: Vault, snapshot_interval: float = 1.0,
-                 activity_retention: timedelta = timedelta(days=90)) -> None:
+                 activity_retention: timedelta = timedelta(days=90), seed_plans: list[dict] | None = None,
+                 seed_fills: list[dict] | None = None) -> None:
         self._broker = broker
         self._bus = bus
         self._vault = vault
@@ -46,6 +48,8 @@ class Store:
         self._dirty = False
         self._tasks: list[asyncio.Task] = []
         self._thresholds = RuleThresholds()
+        self._seed_plans = seed_plans or []  # fake environment dev data (--dev-plan)
+        self._seed_fills = seed_fills or []  # its fills older than the 7 days the broker returns
 
     # --- lifecycle -------------------------------------------------------------------------------
 
@@ -70,6 +74,9 @@ class Store:
         self.record("vault", action="unlocked")
         saved = self._read(SETTINGS) or {}
         self._thresholds = RuleThresholds(**saved.get("rules", {}))
+        if self._seed_plans and not self.plans():
+            self._vault.write(PLANS, self._seed_plans)
+            self._pending_fills.extend(self._seed_fills)
         self._flush_pending()
         self._prune_activity()
         self._sync_recent_fills()
@@ -95,6 +102,22 @@ class Store:
         for month in sorted(months):
             fills.extend(f for f in self._read(f"trades-{month}.enc") or [] if _parse(f["time"]) >= since)
         return sorted(fills, key=lambda f: f["time"], reverse=True)
+
+    def all_fills(self) -> list[dict]:
+        """Every fill in the own trade history (all months)."""
+        fills = []
+        for name in self._vault.names("trades-"):
+            fills.extend(self._read(name) or [])
+        return fills
+
+    def plans(self) -> list[dict]:
+        return self._read(PLANS) or []
+
+    def save_plan(self, plan: dict) -> None:
+        """T10: executed plans, saved at Place (replaces a plan with the same id)."""
+        plans = [p for p in self.plans() if p["id"] != plan["id"]] + [plan]
+        self._vault.write(PLANS, plans)
+        self.record("plan_placed", plan_id=plan["id"], rows=len(plan["rows"]))
 
     def activity(self, month: str) -> list[dict]:
         return self._read(f"activity-{month}.enc") or []

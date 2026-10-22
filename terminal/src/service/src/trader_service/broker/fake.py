@@ -8,6 +8,7 @@ import asyncio
 import contextlib
 import dataclasses
 import json
+import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -61,6 +62,17 @@ class FakeConfig:
 
 def load_seed() -> dict:
     return json.loads(resources.files("trader_service.fixtures").joinpath("fake_seed.json").read_text())
+
+
+def with_dev_plan(seed: dict) -> tuple[dict, list[dict]]:
+    """Dev data (--dev-plan): the seed plus the executed plans' positions and fills, and the plan records."""
+    dev = json.loads(resources.files("trader_service.fixtures").joinpath("fake_dev_plan.json").read_text())
+    merged = {**seed, "positions": seed["positions"] + dev["positions"], "fills": seed["fills"] + dev["fills"]}
+    plans = []
+    for raw in dev["plans"]:
+        placed = (datetime.now(UTC) - timedelta(days=raw["days_ago"])).isoformat()
+        plans.append({"id": raw["id"], "committed_at": placed, "placed_at": placed, "rows": raw["rows"]})
+    return merged, plans
 
 
 def seed_prices(seed: dict) -> dict[str, Decimal]:
@@ -210,6 +222,8 @@ class FakeBroker(Broker):
         self._refs: dict[str, int] = {}
         self._order_ids = count(1)
         self._exec_ids = count(1)
+        # Unique per run: the own trade history de-duplicates by execution ID across restarts.
+        self._run = secrets.token_hex(3)
         self._fills: list[Fill] = []
         now = _now()
         for raw in seed["open_orders"]:
@@ -219,13 +233,17 @@ class FakeBroker(Broker):
                 order_ref=raw["order_ref"]), OrderStatus.SUBMITTED)
             self._orders[order.order_id] = order
             self._refs[order.order_ref] = order.order_id
-        for raw in seed["fills"]:
+        for index, raw in enumerate(seed["fills"], start=1):
             self._fills.append(Fill(
-                exec_id=self._next_exec_id(), order_id=None, order_ref=None,
+                exec_id=f"FAKE-SEED-{index}", order_id=None, order_ref=raw.get("order_ref"),  # stable id every run
                 contract=self._contracts[raw["conid"]], side=Side(raw["side"]),
                 quantity=Decimal(raw["quantity"]), price=Decimal(raw["price"]),
                 commission=self._config.commission, commission_currency=self._config.commission_currency,
                 time=now - timedelta(days=raw["days_ago"])))
+
+    def seed_fills(self) -> list[Fill]:
+        """Every seed fill, also those older than the 7 days `fills` returns (dev history)."""
+        return [f for f in self._fills if f.exec_id.startswith("FAKE-SEED-")]
 
     def fx_rate(self, currency: str) -> Decimal:
         return self._fx[currency]
@@ -427,7 +445,7 @@ class FakeBroker(Broker):
         self._update_price_subscriptions()
 
     def _next_exec_id(self) -> str:
-        return f"FAKE-{next(self._exec_ids):06d}"
+        return f"FAKE-{self._run}-{next(self._exec_ids):06d}"
 
     def set_watchlist(self, conids: set[int]) -> None:
         for conid in conids:

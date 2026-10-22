@@ -7,10 +7,6 @@ struct MainWindow: View {
     static let id = "main"
     let model: AppModel
 
-    enum Section: Hashable { case overview, planner }
-    /// Debug + fake environment opens on the Planner (with the dev preset); otherwise the Overview.
-    @State private var section: Section = AppEnvironment.isDebugBuild && AppEnvironment.defaultBroker == .fake
-        ? .planner : .overview
 
     var body: some View {
         let shown = model.presentation
@@ -21,8 +17,12 @@ struct MainWindow: View {
                 if shown.isLocked {
                     LockedView(model: model)
                 } else if let account = model.account {
-                    if section == .planner {
+                    if model.mainSection == .planner {
                         PlannerView(model: model, snapshot: account, isLive: model.accountIsLive)
+                    } else if model.mainSection == .execution {
+                        ExecutionView(model: model, snapshot: account, isLive: model.accountIsLive)
+                    } else if model.mainSection == .history {
+                        HistoryView(model: model, snapshot: account, isLive: model.accountIsLive)
                     } else {
                         AccountView(snapshot: account, isLive: model.accountIsLive, quotes: model.quotes,
                                     trade: model.canTrade ? { model.openTicket(contract: $0, side: $1) } : nil,
@@ -63,9 +63,11 @@ struct MainWindow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if !shown.isLocked, model.account != nil {
-                Picker("", selection: $section) {
-                    Text("Overview").tag(Section.overview)
-                    Text("Planner").tag(Section.planner)
+                Picker("", selection: Binding(get: { model.mainSection }, set: { model.mainSection = $0 })) {
+                    Text("Overview").tag(MainSection.overview)
+                    Text("Planner").tag(MainSection.planner)
+                    Text("Execution").tag(MainSection.execution)
+                    Text("History").tag(MainSection.history)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()

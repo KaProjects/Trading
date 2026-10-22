@@ -87,6 +87,13 @@ struct DeveloperItems: View {
                     model.toggleAllowPlacingWhenClosed()
                 }
             }
+            Section("Dev data") {
+                ForEach(AppEnvironment.DevData.allCases, id: \.self) { item in
+                    Button(model.devData.contains(item) ? "✓ \(item.label)" : "   \(item.label)") {
+                        model.toggleDevData(item)
+                    }
+                }
+            }
             Section("Fake broker") {
                 Button(model.fakeAutoLogin ? "✓ Auto Log-in (no Touch ID)" : "Auto Log-in (no Touch ID)") {
                     model.toggleFakeAutoLogin()

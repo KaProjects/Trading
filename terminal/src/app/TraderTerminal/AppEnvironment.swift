@@ -31,6 +31,25 @@ enum AppEnvironment {
         ("SNDK", "30", "15"), ("MU", "30", "12"),
     ]
 
+    /// Developer menu, Debug + fake only: which dev data the fake environment starts with (all on by default).
+    /// seedTransactions = the default dev data (the seed's positions, open order and fills); devPlans = the Planner prefill rows plus the Execution /
+    /// History plans.
+    enum DevData: String, CaseIterable {
+        case seedTransactions, devPlans
+
+        var label: String {
+            switch self {
+            case .seedTransactions: "Default Dev Data"
+            case .devPlans: "Dev Plans (Planner, Execution, History)"
+            }
+        }
+
+        var isOn: Bool {
+            get { UserDefaults.standard.object(forKey: "devData.\(rawValue)") as? Bool ?? true }
+            nonmutating set { UserDefaults.standard.set(newValue, forKey: "devData.\(rawValue)") }
+        }
+    }
+
     /// Developer menu, Debug + fake only: let the planner place orders while the US market is closed (testing in
     /// the evening). Off by default; never applies to paper or production.
     static var devAllowPlacingWhenClosed: Bool {

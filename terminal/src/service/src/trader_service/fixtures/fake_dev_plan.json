@@ -1,0 +1,127 @@
+{
+  "_note": "Dev data (fake environment, --dev-plan): a finished plan from a month ago (History) and a partly sold one from yesterday (Execution).",
+  "plans": [
+    {
+      "id": "dev-plan-0",
+      "days_ago": 30,
+      "rows": [
+        {
+          "conid": 755000001,
+          "symbol": "SNDK",
+          "currency": "USD",
+          "order_ref": "dev-plan-0-sndk",
+          "planned_quantity": "6",
+          "expected_return_pct": "25"
+        },
+        {
+          "conid": 9939,
+          "symbol": "MU",
+          "currency": "USD",
+          "order_ref": "dev-plan-0-mu",
+          "planned_quantity": "15",
+          "expected_return_pct": "15"
+        }
+      ]
+    },
+    {
+      "id": "dev-plan-1",
+      "days_ago": 1,
+      "rows": [
+        {
+          "conid": 755000001,
+          "symbol": "SNDK",
+          "currency": "USD",
+          "order_ref": "dev-plan-1-sndk",
+          "planned_quantity": "10",
+          "expected_return_pct": "20"
+        },
+        {
+          "conid": 9939,
+          "symbol": "MU",
+          "currency": "USD",
+          "order_ref": "dev-plan-1-mu",
+          "planned_quantity": "10",
+          "expected_return_pct": "20"
+        }
+      ]
+    }
+  ],
+  "positions": [
+    {
+      "conid": 755000001,
+      "quantity": "5",
+      "avg_cost": "1325.00"
+    },
+    {
+      "conid": 9939,
+      "quantity": "10",
+      "avg_cost": "880.00"
+    }
+  ],
+  "fills": [
+    {
+      "conid": 755000001,
+      "side": "BUY",
+      "quantity": "6",
+      "price": "1050.00",
+      "days_ago": 30,
+      "order_ref": "dev-plan-0-sndk"
+    },
+    {
+      "conid": 9939,
+      "side": "BUY",
+      "quantity": "15",
+      "price": "720.00",
+      "days_ago": 30,
+      "order_ref": "dev-plan-0-mu"
+    },
+    {
+      "conid": 755000001,
+      "side": "SELL",
+      "quantity": "6",
+      "price": "1290.00",
+      "days_ago": 12,
+      "order_ref": null
+    },
+    {
+      "conid": 9939,
+      "side": "SELL",
+      "quantity": "8",
+      "price": "800.00",
+      "days_ago": 20,
+      "order_ref": null
+    },
+    {
+      "conid": 9939,
+      "side": "SELL",
+      "quantity": "7",
+      "price": "860.00",
+      "days_ago": 12,
+      "order_ref": null
+    },
+    {
+      "conid": 755000001,
+      "side": "BUY",
+      "quantity": "10",
+      "price": "1325.00",
+      "days_ago": 1,
+      "order_ref": "dev-plan-1-sndk"
+    },
+    {
+      "conid": 9939,
+      "side": "BUY",
+      "quantity": "10",
+      "price": "880.00",
+      "days_ago": 1,
+      "order_ref": "dev-plan-1-mu"
+    },
+    {
+      "conid": 755000001,
+      "side": "SELL",
+      "quantity": "5",
+      "price": "1395.00",
+      "days_ago": 0,
+      "order_ref": null
+    }
+  ]
+}

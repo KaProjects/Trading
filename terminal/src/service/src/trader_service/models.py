@@ -216,3 +216,76 @@ class ActivityNote(BaseModel):
 
     kind: str = Field(pattern="^(order_dialog_cancelled)$")
     detail: dict = {}
+
+
+class PlanRecordRow(BaseModel):
+    conid: int
+    symbol: str
+    currency: str
+    order_ref: str
+    planned_quantity: Decimal
+    expected_return_pct: Decimal | None = None
+
+
+class PlanRecord(BaseModel):
+    """An executed plan (T10), saved at Place. Its fills are found in the trade history by order_ref."""
+
+    id: str
+    committed_at: datetime
+    placed_at: datetime
+    rows: list[PlanRecordRow] = Field(min_length=1)
+
+
+class ExecutionLine(BaseModel):
+    """Part of a plan row: the shares still held (at the live price) or one sale (at its sell price)."""
+    kind: str                       # held | sold
+    quantity: Decimal
+    price: Decimal | None           # live price (held) or sell price (sold), contract currency
+    time: datetime | None = None    # sell time
+    cost: Decimal                   # purchase cost of these shares, base currency
+    value: Decimal | None           # market value (held) or proceeds (sold), base currency
+    profit: Decimal | None
+    return_pct: Decimal | None
+    expected_profit: Decimal | None = None
+    difference: Decimal | None = None   # profit - expected profit
+
+
+class ExecutionRow(BaseModel):
+    conid: int
+    symbol: str
+    currency: str
+    bought: Decimal                 # shares bought into these lots
+    avg_price: Decimal | None       # average fill price (contract currency)
+    held: Decimal                   # shares still held (after FIFO sells)
+    price: Decimal | None           # live price (contract currency)
+    cost: Decimal                   # base currency
+    value: Decimal | None           # held × price, base currency
+    realized: Decimal               # base currency
+    profit: Decimal | None          # realized + unrealized, base currency
+    return_pct: Decimal | None
+    expected_return_pct: Decimal | None = None
+    expected_profit: Decimal | None = None
+    difference: Decimal | None = None   # profit - expected profit
+    lines: list[ExecutionLine] = []     # sold lines oldest first, then the held line
+
+
+class PlanExecution(BaseModel):
+    id: str | None                  # None = "Outside plans" group
+    committed_at: datetime | None = None
+    placed_at: datetime | None = None
+    status: str                     # waiting | open | partly_sold | closed
+    target_reached: bool = False
+    rows: list[ExecutionRow]
+    cost: Decimal
+    value: Decimal | None
+    profit: Decimal | None
+    return_pct: Decimal | None
+    expected_profit: Decimal | None = None
+    expected_return_pct: Decimal | None = None
+    difference: Decimal | None = None
+
+
+class ExecutionReport(BaseModel):
+    base_currency: str
+    plans: list[PlanExecution]      # newest first
+    outside: PlanExecution | None   # outside + initial (+ correction) lots

@@ -55,6 +55,9 @@ final class PlanBasketModel {
     /// Developer option (Debug + fake): ignore the market-closed block.
     var allowPlacingWhenClosed = AppEnvironment.devAllowPlacingWhenClosed
     private(set) var lines: [Line] = []
+    /// T10: identity and commit time of the plan, saved as a PlanRecord at Place.
+    private(set) var planId = UUID().uuidString
+    private(set) var committedAt = Date()
 
     @ObservationIgnored private let api: ServiceAPI
     @ObservationIgnored private var previewTasks: [UUID: Task<Void, Never>] = [:]
@@ -79,6 +82,8 @@ final class PlanBasketModel {
             return Line(id: item.row.id, contract: item.row.contract, orderRef: UUID().uuidString,
                         quantityText: Self.plain(quantity, fraction: 0...4), limitText: Self.plain(limit, fraction: 2...2))
         }
+        planId = UUID().uuidString
+        committedAt = Date()
         stage = .committed
         lines.forEach { refreshPreview($0.id) }
     }
@@ -191,6 +196,15 @@ final class PlanBasketModel {
     var failedCount: Int { lines.filter { if case .failed = $0.result { true } else { false } }.count }
 
     // MARK: - Placing
+
+    /// T10: what gets saved when the plan is placed (expected returns come from the planner).
+    func planRecord(expectedReturns: [UUID: Decimal]) -> PlanRecord {
+        PlanRecord(id: planId, committedAt: committedAt, placedAt: Date(), rows: lines.map { line in
+            .init(conid: line.contract.conid, symbol: line.contract.symbol, currency: line.contract.currency,
+                  orderRef: line.orderRef, plannedQuantity: Amount(line.quantity ?? 0),
+                  expectedReturnPct: expectedReturns[line.id].map(Amount.init))
+        })
+    }
 
     /// Sends every not-yet-placed line once, in order. The Place button is gone from the first click on.
     func place(account: AccountSummary, available: Decimal) async {

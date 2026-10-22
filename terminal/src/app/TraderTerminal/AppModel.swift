@@ -27,6 +27,9 @@ final class AppModel {
     private(set) var quotes: [String: Quote] = [:]
     /// T8 planner rows: scratchpad, kept in memory only (D8.2).
     private(set) var planRows: [PlanRow] = []
+    /// Main window tab (Overview / Planner / Execution). Debug + fake opens on the Planner.
+    var mainSection: MainSection = AppEnvironment.isDebugBuild && AppEnvironment.defaultBroker == .fake
+        ? .planner : .overview
     var planQuantityText: [UUID: String] = [:]
     /// Planned volume per row in thousands of base currency (D8.5); fills the quantity once a price is known.
     var planVolumeText: [UUID: String] = [:]
@@ -34,6 +37,8 @@ final class AppModel {
     var planReturnText: [UUID: String] = [:]
     @ObservationIgnored private var volumeWaitingForPrice: Set<UUID> = []
     @ObservationIgnored private var devPresetAdded = false
+    /// Dev data switched on (Developer menu); read by the menu so its check marks follow.
+    private(set) var devData = Set(AppEnvironment.DevData.allCases.filter(\.isOn))
     /// Open order ticket (T5), nil when closed.
     private(set) var ticket: OrderTicketModel?
 
@@ -65,6 +70,7 @@ final class AppModel {
     func start() {
         KeychainStore.removeLegacyFinnhubKey()
         UserDefaults.standard.removeObject(forKey: "fakePriceFeed")  // first version of the Developer switch
+        UserDefaults.standard.removeObject(forKey: "devData.plannerPrefill")  // merged into devData.devPlans
         hasFinnhubKey = KeychainStore.hasFinnhubKey
         notifier.requestAuthorization()
         launchService()
@@ -93,7 +99,8 @@ final class AppModel {
         let service = ServiceProcess(
             executable: executable,
             arguments: ["--env", environment.rawValue, "--socket", AppEnvironment.socketPath, "--watch-stdin",
-                        "--log-level", "warning", "--prices", environment == .fake ? priceFeed : "finnhub"],
+                        "--log-level", "warning", "--prices", environment == .fake ? priceFeed : "finnhub"]
+                + devDataArguments,
             onExit: { [weak self] code in Task { @MainActor in self?.serviceExited(code: code) } })
         do {
             try service.start()
@@ -290,6 +297,24 @@ final class AppModel {
         process?.stop(grace: 2)
     }
 
+    // MARK: - Execution (T10)
+
+    /// Executed plans with live numbers; loaded while the Execution tab is open.
+    private(set) var execution: ExecutionReport?
+
+    func refreshExecution() async {
+        guard !locked, phase == .running else { return }
+        if let report = try? await api.execution() { execution = report }
+    }
+
+    /// Execution / History tabs: refresh while open (prices move, orders fill).
+    func keepRefreshingExecution() async {
+        while !Task.isCancelled {
+            await refreshExecution()
+            try? await Task.sleep(for: .seconds(3))
+        }
+    }
+
     // MARK: - Planner (T8)
 
     /// Plan rows as shown: once a row's order is filled it is frozen on the execution (fill price and filled
@@ -318,14 +343,28 @@ final class AppModel {
 
     func placeBasket() async {
         guard let plan = planSummary, let account = account?.account else { return }
+        if basket.stage == .committed {
+            // T10: record the plan first, so its fills can be attributed to it (FIFO lots) — even if the app
+            // quits before Finish. If it can't be saved, nothing is placed.
+            let returns = Dictionary(uniqueKeysWithValues: planRows.compactMap { row in
+                planReturnPercent(row.id).map { (row.id, $0) }
+            })
+            do {
+                try await api.savePlan(basket.planRecord(expectedReturns: returns))
+            } catch {
+                lastError = "Could not save the plan — nothing was placed"
+                return
+            }
+        }
         await basket.place(account: account, available: plan.available)
         scheduleAccountRefresh()
     }
 
-    /// All orders placed → clear the review and the plan for a fresh start.
+    /// Finish: clear the review and the plan, then show the plan in the Execution tab (T10).
     func resetPlan() {
         basket.reset()
         guard !basket.isFrozen else { return }
+        mainSection = .execution
         planRows = []
         planQuantityText = [:]
         planVolumeText = [:]
@@ -427,6 +466,7 @@ final class AppModel {
         ticket = nil
         account = nil
         quotes = [:]
+        execution = nil
         accountIsLive = false
         refreshTask?.cancel()
         try? process?.send(.lock)
@@ -436,6 +476,7 @@ final class AppModel {
         let previous = status?.state
         status = update
         if update.state == .connected { Task { await addDevPlannerPreset() } }  // ticker lookup needs a session
+        if update.state == .connected, previous != .connected { scheduleAccountRefresh() }  // also without an event
         lastError = nil
         if let notification = StatusNotification.forTransition(from: previous, to: update.state), previous != nil {
             notifier.post(notification)
@@ -472,7 +513,8 @@ final class AppModel {
 
     /// Debug + fake: the Planner opens with the preset rows (SNDK, MU at 30k) once per launch, if the plan is empty.
     private func addDevPlannerPreset() async {
-        guard AppEnvironment.isDebugBuild, environment == .fake, planRows.isEmpty, !devPresetAdded,
+        guard AppEnvironment.isDebugBuild, environment == .fake, AppEnvironment.DevData.devPlans.isOn,
+              planRows.isEmpty, !devPresetAdded,
               status?.state == .connected else { return }
         devPresetAdded = true
         for item in AppEnvironment.devPlannerPreset {
@@ -483,6 +525,32 @@ final class AppModel {
                 setPlanReturn(id, text: item.expectedReturn)
             }
         }
+    }
+
+    /// Dev data the fake service starts with (Developer menu); never for paper or production.
+    private var devDataArguments: [String] {
+        guard AppEnvironment.isDebugBuild, environment == .fake else { return [] }
+        return (AppEnvironment.DevData.devPlans.isOn ? ["--dev-plan"] : [])
+            + (AppEnvironment.DevData.seedTransactions.isOn ? [] : ["--no-seed-transactions"])
+    }
+
+    /// Developer menu: switch a piece of dev data. Restarts the service, so the fake account starts fresh with
+    /// only what is switched on; nothing from before is shown meanwhile.
+    func toggleDevData(_ item: AppEnvironment.DevData) {
+        guard environment == .fake else { return }
+        item.isOn.toggle()
+        if item.isOn { devData.insert(item) } else { devData.remove(item) }
+        if item == .devPlans {  // the Planner prefill goes (or comes back on connect) with the dev plans
+            basket.replan()
+            clearPlan()
+            devPresetAdded = false
+        }
+        account = nil
+        accountIsLive = false
+        knownOrders = [:]
+        execution = nil
+        plannedRestart = true
+        process?.stop(grace: 2)
     }
 
     func toggleAllowPlacingWhenClosed() {
@@ -584,3 +652,5 @@ final class AppModel {
         }
     }
 }
+
+enum MainSection: Hashable { case overview, planner, execution, history }

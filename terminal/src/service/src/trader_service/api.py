@@ -23,6 +23,7 @@ from trader_service.broker.base import (
 from trader_service.broker.fake import FakeBroker
 from trader_service.control import run_control
 from trader_service.events import EventBus
+from trader_service.execution import execution_report
 from trader_service.models import (
     AccountSummary,
     ConnectionState,
@@ -40,6 +41,8 @@ from trader_service.models import (
     Side,
     Status,
     Watchlist,
+    PlanRecord,
+    ExecutionReport,
 )
 from trader_service.prices.base import PriceFeed, price_symbol
 from trader_service.prices.fake import FakePrices
@@ -221,6 +224,37 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         store.record(note.kind, **note.detail)
 
     # --- orders --------------------------------------------------------------------------------------
+
+    @app.post("/plans", status_code=204)
+    async def save_plan(plan: PlanRecord) -> None:
+        """T10: record an executed plan at Place (423 while locked)."""
+        store.save_plan(plan.model_dump(mode="json"))
+
+    @app.get("/execution")
+    async def execution() -> ExecutionReport:
+        """Executed plans with FIFO lots, live value and profit, plus the "Outside plans" group."""
+        plans = [PlanRecord(**p) for p in store.plans()]
+        fills = store.all_fills()
+        positions = broker.positions()
+        contracts: dict[int, tuple[str, str]] = {}
+        for fill in fills:
+            c = fill["contract"]
+            contracts[int(c["conid"])] = (c["symbol"], c["currency"])
+        for plan in plans:
+            for r in plan.rows:
+                contracts[r.conid] = (r.symbol, r.currency)
+        for p in positions:
+            contracts[p.contract.conid] = (p.contract.symbol, p.contract.currency)
+
+        def price_of(conid: int) -> Decimal | None:
+            try:
+                price = prices.last(price_symbol(broker.contract(conid)))
+            except BrokerError:
+                return None
+            return price.last if price else None
+
+        return execution_report(plans, fills, positions, broker.account_summary().base_currency, price_of,
+                                broker.fx_rate, contracts)
 
     @app.put("/watchlist")
     async def watchlist(request: Watchlist) -> Watchlist:

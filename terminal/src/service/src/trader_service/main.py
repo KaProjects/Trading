@@ -13,7 +13,7 @@ import uvicorn
 
 from trader_service.api import create_app
 from trader_service.control import open_stdin
-from trader_service.broker.fake import FakeBroker, load_seed, seed_prices
+from trader_service.broker.fake import FakeBroker, load_seed, seed_prices, with_dev_plan
 from trader_service.events import EventBus
 from trader_service.models import Environment
 from trader_service.prices.fake import FakePrices
@@ -43,15 +43,34 @@ def bind_unix_socket(path: Path) -> socket.socket:
     return sock
 
 
-def build(environment: Environment, data_dir: Path, control: bool = False, price_feed: str = "fake"):
+def clear_fake_data(data_dir: Path) -> None:
+    """Fake environment only: start from an empty data folder (encrypted fake data only)."""
+    if data_dir.name != Environment.FAKE.value or not data_dir.is_dir():
+        return
+    for path in data_dir.iterdir():
+        if path.is_file() and (path.suffix == ".enc" or path.name.endswith(".enc.unreadable")):
+            path.unlink()
+
+
+def build(environment: Environment, data_dir: Path, control: bool = False, price_feed: str = "fake",
+          dev_plan: bool = False, seed_transactions: bool = True):
     bus = EventBus()
     if environment != Environment.FAKE:
         raise SystemExit(f"Environment '{environment}' is not implemented yet (IBKR adapter comes with T1)")
     seed = load_seed()
+    # The fake account resets to the seed on every start (D0.5), so its saved data must too — otherwise the
+    # trade history / plans would not match the positions. Paper and production keep everything.
+    clear_fake_data(data_dir)
     # D0.2: the fake broker uses simulated prices by default, or real Finnhub prices (key over the control channel).
-    prices = FinnhubPrices() if price_feed == "finnhub" else FakePrices(seed_prices(seed))
+    prices = FinnhubPrices() if price_feed == "finnhub" else FakePrices(seed_prices(seed))  # dev plan adds no symbols
+    if not seed_transactions:  # dev: start without the seed's positions, open order and fills (cash stays)
+        seed = {**seed, "positions": [], "fills": [], "open_orders": []}
+    seed_plans = []
+    if dev_plan:  # dev data: a finished plan (History) and an open one (Execution), SNDK + MU
+        seed, seed_plans = with_dev_plan(seed)
     broker = FakeBroker(bus, prices, seed=seed)
-    store = Store(broker, bus, Vault(data_dir))
+    store = Store(broker, bus, Vault(data_dir), seed_plans=seed_plans,
+                  seed_fills=[f.model_dump(mode="json") for f in broker.seed_fills()] if dev_plan else None)
     # EOF on the control channel = the app is gone -> SIGTERM ourselves for uvicorn's graceful shutdown.
     return create_app(broker, prices, bus, store, control=open_stdin if control else None,
                       on_control_eof=lambda: signal.raise_signal(signal.SIGTERM))
@@ -64,6 +83,10 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--log-level", default="info")
     parser.add_argument("--prices", choices=["fake", "finnhub"], default="fake",
                         help="price feed for the fake environment (paper/production always use finnhub)")
+    parser.add_argument("--dev-plan", action="store_true",
+                        help="fake environment: add one executed plan (SNDK + MU) as dev data")
+    parser.add_argument("--no-seed-transactions", action="store_true",
+                        help="fake environment: no seed positions, open order or fills (cash stays)")
     parser.add_argument("--data-dir", type=Path,
                         help="encrypted data folder (default: <socket folder>/<env>)")
     parser.add_argument("--watch-stdin", action="store_true",
@@ -71,7 +94,8 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     app = build(args.env, args.data_dir or args.socket.parent / args.env.value, control=args.watch_stdin,
-                price_feed=args.prices)
+                price_feed=args.prices, dev_plan=args.dev_plan,
+                seed_transactions=not args.no_seed_transactions)
     sock = bind_unix_socket(args.socket)
     server = uvicorn.Server(uvicorn.Config(app, log_level=args.log_level, ws="auto"))
     # uvicorn re-raises SIGTERM after its graceful shutdown; turn it into a normal exit so `finally` cleans up.

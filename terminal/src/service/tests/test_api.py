@@ -265,3 +265,43 @@ def test_price_stream_only_while_unlocked_and_connected(tmp_path):
         client.post("/logout")
         time.sleep(0.05)
         assert prices.active[-1] is False  # Stop
+
+
+def test_execution_attributes_plan_and_outside_lots_fifo(logged_in):
+    store = logged_in.app.state.test_store
+    store.unlock(bytes(32))
+    F = 9599491
+    plan = {"id": "p1", "committed_at": "2026-10-22T10:00:00Z", "placed_at": "2026-10-22T10:01:00Z",
+            "rows": [{"conid": F, "symbol": "F", "currency": "USD", "order_ref": "plan-f",
+                      "planned_quantity": "100", "expected_return_pct": "10"}]}
+    assert logged_in.post("/plans", json=plan).status_code == 204
+
+    def settle(predicate):
+        deadline = time.monotonic() + 3
+        while not predicate():
+            assert time.monotonic() < deadline
+            time.sleep(0.02)
+
+    logged_in.post("/orders", json=body(conid=F, qty="100", limit="12", ref="plan-f"))      # plan lot
+    logged_in.post("/orders", json=body(conid=F, qty="50", limit="12", ref="outside-1"))    # outside lot
+    settle(lambda: len([f for f in store.all_fills() if f["contract"]["conid"] == F]) == 2)
+    report = logged_in.get("/execution").json()
+    p1 = report["plans"][0]
+    assert (p1["id"], p1["status"], p1["rows"][0]["bought"], p1["rows"][0]["held"]) == ("p1", "open", "100", "100")
+    assert p1["rows"][0]["avg_price"] == "11.20" and p1["expected_profit"] == "112.00"  # 1 120 × 10 %
+    outside_f = next(r for r in report["outside"]["rows"] if r["symbol"] == "F")
+    assert outside_f["held"] == "50"
+
+    logged_in.post("/orders", json=body(conid=F, side="SELL", qty="120", limit="11", ref="sell-1"))
+    settle(lambda: len([f for f in store.all_fills() if f["contract"]["conid"] == F]) == 3)
+    report = logged_in.get("/execution").json()
+    p1 = report["plans"][0]
+    assert (p1["status"], p1["rows"][0]["held"]) == ("closed", "0")      # oldest lot (the plan) sold first
+    assert next(r for r in report["outside"]["rows"] if r["symbol"] == "F")["held"] == "30"
+    assert logged_in.post("/plans", json={**plan, "rows": []}).status_code == 422
+
+
+def test_plans_need_unlock(logged_in):
+    plan = {"id": "p", "committed_at": "2026-10-22T10:00:00Z", "placed_at": "2026-10-22T10:00:00Z",
+            "rows": [{"conid": 1, "symbol": "X", "currency": "USD", "order_ref": "r", "planned_quantity": "1"}]}
+    assert logged_in.post("/plans", json=plan).status_code == 423

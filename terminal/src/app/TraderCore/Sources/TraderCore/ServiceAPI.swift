@@ -60,6 +60,14 @@ public struct ServiceAPI: Sendable {
         return try await call("GET", "/contracts?symbol=\(query)")
     }
 
+    /// T10: record an executed plan (at Place). Needs the service unlocked.
+    public func savePlan(_ plan: PlanRecord) async throws {
+        try check(try await http.send("POST", "/plans", json: try ServiceJSON.encoder.encode(plan)))
+    }
+
+    /// T10: executed plans with FIFO lots and live numbers, plus the "Outside plans" group.
+    public func execution() async throws -> ExecutionReport { try await call("GET", "/execution") }
+
     /// T8: stream prices for these contracts too (planner rows). Not persisted.
     public func setWatchlist(_ conids: [Int]) async throws {
         let body = try JSONSerialization.data(withJSONObject: ["conids": conids])

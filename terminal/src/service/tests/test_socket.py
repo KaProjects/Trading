@@ -125,3 +125,19 @@ def test_unlock_over_stdin_writes_only_encrypted_files():
         if proc.poll() is None:
             proc.kill()
         shutil.rmtree(folder.parent)
+
+
+def test_fake_environment_starts_with_fresh_data():
+    from trader_service.main import clear_fake_data
+
+    base = Path(tempfile.mkdtemp(prefix="tt-"))
+    fake, paper = base / "fake", base / "paper"
+    for folder in (fake, paper):
+        folder.mkdir()
+        (folder / "trades-2026-10.enc").write_bytes(b"TTE1x")
+        (folder / "keep.txt").write_text("x")
+    clear_fake_data(fake)
+    clear_fake_data(paper)
+    assert not (fake / "trades-2026-10.enc").exists() and (fake / "keep.txt").exists()
+    assert (paper / "trades-2026-10.enc").exists()  # paper / production keep everything
+    shutil.rmtree(base)

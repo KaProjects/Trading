@@ -232,3 +232,33 @@ extension ServiceIntegrationTests {
         #expect(order("Rejected", filled: 0, reason: "Insufficient funds").statusText == "Rejected: Insufficient funds")
     }
 }
+
+extension ServiceIntegrationTests {
+    @Test func savedPlanShowsInExecutionWithFills() async throws {
+        let service = try await startService()
+        defer { service.process.stop(grace: 1) }
+        _ = try await service.api.login()
+        try await service.api.dev(.approve2FA)
+        try await Task.sleep(for: .milliseconds(100))
+        try service.process.send(.unlock(dataKey: Data(repeating: 9, count: 32)))
+        try await Task.sleep(for: .milliseconds(300))
+
+        let ford = 9599491
+        let plan = PlanRecord(id: "swift-plan", committedAt: Date(), placedAt: Date(), rows: [
+            .init(conid: ford, symbol: "F", currency: "USD", orderRef: "swift-plan-f", plannedQuantity: Amount(10),
+                  expectedReturnPct: Amount(10)),
+        ])
+        try await service.api.savePlan(plan)
+        _ = try await service.api.placeOrder(OrderRequest(conid: ford, side: .buy, quantity: Amount(10),
+                                                          limitPrice: Amount(12), orderRef: "swift-plan-f"))
+        var report = try await service.api.execution()
+        for _ in 0..<30 where report.plans.first?.status == "waiting" {
+            try await Task.sleep(for: .milliseconds(100))
+            report = try await service.api.execution()
+        }
+        let executed = try #require(report.plans.first)
+        #expect(executed.id == "swift-plan" && executed.status == "open")
+        #expect(executed.rows.first?.bought == Amount(10))
+        #expect(report.outside?.rows.contains { $0.symbol == "AAPL" } == true)  // seeded holdings = initial lots
+    }
+}

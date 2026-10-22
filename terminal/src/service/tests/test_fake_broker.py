@@ -87,6 +87,7 @@ async def test_positions_orders_fills_and_lookup(connected):
     assert [o.contract.symbol for o in connected.open_orders()] == ["MSFT"]
     fills = connected.fills(7)
     assert len(fills) == 4 and fills[0].time >= fills[-1].time
+    assert {f.exec_id for f in fills} == {"FAKE-SEED-1", "FAKE-SEED-2", "FAKE-SEED-3", "FAKE-SEED-4"}
     assert len(connected.fills(3)) == 2
     assert {c.primary_exchange for c in connected.lookup_contract("shop")} == {"NYSE", "TSE"}
 
@@ -212,3 +213,20 @@ async def test_cheap_stock_allows_testing_partial_fills(connected, prices):
     prices.set_price("F", D("11.21"))
     prices.set_price("F", D("11.22"))
     assert connected.order(placed.order_id).status == OrderStatus.FILLED
+
+
+async def test_fill_ids_unique_across_runs(bus):
+    from trader_service.broker.fake import load_seed, seed_prices
+    from trader_service.prices.fake import FakePrices
+
+    ids = []
+    for _ in range(2):  # two "service starts"
+        prices = FakePrices(seed_prices(load_seed()), tick_interval=None)
+        broker = FakeBroker(bus, prices, FAST)
+        await broker.login()
+        await wait_for_state(broker, ConnectionState.CONNECTED)
+        placed = await broker.place_order(order(limit="230", ref="run"))
+        await settle()
+        ids += [f.exec_id for f in broker.fills(1) if f.order_id == placed.order_id]
+        await broker.stop()
+    assert len(ids) == 2 and ids[0] != ids[1]
