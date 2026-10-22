@@ -18,6 +18,11 @@ struct TraderTerminalApp: App {
             SettingsView(model: delegate.model)
         }
 
+        Window("Export Transactions", id: ExportTransactionsView.id) {
+            ExportTransactionsView(model: delegate.model)
+        }
+        .windowResizability(.contentSize)
+
         MenuBarExtra {
             MenuContent(model: delegate.model)
         } label: {

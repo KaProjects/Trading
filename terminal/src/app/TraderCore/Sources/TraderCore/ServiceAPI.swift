@@ -68,6 +68,14 @@ public struct ServiceAPI: Sendable {
     /// T10: executed plans with FIFO lots and live numbers, plus the "Outside plans" group.
     public func execution() async throws -> ExecutionReport { try await call("GET", "/execution") }
 
+    /// T11: transactions of these days (both included, the Mac's local dates) as CSV, one row per order.
+    public func transactionsCSV(from start: Date, to end: Date) async throws -> Data {
+        let day = Date.ISO8601FormatStyle(timeZone: .current).year().month().day()
+        let response = try await http.send("GET", "/transactions.csv?from=\(start.formatted(day))&to=\(end.formatted(day))")
+        try check(response)
+        return response.body
+    }
+
     /// T8: stream prices for these contracts too (planner rows). Not persisted.
     public func setWatchlist(_ conids: [Int]) async throws {
         let body = try JSONSerialization.data(withJSONObject: ["conids": conids])

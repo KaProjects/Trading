@@ -3,12 +3,13 @@
 import asyncio
 import contextlib
 from contextlib import asynccontextmanager
+from datetime import date
 from decimal import Decimal
 
 from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
 from trader_service.broker.base import (
@@ -48,6 +49,7 @@ from trader_service.prices.base import PriceFeed, price_symbol
 from trader_service.prices.fake import FakePrices
 from trader_service.rules import RuleSettings, preview_order
 from trader_service.store import Store
+from trader_service.transactions import transactions_csv
 from trader_service.vault import VaultLocked
 
 ERROR_STATUS = {
@@ -210,6 +212,16 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
     async def history(days: int = Query(30, ge=1, le=3660)) -> list[dict]:
         """Own trade history (every fill ever seen), beyond IBKR's 7-day window."""
         return store.history(days)
+
+    @app.get("/transactions.csv")
+    async def transactions(start: date = Query(alias="from"), end: date = Query(alias="to")) -> Response:
+        """T11: every transaction of these days (both included) as CSV, one row per order. 423 while locked."""
+        if not store.unlocked:
+            raise VaultLocked()
+        if end < start:
+            return JSONResponse(status_code=422, content={"error": "bad_range", "message": "To is before From"})
+        csv_text = transactions_csv(store.all_fills(), start, end, broker.status().environment)
+        return Response(csv_text, media_type="text/csv")
 
     @app.get("/settings/rules")
     async def get_rules() -> RuleThresholds:

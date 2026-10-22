@@ -11,6 +11,7 @@ import asyncio
 import contextlib
 import logging
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 from trader_service.broker.base import Broker, BrokerError
@@ -24,6 +25,10 @@ SNAPSHOT = "snapshot.enc"
 SETTINGS = "settings.enc"
 PLANS = "plans.enc"
 SNAPSHOT_EVENTS = {"account", "position", "order", "fill", "status"}
+
+
+def _fees(fill: dict) -> Decimal:
+    return Decimal(str(fill.get("commission") or 0))
 
 
 def _month(time: datetime) -> str:
@@ -182,14 +187,19 @@ class Store:
         for month, new in by_month.items():
             name = f"trades-{month}.enc"
             existing = self._read(name) or []
-            known = {f["exec_id"] for f in existing}
-            added = []
+            index = {f["exec_id"]: i for i, f in enumerate(existing)}
+            changed = False
             for fill in new:
-                if fill["exec_id"] not in known:
-                    known.add(fill["exec_id"])
-                    added.append(fill)
-            if added:
-                self._vault.write(name, existing + added)
+                i = index.get(fill["exec_id"])
+                if i is None:
+                    index[fill["exec_id"]] = len(existing)
+                    existing.append(fill)
+                    changed = True
+                elif _fees(existing[i]) == 0 and _fees(fill) != 0:
+                    existing[i] = fill  # IBKR's commission report came after the first copy (T11)
+                    changed = True
+            if changed:
+                self._vault.write(name, existing)
 
     def _sync_recent_fills(self) -> None:
         """IBKR only returns ~7 days of executions; copy them into our own history on every connect/unlock."""

@@ -305,3 +305,14 @@ def test_plans_need_unlock(logged_in):
     plan = {"id": "p", "committed_at": "2026-10-22T10:00:00Z", "placed_at": "2026-10-22T10:00:00Z",
             "rows": [{"conid": 1, "symbol": "X", "currency": "USD", "order_ref": "r", "planned_quantity": "1"}]}
     assert logged_in.post("/plans", json=plan).status_code == 423
+
+
+def test_transactions_csv_export(logged_in):
+    assert logged_in.get("/transactions.csv?from=2026-01-01&to=2030-12-31").status_code == 423  # locked
+    logged_in.app.state.test_store.unlock(bytes(32))
+    response = logged_in.get("/transactions.csv?from=2000-01-01&to=2100-12-31")
+    assert response.status_code == 200 and response.headers["content-type"].startswith("text/csv")
+    lines = response.text.splitlines()
+    assert lines[0] == "date,type,ticker,quantity,price,fees,portfolio"
+    assert len(lines) == 5 and all(line.endswith(",FAKE") for line in lines[1:])  # the 4 seed fills
+    assert logged_in.get("/transactions.csv?from=2026-02-01&to=2026-01-01").status_code == 422

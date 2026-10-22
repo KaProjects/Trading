@@ -34,6 +34,10 @@ struct MenuContent: View {
             openWindow(id: MainWindow.id)
             NSApp.activate()
         }
+        Button("Export Transactions…") {
+            openWindow(id: ExportTransactionsView.id)
+            NSApp.activate()
+        }
         if !shown.isLocked {
             Button("Lock") { model.lockNow() }
         }
@@ -121,12 +125,17 @@ struct DeveloperItems: View {
 /// Top menu bar: Session menu (and Developer in Debug builds) next to the standard app/Edit/Window menus.
 struct AppCommands: Commands {
     let model: AppModel
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("New Order…") { model.openTicket() }
                 .keyboardShortcut("n")
                 .disabled(!model.canTrade)
+        }
+        CommandGroup(replacing: .importExport) {
+            Button("Export Transactions…") { openWindow(id: ExportTransactionsView.id) }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
         }
         CommandMenu("Session") {
             let shown = model.presentation
