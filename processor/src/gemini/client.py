@@ -15,6 +15,7 @@ from gemini.models import (
     CompanyBullBear,
     CompanyBullBearCases,
     InitialCompanyResponse,
+    Info,
     InstitutionResolutions,
     Quarter,
     ReportDates,
@@ -322,7 +323,7 @@ class GeminiClient:
                 raw_response=response.text,
             )
         company = Company(
-            info=initial_company.info,
+            info=Info.model_validate(initial_company.info.model_dump()),
             quarters={
                 quarter.id: Quarter.model_validate(quarter.model_dump())
                 for quarter in initial_company.quarters

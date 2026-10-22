@@ -2,11 +2,16 @@ import logging
 import time
 from collections.abc import Callable
 from datetime import date, timedelta
+from decimal import Decimal
 
 from requests import Session
 from requests.exceptions import RequestException
 
-from polygon.models import GroupedDailyResponse, NewsResponse
+from polygon.models import (
+    AggregatesResponse,
+    GroupedDailyResponse,
+    NewsResponse,
+)
 
 logger = logging.getLogger(__name__)
 RATE_LIMIT_MAX_RETRIES = 3
@@ -87,6 +92,28 @@ class PolygonClient:
             raise PolygonClientError(
                 "Polygon returned an invalid response"
             ) from exception
+
+    def get_forex_daily_closes(
+        self,
+        base: str,
+        quote: str,
+        start: date,
+        end: date,
+    ) -> list[Decimal]:
+        # Daily closes of the pair, oldest first: how many `quote` units
+        # one `base` unit buys (USD/KRW = 1500 means 1 USD = 1500 KRW).
+        payload = self._get_json(
+            f"{self.BASE_URL}/v2/aggs/ticker/C:{base}{quote}/range/1/day/"
+            f"{start.isoformat()}/{end.isoformat()}",
+            parameters={"adjusted": "true", "sort": "asc", "limit": 5000},
+        )
+        try:
+            response = AggregatesResponse.model_validate(payload)
+        except (TypeError, ValueError) as exception:
+            raise PolygonClientError(
+                "Polygon returned an invalid response"
+            ) from exception
+        return [bar.close for bar in response.results]
 
     def _get_news(
         self,

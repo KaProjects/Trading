@@ -291,3 +291,16 @@ class CompanySentimentSummaries(BaseModel):
         if len(tickers) != len(set(tickers)):
             raise ValueError("company sentiment tickers must be unique")
         return self
+
+
+class AggregateBar(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    close: Decimal = Field(alias="c", gt=0)
+
+
+class AggregatesResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    # Polygon omits `results` entirely when the range holds no bars.
+    results: list[AggregateBar] = Field(default_factory=list)

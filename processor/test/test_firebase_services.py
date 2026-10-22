@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from decimal import Decimal
 from unittest.mock import MagicMock, create_autospec, patch
 
 import pytest
@@ -9,6 +10,7 @@ from gemini.models import (
     Company,
     CompanyBullBear,
     CompanyTarget,
+    FxRate,
     Info,
     InstitutionRecord,
     Quarter,
@@ -434,6 +436,38 @@ def test_gemini_quarter_writes_are_atomic(method_name, updates_current_quarter):
     if updates_current_quarter:
         expected_update["info/current_quarter_id"] = "26Q1"
     company_reference.update.assert_called_once_with(expected_update)
+
+
+def test_gemini_converted_quarter_write_records_the_rate_used():
+    service = make_service(GeminiFirebaseService)
+    company_reference = MagicMock(spec_set=["update"])
+    quarter = Quarter(
+        name="Q3 2026",
+        id="26Q3",
+        ending_month="26-09",
+        report_date_previous_quarter="2026-07-29",
+        report_date_this_quarter="2026-10-28",
+    )
+
+    with (
+        patch("gemini.service.db.reference", return_value=company_reference),
+        patch("gemini.service.datetime") as current_datetime,
+    ):
+        current_datetime.now.return_value = datetime(2026, 10, 29)
+        service.report_quarter(
+            "SKHY",
+            quarter,
+            FxRate(rate=Decimal("1480.123456"), source="frankfurter"),
+        )
+
+    company_reference.update.assert_called_once_with({
+        "quarters/26Q3": quarter.model_dump(mode="json"),
+        "info/last_update": "2026-10-29",
+        "info/fx_rates/26Q3": {
+            "rate": "1480.123456",
+            "source": "frankfurter",
+        },
+    })
 
 
 def test_gemini_target_write_uses_stable_date_prefixed_id():

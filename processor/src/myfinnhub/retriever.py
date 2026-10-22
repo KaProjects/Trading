@@ -5,6 +5,13 @@ from decimal import Decimal, InvalidOperation
 
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
+from gemini.currency import (
+    QuarterCurrencyConverter,
+    calendar_quarter_period,
+    quarter_period,
+)
+from gemini.models import Company as GeminiCompany
+from gemini.service import FirebaseService as GeminiFirebaseService
 from myfinnhub.client import FinnhubClient
 from myfinnhub.models import Company, Earnings
 from myfinnhub.service import FirebaseService
@@ -14,6 +21,7 @@ RUNNER_NAME = "FinnhubEarnings"
 logger = logging.getLogger(RUNNER_NAME)
 RELATIVE_TOLERANCE = Decimal("0.05")
 ABSOLUTE_TOLERANCE = Decimal("0.01")
+CONVERTED_EARNINGS_FIELDS = ("epsa", "epse", "reva", "reve")
 
 
 class FinnhubEarningsRetrieverRunner:
@@ -28,6 +36,8 @@ class FinnhubEarningsRetrieverRunner:
         discord: DiscordClient | None = None,
         error_reporter: ErrorReporter | None = None,
         sleeper: Callable[[float], None] = time.sleep,
+        gemini_service: GeminiFirebaseService | None = None,
+        currency_converter: QuarterCurrencyConverter | None = None,
     ) -> None:
         if client is None:
             if finnhub_api_key is None:
@@ -43,15 +53,28 @@ class FinnhubEarningsRetrieverRunner:
             if service is not None
             else FirebaseService(error_reporter=self.errors)
         )
+        self.gemini_service = (
+            gemini_service
+            if gemini_service is not None
+            else GeminiFirebaseService(error_reporter=self.errors)
+        )
+        self.currency_converter = currency_converter
         self.discord = discord
         self.sleeper = sleeper
 
     def run(self):
         try:
             companies: dict[str, Company] = self.service.get_companies()
+            # Read up front and not skipped on failure: without it a
+            # converted company's estimates could be stored unconverted.
+            gemini_companies = self.gemini_service.get_companies()
             for company_id in companies:
                 try:
-                    self.process_company(company_id, companies.get(company_id))
+                    self.process_company(
+                        company_id,
+                        companies.get(company_id),
+                        gemini_companies.get(company_id),
+                    )
                     self.sleeper(5)
                 except Exception as exception:
                     self.log.error(ErrMsg.ERROR_PROCESSING_COMPANY.format(company_id=company_id))
@@ -74,9 +97,11 @@ class FinnhubEarningsRetrieverRunner:
         self,
         company_id: str,
         existing: Company | None,
+        gemini_company: GeminiCompany | None = None,
     ) -> None:
         earnings: dict[str, Earnings] = self.client.get_earnings(company_id)
         if len(earnings) == 0: return
+        earnings = self._to_currency_override(earnings, gemini_company)
         if existing is None:
             self.service.init_company(company_id, earnings)
             for quarter_id in earnings.__reversed__():
@@ -98,6 +123,51 @@ class FinnhubEarningsRetrieverRunner:
                         self.discord_post_earnings(company_id, quarter_id, latest, now)
             if no_change:
                 self.log.info(LogMsg.NO_CHANGE.format(company_id=company_id))
+
+    def _to_currency_override(
+        self,
+        earnings: dict[str, Earnings],
+        gemini_company: GeminiCompany | None,
+    ) -> dict[str, Earnings]:
+        # Finnhub quotes a foreign ADR's estimates in the company's own
+        # currency; they are stored in the one its financials are, so
+        # reported actuals and estimates stay comparable.
+        if gemini_company is None:
+            return earnings
+        info = gemini_company.info
+        target = info.currency_override
+        if target is None or target == info.currency:
+            return earnings
+        if self.currency_converter is None:
+            raise ValueError("no currency converter is configured")
+
+        rates: dict[str, Decimal] = {}
+        converted: dict[str, Earnings] = {}
+        for quarter_id, quarter_earnings in earnings.items():
+            if quarter_id not in rates:
+                known = gemini_company.quarters.get(quarter_id)
+                start, end = (
+                    quarter_period(known)
+                    if known is not None
+                    else calendar_quarter_period(quarter_id)
+                )
+                rates[quarter_id] = self.currency_converter.rate_for_period(
+                    start,
+                    end,
+                    from_currency=info.currency,
+                    to_currency=target,
+                ).rate
+            amounts = self.currency_converter.convert_amounts(
+                {
+                    name: getattr(quarter_earnings, name)
+                    for name in CONVERTED_EARNINGS_FIELDS
+                },
+                rates[quarter_id],
+            )
+            converted[quarter_id] = quarter_earnings.model_copy(
+                update=amounts,
+            )
+        return converted
 
     def discord_post_earnings(
         self,

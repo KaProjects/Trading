@@ -109,7 +109,7 @@ class CompanyOnboardingWatcher:
         company = self.gemini.onboard_company(ticker)
         if company is None:
             return
-        self.finnhub.process_company(ticker, None)
+        self.finnhub.process_company(ticker, None, company)
         self.polygon_news.process_company(
             ticker,
             previous_days=ONBOARDING_NEWS_LOOKBACK_DAYS,

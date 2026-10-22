@@ -125,7 +125,7 @@ def _drop_invalid_items(
     return {**data, list_field: kept}
 
 
-class Info(BaseModel):
+class _CompanyInfo(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     ticker: Ticker = Field(description="ticker of the company")
@@ -140,7 +140,32 @@ class Info(BaseModel):
     current_quarter_id: QuarterId = Field(description="in format YYQX")
 
 
-class InitialInfo(Info):
+class FxRate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Units of the reporting currency per one unit of the override.
+    rate: Decimal = Field(gt=0)
+    source: str = Field(min_length=1)
+
+
+class Info(_CompanyInfo):
+    # Stored-only: set by hand for a company whose reporting currency is
+    # not the one it is traded in (a foreign ADR); never part of a Gemini
+    # response schema.
+    currency_override: CurrencySymbol | None = Field(
+        default=None,
+        description=(
+            "Currency the reported figures and earnings estimates are "
+            "converted to before being stored, when it differs from the "
+            "reporting `currency`."
+        ),
+    )
+    # The conversion rate used for each converted quarter, with where it
+    # came from.
+    fx_rates: dict[QuarterId, FxRate] = Field(default_factory=dict)
+
+
+class InitialInfo(_CompanyInfo):
     currency: CurrencySymbol = Field(
         description=(
             "Symbol of the original reporting currency used in the company's "

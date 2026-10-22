@@ -9,6 +9,7 @@ from discord.client import DiscordClient, ThreadedPost
 from error_reporting import ErrorReporter
 from gemini import discord_templates
 from gemini.client import GeminiClient
+from gemini.currency import QuarterCurrencyConverter
 from gemini.institutions import (
     InstitutionRegistry,
     normalize_institution_name,
@@ -16,6 +17,8 @@ from gemini.institutions import (
 from gemini.models import (
     Company,
     CompanyTarget,
+    FxRate,
+    Info,
     InstitutionRating,
     InstitutionRecord,
     Quarter,
@@ -78,8 +81,10 @@ class StockDataRetrieverRunner:
         indicators_service: IndicatorsFirebaseService | None = None,
         discord: DiscordClient | None = None,
         error_reporter: ErrorReporter | None = None,
+        currency_converter: QuarterCurrencyConverter | None = None,
     ) -> None:
         self.errors = error_reporter or ErrorReporter(environment="local")
+        self.currency_converter = currency_converter
         if client is None:
             if gemini_api_key is None:
                 raise ValueError("gemini_api_key is required without a client")
@@ -187,7 +192,32 @@ class StockDataRetrieverRunner:
                                             missing_fields,
                                             quarter_result.raw_response,
                                         )
-                                    self.service.report_quarter(company_id, current_quarter_reported)
+                                    try:
+                                        (
+                                            current_quarter_reported,
+                                            fx_rate,
+                                        ) = self._to_currency_override(
+                                            company.info,
+                                            current_quarter_reported,
+                                        )
+                                    except Exception as exception:
+                                        self._report_quarter_report_errors(
+                                            company_id,
+                                            company.info.currency,
+                                            current_quarter.id,
+                                            [
+                                                "Converting the quarter to "
+                                                f"{company.info.currency_override} "
+                                                f"failed: {exception}"
+                                            ],
+                                            quarter_result.raw_response,
+                                        )
+                                        continue
+                                    self.service.report_quarter(
+                                        company_id,
+                                        current_quarter_reported,
+                                        fx_rate,
+                                    )
                                     new_quarter: Quarter = self.compose_new_quarter(current_quarter_reported)
                                     self.service.create_quarter(company_id, new_quarter)
                                     self._notify_quarter_report(
@@ -226,6 +256,25 @@ class StockDataRetrieverRunner:
                 exception,
                 operation="run",
             )
+
+    def _to_currency_override(
+        self,
+        info: Info,
+        quarter: Quarter,
+    ) -> tuple[Quarter, FxRate | None]:
+        # Gemini reports in the company's own currency; a company traded in
+        # another one (a foreign ADR) is stored converted. No rate is
+        # returned when nothing needed converting.
+        target = info.currency_override
+        if target is None or target == info.currency:
+            return quarter, None
+        if self.currency_converter is None:
+            raise ValueError("no currency converter is configured")
+        return self.currency_converter.convert(
+            quarter,
+            from_currency=info.currency,
+            to_currency=target,
+        )
 
     @staticmethod
     def _needs_initialization(company: Company | None) -> bool:

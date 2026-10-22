@@ -312,6 +312,12 @@ def test_target_schema_describes_every_output_field():
     assert "errors" in initial_schema["required"]
     assert initial_schema["properties"]["errors"]["description"]
     assert "currency" in initial_schema["$defs"]["InitialInfo"]["required"]
+    # The hand-set conversion fields are never offered to Gemini.
+    initial_info_properties = initial_schema["$defs"]["InitialInfo"][
+        "properties"
+    ]
+    assert "currency_override" not in initial_info_properties
+    assert "fx_rates" not in initial_info_properties
 
 
 def test_target_candidates_drops_invalid_rows_without_failing_the_batch(

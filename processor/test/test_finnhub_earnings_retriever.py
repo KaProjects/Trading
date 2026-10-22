@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 from decimal import Decimal
 from unittest.mock import call, create_autospec
 
@@ -6,6 +7,12 @@ import pytest
 
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
+from gemini.currency import QuarterCurrencyConverter
+from gemini.models import Company as GeminiCompany
+from gemini.models import FxRate
+from gemini.models import Info as GeminiInfo
+from gemini.models import Quarter as GeminiQuarter
+from gemini.service import FirebaseService as GeminiFirebaseService
 from myfinnhub.client import FinnhubClient
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from myfinnhub.models import Company, Earnings, Quarter
@@ -29,23 +36,36 @@ def make_company(**quarters):
     })
 
 
+def make_runner():
+    instance = object.__new__(FinnhubEarningsRetrieverRunner)
+    instance.service = create_autospec(FirebaseService, instance=True)
+    instance.gemini_service = create_autospec(
+        GeminiFirebaseService,
+        instance=True,
+    )
+    instance.gemini_service.get_companies.return_value = {}
+    instance.currency_converter = create_autospec(
+        QuarterCurrencyConverter,
+        instance=True,
+    )
+    instance.client = create_autospec(FinnhubClient, instance=True)
+    instance.discord = create_autospec(DiscordClient, instance=True)
+    instance.log = create_autospec(logging.Logger, instance=True)
+    instance.errors = create_autospec(ErrorReporter, instance=True)
+    instance.discord_post_earnings = create_autospec(
+        instance.discord_post_earnings
+    )
+    instance.almost_equals_earnings = create_autospec(
+        instance.almost_equals_earnings
+    )
+    instance.sleeper = lambda _: None
+    return instance
+
+
 class TestFinnhubEarningsRetriever:
     @pytest.fixture
     def runner(self):
-        instance = object.__new__(FinnhubEarningsRetrieverRunner)
-        instance.service = create_autospec(FirebaseService, instance=True)
-        instance.client = create_autospec(FinnhubClient, instance=True)
-        instance.discord = create_autospec(DiscordClient, instance=True)
-        instance.log = create_autospec(logging.Logger, instance=True)
-        instance.errors = create_autospec(ErrorReporter, instance=True)
-        instance.discord_post_earnings = create_autospec(
-            instance.discord_post_earnings
-        )
-        instance.almost_equals_earnings = create_autospec(
-            instance.almost_equals_earnings
-        )
-        instance.sleeper = lambda _: None
-        yield instance
+        return make_runner()
 
     def test_init_new_company_earnings(self, runner):
         """Test Case: Company exists in DB but is None (first time fetch)."""
@@ -195,6 +215,142 @@ class TestFinnhubEarningsRetriever:
             earnings_dict,
         )
         runner.discord_post_earnings.assert_called_once()
+
+
+def make_gemini_company(currency_override="$", currency="₩"):
+    return GeminiCompany(
+        info=GeminiInfo(
+            ticker="SKHY",
+            currency=currency,
+            currency_override=currency_override,
+            last_update="2026-10-23",
+            current_quarter_id="26Q3",
+        ),
+        quarters={"26Q3": GeminiQuarter(
+            name="Q3 2026",
+            id="26Q3",
+            ending_month="26-09",
+            report_date_previous_quarter="2026-07-29",
+            report_date_this_quarter="2026-10-28",
+        )},
+    )
+
+
+class TestFinnhubCurrencyConversion:
+    @pytest.fixture
+    def runner(self):
+        return make_runner()
+
+    def convert_stub(self, runner):
+        runner.currency_converter.rate_for_period.side_effect = (
+            lambda start, end, **_kw: FxRate(
+                rate=Decimal("1500"),
+                source="polygon",
+            )
+        )
+        runner.currency_converter.convert_amounts.side_effect = (
+            QuarterCurrencyConverter.convert_amounts.__get__(
+                runner.currency_converter,
+            )
+        )
+
+    def test_estimates_are_stored_in_the_currency_override(self, runner):
+        self.convert_stub(runner)
+        runner.service.get_companies.return_value = {"SKHY": None}
+        runner.gemini_service.get_companies.return_value = {
+            "SKHY": make_gemini_company(),
+        }
+        runner.client.get_earnings.return_value = {
+            "26Q3": make_earnings(epse="75000", reve="150000000000000"),
+            "26Q4": make_earnings(epse="90000", reve="165000000000000"),
+        }
+
+        runner.run()
+
+        stored = runner.service.init_company.call_args.args[1]
+        assert stored["26Q3"].epse == Decimal("50.0000")
+        assert stored["26Q3"].reve == Decimal("100000000000.0000")
+        assert stored["26Q4"].epse == Decimal("60.0000")
+        assert stored["26Q3"].epsa is None
+        assert stored["26Q3"].report == "2026-04-27-bmo"
+        runner.errors.report.assert_not_called()
+
+    def test_each_quarter_uses_its_own_period(self, runner):
+        self.convert_stub(runner)
+        runner.client.get_earnings.return_value = {
+            "26Q3": make_earnings(),
+            "27Q1": make_earnings(),
+        }
+
+        runner.process_company("SKHY", None, make_gemini_company())
+
+        periods = [
+            (call.args[0], call.args[1])
+            for call in runner.currency_converter.rate_for_period.call_args_list
+        ]
+        # 26Q3 is known to Gemini; 27Q1 falls back to calendar quarters.
+        assert periods == [
+            (date(2026, 7, 1), date(2026, 9, 30)),
+            (date(2027, 1, 1), date(2027, 3, 31)),
+        ]
+        assert all(
+            call.kwargs == {"from_currency": "₩", "to_currency": "$"}
+            for call in runner.currency_converter.rate_for_period.call_args_list
+        )
+
+    def test_company_without_currency_override_is_untouched(self, runner):
+        earnings = {"26Q3": make_earnings()}
+        runner.client.get_earnings.return_value = earnings
+
+        runner.process_company(
+            "ASML",
+            None,
+            make_gemini_company(currency_override=None, currency="€"),
+        )
+
+        runner.currency_converter.rate_for_period.assert_not_called()
+        runner.service.init_company.assert_called_once_with("ASML", earnings)
+
+    def test_failed_conversion_stores_nothing(self, runner):
+        runner.service.get_companies.return_value = {"SKHY": None}
+        runner.gemini_service.get_companies.return_value = {
+            "SKHY": make_gemini_company(),
+        }
+        runner.client.get_earnings.return_value = {"26Q3": make_earnings()}
+        runner.currency_converter.rate_for_period.side_effect = RuntimeError(
+            "no rates"
+        )
+
+        runner.run()
+
+        runner.service.init_company.assert_not_called()
+        runner.service.init_quarter.assert_not_called()
+        runner.service.new_earnings.assert_not_called()
+        runner.discord_post_earnings.assert_not_called()
+        runner.errors.report.assert_called_once()
+        assert str(runner.errors.report.call_args.args[0]) == "no rates"
+
+    def test_conversion_without_a_configured_converter_is_an_error(
+        self,
+        runner,
+    ):
+        runner.currency_converter = None
+        runner.client.get_earnings.return_value = {"26Q3": make_earnings()}
+
+        with pytest.raises(ValueError, match="no currency converter"):
+            runner.process_company("SKHY", None, make_gemini_company())
+
+        runner.service.init_company.assert_not_called()
+
+    def test_unreadable_gemini_companies_stop_the_run(self, runner):
+        runner.service.get_companies.return_value = {"SKHY": None}
+        runner.gemini_service.get_companies.side_effect = Exception("db down")
+
+        runner.run()
+
+        runner.client.get_earnings.assert_not_called()
+        runner.service.init_company.assert_not_called()
+        runner.errors.report.assert_called_once()
 
 
 def make_real_runner():

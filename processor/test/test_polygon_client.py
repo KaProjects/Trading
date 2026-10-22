@@ -284,3 +284,45 @@ def test_get_grouped_daily_retries_rate_limit(client):
 
     sleeper.assert_called_once_with(RATE_LIMIT_RETRY_DELAY_SECONDS)
     assert [bar.ticker for bar in result.results] == ["MU"]
+
+
+def test_get_forex_daily_closes_requests_the_pair_and_parses_closes(client):
+    instance, session, _ = client
+    session.get.return_value = response({
+        "status": "OK",
+        "results": [
+            {"c": 1512.06, "v": 100954},
+            {"c": 1498.5, "v": 98000},
+        ],
+    })
+
+    closes = instance.get_forex_daily_closes(
+        "USD", "KRW", date(2026, 7, 1), date(2026, 9, 30)
+    )
+
+    session.get.assert_called_once_with(
+        "https://api.polygon.io/v2/aggs/ticker/C:USDKRW/range/1/day/"
+        "2026-07-01/2026-09-30",
+        params={"adjusted": "true", "sort": "asc", "limit": 5000},
+        timeout=4.0,
+    )
+    assert closes == [Decimal("1512.06"), Decimal("1498.5")]
+
+
+def test_get_forex_daily_closes_is_empty_without_results(client):
+    instance, session, _ = client
+    session.get.return_value = response({"status": "OK", "resultsCount": 0})
+
+    assert instance.get_forex_daily_closes(
+        "USD", "KRW", date(2026, 7, 1), date(2026, 9, 30)
+    ) == []
+
+
+def test_get_forex_daily_closes_raises_typed_error_on_invalid_bar(client):
+    instance, session, _ = client
+    session.get.return_value = response({"results": [{"c": 0}]})
+
+    with pytest.raises(PolygonClientError, match="invalid response"):
+        instance.get_forex_daily_closes(
+            "USD", "KRW", date(2026, 7, 1), date(2026, 9, 30)
+        )

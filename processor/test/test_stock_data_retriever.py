@@ -17,6 +17,7 @@ from gemini.client import (
 from gemini.models import (
     Company,
     CompanyTarget,
+    FxRate,
     Info,
     InstitutionRating,
     InstitutionRatingDimension,
@@ -32,6 +33,7 @@ from gemini.models import (
     TargetReport,
 )
 from gemini.service import FirebaseService
+from gemini.currency import QuarterCurrencyConverter
 from gemini.institutions import InstitutionRegistry
 from gemini.retriever import StockDataRetrieverRunner
 from indicators.models import PriceIndicator
@@ -85,11 +87,13 @@ def make_company(
     quarters,
     targets=None,
     currency="$",
+    currency_override=None,
 ):
     return Company(
         info=Info(
             ticker=ticker,
             currency=currency,
+            currency_override=currency_override,
             last_update="2026-04-01",
             current_quarter_id=current_quarter_id,
         ),
@@ -135,6 +139,10 @@ class TestStockDataRetriever:
         )
         instance.discord = create_autospec(
             DiscordClient,
+            instance=True,
+        )
+        instance.currency_converter = create_autospec(
+            QuarterCurrencyConverter,
             instance=True,
         )
         instance.log = create_autospec(logging.Logger, instance=True)
@@ -468,7 +476,7 @@ class TestStockDataRetriever:
         )
         runner.compose_new_quarter = create_autospec(runner.compose_new_quarter, return_value=next_quarter)
         runner.run()
-        runner.service.report_quarter.assert_called_once_with("NVDA", new_reported_quarter)
+        runner.service.report_quarter.assert_called_once_with("NVDA", new_reported_quarter, None)
         runner.service.create_quarter.assert_called_once_with("NVDA", next_quarter)
         runner.discord.post_earnings.assert_called_once()
         payload = runner.discord.post_earnings.call_args.args[0]
@@ -484,6 +492,164 @@ class TestStockDataRetriever:
         )
         assert payload == expected_report
         assert payload["embeds"][0]["title"].startswith("NVDA - ")
+
+    @patch("utils.is_past_date")
+    @patch("gemini.retriever.datetime")
+    def test_company_with_currency_override_is_stored_converted(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        mock_is_past.return_value = True
+        company = make_company(
+            "SKHY",
+            "25Q4",
+            {"25Q4": make_quarter(report_date="2026-04-20")},
+            currency="₩",
+            currency_override="$",
+        )
+        runner.service.get_companies.return_value = {"SKHY": company}
+        reported = make_complete_quarter(report_date="2026-04-20")
+        converted = reported.model_copy(
+            update={"reported_revenues": Decimal("1")},
+        )
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(reported)
+        )
+        fx_rate = FxRate(rate=Decimal("1500"), source="polygon")
+        runner.currency_converter.convert.return_value = (converted, fx_rate)
+        runner.compose_new_quarter = create_autospec(
+            runner.compose_new_quarter,
+            return_value=make_quarter(quarter_id="26Q1", report_date=""),
+        )
+
+        runner.run()
+
+        # Gemini is asked in the company's own currency...
+        runner.client.get_quarter_report.assert_called_once_with(
+            "SKHY",
+            company.quarters["25Q4"],
+            "₩",
+        )
+        runner.currency_converter.convert.assert_called_once_with(
+            reported,
+            from_currency="₩",
+            to_currency="$",
+        )
+        # ...and the converted quarter is what is stored and posted.
+        runner.service.report_quarter.assert_called_once_with(
+            "SKHY",
+            converted,
+            fx_rate,
+        )
+        runner.service.create_quarter.assert_called_once()
+        runner.errors.report_error_message.assert_not_called()
+
+    @patch("utils.is_past_date")
+    @patch("gemini.retriever.datetime")
+    def test_failed_conversion_stores_nothing_and_is_retried_later(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        mock_is_past.return_value = True
+        company = make_company(
+            "SKHY",
+            "25Q4",
+            {"25Q4": make_quarter(report_date="2026-04-20")},
+            currency="₩",
+            currency_override="$",
+        )
+        runner.service.get_companies.return_value = {"SKHY": company}
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(
+                make_complete_quarter(report_date="2026-04-20"),
+                raw_response="raw gemini response",
+            )
+        )
+        runner.currency_converter.convert.side_effect = RuntimeError(
+            "Only 3 daily USD/KRW rates"
+        )
+
+        runner.run()
+
+        runner.service.report_quarter.assert_not_called()
+        runner.service.create_quarter.assert_not_called()
+        runner.discord.post_earnings.assert_not_called()
+        runner.errors.report_error_message.assert_called_once()
+        message = runner.errors.report_error_message.call_args.args[0]
+        assert "Converting the quarter to $ failed" in message
+        assert "Only 3 daily USD/KRW rates" in message
+
+    @patch("utils.is_past_date")
+    @patch("gemini.retriever.datetime")
+    def test_conversion_without_a_configured_converter_is_an_error(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        mock_is_past.return_value = True
+        runner.currency_converter = None
+        company = make_company(
+            "SKHY",
+            "25Q4",
+            {"25Q4": make_quarter(report_date="2026-04-20")},
+            currency="₩",
+            currency_override="$",
+        )
+        runner.service.get_companies.return_value = {"SKHY": company}
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(
+                make_complete_quarter(report_date="2026-04-20"),
+            )
+        )
+
+        runner.run()
+
+        runner.service.report_quarter.assert_not_called()
+        runner.errors.report_error_message.assert_called_once()
+        assert "no currency converter" in (
+            runner.errors.report_error_message.call_args.args[0]
+        )
+
+    @patch("utils.is_past_date")
+    @patch("gemini.retriever.datetime")
+    def test_company_without_currency_override_is_not_converted(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        mock_is_past.return_value = True
+        company = make_company(
+            "ASML",
+            "25Q4",
+            {"25Q4": make_quarter(report_date="2026-04-20")},
+            currency="€",
+        )
+        runner.service.get_companies.return_value = {"ASML": company}
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(
+                make_complete_quarter(report_date="2026-04-20"),
+            )
+        )
+        runner.compose_new_quarter = create_autospec(
+            runner.compose_new_quarter,
+            return_value=make_quarter(quarter_id="26Q1", report_date=""),
+        )
+
+        runner.run()
+
+        runner.currency_converter.convert.assert_not_called()
+        runner.service.report_quarter.assert_called_once()
+        assert runner.service.report_quarter.call_args.args[2] is None
 
     @patch("utils.is_past_date")
     @patch("gemini.retriever.datetime")
@@ -600,6 +766,7 @@ class TestStockDataRetriever:
         runner.service.report_quarter.assert_called_once_with(
             "ASML",
             reported_quarter,
+            None,
         )
         runner.service.create_quarter.assert_called_once_with(
             "ASML",
@@ -742,6 +909,7 @@ class TestStockDataRetriever:
         runner.service.report_quarter.assert_called_once_with(
             "NVDA",
             reported_quarter,
+            None,
         )
         runner.service.create_quarter.assert_called_once_with(
             "NVDA",
@@ -797,6 +965,7 @@ class TestStockDataRetriever:
         runner.service.report_quarter.assert_called_once_with(
             "JPM",
             reported_quarter,
+            None,
         )
         runner.errors.report_error_message.assert_not_called()
         runner.errors.report_warning_message.assert_not_called()
@@ -2177,7 +2346,7 @@ class TestStockDataRetriever:
         revalidated_report = ReportDate(ticker="TSLA", quarter="26Q1", report_date="2026-05-02")
         runner.client.revalidate_report_dates.return_value = ReportDates(report_dates=[revalidated_report])
         runner.run()
-        runner.service.report_quarter.assert_called_once_with("NVDA", reported_quarter)
+        runner.service.report_quarter.assert_called_once_with("NVDA", reported_quarter, None)
         runner.service.create_quarter.assert_called_once_with("NVDA", next_quarter)
         runner.client.revalidate_report_dates.assert_called_once()
         queued_dates = runner.client.revalidate_report_dates.call_args[0][0]

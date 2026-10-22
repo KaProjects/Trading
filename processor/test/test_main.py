@@ -125,6 +125,12 @@ def test_create_app_initializes_dependencies_from_validated_config():
         ) as btc_runner,
         patch("main.FinnhubEarningsRetrieverRunner", autospec=True) as finnhub_runner,
         patch("main.StockDataRetrieverRunner", autospec=True) as stock_runner,
+        patch("main.PolygonClient", autospec=True) as polygon_client,
+        patch("main.FrankfurterClient", autospec=True) as frankfurter_client,
+        patch(
+            "main.QuarterCurrencyConverter",
+            autospec=True,
+        ) as currency_converter,
         patch(
             "main.PolygonNewsRetrieverRunner",
             autospec=True,
@@ -150,11 +156,19 @@ def test_create_app_initializes_dependencies_from_validated_config():
         finnhub_api_key="finnhub",
         discord=discord,
         error_reporter=errors,
+        currency_converter=currency_converter.return_value,
+    )
+    # One converter, shared by the quarter reports and Finnhub estimates.
+    polygon_client.assert_called_once_with("polygon")
+    currency_converter.assert_called_once_with(
+        polygon_client.return_value,
+        frankfurter_client.return_value,
     )
     stock_runner.assert_called_once_with(
         gemini_api_key="gemini",
         discord=discord,
         error_reporter=errors,
+        currency_converter=currency_converter.return_value,
     )
     polygon_news_runner.assert_called_once_with(
         polygon_api_key="polygon",

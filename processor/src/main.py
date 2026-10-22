@@ -11,8 +11,11 @@ from company_onboarding import CompanyOnboardingWatcher
 from config import AppConfig
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
+from frankfurter.client import FrankfurterClient
+from gemini.currency import QuarterCurrencyConverter
 from gemini.retriever import StockDataRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
+from polygon.client import PolygonClient
 from polygon.prices_retriever import PolygonPricesRetrieverRunner
 from polygon.retriever import PolygonNewsRetrieverRunner
 
@@ -107,15 +110,21 @@ def create_app(
         discord=discord,
     )
     utils.init_firebase(config.firebase)
+    currency_converter = QuarterCurrencyConverter(
+        PolygonClient(config.polygon_api_key.get_secret_value()),
+        FrankfurterClient(),
+    )
     finnhub_runner = FinnhubEarningsRetrieverRunner(
         finnhub_api_key=config.finnhub_api_key.get_secret_value(),
         discord=discord,
         error_reporter=errors,
+        currency_converter=currency_converter,
     )
     stock_runner = StockDataRetrieverRunner(
         gemini_api_key=config.gemini_api_key.get_secret_value(),
         discord=discord,
         error_reporter=errors,
+        currency_converter=currency_converter,
     )
     polygon_news_runner = PolygonNewsRetrieverRunner(
         polygon_api_key=config.polygon_api_key.get_secret_value(),

@@ -16,6 +16,7 @@ from gemini.models import (
     Company,
     CompanyBullBear,
     CompanyTarget,
+    FxRate,
     InstitutionRecord,
     Quarter,
     ReportDate,
@@ -156,11 +157,22 @@ class FirebaseService:
         })
         self.log.info(LogMsg.REPORT_DATE_UPDATED.format(previous_date=previous_date, new_date=new_report_date.report_date, company_id=new_report_date.ticker, quarter_id=new_report_date.quarter))
 
-    def report_quarter(self, company_id: str, quarter_data: Quarter) -> None:
-        db.reference(company_path(company_id)).update({
+    def report_quarter(
+        self,
+        company_id: str,
+        quarter_data: Quarter,
+        fx_rate: FxRate | None = None,
+    ) -> None:
+        updates = {
             "quarters/" + quarter_data.id: quarter_data.model_dump(mode="json"),
             "info/last_update": datetime.now().strftime("%Y-%m-%d"),
-        })
+        }
+        if fx_rate is not None:
+            # Kept so a converted figure can always be traced back.
+            updates["info/fx_rates/" + quarter_data.id] = fx_rate.model_dump(
+                mode="json",
+            )
+        db.reference(company_path(company_id)).update(updates)
         self.log.info(LogMsg.QUARTER_REPORTED.format(company_id=company_id, quarter_id=quarter_data.id, date=quarter_data.report_date_this_quarter))
 
     def create_quarter(self, company_id, new_quarter_data: Quarter) -> None:
