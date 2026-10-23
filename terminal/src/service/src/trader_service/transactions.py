@@ -4,7 +4,8 @@
     2026-01-10,BUY,NVDA,5,145.50,4.95,IBKR_MARGIN
 
 Partial fills of one order on one day are summed: quantity, average price (weighted), fees (everything IBKR
-charged: commission + exchange / regulatory fees). Dates are the Mac's local dates; the range includes both ends.
+charged: commission + exchange / regulatory fees). Dates are IBKR's trade dates when given (Flex), otherwise the
+Mac's local dates; the range includes both ends.
 """
 
 import csv
@@ -35,7 +36,7 @@ def transactions_csv(fills: list[dict], start: date, end: date, environment: Env
     orders: dict[tuple, dict] = {}
     for fill in fills:
         time = _time(fill["time"]).astimezone(tz)
-        day = time.date()
+        day = date.fromisoformat(fill["trade_date"]) if fill.get("trade_date") else time.date()
         if not start <= day <= end:
             continue
         order = fill.get("order_ref") or fill.get("order_id") or fill["exec_id"]

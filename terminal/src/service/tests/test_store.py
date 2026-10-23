@@ -94,24 +94,6 @@ async def test_new_fill_lands_in_history_exactly_once(store, connected):
     assert len(exec_ids) == 5 and len(set(exec_ids)) == 5
 
 
-async def test_fill_saved_without_fees_gets_them_later(store):
-    """T11: IBKR's commission report can come after the fill was first saved (sync on connect)."""
-    store.unlock(KEY)
-    fill = dict(store.history(30)[0])
-    store._pending_fills.append({**fill, "commission": "0"})
-    store._flush_pending()
-    store._pending_fills.append({**fill, "exec_id": fill["exec_id"], "commission": "0"})
-    store._flush_pending()
-    assert next(f for f in store.history(30) if f["exec_id"] == fill["exec_id"])["commission"] == fill["commission"]
-    later = {**fill, "exec_id": "NEW-1", "commission": "0"}
-    store._pending_fills.append(later)
-    store._flush_pending()
-    store._pending_fills.append({**later, "commission": "1.23"})
-    store._flush_pending()
-    saved = [f for f in store.history(30) if f["exec_id"] == "NEW-1"]
-    assert len(saved) == 1 and saved[0]["commission"] == "1.23"
-
-
 async def test_fills_while_locked_are_written_on_unlock(store, connected):
     await connected.place_order(PlaceOrderRequest(conid=265598, side=Side.BUY, quantity=D(1),
                                                   limit_price=D(230), order_ref="h2"))

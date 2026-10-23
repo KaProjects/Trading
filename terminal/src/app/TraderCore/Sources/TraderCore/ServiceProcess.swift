@@ -55,6 +55,8 @@ public enum ControlMessage: Sendable {
     case finnhubKey(String)
     /// T1: right before Log in; the service hands them to IBC and forgets them (D1.3).
     case ibkrCredentials(username: String, password: String)
+    /// T11: IBKR Flex Web Service, for the transactions export; after unlock.
+    case flex(token: String, queryId: String)
 
     var line: Data {
         let object: [String: String] = switch self {
@@ -63,6 +65,7 @@ public enum ControlMessage: Sendable {
         case .finnhubKey(let key): ["type": "finnhub_key", "key": key]
         case .ibkrCredentials(let username, let password):
             ["type": "ibkr_credentials", "username": username, "password": password]
+        case .flex(let token, let queryId): ["type": "flex", "token": token, "query_id": queryId]
         }
         var data = (try? JSONSerialization.data(withJSONObject: object)) ?? Data()
         data.append(0x0A)

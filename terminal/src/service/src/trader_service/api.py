@@ -2,12 +2,14 @@
 
 import asyncio
 import contextlib
+import xml.etree.ElementTree as ET
 from contextlib import asynccontextmanager
 from datetime import date
 from decimal import Decimal
 
 from collections.abc import Awaitable, Callable
 
+import httpx
 from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
@@ -49,6 +51,7 @@ from trader_service.prices.base import PriceFeed, price_symbol
 from trader_service.prices.fake import FakePrices
 from trader_service.rules import RuleSettings, preview_order
 from trader_service.store import Store
+from trader_service.flex import FlexClient, FlexError, FlexNotSetUp
 from trader_service.transactions import transactions_csv
 from trader_service.vault import VaultLocked
 
@@ -81,8 +84,9 @@ class SetPrice(BaseModel):
 
 def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
                control: Callable[[], Awaitable[asyncio.StreamReader]] | None = None,
-               on_control_eof: Callable[[], None] = lambda: None) -> FastAPI:
+               on_control_eof: Callable[[], None] = lambda: None, flex: FlexClient | None = None) -> FastAPI:
     """`control` opens the app's private channel (our stdin) carrying unlock/lock messages (D3.3)."""
+    flex = flex or FlexClient()
     prices.add_listener(lambda price: bus.publish("price", price))
 
     def update_price_stream() -> None:
@@ -108,7 +112,7 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         if control is not None:
             tasks.append(asyncio.create_task(
                 run_control(await control(), store, on_control_eof, prices, on_change=update_price_stream,
-                            broker=broker)))
+                            broker=broker, flex=flex)))
         update_price_stream()
         yield
         for task in tasks:
@@ -122,6 +126,7 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
 
     app = FastAPI(title="Trader Terminal service", lifespan=lifespan)
     app.state.response_delay = 0.0
+    app.state.flex = flex
 
     @app.middleware("http")
     async def slow_responses(request: Request, call_next):
@@ -215,13 +220,19 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
 
     @app.get("/transactions.csv")
     async def transactions(start: date = Query(alias="from"), end: date = Query(alias="to")) -> Response:
-        """T11: every transaction of these days (both included) as CSV, one row per order. 423 while locked."""
+        """T11: the account's transactions of these days (both included) straight from IBKR (Flex, D11.2), as CSV,
+        one row per order. 423 while locked, 409 until the Flex query is set up, 502 when IBKR refuses."""
         if not store.unlocked:
             raise VaultLocked()
         if end < start:
             return JSONResponse(status_code=422, content={"error": "bad_range", "message": "To is before From"})
-        csv_text = transactions_csv(store.all_fills(), start, end, broker.status().environment)
-        return Response(csv_text, media_type="text/csv")
+        try:
+            fills = await flex.trades(start, end)
+        except FlexNotSetUp as error:
+            return JSONResponse(status_code=409, content={"error": "flex_not_set_up", "message": str(error)})
+        except (FlexError, httpx.HTTPError, ET.ParseError) as error:
+            return JSONResponse(status_code=502, content={"error": "flex_failed", "message": str(error)})
+        return Response(transactions_csv(fills, start, end, broker.status().environment), media_type="text/csv")
 
     @app.get("/settings/rules")
     async def get_rules() -> RuleThresholds:

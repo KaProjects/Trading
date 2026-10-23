@@ -28,8 +28,7 @@ final class AppModel {
     /// T8 planner rows: scratchpad, kept in memory only (D8.2).
     private(set) var planRows: [PlanRow] = []
     /// Main window tab (Overview / Planner / Execution). Debug + fake opens on the Planner.
-    var mainSection: MainSection = AppEnvironment.isDebugBuild && AppEnvironment.defaultBroker == .fake
-        ? .planner : .overview
+    var mainSection: MainSection = .overview
     var planQuantityText: [UUID: String] = [:]
     /// Planned volume per row in thousands of base currency (D8.5); fills the quantity once a price is known.
     var planVolumeText: [UUID: String] = [:]
@@ -73,6 +72,7 @@ final class AppModel {
         UserDefaults.standard.removeObject(forKey: "devData.plannerPrefill")  // merged into devData.devPlans
         hasFinnhubKey = KeychainStore.hasFinnhubKey
         hasIbkrCredentials = KeychainStore.hasIbkrCredentials(environment: environment.rawValue)
+        hasFlexCredentials = KeychainStore.hasFlexCredentials(environment: environment.rawValue)
         notifier.requestAuthorization()
         launchService()
     }
@@ -252,6 +252,9 @@ final class AppModel {
                 ? try KeychainStore.dataKey(environment: environment.rawValue, context: nil, userPresence: false)
                 : try KeychainStore.dataKey(environment: environment.rawValue, context: context)
             try process.send(.unlock(dataKey: key))
+            if let flex = try? KeychainStore.flexCredentials(environment: environment.rawValue, context: context) {
+                try process.send(.flex(token: flex.token, queryId: flex.queryId))
+            }
         } catch {
             lastError = "Could not unlock saved data: \(error.localizedDescription)"
             return false
@@ -589,6 +592,19 @@ final class AppModel {
     }
 
     private(set) var hasIbkrCredentials = false
+    private(set) var hasFlexCredentials = false
+
+    /// T11: saved and handed to the running service right away (the app is unlocked when Settings saves).
+    func saveFlexCredentials(token: String, queryId: String) throws {
+        try KeychainStore.saveFlexCredentials(environment: environment.rawValue, token: token, queryId: queryId)
+        hasFlexCredentials = true
+        try? process?.send(.flex(token: token, queryId: queryId))
+    }
+
+    func deleteFlexCredentials() {
+        KeychainStore.deleteFlexCredentials(environment: environment.rawValue)
+        hasFlexCredentials = false
+    }
 
     func saveIbkrCredentials(username: String, password: String) throws {
         try KeychainStore.saveIbkrCredentials(environment: environment.rawValue, username: username,

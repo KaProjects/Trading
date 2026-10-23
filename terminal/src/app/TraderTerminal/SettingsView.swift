@@ -12,6 +12,9 @@ struct SettingsView: View {
     @State private var ibkrUsername = ""
     @State private var ibkrPassword = ""
     @State private var ibkrMessage: String?
+    @State private var flexToken = ""
+    @State private var flexQueryId = ""
+    @State private var flexMessage: String?
 
     enum Field: CaseIterable {
         case pctWarn, pctStrong, valueWarn, quantityWarn, priceDeviation, planMarkup
@@ -66,6 +69,41 @@ struct SettingsView: View {
                             }
                         }
                         .disabled(ibkrUsername.trimmingCharacters(in: .whitespaces).isEmpty || ibkrPassword.isEmpty)
+                    }
+                }
+            }
+            if model.environment != .fake {
+                Section("IBKR Flex — transactions export") {
+                    SecureField("Token", text: $flexToken,
+                                prompt: Text(model.hasFlexCredentials ? "saved — enter both to replace" : ""))
+                    TextField("Query ID", text: $flexQueryId,
+                              prompt: Text(model.hasFlexCredentials ? "saved — enter both to replace" : ""))
+                    HStack {
+                        Text(flexMessage ?? (model.hasFlexCredentials
+                                             ? "Stored in the Keychain behind Touch ID."
+                                             : "From the IBKR portal: Flex Queries + Flex Web Service."))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if model.hasFlexCredentials {
+                            Button("Remove", role: .destructive) {
+                                model.deleteFlexCredentials()
+                                flexMessage = "Removed."
+                            }
+                        }
+                        Button("Save Flex") {
+                            do {
+                                try model.saveFlexCredentials(
+                                    token: flexToken.trimmingCharacters(in: .whitespacesAndNewlines),
+                                    queryId: flexQueryId.trimmingCharacters(in: .whitespacesAndNewlines))
+                                flexToken = ""
+                                flexQueryId = ""
+                                flexMessage = "Saved."
+                            } catch {
+                                flexMessage = error.localizedDescription
+                            }
+                        }
+                        .disabled(flexToken.trimmingCharacters(in: .whitespaces).isEmpty
+                                  || flexQueryId.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 }
             }

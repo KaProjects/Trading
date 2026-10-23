@@ -63,6 +63,36 @@ enum KeychainStore {
         UserDefaults.standard.bool(forKey: "ibkrLoginSaved.\(environment)")
     }
 
+    // MARK: - IBKR Flex Web Service (T11): token + query ID per environment, behind Touch ID — the token reads the
+    // account's reports. Whether they exist is remembered in UserDefaults (no secret).
+
+    private struct FlexLogin: Codable {
+        let token: String
+        let queryId: String
+    }
+
+    static func flexCredentials(environment: String, context: LAContext?) throws -> (token: String, queryId: String)? {
+        guard let data = try read(account: "ibkr-flex.\(environment)", context: context),
+              let flex = try? JSONDecoder().decode(FlexLogin.self, from: data) else { return nil }
+        return (flex.token, flex.queryId)
+    }
+
+    static func saveFlexCredentials(environment: String, token: String, queryId: String) throws {
+        deleteFlexCredentials(environment: environment)
+        let data = try JSONEncoder().encode(FlexLogin(token: token, queryId: queryId))
+        try add(account: "ibkr-flex.\(environment)", value: data, userPresence: true)
+        UserDefaults.standard.set(true, forKey: "ibkrFlexSaved.\(environment)")
+    }
+
+    static func deleteFlexCredentials(environment: String) {
+        delete(account: "ibkr-flex.\(environment)")
+        UserDefaults.standard.removeObject(forKey: "ibkrFlexSaved.\(environment)")
+    }
+
+    static func hasFlexCredentials(environment: String) -> Bool {
+        UserDefaults.standard.bool(forKey: "ibkrFlexSaved.\(environment)")
+    }
+
     // MARK: - Finnhub API key (D4.2): market data only, no account access → no Touch ID. Readable only by this
     // app (code signature + keychain access group) while the Mac is unlocked; never leaves this device.
 

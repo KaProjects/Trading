@@ -4,6 +4,7 @@
     {"type": "lock"}                                       sleep / screen lock / window closed
     {"type": "finnhub_key", "key": "<api key>"}            price feed key from the Keychain (T4)
     {"type": "ibkr_credentials", "username": "…", "password": "…"}   right before Log in (T1, D1.3)
+    {"type": "flex", "token": "…", "query_id": "…"}        IBKR Flex Web Service, after unlock (T11)
     EOF                                                    the app quit or crashed -> shut down
 """
 
@@ -28,7 +29,7 @@ async def open_stdin() -> asyncio.StreamReader:
     return reader
 
 
-def handle_message(line: bytes, store: Store, prices: PriceFeed | None = None, broker=None) -> None:
+def handle_message(line: bytes, store: Store, prices: PriceFeed | None = None, broker=None, flex=None) -> None:
     try:
         message = json.loads(line)
         kind = message["type"]
@@ -56,15 +57,21 @@ def handle_message(line: bytes, store: Store, prices: PriceFeed | None = None, b
             broker.set_credentials(username, password)
         else:
             log.warning("ignoring ibkr_credentials message")
+    elif kind == "flex":
+        token, query_id = message.get("token"), message.get("query_id")
+        if isinstance(token, str) and isinstance(query_id, str) and token and query_id and flex is not None:
+            flex.set_credentials(token, query_id)
+        else:
+            log.warning("ignoring flex message")
     else:
         log.warning("ignoring unknown control message type")
 
 
 async def run_control(reader: asyncio.StreamReader, store: Store, on_eof: Callable[[], None],
                       prices: PriceFeed | None = None, on_change: Callable[[], None] = lambda: None,
-                      broker=None) -> None:
+                      broker=None, flex=None) -> None:
     while line := await reader.readline():
-        handle_message(line, store, prices, broker)
+        handle_message(line, store, prices, broker, flex)
         on_change()
     store.lock()
     on_eof()

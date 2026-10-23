@@ -307,12 +307,28 @@ def test_plans_need_unlock(logged_in):
     assert logged_in.post("/plans", json=plan).status_code == 423
 
 
-def test_transactions_csv_export(logged_in):
-    assert logged_in.get("/transactions.csv?from=2026-01-01&to=2030-12-31").status_code == 423  # locked
+def test_transactions_csv_export_from_flex(logged_in):
+    import httpx
+
+    from test_flex import flex_transport
+
+    assert logged_in.get("/transactions.csv?from=2026-01-01&to=2026-12-31").status_code == 423  # locked
     logged_in.app.state.test_store.unlock(bytes(32))
-    response = logged_in.get("/transactions.csv?from=2000-01-01&to=2100-12-31")
+    response = logged_in.get("/transactions.csv?from=2026-01-01&to=2026-12-31")
+    assert response.status_code == 409 and response.json()["error"] == "flex_not_set_up"
+    flex = logged_in.app.state.flex
+    flex.set_credentials("token", "123")
+    flex._transport, flex._poll, flex._gap = flex_transport(), 0, 0
+    response = logged_in.get("/transactions.csv?from=2026-01-01&to=2026-12-31")
     assert response.status_code == 200 and response.headers["content-type"].startswith("text/csv")
-    lines = response.text.splitlines()
-    assert lines[0] == "date,type,ticker,quantity,price,fees,portfolio"
-    assert len(lines) == 5 and all(line.endswith(",FAKE") for line in lines[1:])  # the 4 seed fills
+    assert response.text.splitlines() == [
+        "date,type,ticker,quantity,price,fees,portfolio",
+        "2026-01-10,BUY,NVDA,5,145.50,4.95,FAKE",
+        "2026-04-01,SELL,NVDA,8,180.00,6.95,FAKE",
+    ]
     assert logged_in.get("/transactions.csv?from=2026-02-01&to=2026-01-01").status_code == 422
+    flex._transport = httpx.MockTransport(lambda request: httpx.Response(
+        200, text="<FlexStatementResponse><Status>Fail</Status><ErrorCode>1012</ErrorCode>"
+                  "<ErrorMessage>Token has expired.</ErrorMessage></FlexStatementResponse>"))
+    response = logged_in.get("/transactions.csv?from=2026-01-01&to=2026-12-31")
+    assert response.status_code == 502 and "Token has expired" in response.json()["message"]
