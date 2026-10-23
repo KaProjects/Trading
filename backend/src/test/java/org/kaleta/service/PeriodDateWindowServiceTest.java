@@ -92,7 +92,8 @@ class PeriodDateWindowServiceTest
                 List.of());
 
         assertThat(result.window(), is(nullValue()));
-        assertThat(result.error(), is("current and previous report dates are unavailable"));
+        assertThat(result.error(),
+                is("the period has no report date in this app and Firebase holds none for it"));
     }
 
     private Period period(String name, String reportDate)
@@ -105,5 +106,69 @@ class PeriodDateWindowServiceTest
         period.setName(PeriodName.valueOf(name));
         period.setReportDate(reportDate == null ? null : Date.valueOf(reportDate));
         return period;
+    }
+
+
+    @Test
+    void usesTheFirebaseDatesWhenThePeriodHasNoReportDateAndNoPredecessor()
+    {
+        Period current = period("26Q3", null);
+
+        PeriodDateWindowService.Resolution result = service.resolve(
+                current,
+                List.of(current),
+                () -> new PeriodDateWindowService.ExpectedDates(
+                        LocalDate.parse("2026-10-28"),
+                        LocalDate.parse("2026-07-29")));
+
+        assertThat(result.error(), is(nullValue()));
+        assertThat(result.window().start(), is(LocalDate.parse("2026-07-29")));
+        assertThat(result.window().end(), is(LocalDate.parse("2026-10-28")));
+    }
+
+    @Test
+    void prefersThisAppsOwnDatesOverFirebaseAndDoesNotLookItUp()
+    {
+        Period current = period("25Q2", "2025-08-27");
+        Period previous = period("25Q1", "2025-05-28");
+
+        PeriodDateWindowService.Resolution result = service.resolve(
+                current,
+                List.of(current, previous),
+                () -> {
+                    throw new AssertionError("Firebase must not be consulted when both dates are known");
+                });
+
+        assertThat(result.window().start(), is(LocalDate.parse("2025-05-28")));
+        assertThat(result.window().end(), is(LocalDate.parse("2025-08-27")));
+    }
+
+    @Test
+    void fillsOnlyTheMissingSideFromFirebase()
+    {
+        Period current = period("26Q3", null);
+        Period previous = period("26Q2", "2026-07-29");
+
+        PeriodDateWindowService.Resolution result = service.resolve(
+                current,
+                List.of(current, previous),
+                () -> new PeriodDateWindowService.ExpectedDates(
+                        LocalDate.parse("2026-10-28"),
+                        LocalDate.parse("2026-01-01")));
+
+        assertThat(result.window().start(), is(LocalDate.parse("2026-07-29")));
+        assertThat(result.window().end(), is(LocalDate.parse("2026-10-28")));
+    }
+
+    @Test
+    void reportsThatNeitherThisAppNorFirebaseHasADate()
+    {
+        Period current = period("26Q3", null);
+
+        PeriodDateWindowService.Resolution result = service.resolve(
+                current, List.of(current), () -> null);
+
+        assertThat(result.window(), is(nullValue()));
+        assertThat(result.error(), is("the period has no report date in this app and Firebase holds none for it"));
     }
 }

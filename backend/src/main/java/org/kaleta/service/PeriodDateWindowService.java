@@ -9,11 +9,28 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 @ApplicationScoped
 public class PeriodDateWindowService
 {
     public Resolution resolve(Period period, List<Period> periods)
+    {
+        return resolve(period, periods, () -> null);
+    }
+
+    /**
+     * Resolves the window a period's targets and news belong to.
+     * <p>
+     * The report dates come from this app's own periods. A quarter that has not been reported yet
+     * has no date here, and neither does a quarter whose predecessor was never imported, so the
+     * window falls back to the dates Firebase holds for that quarter - the same ones the research
+     * page already displays as the expected report date. The fallback is a {@link Supplier} so a
+     * period with its own dates costs no Firebase read.
+     *
+     * @param expected the dates Firebase holds for this quarter, or null when it has none
+     */
+    public Resolution resolve(Period period, List<Period> periods, Supplier<ExpectedDates> expected)
     {
         LocalDate currentReportDate = toLocalDate(period.getReportDate());
         LocalDate previousReportDate = previousPeriod(period, periods)
@@ -21,10 +38,18 @@ public class PeriodDateWindowService
                 .map(Date::toLocalDate)
                 .orElse(null);
 
+        if (currentReportDate == null || previousReportDate == null) {
+            ExpectedDates fallback = expected == null ? null : expected.get();
+            if (fallback != null) {
+                if (currentReportDate == null) currentReportDate = fallback.current();
+                if (previousReportDate == null) previousReportDate = fallback.previous();
+            }
+        }
+
         if (currentReportDate == null && previousReportDate == null) {
             return new Resolution(
                     null,
-                    "current and previous report dates are unavailable");
+                    "the period has no report date in this app and Firebase holds none for it");
         }
 
         int fallbackMonths = fallbackMonths(period.getName().getType());
@@ -89,6 +114,9 @@ public class PeriodDateWindowService
             return !date.isBefore(start) && date.isBefore(end);
         }
     }
+
+    /** The report dates Firebase holds for a quarter: this quarter's, and its predecessor's. */
+    public record ExpectedDates(LocalDate current, LocalDate previous) {}
 
     public record Resolution(DateWindow window, String error) {}
 }

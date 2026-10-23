@@ -44,6 +44,7 @@ public class RealtimeFirebaseStore implements FirebaseStore
         private static final String QUARTERS = "quarters";
         private static final String TARGETS = "targets";
         private static final String FINNHUB_EARNINGS = "fhe";
+        private static final String INDICATORS = "indicators";
         private static final String NEWS_SENTIMENT = "pgn";
         private static final String BULL_BEAR = "bull_bear";
     }
@@ -104,6 +105,12 @@ public class RealtimeFirebaseStore implements FirebaseStore
         return read(company(ticker)
                 .child(FirebasePath.GEMINI)
                 .child(FirebasePath.INFO), FirebaseCompany.Gemini.Info.class);
+    }
+
+    @Override
+    public Optional<FirebaseCompany.Indicators> findIndicators(String ticker)
+    {
+        return read(company(ticker).child(FirebasePath.INDICATORS), FirebaseCompany.Indicators.class);
     }
 
     @Override

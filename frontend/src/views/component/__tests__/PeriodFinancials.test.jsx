@@ -195,24 +195,15 @@ describe("PeriodFinancials", () => {
         expect(screen.getByText("dividend").parentElement).toHaveTextContent(/^\(2%\)25Mdividend$/);
     });
 
-    test("shows the market cap at the right edge of the summary", () => {
+    test("no longer carries the market cap, which belongs to the market widget", () => {
         render(<PeriodFinancials
             ttm={ttm}
             financials={completeQuarterFinancials}
             indicators={indicators}
-            marketCap={4234}
             onOpen={jest.fn()}
         />);
 
-        const label = screen.getByText("m. cap.");
-        expect(label.parentElement).toHaveTextContent(/^m. cap.4.23B$/);
-        expect(label.parentElement).toHaveStyle("margin-left: auto");
-    });
-
-    test("omits the market cap when it is not set", () => {
-        render(<PeriodFinancials ttm={ttm} financials={completeQuarterFinancials} onOpen={jest.fn()}/>);
-
-        expect(screen.queryByText("m. cap.")).not.toBeInTheDocument();
+        expect(screen.queryByText(/m\. cap/)).not.toBeInTheDocument();
     });
 
     test("renders the detailed financial table separately", () => {
@@ -254,5 +245,32 @@ describe("PeriodFinancials", () => {
         }]}/>);
 
         expect(screen.getAllByText("-")).toHaveLength(2);
+    });
+
+    test("drops dividend, capex and free cash flow when only the core columns fit", () => {
+        render(<PeriodFinancials
+            ttm={ttm}
+            financials={completeQuarterFinancials}
+            indicators={indicators}
+            coreColumnsOnly
+            onOpen={jest.fn()}
+        />);
+
+        expect(screen.getByText("revenue")).toBeInTheDocument();
+        expect(screen.getByText("net income")).toBeInTheDocument();
+        expect(screen.queryByText("dividend")).not.toBeInTheDocument();
+        expect(screen.queryByText("capex")).not.toBeInTheDocument();
+        expect(screen.queryByText("fcf")).not.toBeInTheDocument();
+    });
+
+    test("keeps every column by default", () => {
+        render(<PeriodFinancials
+            ttm={ttm}
+            financials={completeQuarterFinancials}
+            indicators={indicators}
+            onOpen={jest.fn()}
+        />);
+
+        expect(screen.getByText("dividend")).toBeInTheDocument();
     });
 });

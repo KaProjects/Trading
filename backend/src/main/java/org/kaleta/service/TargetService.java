@@ -384,7 +384,8 @@ public class TargetService
             List<Period> periods,
             List<String> warnings)
     {
-        PeriodDateWindowService.Resolution resolution = periodDateWindowService.resolve(period, periods);
+        PeriodDateWindowService.Resolution resolution =
+                periodDateWindowService.resolve(period, periods, expectedDates(period));
         if (resolution.window() != null) {
             return resolution.window();
         }
@@ -394,11 +395,19 @@ public class TargetService
         return null;
     }
 
+    private java.util.function.Supplier<PeriodDateWindowService.ExpectedDates> expectedDates(Period period)
+    {
+        return () -> firebaseService.getExpectedReportDates(
+                period.getCompany().getTicker(),
+                period.getName().toString());
+    }
+
     private void validateTargetDate(Period period, LocalDate targetDate)
     {
         PeriodDateWindowService.Resolution resolution = periodDateWindowService.resolve(
                 period,
-                periodDao.list(period.getCompany().getId()));
+                periodDao.list(period.getCompany().getId()),
+                expectedDates(period));
         if (resolution.window() == null) {
             throw new InvalidInputException(
                     "target date cannot be validated for period '" + period.getName()

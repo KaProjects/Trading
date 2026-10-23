@@ -9,6 +9,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
+import org.kaleta.model.PriceIndicators;
 import org.kaleta.model.Company;
 import org.kaleta.model.Periods;
 import org.kaleta.model.Record;
@@ -131,7 +132,9 @@ public class ResearchEndpoints
 
             if (dto.getTtm() != null && dto.getTtm().getShares() != null)
             {
-                dto.setIndicators(arithmeticService.computeIndicators(latest, dto.getTtm()));
+                PriceIndicators indicators = arithmeticService.computeIndicators(latest, dto.getTtm());
+                indicators.setBeta(firebaseService.getBeta(company.getTicker()));
+                dto.setIndicators(indicators);
             }
 
             dto.setAssets(tradeService.getAssets(companyId, latest.getPrice()));

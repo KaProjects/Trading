@@ -10,7 +10,7 @@ import {formatDate} from "../../service/FormattingService";
 import {useData} from "../../service/BackendService";
 import {SentimentBreakdown} from "./SentimentBreakdown";
 
-export const LatestNewsSentiment = ({companyId, onOpen, sx}) => {
+export const LatestNewsSentiment = ({companyId, onOpen, expanded = false, sx}) => {
     const {data, loaded, error} = useData(`/news-sentiment/company/${companyId}/latest`);
     const record = data?.record;
 
@@ -53,7 +53,7 @@ export const LatestNewsSentiment = ({companyId, onOpen, sx}) => {
                         <Box component="span">{formatDate(record.date)}</Box>
                         <Box component="span">{record.total} {record.total === 1 ? "article" : "articles"}</Box>
                     </Box>
-                    <SentimentBreakdown stats={record.stats} total={record.total}/>
+                    <SentimentBreakdown stats={record.stats} total={record.total} expanded={expanded}/>
                 </Box>
                 <ChevronRightIcon sx={{fontSize: 17, color: "text.secondary", flexShrink: 0}}/>
             </ButtonBase>

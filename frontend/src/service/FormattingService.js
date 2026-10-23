@@ -147,3 +147,16 @@ export function formatError(error) {
 export function orBlank (value) {
     return value ? value : ""
 }
+
+/**
+ * A valuation multiple, as the financials and estimates widgets print it: "17x", "8.4x", "12.35x".
+ * Fewer decimals the larger it gets, because the precision stops meaning anything.
+ */
+export function formatMultiple(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number === 0) return "";
+
+    const magnitude = Math.abs(number);
+    const decimals = magnitude < 10 ? 2 : magnitude < 100 ? 1 : 0;
+    return formatDecimals(number, 0, decimals) + "x";
+}

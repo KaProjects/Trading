@@ -57,7 +57,8 @@ public class NewsSentimentService
         List<String> warnings = new ArrayList<>();
         PeriodDateWindowService.Resolution resolution = periodDateWindowService.resolve(
                 period,
-                periodDao.list(period.getCompany().getId()));
+                periodDao.list(period.getCompany().getId()),
+                () -> firebaseService.getExpectedReportDates(ticker, period.getName().toString()));
 
         if (resolution.window() == null) {
             String warning = "Firebase news sentiment for " + ticker + " " + period.getName()

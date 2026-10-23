@@ -65,4 +65,38 @@ describe("PeriodEstimatesOverview", () => {
         expect(screen.getAllByText("-")).toHaveLength(5);
         expect(screen.queryByText("(+160%)")).not.toBeInTheDocument();
     });
+
+    test("prints a multiple under every window", () => {
+        // Price 140 against the EPS windows above.
+        render(<PeriodEstimatesOverview overview={overview} multiple={value => 140 / value}/>);
+
+        expect(screen.getByText("14x")).toBeInTheDocument();      // ttm 10
+        expect(screen.getByText("10x")).toBeInTheDocument();      // current 14
+        expect(screen.getByText("7.78x")).toBeInTheDocument();    // next 1 18
+        expect(screen.getByText("6.36x")).toBeInTheDocument();    // next 2 22
+        expect(screen.getByText("5.38x")).toBeInTheDocument();    // next 3 26
+    });
+
+    test("omits the multiple where it would be meaningless", () => {
+        render(<PeriodEstimatesOverview
+            overview={{
+                ttm: {value: -2, change: null},
+                current: {value: 0, change: null},
+                next1: {value: null, change: null},
+                next2: {value: 10, change: null},
+                next3: {value: 20, change: null},
+            }}
+            multiple={value => (Number(value) > 0 ? 140 / Number(value) : null)}
+        />);
+
+        expect(screen.queryByText(/-70x/)).not.toBeInTheDocument();
+        expect(screen.getByText("14x")).toBeInTheDocument();
+        expect(screen.getByText("7x")).toBeInTheDocument();
+    });
+
+    test("renders no multiple line when none is supplied", () => {
+        const {container} = render(<PeriodEstimatesOverview overview={overview}/>);
+
+        expect(container.textContent).not.toMatch(/x\b/);
+    });
 });

@@ -21,6 +21,24 @@ public class FirebaseCompany
     private Map<String, Map<String, FinnhubEarnings>> fhe;
     private Gemini gemini;
     private Map<String, NewsSentiment> pgn;
+    private Indicators indicators;
+
+    /** Market data the processor refreshes periodically, each value stamped with its retrieval. */
+    @Data
+    @RegisterForReflection
+    public static class Indicators
+    {
+        private Indicator price;
+        private Indicator beta;
+
+        @Data
+        @RegisterForReflection
+        public static class Indicator
+        {
+            private String value;
+            private String retrieved_on;
+        }
+    }
 
     @Data
     @RegisterForReflection

@@ -6,7 +6,8 @@ import {
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import React from "react";
 import {ReactComponent as EstimatesIcon} from "../../assets/icons/estimates.svg";
-import {formatDecimals, formatMillionsRounded, formatPercent} from "../../service/FormattingService";
+import {formatDecimals, formatMillionsRounded, formatMultiple, formatPercent} from "../../service/FormattingService";
+import {WIDGET_FIRST_COLUMN_WIDTH} from "./widgetLayout";
 
 const windows = [
     {key: "ttm", label: "ttm"},
@@ -20,26 +21,37 @@ export const formatEstimateAmount = value => formatDecimals(value, 0, 2) || "-";
 export const formatRevenueEstimateAmount = value =>
     (value === null || value === undefined || value === "" ? "" : formatMillionsRounded(Number(value))) || "-";
 
-const EstimateSummaryItem = ({window = {}, label, format, first = false}) => {
+const EstimateSummaryItem = ({window = {}, label, format, multiple, expanded = false, first = false}) => {
     const change = formatPercent(window.change, true, 1);
+    // The label is dropped on a narrow screen, the multiple is not: it is a number, not a caption.
+    const indicator = multiple ? formatMultiple(multiple(window.value)) : "";
+    const textAlign = "center";
+
     return (
-        <Box sx={{marginLeft: first ? 0 : "10px", flexShrink: 0}}>
-            <Box sx={{color: "text.secondary", fontSize: 9, minHeight: "13px", marginBottom: "-3px", textAlign: "center"}}>
+        <Box sx={{
+            marginLeft: first ? 0 : "10px",
+            minWidth: first ? WIDGET_FIRST_COLUMN_WIDTH : undefined,
+            flexShrink: 0,
+        }}>
+            <Box sx={{color: "text.secondary", fontSize: 9, minHeight: "13px", marginBottom: "-3px", textAlign}}>
                 {change ? `(${change})` : "\u00a0"}
             </Box>
-            <Box sx={{fontWeight: 600, fontSize: 13, textAlign: "center"}}>
+            <Box sx={{fontWeight: 600, fontSize: 13, textAlign}}>
                 {format(window.value)}
             </Box>
             <Box sx={{
-                display: {xs: "none", sm: "block"},
+                display: expanded ? "block" : {xs: "none", sm: "block"},
                 color: "text.secondary",
                 mx: 0.5,
                 marginTop: "-2px",
                 fontSize: 11,
-                textAlign: "center",
+                textAlign,
             }}>
                 {label}
             </Box>
+            {indicator &&
+                <Box sx={{color: "text.secondary", fontSize: 10, textAlign}}>{indicator}</Box>
+            }
         </Box>
     );
 };
@@ -61,6 +73,8 @@ export const PeriodEstimatesOverview = ({
     sx,
     title = "Earnings estimates",
     format = formatEstimateAmount,
+    multiple,
+    expanded = false,
 }) => {
     if (!overview) return null;
 
@@ -91,7 +105,7 @@ export const PeriodEstimatesOverview = ({
                     <EstimatesIcon width="17" height="17"/>
                 </Box>
                 <Box sx={{flex: 1, minWidth: 0}}>
-                    <Box sx={{display: {xs: "none", sm: "block"}, marginBottom: "2px", color: "text.secondary", fontSize: 11}}>
+                    <Box sx={{display: expanded ? "block" : {xs: "none", sm: "block"}, marginBottom: "2px", color: "text.secondary", fontSize: 11}}>
                         <Box component="span" sx={{fontWeight: 600, color: "text.primary"}}>{title}</Box>
                     </Box>
                     <Box sx={{maxWidth: "100%", overflowX: {xs: "auto", sm: "visible"}, overflowY: "hidden"}}>
@@ -109,6 +123,8 @@ export const PeriodEstimatesOverview = ({
                                     window={overview[window.key]}
                                     label={window.label}
                                     format={format}
+                                    multiple={multiple}
+                                    expanded={expanded}
                                     first={index === 0}
                                 />
                             ))}

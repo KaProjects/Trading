@@ -27,6 +27,8 @@ public interface FirebaseStore
 
     Optional<FirebaseCompany.Gemini.Info> findGeminiInfo(String ticker);
 
+    Optional<FirebaseCompany.Indicators> findIndicators(String ticker);
+
     Optional<FirebaseCompany.Gemini.Quarter> findQuarter(String ticker, String quarterId);
 
     Map<String, FirebaseCompany.FinnhubEarnings> findEarnings(String ticker, String quarterId);

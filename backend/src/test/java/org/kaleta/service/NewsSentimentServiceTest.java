@@ -138,7 +138,7 @@ class NewsSentimentServiceTest
         assertThat(result.records(), is(List.of()));
         assertThat(result.window(), is(nullValue()));
         assertThat(result.warnings().getFirst(), containsString(
-                "current and previous report dates are unavailable"));
+                "no report date in this app and Firebase holds none for it"));
         verify(firebaseService, never()).getNewsSentiments(
                 org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.any(),

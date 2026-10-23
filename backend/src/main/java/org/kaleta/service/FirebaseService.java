@@ -277,6 +277,54 @@ public class FirebaseService
                 .orElse(null);
     }
 
+    /**
+     * The report dates Firebase holds for a quarter, used as the fallback window boundaries when
+     * this app's own period has no report date yet. Returns null when Firebase knows neither.
+     */
+    public PeriodDateWindowService.ExpectedDates getExpectedReportDates(String ticker, String quarterId)
+    {
+        PeriodImportDto quarter = getPeriod(ticker, quarterId);
+        if (quarter == null) return null;
+
+        LocalDate current = parseDate(quarter.getReportDate());
+        LocalDate previous = parseDate(quarter.getPreviousReportDate());
+        if (current == null && previous == null) return null;
+
+        return new PeriodDateWindowService.ExpectedDates(current, previous);
+    }
+
+    private LocalDate parseDate(String value)
+    {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return LocalDate.parse(value.trim());
+        } catch (RuntimeException exception) {
+            Log.warn("Firebase report date '" + value + "' could not be parsed", exception);
+            return null;
+        }
+    }
+
+    /**
+     * The beta the processor last stored for the company, or null when it has none yet. The
+     * value is a string in Firebase like every other field there.
+     */
+    public BigDecimal getBeta(String ticker)
+    {
+        return firebaseStore.findIndicators(ticker)
+                .map(FirebaseCompany.Indicators::getBeta)
+                .map(FirebaseCompany.Indicators.Indicator::getValue)
+                .filter(value -> value != null && !value.isBlank())
+                .map(value -> {
+                    try {
+                        return new BigDecimal(value.trim());
+                    } catch (NumberFormatException exception) {
+                        Log.warn("Firebase beta '" + value + "' for " + ticker + " is not a number");
+                        return null;
+                    }
+                })
+                .orElse(null);
+    }
+
     public String getReportingCurrency(String ticker)
     {
         return firebaseStore.findGeminiInfo(ticker)

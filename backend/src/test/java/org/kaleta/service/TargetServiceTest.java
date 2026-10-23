@@ -536,8 +536,27 @@ class TargetServiceTest
 
         assertThat(result.count(), is(0));
         assertThat(result.warnings(), hasSize(1));
-        assertThat(result.warnings().getFirst(), containsString("current and previous report dates are unavailable"));
+        assertThat(result.warnings().getFirst(),
+                containsString("no report date in this app and Firebase holds none for it"));
         verify(firebaseService, never()).getTargets(anyString());
+    }
+
+    @Test
+    void countImportCandidates_fallsBackToTheReportDatesFirebaseHoldsForTheQuarter()
+    {
+        // The quarter has not been reported yet and its predecessor was never imported, which is
+        // exactly the state the research page already papers over with the expected report date.
+        current.setReportDate(null);
+        previous.setReportDate(null);
+        when(firebaseService.getExpectedReportDates("NVDA", "25Q2"))
+                .thenReturn(new PeriodDateWindowService.ExpectedDates(
+                        LocalDate.parse("2025-08-27"),
+                        LocalDate.parse("2025-05-28")));
+
+        TargetSyncDto result = targetService.countImportCandidates(PERIOD_ID);
+
+        assertThat(result.warnings(), hasSize(0));
+        verify(firebaseService).getTargets("NVDA");
     }
 
     @Test

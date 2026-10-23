@@ -42,7 +42,6 @@ jest.mock("../component/PeriodFinancials", () => ({
             data-testid="period-financials"
             data-financials-count={props.financials?.length ?? 0}
             data-net-income-multiple={String(props.indicators?.marketCapToNetIncome ?? "")}
-            data-market-cap={String(props.marketCap ?? "")}
             onClick={props.onOpen}
         >
             financial-overview
@@ -363,7 +362,19 @@ describe("Research", () => {
             expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
         });
 
-        test("ignores a swipe that starts inside a horizontally scrollable component", async () => {
+        function horizontalScroller(parent) {
+            const scroller = document.createElement("div");
+            scroller.style.overflowX = "auto";
+            const inner = document.createElement("span");
+            scroller.appendChild(inner);
+            parent.appendChild(scroller);
+            Object.defineProperty(scroller, "scrollWidth", {value: 800, configurable: true});
+            Object.defineProperty(scroller, "clientWidth", {value: 300, configurable: true});
+            Object.defineProperty(scroller, "scrollLeft", {value: 0, writable: true, configurable: true});
+            return {scroller, inner};
+        }
+
+        test("ignores a gesture that scrolled a component, even once it reaches the edge", async () => {
             setInnerWidth(400);
             const setResearchTabsIndex = jest.fn();
             render(<Research
@@ -373,17 +384,31 @@ describe("Research", () => {
             />);
 
             const content = await screen.findByTestId("research-content");
-            const scroller = document.createElement("div");
-            scroller.style.overflowX = "auto";
-            const inner = document.createElement("span");
-            scroller.appendChild(inner);
-            content.appendChild(scroller);
-            Object.defineProperty(scroller, "scrollWidth", {value: 800, configurable: true});
-            Object.defineProperty(scroller, "clientWidth", {value: 300, configurable: true});
+            const {scroller, inner} = horizontalScroller(content);
 
-            swipe(inner, 300, 100);
+            fireEvent.touchStart(inner, {touches: [{clientX: 300, clientY: 100}]});
+            scroller.scrollLeft = 500;
+            fireEvent.touchEnd(inner, {changedTouches: [{clientX: 100, clientY: 100}]});
 
             expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+
+        test("swipes on the next gesture once the scroller can move no further", async () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            const content = await screen.findByTestId("research-content");
+            const {inner} = horizontalScroller(content);
+
+            // A fresh gesture that moves nothing: the deliberate second swipe.
+            swipe(inner, 300, 100);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
         });
 
         test("still swipes when the gesture starts outside a scrollable component", async () => {
@@ -435,17 +460,55 @@ describe("Research", () => {
             });
         }
 
+        /** The overview is page 0 on a narrow screen, so reaching period 1 takes one swipe. */
+        async function swipeToFirstPeriod() {
+            const overview = await screen.findByTestId("research-overview");
+            fireEvent.touchStart(overview, {touches: [{clientX: 100, clientY: 300}]});
+            fireEvent.touchEnd(overview, {changedTouches: [{clientX: 100, clientY: 100}]});
+            return screen.findByText("period:period-1");
+        }
+
         function setScroll(element, {scrollTop, clientHeight, scrollHeight}) {
             Object.defineProperty(element, "scrollTop", {value: scrollTop, configurable: true});
             Object.defineProperty(element, "clientHeight", {value: clientHeight, configurable: true});
             Object.defineProperty(element, "scrollHeight", {value: scrollHeight, configurable: true});
         }
 
+        test("opens on the overview, with the periods one swipe below", async () => {
+            setInnerWidth(400);
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            expect(await screen.findByTestId("research-overview")).toBeInTheDocument();
+            expect(screen.queryByTestId("period-list")).not.toBeInTheDocument();
+            expect(screen.getByTestId("overview-swipe-hint")).toHaveTextContent("periods");
+
+            await swipeToFirstPeriod();
+
+            expect(screen.getByText("period:period-1")).toBeInTheDocument();
+            expect(screen.queryByTestId("research-overview")).not.toBeInTheDocument();
+        });
+
+        test("swiping back up from the first period returns to the overview", async () => {
+            setInnerWidth(400);
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            await swipeToFirstPeriod();
+
+            const list = screen.getByTestId("period-list");
+            fireEvent.touchStart(screen.getByTestId("period-header:period-1"), {
+                touches: [{clientX: 100, clientY: 100}],
+            });
+            fireEvent.touchEnd(list, {changedTouches: [{clientX: 100, clientY: 300}]});
+
+            expect(await screen.findByTestId("research-overview")).toBeInTheDocument();
+            expect(screen.queryByText("period:period-1")).not.toBeInTheDocument();
+        });
+
         test("swiping outside the period content switches periods at any scroll position", async () => {
             setInnerWidth(400);
             render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
 
-            await screen.findByText("period:period-1");
+            await swipeToFirstPeriod();
             setScroll(screen.getByTestId("period-content:period-1"), {
                 scrollTop: 40, clientHeight: 100, scrollHeight: 400,
             });
@@ -459,11 +522,16 @@ describe("Research", () => {
             setInnerWidth(400);
             render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
 
-            await screen.findByText("period:period-1");
+            await swipeToFirstPeriod();
             const content = screen.getByTestId("period-content:period-1");
             setScroll(content, {scrollTop: 40, clientHeight: 100, scrollHeight: 400});
 
-            verticalSwipe(content, 300, 100);
+            // The gesture scrolls the content down to its end; it must not also change period.
+            fireEvent.touchStart(content, {touches: [{clientX: 100, clientY: 300}]});
+            Object.defineProperty(content, "scrollTop", {value: 300, configurable: true});
+            fireEvent.touchEnd(screen.getByTestId("period-list"), {
+                changedTouches: [{clientX: 100, clientY: 100}],
+            });
 
             expect(screen.getByText("period:period-1")).toBeInTheDocument();
             expect(screen.queryByText("period:period-2")).not.toBeInTheDocument();
@@ -473,7 +541,7 @@ describe("Research", () => {
             setInnerWidth(400);
             render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
 
-            await screen.findByText("period:period-1");
+            await swipeToFirstPeriod();
             const content = screen.getByTestId("period-content:period-1");
             setScroll(content, {scrollTop: 300, clientHeight: 100, scrollHeight: 400});
 
@@ -602,7 +670,8 @@ describe("Research", () => {
         );
         expect(screen.queryByText(/^Market Cap/)).not.toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveAttribute("data-net-income-multiple", "6");
-        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-market-cap", "1000");
+        expect(screen.getByTestId("market-overview")).toHaveTextContent("mcap");
+        expect(screen.getByTestId("market-overview")).toHaveTextContent("1B");
         expect(screen.queryByText(/^PE:/)).not.toBeInTheDocument();
         expect(screen.queryByText(/^DY:/)).not.toBeInTheDocument();
         expect(screen.getByTestId("record-assets"))

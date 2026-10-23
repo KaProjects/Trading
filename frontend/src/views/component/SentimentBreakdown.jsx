@@ -28,7 +28,7 @@ function entries(stats) {
         });
 }
 
-export const SentimentBreakdown = ({stats, total}) => {
+export const SentimentBreakdown = ({stats, total, expanded = false}) => {
     const values = entries(stats);
 
     if (values.length === 0) {
@@ -40,7 +40,7 @@ export const SentimentBreakdown = ({stats, total}) => {
             <Box
                 aria-label={`Sentiment distribution across ${total} articles`}
                 sx={{
-                    display: {xs: "none", sm: "flex"},
+                    display: expanded ? "flex" : {xs: "none", sm: "flex"},
                     width: "100%",
                     height: "5px",
                     borderRadius: "3px",

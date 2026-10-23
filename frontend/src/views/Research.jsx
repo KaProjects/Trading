@@ -17,6 +17,7 @@ import {Loader} from "./component/Loader";
 import {backend} from "../properties";
 import axios from "axios";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
+import KeyboardDoubleArrowDownIcon from "@mui/icons-material/KeyboardDoubleArrowDown";
 import {ReactComponent as DeleteIcon} from "../assets/icons/delete.svg";
 import {formatDecimals, formatError} from "../service/FormattingService";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
@@ -29,6 +30,7 @@ import {
     COMPANY_SELECTOR_SIDEBAR_BREAKPOINT,
     CompanySelector,
 } from "./component/CompanySelector";
+import {MarketOverview} from "./component/MarketOverview";
 import {PeriodFinancials} from "./component/PeriodFinancials";
 import {PeriodEstimatesOverview, formatRevenueEstimateAmount} from "./component/PeriodEstimatesOverview";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
@@ -47,7 +49,7 @@ import {AddTagDialog} from "../dialog/AddTagDialog";
 import {useLocation} from "react-router-dom";
 import {useCloseOnNavigation} from "../service/NavigationService";
 import {TodoList} from "./component/TodoList";
-import {horizontalScrollAncestor, isInsideOverlay} from "./component/useSwipeNavigation";
+import {beginSwipe, swipeDirection} from "./component/useSwipeNavigation";
 import {LatestNewsSentiment} from "./component/LatestNewsSentiment";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
@@ -137,7 +139,10 @@ export const Research = props => {
     const [unavailableTradingViewSymbol, setUnavailableTradingViewSymbol] = useState(null)
     const [targetCandidateCounts, setTargetCandidateCounts] = useState({})
     const [failedTargetCandidatePeriods, setFailedTargetCandidatePeriods] = useState(new Set())
-    const [narrowPeriodIndex, setNarrowPeriodIndex] = useState(0)
+    // On a narrow screen the page is paged vertically: 0 is the company overview - the stack
+    // of market, financials, estimate and analysis widgets - and 1..n are the periods. Each
+    // gets the whole screen rather than splitting it, which is what the swipe is for.
+    const [narrowPageIndex, setNarrowPageIndex] = useState(0)
     const previousCompanyId = useRef(null)
     const latestRequestId = useRef(0)
 
@@ -163,13 +168,7 @@ export const Research = props => {
     const touchStart = useRef(null)
 
     function handleTouchStart(event) {
-        if (isInsideOverlay(event.target)) {
-            touchStart.current = null
-            return
-        }
-
-        const touch = event.touches[0]
-        touchStart.current = {x: touch.clientX, y: touch.clientY, target: event.target}
+        touchStart.current = beginSwipe(event)
     }
 
     function handleTouchEnd(event) {
@@ -177,14 +176,10 @@ export const Research = props => {
         touchStart.current = null
         if (!start || window.innerWidth > SWIPE_NAV_BREAKPOINT) return
 
-        const touch = event.changedTouches[0]
-        const deltaX = touch.clientX - start.x
-        const deltaY = touch.clientY - start.y
-        const SWIPE_THRESHOLD = 60
-        if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return
-        if (horizontalScrollAncestor(start.target, event.currentTarget)) return
+        const direction = swipeDirection(start, event, "x")
+        if (direction === null) return
 
-        if (deltaX < 0) {
+        if (direction < 0) {
             props.setResearchTabsIndex?.(Math.min(researchTabsIndex + 1, RESEARCH_TAB.todo))
         } else {
             props.setResearchTabsIndex?.(Math.max(researchTabsIndex - 1, RESEARCH_TAB.research))
@@ -194,13 +189,7 @@ export const Research = props => {
     const periodTouchStart = useRef(null)
 
     function handlePeriodTouchStart(event) {
-        if (isInsideOverlay(event.target)) {
-            periodTouchStart.current = null
-            return
-        }
-
-        const touch = event.touches[0]
-        periodTouchStart.current = {x: touch.clientX, y: touch.clientY, target: event.target}
+        periodTouchStart.current = beginSwipe(event)
     }
 
     function handlePeriodTouchEnd(event, periodCount) {
@@ -208,24 +197,13 @@ export const Research = props => {
         periodTouchStart.current = null
         if (!start || window.innerWidth > SWIPE_NAV_BREAKPOINT) return
 
-        const touch = event.changedTouches[0]
-        const deltaX = touch.clientX - start.x
-        const deltaY = touch.clientY - start.y
-        const SWIPE_THRESHOLD = 60
-        if (Math.abs(deltaY) < SWIPE_THRESHOLD || Math.abs(deltaY) < Math.abs(deltaX)) return
+        const direction = swipeDirection(start, event, "y")
+        if (direction === null) return
 
-        const scrollBox = start.target?.closest?.("[data-period-scroll]")
-        if (scrollBox) {
-            const atBottom = scrollBox.scrollTop + scrollBox.clientHeight >= scrollBox.scrollHeight - 1
-            const atTop = scrollBox.scrollTop <= 1
-            if (deltaY < 0 && !atBottom) return
-            if (deltaY > 0 && !atTop) return
-        }
-
-        if (deltaY < 0) {
-            setNarrowPeriodIndex(index => Math.min(index + 1, periodCount - 1))
+        if (direction < 0) {
+            setNarrowPageIndex(index => Math.min(index + 1, periodCount))
         } else {
-            setNarrowPeriodIndex(index => Math.max(index - 1, 0))
+            setNarrowPageIndex(index => Math.max(index - 1, 0))
         }
     }
 
@@ -237,7 +215,7 @@ export const Research = props => {
                 setError(null)
                 setTargetCandidateCounts({})
                 setFailedTargetCandidatePeriods(new Set())
-                setNarrowPeriodIndex(0)
+                setNarrowPageIndex(0)
             }
 
             axios.get(backend + "/research/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
@@ -350,6 +328,17 @@ export const Research = props => {
     const hasTradingView = Boolean(
         tradingViewSymbol && tradingViewSymbol !== unavailableTradingViewSymbol
     )
+
+    // Each estimate window gets the same bottom line the financials carry: what the market pays
+    // for it. Earnings are per share so they divide the price; revenue is an absolute amount, so
+    // it divides the market cap. A non-positive denominator has no meaningful multiple.
+    const estimateMultiple = (numerator, value) => {
+        const amount = Number(value);
+        if (!numerator || !Number.isFinite(amount) || amount <= 0) return null;
+        return numerator / amount;
+    };
+    const earningsMultiple = value => estimateMultiple(Number(data?.latest?.price), value);
+    const revenueMultiple = value => estimateMultiple(Number(data?.indicators?.marketCap), value);
     const editNextToPrice = !hasTradingView && Boolean(data?.latest)
 
     return (
@@ -395,7 +384,19 @@ export const Research = props => {
                         },
                     }}>
                         <CardContent sx={researchCardContentStyle}>
-                            <Box sx={{position: "relative", flexShrink: 0}}>
+                            <Box sx={{
+                                position: "relative",
+                                flexShrink: 0,
+                                // On the overview page this column has to fill the card, otherwise
+                                // the swipe hint has nothing to push itself to the bottom of.
+                                ...(isNarrowScreen && narrowPageIndex === 0 && {
+                                    flexShrink: 1,
+                                    flexGrow: 1,
+                                    minHeight: 0,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                }),
+                            }}>
                                 <Box sx={{
                                     display: "flex",
                                     alignItems: "flex-end",
@@ -613,9 +614,30 @@ export const Research = props => {
                                     </DialogActions>
                                 </Dialog>
 
+                                {(!isNarrowScreen || narrowPageIndex === 0) &&
+                                <Box
+                                    data-testid="research-overview"
+                                    onTouchStart={isNarrowScreen ? handlePeriodTouchStart : undefined}
+                                    onTouchEnd={isNarrowScreen
+                                        ? (event) => handlePeriodTouchEnd(event, data.periods.length)
+                                        : undefined}
+                                    sx={isNarrowScreen
+                                        ? {flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column"}
+                                        : undefined}
+                                >
+                                <Box sx={{
+                                    marginTop: hasTradingView ? {xs: "-7px", sm: "4px"} : {xs: "13px", sm: "10px"},
+                                    bgcolor: "background.paper",
+                                    position: "relative",
+                                }}>
+                                    <MarketOverview
+                                        marketCap={data.indicators?.marketCap}
+                                        beta={data.indicators?.beta}
+                                    />
+                                </Box>
                                 {data.ttm &&
                                     <Box sx={{
-                                        marginTop: hasTradingView ? {xs: "-7px", sm: "8px"} : {xs: "13px", sm: "20px"},
+                                        marginTop: {xs: "2px", sm: "4px"},
                                         bgcolor: "background.paper",
                                         position: "relative",
                                     }}>
@@ -623,28 +645,56 @@ export const Research = props => {
                                             ttm={data.ttm}
                                             financials={data.financials}
                                             indicators={data.indicators?.ttm}
-                                            marketCap={data.indicators?.marketCap}
+                                            expanded={isNarrowScreen}
+                                            coreColumnsOnly={isNarrowScreen}
                                             onOpen={() => setOpenFinancialsDialog(true)}
                                         />
                                     </Box>
                                 }
                                 <PeriodEstimatesOverview
-                                    sx={{marginTop: {xs: "2px", sm: "8px"}}}
+                                    sx={{marginTop: {xs: "2px", sm: "4px"}}}
                                     overview={data.estimateOverview}
+                                    multiple={earningsMultiple}
+                                    expanded={isNarrowScreen}
                                     onOpen={() => setOpenEarningsProjectionsDialog(true)}
                                 />
                                 <PeriodEstimatesOverview
-                                    sx={{marginTop: {xs: "2px", sm: "8px"}}}
+                                    sx={{marginTop: {xs: "2px", sm: "4px"}}}
                                     overview={data.revenueEstimateOverview}
                                     title="Revenue estimates"
                                     format={formatRevenueEstimateAmount}
+                                    multiple={revenueMultiple}
+                                    expanded={isNarrowScreen}
                                     onOpen={() => setOpenRevenueProjectionsDialog(true)}
                                 />
                                 <LatestNewsSentiment
                                     companyId={data.company.id}
                                     onOpen={() => setOpenNewsSentimentDialog(data.periods?.[0])}
-                                    sx={{marginTop: {xs: "2px", sm: "8px"}}}
+                                    expanded={isNarrowScreen}
+                                    sx={{marginTop: {xs: "2px", sm: "4px"}}}
                                 />
+
+                                {isNarrowScreen && data.periods?.length > 0 &&
+                                    <Box
+                                        data-testid="overview-swipe-hint"
+                                        sx={{
+                                            marginTop: "auto",
+                                            paddingTop: "12px",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            color: "text.disabled",
+                                        }}
+                                    >
+                                        <Box sx={{fontSize: 11}}>
+                                            {data.periods.length} {data.periods.length === 1 ? "period" : "periods"}
+                                        </Box>
+                                        <KeyboardDoubleArrowDownIcon sx={{fontSize: 20}}/>
+                                    </Box>
+                                }
+
+                                </Box>
+                                }
 
                                 <Box sx={{
                                     ...periodActionAnchorStyle,
@@ -752,6 +802,7 @@ export const Research = props => {
                             />
                             <EditCompanyDialog triggerRefresh={triggerRefresh} {...props}/>
 
+                            {(!isNarrowScreen || narrowPageIndex > 0) &&
                             <Box
                                 data-testid="period-list"
                                 onTouchStart={isNarrowScreen ? handlePeriodTouchStart : undefined}
@@ -764,14 +815,14 @@ export const Research = props => {
                                 }}
                             >
                                 {isNarrowScreen
-                                    ? data.periods.slice(narrowPeriodIndex, narrowPeriodIndex + 1).map((period) => (
+                                    ? data.periods.slice(narrowPageIndex - 1, narrowPageIndex).map((period) => (
                                         <Box key={period.id} sx={{flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column"}}>
                                             <Period
                                                 period={period}
                                                 ticker={data.company.ticker}
-                                                previousPeriod={data.periods[narrowPeriodIndex + 1]}
-                                                isLatest={narrowPeriodIndex === 0}
-                                                periodPosition={narrowPeriodIndex + 1}
+                                                previousPeriod={data.periods[narrowPageIndex]}
+                                                isLatest={narrowPageIndex === 1}
+                                                periodPosition={narrowPageIndex}
                                                 periodCount={data.periods.length}
                                                 currency={data.company.currency}
                                                 setAlert={setAlert}
@@ -807,6 +858,7 @@ export const Research = props => {
                                         />
                                     ))}
                             </Box>
+                            }
                         </CardContent>
                     </Card>
                     <Card sx={{
