@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from decimal import Decimal
 
-from trader_service.lots import Lot, build_lots
+from trader_service.lots import Lot, base_ref, build_lots
 from trader_service.models import (ExecutionLine, ExecutionReport, ExecutionRow, PlanExecution, PlanRecord,
                                    Position)
 
@@ -45,8 +45,9 @@ def _lines(group: list[Lot], price: Decimal | None, rate: Decimal, expected_pct:
 
 def execution_report(plans: list[PlanRecord], fills: list[dict], positions: list[Position], base_currency: str,
                      price_of: Callable[[int], Decimal | None], fx: Callable[[str], Decimal],
-                     contracts: dict[int, tuple[str, str]]) -> ExecutionReport:
-    """contracts: conid → (symbol, currency) for everything that may appear."""
+                     contracts: dict[int, tuple[str, str]], open_refs: set[str] = frozenset()) -> ExecutionReport:
+    """contracts: conid → (symbol, currency) for everything that may appear; open_refs: order refs of the
+    orders still working at the broker."""
     plan_of_ref = {row.order_ref: plan.id for plan in plans for row in plan.rows}
     held = {p.contract.conid: (p.quantity, p.avg_cost) for p in positions}
     lots = build_lots(fills, held, plan_of_ref)
@@ -96,7 +97,14 @@ def execution_report(plans: list[PlanRecord], fills: list[dict], positions: list
     for plan in sorted(plans, key=lambda p: p.placed_at, reverse=True):
         rows = [row(r.conid, [lot for lot in lots.get(r.conid, []) if lot.plan_id == plan.id], r.expected_return_pct)
                 for r in plan.rows]
-        executions.append(summarize(rows, id=plan.id, committed_at=plan.committed_at, placed_at=plan.placed_at))
+        finished = plan.finished_at is not None
+        if finished:
+            rows = [r for r in rows if r.bought > 0]  # e.g. orders IBKR cancelled: never part of the result
+            if not rows:
+                continue
+        working = any(base_ref(ref) in {r.order_ref for r in plan.rows} for ref in open_refs)
+        executions.append(summarize(rows, id=plan.id, committed_at=plan.committed_at, placed_at=plan.placed_at,
+                                    finished=finished, working=working))
 
     outside_rows = []
     for conid in sorted(lots, key=lambda c: contracts.get(c, (str(c), ""))[0]):

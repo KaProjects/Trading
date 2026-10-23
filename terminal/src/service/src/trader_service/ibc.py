@@ -10,6 +10,7 @@ import contextlib
 import os
 import re
 import signal
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -73,17 +74,39 @@ def login_ini(template: str, username: str, password: str, environment: Environm
 
 
 class IbcProcess:
-    """One Gateway run: write the login config, start ibcstart.sh in its own process group, stop it again."""
+    """One Gateway run: write the login config, start ibcstart.sh in its own session, stop it again.
+
+    Its process ID is kept in `ibc.pid`, so a Gateway left running by an earlier service run (Debug, paper:
+    `detach`) can be found again — to connect to it, or to stop it.
+    """
 
     def __init__(self, config: IbcConfig, environment: Environment, work_dir: Path) -> None:
         self._config = config
         self._environment = environment
         self._ini = work_dir / "ibc-login.ini"
-        self._process: asyncio.subprocess.Process | None = None
+        self._pid_file = work_dir / "ibc.pid"
+        # Plain Popen, not an asyncio subprocess: asyncio kills its children when the loop closes, and a detached
+        # Gateway has to outlive us.
+        self._process: subprocess.Popen | None = None
 
     @property
     def running(self) -> bool:
-        return self._process is not None and self._process.returncode is None
+        if self._process is not None:
+            return self._process.poll() is None
+        return self._earlier_pid() is not None
+
+    def _earlier_pid(self) -> int | None:
+        """The Gateway an earlier run left behind, if that process is still IBC's."""
+        try:
+            pid = int(self._pid_file.read_text().strip())
+        except (OSError, ValueError):
+            return None
+        try:
+            command = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True,
+                                     timeout=5).stdout
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return pid if "ibcstart" in command or "ibc" in command.lower() else None
 
     async def start(self, username: str, password: str) -> None:
         ibc = self._config.ibc_path
@@ -99,33 +122,57 @@ class IbcProcess:
             out.write(login_ini(template, username, password, self._environment, self._config.read_only_api))
         logs = ibc / "logs"
         logs.mkdir(mode=0o700, exist_ok=True)
-        log = open(logs / f"gateway-{self._environment.value}.log", "ab")
-        try:
-            self._process = await asyncio.create_subprocess_exec(
-                str(script), version, "-g", f"--tws-path={self._config.tws_path}", f"--ibc-path={ibc}",
-                f"--ibc-ini={self._ini}", f"--mode={TRADING_MODE[self._environment]}", "--on2fatimeout=exit",
-                stdin=asyncio.subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
-        except OSError:
-            self.delete_ini()
-            raise
-        finally:
-            log.close()
+        with open(logs / f"gateway-{self._environment.value}.log", "ab") as log:
+            try:
+                self._process = subprocess.Popen(
+                    [str(script), version, "-g", f"--tws-path={self._config.tws_path}", f"--ibc-path={ibc}",
+                     f"--ibc-ini={self._ini}", f"--mode={TRADING_MODE[self._environment]}", "--on2fatimeout=exit"],
+                    stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
+            except OSError:
+                self.delete_ini()
+                raise
+        fd = os.open(self._pid_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as out:
+            out.write(str(self._process.pid))
 
     def delete_ini(self) -> None:
         with contextlib.suppress(FileNotFoundError):
             self._ini.unlink()
 
+    def detach(self) -> None:
+        """Leave the Gateway running (its session survives an app restart); the next run finds it by its pid."""
+        self.delete_ini()
+        self._process = None
+
     async def stop(self, grace: float = 10.0) -> None:
-        """Stop IBC and the Gateway it started (the whole process group)."""
+        """Stop IBC and the Gateway it started (its whole process group) — also one an earlier run left."""
         self.delete_ini()
         process, self._process = self._process, None
-        if process is None or process.returncode is not None:
+        pid = process.pid if process is not None and process.poll() is None else self._earlier_pid()
+        with contextlib.suppress(FileNotFoundError):
+            self._pid_file.unlink()
+        if pid is None:
             return
-        with contextlib.suppress(ProcessLookupError):
-            os.killpg(process.pid, signal.SIGTERM)
-        try:
-            await asyncio.wait_for(process.wait(), grace)
-        except TimeoutError:
-            with contextlib.suppress(ProcessLookupError):
-                os.killpg(process.pid, signal.SIGKILL)
-            await process.wait()
+        with contextlib.suppress(ProcessLookupError, PermissionError):
+            os.killpg(pid, signal.SIGTERM)
+        deadline = asyncio.get_running_loop().time() + grace
+        while _alive(pid, process) and asyncio.get_running_loop().time() < deadline:
+            await asyncio.sleep(0.1)
+        if _alive(pid, process):
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.killpg(pid, signal.SIGKILL)
+        if process is not None:
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                process.wait(timeout=2)
+
+
+def _alive(pid: int, process: subprocess.Popen | None) -> bool:
+    if process is not None:
+        return process.poll() is None
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True

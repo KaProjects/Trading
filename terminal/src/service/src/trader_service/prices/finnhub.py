@@ -191,6 +191,9 @@ class FinnhubPrices(PriceFeed):
                 continue
             if message.get("type") == "ping":
                 continue
+            if message.get("type") == "error":
+                log.warning("finnhub: %s", message.get("msg"))  # e.g. a symbol it can't stream
+                continue
             if message.get("type") != "trade":
                 continue
             latest: dict[str, dict] = {}

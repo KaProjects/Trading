@@ -167,7 +167,7 @@ def test_rule_thresholds_are_saved_encrypted_and_used(logged_in):
     defaults = logged_in.get("/settings/rules").json()
     assert (defaults["pct_of_account_warn"], defaults["pct_of_account_strong"], defaults["order_value_warn"]) \
         == ("25", "50", "100000")
-    assert defaults["plan_limit_markup"] == "3"
+    assert "plan_limit_markup" not in defaults  # fixed at 2 % in the app (IBKR's price cap)
     assert logged_in.put("/settings/rules", json={**defaults, "quantity_warn": "5"}).status_code == 423  # locked
     store = logged_in.app.state.test_store
     store.unlock(bytes(32))
@@ -332,3 +332,30 @@ def test_transactions_csv_export_from_flex(logged_in):
                   "<ErrorMessage>Token has expired.</ErrorMessage></FlexStatementResponse>"))
     response = logged_in.get("/transactions.csv?from=2026-01-01&to=2026-12-31")
     assert response.status_code == 502 and "Token has expired" in response.json()["message"]
+
+
+def test_finished_plan_drops_rows_that_never_bought(logged_in):
+    store = logged_in.app.state.test_store
+    store.unlock(bytes(32))
+    F, NVDA = 9599491, 4815747
+    plan = {"id": "p2", "committed_at": "2026-10-23T10:00:00Z", "placed_at": "2026-10-23T10:01:00Z",
+            "rows": [{"conid": F, "symbol": "F", "currency": "USD", "order_ref": "row-f",
+                      "planned_quantity": "10", "expected_return_pct": "10"},
+                     {"conid": NVDA, "symbol": "NVDA", "currency": "USD", "order_ref": "row-nvda",
+                      "planned_quantity": "10", "expected_return_pct": "10"}]}
+    assert logged_in.post("/plans", json=plan).status_code == 204
+    logged_in.post("/orders", json=body(conid=F, qty="10", limit="12", ref="row-f.2"))  # placed again: same row
+    deadline = time.monotonic() + 3
+    while not [f for f in store.all_fills() if f["order_ref"] == "row-f.2"]:
+        assert time.monotonic() < deadline
+        time.sleep(0.02)
+    p2 = next(p for p in logged_in.get("/execution").json()["plans"] if p["id"] == "p2")
+    assert [(r["symbol"], r["bought"]) for r in p2["rows"]] == [("F", "10"), ("NVDA", "0")]
+    assert not p2["finished"] and not p2["working"]
+    assert logged_in.post("/plans/p2/finish").status_code == 204
+    p2 = next(p for p in logged_in.get("/execution").json()["plans"] if p["id"] == "p2")
+    assert [r["symbol"] for r in p2["rows"]] == ["F"] and p2["finished"]
+    assert logged_in.post("/plans/unknown/finish").status_code == 404
+    assert logged_in.delete("/plans/p2").status_code == 204
+    assert all(p["id"] != "p2" for p in logged_in.get("/execution").json()["plans"])
+    assert logged_in.delete("/plans/p2").status_code == 404

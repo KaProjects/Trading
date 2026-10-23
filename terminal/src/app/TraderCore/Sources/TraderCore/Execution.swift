@@ -77,6 +77,8 @@ public struct PlanExecution: Codable, Sendable, Identifiable {
     public let placedAt: Date?
     public let status: String          // waiting | open | partly_sold | closed
     public let targetReached: Bool
+    public let finished: Bool          // rows that never bought anything are left out
+    public let working: Bool           // an order of the plan is still open at the broker
     public let rows: [ExecutionRow]
     public let cost: Amount
     public let value: Amount?
@@ -87,6 +89,9 @@ public struct PlanExecution: Codable, Sendable, Identifiable {
     public let difference: Amount?
 
     public var isOutside: Bool { id == nil }
+
+    /// Finish is offered while rows without anything bought are still shown and nothing is working any more.
+    public var canFinish: Bool { !isOutside && !finished && !working && rows.contains { $0.bought.value == 0 } }
 
     public var statusLabel: String {
         switch status {

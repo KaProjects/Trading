@@ -37,6 +37,13 @@ class Sale:
     time: datetime
 
 
+def base_ref(ref: str) -> str:
+    """A plan row's order reference without the attempt suffix: `abc.2` (placed again after IBKR cancelled
+    `abc`) belongs to the same row as `abc`."""
+    head, _, attempt = ref.rpartition(".")
+    return head if head and attempt.isdigit() else ref
+
+
 def _time(value) -> datetime:
     return value if isinstance(value, datetime) else datetime.fromisoformat(str(value).replace("Z", "+00:00"))
 
@@ -61,7 +68,7 @@ def build_lots(fills: list[dict], positions: dict[int, tuple[Decimal, Decimal]],
         for fill in history:
             quantity, price = Decimal(str(fill["quantity"])), Decimal(str(fill["price"]))
             if fill["side"] == "BUY":
-                plan_id = plan_of_ref.get(fill.get("order_ref") or "")
+                plan_id = plan_of_ref.get(base_ref(fill.get("order_ref") or ""))
                 lots.append(Lot(conid, "plan" if plan_id else "outside", plan_id, quantity, price, _time(fill["time"])))
             else:
                 _sell_fifo(lots, quantity, price, _time(fill["time"]))

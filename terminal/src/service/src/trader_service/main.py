@@ -54,11 +54,11 @@ def clear_fake_data(data_dir: Path) -> None:
 
 
 def build(environment: Environment, data_dir: Path, control: bool = False, price_feed: str = "fake",
-          dev_plan: bool = False, seed_transactions: bool = True):
+          dev_plan: bool = False, seed_transactions: bool = True, keep_gateway: bool = False):
     bus = EventBus()
     if environment != Environment.FAKE:  # T1: IB Gateway via IBC, real prices from Finnhub
         prices = FinnhubPrices()
-        broker = IbkrBroker(bus, prices, environment, data_dir)
+        broker = IbkrBroker(bus, prices, environment, data_dir, keep_gateway=keep_gateway)
         store = Store(broker, bus, Vault(data_dir))
         return create_app(broker, prices, bus, store, control=open_stdin if control else None,
                           on_control_eof=lambda: signal.raise_signal(signal.SIGTERM))
@@ -92,6 +92,8 @@ def main(argv: list[str] | None = None) -> None:
                         help="fake environment: add one executed plan (SNDK + MU) as dev data")
     parser.add_argument("--no-seed-transactions", action="store_true",
                         help="fake environment: no seed positions, open order or fills (cash stays)")
+    parser.add_argument("--keep-gateway", action="store_true",
+                        help="paper (Debug app): leave IB Gateway running on shutdown and connect to it at start")
     parser.add_argument("--data-dir", type=Path,
                         help="encrypted data folder (default: <socket folder>/<env>)")
     parser.add_argument("--watch-stdin", action="store_true",
@@ -100,7 +102,7 @@ def main(argv: list[str] | None = None) -> None:
 
     app = build(args.env, args.data_dir or args.socket.parent / args.env.value, control=args.watch_stdin,
                 price_feed=args.prices, dev_plan=args.dev_plan,
-                seed_transactions=not args.no_seed_transactions)
+                seed_transactions=not args.no_seed_transactions, keep_gateway=args.keep_gateway)
     sock = bind_unix_socket(args.socket)
     server = uvicorn.Server(uvicorn.Config(app, log_level=args.log_level, ws="auto"))
     # uvicorn re-raises SIGTERM after its graceful shutdown; turn it into a normal exit so `finally` cleans up.

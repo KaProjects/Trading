@@ -19,8 +19,10 @@ final class OrderTicketModel {
     private(set) var contract: Contract?
     private(set) var lookupMessage: String?
     var side: OrderSide = .buy { didSet { inputsChanged() } }
-    var quantityText: String = "" { didSet { inputsChanged() } }
-    var limitText: String = "" { didSet { inputsChanged() } }
+    var quantityText: String = "" { didSet { quantityChanged() } }
+    var limitText: String = "" { didSet { limitChanged() } }
+    /// Buy helper: expected volume in thousands (base currency), turned into whole shares like in the Planner.
+    var volumeText: String = "" { didSet { volumeChanged() } }
     var tif: TimeInForce = .day { didSet { inputsChanged() } }
     var outsideRth = false { didSet { inputsChanged() } }
     private(set) var quote: Quote?
@@ -37,20 +39,49 @@ final class OrderTicketModel {
     let modifying: Order?
     @ObservationIgnored private var lastSendUncertain = false
 
-    init(api: ServiceAPI, contract: Contract? = nil, side: OrderSide = .buy) {
+    /// Helpers on top of the plain ticket. Both fix the side and keep the limit following the live price (2 % above
+    /// for Buy, 2 % below for Quick Sell) until the limit is typed in by hand.
+    enum Helper { case none, buy, quickSell }
+    let helper: Helper
+    @ObservationIgnored private var limitTyped = false
+    @ObservationIgnored private var settingByHelper = false
+    /// Units of base currency per unit of a currency (for the volume → shares helper).
+    @ObservationIgnored private let rate: (String) -> Decimal?
+    /// The app streams the ticket's contract (watchlist) and pushes its live prices here.
+    @ObservationIgnored var contractChanged: ((Contract?) -> Void)?
+    /// Sent: the app closes the ticket and shows the order.
+    @ObservationIgnored var onSent: ((Order) -> Void)?
+
+    init(api: ServiceAPI, contract: Contract? = nil, side: OrderSide = .buy, helper: Helper = .none,
+         rate: @escaping (String) -> Decimal? = { _ in nil }) {
         self.api = api
         self.modifying = nil
-        self.side = side
+        self.helper = helper
+        self.rate = rate
+        self.side = helper == .buy ? .buy : helper == .quickSell ? .sell : side
         if let contract {
             symbol = contract.symbol
             Task { await select(contract) }
         }
     }
 
+    /// Quick Sell (Overview positions): sell every share, limit 2 % below the last price — still reviewed and
+    /// confirmed like any order.
+    convenience init(api: ServiceAPI, quickSell position: Position) {
+        self.init(api: api, contract: nil, helper: .quickSell)
+        byHelper {
+            quantityText = position.quantity.value.formatted(.number.precision(.fractionLength(0...4)).grouping(.never))
+        }
+        symbol = position.contract.symbol
+        Task { await select(position.contract) }
+    }
+
     /// Modify an open order (T6): contract, side and time in force are fixed; quantity and limit can change.
     init(api: ServiceAPI, modifying order: Order) {
         self.api = api
         self.modifying = order
+        self.helper = .none
+        self.rate = { _ in nil }
         symbol = order.contract.symbol
         contract = order.contract
         side = order.side
@@ -101,6 +132,7 @@ final class OrderTicketModel {
             candidates = []
             quote = nil
             preview = nil
+            contractChanged?(nil)
         }
         guard !wanted.isEmpty else { return }
         lookupTask = Task { [weak self] in
@@ -138,11 +170,69 @@ final class OrderTicketModel {
         self.contract = contract
         candidates = []
         lookupMessage = nil
-        quote = try? await api.quote(conid: contract.conid)
-        if limitText.isEmpty, let last = quote?.last {
-            limitText = last.value.formatted(.number.precision(.fractionLength(2)).grouping(.never))
+        contractChanged?(contract)
+        if let first = try? await api.quote(conid: contract.conid), quote == nil { quote = first }
+        applyHelper()
+        inputsChanged()
+    }
+
+    /// A live price for the ticket's contract (Finnhub stream): shown, and the helpers follow it.
+    func priceUpdated(_ quote: Quote) {
+        guard step == .editing else { return }
+        self.quote = quote
+        applyHelper()
+    }
+
+    /// Fill in what the helper computes from the last price (limit, and shares from the volume).
+    private func applyHelper() {
+        guard modifying == nil, let contract, let last = quote?.last.value else { return }
+        byHelper {
+            switch helper {
+            case .none:
+                if limitText.isEmpty { limitText = Self.price(last) }
+            case .buy:
+                if !limitTyped { limitText = Self.price(PlanCommit.limitPrice(last: last)) }
+                if let thousands = DecimalInput.parse(volumeText),
+                   let shares = PlanVolume.quantity(thousands: thousands, price: last,
+                                                    fxToBase: rate(contract.currency) ?? 1) {
+                    quantityText = Self.plain(shares)
+                }
+            case .quickSell:
+                if !limitTyped { limitText = Self.price(PlanCommit.sellLimitPrice(last: last)) }
+            }
+        }
+    }
+
+    private func byHelper(_ change: () -> Void) {
+        settingByHelper = true
+        change()
+        settingByHelper = false
+    }
+
+    private func limitChanged() {
+        if !settingByHelper { limitTyped = !limitText.isEmpty }
+        inputsChanged()
+    }
+
+    private func quantityChanged() {
+        if !settingByHelper && helper == .buy && !volumeText.isEmpty {
+            byHelper { volumeText = "" }  // typed shares replace the volume (as in the Planner)
         }
         inputsChanged()
+    }
+
+    private func volumeChanged() {
+        guard !settingByHelper else { return }
+        if volumeText.isEmpty { return }
+        applyHelper()
+    }
+
+    private static func price(_ value: Decimal) -> String {
+        value.formatted(.number.precision(.fractionLength(2)).grouping(.never))
+    }
+
+    private static func plain(_ value: Decimal) -> String {
+        value.formatted(.number.precision(.fractionLength(0...4)).grouping(.never))
     }
 
     private func inputsChanged() {
@@ -204,6 +294,7 @@ final class OrderTicketModel {
                 try await api.placeOrder(request)
             }
             step = order.status == "Rejected" ? .failed("Rejected: \(order.rejectReason ?? "no reason")") : .sent(order)
+            if case .sent(let order) = step { onSent?(order) }
         } catch ServiceError.http(_, _, let message) {
             orderRef = nil  // the service refused it: nothing was placed, a new review gets a new ref
             step = .failed(message ?? "Order refused")

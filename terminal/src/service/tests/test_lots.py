@@ -52,3 +52,14 @@ def test_fully_sold_position_keeps_closed_lots():
     fills = [fill("e1", "BUY", 10, 100, 1, ref="r"), fill("e2", "SELL", 10, 150, 2)]
     lots = build_lots(fills, {}, {"r": "p"})[1]
     assert [(l.remaining, l.realized) for l in lots] == [(0, 500)]
+
+
+def test_retried_plan_order_belongs_to_the_same_row():
+    from trader_service.lots import base_ref
+
+    assert base_ref("abc.2") == base_ref("abc.13") == base_ref("abc") == "abc"
+    assert base_ref("84300739-49E2-4C78-8F2F-A8A66EB7EF9E") == "84300739-49E2-4C78-8F2F-A8A66EB7EF9E"
+    fills = [{"exec_id": "e1", "contract": {"conid": 1}, "side": "BUY", "quantity": "5", "price": "10",
+              "time": "2026-10-23T14:00:00Z", "order_ref": "row.2"}]
+    [lot] = build_lots(fills, {1: (D(5), D(10))}, {"row": "plan-1"})[1]
+    assert (lot.source, lot.plan_id, lot.remaining) == ("plan", "plan-1", 5)

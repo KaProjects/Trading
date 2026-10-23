@@ -26,11 +26,14 @@ struct MainWindow: View {
                     } else {
                         AccountView(snapshot: account, isLive: model.accountIsLive, quotes: model.quotes,
                                     trade: model.canTrade ? { model.openTicket(contract: $0, side: $1) } : nil,
+                                    quickSell: model.canTrade ? { model.openQuickSell($0) } : nil,
                                     newOrder: model.canTrade ? { model.openTicket() } : nil,
+                                    buy: model.canTrade ? { model.openBuy() } : nil,
                                     orderActions: model.canTrade ? OrderActions(
                                         modify: { model.openModify($0) },
                                         cancel: { order in Task { await model.cancel(order) } },
-                                        cancelAll: { Task { await model.cancelAll() } }) : nil)
+                                        cancelAll: { Task { await model.cancelAll() } }) : nil,
+                                    tab: Binding(get: { model.overviewTab }, set: { model.overviewTab = $0 }))
                     }
                 } else {
                     ContentUnavailableView {

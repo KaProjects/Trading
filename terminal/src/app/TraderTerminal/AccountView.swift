@@ -8,11 +8,15 @@ struct AccountView: View {
     var quotes: [String: Quote] = [:]
     /// Opens the order ticket pre-filled from a position row (T5). Nil while not connected.
     var trade: ((Contract, OrderSide) -> Void)?
+    /// Quick Sell: ticket with all shares and the limit 2 % below the last price. Nil while not connected.
+    var quickSell: ((Position) -> Void)?
     /// Opens an empty order ticket (T5). Nil while not connected.
     var newOrder: (() -> Void)?
+    /// Buy helper ticket (volume → shares, limit 2 % above the live price). Nil while not connected.
+    var buy: (() -> Void)?
     /// T6 actions on open orders. Nil while not connected.
     var orderActions: OrderActions?
-    @State private var tab: Tab = .positions
+    @Binding var tab: Tab
     @State private var confirmCancelAll = false
 
     enum Tab: Hashable { case positions, orders, fills }
@@ -26,6 +30,10 @@ struct AccountView: View {
                     .foregroundStyle(.secondary)
             }
             FundsView(account: snapshot.account)
+                // The last open order filled (or went away) while watching it: show the fills.
+                .onChange(of: snapshot.orders.count) { before, now in
+                    if tab == .orders && before > 0 && now == 0 { tab = .fills }
+                }
             HStack {
                 Picker("", selection: $tab) {
                     Text("Positions (\(snapshot.positions.count))").tag(Tab.positions)
@@ -44,6 +52,9 @@ struct AccountView: View {
                             Button("Keep Orders", role: .cancel) {}
                         }
                 }
+                if let buy {
+                    Button("Buy", systemImage: "cart", action: buy)
+                }
                 if let newOrder {
                     Button("New Order", systemImage: "plus", action: newOrder)
                         .buttonStyle(.borderedProminent)
@@ -51,7 +62,8 @@ struct AccountView: View {
                 }
             }
             switch tab {
-            case .positions: PositionsTable(positions: snapshot.positions, quotes: quotes, trade: trade)
+            case .positions: PositionsTable(positions: snapshot.positions, quotes: quotes, trade: trade,
+                                             quickSell: quickSell)
             case .orders: OrdersTable(orders: snapshot.orders, actions: orderActions)
             case .fills: FillsTable(fills: snapshot.fills)
             }
@@ -99,6 +111,7 @@ struct PositionsTable: View {
     let positions: [Position]
     var quotes: [String: Quote] = [:]
     var trade: ((Contract, OrderSide) -> Void)?
+    var quickSell: ((Position) -> Void)?
 
     var body: some View {
         // Re-evaluate staleness every few seconds even when no price arrives.
@@ -153,6 +166,9 @@ struct PositionsTable: View {
             if let trade, let id = ids.first, let position = positions.first(where: { $0.id == id }) {
                 Button("Buy \(position.contract.symbol)…") { trade(position.contract, .buy) }
                 Button("Sell \(position.contract.symbol)…") { trade(position.contract, .sell) }
+                if let quickSell {
+                    Button("Quick Sell All \(position.contract.symbol)…") { quickSell(position) }
+                }
             }
         }
     }
@@ -217,7 +233,8 @@ struct FillsTable: View {
     let fills: [Fill]
 
     var body: some View {
-        Table(fills) {
+        // Newest first; fills of one moment by execution ID, also newest first.
+        Table(fills.sorted { ($0.time, $0.execId) > ($1.time, $1.execId) }) {
             TableColumn("Time") { Text(Format.dateTime($0.time)) }
                 .width(min: 150, ideal: 180)
             TableColumn("Symbol") { Text($0.contract.symbol).fontWeight(.semibold) }

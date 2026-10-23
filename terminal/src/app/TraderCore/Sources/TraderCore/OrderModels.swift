@@ -83,17 +83,14 @@ public struct RuleThresholds: Codable, Sendable, Equatable {
     public var orderValueWarn: Amount
     public var quantityWarn: Amount
     public var priceDeviationWarn: Amount
-    /// T9: a committed plan's limit price = last price + this percent.
-    public var planLimitMarkup: Amount
 
     public init(pctOfAccountWarn: Amount, pctOfAccountStrong: Amount, orderValueWarn: Amount, quantityWarn: Amount,
-                priceDeviationWarn: Amount, planLimitMarkup: Amount = Amount(3)) {
+                priceDeviationWarn: Amount) {
         self.pctOfAccountWarn = pctOfAccountWarn
         self.pctOfAccountStrong = pctOfAccountStrong
         self.orderValueWarn = orderValueWarn
         self.quantityWarn = quantityWarn
         self.priceDeviationWarn = priceDeviationWarn
-        self.planLimitMarkup = planLimitMarkup
     }
 }
 

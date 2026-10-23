@@ -10,7 +10,7 @@ from decimal import Decimal
 from collections.abc import Awaitable, Callable
 
 import httpx
-from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
@@ -277,8 +277,21 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
                 return None
             return price.last if price else None
 
+        open_refs = {o.order_ref for o in broker.open_orders()}
         return execution_report(plans, fills, positions, broker.account_summary().base_currency, price_of,
-                                broker.fx_rate, contracts)
+                                broker.fx_rate, contracts, open_refs)
+
+    @app.delete("/plans/{plan_id}", status_code=204)
+    async def delete_plan(plan_id: str) -> None:
+        """Remove a saved plan; its fills count as outside trades. 423 while locked, 404 if unknown."""
+        if not store.delete_plan(plan_id):
+            raise HTTPException(status_code=404, detail="Unknown plan")
+
+    @app.post("/plans/{plan_id}/finish", status_code=204)
+    async def finish_plan(plan_id: str) -> None:
+        """Finish a plan: rows that never bought anything leave Execution. 423 while locked, 404 if unknown."""
+        if not store.finish_plan(plan_id):
+            raise HTTPException(status_code=404, detail="Unknown plan")
 
     @app.put("/watchlist")
     async def watchlist(request: Watchlist) -> Watchlist:

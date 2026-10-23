@@ -24,6 +24,8 @@ import Testing
         #expect(PlanCommit.limitPrice(last: Decimal(string: "913.67")!, markupPercent: 5) == Decimal(string: "959.35")!)  // 959.3535
         #expect(PlanCommit.limitPrice(last: Decimal(string: "11.21")!, markupPercent: 5) == Decimal(string: "11.77")!)    // 11.7705
         #expect(PlanCommit.limitPrice(last: 100, markupPercent: 0) == 100)
+        #expect(PlanCommit.sellLimitPrice(last: Decimal(string: "913.67")!) == Decimal(string: "895.40")!)  // 895.3966
+        #expect(PlanCommit.sellLimitPrice(last: 100) == 98)
     }
 
     @Test func commitRules() {

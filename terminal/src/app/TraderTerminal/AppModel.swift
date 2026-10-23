@@ -205,6 +205,7 @@ final class AppModel {
         case "price":
             if let quote = try? ServiceJSON.decoder.decode(Quote.self, from: event.data), !locked {
                 quotes[quote.symbol] = quote
+                if let ticket, ticket.contract?.feedSymbol == quote.symbol { ticket.priceUpdated(quote) }
                 for row in planRows where volumeWaitingForPrice.contains(row.id) && row.contract.feedSymbol == quote.symbol {
                     applyVolume(row.id)
                 }
@@ -306,6 +307,16 @@ final class AppModel {
     /// Executed plans with live numbers; loaded while the Execution tab is open.
     private(set) var execution: ExecutionReport?
 
+    /// Finish: rows that never bought anything (e.g. orders IBKR cancelled) leave Execution.
+    func finishPlan(_ id: String) async {
+        do {
+            try await api.finishPlan(id)
+        } catch {
+            lastError = "Could not finish the plan"
+        }
+        await refreshExecution()
+    }
+
     func refreshExecution() async {
         guard !locked, phase == .running else { return }
         if let report = try? await api.execution() { execution = report }
@@ -366,8 +377,10 @@ final class AppModel {
 
     /// Finish: clear the review and the plan, then show the plan in the Execution tab (T10).
     func resetPlan() {
+        let placedPlan = basket.stage == .placed ? basket.planId : nil
         basket.reset()
         guard !basket.isFrozen else { return }
+        if let placedPlan { Task { await finishPlan(placedPlan) } }
         mainSection = .execution
         planRows = []
         planQuantityText = [:]
@@ -454,7 +467,8 @@ final class AppModel {
     /// Planner tickers get live prices like positions.
     private func syncWatchlist() async {
         guard phase == .running else { return }
-        let conids = Array(Set(planRows.map(\.contract.conid))).sorted()
+        let ticketConid = ticket?.contract.map(\.conid)
+        let conids = Array(Set(planRows.map(\.contract.conid) + (ticketConid.map { [$0] } ?? []))).sorted()
         do {
             try await api.setWatchlist(conids)
             if let current = try? await api.prices() {
@@ -533,6 +547,8 @@ final class AppModel {
 
     /// Dev data the fake service starts with (Developer menu); never for paper or production.
     private var devDataArguments: [String] {
+        // Debug + paper: quitting keeps IB Gateway logged in; the next start connects to it (no new 2FA).
+        if AppEnvironment.isDebugBuild && environment == .paper { return ["--keep-gateway"] }
         guard AppEnvironment.isDebugBuild, environment == .fake else { return [] }
         return (AppEnvironment.DevData.devPlans.isOn ? ["--dev-plan"] : [])
             + (AppEnvironment.DevData.seedTransactions.isOn ? [] : ["--no-seed-transactions"])
@@ -637,13 +653,40 @@ final class AppModel {
 
     func openTicket(contract: Contract? = nil, side: OrderSide = .buy) {
         guard canTrade else { return }
-        ticket = OrderTicketModel(api: api, contract: contract, side: side)
+        show(OrderTicketModel(api: api, contract: contract, side: side))
+    }
+
+    /// Buy helper: side fixed, volume → shares, limit 2 % above the live price.
+    func openBuy() {
+        guard canTrade else { return }
+        show(OrderTicketModel(api: api, helper: .buy, rate: { [weak self] in self?.account?.account.rate($0) }))
+    }
+
+    func openQuickSell(_ position: Position) {
+        guard canTrade else { return }
+        show(OrderTicketModel(api: api, quickSell: position))
     }
 
     func openModify(_ order: Order) {
         guard canTrade else { return }
-        ticket = OrderTicketModel(api: api, modifying: order)
+        show(OrderTicketModel(api: api, modifying: order))
     }
+
+    /// The ticket's contract is streamed like planner rows (live price, helpers follow it); once sent, the ticket
+    /// closes and the Overview shows the order.
+    private func show(_ newTicket: OrderTicketModel) {
+        newTicket.contractChanged = { [weak self] _ in Task { await self?.syncWatchlist() } }
+        newTicket.onSent = { [weak self] order in
+            guard let self else { return }
+            closeTicket()
+            mainSection = .overview
+            overviewTab = order.status == "Filled" ? .fills : .orders
+        }
+        ticket = newTicket
+    }
+
+    /// Overview's sub-tab (positions / open orders / fills); set after sending an order.
+    var overviewTab: AccountView.Tab = .positions
 
     func cancel(_ order: Order) async {
         await perform { _ = try await self.api.cancelOrder(order.orderId) }
@@ -658,6 +701,7 @@ final class AppModel {
     func closeTicket() {
         ticket = nil
         scheduleAccountRefresh()
+        Task { await syncWatchlist() }
     }
 
     func lockNow() {

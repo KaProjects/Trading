@@ -9,8 +9,21 @@ public enum PlanCommit {
             && plan.remaining >= 0
     }
 
+    /// Plan limits sit this far above the last price. Fixed: IBKR cancels buy limits more than ~3 % above the
+    /// market (its price cap, not configurable), so 2 % keeps headroom without being refused.
+    public static let markupPercent: Decimal = 2
+
+    /// Quick Sell (Overview): limit = last × (1 − markup %), rounded **up** to 2 decimals, so it is never further
+    /// below the market than the markup (IBKR caps sell limits too far below it, like buys above it).
+    public static func sellLimitPrice(last: Decimal, markupPercent: Decimal = markupPercent) -> Decimal {
+        var raw = last * (1 - markupPercent / 100)
+        var rounded = Decimal()
+        NSDecimalRound(&rounded, &raw, 2, .up)
+        return rounded
+    }
+
     /// Limit price = last × (1 + markup %), rounded **down** to 2 decimals (D9.1) so it never exceeds the markup.
-    public static func limitPrice(last: Decimal, markupPercent: Decimal) -> Decimal {
+    public static func limitPrice(last: Decimal, markupPercent: Decimal = markupPercent) -> Decimal {
         var raw = last * (1 + markupPercent / 100)
         var rounded = Decimal()
         NSDecimalRound(&rounded, &raw, 2, .down)

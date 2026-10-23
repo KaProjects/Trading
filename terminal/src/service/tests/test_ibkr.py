@@ -193,3 +193,43 @@ async def test_orders_map_to_ours_and_refs_are_not_placed_twice(ibkr):
     assert (await broker.place_order(request)).order_id == 100 and len(gateway.placed) == 1
     assert [o.order_id for o in broker.open_orders()] == [100]
     await broker.stop()
+
+
+async def test_detached_gateway_is_found_and_stopped_by_the_next_run(tmp_path):
+    """Debug + paper: the Gateway outlives a service run (no new 2FA) and the next run can still stop it."""
+    config = fake_ibc(tmp_path)
+    first = IbcProcess(config, Environment.PAPER, tmp_path / "work")
+    await first.start("user", "secret")
+    first.detach()
+    assert not (tmp_path / "work" / "ibc-login.ini").exists()
+    second = IbcProcess(config, Environment.PAPER, tmp_path / "work")
+    assert second.running
+    await second.stop(grace=2)
+    assert not second.running and not (tmp_path / "work" / "ibc.pid").exists()
+
+
+async def test_service_start_connects_to_a_gateway_left_running(tmp_path):
+    config = fake_ibc(tmp_path)
+    left = IbcProcess(config, Environment.PAPER, tmp_path / "work")
+    await left.start("user", "secret")
+    left.detach()
+    gateway = StubGateway()
+    gateway.logged_in = True
+    broker = IbkrBroker(EventBus(), FakePrices({}, tick_interval=None), Environment.PAPER, tmp_path / "work",
+                        config, ib=gateway, keep_gateway=True)
+    await broker.start()
+    await wait_for(broker, ConnectionState.CONNECTED)
+    await broker.stop()  # keep_gateway: still running afterwards
+    again = IbcProcess(config, Environment.PAPER, tmp_path / "work")
+    assert again.running
+    await again.stop(grace=2)
+
+
+def test_live_fill_uses_arrival_time_not_the_mis_zoned_execution_time(ibkr):
+    broker, _, _ = ibkr
+    arrived = datetime(2026, 10, 23, 16, 28, 11, tzinfo=UTC)
+    execution = ib_async.Execution(execId="L1", side="BOT", shares=40.0, price=230.0, orderId=7,
+                                   time=datetime(2026, 10, 23, 14, 28, 11, tzinfo=UTC))  # 16:28 read as Prague
+    fill = ib_async.Fill(ib_async.Stock("AAPL", "SMART", "USD", conId=265598), execution,
+                         ib_async.CommissionReport(), arrived)
+    assert broker._fill(fill).time == arrived

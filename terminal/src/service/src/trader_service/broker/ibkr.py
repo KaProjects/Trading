@@ -77,9 +77,29 @@ def _dec(value) -> Decimal | None:
     return Decimal(str(value))
 
 
+def _reason(trade: ib_async.Trade) -> str | None:
+    """Why IBKR rejected or cancelled an order (e.g. its price cap), from the trade log; None for a plain cancel."""
+    for entry in reversed(trade.log):
+        if not entry.errorCode or not entry.message:
+            continue
+        text = " ".join(entry.message.replace("<br>", " ").split())
+        text = text.removeprefix("Order Canceled - reason:").removeprefix("Cancelled by System:").strip()
+        if text:
+            return text
+    return None
+
+
+def _fill_time(f: ib_async.Fill) -> datetime:
+    """When the execution happened, in UTC. Live executions come from IBKR in UTC without a zone and ib_async
+    stamps them with the Gateway's zone (2 h off in Prague); its `Fill.time` — the arrival time for live fills,
+    the execution time for fills fetched at connect — is right in both cases."""
+    time = f.time or f.execution.time
+    return time if time.tzinfo else time.replace(tzinfo=UTC)
+
+
 class IbkrBroker(Broker):
     def __init__(self, bus: EventBus, prices: PriceFeed, environment: Environment, work_dir,
-                 config: IbcConfig | None = None, ib: ib_async.IB | None = None) -> None:
+                 config: IbcConfig | None = None, ib: ib_async.IB | None = None, keep_gateway: bool = False) -> None:
         if environment not in GATEWAY_PORT:
             raise ValueError(f"IbkrBroker is for paper or production, not {environment}")
         self._bus = bus
@@ -87,6 +107,8 @@ class IbkrBroker(Broker):
         self._environment = environment
         self._config = config or IbcConfig()
         self._ibc = IbcProcess(self._config, environment, work_dir)
+        # Debug + paper: quitting leaves the Gateway (and its IBKR session) running for the next start.
+        self._keep_gateway = keep_gateway
         self._ib = ib or ib_async.IB()
         self._status = Status(state=ConnectionState.DISCONNECTED, environment=environment, since=_now())
         self._credentials: tuple[str, str] | None = None
@@ -109,7 +131,20 @@ class IbkrBroker(Broker):
     # --- lifecycle -------------------------------------------------------------------------------
 
     async def start(self) -> None:
-        pass  # the Gateway starts at Log in
+        # The Gateway starts at Log in — unless an earlier run left one running: connect to it (no new 2FA).
+        if self._ibc.running:
+            self._set_status(ConnectionState.LOGGING_IN, "Connecting to the running IB Gateway")
+            self._spawn(self._attach())
+
+    async def _attach(self) -> None:
+        for _ in range(15):  # the Gateway may be in its daily restart
+            if await self._try_connect():
+                return
+            if not self._ibc.running:
+                break
+            await asyncio.sleep(2)
+        if self._status.state == ConnectionState.LOGGING_IN:
+            self._set_status(ConnectionState.DISCONNECTED)
 
     async def stop(self) -> None:
         self._stopping = True
@@ -119,7 +154,10 @@ class IbkrBroker(Broker):
             with contextlib.suppress(asyncio.CancelledError):
                 await task
         self._ib.disconnect()
-        await self._ibc.stop()
+        if self._keep_gateway:
+            self._ibc.detach()
+        else:
+            await self._ibc.stop()
         self._credentials = None
 
     def _spawn(self, coro) -> asyncio.Task:
@@ -247,14 +285,27 @@ class IbkrBroker(Broker):
     # --- contracts ---------------------------------------------------------------------------------
 
     def _contract(self, c: ib_async.Contract, name: str | None = None) -> Contract:
+        """Merged with what we know: fills arrive with little more than the conid, and an empty symbol must never
+        replace a known one (it emptied the Fills table and broke the price subscriptions)."""
         known = self._contracts.get(c.conId)
+        symbol = c.symbol or (known.symbol if known else "")
         contract = Contract(
-            conid=c.conId, symbol=c.symbol, name=name or (known.name if known else c.symbol),
-            sec_type=c.secType or "STK", exchange="SMART",
-            primary_exchange=c.primaryExchange or (known.primary_exchange if known else c.exchange),
-            currency=c.currency)
-        self._contracts[c.conId] = contract
+            conid=c.conId, symbol=symbol or str(c.conId),
+            name=name or (known.name if known else "") or symbol or str(c.conId),
+            sec_type=c.secType or (known.sec_type if known else "STK"), exchange="SMART",
+            primary_exchange=c.primaryExchange or (known.primary_exchange if known else "") or c.exchange,
+            currency=c.currency or (known.currency if known else "USD"))
+        if symbol or known is None:
+            self._contracts[c.conId] = contract
+        if not symbol:
+            self._spawn(self._fetch_contract(c.conId))
         return contract
+
+    async def _fetch_contract(self, conid: int) -> None:
+        with contextlib.suppress(Exception):
+            details = await self._ib.reqContractDetailsAsync(ib_async.Contract(conId=conid))
+            if details:
+                self._contract(details[0].contract, details[0].longName)
 
     async def _load_contract_names(self) -> None:
         """Positions and orders arrive without the company name / primary exchange: fetch them once."""
@@ -363,9 +414,9 @@ class IbkrBroker(Broker):
     def _order(self, trade: ib_async.Trade) -> Order:
         o, s = trade.order, trade.orderStatus
         status = STATUS.get(s.status, OrderStatus.SUBMITTED)
-        reason = None
-        if status == OrderStatus.REJECTED:
-            reason = next((e.message for e in reversed(trade.log) if e.message), "Rejected by IBKR")
+        reason = _reason(trade) if status in (OrderStatus.REJECTED, OrderStatus.CANCELLED) else None
+        if status == OrderStatus.REJECTED and reason is None:
+            reason = "Rejected by IBKR"
         filled = Decimal(str(s.filled or 0))
         quantity = Decimal(str(o.totalQuantity))
         times = [e.time for e in trade.log if e.time] or [_now()]
@@ -453,7 +504,7 @@ class IbkrBroker(Broker):
             contract=self._contract(f.contract), side=Side.BUY if e.side == "BOT" else Side.SELL,
             quantity=Decimal(str(e.shares)), price=Decimal(str(e.price)),
             commission=commission or Decimal(0), commission_currency=(report.currency if report else "") or "USD",
-            time=e.time if e.time.tzinfo else e.time.replace(tzinfo=UTC))
+            time=_fill_time(f))
 
     def fills(self, days: int) -> list[Fill]:
         self._require_connected()

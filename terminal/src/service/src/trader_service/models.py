@@ -196,7 +196,6 @@ class RuleThresholds(BaseModel):
     order_value_warn: Decimal = Field(Decimal(100_000), gt=0)  # base currency
     quantity_warn: Decimal = Field(Decimal(1_000), gt=0)
     price_deviation_warn: Decimal = Field(Decimal(5), gt=0, le=100)  # percent from last price
-    plan_limit_markup: Decimal = Field(Decimal(3), ge=0, le=50)  # T9: committed plan → limit = last + this %
 
     @model_validator(mode="after")
     def strong_not_below_warn(self) -> "RuleThresholds":
@@ -234,6 +233,7 @@ class PlanRecord(BaseModel):
     committed_at: datetime
     placed_at: datetime
     rows: list[PlanRecordRow] = Field(min_length=1)
+    finished_at: datetime | None = None  # Finish: rows that never bought anything are dropped from Execution
 
 
 class ExecutionLine(BaseModel):
@@ -275,6 +275,8 @@ class PlanExecution(BaseModel):
     placed_at: datetime | None = None
     status: str                     # waiting | open | partly_sold | closed
     target_reached: bool = False
+    finished: bool = False          # finished by the user: rows with nothing bought are left out
+    working: bool = False           # one of its orders is still open at the broker
     rows: list[ExecutionRow]
     cost: Decimal
     value: Decimal | None

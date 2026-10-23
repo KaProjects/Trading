@@ -8,6 +8,7 @@ struct OrderTicketView: View {
     let accountId: String?
     let close: () -> Void
     @FocusState private var symbolFocused: Bool
+    @State private var moreOptions = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -33,7 +34,12 @@ struct OrderTicketView: View {
         if let order = ticket.modifying {
             return ticket.step == .editing ? "Modify order #\(order.orderId)" : "Confirm change #\(order.orderId)"
         }
-        return ticket.step == .editing ? "New limit order" : "Confirm order"
+        guard ticket.step == .editing else { return "Confirm order" }
+        switch ticket.helper {
+        case .buy: return "Buy"
+        case .quickSell: return "Quick sell"
+        case .none: return "New limit order"
+        }
     }
 
     // MARK: - Editing
@@ -71,22 +77,35 @@ struct OrderTicketView: View {
                         }
                     }
                 }
-                Picker("Side", selection: $ticket.side) {
-                    Text("Buy").tag(OrderSide.buy)
-                    Text("Sell").tag(OrderSide.sell)
+                if ticket.helper == .none {
+                    Picker("Side", selection: $ticket.side) {
+                        Text("Buy").tag(OrderSide.buy)
+                        Text("Sell").tag(OrderSide.sell)
+                    }
+                    .pickerStyle(.segmented)
+                    .disabled(ticket.isModification)
                 }
-                .pickerStyle(.segmented)
-                .disabled(ticket.isModification)
+                if ticket.helper == .buy {
+                    TextField("Exp. volume", text: $ticket.volumeText, prompt: Text("k"))
+                }
                 TextField("Quantity", text: $ticket.quantityText, prompt: Text("shares"))
                 TextField("Limit price", text: $ticket.limitText,
                           prompt: Text(ticket.contract?.currency ?? "price"))
-                Picker("Time in force", selection: $ticket.tif) {
-                    Text("Day").tag(TimeInForce.day)
-                    Text("Good till cancelled").tag(TimeInForce.gtc)
+                if ticket.helper == .none {
+                    orderOptions
+                } else {
+                    DisclosureGroup(isExpanded: $moreOptions) {
+                        orderOptions
+                    } label: {
+                        // The whole row toggles, not only the arrow.
+                        Button { withAnimation { moreOptions.toggle() } } label: {
+                            Text("More options").foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .disabled(ticket.isModification)
-                Toggle("Allow outside regular trading hours", isOn: $ticket.outsideRth)
-                    .disabled(ticket.isModification)
             }
             .formStyle(.grouped)
 
@@ -108,6 +127,17 @@ struct OrderTicketView: View {
                     .disabled(!ticket.canReview)
             }
         }
+    }
+
+    @ViewBuilder
+    private var orderOptions: some View {
+        Picker("Time in force", selection: $ticket.tif) {
+            Text("Day").tag(TimeInForce.day)
+            Text("Good till cancelled").tag(TimeInForce.gtc)
+        }
+        .disabled(ticket.isModification)
+        Toggle("Allow outside regular trading hours", isOn: $ticket.outsideRth)
+            .disabled(ticket.isModification)
     }
 
     // MARK: - Summary (confirmation dialog, D5.2 / D7.2)

@@ -119,6 +119,28 @@ class Store:
         self._vault.write(PLANS, plans)
         self.record("plan_placed", plan_id=plan["id"], rows=len(plan["rows"]))
 
+    def finish_plan(self, plan_id: str) -> bool:
+        """Finish (T10): the plan is done even if some rows never bought anything. False if unknown."""
+        plans = self.plans()
+        plan = next((p for p in plans if p["id"] == plan_id), None)
+        if plan is None:
+            return False
+        if not plan.get("finished_at"):
+            plan["finished_at"] = datetime.now(UTC).isoformat()
+            self._vault.write(PLANS, plans)
+            self.record("plan_finished", plan_id=plan_id)
+        return True
+
+    def delete_plan(self, plan_id: str) -> bool:
+        """Remove a saved plan (e.g. a broken one); its fills stay in the history as outside trades."""
+        plans = self.plans()
+        kept = [p for p in plans if p["id"] != plan_id]
+        if len(kept) == len(plans):
+            return False
+        self._vault.write(PLANS, kept)
+        self.record("plan_deleted", plan_id=plan_id)
+        return True
+
     def activity(self, month: str) -> list[dict]:
         return self._read(f"activity-{month}.enc") or []
 

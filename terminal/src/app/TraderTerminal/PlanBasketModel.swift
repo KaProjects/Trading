@@ -16,7 +16,9 @@ final class PlanBasketModel {
     struct Line: Identifiable {
         let id: UUID              // the plan row's id
         let contract: Contract
-        let orderRef: String      // fixed at commit: a retry can never create a second order
+        /// Fixed at commit, so retrying a send can never create a second order. Only when the broker cancelled the
+        /// order without filling anything does the line get a new one (`<ref>.2`, `.3` …) to be placed again.
+        var orderRef: String
         var quantityText: String
         var limitText: String
         // Planner orders are always DAY and regular hours only (D9.5).
@@ -74,11 +76,10 @@ final class PlanBasketModel {
     func commit(_ plan: PlannerSummary) async {
         guard stage == .planning, PlanCommit.canCommit(plan) else { return }
         let thresholds = try? await api.ruleThresholds()
-        let markup = thresholds?.planLimitMarkup.value ?? 3
         deviationWarn = thresholds?.priceDeviationWarn.value ?? 5
         lines = plan.planned.compactMap { item in
             guard let quantity = item.row.quantity, let last = item.quote?.last.value else { return nil }
-            let limit = PlanCommit.limitPrice(last: last, markupPercent: markup)
+            let limit = PlanCommit.limitPrice(last: last)
             return Line(id: item.row.id, contract: item.row.contract, orderRef: UUID().uuidString,
                         quantityText: Self.plain(quantity, fraction: 0...4), limitText: Self.plain(limit, fraction: 2...2))
         }
@@ -150,6 +151,26 @@ final class PlanBasketModel {
         }) else { return }
         lines[index].result = .placed(orderId: order.orderId, status: order.status)
         lines[index].order = order
+        reopenIfCancelled(index)
+    }
+
+    /// A line whose order was cancelled or rejected with nothing filled (e.g. IBKR's limit price cap) can be fixed
+    /// and placed again: it shows why, becomes editable, and gets the next order reference of the same plan row.
+    private func reopenIfCancelled(_ index: Int) {
+        let line = lines[index]
+        guard line.isCancelled, let order = line.order, order.filled.value == 0 else { return }
+        let reason = order.rejectReason.map { "\(order.status) by IBKR: \($0)" } ?? "\(order.status)"
+        lines[index].result = .failed(reason)
+        lines[index].order = nil
+        lines[index].orderRef = Self.nextRef(line.orderRef)
+        refreshPreview(line.id)
+    }
+
+    /// `abc` → `abc.2` → `abc.3`: the service attributes every attempt to the same plan row (T10 lots).
+    static func nextRef(_ ref: String) -> String {
+        let parts = ref.split(separator: ".")
+        if parts.count == 2, let attempt = Int(parts[1]) { return "\(parts[0]).\(attempt + 1)" }
+        return "\(ref).2"
     }
 
     // MARK: - Checks
@@ -227,6 +248,7 @@ final class PlanBasketModel {
                 result = .failed("Not sure it was received — retrying is safe (same order reference)")
             }
             update(line.id) { $0.result = result }
+            if let index = lines.firstIndex(where: { $0.id == line.id }) { reopenIfCancelled(index) }
         }
         stage = .placed
     }

@@ -65,6 +65,12 @@ public struct ServiceAPI: Sendable {
         try check(try await http.send("POST", "/plans", json: try ServiceJSON.encoder.encode(plan)))
     }
 
+    /// Finish a plan: its rows that never bought anything leave the Execution report.
+    public func finishPlan(_ id: String) async throws {
+        let path = "/plans/\(id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id)/finish"
+        try check(try await http.send("POST", path))
+    }
+
     /// T10: executed plans with FIFO lots and live numbers, plus the "Outside plans" group.
     public func execution() async throws -> ExecutionReport { try await call("GET", "/execution") }
 

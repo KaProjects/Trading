@@ -23,7 +23,7 @@ struct ExecutionView: View {
                             .foregroundStyle(.secondary)
                     }
                     ForEach(running) { plan in
-                        PlanCard(plan: plan, base: base)
+                        PlanCard(plan: plan, base: base) { Task { await model.finishPlan(plan.id ?? "") } }
                     }
                 } else {
                     ProgressView().frame(maxWidth: .infinity)
@@ -94,7 +94,7 @@ struct HistoryView: View {
                             .foregroundStyle(.secondary)
                     }
                     ForEach(closed) { plan in
-                        PlanCard(plan: plan, base: base)
+                        PlanCard(plan: plan, base: base) { Task { await model.finishPlan(plan.id ?? "") } }
                     }
                 } else {
                     ProgressView().frame(maxWidth: .infinity)
@@ -113,6 +113,7 @@ struct HistoryView: View {
 struct PlanCard: View {
     let plan: PlanExecution
     let base: String
+    let finish: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -260,6 +261,10 @@ struct PlanCard: View {
                     .font(.caption).foregroundStyle(.green)
             }
             Spacer()
+            if plan.canFinish {
+                Button("Finish") { finish() }
+                    .help("Drop the rows that never bought anything")
+            }
         }
     }
 
