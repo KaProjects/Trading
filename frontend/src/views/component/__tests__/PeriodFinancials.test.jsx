@@ -214,8 +214,9 @@ describe("PeriodFinancials", () => {
         expect(screen.getByText("CapEx")).toBeInTheDocument();
         expect(screen.getByText("FCF")).toBeInTheDocument();
         expect(screen.getByText("25FY")).toBeInTheDocument();
-        expect(screen.getByText("+50% / +20%")).toBeInTheDocument();
-        expect(screen.getByText("+10% / +5%")).toBeInTheDocument();
+        // Quarter over quarter first, then year over year.
+        expect(screen.getByText("+20% / +50%")).toBeInTheDocument();
+        expect(screen.getByText("+5% / +10%")).toBeInTheDocument();
     });
 
     test("shows a dash when a dividend is zero or absent", () => {

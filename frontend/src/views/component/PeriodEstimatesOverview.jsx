@@ -106,7 +106,11 @@ export const PeriodEstimatesOverview = ({
                 </Box>
                 <Box sx={{flex: 1, minWidth: 0}}>
                     <Box sx={{display: expanded ? "block" : {xs: "none", sm: "block"}, marginBottom: "2px", color: "text.secondary", fontSize: 11}}>
-                        <Box component="span" sx={{fontWeight: 600, color: "text.primary"}}>{title}</Box>
+                        {/* A plain string is the widget's own name; a node lets the caller put
+                            something richer there, such as tabs over two sets of estimates. */}
+                        {typeof title === "string"
+                            ? <Box component="span" sx={{fontWeight: 600, color: "text.primary"}}>{title}</Box>
+                            : title}
                     </Box>
                     <Box sx={{maxWidth: "100%", overflowX: {xs: "auto", sm: "visible"}, overflowY: "hidden"}}>
                         <Grid

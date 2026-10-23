@@ -108,8 +108,9 @@ const FinancialSummaryItem = ({value, label, margin, indicator, expanded = false
 const FinancialTableCell = ({value, margin, yoy, qoq, fontSize}) => {
     const formattedYoy = formatPercent(yoy, true, 0);
     const formattedQoq = formatPercent(qoq, true, 0);
-    const changesValue = formattedYoy || formattedQoq
-        ? (formattedYoy ? formattedYoy : "") + (formattedYoy && formattedQoq ? " / " : "") + (formattedQoq ? formattedQoq : "")
+    // Quarter over quarter first, then year over year: the nearer comparison reads first.
+    const changesValue = formattedQoq || formattedYoy
+        ? (formattedQoq ? formattedQoq : "") + (formattedQoq && formattedYoy ? " / " : "") + (formattedYoy ? formattedYoy : "")
         : "";
     const annotationSize = fontSize - 5;
 

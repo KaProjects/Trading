@@ -1,7 +1,9 @@
 import {BorderedSection} from "./BorderedSection";
-import React, {useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
+import {PeriodFinancialSummary} from "./PeriodFinancialSummary";
 import {Badge, Box, Button, Stack, Typography} from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import {formatDate, formatDecimals, formatError, formatMillions, formatMillionsRounded, formatPercent, formatPeriodName, formatTargetStats} from "../../service/FormattingService";
 import {nextPeriod} from "../../service/PeriodService";
 import axios from "axios";
@@ -31,8 +33,38 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
 
     const [contentEditSignal, setContentEditSignal] = useState(0)
     const [openContentEditor, setOpenContentEditor] = useState(false)
+    const contentScrollRef = useRef(null)
+    const [moreContentBelow, setMoreContentBelow] = useState(false)
+
+    /** Whether the content runs past the bottom of its box, so the reader knows to scroll. */
+    const updateScrollHint = useCallback(() => {
+        const box = contentScrollRef.current
+        if (!box) return
+        setMoreContentBelow(box.scrollTop + box.clientHeight < box.scrollHeight - 1)
+    }, [])
+
     const [research, setResearch] = useState(period.research)
     const [researchVersion, setResearchVersion] = useState(0)
+
+    useEffect(() => {
+        const box = contentScrollRef.current
+        if (!stretch || !box) {
+            setMoreContentBelow(false)
+            return
+        }
+
+        updateScrollHint()
+        // The content arrives after the first render and the box is resized by the keyboard and
+        // by swiping between periods, so the measurement cannot be taken only once. Where there
+        // is no ResizeObserver - jsdom, for one - the scroll handler alone keeps it honest.
+        if (typeof ResizeObserver === "undefined") return
+
+        const observer = new ResizeObserver(updateScrollHint)
+        observer.observe(box)
+        if (box.firstElementChild) observer.observe(box.firstElementChild)
+        return () => observer.disconnect()
+    }, [stretch, research, researchVersion, updateScrollHint])
+
     const reportLabel = period.financial ? "reported: " : "report: "
     const reportValue = period.financial
         ? formatDate(period.reportDate)
@@ -160,42 +192,67 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
             highlightTitle={stretch}
         >
             {period.financial &&
-                <>
-                    <Typography sx={{color: 'text.secondary', fontSize: 14}}>
-                        {"Revenue: " + formatMillions(period.financial.revenue.value)
-                            + " | Gross P.: " + formatMillions(period.financial.grossProfit.value)
-                            + " | Op. Inc.: " + formatMillions(period.financial.operatingIncome.value)
-                            + " | Net Income: " + formatMillions(period.financial.netIncome.value)}
-                    </Typography>
-                    <Typography sx={{color: 'text.secondary', fontSize: 14}}>
-                        {"Shares: " + formatMillions(period.shares)
-                            + " | CapEx: " + formatMillions(period.financial.capex?.value)
-                            + " | FCF: " + formatMillions(period.financial.freeCashFlow?.value)
-                            + " | Dividend: " + formatMillions(period.financial.dividend)
-                            + " | Adj. Eps: " + formatDecimals(period.financial.adjustedEps, 0, 2)}
-                    </Typography>
-                    <Typography sx={{color: 'text.secondary', fontSize: 14}}>
-                        {"H: " + formatPrice(period.priceHigh, currency)
-                            + " | L: " + formatPrice(period.priceLow, currency)}
-                    </Typography>
-                </>
+                <PeriodFinancialSummary
+                    financial={period.financial}
+                    shares={period.shares}
+                    priceHigh={period.priceHigh}
+                    priceLow={period.priceLow}
+                    currency={currency}
+                    compact={stretch}
+                />
             }
 
+            <Box sx={{
+                // A list's default 40px indent pushes the research well clear of the card edge.
+                // Enough is kept for the bullet itself.
+                "& ul, & ol": {paddingLeft: "18px"},
+                ...(stretch
+                    ? {position: "relative", flex: "1 1 auto", minHeight: 0, display: "flex"}
+                    : {}),
+            }}>
             <Box
+                ref={stretch ? contentScrollRef : undefined}
                 data-period-scroll={stretch ? "true" : undefined}
+                onScroll={stretch ? updateScrollHint : undefined}
                 onClick={stretch ? () => setOpenContentEditor(true) : undefined}
                 sx={stretch
-                    ? {flex: "1 1 auto", minHeight: 0, overflow: "auto", cursor: "pointer"}
+                    ? {
+                        flex: "1 1 auto",
+                        minHeight: 0,
+                        overflow: "auto",
+                        cursor: "pointer",
+                        // The editor has to fill this box, otherwise its centred placeholder
+                        // centres itself in a one-line-tall element at the top.
+                        display: "flex",
+                        flexDirection: "column",
+                    }
                     : undefined}
             >
                 <ContentEditor
                     key={researchVersion}
                     content={research}
                     update={(value) => updateResearch(period.id, value)}
-                    style={{margin: "5px 5px 10px 5px"}}
+                    style={stretch
+                        ? {margin: "5px 5px 10px 0", flex: "1 1 auto", minHeight: 0}
+                        : {margin: "5px 5px 10px 0"}}
                     locked={stretch}
+                    centerPlaceholder={stretch}
                     editTrigger={stretch ? undefined : contentEditSignal}
                 />
+            </Box>
+            {stretch && moreContentBelow &&
+                <KeyboardArrowDownIcon
+                    data-testid="period-content-more"
+                    sx={{
+                        position: "absolute",
+                        right: "2px",
+                        bottom: "2px",
+                        fontSize: 18,
+                        color: "text.disabled",
+                        pointerEvents: "none",
+                    }}
+                />
+            }
             </Box>
             {!stretch && period.estimate &&
                 <Box

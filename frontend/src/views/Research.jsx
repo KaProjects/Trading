@@ -30,9 +30,10 @@ import {
     COMPANY_SELECTOR_SIDEBAR_BREAKPOINT,
     CompanySelector,
 } from "./component/CompanySelector";
+import {EstimatesTabs} from "./component/EstimatesTabs";
 import {MarketOverview} from "./component/MarketOverview";
 import {PeriodFinancials} from "./component/PeriodFinancials";
-import {PeriodEstimatesOverview, formatRevenueEstimateAmount} from "./component/PeriodEstimatesOverview";
+import {PeriodEstimatesOverview, formatEstimateAmount, formatRevenueEstimateAmount} from "./component/PeriodEstimatesOverview";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
 import {AddPeriodDialog} from "../dialog/AddPeriodDialog";
 import {AddPeriodFinancialDialog} from "../dialog/AddPeriodFinancialDialog";
@@ -54,6 +55,11 @@ import {LatestNewsSentiment} from "./component/LatestNewsSentiment";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import {EditCompanyDialog} from "../dialog/EditCompanyDialog";
 import {TradingViewOverview} from "./component/TradingViewOverview";
+
+const ESTIMATE_TABS = [
+    {key: "eps", title: "Earnings estimates"},
+    {key: "revenue", title: "Revenue estimates"},
+];
 
 const badgeStyle = {"& .MuiBadge-badge": {fontSize: "0.6rem", height: "15px", minWidth: "15px", backgroundColor: "#ff7961", color: "white"}}
 const researchCardStyle = {
@@ -143,6 +149,7 @@ export const Research = props => {
     // of market, financials, estimate and analysis widgets - and 1..n are the periods. Each
     // gets the whole screen rather than splitting it, which is what the swipe is for.
     const [narrowPageIndex, setNarrowPageIndex] = useState(0)
+    const [estimatesTab, setEstimatesTab] = useState("eps")
     const previousCompanyId = useRef(null)
     const latestRequestId = useRef(0)
 
@@ -337,6 +344,14 @@ export const Research = props => {
         if (!numerator || !Number.isFinite(amount) || amount <= 0) return null;
         return numerator / amount;
     };
+    // A company with both sets of estimates gets them in one widget with a tab each, rather than
+    // two rows of the same five windows. Only on a wide screen: the narrow overview has the room,
+    // and a tab is a poor target next to a swipe.
+    const mergeEstimates = !isNarrowScreen
+        && Boolean(data?.estimateOverview)
+        && Boolean(data?.revenueEstimateOverview);
+    const revenueEstimatesSelected = mergeEstimates && estimatesTab === "revenue";
+
     const earningsMultiple = value => estimateMultiple(Number(data?.latest?.price), value);
     const revenueMultiple = value => estimateMultiple(Number(data?.indicators?.marketCap), value);
     const editNextToPrice = !hasTradingView && Boolean(data?.latest)
@@ -651,22 +666,49 @@ export const Research = props => {
                                         />
                                     </Box>
                                 }
-                                <PeriodEstimatesOverview
-                                    sx={{marginTop: {xs: "2px", sm: "4px"}}}
-                                    overview={data.estimateOverview}
-                                    multiple={earningsMultiple}
-                                    expanded={isNarrowScreen}
-                                    onOpen={() => setOpenEarningsProjectionsDialog(true)}
-                                />
-                                <PeriodEstimatesOverview
-                                    sx={{marginTop: {xs: "2px", sm: "4px"}}}
-                                    overview={data.revenueEstimateOverview}
-                                    title="Revenue estimates"
-                                    format={formatRevenueEstimateAmount}
-                                    multiple={revenueMultiple}
-                                    expanded={isNarrowScreen}
-                                    onOpen={() => setOpenRevenueProjectionsDialog(true)}
-                                />
+                                {mergeEstimates
+                                    ? <PeriodEstimatesOverview
+                                        sx={{marginTop: {xs: "2px", sm: "4px"}}}
+                                        overview={revenueEstimatesSelected
+                                            ? data.revenueEstimateOverview
+                                            : data.estimateOverview}
+                                        title={
+                                            <EstimatesTabs
+                                                tabs={ESTIMATE_TABS}
+                                                active={estimatesTab}
+                                                onChange={setEstimatesTab}
+                                            />
+                                        }
+                                        format={revenueEstimatesSelected
+                                            ? formatRevenueEstimateAmount
+                                            : formatEstimateAmount}
+                                        multiple={revenueEstimatesSelected
+                                            ? revenueMultiple
+                                            : earningsMultiple}
+                                        expanded={isNarrowScreen}
+                                        onOpen={() => revenueEstimatesSelected
+                                            ? setOpenRevenueProjectionsDialog(true)
+                                            : setOpenEarningsProjectionsDialog(true)}
+                                    />
+                                    : <>
+                                        <PeriodEstimatesOverview
+                                            sx={{marginTop: {xs: "2px", sm: "4px"}}}
+                                            overview={data.estimateOverview}
+                                            multiple={earningsMultiple}
+                                            expanded={isNarrowScreen}
+                                            onOpen={() => setOpenEarningsProjectionsDialog(true)}
+                                        />
+                                        <PeriodEstimatesOverview
+                                            sx={{marginTop: {xs: "2px", sm: "4px"}}}
+                                            overview={data.revenueEstimateOverview}
+                                            title="Revenue estimates"
+                                            format={formatRevenueEstimateAmount}
+                                            multiple={revenueMultiple}
+                                            expanded={isNarrowScreen}
+                                            onOpen={() => setOpenRevenueProjectionsDialog(true)}
+                                        />
+                                    </>
+                                }
                                 <LatestNewsSentiment
                                     companyId={data.company.id}
                                     onOpen={() => setOpenNewsSentimentDialog(data.periods?.[0])}

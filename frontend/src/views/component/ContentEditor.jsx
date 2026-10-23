@@ -10,7 +10,26 @@ const DEFAULT_VALUE = [{type: 'paragraph', children: [{ text: '' }],}]
 
 export const defaultContent = () => structuredClone(DEFAULT_VALUE);
 
-export const ContentEditor = ({content, update, style, locked, editTrigger, autoSave = true, alwaysEditing = false, onValueChange}) => {
+/**
+ * Slate pins its placeholder to the top-left of the editable area, which looks stranded when
+ * that area is a whole screen of empty space. This puts it in the middle of the box instead.
+ * Slate sets its own inline styles, so they are spread first and then overridden.
+ */
+const centeredPlaceholder = ({children, attributes}) => (
+    <span
+        {...attributes}
+        style={{
+            ...attributes.style,
+            top: "50%",
+            transform: "translateY(-50%)",
+            textAlign: "center",
+        }}
+    >
+        {children}
+    </span>
+);
+
+export const ContentEditor = ({content, update, style, locked, editTrigger, autoSave = true, alwaysEditing = false, centerPlaceholder = false, onValueChange}) => {
 
     const renderElement = useCallback(props => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
@@ -107,6 +126,7 @@ export const ContentEditor = ({content, update, style, locked, editTrigger, auto
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 placeholder="write a content"
+                renderPlaceholder={centerPlaceholder ? centeredPlaceholder : undefined}
                 style={{...style, paddingBottom: editing ? "10px" : "0"}}
                 readOnly={locked && !unlocked && !alwaysEditing}
                 onFocus={() => setEditing(true)}

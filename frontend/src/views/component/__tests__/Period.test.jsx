@@ -69,10 +69,19 @@ describe("Period", () => {
         );
 
         expect(screen.getByText("25FY - ending: 12/25 - reported: 15.02.2026")).toBeInTheDocument();
-        expect(screen.getByText("Shares: 123M | CapEx: 40M | FCF: 70M | Dividend: 12M | Adj. Eps: 1.62"))
-            .toBeInTheDocument();
-        expect(screen.getByText("H: 20$ | L: 10$")).toBeInTheDocument();
-        expect(screen.getByText("Revenue: 300M | Gross P.: 200M | Op. Inc.: 100M | Net Income: 50M")).toBeInTheDocument();
+        const summary = screen.getByTestId("period-financial-summary");
+        // Income metrics as a matrix: label, value, per-share figure, margin, then the changes.
+        expect(summary).toHaveTextContent("Revenue300M(2.44)");
+        expect(summary).toHaveTextContent("Gross p.200M(1.63)");
+        expect(summary).toHaveTextContent("Op. income100M(0.81)");
+        expect(summary).toHaveTextContent("Net income50M(0.41)");
+        // The price range and the cash-flow figures sit beside that matrix, not inside it.
+        expect(summary).toHaveTextContent("High20.00$");
+        expect(summary).toHaveTextContent("Low10.00$");
+        expect(summary).toHaveTextContent("CapEx40M");
+        expect(summary).toHaveTextContent("FCF70M");
+        expect(summary).toHaveTextContent("Dividend12M");
+        expect(summary).toHaveTextContent("Adj. EPS1.62");
         expect(screen.getByTestId("period-estimates"))
             .toHaveTextContent("Estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76");
         expect(screen.getByTestId("period-target-summary"))
@@ -105,6 +114,40 @@ describe("Period", () => {
             />
         );
     }
+
+    test("prints a lone change without a dangling separator", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-2",
+                    name: {year: "2025", type: "Q1"},
+                    endingMonth: "2025-03",
+                    reportDate: "2025-05-01",
+                    shares: 100,
+                    financial: {
+                        revenue: {value: 100, qoq: 5},
+                        grossProfit: {value: 60, margin: 60, yoy: 12},
+                        operatingIncome: {value: 30, margin: 30, qoq: 4, yoy: 9},
+                        netIncome: {value: 20, margin: 20},
+                    },
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+                openEditDialog={jest.fn()}
+                openEstimateDialog={jest.fn()}
+                openTargetDialog={jest.fn()}
+                openNewsSentimentDialog={jest.fn()}
+            />
+        );
+
+        const summary = screen.getByTestId("period-financial-summary");
+        expect(summary).toHaveTextContent("+5%");
+        expect(summary).toHaveTextContent("+12%");
+        expect(summary).toHaveTextContent("+4%/+9%");
+        // Only the row that has both carries the separator.
+        expect(summary.textContent.match(/\//g)).toHaveLength(1);
+    });
 
     test("opens the dialogs from the rendered views instead of the action buttons", () => {
         const openEstimateDialog = jest.fn();
