@@ -4,6 +4,13 @@
   `{"type":"trade","data":[{"s":"AAPL","p":228.4,"t":<ms>,"v":10}]}` → last price.
 - REST `GET /quote?symbol=AAPL` once per symbol per day → previous close (day change %) and a first price
   before any trade arrives (also outside market hours).
+- The free stream only carries part of US trading, so quiet symbols can go a minute or more without a trade (or
+  never update): a symbol without an update for `stale_after` seconds (1 minute) is refreshed from `/quote`, the
+  stalest first. Every update — stream or quote — restarts its minute. With at most ~60 symbols that stays
+  within the free plan's 60 calls / minute.
+- Can't reach Finnhub (network, refused connection, any error other than quota): `online` turns False at once
+  (the app shows a Finnhub offline icon) and it is tried again once a minute. Quota (HTTP 429): retried every
+  15 s, offline after the 4th refusal in a row. The first success brings it back.
 
 The API key arrives from the app over the control channel (Keychain, D4.2) and is never logged.
 """
@@ -12,6 +19,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import time as time_
 from collections.abc import Callable
 from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal
@@ -24,13 +32,16 @@ from trader_service.prices.base import PriceFeed, PriceListener
 
 log = logging.getLogger(__name__)
 CENT = Decimal("0.01")
-BACKOFF = [1, 2, 5, 10, 30]
+RETRY = 15.0  # seconds between retries after a quota refusal
+OFFLINE_AFTER = 4  # quota refusals in a row → offline (other errors: at once)
+OFFLINE_RETRY = 60.0  # seconds between retries while offline
 
 
 class FinnhubPrices(PriceFeed):
     def __init__(self, ws_url: str = "wss://ws.finnhub.io", rest_url: str = "https://finnhub.io/api/v1",
                  max_symbols: int = 50, http: httpx.AsyncClient | None = None,
-                 connect: Callable = websockets.connect) -> None:
+                 connect: Callable = websockets.connect, stale_after: float = 60.0,
+                 refresh_tick: float = 1.0, retry: float = RETRY, offline_retry: float = OFFLINE_RETRY) -> None:
         self._ws_url = ws_url
         self._rest_url = rest_url
         self._max_symbols = max_symbols  # free tier limit (verify on finnhub.io)
@@ -50,14 +61,26 @@ class FinnhubPrices(PriceFeed):
         self._active = False  # off until the app is unlocked and the broker connected (see api.py)
         self._active_changed = asyncio.Event()
         self.connected = False
+        self._stale_after = stale_after
+        self._refresh_tick = refresh_tick
+        self._next_check: dict[str, float] = {}  # symbol → monotonic time it is refreshed if nothing came
+        self._refresh_task: asyncio.Task | None = None
+        self._retry = retry
+        self._offline_retry = offline_retry
+        self._failures = {"stream": 0, "quote": 0}  # failures in a row, per channel
+        self._quote_retry_at = 0.0
+        self._online = True
+        self._online_listeners: list[Callable[[bool], None]] = []
+        self.simulating_offline = False  # Developer menu: behave as if Finnhub can't be reached
 
     # --- PriceFeed ---------------------------------------------------------------------------------
 
     async def start(self) -> None:
         self._run_task = asyncio.create_task(self._run())
+        self._refresh_task = asyncio.create_task(self._refresh_stale())
 
     async def stop(self) -> None:
-        tasks = [t for t in [self._run_task, *self._tasks] if t]
+        tasks = [t for t in [self._run_task, self._refresh_task, *self._tasks] if t]
         for task in tasks:
             task.cancel()
         for task in tasks:
@@ -110,6 +133,7 @@ class FinnhubPrices(PriceFeed):
         change = ((last - prev) / prev * 100).quantize(CENT, ROUND_HALF_UP) if prev else Decimal(0)
         price = Price(symbol=symbol, last=last, prev_close=prev, change_pct=change, time=time)
         self._prices[symbol] = price
+        self._next_check[symbol] = time_.monotonic() + self._stale_after
         for listener in self._listeners:
             listener(price)
 
@@ -121,10 +145,7 @@ class FinnhubPrices(PriceFeed):
         while self._key is None:
             await self._key_changed.wait()
         try:
-            response = await self._http.get(f"{self._rest_url}/quote", params={"symbol": symbol},
-                                             headers={"X-Finnhub-Token": self._key})
-            response.raise_for_status()
-            quote = response.json()
+            quote = await self._get_quote(symbol)
         except (httpx.HTTPError, ValueError) as error:
             log.warning("quote for %s failed: %s", symbol, type(error).__name__)
             return
@@ -134,6 +155,85 @@ class FinnhubPrices(PriceFeed):
         if current > 0 and symbol not in self._prices:
             stamp = datetime.fromtimestamp(quote["t"], UTC) if quote.get("t") else datetime.now(UTC)
             self._publish(symbol, current, stamp)
+
+    @property
+    def online(self) -> bool:
+        return self._online
+
+    def simulate_offline(self, enabled: bool) -> None:
+        """Developer menu: drop the stream and fail every connect / quote call, as if Finnhub were down."""
+        if enabled == self.simulating_offline:
+            return
+        self.simulating_offline = enabled
+        self._active_changed.set()  # reconnect now: closes the stream (on) / skips the back-off (off)
+
+    def on_online_change(self, listener: Callable[[bool], None]) -> None:
+        self._online_listeners.append(listener)
+
+    def _failed(self, channel: str, quota: bool = False) -> float:
+        """A failure on `stream` / `quote`; returns how long to wait before the next try. Only quota refusals are
+        counted up to offline; anything else means Finnhub can't be reached: offline now."""
+        self._failures[channel] = self._failures[channel] + 1 if quota else max(self._failures[channel], OFFLINE_AFTER)
+        self._check_online()
+        return self._offline_retry if self._failures[channel] >= OFFLINE_AFTER else self._retry
+
+    def _succeeded(self, channel: str) -> None:
+        self._failures[channel] = 0
+        self._check_online()
+
+    def _check_online(self) -> None:
+        online = not self._active or all(n < OFFLINE_AFTER for n in self._failures.values())
+        if online != self._online:
+            self._online = online
+            log.warning("finnhub %s", "back online" if online else "unreachable")
+            for listener in self._online_listeners:
+                listener(online)
+
+    async def _refresh_stale(self) -> None:
+        """Quiet symbols: every tick the stalest due one from `/quote` (after an error: at the next retry time)."""
+        while True:
+            await asyncio.sleep(self._refresh_tick)
+            self._check_online()
+            if not self._active or self._key is None:
+                continue
+            now = time_.monotonic()
+            if now < self._quote_retry_at:
+                continue
+            due = [s for s in self._wanted if self._next_check.get(s, 0) <= now and s in self._prices]
+            if due:
+                await self._refresh_quote(min(due, key=lambda s: self._next_check.get(s, 0)))
+
+    async def _refresh_quote(self, symbol: str) -> None:
+        try:
+            quote = await self._get_quote(symbol)
+        except (httpx.HTTPError, ValueError) as error:
+            log.warning("quote refresh for %s failed: %s", symbol, type(error).__name__)
+            return
+        current = Decimal(str(quote.get("c") or 0))
+        stamp = datetime.fromtimestamp(quote["t"], UTC) if quote.get("t") else None
+        known = self._prices.get(symbol)
+        if current > 0 and stamp and (known is None or stamp > known.time):
+            self._publish(symbol, current, stamp)
+        else:
+            # Nothing newer (quiet stock, or the market is closed): look again in a minute.
+            self._next_check[symbol] = time_.monotonic() + self._stale_after
+
+    async def _get_quote(self, symbol: str) -> dict:
+        """One `/quote` call. Any error (network, quota 429, bad answer) counts as a failure and delays the next
+        quote call; a good answer resets the count."""
+        try:
+            if self.simulating_offline:
+                raise httpx.ConnectError("simulated: Finnhub unreachable")
+            response = await self._http.get(f"{self._rest_url}/quote", params={"symbol": symbol},
+                                            headers={"X-Finnhub-Token": self._key})
+            response.raise_for_status()
+            quote = response.json()
+        except (httpx.HTTPError, ValueError) as error:
+            quota = isinstance(error, httpx.HTTPStatusError) and error.response.status_code == 429
+            self._quote_retry_at = time_.monotonic() + self._failed("quote", quota=quota)
+            raise
+        self._succeeded("quote")
+        return quote
 
     async def _sync_subscriptions(self) -> None:
         socket = self._socket
@@ -147,7 +247,6 @@ class FinnhubPrices(PriceFeed):
             self._streaming.discard(symbol)
 
     async def _run(self) -> None:
-        attempt = 0
         while True:
             while self._key is None or not self._active:
                 self._active_changed.clear()
@@ -160,8 +259,11 @@ class FinnhubPrices(PriceFeed):
             for symbol in self._wanted:  # refresh first prices / previous close after a pause
                 self._spawn(self._fetch_quote(symbol))
             try:
+                if self.simulating_offline:
+                    raise ConnectionError("simulated: Finnhub unreachable")
                 async with self._connect(f"{self._ws_url}?token={self._key}") as socket:
-                    self._socket, self._streaming, self.connected, attempt = socket, set(), True, 0
+                    self._socket, self._streaming, self.connected = socket, set(), True
+                    self._succeeded("stream")
                     await self._sync_subscriptions()
                     reader = asyncio.create_task(self._read(socket))
                     key_change = asyncio.create_task(self._key_changed.wait())
@@ -174,14 +276,17 @@ class FinnhubPrices(PriceFeed):
                         raise reader.exception()
             except asyncio.CancelledError:
                 raise
-            except Exception as error:  # network, auth, protocol: back off and retry
+            except Exception as error:  # network, auth, protocol: retry after a pause
                 log.warning("finnhub stream disconnected: %s", type(error).__name__)
+                wait = self._failed("stream")
+            else:
+                wait = 0.0
             finally:
                 self._socket, self.connected = None, False
-            if self._key_changed.is_set() or self._active_changed.is_set() or not self._active:
-                continue  # new key or paused/resumed: no back-off
-            await asyncio.sleep(BACKOFF[min(attempt, len(BACKOFF) - 1)])
-            attempt += 1
+            if self._key_changed.is_set() or self._active_changed.is_set() or not self._active or not wait:
+                continue  # new key or paused/resumed: no pause
+            with contextlib.suppress(TimeoutError):  # a change (e.g. the simulated outage ends) retries at once
+                await asyncio.wait_for(self._active_changed.wait(), wait)
 
     async def _read(self, socket) -> None:
         async for raw in socket:

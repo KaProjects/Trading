@@ -76,6 +76,12 @@ struct DeveloperItems: View {
                     .disabled(!AppEnvironment.available.contains(environment) || environment == model.environment)
                 }
             }
+            Section("Finnhub") {
+                Button(model.finnhubOfflineSimulated ? "✓ Simulate Finnhub Unreachable" : "   Simulate Finnhub Unreachable") {
+                    Task { await model.toggleFinnhubOfflineSimulated() }
+                }
+                .disabled(!model.canSimulateFinnhubOffline)
+            }
             Group {
                 Section("Prices") {
                     Button(model.priceFeed == "fake" ? "✓ Simulated Prices" : "   Simulated Prices") {

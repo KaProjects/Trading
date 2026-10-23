@@ -114,14 +114,7 @@ struct PositionsTable: View {
     var quickSell: ((Position) -> Void)?
 
     var body: some View {
-        // Re-evaluate staleness every few seconds even when no price arrives.
-        TimelineView(.periodic(from: .now, by: 5)) { context in
-            table(now: context.date)
-        }
-    }
-
-    private func table(now: Date) -> some View {
-        let rows = positions.map { PricedPosition(position: $0, quote: quotes[$0.contract.feedSymbol], now: now) }
+        let rows = positions.map { PricedPosition(position: $0, quote: quotes[$0.contract.feedSymbol]) }
         return Table(rows, columns: {
             TableColumn("Symbol") { (row: PricedPosition) in Text(row.position.contract.symbol).fontWeight(.semibold) }
                 .width(min: 60, ideal: 70)
@@ -137,8 +130,6 @@ struct PositionsTable: View {
             TableColumn("Last") { (row: PricedPosition) in
                 Text(row.quote.map { Format.money($0.last, row.position.contract.currency) } ?? "—")
                     .monospacedDigit()
-                    .foregroundStyle(row.isStale ? .secondary : .primary)
-                    .help(row.isStale ? "No price update for over a minute" : "")
             }
             .alignment(.trailing)
             TableColumn("Day") { (row: PricedPosition) in

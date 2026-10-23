@@ -31,6 +31,7 @@ from trader_service.models import (
     AccountSummary,
     ConnectionState,
     Contract,
+    Environment,
     Fill,
     ModifyOrderRequest,
     Order,
@@ -49,6 +50,7 @@ from trader_service.models import (
 )
 from trader_service.prices.base import PriceFeed, price_symbol
 from trader_service.prices.fake import FakePrices
+from trader_service.prices.finnhub import FinnhubPrices
 from trader_service.rules import RuleSettings, preview_order
 from trader_service.store import Store
 from trader_service.flex import FlexClient, FlexError, FlexNotSetUp
@@ -88,6 +90,7 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
     """`control` opens the app's private channel (our stdin) carrying unlock/lock messages (D3.3)."""
     flex = flex or FlexClient()
     prices.add_listener(lambda price: bus.publish("price", price))
+    prices.on_online_change(lambda online: bus.publish("feed", {"online": online}))
 
     def update_price_stream() -> None:
         """Real price streams run only while the app is unlocked and the broker session is connected:
@@ -299,6 +302,11 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         broker.set_watchlist(set(request.conids))
         return request
 
+    @app.get("/prices/status")
+    async def prices_status() -> dict:
+        """Whether the price provider (Finnhub) can be reached; changes also come as `feed` events."""
+        return {"online": prices.online}
+
     @app.get("/prices")
     async def all_prices() -> list[Price]:
         """Latest price per streamed symbol (positions + open orders, D4.4)."""
@@ -416,5 +424,15 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
         @app.post("/dev/price", status_code=204)
         async def dev_price(request: SetPrice) -> None:
             fake_prices.set_price(request.symbol, request.price)
+
+    # Developer menu (Debug app, fake / paper): pretend Finnhub can't be reached — never on production.
+    if isinstance(prices, FinnhubPrices) and broker.status().environment != Environment.PRODUCTION:
+        @app.get("/dev/finnhub-offline")
+        async def dev_finnhub_offline() -> dict:
+            return {"enabled": prices.simulating_offline}
+
+        @app.post("/dev/finnhub-offline", status_code=204)
+        async def dev_set_finnhub_offline(request: AutoApprove) -> None:
+            prices.simulate_offline(request.enabled)
 
     return app

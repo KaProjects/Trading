@@ -154,13 +154,11 @@ import Testing
         let now = Date(timeIntervalSince1970: 1_792_594_800)  // Wed 2026-10-21 15:00 UTC = 11:00 New York (open)
         let quote = Quote(symbol: "AAPL", last: Amount(Decimal(string: "228.4")!), prevClose: Amount(225),
                           changePct: Amount(Decimal(string: "1.51")!), time: now.addingTimeInterval(-5))
-        let priced = PricedPosition(position: position, quote: quote, now: now)
+        let priced = PricedPosition(position: position, quote: quote)
         #expect(priced.marketValue == Amount(11420))
         #expect(priced.unrealizedPnL == Amount(1920))
         let pct = try #require(priced.unrealizedPct).value
         #expect(pct > Decimal(string: "20.2")! && pct < Decimal(string: "20.22")!)  // 1920 / 9500 = 20.21 %
-        #expect(!priced.isStale)
-        #expect(PricedPosition(position: position, quote: quote, now: now.addingTimeInterval(120)).isStale)
         #expect(PricedPosition(position: position, quote: nil).marketValue == nil)
     }
 
@@ -188,16 +186,6 @@ import Testing
         #expect(USMarket.nextOpen(after: utc("2026-10-23T21:00:00Z")) == utc("2026-10-26T13:30:00Z"))  // Fri evening → Mon
         #expect(USMarket.nextOpen(after: utc("2026-10-22T12:00:00Z")) == utc("2026-10-22T13:30:00Z"))  // pre-market
         #expect(USMarket.nextOpen(after: utc("2026-12-01T13:00:00Z")) == utc("2026-12-01T14:30:00Z"))  // winter time
-    }
-
-    @Test func closedMarketPricesAreNotStale() {
-        let contract = Contract(conid: 1, symbol: "A", name: "A", secType: "STK", exchange: "SMART",
-                                primaryExchange: "NASDAQ", currency: "USD", priceSymbol: "A")
-        let position = Position(contract: contract, quantity: Amount(1), avgCost: Amount(1), costBasis: Amount(1))
-        let evening = utc("2026-10-21T21:14:00Z")
-        let quote = Quote(symbol: "A", last: Amount(1), prevClose: Amount(1), changePct: Amount(0),
-                          time: utc("2026-10-21T20:00:00Z"))
-        #expect(!PricedPosition(position: position, quote: quote, now: evening).isStale)
     }
 }
 

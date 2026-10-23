@@ -1,6 +1,7 @@
 """FinnhubPrices against a local stand-in for Finnhub (WebSocket server + mocked REST)."""
 
 import asyncio
+import contextlib
 import json
 from decimal import Decimal
 
@@ -128,4 +129,106 @@ async def test_inactive_feed_never_connects():
     feed.subscribe({"AAPL"})
     await asyncio.sleep(0.2)
     assert not feed.connected
+    await feed.stop()
+
+
+async def test_quiet_symbols_are_refreshed_from_quotes():
+    """No update for `stale_after` → /quote, stalest first; each update restarts the symbol's wait."""
+    calls: list[str] = []
+
+    def rest(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.params["symbol"])
+        n = len(calls)
+        return httpx.Response(200, json={"c": 100 + n, "pc": 100.0, "t": 1_792_000_000 + n})
+
+    feed = FinnhubPrices(ws_url="ws://127.0.0.1:9", rest_url="https://finnhub.test/api/v1",
+                         http=httpx.AsyncClient(transport=httpx.MockTransport(rest)),
+                         stale_after=0.3, refresh_tick=0.01)
+    await feed.start()
+    feed.set_key(KEY)
+    feed.set_active(True)
+    feed.subscribe({"SKHY", "MU"})
+    await until(lambda: feed.last("SKHY") is not None and feed.last("MU") is not None)
+    first = feed.last("SKHY").last
+    assert len(calls) == 2  # first quotes; nothing stale yet
+    await until(lambda: {"SKHY", "MU"} <= set(calls[2:]))
+    assert feed.last("SKHY").last != first
+    await asyncio.sleep(0.1)
+    assert len(calls) == 4  # each refreshed once, then waits its time again
+    await feed.stop()
+
+
+class QuietSocket:
+    """A stream that stays connected and never sends anything."""
+
+    async def send(self, _message) -> None:
+        pass
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        await asyncio.Event().wait()
+
+
+@contextlib.asynccontextmanager
+async def quiet_stream(_url):
+    yield QuietSocket()
+
+
+async def test_quota_retries_every_interval_then_goes_offline_and_recovers():
+    """Quota 429: retry every `retry`; after the 4th refusal in a row offline, then every `offline_retry`."""
+    calls: list[float] = []
+    refuse = {"on": True}
+
+    def rest(request: httpx.Request) -> httpx.Response:
+        calls.append(asyncio.get_running_loop().time())
+        if len(calls) == 1 or not refuse["on"]:
+            return httpx.Response(200, json={"c": 100 + len(calls), "pc": 100.0, "t": 1_792_000_000 + len(calls)})
+        return httpx.Response(429, json={"error": "API limit reached"})
+
+    changes: list[bool] = []
+    feed = FinnhubPrices(ws_url="ws://unused", rest_url="https://finnhub.test/api/v1",
+                         http=httpx.AsyncClient(transport=httpx.MockTransport(rest)), connect=quiet_stream,
+                         stale_after=0.01, refresh_tick=0.01, retry=0.1, offline_retry=0.3)
+    feed.on_online_change(changes.append)
+    await feed.start()
+    feed.set_key(KEY)
+    feed.set_active(True)
+    feed.subscribe({"SKHY"})
+    await until(lambda: len(calls) >= 6, timeout=4)
+    gaps = [b - a for a, b in zip(calls[1:], calls[2:])]
+    assert all(0.1 <= g < 0.25 for g in gaps[:3])  # failures 1–3: every `retry`
+    assert gaps[3] >= 0.3  # after the 4th: offline, every `offline_retry`
+    assert changes == [False] and not feed.online
+    refuse["on"] = False
+    await until(lambda: feed.online, timeout=2)
+    assert changes == [False, True]
+    await feed.stop()
+
+
+async def test_simulated_outage_goes_offline_and_recovers(finnhub):
+    feed, fake = finnhub
+    feed._retry, feed._offline_retry, feed._refresh_tick = 0.02, 0.05, 0.01
+    feed.set_key(KEY)
+    await until(lambda: feed.connected)
+    feed.simulate_offline(True)
+    await until(lambda: not feed.online)
+    feed.simulate_offline(False)
+    await until(lambda: feed.connected and feed.online)
+
+
+async def test_unreachable_is_offline_at_once():
+    def rest(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("unreachable")
+
+    feed = FinnhubPrices(ws_url="ws://127.0.0.1:9", rest_url="https://finnhub.test/api/v1",
+                         http=httpx.AsyncClient(transport=httpx.MockTransport(rest)), refresh_tick=0.01)
+    await feed.start()
+    feed.set_key(KEY)
+    feed.set_active(True)  # nothing listens on port 9 and REST fails: offline without waiting
+    feed.subscribe({"MU"})
+    await until(lambda: not feed.online, timeout=1)
+    feed.set_active(False)  # locked / logged out: not shown as offline
+    await until(lambda: feed.online)
     await feed.stop()

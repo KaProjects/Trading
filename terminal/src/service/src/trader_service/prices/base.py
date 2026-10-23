@@ -33,6 +33,14 @@ class PriceFeed(ABC):
     def set_active(self, active: bool) -> None:
         """Stream only while the app is unlocked and the broker session is connected. Default: always on."""
 
+    @property
+    def online(self) -> bool:
+        """False while the price provider can't be reached (shown in the app). Default: always online."""
+        return True
+
+    def on_online_change(self, listener: Callable[[bool], None]) -> None:
+        """Called with the new value whenever `online` changes. Default: never changes."""
+
     @abstractmethod
     def snapshot(self) -> list[Price]:
         """Latest price of every streamed symbol (the app loads this once, then follows `price` events)."""

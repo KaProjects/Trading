@@ -16,6 +16,8 @@ final class AppModel {
     private(set) var lastError: String?
     private(set) var startsAtLogin = SMAppService.mainApp.status == .enabled
     private(set) var slowResponses = false
+    /// Developer menu: Finnhub outage simulated in the service (resets when the service restarts).
+    private(set) var finnhubOfflineSimulated = false
     private(set) var autoApprove2FA = true
     private(set) var fakeAutoLogin = AppEnvironment.fakeAutoLogin
     private(set) var hasFinnhubKey = KeychainStore.hasFinnhubKey
@@ -120,6 +122,7 @@ final class AppModel {
                 phase = .running
                 apply(current)
                 slowResponses = false
+                finnhubOfflineSimulated = false
                 if environment == .fake, let auto = try? await api.autoApprove2FA() { autoApprove2FA = auto }
                 startStreams()
                 await syncWatchlist()  // a restarted service has forgotten the planner tickers
@@ -200,6 +203,9 @@ final class AppModel {
                 basket.orderUpdated(order)
             }
             scheduleAccountRefresh()
+        case "feed":
+            let object = (try? JSONSerialization.jsonObject(with: event.data)) as? [String: Any]
+            pricesOnline = object?["online"] as? Bool ?? true
         case "account", "position", "fill":
             scheduleAccountRefresh()
         case "price":
@@ -227,8 +233,12 @@ final class AppModel {
         }
     }
 
+    /// False while Finnhub can't be reached: an offline icon next to Lock (nothing shown while it works).
+    private(set) var pricesOnline = true
+
     func refreshAccount() async {
         guard !locked, phase == .running else { return }
+        if let online = try? await api.pricesOnline() { pricesOnline = online }
         if status?.state == .connected, let live = try? await api.liveSnapshot() {
             account = live
             accountIsLive = true
@@ -734,6 +744,16 @@ final class AppModel {
         await perform {
             try await self.api.setAutoApprove2FA(enable)
             self.autoApprove2FA = enable
+        }
+    }
+
+    var canSimulateFinnhubOffline: Bool { AppEnvironment.isDebugBuild && phase == .running && usesFinnhub }
+
+    func toggleFinnhubOfflineSimulated() async {
+        let enable = !finnhubOfflineSimulated
+        await perform {
+            try await self.api.setFinnhubOfflineSimulated(enable)
+            self.finnhubOfflineSimulated = enable
         }
     }
 

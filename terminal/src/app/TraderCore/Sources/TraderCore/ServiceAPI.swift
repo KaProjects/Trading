@@ -88,6 +88,14 @@ public struct ServiceAPI: Sendable {
         try check(try await http.send("PUT", "/watchlist", json: body))
     }
 
+    /// Whether the price provider (Finnhub) can be reached; afterwards follow `feed` events.
+    public func pricesOnline() async throws -> Bool {
+        let response = try await http.send("GET", "/prices/status")
+        try check(response)
+        let object = try JSONSerialization.jsonObject(with: response.body) as? [String: Any]
+        return object?["online"] as? Bool ?? true
+    }
+
     /// Latest price of every streamed symbol; afterwards follow `price` events.
     public func prices() async throws -> [Quote] { try await call("GET", "/prices") }
 
@@ -146,6 +154,12 @@ public struct ServiceAPI: Sendable {
     public func setAutoApprove2FA(_ enabled: Bool) async throws {
         let body = try JSONSerialization.data(withJSONObject: ["enabled": enabled])
         try check(try await http.send("POST", "/dev/2fa/auto", json: body))
+    }
+
+    /// Developer menu (Debug, fake / paper with Finnhub): pretend Finnhub can't be reached.
+    public func setFinnhubOfflineSimulated(_ enabled: Bool) async throws {
+        let body = try JSONSerialization.data(withJSONObject: ["enabled": enabled])
+        try check(try await http.send("POST", "/dev/finnhub-offline", json: body))
     }
 
     public func setSlowResponses(seconds: Double) async throws {

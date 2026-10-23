@@ -57,13 +57,11 @@ public struct PricedPosition: Sendable, Identifiable {
 
     public let position: Position
     public let quote: Quote?
-    public let isStale: Bool
 
-    public init(position: Position, quote: Quote?, now: Date = Date(), staleAfter: TimeInterval = 60) {
+    /// No stale marking: the service refreshes a price that went a minute without an update (Finnhub `/quote`).
+    public init(position: Position, quote: Quote?) {
         self.position = position
         self.quote = quote
-        // Outside regular hours an old price is just the last trade, not stale (no grey-out).
-        isStale = quote.map { USMarket.isRegularSession(now) && now.timeIntervalSince($0.time) > staleAfter } ?? true
     }
 
     public var marketValue: Amount? { quote.map { Amount(position.quantity.value * $0.last.value) } }

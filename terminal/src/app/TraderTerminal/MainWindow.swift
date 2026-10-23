@@ -78,6 +78,12 @@ struct MainWindow: View {
             }
 
             HStack {
+                if !shown.isLocked && !model.pricesOnline {
+                    Label("Finnhub", systemImage: "wifi.exclamationmark")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                        .help("Finnhub unreachable — prices are not updating")
+                }
                 if !shown.isLocked {
                     Button { model.lockNow() } label: { Image(systemName: "lock") }
                         .help("Lock now")
