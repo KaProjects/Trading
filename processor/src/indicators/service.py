@@ -6,11 +6,12 @@ from pydantic import ValidationError
 
 from error_reporting import ErrorReporter
 from firebase_repository import ticker_to_firebase_key
-from indicators.models import PriceIndicator
+from indicators.models import BetaIndicator, PriceIndicator
 
 companies_path = "company"
 data_root = "indicators"
 PRICE_KEY = "price"
+BETA_KEY = "beta"
 logger = logging.getLogger(__name__)
 
 
@@ -21,6 +22,10 @@ def company_path(company_id: str) -> str:
 
 def price_path(company_id: str) -> str:
     return f"{company_path(company_id)}/{PRICE_KEY}"
+
+
+def beta_path(company_id: str) -> str:
+    return f"{company_path(company_id)}/{BETA_KEY}"
 
 
 class FirebaseService:
@@ -50,6 +55,22 @@ class FirebaseService:
             company_id,
             price.value,
             price.retrieved_on.isoformat(),
+        )
+
+    def upsert_beta(
+        self,
+        company_id: str,
+        beta: BetaIndicator,
+    ) -> None:
+        # Merged like the price, and likewise never creates a company.
+        db.reference(beta_path(company_id)).update(
+            beta.model_dump(mode="json")
+        )
+        self.log.info(
+            "Upserted beta for %s (%s as of %s)",
+            company_id,
+            beta.value,
+            beta.retrieved_on.isoformat(),
         )
 
     def get_prices(

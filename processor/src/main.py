@@ -2,6 +2,8 @@ import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import datetime, tzinfo
+from zoneinfo import ZoneInfo
 
 from schedule import Scheduler
 
@@ -14,12 +16,15 @@ from error_reporting import ErrorReporter
 from frankfurter.client import FrankfurterClient
 from gemini.currency import QuarterCurrencyConverter
 from gemini.retriever import StockDataRetrieverRunner
+from myfinnhub.beta_retriever import FinnhubBetaRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from polygon.client import PolygonClient
 from polygon.prices_retriever import PolygonPricesRetrieverRunner
 from polygon.retriever import PolygonNewsRetrieverRunner
 
 logger = logging.getLogger(__name__)
+SATURDAY = 5
+SUNDAY = 6
 
 
 @dataclass
@@ -27,6 +32,7 @@ class Application:
     btc_runner: BtcFearAndGreedRetrieverRunner
     polygon_prices_runner: PolygonPricesRetrieverRunner
     finnhub_runner: FinnhubEarningsRetrieverRunner
+    finnhub_beta_runner: FinnhubBetaRetrieverRunner
     stock_runner: StockDataRetrieverRunner
     polygon_news_runner: PolygonNewsRetrieverRunner
     onboarding_watcher: CompanyOnboardingWatcher
@@ -35,6 +41,7 @@ class Application:
     poll_interval_seconds: float = 60
     scheduler: Scheduler = field(default_factory=Scheduler)
     sleeper: Callable[[float], None] = time.sleep
+    clock: Callable[[tzinfo], datetime] = datetime.now
     _jobs_configured: bool = field(default=False, init=False)
 
     def configure_jobs(self) -> None:
@@ -48,7 +55,7 @@ class Application:
             self.polygon_prices_runner.run
         )
         self.scheduler.every().day.at("07:45", self.timezone).do(
-            self.finnhub_runner.run
+            self.run_finnhub_jobs
         )
         self.scheduler.every().day.at("08:00", self.timezone).do(
             self.stock_runner.run
@@ -57,6 +64,27 @@ class Application:
             self.polygon_news_runner.run
         )
         self._jobs_configured = True
+
+    def run_finnhub_jobs(self) -> None:
+        # One daily trigger, two cycles: the earnings on weekdays, then the
+        # betas on Sundays. A failure in one never skips the other.
+        weekday = self.clock(ZoneInfo(self.timezone)).weekday()
+        runners = []
+        if weekday < SATURDAY:
+            runners.append(self.finnhub_runner)
+        if weekday == SUNDAY:
+            runners.append(self.finnhub_beta_runner)
+        for runner in runners:
+            try:
+                runner.run()
+            except Exception as exception:
+                self.errors.report(
+                    exception,
+                    logger=logger,
+                    source="Application",
+                    operation="run_finnhub_jobs",
+                    context={"runner": runner.name},
+                )
 
     def run_pending(self) -> None:
         self.scheduler.run_pending()
@@ -120,6 +148,10 @@ def create_app(
         error_reporter=errors,
         currency_converter=currency_converter,
     )
+    finnhub_beta_runner = FinnhubBetaRetrieverRunner(
+        finnhub_api_key=config.finnhub_api_key.get_secret_value(),
+        error_reporter=errors,
+    )
     stock_runner = StockDataRetrieverRunner(
         gemini_api_key=config.gemini_api_key.get_secret_value(),
         discord=discord,
@@ -144,11 +176,13 @@ def create_app(
         ),
         polygon_prices_runner=polygon_prices_runner,
         finnhub_runner=finnhub_runner,
+        finnhub_beta_runner=finnhub_beta_runner,
         stock_runner=stock_runner,
         polygon_news_runner=polygon_news_runner,
         onboarding_watcher=CompanyOnboardingWatcher(
             gemini=stock_runner,
             finnhub=finnhub_runner,
+            finnhub_beta=finnhub_beta_runner,
             polygon_news=polygon_news_runner,
             discord=discord,
             error_reporter=errors,

@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import MagicMock, create_autospec, patch
 
 import pytest
@@ -15,6 +16,7 @@ from main import (
     create_discord_client,
     create_error_reporter,
 )
+from myfinnhub.beta_retriever import FinnhubBetaRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from polygon.prices_retriever import PolygonPricesRetrieverRunner
 from polygon.retriever import PolygonNewsRetrieverRunner
@@ -53,6 +55,10 @@ def make_application():
             FinnhubEarningsRetrieverRunner,
             instance=True,
         ),
+        finnhub_beta_runner=create_autospec(
+            FinnhubBetaRetrieverRunner,
+            instance=True,
+        ),
         stock_runner=create_autospec(StockDataRetrieverRunner, instance=True),
         polygon_news_runner=create_autospec(
             PolygonNewsRetrieverRunner,
@@ -65,6 +71,7 @@ def make_application():
         errors=errors,
         timezone="Europe/Prague",
         scheduler=Scheduler(),
+        clock=lambda tz: datetime(2026, 10, 21, 7, 45, tzinfo=tz),  # a Wednesday
     )
 
 
@@ -93,9 +100,74 @@ def test_application_configures_jobs_in_explicit_timezone():
     app.btc_runner.run.assert_called_once()
     app.polygon_prices_runner.run.assert_called_once()
     app.finnhub_runner.run.assert_called_once()
+    app.finnhub_beta_runner.run.assert_not_called()  # Sundays only
     app.stock_runner.run.assert_called_once()
     app.polygon_news_runner.run.assert_called_once()
     assert app.scheduler.jobs[-1].start_day == "sunday"
+
+
+def test_earnings_run_on_weekdays_and_betas_on_sundays():
+    app = make_application()
+    # Monday 19 October .. Sunday 25 October 2026
+    expected = {
+        19: (1, 0),
+        20: (1, 0),
+        21: (1, 0),
+        22: (1, 0),
+        23: (1, 0),
+        24: (0, 0),  # Saturday: nothing
+        25: (0, 1),  # Sunday: betas only
+    }
+    for day, (earnings, betas) in expected.items():
+        app.clock = lambda tz, day=day: datetime(2026, 10, day, 7, 45, tzinfo=tz)
+        app.finnhub_runner.reset_mock()
+        app.finnhub_beta_runner.reset_mock()
+
+        app.run_finnhub_jobs()
+
+        assert app.finnhub_runner.run.call_count == earnings, day
+        assert app.finnhub_beta_runner.run.call_count == betas, day
+
+
+def test_sunday_is_judged_in_the_application_timezone():
+    app = make_application()
+    seen = []
+    app.clock = lambda tz: (
+        seen.append(tz.key)
+        or datetime(2026, 10, 25, 7, 45, tzinfo=tz)
+    )
+
+    app.run_finnhub_jobs()
+
+    assert seen == ["Europe/Prague"]
+
+
+def test_a_failing_earnings_cycle_is_reported_and_not_raised():
+    app = make_application()
+    app.finnhub_runner.run.side_effect = RuntimeError("earnings blew up")
+
+    app.run_finnhub_jobs()
+
+    app.errors.report.assert_called_once()
+    assert app.errors.report.call_args.kwargs["operation"] == (
+        "run_finnhub_jobs"
+    )
+    assert app.errors.report.call_args.kwargs["context"] == {
+        "runner": app.finnhub_runner.name,
+    }
+
+
+def test_a_failing_beta_cycle_is_reported_and_not_raised():
+    app = make_application()
+    app.clock = lambda tz: datetime(2026, 10, 25, 7, 45, tzinfo=tz)
+    app.finnhub_beta_runner.run.side_effect = RuntimeError("beta blew up")
+
+    app.run_finnhub_jobs()
+
+    app.errors.report.assert_called_once()
+    assert app.errors.report.call_args.kwargs["context"] == {
+        "runner": app.finnhub_beta_runner.name,
+    }
 
 
 @pytest.mark.parametrize(
@@ -103,6 +175,7 @@ def test_application_configures_jobs_in_explicit_timezone():
     [
         BtcFearAndGreedRetrieverRunner,
         FinnhubEarningsRetrieverRunner,
+        FinnhubBetaRetrieverRunner,
         StockDataRetrieverRunner,
         PolygonNewsRetrieverRunner,
         PolygonPricesRetrieverRunner,
@@ -124,6 +197,10 @@ def test_create_app_initializes_dependencies_from_validated_config():
             autospec=True,
         ) as btc_runner,
         patch("main.FinnhubEarningsRetrieverRunner", autospec=True) as finnhub_runner,
+        patch(
+            "main.FinnhubBetaRetrieverRunner",
+            autospec=True,
+        ) as finnhub_beta_runner,
         patch("main.StockDataRetrieverRunner", autospec=True) as stock_runner,
         patch("main.PolygonClient", autospec=True) as polygon_client,
         patch("main.FrankfurterClient", autospec=True) as frankfurter_client,
@@ -158,6 +235,10 @@ def test_create_app_initializes_dependencies_from_validated_config():
         error_reporter=errors,
         currency_converter=currency_converter.return_value,
     )
+    finnhub_beta_runner.assert_called_once_with(
+        finnhub_api_key="finnhub",
+        error_reporter=errors,
+    )
     # One converter, shared by the quarter reports and Finnhub estimates.
     polygon_client.assert_called_once_with("polygon")
     currency_converter.assert_called_once_with(
@@ -185,6 +266,7 @@ def test_create_app_initializes_dependencies_from_validated_config():
     assert app.poll_interval_seconds == 5
     assert app.onboarding_watcher.gemini is app.stock_runner
     assert app.onboarding_watcher.finnhub is app.finnhub_runner
+    assert app.onboarding_watcher.finnhub_beta is app.finnhub_beta_runner
     assert app.onboarding_watcher.polygon_news is app.polygon_news_runner
     assert app.onboarding_watcher.discord is discord
     assert app.onboarding_watcher.errors is errors

@@ -7,8 +7,13 @@ import pytest
 from pydantic import ValidationError
 
 from error_reporting import ErrorReporter
-from indicators.models import Indicators, PriceIndicator
-from indicators.service import FirebaseService, company_path, price_path
+from indicators.models import BetaIndicator, Indicators, PriceIndicator
+from indicators.service import (
+    FirebaseService,
+    beta_path,
+    company_path,
+    price_path,
+)
 
 TODAY = date(2026, 10, 6)
 
@@ -146,3 +151,47 @@ def test_get_prices_isolates_a_failing_read_to_its_company():
         operation="read_price",
         context={"company_id": "MU"},
     )
+
+
+def test_upsert_beta_merges_into_a_fixed_beta_key():
+    database_reference = MagicMock(spec_set=["update"])
+
+    with patch(
+        "indicators.service.db.reference",
+        autospec=True,
+        return_value=database_reference,
+    ) as reference:
+        make_service().upsert_beta(
+            "BRK.B",
+            BetaIndicator(value=Decimal("0.82"), retrieved_on=TODAY),
+        )
+
+    assert beta_path("BRK.B") == "company/BRK-B/indicators/beta"
+    reference.assert_called_once_with("company/BRK-B/indicators/beta")
+    database_reference.update.assert_called_once_with({
+        "value": "0.82",
+        "retrieved_on": "2026-10-06",
+    })
+
+
+@pytest.mark.parametrize("value", ["0", "-0.4", "3.27"])
+def test_beta_indicator_accepts_any_finite_value(value):
+    beta = BetaIndicator(value=Decimal(value), retrieved_on=TODAY)
+
+    assert beta.value == Decimal(value)
+
+
+@pytest.mark.parametrize("value", ["NaN", "Infinity"])
+def test_beta_indicator_rejects_non_finite_values(value):
+    with pytest.raises(ValidationError):
+        BetaIndicator(value=Decimal(value), retrieved_on=TODAY)
+
+
+def test_indicators_hold_price_and_beta_side_by_side():
+    indicators = Indicators.model_validate({
+        "price": {"value": "100", "retrieved_on": "2026-10-06"},
+        "beta": {"value": "1.5", "retrieved_on": "2026-10-06"},
+    })
+
+    assert indicators.price.value == Decimal("100")
+    assert indicators.beta.value == Decimal("1.5")

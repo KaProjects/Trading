@@ -64,3 +64,51 @@ def test_brk_b_eps_conversion_preserves_null_and_zero(client_type):
 
     assert earnings.epse is None
     assert earnings.epsa == Decimal("0")
+
+
+@patch("myfinnhub.client.finnhub.Client")
+def test_get_beta_reads_it_from_the_basic_financials_metrics(client_type):
+    api = client_type.return_value
+    api.company_basic_financials.return_value = {
+        "metric": {"beta": 3.268587, "52WeekHigh": 308.67},
+        "series": {},
+        "symbol": "CRDO",
+    }
+
+    assert FinnhubClient("api-key").get_beta("CRDO") == Decimal("3.268587")
+    api.company_basic_financials.assert_called_once_with("CRDO", "all")
+
+
+@patch("myfinnhub.client.finnhub.Client")
+def test_get_beta_keeps_zero(client_type):
+    api = client_type.return_value
+    api.company_basic_financials.return_value = {"metric": {"beta": 0}}
+
+    assert FinnhubClient("api-key").get_beta("X") == Decimal("0")
+
+
+@patch("myfinnhub.client.finnhub.Client")
+def test_get_beta_is_none_when_finnhub_has_none(client_type):
+    api = client_type.return_value
+    for response in (
+        {"metric": {"beta": None}},
+        {"metric": {"beta": ""}},
+        {"metric": {}},
+        {},
+        None,
+    ):
+        api.company_basic_financials.return_value = response
+        assert FinnhubClient("api-key").get_beta("NEW") is None
+
+
+@patch("myfinnhub.client.finnhub.Client")
+def test_get_beta_lets_api_errors_propagate(client_type):
+    api = client_type.return_value
+    api.company_basic_financials.side_effect = RuntimeError("429")
+
+    try:
+        FinnhubClient("api-key").get_beta("CRDO")
+    except RuntimeError as exception:
+        assert str(exception) == "429"
+    else:
+        raise AssertionError("expected the API error to propagate")

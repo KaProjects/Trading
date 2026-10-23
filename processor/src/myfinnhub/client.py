@@ -53,3 +53,13 @@ class FinnhubClient:
                 quarters[quarter] = Earnings.model_validate(data)
 
         return quarters
+
+    def get_beta(self, company_id: str) -> Decimal | None:
+        # None when Finnhub has no beta for the symbol (a young listing, for
+        # example); API and network failures raise.
+        response = self.client.company_basic_financials(company_id, "all")
+        metric = response.get("metric") if isinstance(response, dict) else None
+        beta = metric.get("beta") if isinstance(metric, dict) else None
+        if beta is None or beta == "":
+            return None
+        return Decimal(str(beta))

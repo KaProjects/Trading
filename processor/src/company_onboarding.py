@@ -6,6 +6,7 @@ from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from firebase_repository import ticker_from_firebase_key
 from gemini.retriever import StockDataRetrieverRunner
+from myfinnhub.beta_retriever import FinnhubBetaRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from polygon.retriever import (
     ONBOARDING_NEWS_LOOKBACK_DAYS,
@@ -26,12 +27,14 @@ class CompanyOnboardingWatcher:
         *,
         gemini: StockDataRetrieverRunner,
         finnhub: FinnhubEarningsRetrieverRunner,
+        finnhub_beta: FinnhubBetaRetrieverRunner,
         polygon_news: PolygonNewsRetrieverRunner,
         discord: DiscordClient,
         error_reporter: ErrorReporter,
     ) -> None:
         self.gemini = gemini
         self.finnhub = finnhub
+        self.finnhub_beta = finnhub_beta
         self.polygon_news = polygon_news
         self.discord = discord
         self.errors = error_reporter
@@ -110,6 +113,7 @@ class CompanyOnboardingWatcher:
         if company is None:
             return
         self.finnhub.process_company(ticker, None, company)
+        self.finnhub_beta.process_company(ticker)
         self.polygon_news.process_company(
             ticker,
             previous_days=ONBOARDING_NEWS_LOOKBACK_DAYS,

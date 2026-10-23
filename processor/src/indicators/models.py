@@ -16,7 +16,17 @@ class PriceIndicator(BaseModel):
     retrieved_on: Date
 
 
+class BetaIndicator(BaseModel):
+    model_config = ConfigDict(extra="ignore", allow_inf_nan=False)
+
+    # Unlike a price, a beta may legitimately be zero or negative.
+    value: Decimal
+    # The day the beta was retrieved; consumers use it to tell how old it is.
+    retrieved_on: Date
+
+
 class Indicators(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     price: PriceIndicator | None = None
+    beta: BetaIndicator | None = None

@@ -6,6 +6,7 @@ from company_onboarding import CompanyOnboardingWatcher
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from gemini.retriever import StockDataRetrieverRunner
+from myfinnhub.beta_retriever import FinnhubBetaRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from polygon.retriever import PolygonNewsRetrieverRunner
 
@@ -19,6 +20,10 @@ def make_watcher():
         gemini=create_autospec(StockDataRetrieverRunner, instance=True),
         finnhub=create_autospec(
             FinnhubEarningsRetrieverRunner,
+            instance=True,
+        ),
+        finnhub_beta=create_autospec(
+            FinnhubBetaRetrieverRunner,
             instance=True,
         ),
         polygon_news=create_autospec(
@@ -72,6 +77,7 @@ def test_new_placeholder_company_triggers_full_onboarding_chain():
         None,
         company,
     )
+    watcher.finnhub_beta.process_company.assert_called_once_with("NVDA")
     watcher.polygon_news.process_company.assert_called_once_with(
         "NVDA",
         previous_days=30,
@@ -107,6 +113,7 @@ def test_failed_gemini_initialization_stops_the_pipeline():
 
     watcher.gemini.onboard_company.assert_called_once_with("NVDA")
     watcher.finnhub.process_company.assert_not_called()
+    watcher.finnhub_beta.process_company.assert_not_called()
     watcher.polygon_news.process_company.assert_not_called()
 
 
