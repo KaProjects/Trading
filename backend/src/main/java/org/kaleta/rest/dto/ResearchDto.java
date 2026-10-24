@@ -32,8 +32,9 @@ public class ResearchDto
 
     @Data
     public static class PeriodDto extends Periods.Period {
-        private PeriodEstimates estimate;
-        private PeriodEstimates revenueEstimate;
+        /** Every estimate taken during the period, newest first. */
+        private List<PeriodEstimates> estimates = new ArrayList<>();
+        private List<PeriodEstimates> revenueEstimates = new ArrayList<>();
         private TargetStats targetStats = TargetStats.empty();
         /** The period's research, one entry per date, oldest first. */
         private List<PeriodContentDto> contents = new ArrayList<>();
@@ -41,8 +42,8 @@ public class ResearchDto
 
     public void addPeriod(
             Periods.Period period,
-            PeriodEstimates estimate,
-            PeriodEstimates revenueEstimate,
+            List<PeriodEstimates> estimates,
+            List<PeriodEstimates> revenueEstimates,
             TargetStats targetStats,
             List<PeriodContentDto> contents)
     {
@@ -55,12 +56,11 @@ public class ResearchDto
         dto.setShares(period.getShares());
         dto.setPriceLow(period.getPriceLow());
         dto.setPriceHigh(period.getPriceHigh());
-        dto.setResearch(period.getResearch());
         dto.setFinancial(period.getFinancial());
         dto.setExpectedReportDate(period.getExpectedReportDate());
         dto.setReportedInFirebase(period.getReportedInFirebase());
-        dto.setEstimate(estimate);
-        dto.setRevenueEstimate(revenueEstimate);
+        dto.setEstimates(estimates);
+        dto.setRevenueEstimates(revenueEstimates);
         dto.setTargetStats(targetStats);
         dto.setContents(contents);
         periods.add(dto);

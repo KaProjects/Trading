@@ -214,7 +214,9 @@ export const PeriodFinancials = ({
                     <FinancialsIcon width="17" height="17"/>
                 </Box>
                 <Box sx={{flex: 1, minWidth: 0}}>
-                    <Box sx={{display: expanded ? "flex" : {xs: "none", sm: "flex"}, alignItems: "center", gap: "6px", marginBottom: "2px", color: "text.secondary", fontSize: 11}}>
+                    {/* The title keeps its place and the figures come up to meet it: the gap
+                        under a label that short reads as a hole in the widget. */}
+                    <Box sx={{display: expanded ? "flex" : {xs: "none", sm: "flex"}, alignItems: "center", gap: "6px", marginBottom: "-2px", color: "text.secondary", fontSize: 11}}>
                         <Box component="span" sx={{fontWeight: 600, color: "text.primary"}}>Financials</Box>
                     </Box>
                     <Box sx={{maxWidth: "100%", overflowX: {xs: "auto", sm: "visible"}, overflowY: "hidden"}}>

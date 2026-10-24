@@ -140,7 +140,15 @@ export const ContentEditor = ({content, update, style, locked, editTrigger, auto
                         // day's pictures - has to be put back with it.
                         onCancel?.();
                         rollback();
-                        setTimeout(() => ReactEditor.blur(editor), 100);
+                        setTimeout(() => {
+                            try {
+                                ReactEditor.blur(editor);
+                            } catch {
+                                // Giving up on a new entry takes the editor off the page with
+                                // it, and Slate cannot blur what it can no longer find. There
+                                // is nothing left to blur, which is the outcome either way.
+                            }
+                        }, 100);
                     }
                 }}
             />

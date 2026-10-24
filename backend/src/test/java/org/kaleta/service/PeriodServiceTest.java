@@ -261,9 +261,6 @@ public class PeriodServiceTest
         dto.setPriceHigh(String.valueOf(Generator.randomBigDecimal(999999, 4)));
         updateAndAssertPeriod(dto, period, null);
 
-        dto.setResearch("new findings");
-        updateAndAssertPeriod(dto, period, null);
-
         invalidBigDecimals().forEach(invalidBigDecimal -> {
             dto.setRevenue(invalidBigDecimal);
             updateAndAssertPeriod(dto, period, IllegalArgumentException.class);
@@ -966,7 +963,6 @@ public class PeriodServiceTest
         assertThat(actual.getId(), is(expected.getId()));
         assertThat(actual.getName(), is(expected.getName()));
         assertThat(actual.getShares(), is(expected.getShares()));
-        assertThat(actual.getResearch(), is(expected.getResearch()));
         assertThat(actual.getPriceHigh(), is(expected.getPriceHigh()));
         assertThat(actual.getPriceLow(), is(expected.getPriceLow()));
         assertThat(actual.getEndingMonth(), is(expected.getEndingMonth()));
@@ -1109,8 +1105,6 @@ public class PeriodServiceTest
                     (dto.getPriceHigh() == null) ? is(period.getPriceHigh()) : is(new BigDecimal(dto.getPriceHigh())));
             assertThat(captor.getValue().getPriceLow(),
                     (dto.getPriceLow() == null) ? is(period.getPriceLow()) : is(new BigDecimal(dto.getPriceLow())));
-            assertThat(captor.getValue().getResearch(),
-                    (dto.getResearch() == null) ? is(period.getResearch()) : is(dto.getResearch()));
             assertThat(captor.getValue().getRevenue(),
                     (dto.getRevenue() == null) ? is(period.getRevenue()) : is(new BigDecimal(dto.getRevenue())));
             assertThat(captor.getValue().getGrossProfit(),
@@ -1144,7 +1138,6 @@ public class PeriodServiceTest
             assertThat(captor.getValue().getCompany().getId(), is(period.getCompany().getId()));
             assertThat(captor.getValue().getName(), is(period.getName()));
             assertThat(captor.getValue().getEndingMonth(), is(period.getEndingMonth()));
-            assertThat(captor.getValue().getResearch(), is(period.getResearch()));
             assertThat(captor.getValue().getReportDate(), is(Date.valueOf(dto.getReportDate())));
             assertThat(captor.getValue().getShares(), is(new BigDecimal(dto.getShares())));
             assertThat(captor.getValue().getPriceHigh(), is(Utils.createNullableBigDecimal(dto.getPriceHigh())));

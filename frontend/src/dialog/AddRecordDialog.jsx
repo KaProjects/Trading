@@ -10,11 +10,13 @@ import {DialogDatePicker} from "./component/DialogDatePicker";
 function forwardPeFrom(latestPeriod, price) {
     if (!latestPeriod || latestPeriod.financial) return ""
 
+    // The newest estimate the period holds; they arrive newest first.
+    const latest = latestPeriod.estimates?.[0]
     const estimates = [
-        latestPeriod.estimate?.current,
-        latestPeriod.estimate?.next1,
-        latestPeriod.estimate?.next2,
-        latestPeriod.estimate?.next3,
+        latest?.current,
+        latest?.next1,
+        latest?.next2,
+        latest?.next3,
     ]
     if (estimates.some(estimate => !Number.isFinite(Number(estimate)) || estimate === null || estimate === undefined)) return ""
 

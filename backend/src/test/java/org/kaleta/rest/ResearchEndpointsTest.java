@@ -33,6 +33,7 @@ import java.util.Optional;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -71,6 +72,29 @@ public class ResearchEndpointsTest
     }
 
     @Test
+    void getKeepsEveryEstimateOfAPeriod() {
+        // A period is read a day at a time, so it carries every estimate taken while it ran,
+        // newest first, not only the last of them.
+        ResearchDto dto = given().when()
+                .get("/research/1927")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", ResearchDto.class);
+
+        ResearchDto.PeriodDto period = dto.getPeriods().stream()
+                .filter(each -> each.getName().equals(PeriodName.valueOf("24Q4")))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(period.getEstimates().size(), is(3));
+        assertBigDecimals(period.getEstimates().get(0).getCurrent(), new BigDecimal("41.50"));
+        assertBigDecimals(period.getEstimates().get(1).getCurrent(), new BigDecimal("31.50"));
+        assertBigDecimals(period.getEstimates().get(2).getCurrent(), new BigDecimal("11.50"));
+        assertThat(period.getEstimates().get(2).getDatetime().toString(), is("2026-08-01T12:30"));
+    }
+
+    @Test
     void get() {
         Long companyId = 2281L;
         ResearchDto dto = given().when()
@@ -89,13 +113,13 @@ public class ResearchEndpointsTest
         assertThat(dto.getPeriods().get(0).getName(), is(PeriodName.valueOf("25Q1")));
         assertThat(dto.getPeriods().get(1).getName(), is(PeriodName.valueOf("24Q4")));
         assertThat(dto.getPeriods().get(2).getName(), is(PeriodName.valueOf("24Q3")));
-        assertThat(dto.getPeriods().get(0).getEstimate(), is(notNullValue()));
-        assertBigDecimals(dto.getPeriods().get(0).getEstimate().getCurrent(), new BigDecimal("1.62"));
-        assertBigDecimals(dto.getPeriods().get(0).getEstimate().getNext1(), new BigDecimal("1.85"));
-        assertThat(dto.getPeriods().get(0).getEstimate().getNext2(), is(nullValue()));
-        assertThat(dto.getPeriods().get(0).getEstimate().getNext3(), is(nullValue()));
-        assertThat(dto.getPeriods().get(1).getEstimate(), is(nullValue()));
-        assertThat(dto.getPeriods().get(2).getEstimate(), is(nullValue()));
+        assertThat(dto.getPeriods().get(0).getEstimates().size(), is(1));
+        assertBigDecimals(dto.getPeriods().get(0).getEstimates().getFirst().getCurrent(), new BigDecimal("1.62"));
+        assertBigDecimals(dto.getPeriods().get(0).getEstimates().getFirst().getNext1(), new BigDecimal("1.85"));
+        assertThat(dto.getPeriods().get(0).getEstimates().getFirst().getNext2(), is(nullValue()));
+        assertThat(dto.getPeriods().get(0).getEstimates().getFirst().getNext3(), is(nullValue()));
+        assertThat(dto.getPeriods().get(1).getEstimates(), is(empty()));
+        assertThat(dto.getPeriods().get(2).getEstimates(), is(empty()));
         assertThat(dto.getPeriods().get(0).getTargetStats().count(), is(0L));
         assertThat(dto.getPeriods().get(0).getTargetStats().minimum(), is(nullValue()));
         assertThat(dto.getPeriods().get(1).getTargetStats().count(), is(3L));

@@ -43,6 +43,20 @@ public class EstimateDaoImpl extends EntityDaoImpl<Estimate> implements Estimate
     }
 
     @Override
+    public List<Estimate> listByPeriodIds(List<Long> periodIds, boolean type)
+    {
+        if (periodIds.isEmpty()) return List.of();
+
+        return entityManager.createQuery(
+                        selectQuery + "WHERE t.period.id IN :periodIds AND t.type=:type "
+                                + "ORDER BY t.datetime DESC, t.id DESC",
+                        Estimate.class)
+                .setParameter("periodIds", periodIds)
+                .setParameter("type", type)
+                .getResultList();
+    }
+
+    @Override
     public List<Estimate> findLatestByPeriodIds(List<Long> periodIds, boolean type)
     {
         if (periodIds.isEmpty()) return List.of();

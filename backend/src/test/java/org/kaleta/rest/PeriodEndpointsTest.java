@@ -68,7 +68,6 @@ class PeriodEndpointsTest
         assertThat(period.getShares(), is(nullValue()));
         assertThat(period.getPriceHigh(), is(nullValue()));
         assertThat(period.getPriceLow(), is(nullValue()));
-        assertThat(period.getResearch(), is(nullValue()));
         assertThat(period.getRevenue(), is(nullValue()));
         assertThat(period.getGrossProfit(), is(nullValue()));
         assertThat(period.getOperatingIncome(), is(nullValue()));
@@ -202,7 +201,6 @@ class PeriodEndpointsTest
         assertBigDecimals(period.getShares(), new BigDecimal(dto.getShares()));
         assertThat(period.getPriceHigh(), is(nullValue()));
         assertThat(period.getPriceLow(), is(nullValue()));
-        assertThat(period.getResearch(), is(nullValue()));
         assertBigDecimals(period.getRevenue(), new BigDecimal(dto.getRevenue()));
         assertThat(period.getGrossProfit(), is(nullValue()));
         assertThat(period.getOperatingIncome(), is(nullValue()));
@@ -634,7 +632,6 @@ class PeriodEndpointsTest
         dto.setShares("12345");
         dto.setPriceLow("20.5");
         dto.setPriceHigh("26.5");
-        dto.setResearch("[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"saasdasdaa\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"as\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"das\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"s\"}]}]}]");
         dto.setRevenue("22.5");
         dto.setGrossProfit("5");
         dto.setOperatingIncome("10");
@@ -656,7 +653,6 @@ class PeriodEndpointsTest
         assertBigDecimals(period.getShares(), new BigDecimal(dto.getShares()));
         assertBigDecimals(period.getPriceHigh(), new BigDecimal(dto.getPriceHigh()));
         assertBigDecimals(period.getPriceLow(), new BigDecimal(dto.getPriceLow()));
-        assertThat(period.getResearch(), is(dto.getResearch()));
         assertBigDecimals(period.getRevenue(), new BigDecimal(dto.getRevenue()));
         assertBigDecimals(period.getGrossProfit(), new BigDecimal(dto.getGrossProfit()));
         assertBigDecimals(period.getOperatingIncome(), new BigDecimal(dto.getOperatingIncome()));

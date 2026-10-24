@@ -182,7 +182,8 @@ export const RevenueProjectionsDialog = ({
             setForecastAdjustment("0");
             setExpenseAdjustments(EMPTY_EXPENSE_ADJUSTMENTS);
             const values = Object.fromEntries(estimateFields.map(field => {
-                const value = latestPeriod?.revenueEstimate?.[field.key];
+                // The newest estimate the period holds; they arrive newest first.
+                const value = latestPeriod?.revenueEstimates?.[0]?.[field.key];
                 return [field.key, numberValue(value) === null ? "" : String(value)];
             }));
             setEstimateValues(values);

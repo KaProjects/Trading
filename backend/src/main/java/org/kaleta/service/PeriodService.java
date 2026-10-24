@@ -162,7 +162,6 @@ public class PeriodService
         if (dto.getShares() != null) period.setShares(new BigDecimal(dto.getShares()));
         if (dto.getPriceHigh() != null) period.setPriceHigh(new BigDecimal(dto.getPriceHigh()));
         if (dto.getPriceLow() != null) period.setPriceLow(new BigDecimal(dto.getPriceLow()));
-        if (dto.getResearch() != null) period.setResearch(dto.getResearch());
         if (dto.getRevenue() != null) period.setRevenue(new BigDecimal(dto.getRevenue()));
         if (dto.getGrossProfit() != null) period.setGrossProfit(new BigDecimal(dto.getGrossProfit()));
         if (dto.getOperatingIncome() != null) period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
@@ -280,7 +279,6 @@ public class PeriodService
         period.setShares(entity.getShares());
         period.setPriceLow(entity.getPriceLow());
         period.setPriceHigh(entity.getPriceHigh());
-        period.setResearch(entity.getResearch());
         return period;
     }
 

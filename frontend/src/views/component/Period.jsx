@@ -1,14 +1,15 @@
 import {BorderedSection} from "./BorderedSection";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {PeriodFinancialSummary} from "./PeriodFinancialSummary";
-import {Badge, Box, Button, Stack, Typography} from "@mui/material";
+import {Badge, Box, Button, Stack} from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import {formatDate, formatDecimals, formatError, formatMillions, formatMillionsRounded, formatPercent, formatPeriodName, formatTargetStats} from "../../service/FormattingService";
+import {formatDate, formatError, formatPeriodName, formatTargetStats} from "../../service/FormattingService";
 import {nextPeriod} from "../../service/PeriodService";
 import axios from "axios";
 import {backend} from "../../properties";
-import {ContentDatePicker, PeriodContentList, defaultEntryDate} from "./PeriodContentList";
+import {ContentDatePicker, PeriodContentList, defaultEntryDate, isDateTaken} from "./PeriodContentList";
+import {formatRevenueEstimatePastTotal, formatRevenueEstimateValue} from "./PeriodEstimateLine";
 import {PeriodContentImages} from "./PeriodContentImages";
 import {ContentEditorDialog} from "../../dialog/ContentEditorDialog";
 import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financials-plus.svg";
@@ -19,8 +20,9 @@ import PostAddIcon from "@mui/icons-material/PostAdd";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
-import {NUMERIC_FONT} from "./widgetLayout";
-import {tightPlus} from "./tightPlus";
+
+/** What the period's action buttons occupy on the right-hand edge of the card, measured from it. */
+const ACTION_COLUMN_WIDTH = "29px"
 
 /** No pictures added, none crossed out. */
 const EMPTY_STAGED = {adds: [], removes: []}
@@ -89,67 +91,6 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
         return endingMonth.substring(5, 7) + "/" + endingMonth.substring(2, 4);
     }
 
-    function formatPrice(price, currency) {
-        if (price === null || price === undefined) return "";
-        return price + currency;
-    }
-
-    function formatEstimateValue(value) {
-        if (value === null || value === undefined || value === "") return "-"
-        return formatDecimals(value, 0, 2) || "-"
-    }
-
-    function formatRevenueEstimateValue(value) {
-        if (value === null || value === undefined || value === "") return "-"
-        return formatMillionsRounded(Number(value)) || "-"
-    }
-
-    /**
-     * Figures in the text colour, everything that is not a figure in the label's grey: the bars
-     * between the windows carry no information, and at the same weight as the numbers they read
-     * like part of them.
-     */
-    function estimateFigures(values, format, separatorStyle = {color: "text.secondary"}) {
-        return values.map((value, index) => (
-            <React.Fragment key={index}>
-                {index > 0 && <Box component="span" sx={separatorStyle}>{" | "}</Box>}
-                {format(value)}
-            </React.Fragment>
-        ))
-    }
-
-    function formatPastEstimates(estimate, format = formatEstimateValue) {
-        return estimateFigures([estimate.past4, estimate.past3, estimate.past2, estimate.past1], format)
-    }
-
-    function formatCurrentAndFutureEstimates(estimate, format = formatEstimateValue) {
-        return estimateFigures(
-            [estimate.current, estimate.next1, estimate.next2, estimate.next3],
-            format)
-    }
-
-    function formatEstimateChanges(estimate) {
-        const formatChange = (value) => tightPlus(formatPercent(value, true, 1) || "-");
-        // The whole row is already the one quiet grey, so the bars take its colour rather than
-        // the darker one they are given between the figures above.
-        return estimateFigures(
-            [estimate.currentChange, estimate.next1Change, estimate.next2Change, estimate.next3Change],
-            formatChange,
-            {})
-    }
-
-    function formatEstimateDate(datetime) {
-        return formatDate(datetime?.substring(0, 10)) || "-";
-    }
-
-    function formatEstimatePastTotal(value) {
-        return formatDecimals(value, 0, 2) || "-";
-    }
-
-    function formatRevenueEstimatePastTotal(value) {
-        return formatRevenueEstimateValue(value);
-    }
-
     /**
      * Research is saved against its date, which is what identifies it: writing a date the period
      * already carries fills that entry in rather than adding another.
@@ -169,7 +110,7 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                     // server leaves it out of the next load, so it is gone on the next visit.
                     const others = previous.filter(entry => entry.date !== saved.date)
                     return [...others, saved]
-                        .sort((first, second) => first.date.localeCompare(second.date))
+                        .sort((first, second) => second.date.localeCompare(first.date))
                 })
             })
             .catch(error => {
@@ -274,77 +215,57 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
         }
     }
 
-    const estimatesShown = !stretch && Boolean(period.estimate)
-    const revenueEstimatesShown = !stretch && Boolean(period.revenueEstimate)
-    const targetSummaryShown = !(stretch && period.financial)
-        && Boolean(formatTargetStats(period.targetStats))
+    // The reported figures draw their own rule above the research; without them the research is
+    // what opens the card, and it reads better up against the title than a line below it.
+    const contentTop = period.financial ? {paddingTop: "1px"} : {marginTop: "-3px"}
+
+    const newContentDateTaken = isDateTaken(contents, newContentDate)
+
+    const targetSummaryShown = Boolean(formatTargetStats(period.targetStats))
     const targetsShown = targetSummaryShown
         && targetCandidateCount === 0
         && !targetCandidateFailed
-    // Whatever of the estimates and the targets a period has sits in one block under the research.
-    const estimatesInFooter = estimatesShown || revenueEstimatesShown
-    const footerShown = estimatesInFooter || targetSummaryShown
 
-    const footerLineStyle = {...NUMERIC_FONT, color: "text.primary", fontSize: 13}
-    const footerLabelStyle = {...footerLineStyle, color: "text.secondary"}
-    const footerNoteStyle = {
-        ...NUMERIC_FONT,
-        color: "text.disabled",
-        fontStyle: "italic",
-        fontSize: 11,
-        marginTop: "-2px",
-    }
     /**
-     * Both rows of an estimates block are cells of one grid, which is what puts the bracketed
-     * changes under the arrow rather than near it: the arrow is a column of its own, and the
-     * changes start where that column starts. The past figures and the arrow are dropped on a
-     * narrow screen, where their columns then take no width at all.
+     * Estimates are dated, so they belong among the days rather than in a block of their own:
+     * the page reads as what was recorded about the period, in the order it was recorded. A
+     * period keeps every estimate taken while it ran, not only the last of them, so each reads
+     * on the day it was taken.
      */
-    const footerRowStyle = {
-        cursor: "pointer",
-        display: "grid",
-        gridTemplateColumns: "max-content max-content max-content",
-        alignItems: "baseline",
-        textAlign: "left",
-    }
+    const estimateLines = [
+        ...(period.estimates ?? []).map((estimate, index) => ({
+            key: `eps-${estimate.id ?? index}`,
+            date: estimate.datetime?.substring(0, 10),
+            line: {
+                testId: "period-estimates",
+                label: "Eps estimates:",
+                estimate: estimate,
+            },
+        })),
+        ...(period.revenueEstimates ?? []).map((estimate, index) => ({
+            key: `revenue-${estimate.id ?? index}`,
+            date: estimate.datetime?.substring(0, 10),
+            line: {
+                testId: "period-revenue-estimates",
+                label: "Rev. estimates:",
+                estimate: estimate,
+                format: formatRevenueEstimateValue,
+                pastTotalFormat: formatRevenueEstimatePastTotal,
+            },
+        })),
+    ]
 
-    function estimatesBlock({testId, ariaLabel, label, estimate, onOpen, format, formatPastTotal}) {
-        const hiddenWhenNarrow = {display: {xs: "none", sm: "block"}}
-
-        return (
-            <Box
-                data-testid={`${testId}-view`}
-                aria-label={ariaLabel}
-                role="button"
-                tabIndex={0}
-                onClick={onOpen}
-                sx={footerRowStyle}
-            >
-                <Box data-testid={testId} sx={{display: "contents"}}>
-                    <Box sx={footerLabelStyle}>{label}</Box>
-                    {/* The space in front of the arrow is a hard one and belongs to this cell, so
-                        the next column starts on the arrow glyph, not on the gap before it. */}
-                    <Box sx={{...footerLineStyle, ...hiddenWhenNarrow}}>
-                        {formatPastEstimates(estimate, format)}
-                        {"\u00a0"}
-                    </Box>
-                    {/* The arrow opens this cell, so the bracketed changes below - the cell under
-                        it - begin on exactly the same column. */}
-                    <Box sx={footerLineStyle}>
-                        <Box component="span" sx={{color: "text.secondary", display: {xs: "none", sm: "inline"}}}>
-                            {"=>\u00a0"}
-                        </Box>
-                        {formatCurrentAndFutureEstimates(estimate, format)}
-                    </Box>
-                </Box>
-                <Box sx={footerNoteStyle}>({formatEstimateDate(estimate.datetime)})</Box>
-                <Box sx={{...footerNoteStyle, ...hiddenWhenNarrow, justifySelf: "center"}}>
-                    ({formatPastTotal(estimate.pastTotal)})
-                </Box>
-                <Box sx={footerNoteStyle}>({formatEstimateChanges(estimate)})</Box>
-            </Box>
-        )
-    }
+    /**
+     * The targets read beside the period's own figures on a wide screen: in the free corner of
+     * the reported financials once there are any, and in the card's top corner while there are
+     * none. The narrow view has no corner to spare, so there they stay under the research.
+     */
+    const targetSummary = targetSummaryShown &&
+        <PeriodTargetSummary
+            stats={period.targetStats}
+            currency={currency}
+            onOpen={() => openTargetDialog?.(period)}
+        />
 
     const financialSummary = period.financial &&
         <PeriodFinancialSummary
@@ -354,59 +275,38 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
             priceLow={period.priceLow}
             currency={currency}
             compact={stretch}
+            targets={stretch ? null : targetSummary}
         />
 
-    const footer = footerShown && (
+    /**
+     * Nothing was reported, so there is no block to sit in: the targets take the card's own top
+     * corner. They are laid over the research rather than above it, which leaves the research
+     * where it starts instead of a line lower for a figure it reads beside.
+     */
+    const cornerTargets = !stretch && !period.financial && targetSummary &&
+        <Box sx={{
+            position: "absolute",
+            top: "4px",
+            right: ACTION_COLUMN_WIDTH,
+            zIndex: 1,
+        }}>
+            {targetSummary}
+        </Box>
+
+    /** The narrow view keeps them where they were: under the research, behind a rule. */
+    const footer = stretch && targetSummary && (
         <Box
             data-testid="period-footer"
             sx={{
-                // The rule the reported financials draw under themselves, drawn again here:
-                // it closes the research off from the figures that follow it.
                 marginTop: "4px",
                 paddingTop: "4px",
                 borderTop: "1px solid",
                 borderColor: "divider",
-                display: "flex",
-                alignItems: "flex-end",
-                gap: "12px",
             }}
         >
-            {estimatesInFooter &&
-            <Box sx={{minWidth: 0}}>
-                {estimatesShown && estimatesBlock({
-                    testId: "period-estimates",
-                    ariaLabel: "Add EPS Estimates",
-                    label: "Eps estimates:\u00a0",
-                    estimate: period.estimate,
-                    onOpen: () => openEstimateDialog?.(period),
-                    formatPastTotal: formatEstimatePastTotal,
-                })}
-                {revenueEstimatesShown && estimatesBlock({
-                    testId: "period-revenue-estimates",
-                    ariaLabel: "Add Revenue Estimates",
-                    label: "Rev. estimates:\u00a0",
-                    estimate: period.revenueEstimate,
-                    onOpen: () => openRevenueEstimateDialog?.(period),
-                    format: formatRevenueEstimateValue,
-                    formatPastTotal: formatRevenueEstimatePastTotal,
-                })}
-            </Box>
-            }
-            {targetSummaryShown &&
-                /* Beside the estimates rather than under them, in the corner: the estimates are
-                   several rows of figures and the targets are one line, so stacking them wastes
-                   a row. With nothing to sit beside, the line stays where it was. */
-                <Box sx={{flexShrink: 0, marginLeft: estimatesInFooter ? "auto" : 0}}>
-                    <PeriodTargetSummary
-                        stats={period.targetStats}
-                        currency={currency}
-                        onOpen={() => openTargetDialog?.(period)}
-                    />
-                </Box>
-            }
+            {targetSummary}
         </Box>
     )
-
 
     // The same two faces the reported financials use: a line of figures in the page's size with
     // tabular digits, and the bracketed detail under it in the smaller italic the per-share and
@@ -447,16 +347,22 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                 </>
             }
             titleEnd={periodPosition && periodCount ? `${periodPosition} / ${periodCount}` : undefined}
-            style={{color: 'text.primary'}}
+            /* Short of this the card can collapse to a line or two, which leaves no room
+               beside it for the action buttons. */
+            style={{color: 'text.primary', minHeight: "80px"}}
             stretch={stretch}
             highlightTitle={stretch}
         >
+            {cornerTargets}
             {financialSummary}
 
             <Box sx={{
                 // A list's default 40px indent pushes the research well clear of the card edge.
                 // Enough is kept for the bullet itself.
                 "& ul, & ol": {paddingLeft: "18px"},
+                // The card's own bottom padding leaves more room under the last day than the
+                // days leave between themselves; half of it is enough.
+                marginBottom: "-3px",
                 ...(stretch
                     ? {position: "relative", flex: "1 1 auto", minHeight: 0, display: "flex"}
                     : {}),
@@ -472,9 +378,9 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                         overflow: "auto",
                         display: "flex",
                         flexDirection: "column",
-                        paddingTop: "4px",
+                        ...contentTop,
                     }
-                    : {paddingTop: "4px"}}
+                    : contentTop}
             >
                 <PeriodContentList
                     period={period}
@@ -483,7 +389,9 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                     adding={addingContent}
                     date={newContentDate}
                     onDateChange={setNewContentDate}
+                    estimates={estimateLines}
                     onAdded={() => setAddingContent(false)}
+                    onCancelAdding={() => setAddingContent(false)}
                     onSave={saveContent}
                     stagedFor={stagedFor}
                     onStageImage={stageImage}
@@ -519,7 +427,16 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                 save={content => saveContent(editedEntry ? editedEntry.date : newContentDate, content)}
                 onSubmit={() => {
                     if (!editedEntry) {
-                        return newContentDate ? null : {title: "No date", message: "Pick a date first."}
+                        if (!newContentDate) return {title: "No date", message: "Pick a date first."}
+                        // The day is already an entry of its own: writing it here would replace
+                        // what that entry holds rather than add to the period.
+                        if (newContentDateTaken) {
+                            return {
+                                title: "Date already used",
+                                message: "This period already has content for that date.",
+                            }
+                        }
+                        return null
                     }
                     return commitStaged(editedEntry.id)
                 }}
@@ -529,6 +446,7 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                         period={period}
                         value={newContentDate}
                         onChange={setNewContentDate}
+                        problem={newContentDateTaken ? "This date already has content" : ""}
                     />
                 }
                 footer={editedEntry &&
@@ -547,16 +465,27 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
             />
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
-                       position: "absolute", top: "6px", right: "8px", zIndex: 1,
+                       position: "absolute", top: "6px", right: "4px", zIndex: 1,
                        opacity: {xs: 1, sm: 0}, pointerEvents: {xs: "auto", sm: "none"},
                        maxHeight: "calc(100% - 12px)", overflowY: "auto", overflowX: "hidden",
-                       paddingRight: "8px", marginRight: "-8px",
+                       // Room for the scrollbar when there are more buttons than fit, taken
+                       // back off the margin so the icons still sit against the card's edge.
+                       paddingRight: "5px", marginRight: "-5px",
                        transition: "opacity 120ms ease-in-out",
                        ".mainContainer:hover &": {opacity: 1, pointerEvents: "auto",},
                        "& .MuiButton-root": {minWidth: 0, padding: "2px", lineHeight: 0,},
                        "& svg": {width: "20px", height: "20px", display: "block",},
                    }}
             >
+                {/* One new day at a time: while one is open, the button that would start
+                    another is gone - the day being written is the one to finish. */}
+                {!addingContent && !openContentEditor &&
+                    <Tooltip title="Add Content" placement="left">
+                        <Button aria-label="Add Content" onClick={startAddingContent}>
+                            <PostAddIcon sx={{color: "success.main"}}/>
+                        </Button>
+                    </Tooltip>
+                }
                 {!period.financial &&
                     <Tooltip title="Add Financials" placement="left">
                         <Button onClick={openDialog}>
@@ -564,20 +493,16 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                         </Button>
                     </Tooltip>
                 }
-                {!estimatesShown &&
-                    <Tooltip title="Add EPS Estimates" placement="left">
-                        <Button aria-label="Add EPS Estimates" onClick={() => openEstimateDialog?.(period)}>
-                            <EpsEstimatesPlusIcon/>
-                        </Button>
-                    </Tooltip>
-                }
-                {!revenueEstimatesShown &&
-                    <Tooltip title="Add Revenue Estimates" placement="left">
-                        <Button aria-label="Add Revenue Estimates" onClick={() => openRevenueEstimateDialog?.(period)}>
-                            <RevenueEstimatesPlusIcon/>
-                        </Button>
-                    </Tooltip>
-                }
+                <Tooltip title="Add EPS Estimates" placement="left">
+                    <Button aria-label="Add EPS Estimates" onClick={() => openEstimateDialog?.(period)}>
+                        <EpsEstimatesPlusIcon/>
+                    </Button>
+                </Tooltip>
+                <Tooltip title="Add Revenue Estimates" placement="left">
+                    <Button aria-label="Add Revenue Estimates" onClick={() => openRevenueEstimateDialog?.(period)}>
+                        <RevenueEstimatesPlusIcon/>
+                    </Button>
+                </Tooltip>
                 {!targetsShown &&
                     <Tooltip
                         title={targetCandidateFailed
@@ -618,11 +543,6 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                         </Button>
                     </Tooltip>
                 }
-                <Tooltip title="Add Content" placement="left">
-                    <Button aria-label="Add Content" onClick={startAddingContent}>
-                        <PostAddIcon sx={{color: "success.main"}}/>
-                    </Button>
-                </Tooltip>
             </Stack>
         </BorderedSection>
     )

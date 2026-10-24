@@ -27,7 +27,6 @@ public class Periods
         private BigDecimal shares;
         private BigDecimal priceLow;
         private BigDecimal priceHigh;
-        private String research;
         private Financial financial;
         private Date expectedReportDate;
         private Boolean reportedInFirebase;

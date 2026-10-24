@@ -39,9 +39,6 @@ public class Period extends AbstractEntityCompany
     @Column(name = "price_high")
     private BigDecimal priceHigh;
 
-    @Column(name = "research")
-    private String research;
-
     @Column(name = "revenue")
     private BigDecimal revenue;
 

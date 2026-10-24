@@ -50,6 +50,24 @@ public class EstimateService
                                 companyId -> pastValuesByQuarter(companyId, type)))));
     }
 
+    /**
+     * Every estimate the periods hold, newest first. A period is read a day at a time, and each
+     * estimate carries the day it was taken, so the period keeps all of them rather than only
+     * the one that happens to be the newest.
+     */
+    public Map<Long, List<PeriodEstimates>> getAllByPeriodIds(List<Long> periodIds, boolean type)
+    {
+        Map<Long, Map<String, BigDecimal>> pastValuesByCompany = new java.util.HashMap<>();
+        return estimateDao.listByPeriodIds(periodIds, type).stream()
+                .collect(Collectors.groupingBy(
+                        estimate -> estimate.getPeriod().getId(),
+                        Collectors.mapping(
+                                estimate -> from(estimate, pastValuesByCompany.computeIfAbsent(
+                                        estimate.getPeriod().getCompany().getId(),
+                                        companyId -> pastValuesByQuarter(companyId, type))),
+                                Collectors.toList())));
+    }
+
     public List<EstimateDto> getAll(Long periodId, boolean type)
     {
         periodService.get(periodId);

@@ -32,8 +32,6 @@ public class PeriodUpdateDto
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String priceHigh;
 
-    private String research;
-
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String revenue;
 

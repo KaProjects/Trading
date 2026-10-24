@@ -66,7 +66,7 @@ jest.mock("../../dialog/FinancialsDialog", () => ({
 }));
 jest.mock("../../dialog/EarningsProjectionsDialog", () => ({
     EarningsProjectionsDialog: (props) => props.open
-        ? <div>earnings-projections-dialog:{props.ticker}:{props.currentPrice}:{props.latestPeriod.name}:{props.latestPeriod.estimate.current}:{props.previousPeriod.priceHigh}</div>
+        ? <div>earnings-projections-dialog:{props.ticker}:{props.currentPrice}:{props.latestPeriod.name}:{props.latestPeriod.estimates[0].current}:{props.previousPeriod.priceHigh}</div>
         : null,
 }));
 jest.mock("../../dialog/AddRecordDialog", () => ({
@@ -214,16 +214,16 @@ function createResearchData(overrides = {}) {
                 id: "period-1",
                 name: "26Q2",
                 targetStats: {count: 3, minimum: 105, average: 122, maximum: 140},
-                estimate: {
-                    past4: 1,
-                    past3: 2,
-                    past2: 3,
-                    past1: 4,
-                    current: 5,
-                    next1: 6,
-                    next2: 7,
-                    next3: 8,
-                },
+                estimates: [{
+                        past4: 1,
+                        past3: 2,
+                        past2: 3,
+                        past1: 4,
+                        current: 5,
+                        next1: 6,
+                        next2: 7,
+                        next3: 8,
+                }],
             },
             {id: "period-2", priceHigh: 140, priceLow: 80},
         ],

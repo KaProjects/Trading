@@ -2,10 +2,13 @@ import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import React from "react";
 
 jest.mock("../ContentEditor", () => ({
-    ContentEditor: ({content, update}) => (
-        <button onClick={() => update([{type: "paragraph", children: [{text: "written"}]}])}>
-            {content || "empty-content"}
-        </button>
+    ContentEditor: ({content, update, onCancel}) => (
+        <>
+            <button onClick={() => update([{type: "paragraph", children: [{text: "written"}]}])}>
+                {content || "empty-content"}
+            </button>
+            {onCancel && <button onClick={onCancel}>{`cancel-${content || "new"}`}</button>}
+        </>
     ),
 }));
 
@@ -42,11 +45,11 @@ function renderList(overrides = {}) {
 }
 
 describe("PeriodContentList", () => {
-    test("shows a period's days oldest first, each with its own text", () => {
+    test("shows a period's days newest first, each with its own text", () => {
         renderList();
 
         const dates = screen.getAllByText(/\d\d\.\d\d\.2026/).map(node => node.textContent);
-        expect(dates).toEqual(["12.06.2026", "03.07.2026"]);
+        expect(dates).toEqual(["03.07.2026", "12.06.2026"]);
         expect(screen.getByText("first day")).toBeInTheDocument();
         expect(screen.getByText("second day")).toBeInTheDocument();
     });
@@ -84,7 +87,27 @@ describe("PeriodContentList", () => {
         await waitFor(() => expect(props.onAdded).toHaveBeenCalled());
     });
 
-    test("writes nothing while the new day has no date", async () => {
+    test("refuses a day the period already holds rather than writing over it", async () => {
+        const {props} = renderList({adding: true, date: "2026-07-03"});
+
+        const date = screen.getByLabelText("New content date");
+        expect(date).toHaveAttribute("title", "This date already has content");
+
+        fireEvent.click(screen.getByText("empty-content"));
+
+        await waitFor(() => expect(props.onSave).not.toHaveBeenCalled());
+    });
+
+    test("opens a new day above the days already written", () => {
+        renderList({adding: true, date: "2026-07-20"});
+
+        const added = screen.getByTestId("period-content-new");
+        const newest = screen.getByTestId("period-content-date-2026-07-03");
+        // Newest first, and a day being written is newer than the ones already there.
+        expect(added.compareDocumentPosition(newest) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    test("writes nothing while the new day has no date, and says why", async () => {
         const {props} = renderList({adding: true, date: ""});
 
         // Today is outside this period, so the picker opens empty and must be filled in first.
@@ -92,6 +115,18 @@ describe("PeriodContentList", () => {
         fireEvent.click(screen.getByText("empty-content"));
 
         await waitFor(() => expect(props.onSave).not.toHaveBeenCalled());
+        // The day stays open on what was typed, marked with what is wrong with it.
+        expect(screen.getByTestId("period-content-new-problem")).toHaveTextContent("Pick a date first");
+        expect(screen.getByTestId("period-content-new")).toBeInTheDocument();
+    });
+
+    test("gives up on the new day when the writing is cancelled", () => {
+        const onCancelAdding = jest.fn();
+        renderList({adding: true, date: "2026-07-20", onCancelAdding});
+
+        fireEvent.click(screen.getByText("cancel-new"));
+
+        expect(onCancelAdding).toHaveBeenCalled();
     });
 
     test("brings up the picture controls for writing, not for looking", () => {

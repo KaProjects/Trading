@@ -116,7 +116,7 @@ class CompanyEndpointsTest
         assertThat(dto.keySet().stream().toList(), is(List.of("owned", "all", "_has-period")));
         assertThat(owned.size(), is(6));
         assertThat(tickers(owned), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
-        assertThat(all.size(), is(30));
+        assertThat(all.size(), is(31));
         assertThat(all.get(0).getTicker(), is("ABCD"));
         assertThat(tickers(all), is(tickers(all).stream().sorted().toList()));
 
@@ -127,10 +127,10 @@ class CompanyEndpointsTest
         assertThat(tickers(all), hasItems(tickers(hasPeriod).toArray(new String[0])));
         assertThat(tickers(hasPeriod), not(hasItem("ABCD")));
 
-        // PCNT has two periods: one with research, one holding the editor's empty document,
-        // which is not content.
+        // PCCT has two periods: one with a day written in it, one holding the editor's empty
+        // document, which is not content.
         CompanyWithStats counted = hasPeriod.stream()
-                .filter(company -> company.getTicker().equals("PCNT"))
+                .filter(company -> company.getTicker().equals("PCCT"))
                 .findFirst().orElseThrow();
         assertThat(counted.getPeriodCount(), is(2));
         assertThat(counted.getPeriodsWithContentCount(), is(1));
@@ -374,7 +374,7 @@ class CompanyEndpointsTest
                 .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
         assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
-        assertThat(dto.getCompanies().size(), is(30));
+        assertThat(dto.getCompanies().size(), is(31));
         CompanyAggregates.Company company = dto.getCompanies().get(7);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
@@ -455,7 +455,7 @@ class CompanyEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        int expectedCompanies = 30;
+        int expectedCompanies = 31;
 
         assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));

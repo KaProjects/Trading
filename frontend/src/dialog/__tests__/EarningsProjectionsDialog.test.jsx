@@ -12,16 +12,16 @@ import {EarningsProjectionsDialog} from "../EarningsProjectionsDialog";
 const latestPeriod = {
     id: "period-1",
     name: {year: "2026", type: "Q2"},
-    estimate: {
-        past4: 1,
-        past3: 2,
-        past2: 3,
-        past1: 4,
-        current: 11,
-        next1: 7,
-        next2: 18,
-        next3: 14,
-    },
+    estimates: [{
+            past4: 1,
+            past3: 2,
+            past2: 3,
+            past1: 4,
+            current: 11,
+            next1: 7,
+            next2: 18,
+            next3: 14,
+    }],
 };
 
 beforeEach(() => {
@@ -189,7 +189,7 @@ test("uses blanks and dashes when price or earnings are unavailable", () => {
             handleClose={jest.fn()}
             ticker="INTC"
             currentPrice={null}
-            latestPeriod={{name: "26Q2", estimate: {}}}
+            latestPeriod={{name: "26Q2", estimates: [{}]}}
         />
     );
 

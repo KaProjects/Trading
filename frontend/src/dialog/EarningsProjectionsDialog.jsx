@@ -155,7 +155,8 @@ export const EarningsProjectionsDialog = ({
             setTargetPe("30");
             setForecastAdjustment("0");
             const values = Object.fromEntries(estimateFields.map(field => {
-                const value = latestPeriod?.estimate?.[field.key];
+                // The newest estimate the period holds; they arrive newest first.
+                const value = latestPeriod?.estimates?.[0]?.[field.key];
                 return [field.key, numberValue(value) === null ? "" : String(value)];
             }));
             setEstimateValues(values);

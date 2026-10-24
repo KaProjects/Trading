@@ -21,4 +21,9 @@ public interface EstimateDao extends EntityDao<Estimate>
      * @return latest estimate of the specified type for each specified period
      */
     List<Estimate> findLatestByPeriodIds(List<Long> periodIds, boolean type);
+
+    /**
+     * @return every estimate of the specified type for the specified periods, newest first
+     */
+    List<Estimate> listByPeriodIds(List<Long> periodIds, boolean type);
 }

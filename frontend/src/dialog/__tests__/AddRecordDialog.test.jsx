@@ -92,7 +92,7 @@ function createProps(overrides = {}) {
         },
         latestPeriod: {
             id: "period-1",
-            estimate: {current: 1.2, next1: 1.3, next2: 1.5, next3: 1.8},
+            estimates: [{current: 1.2, next1: 1.3, next2: 1.5, next3: 1.8}],
         },
         ...overrides,
     };
@@ -115,7 +115,7 @@ describe("AddRecordDialog", () => {
             latestPeriod: {
                 id: "period-1",
                 financial: {revenue: 100},
-                estimate: {current: 1.2, next1: 1.3, next2: 1.5, next3: 1.8},
+                estimates: [{current: 1.2, next1: 1.3, next2: 1.5, next3: 1.8}],
             },
         })}/>);
 
@@ -126,7 +126,7 @@ describe("AddRecordDialog", () => {
         render(<AddRecordDialog {...createProps({
             latestPeriod: {
                 id: "period-1",
-                estimate: {current: 1.2, next1: 1.3, next2: 1.5},
+                estimates: [{current: 1.2, next1: 1.3, next2: 1.5}],
             },
         })}/>);
 

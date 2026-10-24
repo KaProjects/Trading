@@ -83,7 +83,6 @@ public class Generator
         period.setCompany(company);
         period.setName(name);
         period.setEndingMonth(endingMonth);
-        period.setResearch("content " + String.format("%02d", RANDOM.nextInt(100)));
         period.setShares(randomBigDecimal(new BigDecimal(999999), 2));
         period.setPriceHigh(randomBigDecimal(new BigDecimal(999999), 4));
         period.setPriceLow(randomBigDecimal(period.getPriceHigh(), 4));

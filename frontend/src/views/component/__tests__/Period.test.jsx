@@ -45,12 +45,12 @@ describe("Period", () => {
                         capex: {value: 40},
                         freeCashFlow: {value: 70},
                     },
-                    estimate: {
-                        current: 1.62,
-                        next1: 1.85,
-                        next2: null,
-                        next3: 2.76,
-                    },
+                    estimates: [{
+                            current: 1.62,
+                            next1: 1.85,
+                            next2: null,
+                            next3: 2.76,
+                    }],
                     targetStats: {
                         count: 3,
                         minimum: 120,
@@ -84,7 +84,7 @@ describe("Period", () => {
         expect(summary).toHaveTextContent("Dividend12M");
         expect(summary).toHaveTextContent("Adj. EPS1.62");
         expect(screen.getByTestId("period-estimates"))
-            .toHaveTextContent("Eps estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76");
+            .toHaveTextContent("Eps estimates:- | - | - | - => 1.62 | 1.85 | - | 2.76");
         expect(screen.getByTestId("period-target-summary"))
             .toHaveTextContent("Targets: 3@(175-120)~146$");
         expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
@@ -181,7 +181,7 @@ describe("Period", () => {
         expect(screen.getByTestId("period-financial-summary")).toHaveTextContent("Dividend(4%) 12M");
     });
 
-    test("opens the dialogs from the rendered views instead of the action buttons", () => {
+    test("writes the estimates from the action buttons, and opens the targets from the summary", () => {
         const openEstimateDialog = jest.fn();
         const openRevenueEstimateDialog = jest.fn();
         const openTargetDialog = jest.fn();
@@ -189,17 +189,24 @@ describe("Period", () => {
 
         renderPeriod(
             {
-                estimate: {current: 1.62, next1: 1.85, next2: null, next3: 2.76},
-                revenueEstimate: {current: 1000, next1: 1200, next2: null, next3: 1500},
+                estimates: [{current: 1.62, next1: 1.85, next2: null, next3: 2.76}],
+                revenueEstimates: [{current: 1000, next1: 1200, next2: null, next3: 1500}],
                 targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
             },
             {openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog}
         );
 
-        fireEvent.click(screen.getByTestId("period-estimates-view"));
+        // The estimates read among the days, so they are shown rather than written in: the
+        // buttons are what open their dialogs.
+        fireEvent.click(screen.getByTestId("period-estimates"));
+        fireEvent.click(screen.getByTestId("period-revenue-estimates"));
+        expect(openEstimateDialog).not.toHaveBeenCalled();
+        expect(openRevenueEstimateDialog).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole("button", {name: "Add EPS Estimates"}));
         expect(openEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
 
-        fireEvent.click(screen.getByTestId("period-revenue-estimates-view"));
+        fireEvent.click(screen.getByRole("button", {name: "Add Revenue Estimates"}));
         expect(openRevenueEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
 
         fireEvent.click(screen.getByTestId("period-target-summary"));
@@ -365,12 +372,12 @@ describe("Period", () => {
                     name: {year: "2026", type: "Q2"},
                     endingMonth: "2026-07",
                     reportDate: null,
-                    estimate: {
-                        current: 1.62,
-                        next1: null,
-                        next2: null,
-                        next3: null,
-                    },
+                    estimates: [{
+                            current: 1.62,
+                            next1: null,
+                            next2: null,
+                            next3: null,
+                    }],
                 }}
                 currency={"$"}
                 setAlert={jest.fn()}
@@ -379,7 +386,7 @@ describe("Period", () => {
         );
 
         expect(screen.getByTestId("period-estimates"))
-            .toHaveTextContent("Eps estimates: - | - | - | - => 1.62 | - | - | -");
+            .toHaveTextContent("Eps estimates:- | - | - | - => 1.62 | - | - | -");
         expect(screen.getByRole("button", {name: "Add Financials"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add EPS Estimates"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Manage Targets"})).toBeInTheDocument();
@@ -396,17 +403,17 @@ describe("Period", () => {
                     name: {year: "2026", type: "Q2"},
                     endingMonth: "2026-07",
                     reportDate: null,
-                    estimate: {current: 1.62, next1: null, next2: null, next3: null},
-                    revenueEstimate: {
-                        past4: 46740,
-                        past3: 57010,
-                        past2: 68130,
-                        past1: 81620,
-                        current: 94320,
-                        next1: 108450,
-                        next2: null,
-                        next3: null,
-                    },
+                    estimates: [{current: 1.62, next1: null, next2: null, next3: null}],
+                    revenueEstimates: [{
+                            past4: 46740,
+                            past3: 57010,
+                            past2: 68130,
+                            past1: 81620,
+                            current: 94320,
+                            next1: 108450,
+                            next2: null,
+                            next3: null,
+                    }],
                 }}
                 currency={"$"}
                 setAlert={jest.fn()}
@@ -416,9 +423,9 @@ describe("Period", () => {
         );
 
         expect(screen.getByTestId("period-revenue-estimates"))
-            .toHaveTextContent("Rev. estimates: 46.7B | 57B | 68.1B | 81.6B => 94.3B | 108B | - | -");
+            .toHaveTextContent("Rev. estimates:46.7B | 57B | 68.1B | 81.6B => 94.3B | 108B | - | -");
         expect(screen.getByTestId("period-estimates"))
-            .toHaveTextContent("Eps estimates: - | - | - | - => 1.62 | - | - | -");
+            .toHaveTextContent("Eps estimates:- | - | - | - => 1.62 | - | - | -");
 
         fireEvent.click(screen.getByRole("button", {name: "Add Revenue Estimates"}));
         expect(openRevenueEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
@@ -507,15 +514,15 @@ describe("Period", () => {
         expect(screen.queryByTestId("period-ending-month-warning")).not.toBeInTheDocument();
     });
 
-    test("hides the estimate lines in the stretched narrow view", () => {
+    test("keeps the estimate lines among the days in the stretched narrow view", () => {
         render(
             <Period
                 period={{
                     id: "period-1",
                     name: {year: "2026", type: "Q2"},
                     endingMonth: "2026-07",
-                    estimate: {current: 1.62, next1: null, next2: null, next3: null},
-                    revenueEstimate: {current: 94320, next1: null, next2: null, next3: null},
+                    estimates: [{current: 1.62, next1: null, next2: null, next3: null}],
+                    revenueEstimates: [{current: 94320, next1: null, next2: null, next3: null}],
                 }}
                 stretch
                 currency={"$"}
@@ -524,8 +531,11 @@ describe("Period", () => {
             />
         );
 
-        expect(screen.queryByTestId("period-estimates")).not.toBeInTheDocument();
-        expect(screen.queryByTestId("period-revenue-estimates")).not.toBeInTheDocument();
+        // They are part of the research now, which the narrow view shows as well; only their
+        // past figures are dropped at that width, and that is the line's own doing.
+        const list = screen.getByTestId("period-content-list");
+        expect(list).toContainElement(screen.getByTestId("period-estimates"));
+        expect(list).toContainElement(screen.getByTestId("period-revenue-estimates"));
     });
 
     test("opens the content editor dialog when the stretched content is clicked", () => {
@@ -557,74 +567,139 @@ describe("Period", () => {
         expect(screen.getByRole("button", {name: "Save"})).toBeInTheDocument();
     });
 
-    test("groups the estimates and the targets under one rule", () => {
+    test("will not write a new day over one the period already has", async () => {
         renderPeriod({
-            estimate: {current: 1.62, next1: 1.85, next2: null, next3: 2.76},
-            revenueEstimate: {current: 1000, next1: 1200, next2: null, next3: 1500},
-            targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
-        });
+            reportDate: "2026-08-26",
+            previousReportDate: "2026-05-20",
+            contents: [{id: 1, date: "2026-07-14", content: "written that day", images: []}],
+        }, {stretch: true, ticker: "NVDA"});
 
-        const footer = screen.getByTestId("period-footer");
-        expect(footer).toContainElement(screen.getByTestId("period-estimates-view"));
-        expect(footer).toContainElement(screen.getByTestId("period-revenue-estimates-view"));
-        expect(footer).toContainElement(screen.getByTestId("period-target-summary"));
+        fireEvent.click(screen.getByRole("button", {name: "Add Content"}));
+        fireEvent.change(screen.getByLabelText("New content date"), {target: {value: "2026-07-14"}});
+        expect(screen.getByLabelText("New content date"))
+            .toHaveAttribute("title", "This date already has content");
+
+        fireEvent.click(screen.getByRole("button", {name: "Save"}));
+
+        await waitFor(() => expect(screen.getByText("Date already used")).toBeInTheDocument());
+        expect(axios.put).not.toHaveBeenCalled();
+        // The dialog stays open on the day that was refused.
+        expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
 
-    test("puts the targets in the corner beside the estimates, and on their own line without them", () => {
-        const {rerender} = renderPeriod({
-            estimate: {current: 1.62, next1: 1.85, next2: null, next3: 2.76},
+    test("offers no second new day while one is already open", () => {
+        renderPeriod({reportDate: "2026-08-26", previousReportDate: "2026-05-20"});
+
+        fireEvent.click(screen.getByRole("button", {name: "Add Content"}));
+
+        expect(screen.getByTestId("period-content-new")).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Add Content"})).not.toBeInTheDocument();
+    });
+
+    test("reads the estimates among the days, each under its own date", () => {
+        renderPeriod({
+            reportDate: "2026-08-26",
+            previousReportDate: "2026-05-20",
+            estimates: [{current: 1.62, next1: 1.85, next2: null, next3: 2.76, datetime: "2026-07-14T09:00:00"}],
+            revenueEstimates: [{current: 1000, next1: 1200, next2: null, next3: 1500, datetime: "2026-08-03T09:00:00"}],
+        });
+
+        const eps = screen.getByTestId("period-estimates");
+        const revenue = screen.getByTestId("period-revenue-estimates");
+        expect(screen.getByTestId("period-estimate-date-2026-07-14")).toHaveTextContent("14.07.2026");
+        expect(screen.getByTestId("period-estimate-date-2026-08-03")).toHaveTextContent("03.08.2026");
+        // Newest day first, like the days they read between.
+        expect(revenue.compareDocumentPosition(eps) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    test("reads every estimate the period holds, each on the day it was taken", () => {
+        renderPeriod({
+            reportDate: "2026-08-26",
+            previousReportDate: "2026-05-20",
+            estimates: [
+                {id: 2, current: 1.8, next1: 2, next2: null, next3: 2.9, datetime: "2026-08-03T09:00:00"},
+                {id: 1, current: 1.62, next1: 1.85, next2: null, next3: 2.76, datetime: "2026-06-11T09:00:00"},
+            ],
+        });
+
+        const lines = screen.getAllByTestId("period-estimates");
+        expect(lines).toHaveLength(2);
+        // Newest first, each under the day it was taken.
+        expect(lines[0]).toHaveTextContent("1.8 | 2 | - | 2.9");
+        expect(lines[1]).toHaveTextContent("1.62 | 1.85 | - | 2.76");
+        expect(screen.getByTestId("period-estimate-date-2026-08-03")).toBeInTheDocument();
+        expect(screen.getByTestId("period-estimate-date-2026-06-11")).toBeInTheDocument();
+    });
+
+    test("opens a shared day with its estimates and names it once", () => {
+        renderPeriod({
+            reportDate: "2026-08-26",
+            previousReportDate: "2026-05-20",
+            contents: [{id: 1, date: "2026-07-14", content: "written that day", images: []}],
+            estimates: [{current: 1.62, next1: 1.85, next2: null, next3: 2.76, datetime: "2026-07-14T09:00:00"}],
+        });
+
+        const heading = screen.getByTestId("period-estimate-date-2026-07-14");
+        expect(heading).toHaveTextContent("14.07.2026");
+        expect(screen.queryByTestId("period-content-date-2026-07-14")).not.toBeInTheDocument();
+        // The day's estimates first, the research written that day under them.
+        const estimates = screen.getByTestId("period-estimates");
+        const written = screen.getByText("written that day");
+        expect(heading.compareDocumentPosition(estimates) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(estimates.compareDocumentPosition(written) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    test("puts the targets in the free corner of the reported figures", () => {
+        renderPeriod({
+            reportDate: "2026-08-26",
+            shares: 100,
+            priceHigh: 20,
+            priceLow: 10,
+            financial: {revenue: {value: 300}, grossProfit: {value: 200}},
             targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
         });
 
-        const footer = screen.getByTestId("period-footer");
+        const summary = screen.getByTestId("period-financial-summary");
         const targets = screen.getByTestId("period-target-summary");
-        // Last in the row, and pushed to its end: the bottom right corner of the block.
-        expect(footer.lastElementChild).toContainElement(targets);
-        expect(window.getComputedStyle(footer.lastElementChild).marginLeft).toBe("auto");
-
-        rerender(
-            <Period
-                period={{
-                    id: "period-1",
-                    name: {year: "2025", type: "FY"},
-                    endingMonth: "2025-12",
-                    targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
-                }}
-                currency={"$"}
-                setAlert={jest.fn()}
-                openDialog={jest.fn()}
-                openEditDialog={jest.fn()}
-                targetCandidateCount={0}
-            />
-        );
-
-        // Nothing to sit beside, so no empty column is left in front of it either.
-        const loneFooter = screen.getByTestId("period-footer");
-        expect(loneFooter.children).toHaveLength(1);
-        expect(window.getComputedStyle(loneFooter.firstElementChild).marginLeft).toBe("0px");
+        // Under the price range, in the half of that column the two price rows leave empty, so
+        // a long line of targets has the width of both to say it on - and still clears the
+        // action buttons on the right.
+        const column = summary.lastElementChild;
+        expect(column).toContainElement(targets);
+        expect(column.firstElementChild).toHaveTextContent("High");
+        const corner = window.getComputedStyle(targets.parentElement);
+        expect(corner.marginTop).toBe("auto");
+        expect(corner.alignSelf).toBe("flex-end");
+        expect(corner.whiteSpace).toBe("nowrap");
+        expect(corner.paddingRight).toBe("18px");
     });
 
-    test("leaves out the rule when a period has neither estimates nor targets", () => {
-        renderPeriod({});
+    test("lays the targets over the top corner of a period with nothing reported yet", () => {
+        renderPeriod({
+            targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
+        });
 
-        expect(screen.queryByTestId("period-footer")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("period-financial-summary")).not.toBeInTheDocument();
+        const corner = window.getComputedStyle(screen.getByTestId("period-target-summary").parentElement);
+        // Laid over the research, so the research still starts at the top of the card.
+        expect(corner.position).toBe("absolute");
+        expect(corner.top).toBe("4px");
+        expect(corner.right).toBe("29px");
     });
 
-    test("leaves out the rule when the stretched narrow view shows nothing under the content", () => {
+    test("keeps the targets under the research in the stretched narrow view", () => {
         renderPeriod(
-            {
-                reportDate: "2026-08-26",
-                financial: {revenue: {value: 300}},
-                estimate: {current: 1.62, next1: 1.85, next2: null, next3: 2.76},
-                targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
-            },
+            {targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175}},
             {stretch: true}
         );
 
-        expect(screen.queryByTestId("period-footer")).not.toBeInTheDocument();
+        const footer = screen.getByTestId("period-footer");
+        expect(footer).toContainElement(screen.getByTestId("period-target-summary"));
+        const content = screen.getByTestId("period-content-list");
+        expect(content.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
-    test("hides the target summary of a reported period in the stretched narrow view", () => {
+    test("keeps the target summary of a reported period in the stretched narrow view", () => {
         const reportedPeriod = {
             id: "period-1",
             name: {year: "2026", type: "Q2"},
@@ -643,7 +718,10 @@ describe("Period", () => {
             <Period period={reportedPeriod} stretch currency={"$"} setAlert={jest.fn()} openDialog={jest.fn()}/>
         );
 
-        expect(screen.queryByTestId("period-target-summary")).not.toBeInTheDocument();
+        // The reported figures own no corner at this width, so the targets read under the
+        // research instead - but they are read either way.
+        expect(screen.getByTestId("period-footer"))
+            .toContainElement(screen.getByTestId("period-target-summary"));
 
         rerender(
             <Period period={reportedPeriod} currency={"$"} setAlert={jest.fn()} openDialog={jest.fn()}/>
@@ -694,22 +772,22 @@ describe("Period", () => {
                     name: {year: "2026", type: "Q2"},
                     endingMonth: "2026-07",
                     reportDate: null,
-                    estimate: {
-                        past4: 0.91,
-                        past3: 1.05,
-                        past2: null,
-                        past1: 1.42,
-                        current: 1.62,
-                        next1: 1.85,
-                        next2: null,
-                        next3: 2.76,
-                        datetime: "2026-08-02T12:30:00",
-                        pastTotal: 4.38,
-                        currentChange: 12.5,
-                        next1Change: -3.25,
-                        next2Change: 0,
-                        next3Change: 4,
-                    },
+                    estimates: [{
+                            past4: 0.91,
+                            past3: 1.05,
+                            past2: null,
+                            past1: 1.42,
+                            current: 1.62,
+                            next1: 1.85,
+                            next2: null,
+                            next3: 2.76,
+                            datetime: "2026-08-02T12:30:00",
+                            pastTotal: 4.38,
+                            currentChange: 12.5,
+                            next1Change: -3.25,
+                            next2Change: 0,
+                            next3Change: 4,
+                    }],
                 }}
                 currency={"$"}
                 setAlert={jest.fn()}
@@ -718,8 +796,8 @@ describe("Period", () => {
         );
 
         expect(screen.getByTestId("period-estimates"))
-            .toHaveTextContent("Eps estimates: 0.91 | 1.05 | - | 1.42 => 1.62 | 1.85 | - | 2.76");
-        expect(screen.getByText("(02.08.2026)")).toBeInTheDocument();
+            .toHaveTextContent("Eps estimates:0.91 | 1.05 | - | 1.42 => 1.62 | 1.85 | - | 2.76");
+        expect(screen.getByTestId("period-estimate-date-2026-08-02")).toHaveTextContent("02.08.2026");
         expect(screen.getByText("(4.38)")).toBeInTheDocument();
         expect(screen.getByText(matchText("(+12.5% | -3.3% | 0% | +4%)"))).toBeInTheDocument();
     });

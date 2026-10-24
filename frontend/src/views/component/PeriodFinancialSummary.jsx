@@ -149,7 +149,7 @@ const AsideColumn = ({entries, pairs = 1, divider = "left", noteSize}) => {
  * that are not income - the cash-flow figures and the period's price range - alongside it on the
  * right, where they cannot be mistaken for more rows of the same table.
  */
-export const PeriodFinancialSummary = ({financial, shares, priceHigh, priceLow, currency, compact = false}) => {
+export const PeriodFinancialSummary = ({financial, shares, priceHigh, priceLow, currency, compact = false, targets}) => {
     if (!financial) return null;
 
     // A company that paid nothing has no dividend to report: "(0.00%) 0M" reads like a measured
@@ -227,11 +227,36 @@ export const PeriodFinancialSummary = ({financial, shares, priceHigh, priceLow, 
                 />
             </Box>
 
-            {!compact &&
-                <>
-                    <AsideColumn entries={cashFlow}/>
+            {!compact && <AsideColumn entries={cashFlow}/>}
+
+            {/* The price range, and under it the corner the block leaves empty: the matrix is
+                twice as tall as those two rows, so the targets have the whole width from here
+                to the right-hand edge to say what they say on one line. */}
+            {!compact && (price.length > 0 || targets) &&
+                <Box sx={{
+                    flex: "1 1 auto",
+                    minWidth: 0,
+                    alignSelf: "stretch",
+                    display: "flex",
+                    flexDirection: "column",
+                    // The price column keeps its own width rather than stretching to this one.
+                    alignItems: "flex-start",
+                }}>
                     <AsideColumn entries={price}/>
-                </>
+                    {targets &&
+                        <Box sx={{
+                            marginTop: "auto",
+                            alignSelf: "flex-end",
+                            whiteSpace: "nowrap",
+                            // Flush with the bottom of the block, which is where the matrix's
+                            // last row ends: the targets read on the line of the net income
+                            // beside them. On the right they stop short of the action buttons.
+                            paddingRight: "18px",
+                        }}>
+                            {targets}
+                        </Box>
+                    }
+                </Box>
             }
 
             {/* Narrow: the two families sit on one short row below the matrix, kept clear of the

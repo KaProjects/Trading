@@ -117,12 +117,19 @@ INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1517, 2281
 INSERT INTO Company (id, ticker, currency) VALUES (2302, 'RNP', '$');
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1839, 2302, '2025-10-27 14:35:00', '1489.8');
 
--- for CompanyEndpointsTest.getCompanyLists: one period with research, one with the editor's
--- empty document, which does not count as content
+-- for PeriodContentEndpointsTest, which writes its own entries into 25Q1 and reads them back
 INSERT INTO Company (id, ticker, currency) VALUES (1567, 'PCNT', '$');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, research) VALUES (1468, 1567, '25Q1', '2503', '2025-05-01', '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"a note"}]}]}]');
+INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (1468, 1567, '25Q1', '2503', '2025-05-01');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES (1469, 1567, '25Q2', '2506');
-UPDATE Period SET research = '[{"type":"paragraph","children":[{"text":""}]}]' WHERE id = 1469;
+
+-- for CompanyEndpointsTest.getCompanyLists: one period with a day written in it, one holding
+-- the editor's empty document, which does not count as content. A company of its own, so that
+-- a test writing entries elsewhere cannot change what it counts.
+INSERT INTO Company (id, ticker, currency) VALUES (1569, 'PCCT', '$');
+INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (1471, 1569, '25Q1', '2503', '2025-05-01');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (1472, 1569, '25Q2', '2506');
+INSERT INTO PeriodContent (id, periodId, date, content) VALUES (1471, 1471, '2025-04-02', '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"a note"}]}]}]');
+INSERT INTO PeriodContent (id, periodId, date, content) VALUES (1472, 1472, '2025-05-02', '[{"type":"paragraph","children":[{"text":""}]}]');
 
 -- for PeriodContentEndpointsTest: a period with no report date and nothing reported before it,
 -- so its content cannot be held to a window

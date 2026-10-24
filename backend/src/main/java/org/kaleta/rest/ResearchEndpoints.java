@@ -93,27 +93,31 @@ public class ResearchEndpoints
         List<Long> periodIds = periodsModel.getPeriods().stream()
                 .map(Periods.Period::getId)
                 .toList();
-        Map<Long, PeriodEstimates> estimates = estimateService.getLatestByPeriodIds(periodIds, Estimate.EPS);
-        Map<Long, PeriodEstimates> revenueEstimates =
-                estimateService.getLatestByPeriodIds(periodIds, Estimate.REVENUE);
+        Map<Long, List<PeriodEstimates>> estimates = estimateService.getAllByPeriodIds(periodIds, Estimate.EPS);
+        Map<Long, List<PeriodEstimates>> revenueEstimates =
+                estimateService.getAllByPeriodIds(periodIds, Estimate.REVENUE);
         Map<Long, TargetStats> targetStats = targetService.getStatistics(periodIds);
         Optional<Long> latestId = periodsModel.getPeriods().stream()
                 .findFirst()
                 .map(Periods.Period::getId);
+        // The overview speaks for the company as it stands, so it is drawn from the newest
+        // estimate of the newest period - the first of the list, which is ordered that way.
         latestId
                 .map(estimates::get)
+                .map(List::getFirst)
                 .map(estimateService::createOverview)
                 .ifPresent(dto::setEstimateOverview);
         latestId
                 .map(revenueEstimates::get)
+                .map(List::getFirst)
                 .map(estimateService::createOverview)
                 .ifPresent(dto::setRevenueEstimateOverview);
         Map<Long, List<PeriodContentDto>> contents = periodContentService.getByPeriodIds(periodIds);
         periodsModel.getPeriods().forEach(period -> {
             dto.addPeriod(
                     period,
-                    estimates.get(period.getId()),
-                    revenueEstimates.get(period.getId()),
+                    estimates.getOrDefault(period.getId(), List.of()),
+                    revenueEstimates.getOrDefault(period.getId(), List.of()),
                     targetStats.getOrDefault(period.getId(), TargetStats.empty()),
                     contents.getOrDefault(period.getId(), List.of()));
         });
