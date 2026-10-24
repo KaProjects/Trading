@@ -151,6 +151,8 @@ export const Research = props => {
     // of market, financials, estimate and analysis widgets - and 1..n are the periods. Each
     // gets the whole screen rather than splitting it, which is what the swipe is for.
     const [narrowPageIndex, setNarrowPageIndex] = useState(0)
+    const [newsSentimentShown, setNewsSentimentShown] = useState(false)
+    const [widgetsFolded, setWidgetsFolded] = useState(false)
     const [estimatesTab, setEstimatesTab] = useState("eps")
     const previousCompanyId = useRef(null)
     const latestRequestId = useRef(0)
@@ -203,7 +205,7 @@ export const Research = props => {
         periodTouchStart.current = beginSwipe(event)
     }
 
-    function handlePeriodTouchEnd(event, periodCount) {
+    function handlePeriodTouchEnd(event, lastPage) {
         const start = periodTouchStart.current
         periodTouchStart.current = null
         if (!start || window.innerWidth > SWIPE_NAV_BREAKPOINT) return
@@ -212,7 +214,7 @@ export const Research = props => {
         if (direction === null) return
 
         if (direction < 0) {
-            setNarrowPageIndex(index => Math.min(index + 1, periodCount))
+            setNarrowPageIndex(index => Math.min(index + 1, lastPage))
         } else {
             setNarrowPageIndex(index => Math.max(index - 1, 0))
         }
@@ -227,6 +229,7 @@ export const Research = props => {
                 setTargetCandidateCounts({})
                 setFailedTargetCandidatePeriods(new Set())
                 setNarrowPageIndex(0)
+                setNewsSentimentShown(false)
                 setImportedTargetGroups([])
                 autoImportedCompanyId.current = null
             }
@@ -395,6 +398,26 @@ export const Research = props => {
 
     const earningsMultiple = value => estimateMultiple(Number(data?.latest?.price), value);
     const revenueMultiple = value => estimateMultiple(Number(data?.indicators?.marketCap), value);
+    // The overview is a page of widgets; a company with none of them - no figures, no
+    // estimates, no analysis - should not be swiped through an empty page to reach its periods.
+    const hasMarketFigures = [data?.indicators?.marketCap, data?.indicators?.beta]
+        .some(value => value !== null && value !== undefined && value !== ""
+            && Number.isFinite(Number(value)))
+    const overviewShown = hasMarketFigures
+        || Boolean(data?.ttm)
+        || Boolean(data?.estimateOverview)
+        || Boolean(data?.revenueEstimateOverview)
+        || newsSentimentShown
+    // Folding the widgets away is offered by the first of them, so it is only possible while
+    // that one is on the page - and a narrow screen, where they are a page of their own, keeps
+    // them all.
+    const foldable = !isNarrowScreen && hasMarketFigures
+    const widgetsHidden = foldable && widgetsFolded
+
+    const firstPeriodPage = overviewShown ? 1 : 0
+    const lastNarrowPage = Math.max(0, (data?.periods?.length ?? 0) - 1 + firstPeriodPage)
+    const narrowPeriodIndex = narrowPageIndex - firstPeriodPage
+
     const editNextToPrice = !hasTradingView && Boolean(data?.latest)
 
     return (
@@ -444,8 +467,10 @@ export const Research = props => {
                                 position: "relative",
                                 flexShrink: 0,
                                 // On the overview page this column has to fill the card, otherwise
-                                // the swipe hint has nothing to push itself to the bottom of.
-                                ...(isNarrowScreen && narrowPageIndex === 0 && {
+                                // the swipe hint has nothing to push itself to the bottom of. On a
+                                // company without an overview the first page is a period, which
+                                // needs the room itself.
+                                ...(isNarrowScreen && overviewShown && narrowPageIndex === 0 && {
                                     flexShrink: 1,
                                     flexGrow: 1,
                                     minHeight: 0,
@@ -670,12 +695,12 @@ export const Research = props => {
                                     </DialogActions>
                                 </Dialog>
 
-                                {(!isNarrowScreen || narrowPageIndex === 0) &&
+                                {(!isNarrowScreen || (overviewShown && narrowPageIndex === 0)) &&
                                 <Box
                                     data-testid="research-overview"
                                     onTouchStart={isNarrowScreen ? handlePeriodTouchStart : undefined}
                                     onTouchEnd={isNarrowScreen
-                                        ? (event) => handlePeriodTouchEnd(event, data.periods.length)
+                                        ? (event) => handlePeriodTouchEnd(event, lastNarrowPage)
                                         : undefined}
                                     sx={isNarrowScreen
                                         ? {flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column"}
@@ -689,9 +714,12 @@ export const Research = props => {
                                     <MarketOverview
                                         marketCap={data.indicators?.marketCap}
                                         beta={data.indicators?.beta}
+                                        collapsible={foldable}
+                                        collapsed={widgetsFolded}
+                                        onToggleCollapse={() => setWidgetsFolded(folded => !folded)}
                                     />
                                 </Box>
-                                {data.ttm &&
+                                {data.ttm && !widgetsHidden &&
                                     <Box sx={{
                                         marginTop: {xs: "2px", sm: "4px"},
                                         bgcolor: "background.paper",
@@ -707,7 +735,7 @@ export const Research = props => {
                                         />
                                     </Box>
                                 }
-                                {mergeEstimates
+                                {!widgetsHidden && (mergeEstimates
                                     ? <PeriodEstimatesOverview
                                         sx={{marginTop: {xs: "2px", sm: "4px"}}}
                                         overview={revenueEstimatesSelected
@@ -749,13 +777,16 @@ export const Research = props => {
                                             onOpen={() => setOpenRevenueProjectionsDialog(true)}
                                         />
                                     </>
-                                }
+                                )}
+                                {!widgetsHidden &&
                                 <LatestNewsSentiment
                                     companyId={data.company.id}
                                     onOpen={() => setOpenNewsSentimentDialog(data.periods?.[0])}
                                     expanded={isNarrowScreen}
+                                    onShown={setNewsSentimentShown}
                                     sx={{marginTop: {xs: "2px", sm: "4px"}}}
                                 />
+                                }
 
                                 {isNarrowScreen && data.periods?.length > 0 &&
                                     <Box
@@ -885,27 +916,32 @@ export const Research = props => {
                             />
                             <EditCompanyDialog triggerRefresh={triggerRefresh} {...props}/>
 
-                            {(!isNarrowScreen || narrowPageIndex > 0) &&
+                            {(!isNarrowScreen || narrowPeriodIndex >= 0) &&
                             <Box
                                 data-testid="period-list"
                                 onTouchStart={isNarrowScreen ? handlePeriodTouchStart : undefined}
-                                onTouchEnd={isNarrowScreen ? (event) => handlePeriodTouchEnd(event, data.periods.length) : undefined}
+                                onTouchEnd={isNarrowScreen ? (event) => handlePeriodTouchEnd(event, lastNarrowPage) : undefined}
                                 sx={{
                                     ...researchCardRowsStyle,
-                                    marginTop: {xs: "-7px", sm: "10px"},
+                                    // The negative margin tucks the periods under the overview's
+                                    // last widget; with no overview there is nothing to tuck
+                                    // under and the card would ride up over the company header.
+                                    marginTop: isNarrowScreen && !overviewShown
+                                        ? "6px"
+                                        : {xs: "-7px", sm: "10px"},
                                     paddingTop: {xs: "14px", sm: "5px"},
                                     ...(isNarrowScreen && {display: "flex", flexDirection: "column"}),
                                 }}
                             >
                                 {isNarrowScreen
-                                    ? data.periods.slice(narrowPageIndex - 1, narrowPageIndex).map((period) => (
+                                    ? data.periods.slice(narrowPeriodIndex, narrowPeriodIndex + 1).map((period) => (
                                         <Box key={period.id} sx={{flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column"}}>
                                             <Period
                                                 period={period}
                                                 ticker={data.company.ticker}
-                                                previousPeriod={data.periods[narrowPageIndex]}
-                                                isLatest={narrowPageIndex === 1}
-                                                periodPosition={narrowPageIndex}
+                                                previousPeriod={data.periods[narrowPeriodIndex + 1]}
+                                                isLatest={narrowPeriodIndex === 0}
+                                                periodPosition={narrowPeriodIndex + 1}
                                                 periodCount={data.periods.length}
                                                 currency={data.company.currency}
                                                 setAlert={setAlert}

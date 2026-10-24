@@ -11,6 +11,9 @@ import java.time.YearMonth;
 public class CompanyWithStats extends Company
 {
     private YearMonth latestPeriodEndingMonth;
+    private int periodCount;
+    /** Periods whose research is more than the editor's empty document. */
+    private int periodsWithContentCount;
     private Date latestRecordDate;
     private Date latestPurchaseDate;
 }

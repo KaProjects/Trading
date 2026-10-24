@@ -125,6 +125,21 @@ describe("CompanySelector", () => {
         expect(screen.getByText("1 target")).toBeInTheDocument();
     });
 
+    test("shows period counts for the debug list, which comes last", async () => {
+        const data = createData({
+            "_has-period": [
+                {id: "company-1", ticker: "NVDA", periodCount: 6, periodsWithContentCount: 2},
+                {id: "company-5", ticker: "AAPL", periodCount: 1, periodsWithContentCount: 0},
+            ],
+        });
+
+        render(<CompanySelector {...createProps({companyLists: data})}/>);
+
+        expect(await screen.findByText("_has-period")).toBeInTheDocument();
+        expect(screen.getByText("6 periods, 2 with content")).toBeInTheDocument();
+        expect(screen.getByText("1 period, 0 with content")).toBeInTheDocument();
+    });
+
     test("selects a company and retains only the source list", async () => {
         const setCompanySelectorValue = jest.fn();
         const setCompanyListSelectorValue = jest.fn();

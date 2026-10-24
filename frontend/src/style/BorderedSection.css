@@ -57,8 +57,10 @@
     color: var(--border-color)
 }
 
+/* The card's own background rather than a grey tablet: the rule either side of the title is
+   what sets it apart, and on a narrow screen the grey only made the card look patched. */
 .headerTitle.highlighted {
-    background-color: #e0e0e0;
+    background-color: var(--card-background, #fff);
     color: #595959;
     padding: 0 0.4em;
     border-radius: 4px;

@@ -66,6 +66,14 @@ public class Utils
         }
     }
 
+    /** The editor's empty document is as good as nothing written at all. */
+    public static final String EMPTY_CONTENT = "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]";
+
+    public static boolean isBlankContent(String content)
+    {
+        return content == null || content.isBlank() || content.equals(EMPTY_CONTENT);
+    }
+
     public static Date nullableDateValueOf(String date) {
         if  (date == null) return null;
         return Date.valueOf(date);

@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import {Grid, List, ListItem, ListItemButton, ListItemText, ListSubheader, MenuItem, Select} from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {recordEvent} from "../../service/utils";
-import {COMPANY_LIST_TITLES, getCompanyListKeys, getCompanyListTitle} from "../../service/CompanyListService";
+import {COMPANY_LIST_TITLES, HAS_PERIOD_LIST, getCompanyListKeys, getCompanyListTitle} from "../../service/CompanyListService";
 
 export const BUILT_IN_LIST_TITLES = COMPANY_LIST_TITLES
 export const COMPANY_SELECTOR_COMPACT_BREAKPOINT = 600
@@ -80,9 +80,18 @@ export const CompanySelector = (props) => {
                 return company.latestRecordDate
             case "actionable":
                 return getActionableSecondaryValue(company)
+            case HAS_PERIOD_LIST:
+                return getPeriodSecondaryValue(company)
             default:
                 return undefined
         }
+    }
+
+    // What the debug list is for: seeing at a glance how much research a company carries.
+    function getPeriodSecondaryValue(company) {
+        const periods = company.periodCount ?? 0
+        const withContent = company.periodsWithContentCount ?? 0
+        return `${periods} period${periods === 1 ? "" : "s"}, ${withContent} with content`
     }
 
     function getActionableSecondaryValue(company) {

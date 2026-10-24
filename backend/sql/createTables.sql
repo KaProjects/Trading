@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS PeriodContentImage;
+DROP TABLE IF EXISTS PeriodContent;
 DROP TABLE IF EXISTS Target;
 DROP TABLE IF EXISTS Todo;
 DROP TABLE IF EXISTS Tag;
@@ -137,4 +139,25 @@ CREATE TABLE Target
     periodId    INT UNSIGNED   NOT NULL,
     CONSTRAINT `uk_targetIdentity` UNIQUE (periodId, date, institution, price),
     CONSTRAINT `fk_targetPeriodId` FOREIGN KEY (periodId) REFERENCES Period (id)
+);
+CREATE TABLE PeriodContent
+(
+    id       INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    date     DATE         NOT NULL,
+    content  TEXT,
+    periodId INT UNSIGNED NOT NULL,
+    CONSTRAINT `uk_periodContentDate` UNIQUE (periodId, date),
+    CONSTRAINT `fk_periodContentPeriodId` FOREIGN KEY (periodId) REFERENCES Period (id)
+);
+CREATE TABLE PeriodContentImage
+(
+    id         INT UNSIGNED      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    mime       VARCHAR(30)       NOT NULL,
+    width      SMALLINT UNSIGNED NOT NULL,
+    height     SMALLINT UNSIGNED NOT NULL,
+    image      MEDIUMBLOB        NOT NULL,
+    thumbnail  MEDIUMBLOB        NOT NULL,
+    uploadedAt DATETIME          NOT NULL,
+    contentId  INT UNSIGNED      NOT NULL,
+    CONSTRAINT `fk_periodContentImageContentId` FOREIGN KEY (contentId) REFERENCES PeriodContent (id)
 );

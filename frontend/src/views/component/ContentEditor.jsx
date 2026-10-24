@@ -29,7 +29,7 @@ const centeredPlaceholder = ({children, attributes}) => (
     </span>
 );
 
-export const ContentEditor = ({content, update, style, locked, editTrigger, autoSave = true, alwaysEditing = false, centerPlaceholder = false, onValueChange}) => {
+export const ContentEditor = ({content, update, style, locked, editTrigger, autoSave = true, alwaysEditing = false, centerPlaceholder = false, onValueChange, onCancel}) => {
 
     const renderElement = useCallback(props => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
@@ -37,7 +37,10 @@ export const ContentEditor = ({content, update, style, locked, editTrigger, auto
 
     const [editing, setEditing] = useState(alwaysEditing)
     const [unlocked, setUnlocked] = useState(!locked)
-    const [value, setValue] = useState(defaultContent())
+    // Starts on what is stored, not on an empty document: losing focus saves whatever the
+    // editor is holding, and anything that blurs it before Slate has reported a change would
+    // otherwise save the blank it started with over the text.
+    const [value, setValue] = useState(() => toValidContent(content))
     const [error, setError] = useState(null)
     const [savedContent, setSavedContent] = useState(toValidContent(content))
 
@@ -133,6 +136,9 @@ export const ContentEditor = ({content, update, style, locked, editTrigger, auto
                 onBlur={handleUnFocus}
                 onKeyDown={e => {
                     if(e.key === 'Escape') {
+                        // Escape puts the text back; anything else staged alongside it - the
+                        // day's pictures - has to be put back with it.
+                        onCancel?.();
                         rollback();
                         setTimeout(() => ReactEditor.blur(editor), 100);
                     }

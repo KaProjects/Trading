@@ -35,13 +35,16 @@ public class ResearchDto
         private PeriodEstimates estimate;
         private PeriodEstimates revenueEstimate;
         private TargetStats targetStats = TargetStats.empty();
+        /** The period's research, one entry per date, oldest first. */
+        private List<PeriodContentDto> contents = new ArrayList<>();
     }
 
     public void addPeriod(
             Periods.Period period,
             PeriodEstimates estimate,
             PeriodEstimates revenueEstimate,
-            TargetStats targetStats)
+            TargetStats targetStats,
+            List<PeriodContentDto> contents)
     {
         PeriodDto dto = new PeriodDto();
         dto.setId(period.getId());
@@ -59,6 +62,7 @@ public class ResearchDto
         dto.setEstimate(estimate);
         dto.setRevenueEstimate(revenueEstimate);
         dto.setTargetStats(targetStats);
+        dto.setContents(contents);
         periods.add(dto);
     }
 }

@@ -1,5 +1,7 @@
-import {Box} from "@mui/material";
+import {Box, IconButton} from "@mui/material";
 import TroubleshootIcon from "@mui/icons-material/Troubleshoot";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import React from "react";
 import {formatDecimals, formatMillionsRounded} from "../../service/FormattingService";
 import {NUMERIC_FONT, WIDGET_FIRST_COLUMN_WIDTH, WIDGET_ICON_GAP, WIDGET_ICON_SIZE} from "./widgetLayout";
@@ -31,7 +33,7 @@ const Item = ({label, value, first = false}) => (
  * width, so it has to cost as little vertical space as possible, and every value carries its
  * own label, which leaves nothing for a heading to explain.
  */
-export const MarketOverview = ({marketCap, beta, sx}) => {
+export const MarketOverview = ({marketCap, beta, collapsible = false, collapsed = false, onToggleCollapse, sx}) => {
     const hasMarketCap = marketCap !== null && marketCap !== undefined && marketCap !== ""
         && Number.isFinite(Number(marketCap));
     const hasBeta = beta !== null && beta !== undefined && beta !== ""
@@ -64,7 +66,7 @@ export const MarketOverview = ({marketCap, beta, sx}) => {
                 <Box sx={{display: "flex", color: "text.disabled", marginTop: "2px", flexShrink: 0}}>
                     <TroubleshootIcon sx={{fontSize: WIDGET_ICON_SIZE}}/>
                 </Box>
-                <Box sx={{display: "flex", alignItems: "flex-start"}}>
+                <Box sx={{display: "flex", alignItems: "flex-start", flex: 1, minWidth: 0}}>
                     {hasMarketCap &&
                         <Item first label="mcap" value={formatMillionsRounded(Number(marketCap))}/>
                     }
@@ -72,6 +74,21 @@ export const MarketOverview = ({marketCap, beta, sx}) => {
                         <Item first={!hasMarketCap} label="beta" value={formatDecimals(Number(beta), 0, 2)}/>
                     }
                 </Box>
+                {/* The widgets below this one fold away behind it. It is the only one of them
+                    without a chevron of its own, having no dialog to open, so the room is here. */}
+                {collapsible &&
+                    <IconButton
+                        aria-label={collapsed ? "Show widgets" : "Hide widgets"}
+                        size="small"
+                        onClick={onToggleCollapse}
+                        sx={{padding: "1px", marginTop: "-1px", color: "text.secondary", flexShrink: 0}}
+                    >
+                        {collapsed
+                            ? <UnfoldMoreIcon sx={{fontSize: 16}}/>
+                            : <UnfoldLessIcon sx={{fontSize: 16}}/>
+                        }
+                    </IconButton>
+                }
             </Box>
         </Box>
     );

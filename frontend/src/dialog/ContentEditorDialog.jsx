@@ -2,7 +2,12 @@ import {Alert, AlertTitle, Box, Button, Dialog, DialogActions, DialogContent} fr
 import React, {useEffect, useState} from "react";
 import {ContentEditor} from "../views/component/ContentEditor";
 
-export const ContentEditorDialog = ({open, content, title, handleClose, save}) => {
+/**
+ * @param onSubmit anything else the dialog is carrying, saved on Save even when the text itself
+ *                 was left alone
+ * @param onCancel the same, put back when the dialog is closed without saving
+ */
+export const ContentEditorDialog = ({open, content, title, handleClose, save, header, footer, onSubmit, onCancel}) => {
     const [draft, setDraft] = useState(null)
     const [alert, setAlert] = useState(null)
     const [saving, setSaving] = useState(false)
@@ -17,19 +22,21 @@ export const ContentEditorDialog = ({open, content, title, handleClose, save}) =
 
     async function handleSave() {
         if (saving) return
-        if (draft === null) {
-            handleClose()
-            return
-        }
 
         setSaving(true)
-        const error = await save(draft)
+        const error = (onSubmit ? await onSubmit() : null)
+            ?? (draft === null ? null : await save(draft))
         setSaving(false)
         if (error) {
             setAlert(error)
         } else {
             handleClose()
         }
+    }
+
+    function handleCancel() {
+        onCancel?.()
+        handleClose()
     }
 
     return (
@@ -43,6 +50,8 @@ export const ContentEditorDialog = ({open, content, title, handleClose, save}) =
                 </Box>
             }
             <DialogContent sx={{display: "flex", flexDirection: "column", padding: 1, overflow: "hidden"}}>
+                {/* Anything the entry needs above its text - the day a new one is written for. */}
+                {open && header}
                 {open &&
                     <ContentEditor
                         content={content}
@@ -52,6 +61,9 @@ export const ContentEditorDialog = ({open, content, title, handleClose, save}) =
                         style={{flex: "1 1 auto", minHeight: 0, overflowY: "auto"}}
                     />
                 }
+                {/* Whatever belongs with the text while it is being written - the day's
+                    pictures, where the entry has them - sits under the editor. */}
+                {open && footer}
             </DialogContent>
             {alert &&
                 <Alert severity="error" variant="filled">
@@ -59,7 +71,7 @@ export const ContentEditorDialog = ({open, content, title, handleClose, save}) =
                 </Alert>
             }
             <DialogActions>
-                <Button onClick={handleClose} disabled={saving}>Cancel</Button>
+                <Button onClick={handleCancel} disabled={saving}>Cancel</Button>
                 <Button onClick={handleSave} disabled={saving}>Save</Button>
             </DialogActions>
         </Dialog>

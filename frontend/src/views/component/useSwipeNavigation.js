@@ -1,6 +1,6 @@
 import {useRef} from "react";
 
-const SWIPE_THRESHOLD = 60
+export const SWIPE_THRESHOLD = 60
 
 export const SWIPE_AREA_SX = {
     display: "flex",

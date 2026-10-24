@@ -490,6 +490,27 @@ describe("Research", () => {
             expect(screen.queryByTestId("research-overview")).not.toBeInTheDocument();
         });
 
+        test("opens on the first period when a company has no widgets to show", async () => {
+            setInnerWidth(400);
+            axios.get.mockImplementation(url => url.includes("/news-sentiment/")
+                ? Promise.resolve({data: {record: null}})
+                : url.includes("/target/company/")
+                    ? Promise.resolve({data: {counts: {}, failedPeriodIds: []}})
+                    : Promise.resolve({data: createResearchData({
+                        ttm: null,
+                        indicators: null,
+                        estimateOverview: null,
+                        revenueEstimateOverview: null,
+                    })}));
+
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            // No overview page to swipe past: the first period is the first page.
+            expect(await screen.findByText("period:period-1")).toBeInTheDocument();
+            expect(screen.queryByTestId("research-overview")).not.toBeInTheDocument();
+            expect(screen.getByTestId("period-list")).toBeInTheDocument();
+        });
+
         test("swiping back up from the first period returns to the overview", async () => {
             setInnerWidth(400);
             render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);

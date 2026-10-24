@@ -34,6 +34,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -110,12 +111,29 @@ class CompanyEndpointsTest
 
         List<CompanyWithStats> owned = dto.get("owned");
         List<CompanyWithStats> all = dto.get("all");
-        assertThat(dto.keySet().stream().toList(), is(List.of("owned", "all")));
+        List<CompanyWithStats> hasPeriod = dto.get("_has-period");
+        // The debug list comes after everything else, "all" included.
+        assertThat(dto.keySet().stream().toList(), is(List.of("owned", "all", "_has-period")));
         assertThat(owned.size(), is(6));
         assertThat(tickers(owned), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
-        assertThat(all.size(), is(28));
+        assertThat(all.size(), is(30));
         assertThat(all.get(0).getTicker(), is("ABCD"));
         assertThat(tickers(all), is(tickers(all).stream().sorted().toList()));
+
+        // Every company that has a period, whether or not anything is reported for it. Other
+        // test classes add periods of their own, so this asserts the rule, not a fixed list.
+        assertThat(tickers(hasPeriod), is(tickers(hasPeriod).stream().sorted().toList()));
+        assertThat(tickers(hasPeriod), hasItems("RCH", "UPD"));
+        assertThat(tickers(all), hasItems(tickers(hasPeriod).toArray(new String[0])));
+        assertThat(tickers(hasPeriod), not(hasItem("ABCD")));
+
+        // PCNT has two periods: one with research, one holding the editor's empty document,
+        // which is not content.
+        CompanyWithStats counted = hasPeriod.stream()
+                .filter(company -> company.getTicker().equals("PCNT"))
+                .findFirst().orElseThrow();
+        assertThat(counted.getPeriodCount(), is(2));
+        assertThat(counted.getPeriodsWithContentCount(), is(1));
     }
 
     @Test
@@ -356,7 +374,7 @@ class CompanyEndpointsTest
                 .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
         assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
-        assertThat(dto.getCompanies().size(), is(28));
+        assertThat(dto.getCompanies().size(), is(30));
         CompanyAggregates.Company company = dto.getCompanies().get(7);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
@@ -437,7 +455,7 @@ class CompanyEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        int expectedCompanies = 28;
+        int expectedCompanies = 30;
 
         assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));

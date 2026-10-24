@@ -113,6 +113,16 @@ public class PeriodDateWindowService
         {
             return !date.isBefore(start) && date.isBefore(end);
         }
+
+        /**
+         * Research written on a report day belongs to the quarter that was reported, so for
+         * content both report dates count as inside. A date landing on one therefore fits the
+         * periods on either side of it, and is filed under whichever it was written for.
+         */
+        public boolean includes(LocalDate date)
+        {
+            return !date.isBefore(start) && !date.isAfter(end);
+        }
     }
 
     /** The report dates Firebase holds for a quarter: this quarter's, and its predecessor's. */

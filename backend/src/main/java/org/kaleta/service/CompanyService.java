@@ -35,7 +35,9 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class CompanyService
 {
-    private static final Set<String> RESERVED_TAGS = Set.of("owned", "recent", "all");
+    /** A list the app builds itself; the underscore marks it as a debug aid, not a tag. */
+    private static final String HAS_PERIOD_LIST = "_has-period";
+    private static final Set<String> RESERVED_TAGS = Set.of("owned", "recent", "all", HAS_PERIOD_LIST);
     private static final int SPLIT_LOOKBACK_MONTHS = 12;
     private static final Comparator<String> COMPANY_LIST_ORDER = Comparator
             .comparingInt(CompanyService::companyListOrder)
@@ -143,6 +145,9 @@ public class CompanyService
                     && !company.getLatestRecordDate().toLocalDate().isBefore(recordCutoff)) {
                 companiesByTag.computeIfAbsent("recent", ignored -> new ArrayList<>()).add(company);
             }
+            if (company.getLatestPeriodEndingMonth() != null) {
+                companiesByTag.computeIfAbsent(HAS_PERIOD_LIST, ignored -> new ArrayList<>()).add(company);
+            }
             company.getTags().stream().distinct().forEach(tag ->
                     companiesByTag.computeIfAbsent(tag, ignored -> new ArrayList<>()).add(company));
         }
@@ -156,6 +161,8 @@ public class CompanyService
             case "owned" -> 0;
             case "recent" -> 1;
             case "all" -> 4;
+            // A debug list belongs after everything a company is really tagged with.
+            case HAS_PERIOD_LIST -> 5;
             default -> 3;
         };
     }

@@ -240,7 +240,14 @@ describe("Period", () => {
         expect(screen.getByRole("button", {name: "Manage Targets"})).toHaveTextContent("!");
     });
 
-    test("updates research through axios", async () => {
+    test("saves an entry against the date that identifies it", async () => {
+        axios.put.mockResolvedValue({data: {
+            id: 7,
+            date: "2026-01-10",
+            content: JSON.stringify([{type: "paragraph", children: [{text: "Updated research"}]}]),
+            images: [],
+        }});
+
         render(
             <Period
                 period={{
@@ -248,7 +255,69 @@ describe("Period", () => {
                     name: {year: "2025", type: "FY"},
                     endingMonth: "2025-12",
                     reportDate: "2026-02-15",
-                    research: "Stored research",
+                    previousReportDate: "2025-11-01",
+                    contents: [{id: 7, date: "2026-01-10", content: "Stored research", images: []}],
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("period-content-date-2026-01-10")).toHaveTextContent("10.01.2026");
+
+        fireEvent.click(screen.getByText("Stored research"));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
+            "/api/period/content/period-1",
+            {
+                date: "2026-01-10",
+                content: JSON.stringify([{type: "paragraph", children: [{text: "Updated research"}]}]),
+            }
+        ));
+    });
+
+    test("writes a new day in its own dialog on a narrow screen", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2026", type: "Q2"},
+                    endingMonth: "2026-07",
+                    reportDate: "2026-08-26",
+                    previousReportDate: "2026-05-20",
+                    contents: [],
+                }}
+                ticker={"NVDA"}
+                stretch
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        fireEvent.click(screen.getByRole("button", {name: "Add Content"}));
+
+        // The dialog the day is written in, with the day itself to pick at the top of it.
+        expect(screen.getByRole("dialog")).toBeInTheDocument();
+        expect(screen.getByTestId("content-editor-title")).toHaveTextContent("NVDA 26Q2 new content");
+        expect(screen.getByLabelText("New content date")).toBeInTheDocument();
+        expect(screen.queryByTestId("period-content-new")).not.toBeInTheDocument();
+    });
+
+    test("keeps an emptied day on the page until it is loaded again", async () => {
+        const empty = '[{"type":"paragraph","children":[{"text":""}]}]';
+        axios.put.mockResolvedValue({data: {id: 7, date: "2026-01-10", content: empty, images: []}});
+
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2025", type: "FY"},
+                    endingMonth: "2025-12",
+                    reportDate: "2026-02-15",
+                    previousReportDate: "2025-11-01",
+                    contents: [{id: 7, date: "2026-01-10", content: "Stored research", images: []}],
                 }}
                 currency={"$"}
                 setAlert={jest.fn()}
@@ -258,13 +327,34 @@ describe("Period", () => {
 
         fireEvent.click(screen.getByText("Stored research"));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
-            expect.stringContaining("/period"),
-            {
-                id: "period-1",
-                research: JSON.stringify([{type: "paragraph", children: [{text: "Updated research"}]}]),
-            }
-        ));
+        // Cleared, but still there to write in again; the next load is what drops it.
+        await waitFor(() => expect(axios.put).toHaveBeenCalled());
+        expect(screen.getByTestId("period-content-date-2026-01-10")).toBeInTheDocument();
+    });
+
+    test("marks a date the period no longer covers", () => {
+        render(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2025", type: "FY"},
+                    endingMonth: "2025-12",
+                    reportDate: "2026-02-15",
+                    previousReportDate: "2025-11-01",
+                    contents: [
+                        {id: 7, date: "2026-01-10", content: "inside", images: []},
+                        {id: 8, date: "2026-03-20", content: "after the report", images: []},
+                    ],
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+            />
+        );
+
+        expect(screen.getByTestId("period-content-date-2026-03-20"))
+            .toHaveAttribute("title", "This date is outside the period");
+        expect(screen.getByTestId("period-content-date-2026-01-10")).not.toHaveAttribute("title");
     });
 
     test("renders estimates when financials are missing", () => {
@@ -445,7 +535,7 @@ describe("Period", () => {
                     id: "period-1",
                     name: {year: "2026", type: "Q2"},
                     endingMonth: "2026-07",
-                    research: "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"saved research\"}]}]",
+                    contents: [{id: 3, date: "2026-07-14", content: "saved research", images: []}],
                 }}
                 ticker={"NVDA"}
                 stretch
@@ -457,11 +547,13 @@ describe("Period", () => {
 
         expect(screen.queryByRole("button", {name: "Edit Content"})).not.toBeInTheDocument();
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(container.querySelector("[data-period-scroll]")).not.toBeNull();
 
-        fireEvent.click(container.querySelector("[data-period-scroll]"));
+        // On a narrow screen an entry is edited in its own dialog, which names the day.
+        fireEvent.click(screen.getByText("saved research"));
 
         expect(screen.getByRole("dialog")).toBeInTheDocument();
-        expect(screen.getByTestId("content-editor-title")).toHaveTextContent("NVDA 26Q2");
+        expect(screen.getByTestId("content-editor-title")).toHaveTextContent("NVDA 26Q2 14.07.2026");
         expect(screen.getByRole("button", {name: "Save"})).toBeInTheDocument();
     });
 

@@ -137,12 +137,20 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
                         + "c.currency, "
                         + "c.sector, "
                         + "p.latest_ending_month, "
+                        + "p.period_count, "
+                        + "p.period_content_count, "
                         + "r.latest_record_date, "
                         + "t.latest_purchase_date, "
                         + "tag.value "
                         + "FROM Company c "
                         + "LEFT JOIN ("
-                        + "SELECT companyId, MAX(ending_month) AS latest_ending_month "
+                        + "SELECT companyId, MAX(ending_month) AS latest_ending_month, "
+                        // The editor's empty document counts as no content; it is what an
+                        // untouched period is left with once it has been opened and closed.
+                        + "COUNT(*) AS period_count, "
+                        + "SUM(CASE WHEN research IS NOT NULL AND research <> '' "
+                        + "AND research <> '[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]' "
+                        + "THEN 1 ELSE 0 END) AS period_content_count "
                         + "FROM Period GROUP BY companyId"
                         + ") p ON p.companyId = c.id "
                         + "LEFT JOIN ("
@@ -162,8 +170,8 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
         for (Object[] values : result) {
             Long companyId = ((Number) values[0]).longValue();
             CompanyWithStats company = companies.computeIfAbsent(companyId, ignored -> mapCompanyWithStats(values));
-            if (values[9] != null) {
-                company.getTags().add(asString(values[9]));
+            if (values[11] != null) {
+                company.getTags().add(asString(values[11]));
             }
         }
         return List.copyOf(companies.values());
@@ -215,8 +223,10 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
             company.setSector(Sector.valueOf(asString(values[5])));
         }
         company.setLatestPeriodEndingMonth(toYearMonth(values[6]));
-        company.setLatestRecordDate(toDate(values[7]));
-        company.setLatestPurchaseDate(toDate(values[8]));
+        company.setPeriodCount(toInt(values[7]));
+        company.setPeriodsWithContentCount(toInt(values[8]));
+        company.setLatestRecordDate(toDate(values[9]));
+        company.setLatestPurchaseDate(toDate(values[10]));
         return company;
     }
 

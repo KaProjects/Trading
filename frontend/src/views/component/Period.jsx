@@ -8,17 +8,22 @@ import {formatDate, formatDecimals, formatError, formatMillions, formatMillionsR
 import {nextPeriod} from "../../service/PeriodService";
 import axios from "axios";
 import {backend} from "../../properties";
-import {ContentEditor} from "./ContentEditor";
+import {ContentDatePicker, PeriodContentList, defaultEntryDate} from "./PeriodContentList";
+import {PeriodContentImages} from "./PeriodContentImages";
 import {ContentEditorDialog} from "../../dialog/ContentEditorDialog";
 import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financials-plus.svg";
 import {ReactComponent as EpsEstimatesPlusIcon} from "../../assets/icons/estimates-plus-eps.svg";
 import {ReactComponent as RevenueEstimatesPlusIcon} from "../../assets/icons/estimates-plus-revenue.svg";
 import EditNoteIcon from "@mui/icons-material/EditNote";
+import PostAddIcon from "@mui/icons-material/PostAdd";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
 import {NUMERIC_FONT} from "./widgetLayout";
 import {tightPlus} from "./tightPlus";
+
+/** No pictures added, none crossed out. */
+const EMPTY_STAGED = {adds: [], removes: []}
 
 export function hasUnexpectedEndingMonth(period, previousPeriod) {
     const following = nextPeriod(previousPeriod)
@@ -33,7 +38,6 @@ export function hasUnexpectedEndingMonth(period, previousPeriod) {
 
 export const Period = ({period, ticker, previousPeriod, isLatest = true, periodPosition, periodCount, currency, setAlert, openDialog, openEditDialog, openEstimateDialog, openRevenueEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed, stretch}) => {
 
-    const [contentEditSignal, setContentEditSignal] = useState(0)
     const [openContentEditor, setOpenContentEditor] = useState(false)
     const contentScrollRef = useRef(null)
     const [moreContentBelow, setMoreContentBelow] = useState(false)
@@ -45,8 +49,13 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
         setMoreContentBelow(box.scrollTop + box.clientHeight < box.scrollHeight - 1)
     }, [])
 
-    const [research, setResearch] = useState(period.research)
-    const [researchVersion, setResearchVersion] = useState(0)
+    const [contents, setContents] = useState(period.contents ?? [])
+    // Pictures added or crossed out while an entry is being written. They wait here until the
+    // entry is saved, and are dropped with the text when the writing is cancelled.
+    const [staged, setStaged] = useState({})
+    const [editedEntry, setEditedEntry] = useState(null)
+    const [addingContent, setAddingContent] = useState(false)
+    const [newContentDate, setNewContentDate] = useState("")
 
     useEffect(() => {
         const box = contentScrollRef.current
@@ -65,7 +74,7 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
         observer.observe(box)
         if (box.firstElementChild) observer.observe(box.firstElementChild)
         return () => observer.disconnect()
-    }, [stretch, research, researchVersion, updateScrollHint])
+    }, [stretch, contents, updateScrollHint])
 
     const reportLabel = period.financial ? "reported: " : "report: "
     const reportValue = period.financial
@@ -141,23 +150,128 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
         return formatRevenueEstimateValue(value);
     }
 
-    function updateResearch(id, content) {
-        return axios.put(backend + "/period", {id: id, research: JSON.stringify(content)})
-            .then((response) => {})
-            .catch((error) => {
+    /**
+     * Research is saved against its date, which is what identifies it: writing a date the period
+     * already carries fills that entry in rather than adding another.
+     */
+    function saveContent(date, content) {
+        return axios.put(`${backend}/period/content/${period.id}`,
+                {date: date, content: JSON.stringify(content)})
+            .then(response => {
+                setContents(previous => {
+                    // The version makes the editor start again on what was saved - writing in
+                    // the dialog would otherwise leave the page showing the text it opened with.
+                    const written = response.data
+                    const before = previous.find(entry => entry.date === written.date)
+                    const saved = {...written, version: (before?.version ?? 0) + 1}
+                    // An entry emptied out stays on the page for the rest of the visit: having
+                    // just cleared it, one is as likely to write it again as to leave it. The
+                    // server leaves it out of the next load, so it is gone on the next visit.
+                    const others = previous.filter(entry => entry.date !== saved.date)
+                    return [...others, saved]
+                        .sort((first, second) => first.date.localeCompare(second.date))
+                })
+            })
+            .catch(error => {
                 const formatted = formatError(error)
                 setAlert(formatted)
                 return formatted
             })
     }
 
-    async function saveResearch(content) {
-        const error = await updateResearch(period.id, content)
-        if (error) return error
+    /**
+     * A new day is written where days are written: in its own dialog on a narrow screen, and at
+     * the end of the list on a wide one. Either way it opens on a date inside the period.
+     */
+    function startAddingContent() {
+        setNewContentDate(defaultEntryDate(period))
+        if (stretch) {
+            setEditedEntry(null)
+            setOpenContentEditor(true)
+        } else {
+            setAddingContent(true)
+        }
+    }
 
-        setResearch(JSON.stringify(content))
-        setResearchVersion(version => version + 1)
-        return null
+    const stagedFor = contentId => staged[contentId] ?? EMPTY_STAGED
+
+    function stageImage(contentId, file) {
+        const pending = {key: `${Date.now()}-${file.name}`, file: file, url: URL.createObjectURL(file)}
+        setStaged(previous => {
+            const current = previous[contentId] ?? EMPTY_STAGED
+            return {...previous, [contentId]: {...current, adds: [...current.adds, pending]}}
+        })
+    }
+
+    function dropStagedImage(contentId, key) {
+        setStaged(previous => {
+            const current = previous[contentId] ?? EMPTY_STAGED
+            current.adds.filter(add => add.key === key).forEach(add => URL.revokeObjectURL(add.url))
+            return {...previous, [contentId]: {...current, adds: current.adds.filter(add => add.key !== key)}}
+        })
+    }
+
+    /** Crossing a picture out is not deleting it; that waits for the entry to be saved. */
+    function markImageRemoved(contentId, imageId, removed) {
+        setStaged(previous => {
+            const current = previous[contentId] ?? EMPTY_STAGED
+            return {
+                ...previous,
+                [contentId]: {
+                    ...current,
+                    removes: removed
+                        ? [...current.removes, imageId]
+                        : current.removes.filter(id => id !== imageId),
+                },
+            }
+        })
+    }
+
+    function discardStaged(contentId) {
+        setStaged(previous => {
+            const current = previous[contentId]
+            if (!current) return previous
+
+            current.adds.forEach(add => URL.revokeObjectURL(add.url))
+            const next = {...previous}
+            delete next[contentId]
+            return next
+        })
+    }
+
+    /** Everything staged for one entry, written in one go. Returns an error, or nothing. */
+    async function commitStaged(contentId) {
+        const {adds, removes} = stagedFor(contentId)
+        if (adds.length === 0 && removes.length === 0) return null
+
+        try {
+            for (const imageId of removes) {
+                await axios.delete(`${backend}/period/content/image/${imageId}`)
+            }
+            const added = []
+            for (const add of adds) {
+                const data = new FormData()
+                data.append("file", add.file)
+                added.push((await axios.post(`${backend}/period/content/${contentId}/image`, data)).data)
+            }
+
+            setContents(previous => previous.map(entry => entry.id === contentId
+                ? {
+                    ...entry,
+                    // Newest first, the way they come back from the server.
+                    images: [
+                        ...added.reverse(),
+                        ...entry.images.filter(image => !removes.includes(image.id)),
+                    ],
+                }
+                : entry))
+            discardStaged(contentId)
+            return null
+        } catch (error) {
+            const formatted = formatError(error)
+            setAlert(formatted)
+            return formatted
+        }
     }
 
     const estimatesShown = !stretch && Boolean(period.estimate)
@@ -351,30 +465,33 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                 ref={stretch ? contentScrollRef : undefined}
                 data-period-scroll={stretch ? "true" : undefined}
                 onScroll={stretch ? updateScrollHint : undefined}
-                onClick={stretch ? () => setOpenContentEditor(true) : undefined}
                 sx={stretch
                     ? {
                         flex: "1 1 auto",
                         minHeight: 0,
                         overflow: "auto",
-                        cursor: "pointer",
-                        // The editor has to fill this box, otherwise its centred placeholder
-                        // centres itself in a one-line-tall element at the top.
                         display: "flex",
                         flexDirection: "column",
+                        paddingTop: "4px",
                     }
-                    : undefined}
+                    : {paddingTop: "4px"}}
             >
-                <ContentEditor
-                    key={researchVersion}
-                    content={research}
-                    update={(value) => updateResearch(period.id, value)}
-                    style={stretch
-                        ? {margin: "5px 5px 10px 0", flex: "1 1 auto", minHeight: 0}
-                        : {margin: "5px 5px 10px 0"}}
-                    locked={stretch}
-                    centerPlaceholder={stretch}
-                    editTrigger={stretch ? undefined : contentEditSignal}
+                <PeriodContentList
+                    period={period}
+                    entries={contents}
+                    compact={stretch}
+                    adding={addingContent}
+                    date={newContentDate}
+                    onDateChange={setNewContentDate}
+                    onAdded={() => setAddingContent(false)}
+                    onSave={saveContent}
+                    stagedFor={stagedFor}
+                    onStageImage={stageImage}
+                    onDropStagedImage={dropStagedImage}
+                    onMarkImageRemoved={markImageRemoved}
+                    onCommitImages={commitStaged}
+                    onDiscardImages={discardStaged}
+                    onOpenEditor={entry => {setEditedEntry(entry);setOpenContentEditor(true)}}
                 />
             </Box>
             {stretch && moreContentBelow &&
@@ -394,10 +511,39 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
             {footer}
             <ContentEditorDialog
                 open={openContentEditor}
-                content={research}
-                title={[ticker, formatPeriodName(period.name)].filter(Boolean).join(" ")}
-                handleClose={() => setOpenContentEditor(false)}
-                save={saveResearch}
+                content={editedEntry?.content}
+                title={[ticker, formatPeriodName(period.name),
+                    editedEntry ? formatDate(editedEntry.date) : "new content"]
+                    .filter(Boolean).join(" ")}
+                handleClose={() => {setOpenContentEditor(false);setEditedEntry(null)}}
+                save={content => saveContent(editedEntry ? editedEntry.date : newContentDate, content)}
+                onSubmit={() => {
+                    if (!editedEntry) {
+                        return newContentDate ? null : {title: "No date", message: "Pick a date first."}
+                    }
+                    return commitStaged(editedEntry.id)
+                }}
+                onCancel={() => editedEntry && discardStaged(editedEntry.id)}
+                header={!editedEntry &&
+                    <ContentDatePicker
+                        period={period}
+                        value={newContentDate}
+                        onChange={setNewContentDate}
+                    />
+                }
+                footer={editedEntry &&
+                    <PeriodContentImages
+                        images={contents.find(entry => entry.id === editedEntry.id)?.images ?? []}
+                        pending={stagedFor(editedEntry.id).adds}
+                        removedIds={stagedFor(editedEntry.id).removes}
+                        compact
+                        editing
+                        onAdd={file => stageImage(editedEntry.id, file)}
+                        onDropPending={key => dropStagedImage(editedEntry.id, key)}
+                        onMarkRemoved={(imageId, removed) =>
+                            markImageRemoved(editedEntry.id, imageId, removed)}
+                    />
+                }
             />
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
@@ -472,6 +618,11 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                         </Button>
                     </Tooltip>
                 }
+                <Tooltip title="Add Content" placement="left">
+                    <Button aria-label="Add Content" onClick={startAddingContent}>
+                        <PostAddIcon sx={{color: "success.main"}}/>
+                    </Button>
+                </Tooltip>
             </Stack>
         </BorderedSection>
     )

@@ -10,6 +10,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import org.kaleta.model.PriceIndicators;
+import org.kaleta.rest.dto.PeriodContentDto;
 import org.kaleta.model.Company;
 import org.kaleta.model.Periods;
 import org.kaleta.model.Record;
@@ -28,6 +29,7 @@ import org.kaleta.service.EstimateService;
 import org.kaleta.service.FirebaseService;
 import org.kaleta.service.ImportService;
 import org.kaleta.service.LatestService;
+import org.kaleta.service.PeriodContentService;
 import org.kaleta.service.PeriodService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
@@ -61,6 +63,8 @@ public class ResearchEndpoints
     EstimateService estimateService;
     @Inject
     TargetService targetService;
+    @Inject
+    PeriodContentService periodContentService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -104,12 +108,14 @@ public class ResearchEndpoints
                 .map(revenueEstimates::get)
                 .map(estimateService::createOverview)
                 .ifPresent(dto::setRevenueEstimateOverview);
+        Map<Long, List<PeriodContentDto>> contents = periodContentService.getByPeriodIds(periodIds);
         periodsModel.getPeriods().forEach(period -> {
             dto.addPeriod(
                     period,
                     estimates.get(period.getId()),
                     revenueEstimates.get(period.getId()),
-                    targetStats.getOrDefault(period.getId(), TargetStats.empty()));
+                    targetStats.getOrDefault(period.getId(), TargetStats.empty()),
+                    contents.getOrDefault(period.getId(), List.of()));
         });
 
         List<Record> records = recordService.getBy(companyId);

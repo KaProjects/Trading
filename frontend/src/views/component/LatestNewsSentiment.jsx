@@ -5,14 +5,22 @@ import {
 } from "@mui/material";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
-import React from "react";
+import React, {useEffect} from "react";
 import {formatDate} from "../../service/FormattingService";
 import {useData} from "../../service/BackendService";
 import {SentimentBreakdown} from "./SentimentBreakdown";
 
-export const LatestNewsSentiment = ({companyId, onOpen, expanded = false, sx}) => {
+/**
+ * @param onShown told whether this ends up showing anything, so a page built out of widgets can
+ *                tell whether it has any left.
+ */
+export const LatestNewsSentiment = ({companyId, onOpen, expanded = false, onShown, sx}) => {
     const {data, loaded, error} = useData(`/news-sentiment/company/${companyId}/latest`);
     const record = data?.record;
+
+    useEffect(() => {
+        if (loaded || error) onShown?.(Boolean(record));
+    }, [loaded, error, record, onShown]);
 
     if (!loaded) {
         if (error) return null;

@@ -117,6 +117,18 @@ INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1517, 2281
 INSERT INTO Company (id, ticker, currency) VALUES (2302, 'RNP', '$');
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1839, 2302, '2025-10-27 14:35:00', '1489.8');
 
+-- for CompanyEndpointsTest.getCompanyLists: one period with research, one with the editor's
+-- empty document, which does not count as content
+INSERT INTO Company (id, ticker, currency) VALUES (1567, 'PCNT', '$');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, research) VALUES (1468, 1567, '25Q1', '2503', '2025-05-01', '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"a note"}]}]}]');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (1469, 1567, '25Q2', '2506');
+UPDATE Period SET research = '[{"type":"paragraph","children":[{"text":""}]}]' WHERE id = 1469;
+
+-- for PeriodContentEndpointsTest: a period with no report date and nothing reported before it,
+-- so its content cannot be held to a window
+INSERT INTO Company (id, ticker, currency) VALUES (1568, 'WNOW', '$');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (1470, 1568, '25Q3', '2509');
+
 -- for TradeEndpointsTest.sell test
 INSERT INTO Company (id, ticker, currency) VALUES (1209, 'SELL', '$');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (2335, 1209, '1', '2020-03-15', '400', '10');
