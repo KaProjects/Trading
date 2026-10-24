@@ -1,3 +1,4 @@
+import {matchText} from "../../../testing/matchText";
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import axios from "axios";
 
@@ -83,7 +84,7 @@ describe("Period", () => {
         expect(summary).toHaveTextContent("Dividend12M");
         expect(summary).toHaveTextContent("Adj. EPS1.62");
         expect(screen.getByTestId("period-estimates"))
-            .toHaveTextContent("Estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76");
+            .toHaveTextContent("Eps estimates: - | - | - | - => 1.62 | 1.85 | - | 2.76");
         expect(screen.getByTestId("period-target-summary"))
             .toHaveTextContent("Targets: 3@(175-120)~146$");
         expect(screen.queryByRole("button", {name: "Add Financials"})).not.toBeInTheDocument();
@@ -288,7 +289,7 @@ describe("Period", () => {
         );
 
         expect(screen.getByTestId("period-estimates"))
-            .toHaveTextContent("Estimates: - | - | - | - => 1.62 | - | - | -");
+            .toHaveTextContent("Eps estimates: - | - | - | - => 1.62 | - | - | -");
         expect(screen.getByRole("button", {name: "Add Financials"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Add EPS Estimates"})).toBeInTheDocument();
         expect(screen.getByRole("button", {name: "Manage Targets"})).toBeInTheDocument();
@@ -325,9 +326,9 @@ describe("Period", () => {
         );
 
         expect(screen.getByTestId("period-revenue-estimates"))
-            .toHaveTextContent("Revenues: 46.7B | 57B | 68.1B | 81.6B => 94.3B | 108B | - | -");
+            .toHaveTextContent("Rev. estimates: 46.7B | 57B | 68.1B | 81.6B => 94.3B | 108B | - | -");
         expect(screen.getByTestId("period-estimates"))
-            .toHaveTextContent("Estimates: - | - | - | - => 1.62 | - | - | -");
+            .toHaveTextContent("Eps estimates: - | - | - | - => 1.62 | - | - | -");
 
         fireEvent.click(screen.getByRole("button", {name: "Add Revenue Estimates"}));
         expect(openRevenueEstimateDialog).toHaveBeenCalledWith(expect.objectContaining({id: "period-1"}));
@@ -591,10 +592,10 @@ describe("Period", () => {
         );
 
         expect(screen.getByTestId("period-estimates"))
-            .toHaveTextContent("Estimates: 0.91 | 1.05 | - | 1.42 => 1.62 | 1.85 | - | 2.76");
+            .toHaveTextContent("Eps estimates: 0.91 | 1.05 | - | 1.42 => 1.62 | 1.85 | - | 2.76");
         expect(screen.getByText("(02.08.2026)")).toBeInTheDocument();
         expect(screen.getByText("(4.38)")).toBeInTheDocument();
-        expect(screen.getByText("(+12.5% | -3.3% | 0% | +4%)")).toBeInTheDocument();
+        expect(screen.getByText(matchText("(+12.5% | -3.3% | 0% | +4%)"))).toBeInTheDocument();
     });
 
     test("shows the report date from firebase for an unreported period", () => {

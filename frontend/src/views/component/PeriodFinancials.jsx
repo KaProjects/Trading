@@ -20,7 +20,8 @@ import {
     formatPeriodName,
     isNotAValue,
 } from "../../service/FormattingService";
-import {WIDGET_FIRST_COLUMN_WIDTH} from "./widgetLayout";
+import {NUMERIC_FONT, WIDGET_FIRST_COLUMN_WIDTH} from "./widgetLayout";
+import {tightPlus} from "./tightPlus";
 
 const headers = [
     "Period",
@@ -87,10 +88,12 @@ const FinancialSummaryItem = ({value, label, margin, indicator, expanded = false
             minWidth: first ? WIDGET_FIRST_COLUMN_WIDTH : undefined,
             flexShrink: 0,
         }}>
-            <Box sx={{color: "text.secondary", fontSize: 9, textAlign}}>
+            <Box sx={{...NUMERIC_FONT, color: "text.secondary", fontSize: 9, textAlign}}>
                 {formattedMargin ? `(${formattedMargin})` : "\u00a0"}
             </Box>
-            <Box sx={{fontWeight: 600, fontSize: 13, textAlign}}>{formatMillionsRounded(value)}</Box>
+            <Box sx={{...NUMERIC_FONT, fontWeight: 600, fontSize: 13, textAlign}}>
+                {formatMillionsRounded(value)}
+            </Box>
             <Box sx={{
                 display: expanded ? "block" : {xs: "none", sm: "block"},
                 color: "text.secondary",
@@ -99,7 +102,7 @@ const FinancialSummaryItem = ({value, label, margin, indicator, expanded = false
                 textAlign,
             }}>{label}</Box>
             {indicator &&
-                <Box sx={{color: "text.secondary", fontSize: 10, textAlign}}>{indicator}</Box>
+                <Box sx={{...NUMERIC_FONT, color: "text.secondary", fontSize: 10, textAlign}}>{indicator}</Box>
             }
         </Box>
     );
@@ -110,12 +113,16 @@ const FinancialTableCell = ({value, margin, yoy, qoq, fontSize}) => {
     const formattedQoq = formatPercent(qoq, true, 0);
     // Quarter over quarter first, then year over year: the nearer comparison reads first.
     const changesValue = formattedQoq || formattedYoy
-        ? (formattedQoq ? formattedQoq : "") + (formattedQoq && formattedYoy ? " / " : "") + (formattedYoy ? formattedYoy : "")
+        ? <>
+            {tightPlus(formattedQoq)}
+            {formattedQoq && formattedYoy ? " / " : ""}
+            {tightPlus(formattedYoy)}
+        </>
         : "";
     const annotationSize = fontSize - 5;
 
     return (
-        <TableCell sx={{textAlign: "center", fontSize}}>
+        <TableCell sx={{...NUMERIC_FONT, textAlign: "center", fontSize}}>
             {!isNotAValue(margin) ?
                 <Box sx={{display: "flex", flexDirection: "column"}}>
                     <Box sx={{fontSize: annotationSize, marginBottom: "-3px", color: "grey"}}>

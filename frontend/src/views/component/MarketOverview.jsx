@@ -2,7 +2,7 @@ import {Box} from "@mui/material";
 import TroubleshootIcon from "@mui/icons-material/Troubleshoot";
 import React from "react";
 import {formatDecimals, formatMillionsRounded} from "../../service/FormattingService";
-import {WIDGET_FIRST_COLUMN_WIDTH, WIDGET_ICON_GAP, WIDGET_ICON_SIZE} from "./widgetLayout";
+import {NUMERIC_FONT, WIDGET_FIRST_COLUMN_WIDTH, WIDGET_ICON_GAP, WIDGET_ICON_SIZE} from "./widgetLayout";
 
 // The value over its label, in the same sizes the financials and estimates widgets use, so a
 // row of market numbers reads exactly like a row of reported ones. The label is kept at every
@@ -14,7 +14,7 @@ const Item = ({label, value, first = false}) => (
         minWidth: first ? WIDGET_FIRST_COLUMN_WIDTH : undefined,
         flexShrink: 0,
     }}>
-        <Box sx={{fontWeight: 600, fontSize: 13, textAlign: "center"}}>{value}</Box>
+        <Box sx={{...NUMERIC_FONT, fontWeight: 600, fontSize: 13, textAlign: "center"}}>{value}</Box>
         <Box sx={{color: "text.secondary", mx: 0.5, marginTop: "-2px", fontSize: 11, textAlign: "center"}}>
             {label}
         </Box>

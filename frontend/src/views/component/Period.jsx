@@ -17,6 +17,8 @@ import EditNoteIcon from "@mui/icons-material/EditNote";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
+import {NUMERIC_FONT} from "./widgetLayout";
+import {tightPlus} from "./tightPlus";
 
 export function hasUnexpectedEndingMonth(period, previousPeriod) {
     const following = nextPeriod(previousPeriod)
@@ -93,25 +95,38 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
         return formatMillionsRounded(Number(value)) || "-"
     }
 
+    /**
+     * Figures in the text colour, everything that is not a figure in the label's grey: the bars
+     * between the windows carry no information, and at the same weight as the numbers they read
+     * like part of them.
+     */
+    function estimateFigures(values, format, separatorStyle = {color: "text.secondary"}) {
+        return values.map((value, index) => (
+            <React.Fragment key={index}>
+                {index > 0 && <Box component="span" sx={separatorStyle}>{" | "}</Box>}
+                {format(value)}
+            </React.Fragment>
+        ))
+    }
+
     function formatPastEstimates(estimate, format = formatEstimateValue) {
-        const past = [estimate.past4, estimate.past3, estimate.past2, estimate.past1]
-            .map(format)
-            .join(" | ")
-        return past + " => "
+        return estimateFigures([estimate.past4, estimate.past3, estimate.past2, estimate.past1], format)
     }
 
     function formatCurrentAndFutureEstimates(estimate, format = formatEstimateValue) {
-        const future = [estimate.next1, estimate.next2, estimate.next3]
-            .map(format)
-            .join(" | ")
-        return format(estimate.current) + " | " + future
+        return estimateFigures(
+            [estimate.current, estimate.next1, estimate.next2, estimate.next3],
+            format)
     }
 
     function formatEstimateChanges(estimate) {
-        const formatChange = (value) => formatPercent(value, true, 1) || "-";
-        return [estimate.currentChange, estimate.next1Change, estimate.next2Change, estimate.next3Change]
-            .map(formatChange)
-            .join(" | ");
+        const formatChange = (value) => tightPlus(formatPercent(value, true, 1) || "-");
+        // The whole row is already the one quiet grey, so the bars take its colour rather than
+        // the darker one they are given between the figures above.
+        return estimateFigures(
+            [estimate.currentChange, estimate.next1Change, estimate.next2Change, estimate.next3Change],
+            formatChange,
+            {})
     }
 
     function formatEstimateDate(datetime) {
@@ -155,6 +170,121 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
     // Whatever of the estimates and the targets a period has sits in one block under the research.
     const footerShown = estimatesShown || revenueEstimatesShown || targetSummaryShown
 
+    const footerLineStyle = {...NUMERIC_FONT, color: "text.primary", fontSize: 13}
+    const footerLabelStyle = {...footerLineStyle, color: "text.secondary"}
+    const footerNoteStyle = {
+        ...NUMERIC_FONT,
+        color: "text.disabled",
+        fontStyle: "italic",
+        fontSize: 11,
+        marginTop: "-2px",
+    }
+    /**
+     * Both rows of an estimates block are cells of one grid, which is what puts the bracketed
+     * changes under the arrow rather than near it: the arrow is a column of its own, and the
+     * changes start where that column starts. The past figures and the arrow are dropped on a
+     * narrow screen, where their columns then take no width at all.
+     */
+    const footerRowStyle = {
+        cursor: "pointer",
+        display: "grid",
+        gridTemplateColumns: "max-content max-content max-content",
+        alignItems: "baseline",
+        textAlign: "left",
+    }
+
+    function estimatesBlock({testId, ariaLabel, label, estimate, onOpen, format, formatPastTotal}) {
+        const hiddenWhenNarrow = {display: {xs: "none", sm: "block"}}
+
+        return (
+            <Box
+                data-testid={`${testId}-view`}
+                aria-label={ariaLabel}
+                role="button"
+                tabIndex={0}
+                onClick={onOpen}
+                sx={footerRowStyle}
+            >
+                <Box data-testid={testId} sx={{display: "contents"}}>
+                    <Box sx={footerLabelStyle}>{label}</Box>
+                    {/* The space in front of the arrow is a hard one and belongs to this cell, so
+                        the next column starts on the arrow glyph, not on the gap before it. */}
+                    <Box sx={{...footerLineStyle, ...hiddenWhenNarrow}}>
+                        {formatPastEstimates(estimate, format)}
+                        {"\u00a0"}
+                    </Box>
+                    {/* The arrow opens this cell, so the bracketed changes below - the cell under
+                        it - begin on exactly the same column. */}
+                    <Box sx={footerLineStyle}>
+                        <Box component="span" sx={{color: "text.secondary", display: {xs: "none", sm: "inline"}}}>
+                            {"=>\u00a0"}
+                        </Box>
+                        {formatCurrentAndFutureEstimates(estimate, format)}
+                    </Box>
+                </Box>
+                <Box sx={footerNoteStyle}>({formatEstimateDate(estimate.datetime)})</Box>
+                <Box sx={{...footerNoteStyle, ...hiddenWhenNarrow, justifySelf: "center"}}>
+                    ({formatPastTotal(estimate.pastTotal)})
+                </Box>
+                <Box sx={footerNoteStyle}>({formatEstimateChanges(estimate)})</Box>
+            </Box>
+        )
+    }
+
+    const financialSummary = period.financial &&
+        <PeriodFinancialSummary
+            financial={period.financial}
+            shares={period.shares}
+            priceHigh={period.priceHigh}
+            priceLow={period.priceLow}
+            currency={currency}
+            compact={stretch}
+        />
+
+    const footer = footerShown && (
+        <Box
+            data-testid="period-footer"
+            sx={{
+                // The rule the reported financials draw under themselves, drawn again here:
+                // it closes the research off from the figures that follow it.
+                marginTop: "4px",
+                paddingTop: "4px",
+                borderTop: "1px solid",
+                borderColor: "divider",
+            }}
+        >
+        {estimatesShown && estimatesBlock({
+            testId: "period-estimates",
+            ariaLabel: "Add EPS Estimates",
+            label: "Eps estimates:\u00a0",
+            estimate: period.estimate,
+            onOpen: () => openEstimateDialog?.(period),
+            formatPastTotal: formatEstimatePastTotal,
+        })}
+        {revenueEstimatesShown && estimatesBlock({
+            testId: "period-revenue-estimates",
+            ariaLabel: "Add Revenue Estimates",
+            label: "Rev. estimates:\u00a0",
+            estimate: period.revenueEstimate,
+            onOpen: () => openRevenueEstimateDialog?.(period),
+            format: formatRevenueEstimateValue,
+            formatPastTotal: formatRevenueEstimatePastTotal,
+        })}
+        {targetSummaryShown &&
+            <PeriodTargetSummary
+                stats={period.targetStats}
+                currency={currency}
+                onOpen={() => openTargetDialog?.(period)}
+            />
+        }
+        </Box>
+    )
+
+
+    // The same two faces the reported financials use: a line of figures in the page's size with
+    // tabular digits, and the bracketed detail under it in the smaller italic the per-share and
+    // change figures are set in.
+
     return (
         <BorderedSection
             title={
@@ -194,16 +324,7 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
             stretch={stretch}
             highlightTitle={stretch}
         >
-            {period.financial &&
-                <PeriodFinancialSummary
-                    financial={period.financial}
-                    shares={period.shares}
-                    priceHigh={period.priceHigh}
-                    priceLow={period.priceLow}
-                    currency={currency}
-                    compact={stretch}
-                />
-            }
+            {financialSummary}
 
             <Box sx={{
                 // A list's default 40px indent pushes the research well clear of the card edge.
@@ -257,87 +378,7 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                 />
             }
             </Box>
-            {footerShown &&
-                <Box
-                    data-testid="period-footer"
-                    sx={{
-                        // The rule the reported financials draw under themselves, drawn again here:
-                        // it closes the research off from the figures that follow it.
-                        marginTop: "4px",
-                        paddingTop: "4px",
-                        borderTop: "1px solid",
-                        borderColor: "divider",
-                    }}
-                >
-                {!stretch && period.estimate &&
-                    <Box
-                        data-testid="period-estimates-view"
-                        aria-label="Add EPS Estimates"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => openEstimateDialog?.(period)}
-                        sx={{cursor: "pointer"}}
-                    >
-                        <Typography data-testid="period-estimates" sx={{color: 'text.secondary', fontSize: 14}}>
-                            {"Estimates: "}
-                            <Box component="span" sx={{display: {xs: "none", sm: "inline"}}}>
-                                {formatPastEstimates(period.estimate)}
-                            </Box>
-                            {formatCurrentAndFutureEstimates(period.estimate)}
-                        </Typography>
-                        <Box sx={{
-                            color: 'text.secondary',
-                            display: "grid",
-                            gridTemplateColumns: {xs: "88px max-content", sm: "88px 94px max-content"},
-                            columnGap: "8px",
-                            fontSize: 11,
-                            marginTop: "-2px",
-                        }}>
-                            <Box>({formatEstimateDate(period.estimate.datetime)})</Box>
-                            <Box sx={{display: {xs: "none", sm: "flex"}, justifyContent: "center"}}>({formatEstimatePastTotal(period.estimate.pastTotal)})</Box>
-                            <Box sx={{marginLeft: {xs: 0, sm: "20px"}}}>({formatEstimateChanges(period.estimate)})</Box>
-                        </Box>
-                    </Box>
-                }
-                {!stretch && period.revenueEstimate &&
-                    <Box
-                        data-testid="period-revenue-estimates-view"
-                        aria-label="Add Revenue Estimates"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => openRevenueEstimateDialog?.(period)}
-                        sx={{cursor: "pointer"}}
-                    >
-                        <Typography data-testid="period-revenue-estimates" sx={{color: 'text.secondary', fontSize: 14}}>
-                            {"Revenues: "}
-                            <Box component="span" sx={{display: {xs: "none", sm: "inline"}}}>
-                                {formatPastEstimates(period.revenueEstimate, formatRevenueEstimateValue)}
-                            </Box>
-                            {formatCurrentAndFutureEstimates(period.revenueEstimate, formatRevenueEstimateValue)}
-                        </Typography>
-                        <Box sx={{
-                            color: 'text.secondary',
-                            display: "grid",
-                            gridTemplateColumns: {xs: "88px max-content", sm: "88px 94px max-content"},
-                            columnGap: "8px",
-                            fontSize: 11,
-                            marginTop: "-2px",
-                        }}>
-                            <Box>({formatEstimateDate(period.revenueEstimate.datetime)})</Box>
-                            <Box sx={{display: {xs: "none", sm: "flex"}, justifyContent: "center"}}>({formatRevenueEstimatePastTotal(period.revenueEstimate.pastTotal)})</Box>
-                            <Box sx={{marginLeft: {xs: 0, sm: "20px"}}}>({formatEstimateChanges(period.revenueEstimate)})</Box>
-                        </Box>
-                    </Box>
-                }
-                {targetSummaryShown &&
-                    <PeriodTargetSummary
-                        stats={period.targetStats}
-                        currency={currency}
-                        onOpen={() => openTargetDialog?.(period)}
-                    />
-                }
-                </Box>
-            }
+            {footer}
             <ContentEditorDialog
                 open={openContentEditor}
                 content={research}

@@ -7,7 +7,8 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import React from "react";
 import {ReactComponent as EstimatesIcon} from "../../assets/icons/estimates.svg";
 import {formatDecimals, formatMillionsRounded, formatMultiple, formatPercent} from "../../service/FormattingService";
-import {WIDGET_FIRST_COLUMN_WIDTH} from "./widgetLayout";
+import {NUMERIC_FONT, WIDGET_FIRST_COLUMN_WIDTH} from "./widgetLayout";
+import {tightPlus} from "./tightPlus";
 
 const windows = [
     {key: "ttm", label: "ttm"},
@@ -33,10 +34,10 @@ const EstimateSummaryItem = ({window = {}, label, format, multiple, expanded = f
             minWidth: first ? WIDGET_FIRST_COLUMN_WIDTH : undefined,
             flexShrink: 0,
         }}>
-            <Box sx={{color: "text.secondary", fontSize: 9, minHeight: "13px", marginBottom: "-3px", textAlign}}>
-                {change ? `(${change})` : "\u00a0"}
+            <Box sx={{...NUMERIC_FONT, color: "text.secondary", fontSize: 9, minHeight: "13px", marginBottom: "-3px", textAlign}}>
+                {change ? <>({tightPlus(change)})</> : "\u00a0"}
             </Box>
-            <Box sx={{fontWeight: 600, fontSize: 13, textAlign}}>
+            <Box sx={{...NUMERIC_FONT, fontWeight: 600, fontSize: 13, textAlign}}>
                 {format(window.value)}
             </Box>
             <Box sx={{
@@ -50,7 +51,7 @@ const EstimateSummaryItem = ({window = {}, label, format, multiple, expanded = f
                 {label}
             </Box>
             {indicator &&
-                <Box sx={{color: "text.secondary", fontSize: 10, textAlign}}>{indicator}</Box>
+                <Box sx={{...NUMERIC_FONT, color: "text.secondary", fontSize: 10, textAlign}}>{indicator}</Box>
             }
         </Box>
     );
@@ -60,8 +61,8 @@ const EstimateYearOverYearChange = ({value}) => {
     const change = formatPercent(value, true, 1);
     return (
         <Box sx={{width: "44px", flexShrink: 0}}>
-            <Box sx={{color: "text.secondary", fontSize: 9, minHeight: "13px", marginBottom: "-3px", textAlign: "center", whiteSpace: "nowrap"}}>
-                {change ? `(${change})` : "\u00a0"}
+            <Box sx={{...NUMERIC_FONT, color: "text.secondary", fontSize: 9, minHeight: "13px", marginBottom: "-3px", textAlign: "center", whiteSpace: "nowrap"}}>
+                {change ? <>({tightPlus(change)})</> : "\u00a0"}
             </Box>
         </Box>
     );

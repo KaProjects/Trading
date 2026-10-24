@@ -1,3 +1,4 @@
+import {matchText} from "../../../testing/matchText";
 import {fireEvent, render, screen} from "@testing-library/react";
 import {FinancialsTable, PeriodFinancials} from "../PeriodFinancials";
 
@@ -215,8 +216,8 @@ describe("PeriodFinancials", () => {
         expect(screen.getByText("FCF")).toBeInTheDocument();
         expect(screen.getByText("25FY")).toBeInTheDocument();
         // Quarter over quarter first, then year over year.
-        expect(screen.getByText("+20% / +50%")).toBeInTheDocument();
-        expect(screen.getByText("+5% / +10%")).toBeInTheDocument();
+        expect(screen.getByText(matchText("+20% / +50%"))).toBeInTheDocument();
+        expect(screen.getByText(matchText("+5% / +10%"))).toBeInTheDocument();
     });
 
     test("shows a dash when a dividend is zero or absent", () => {

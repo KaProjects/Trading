@@ -1,18 +1,8 @@
 import {Box} from "@mui/material";
 import React from "react";
 import {formatDecimals, formatMillions, formatPercent, isNotAValue} from "../../service/FormattingService";
-
-/**
- * Figures use the page's own face with tabular figures switched on, which fixes every digit to
- * the same width so a column lines up on the decimal point. A monospaced family would do that
- * too, but it also widens the separators - a full character cell for a decimal point or a comma
- * pushes the digits apart and makes the numbers look gappy. Tabular figures leave the
- * punctuation at its natural, narrower width.
- */
-const NUMERIC = {
-    fontVariantNumeric: "tabular-nums",
-    fontFeatureSettings: '"tnum" 1',
-};
+import {NUMERIC_FONT as NUMERIC} from "./widgetLayout";
+import {tightPlus} from "./tightPlus";
 
 const perShare = (value, shares) => {
     if (isNotAValue(value) || isNotAValue(shares) || Number(shares) === 0) return null;
@@ -38,11 +28,11 @@ const Changes = ({metric}) => {
             fontStyle: "italic",
             paddingLeft: "12px",
         }}>
-            <Box component="span" sx={{color: changeColor(metric?.qoq)}}>{qoq}</Box>
+            <Box component="span" sx={{color: changeColor(metric?.qoq)}}>{tightPlus(qoq)}</Box>
             {qoq && yoy &&
                 <Box component="span" sx={{color: "text.disabled"}}>/</Box>
             }
-            <Box component="span" sx={{color: changeColor(metric?.yoy)}}>{yoy}</Box>
+            <Box component="span" sx={{color: changeColor(metric?.yoy)}}>{tightPlus(yoy)}</Box>
         </Box>
     );
 };

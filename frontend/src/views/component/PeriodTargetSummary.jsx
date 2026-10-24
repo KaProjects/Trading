@@ -1,6 +1,7 @@
-import {ButtonBase} from "@mui/material";
+import {Box, ButtonBase} from "@mui/material";
 import React from "react";
 import {formatTargetStats} from "../../service/FormattingService";
+import {NUMERIC_FONT} from "./widgetLayout";
 
 export const PeriodTargetSummary = ({stats, currency, onOpen}) => {
     const summary = formatTargetStats(stats);
@@ -12,14 +13,18 @@ export const PeriodTargetSummary = ({stats, currency, onOpen}) => {
             aria-label="Targets"
             onClick={onOpen}
             disabled={!onOpen}
+            /* Set like the reported financials beside it: the label in the secondary colour, the
+               figures in the primary one with tabular digits. */
             sx={{
+                ...NUMERIC_FONT,
                 display: "flex",
                 justifyContent: "flex-start",
-                color: "text.secondary",
-                fontSize: 14,
+                color: "text.primary",
+                fontSize: 13,
             }}
         >
-            Targets: {summary}{currency}
+            <Box component="span" sx={{color: "text.secondary"}}>Targets:&nbsp;</Box>
+            {summary}{currency}
         </ButtonBase>
     );
 };

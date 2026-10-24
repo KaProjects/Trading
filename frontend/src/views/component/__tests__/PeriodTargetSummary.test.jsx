@@ -11,7 +11,7 @@ describe("PeriodTargetSummary", () => {
             />
         );
 
-        expect(screen.getByText("Targets: 5@(175-120)~146€")).toBeInTheDocument();
+        expect(screen.getByTestId("period-target-summary")).toHaveTextContent("Targets: 5@(175-120)~146€");
     });
 
     test("uses one decimal below ten and whole numbers from ten", () => {
@@ -22,7 +22,7 @@ describe("PeriodTargetSummary", () => {
             />
         );
 
-        expect(screen.getByText("Targets: 3@(10-9.4)~9.8$")).toBeInTheDocument();
+        expect(screen.getByTestId("period-target-summary")).toHaveTextContent("Targets: 3@(10-9.4)~9.8$");
     });
 
     test("does not render when the period has no persisted targets", () => {

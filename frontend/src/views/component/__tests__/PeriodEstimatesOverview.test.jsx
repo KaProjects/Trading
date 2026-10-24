@@ -1,3 +1,4 @@
+import {matchText} from "../../../testing/matchText";
 import {fireEvent, render, screen} from "@testing-library/react";
 import {PeriodEstimatesOverview, formatRevenueEstimateAmount} from "../PeriodEstimatesOverview";
 
@@ -23,10 +24,10 @@ describe("PeriodEstimatesOverview", () => {
         expect(screen.getByText("next 3")).toBeInTheDocument();
         expect(screen.getByText("10")).toBeInTheDocument();
         expect(screen.getByText("14")).toBeInTheDocument();
-        expect(screen.getByText("(+40%)")).toBeInTheDocument();
-        expect(screen.getByText("(+28.6%)")).toBeInTheDocument();
-        expect(screen.getByText("(+18.2%)")).toBeInTheDocument();
-        expect(screen.getByText("(+160%)")).toBeInTheDocument();
+        expect(screen.getByText(matchText("(+40%)"))).toBeInTheDocument();
+        expect(screen.getByText(matchText("(+28.6%)"))).toBeInTheDocument();
+        expect(screen.getByText(matchText("(+18.2%)"))).toBeInTheDocument();
+        expect(screen.getByText(matchText("(+160%)"))).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", {name: "Open estimates"}));
         expect(onOpen).toHaveBeenCalled();
     });
@@ -63,7 +64,7 @@ describe("PeriodEstimatesOverview", () => {
         }}/>);
 
         expect(screen.getAllByText("-")).toHaveLength(5);
-        expect(screen.queryByText("(+160%)")).not.toBeInTheDocument();
+        expect(screen.queryByText(matchText("(+160%)"))).not.toBeInTheDocument();
     });
 
     test("prints a multiple under every window", () => {
