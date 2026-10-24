@@ -11,7 +11,7 @@ import {
     Grid,
     IconButton,
 } from "@mui/material";
-import React, {useEffect, useRef, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {Loader} from "./component/Loader";
 import {backend} from "../properties";
@@ -41,6 +41,7 @@ import {FinancialsDialog} from "../dialog/FinancialsDialog";
 import {EarningsProjectionsDialog} from "../dialog/EarningsProjectionsDialog";
 import {RevenueProjectionsDialog} from "../dialog/RevenueProjectionsDialog";
 import {AddRecordDialog} from "../dialog/AddRecordDialog";
+import {ImportedTargetsAlerts} from "./component/ImportedTargetsAlerts";
 import {ImportPeriodDialog} from "../dialog/ImportPeriodDialog";
 import {AddEstimateDialog} from "../dialog/AddEstimateDialog";
 import {TargetDialog} from "../dialog/TargetDialog";
@@ -144,6 +145,7 @@ export const Research = props => {
     const [tagSuggestions, setTagSuggestions] = useState([])
     const [unavailableTradingViewSymbol, setUnavailableTradingViewSymbol] = useState(null)
     const [targetCandidateCounts, setTargetCandidateCounts] = useState({})
+    const [importedTargetGroups, setImportedTargetGroups] = useState([])
     const [failedTargetCandidatePeriods, setFailedTargetCandidatePeriods] = useState(new Set())
     // On a narrow screen the page is paged vertically: 0 is the company overview - the stack
     // of market, financials, estimate and analysis widgets - and 1..n are the periods. Each
@@ -152,6 +154,8 @@ export const Research = props => {
     const [estimatesTab, setEstimatesTab] = useState("eps")
     const previousCompanyId = useRef(null)
     const latestRequestId = useRef(0)
+    // One attempt per company: the import is repeated only when the page is opened again.
+    const autoImportedCompanyId = useRef(null)
 
     useCloseOnNavigation(() => {
         setOpenAddRecordDialog(false)
@@ -223,6 +227,8 @@ export const Research = props => {
                 setTargetCandidateCounts({})
                 setFailedTargetCandidatePeriods(new Set())
                 setNarrowPageIndex(0)
+                setImportedTargetGroups([])
+                autoImportedCompanyId.current = null
             }
 
             axios.get(backend + "/research/" + props.companySelectorValue.id + (refresh ? "?refresh" + refresh : ""))
@@ -275,6 +281,12 @@ export const Research = props => {
                         companyId,
                         importablePeriodsCount,
                         importableTargetsCount)
+
+                    // On its own chain: an import that fails is not a counts failure, and must
+                    // not be handled as one.
+                    if (importableTargetsCount > 0) {
+                        Promise.resolve().then(() => autoImportTargets(companyId, requestId))
+                    }
                 }
             })
             .catch(() => {
@@ -282,6 +294,35 @@ export const Research = props => {
 
                 setTargetCandidateCounts({})
                 setFailedTargetCandidatePeriods(new Set(periods.map(period => String(period.id))))
+            })
+    }
+
+    const dismissImportedTargets = useCallback(periodId => {
+        setImportedTargetGroups(groups => groups.filter(group => group.periodId !== periodId))
+    }, [])
+
+    /**
+     * Targets that fall inside a period's window are the period's, whoever imports them, so the
+     * page takes them in on its own rather than leaving the same clicks to be made in the targets
+     * dialog for every period. Periods the targets cannot be mapped to are left alone, and the
+     * backend imports nothing at all when anything is unreadable.
+     */
+    function autoImportTargets(companyId, requestId) {
+        if (autoImportedCompanyId.current === companyId) return
+        autoImportedCompanyId.current = companyId
+
+        axios.post(`${backend}/target/company/${companyId}/sync/auto`)
+            .then(response => {
+                if (requestId !== latestRequestId.current) return
+
+                const groups = response.data?.periods ?? []
+                if (groups.length === 0) return
+
+                setImportedTargetGroups(groups)
+                triggerRefresh()
+            })
+            .catch(() => {
+                // Nothing was taken in, and the targets dialog still offers them by hand.
             })
     }
 
@@ -963,6 +1004,11 @@ export const Research = props => {
                     </Grid>
                 }
                 <SnackbarErrorAlert error={alert} open={alert !== null} onClose={() => setAlert(null)}/>
+                <ImportedTargetsAlerts
+                    groups={importedTargetGroups}
+                    currency={data?.company?.currency}
+                    onDismiss={dismissImportedTargets}
+                />
             </Box>
         </>
     )

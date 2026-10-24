@@ -12,6 +12,7 @@ import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.Target;
 import org.kaleta.rest.dto.ActionableCompanyDto;
+import org.kaleta.rest.dto.TargetAutoImportDto;
 import org.kaleta.rest.dto.TargetCandidatesDto;
 import org.kaleta.rest.dto.TargetCreateDto;
 import org.kaleta.rest.dto.TargetDto;
@@ -27,6 +28,7 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -248,6 +250,73 @@ public class TargetService
             counts.put(period.getId(), candidates(period, window, persisted, firebaseTargets).size());
         }
         return new TargetSyncCountsDto(counts, failedPeriodIds, warnings);
+    }
+
+    /**
+     * Takes in every target the company's periods can be mapped to, without asking. This is the
+     * same import the targets dialog performs, for all periods at once and with nothing
+     * discarded: a target that falls outside every period's window is left in Firebase, as it is
+     * when the import is driven by hand.
+     *
+     * Nothing is imported while anything is wrong - an unreadable period window or a Firebase
+     * read that came back with warnings - because a partial set read as complete is worse than
+     * none: the user would see a notification and assume the rest had been considered.
+     */
+    public TargetAutoImportDto autoImportByCompany(Long companyId)
+    {
+        String ticker = companyService.findEntity(companyId).getTicker();
+        List<Period> periods = periodDao.list(companyId);
+        WindowResult windowResult = computeWindows(periods);
+        List<String> warnings = new ArrayList<>(windowResult.warnings());
+        if (!warnings.isEmpty() || windowResult.windows().isEmpty()) {
+            return new TargetAutoImportDto(List.of(), warnings);
+        }
+
+        FirebaseService.TargetsResult firebaseResult = firebaseService.getTargets(ticker);
+        warnings.addAll(firebaseResult.warnings());
+        if (!warnings.isEmpty()) {
+            return new TargetAutoImportDto(List.of(), warnings);
+        }
+
+        List<TargetData> firebaseTargets = targetData(ticker, firebaseResult.targets(), warnings);
+        if (!warnings.isEmpty() || firebaseTargets.isEmpty()) {
+            return new TargetAutoImportDto(List.of(), warnings);
+        }
+
+        Map<Long, Set<TargetIdentity>> persistedByPeriod = new LinkedHashMap<>();
+        for (Target target : targetDao.listByPeriodIds(periods.stream().map(Period::getId).toList())) {
+            persistedByPeriod
+                    .computeIfAbsent(target.getPeriod().getId(), ignored -> new LinkedHashSet<>())
+                    .add(TargetIdentity.from(target));
+        }
+
+        List<TargetAutoImportDto.Period> imported = new ArrayList<>();
+        for (Period period : periods.stream()
+                .sorted(Comparator.comparing(Period::getName).reversed())
+                .toList()) {
+            PeriodDateWindowService.DateWindow window = windowResult.windows().get(period.getId());
+            if (window == null) continue;
+
+            List<Target> candidates = candidates(
+                    period,
+                    window,
+                    persistedByPeriod.getOrDefault(period.getId(), Set.of()),
+                    firebaseTargets);
+            if (candidates.isEmpty()) continue;
+
+            targetDao.createAll(candidates);
+            imported.add(new TargetAutoImportDto.Period(
+                    period.getId(),
+                    period.getName().toString(),
+                    candidates.stream()
+                            .map(target -> new TargetAutoImportDto.Target(
+                                    target.getDate().toString(),
+                                    target.getInstitution(),
+                                    target.getPrice(),
+                                    target.getRating()))
+                            .toList()));
+        }
+        return new TargetAutoImportDto(imported, warnings);
     }
 
     public TargetCandidatesDto getImportCandidates(Long periodId)

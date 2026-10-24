@@ -59,6 +59,13 @@ public class TargetEndpoints
         return Response.ok(targetService.countImportCandidatesByCompany(companyId)).build();
     }
 
+    @POST
+    @Path("/company/{companyId}/sync/auto")
+    public Response autoImport(@NotNull @ValidId @PathParam("companyId") Long companyId)
+    {
+        return Response.ok(targetService.autoImportByCompany(companyId)).build();
+    }
+
     @GET
     @Path("/{periodId}/sync/count")
     public Response countImportCandidates(

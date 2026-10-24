@@ -255,8 +255,10 @@ function createResearchData(overrides = {}) {
 describe("Research", () => {
     beforeEach(() => {
         axios.get.mockReset();
+        axios.post.mockReset();
         axios.put.mockReset();
         axios.delete.mockReset();
+        axios.post.mockResolvedValue({data: {periods: [], warnings: []}});
         mockFormatError.mockReset();
         mockUseLocation.mockReturnValue({pathname: "/research", search: ""});
     });
@@ -909,6 +911,58 @@ describe("Research", () => {
         expect(screen.queryByText("Some expected target data could not be loaded")).not.toBeInTheDocument();
         expect(screen.queryByText("Firebase target data was only partially available")).not.toBeInTheDocument();
         expect(axios.get).toHaveBeenCalledWith("/api/target/company/company-1/sync/counts");
+    });
+
+    test("takes in the targets the periods can be mapped to as soon as the page is open", async () => {
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({data: {counts: {"period-1": 2}, failedPeriodIds: []}})
+            : Promise.resolve({data: createResearchData()}));
+        axios.post.mockResolvedValue({data: {
+            periods: [{
+                periodId: "period-1",
+                periodName: "25Q1",
+                targets: [
+                    {date: "2025-03-20", institution: "Alpha Research", price: 180, rating: "Buy"},
+                    {date: "2025-03-21", institution: "Beta Capital", price: 192.5, rating: "Hold"},
+                ],
+            }],
+            warnings: [],
+        }});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await waitFor(() => expect(axios.post)
+            .toHaveBeenCalledWith("/api/target/company/company-1/sync/auto"));
+
+        // One card for the period, naming every institution it brought in.
+        expect(await screen.findByText("New targets for 25Q1")).toBeInTheDocument();
+        expect(screen.getByText("Alpha Research")).toBeInTheDocument();
+        expect(screen.getByText("180.00$")).toBeInTheDocument();
+        expect(screen.getByText("Beta Capital")).toBeInTheDocument();
+        expect(screen.getByText("192.50$")).toBeInTheDocument();
+    });
+
+    test("leaves the targets alone when there is nothing to take", async () => {
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({data: {counts: {"period-1": 0, "period-2": 0}, failedPeriodIds: []}})
+            : Promise.resolve({data: createResearchData()}));
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        expect(await screen.findByText("target-candidates:period-1:0:ok")).toBeInTheDocument();
+        expect(axios.post).not.toHaveBeenCalled();
+        expect(screen.queryByTestId("imported-targets-alerts")).not.toBeInTheDocument();
+    });
+
+    test("does not import again while the candidate counts cannot be trusted", async () => {
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({data: {counts: {"period-1": 3}, failedPeriodIds: ["period-2"]}})
+            : Promise.resolve({data: createResearchData()}));
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        expect(await screen.findByText("target-candidates:period-2:0:failed")).toBeInTheDocument();
+        expect(axios.post).not.toHaveBeenCalled();
     });
 
     test("updates the actionable list entry from the loaded research data", async () => {

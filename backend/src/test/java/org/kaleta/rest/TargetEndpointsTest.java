@@ -12,6 +12,7 @@ import org.kaleta.model.FirebaseCompany;
 import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.api.TargetDao;
 import org.kaleta.persistence.entity.Target;
+import org.kaleta.rest.dto.TargetAutoImportDto;
 import org.kaleta.rest.dto.TargetCandidatesDto;
 import org.kaleta.rest.dto.TargetCreateDto;
 import org.kaleta.rest.dto.TargetDto;
@@ -42,7 +43,11 @@ import static org.kaleta.framework.Assert.delete400;
 import static org.kaleta.framework.Assert.deleteValidationError;
 import static org.kaleta.framework.Assert.get400;
 import static org.kaleta.framework.Assert.getValidationError;
+import static org.kaleta.framework.Assert.post400;
 import static org.kaleta.framework.Assert.postValidationError;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -350,6 +355,91 @@ class TargetEndpointsTest
         assertThat(secondSync.imported(), is(0));
 
         targetDao.delete(created.getId());
+    }
+
+    @Test
+    void autoImportByCompany()
+    {
+        when(firebaseService.getTargets("RCH")).thenReturn(new FirebaseService.TargetsResult(List.of(
+                firebaseTarget("2025-01-20", "Auto Reported Capital", "180"),
+                firebaseTarget("2025-03-20", "Auto Unreported Capital", "181"),
+                firebaseTarget("2025-03-21", "Auto Unreported Partners", "182"),
+                // Outside every period's window: no period to map it to, so it stays in Firebase.
+                firebaseTarget("2030-06-01", "Auto Unmapped Capital", "999")
+        ), List.of()));
+
+        TargetAutoImportDto result = given().when()
+                .post(PATH + "/company/" + COMPANY_ID + "/sync/auto")
+                .then().log().ifError()
+                .statusCode(Response.Status.OK.getStatusCode())
+                .extract().as(TargetAutoImportDto.class);
+
+        assertThat(result.warnings(), is(List.of()));
+        assertThat(result.periods(), hasSize(2));
+
+        // Newest period first, each one carrying only its own targets.
+        TargetAutoImportDto.Period unreported = result.periods().get(0);
+        assertThat(unreported.periodId(), is(UNREPORTED_PERIOD_ID));
+        assertThat(unreported.periodName(), is("25Q1"));
+        assertThat(unreported.targets().stream().map(TargetAutoImportDto.Target::institution).toList(),
+                is(List.of("Auto Unreported Capital", "Auto Unreported Partners")));
+        assertBigDecimals(unreported.targets().get(0).price(), new BigDecimal("181"));
+        assertThat(unreported.targets().get(0).rating(), is("Buy"));
+
+        TargetAutoImportDto.Period reported = result.periods().get(1);
+        assertThat(reported.periodId(), is(REPORTED_PERIOD_ID));
+        assertThat(reported.targets().stream().map(TargetAutoImportDto.Target::institution).toList(),
+                is(List.of("Auto Reported Capital")));
+
+        // The periods own them now, so nothing is left to import and a second run takes nothing.
+        TargetSyncCountsDto counts = given().when()
+                .get(PATH + "/company/" + COMPANY_ID + "/sync/counts")
+                .then().statusCode(Response.Status.OK.getStatusCode())
+                .extract().as(TargetSyncCountsDto.class);
+        assertThat(counts.counts(), is(Map.of(1338L, 0, REPORTED_PERIOD_ID, 0, UNREPORTED_PERIOD_ID, 0)));
+
+        TargetAutoImportDto second = given().when()
+                .post(PATH + "/company/" + COMPANY_ID + "/sync/auto")
+                .then().statusCode(Response.Status.OK.getStatusCode())
+                .extract().as(TargetAutoImportDto.class);
+        assertThat(second.periods(), is(List.of()));
+
+        // Nothing is discarded on the way: an unmapped target is left where it was.
+        verify(firebaseService, never()).deleteTarget(anyString(), any(), anyString(), any());
+
+        List.of(
+                targetDao.findByIdentity(UNREPORTED_PERIOD_ID, Date.valueOf("2025-03-20"),
+                        "Auto Unreported Capital", new BigDecimal("181")).orElseThrow(),
+                targetDao.findByIdentity(UNREPORTED_PERIOD_ID, Date.valueOf("2025-03-21"),
+                        "Auto Unreported Partners", new BigDecimal("182")).orElseThrow(),
+                targetDao.findByIdentity(REPORTED_PERIOD_ID, Date.valueOf("2025-01-20"),
+                        "Auto Reported Capital", new BigDecimal("180")).orElseThrow())
+                .forEach(target -> targetDao.delete(target.getId()));
+    }
+
+    @Test
+    void autoImportByCompany_importsNothingWhenFirebaseFailed()
+    {
+        when(firebaseService.getTargets("RCH")).thenReturn(new FirebaseService.TargetsResult(
+                List.of(),
+                List.of("Firebase targets for RCH could not be loaded: permission denied")));
+
+        TargetAutoImportDto result = given().when()
+                .post(PATH + "/company/" + COMPANY_ID + "/sync/auto")
+                .then().log().ifError()
+                .statusCode(Response.Status.OK.getStatusCode())
+                .extract().as(TargetAutoImportDto.class);
+
+        assertThat(result.periods(), is(List.of()));
+        assertThat(result.warnings(),
+                contains("Firebase targets for RCH could not be loaded: permission denied"));
+    }
+
+    @Test
+    void autoImportByCompany_invalidParameters()
+    {
+        postValidationError(PATH + "/company/0/sync/auto", null, VALID_ID);
+        post400(PATH + "/company/4294967295/sync/auto", null, "company with id '4294967295' not found");
     }
 
     @Test

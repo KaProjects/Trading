@@ -12,6 +12,10 @@ VALUES (2214, 'INTC', 'XNAS', '$', 'HARDWARE', 'Intel Corporation',
         'https://www.intel.com');
 INSERT INTO Company (id, ticker, alphaVantageTicker, exchangeCode, currency, sector)
 VALUES (2301, 'ASML', 'ASML.AMS', 'XAMS', '€', 'HARDWARE');
+-- No periods at all: everything this company has still sits in Firebase, which is what the
+-- period quick import and the automatic target import are for.
+INSERT INTO Company (id, ticker, exchangeCode, currency, sector, name)
+VALUES (2302, 'GOOGL', 'XNAS', '$', 'SOFTWARE', 'Alphabet Inc.');
 INSERT INTO Company (id, ticker, currency, sector) VALUES (2073, 'AA', '€', 'SOFTWARE');
 INSERT INTO Company (id, ticker, currency, sector) VALUES (1873, 'BBC', '$', 'FINANCE');
 INSERT INTO Company (id, ticker, currency, sector) VALUES (1240, 'CX', 'K', 'ETF');
@@ -244,6 +248,7 @@ INSERT INTO Latest (id, companyId, datetime, price) VALUES (1433, 1873, '2026-07
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1434, 1240, '2026-07-24 16:00:00', '1950');
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1435, 1504, '2026-07-24 16:00:00', '56.80');
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1436, 2261, '2026-07-24 16:00:00', '102.30');
+INSERT INTO Latest (id, companyId, datetime, price) VALUES (1437, 2302, '2026-07-24 16:00:00', '324.22');
 
 
 -- Persisted targets use identities present in the downloaded Firebase copy.
