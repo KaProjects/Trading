@@ -13,6 +13,7 @@ import org.kaleta.persistence.entity.PeriodType;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.PeriodUnreportedImportDto;
+import org.kaleta.rest.dto.PeriodsUnreportedImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.kaleta.rest.error.InvalidInputException;
@@ -22,8 +23,11 @@ import java.math.RoundingMode;
 import java.sql.Date;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -78,11 +82,34 @@ public class PeriodService
 
     public void create(PeriodUnreportedImportDto dto)
     {
-        requireUniqueName(dto.getCompanyId(), dto.getName());
+        createUnreported(dto.getCompanyId(), dto.getName(), dto.getEndingMonth());
+    }
+
+    /**
+     * Every quarter at once, oldest first, so the app ends up with the same calendar it would have
+     * had if each one had been imported on its own. Nothing is reported for any of them: the
+     * financials can still be filled in later, period by period.
+     */
+    public void create(PeriodsUnreportedImportDto dto)
+    {
+        // All of them are checked before any of them is created: each one commits on its own, so a
+        // name that cannot be taken has to stop the import while there is still nothing to undo.
+        requireDistinctNames(dto.getPeriods());
+        dto.getPeriods().forEach(quarter -> requireUniqueName(dto.getCompanyId(), quarter.getName()));
+
+        dto.getPeriods().stream()
+                .sorted(Comparator.comparing(quarter -> PeriodName.valueOf(quarter.getName())))
+                .forEach(quarter ->
+                        createUnreported(dto.getCompanyId(), quarter.getName(), quarter.getEndingMonth()));
+    }
+
+    private void createUnreported(Long companyId, String name, String endingMonth)
+    {
+        requireUniqueName(companyId, name);
         Period period = new Period();
-        period.setCompany(companyService.findEntity(dto.getCompanyId()));
-        period.setName(PeriodName.valueOf(dto.getName()));
-        period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
+        period.setCompany(companyService.findEntity(companyId));
+        period.setName(PeriodName.valueOf(name));
+        period.setEndingMonth(YearMonth.parse(endingMonth));
         periodDao.create(period);
         pushFirebaseEndingMonth(period);
     }
@@ -96,6 +123,16 @@ public class PeriodService
         if (!YearMonth.from(reportDate.toLocalDate()).isAfter(endingMonth)) {
             throw new InvalidInputException(
                     "report date '" + reportDate + "' must be after the ending month '" + endingMonth + "'");
+        }
+    }
+
+    private void requireDistinctNames(List<PeriodsUnreportedImportDto.Quarter> quarters)
+    {
+        Set<PeriodName> names = new HashSet<>();
+        for (PeriodsUnreportedImportDto.Quarter quarter : quarters) {
+            if (!names.add(PeriodName.valueOf(quarter.getName()))) {
+                throw new InvalidInputException("period '" + quarter.getName() + "' is listed more than once");
+            }
         }
     }
 

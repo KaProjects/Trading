@@ -10,12 +10,14 @@ import org.kaleta.persistence.entity.PeriodName;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.PeriodUnreportedImportDto;
+import org.kaleta.rest.dto.PeriodsUnreportedImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.YearMonth;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -239,6 +241,97 @@ class PeriodEndpointsTest
         assertThat(period.getCapex(), is(nullValue()));
         assertThat(period.getFreeCashFlow(), is(nullValue()));
         assertThat(period.getAdjustedEps(), is(nullValue()));
+    }
+
+    @Test
+    void createUnreportedImports()
+    {
+        PeriodsUnreportedImportDto dto = new PeriodsUnreportedImportDto();
+        dto.setCompanyId(1566L);
+        dto.setPeriods(List.of(
+                quarter("25Q3", "2025-10"),
+                quarter("25Q1", "2025-04"),
+                quarter("25Q2", "2025-07")));
+
+        Assert.post201(path + "/import/unreported/all", dto);
+
+        List<Period> periods = periodDao.list(dto.getCompanyId()).stream()
+                .sorted(Comparator.comparing(Period::getName))
+                .toList();
+        assertThat(periods.size(), is(3));
+        assertThat(periods.stream().map(Period::getName).toList(), is(List.of(
+                PeriodName.valueOf("25Q1"),
+                PeriodName.valueOf("25Q2"),
+                PeriodName.valueOf("25Q3"))));
+        assertThat(periods.get(0).getEndingMonth(), is(YearMonth.parse("2025-04")));
+        assertThat(periods.get(1).getEndingMonth(), is(YearMonth.parse("2025-07")));
+        assertThat(periods.get(2).getEndingMonth(), is(YearMonth.parse("2025-10")));
+
+        // Oldest first, so the calendar is built the way importing them one by one would build it.
+        assertThat(periods.get(0).getId() < periods.get(1).getId(), is(true));
+        assertThat(periods.get(1).getId() < periods.get(2).getId(), is(true));
+
+        periods.forEach(period -> {
+            assertThat(period.getCompany().getTicker(), is("QIMP"));
+            assertThat(period.getReportDate(), is(nullValue()));
+            assertThat(period.getShares(), is(nullValue()));
+            assertThat(period.getRevenue(), is(nullValue()));
+            assertThat(period.getGrossProfit(), is(nullValue()));
+            assertThat(period.getOperatingIncome(), is(nullValue()));
+            assertThat(period.getNetIncome(), is(nullValue()));
+            assertThat(period.getDividend(), is(nullValue()));
+            assertThat(period.getCapex(), is(nullValue()));
+            assertThat(period.getFreeCashFlow(), is(nullValue()));
+            assertThat(period.getAdjustedEps(), is(nullValue()));
+        });
+    }
+
+    @Test
+    void createUnreportedImports_invalidParameters()
+    {
+        String endpoint = path + "/import/unreported/all";
+
+        Assert.postValidationError(endpoint, null, NOT_NULL);
+
+        PeriodsUnreportedImportDto dto = new PeriodsUnreportedImportDto();
+        dto.setCompanyId(2287L);
+        dto.setPeriods(List.of(quarter("25Q1", "2025-04")));
+
+        dto.setCompanyId(null);
+        Assert.postValidationError(endpoint, dto, NOT_NULL);
+        dto.setCompanyId(0L);
+        Assert.postValidationError(endpoint, dto, VALID_ID);
+        dto.setCompanyId(4_294_967_295L);
+        Assert.post400(endpoint, dto, "company with id '" + dto.getCompanyId() + "' not found");
+        dto.setCompanyId(2287L);
+
+        dto.setPeriods(null);
+        Assert.postValidationError(endpoint, dto, "must not be empty");
+        dto.setPeriods(List.of());
+        Assert.postValidationError(endpoint, dto, "must not be empty");
+
+        dto.setPeriods(List.of(quarter("25FX", "2025-04")));
+        Assert.postValidationError(endpoint, dto, "must be a valid PeriodName");
+        dto.setPeriods(List.of(quarter("25Q1", "202504")));
+        Assert.postValidationError(endpoint, dto, "must match YYYY-MM");
+
+        // The whole import is rejected before anything is created: once by a name listed twice,
+        // once by a name the company already has.
+        dto.setPeriods(List.of(quarter("25Q1", "2025-04"), quarter("25Q1", "2025-07")));
+        Assert.post400(endpoint, dto, "period '25Q1' is listed more than once");
+
+        dto.setCompanyId(2281L);
+        dto.setPeriods(List.of(quarter("25Q2", "2025-07"), quarter("25Q1", "2025-04")));
+        Assert.post400(endpoint, dto, "period '25Q1' already exists for company with id '2281'");
+        assertThat(periodDao.list(2281L).size(), is(3));
+    }
+
+    private static PeriodsUnreportedImportDto.Quarter quarter(String name, String endingMonth)
+    {
+        PeriodsUnreportedImportDto.Quarter quarter = new PeriodsUnreportedImportDto.Quarter();
+        quarter.setName(name);
+        quarter.setEndingMonth(endingMonth);
+        return quarter;
     }
 
     @Test

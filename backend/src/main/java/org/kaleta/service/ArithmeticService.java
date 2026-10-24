@@ -88,12 +88,19 @@ public class ArithmeticService
         return asset;
     }
 
+    /**
+     * The price itself is always known once there is a latest quote; everything derived from the
+     * share count is not. A company with no reported period has no TTM, and that must not cost it
+     * the price and the date it was taken at - those are what a new record is prefilled from.
+     */
     public PriceIndicators computeIndicators(Latest latest, Periods.Financial ttm)
     {
         PriceIndicators indicators = new PriceIndicators();
 
         indicators.setDatetime(latest.getDatetime());
         indicators.setPrice(latest.getPrice());
+
+        if (ttm == null || ttm.getShares() == null) return indicators;
 
         indicators.setShares(ttm.getShares());
         indicators.setMarketCap(indicators.getPrice().multiply(indicators.getShares()));

@@ -400,6 +400,48 @@ describe("ImportPeriodDialog", () => {
         expect(screen.getByText("24Q1")).toBeInTheDocument();
     });
 
+    test("quick imports every candidate as an unreported period", async () => {
+        axios.post.mockResolvedValue({});
+        const props = createProps();
+
+        render(<ImportPeriodDialog {...props}/>);
+
+        fireEvent.click(await screen.findByRole("button", {name: "Quick import"}));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
+            "/api/period/import/unreported/all",
+            {
+                companyId: "company-1",
+                periods: [
+                    {name: "24Q1", endingMonth: "2024-03"},
+                    {name: "24Q2", endingMonth: "2024-06"},
+                ],
+            }
+        ));
+        expect(axios.get).not.toHaveBeenCalled();
+        expect(props.triggerRefresh).toHaveBeenCalled();
+        expect(props.handleClose).toHaveBeenCalled();
+    });
+
+    test("offers quick import only while more than one candidate is listed", async () => {
+        const {unmount} = render(<ImportPeriodDialog {...createProps()}/>);
+
+        expect(await screen.findByRole("button", {name: "Quick import"})).toBeInTheDocument();
+
+        // Gone once a period is picked - from there the import is that one period's.
+        fireEvent.click(screen.getByText("24Q2*"));
+        expect(screen.queryByRole("button", {name: "Quick import"})).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Back"}));
+        expect(screen.getByRole("button", {name: "Quick import"})).toBeInTheDocument();
+
+        unmount();
+
+        render(<ImportPeriodDialog {...createProps({periods: [candidates[1]]})}/>);
+        expect(await screen.findByText("24Q2*")).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Quick import"})).not.toBeInTheDocument();
+    });
+
     test("shows an empty state when no periods are available", async () => {
         render(<ImportPeriodDialog {...createProps({periods: []})}/>);
 

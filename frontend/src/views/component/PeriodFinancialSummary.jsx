@@ -162,13 +162,18 @@ const AsideColumn = ({entries, pairs = 1, divider = "left", noteSize}) => {
 export const PeriodFinancialSummary = ({financial, shares, priceHigh, priceLow, currency, compact = false}) => {
     if (!financial) return null;
 
+    // A company that paid nothing has no dividend to report: "(0.00%) 0M" reads like a measured
+    // figure, where a dash says the same thing without the false precision. Only an actual zero -
+    // a dividend that is simply missing is dropped from the list below, as the other figures are.
+    const noDividend = !isNotAValue(financial.dividend) && Number(financial.dividend) === 0;
+
     const cashFlow = [
         {label: "CapEx", value: formatMillions(financial.capex?.value)},
         {label: "FCF", value: formatMillions(financial.freeCashFlow?.value)},
         {
             label: compact ? "Div." : "Dividend",
-            value: formatMillions(financial.dividend),
-            note: formatPercent(financial.dividendMargin, false, 2),
+            value: noDividend ? "\u2013" : formatMillions(financial.dividend),
+            note: noDividend ? null : formatPercent(financial.dividendMargin, false, 2),
         },
         {label: compact ? "EPS adj." : "Adj. EPS", value: formatDecimals(financial.adjustedEps, 2, 2)},
     ].filter(entry => entry.value && entry.value !== "-");

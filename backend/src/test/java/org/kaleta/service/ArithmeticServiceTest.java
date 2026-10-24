@@ -160,6 +160,38 @@ public class ArithmeticServiceTest
     }
 
     @Test
+    void computeIndicators_noTtm()
+    {
+        Company company = Generator.generateCompany();
+        Latest latest = Generator.generateLatest(company);
+
+        PriceIndicators indicators = arithmeticService.computeIndicators(latest, null);
+
+        assertThat(indicators.getDatetime(), is(latest.getDatetime()));
+        assertBigDecimals(indicators.getPrice(), latest.getPrice());
+        assertBigDecimals(indicators.getShares(), null);
+        assertBigDecimals(indicators.getMarketCap(), null);
+        assertThat(indicators.getTtm(), is(nullValue()));
+    }
+
+    @Test
+    void computeIndicators_noShares()
+    {
+        Company company = Generator.generateCompany();
+        Latest latest = Generator.generateLatest(company);
+        Periods.Financial ttm = Generator.generatePeriodsFinancial();
+        ttm.setShares(null);
+
+        PriceIndicators indicators = arithmeticService.computeIndicators(latest, ttm);
+
+        assertThat(indicators.getDatetime(), is(latest.getDatetime()));
+        assertBigDecimals(indicators.getPrice(), latest.getPrice());
+        assertBigDecimals(indicators.getShares(), null);
+        assertBigDecimals(indicators.getMarketCap(), null);
+        assertThat(indicators.getTtm(), is(nullValue()));
+    }
+
+    @Test
     void computeIndicators_invalidFinancials()
     {
         Company company = Generator.generateCompany();

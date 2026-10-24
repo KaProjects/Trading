@@ -190,6 +190,31 @@ public class ResearchEndpointsTest
     }
 
     @Test
+    void get_withoutPeriodsStillReturnsPriceIndicators()
+    {
+        Long companyId = 2302L;
+
+        ResearchDto dto = given().when()
+                .get("/research/" + companyId)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", ResearchDto.class);
+
+        assertThat(dto.getPeriods(), is(List.of()));
+        assertThat(dto.getTtm(), is(nullValue()));
+
+        // Nothing is reported, so there are no ratios - but the quote itself is still known, and
+        // a new record is prefilled from it.
+        assertThat(dto.getIndicators(), is(notNullValue()));
+        assertThat(dto.getIndicators().getDatetime(), is(LocalDateTime.of(2025, 10, 27, 14, 35)));
+        assertBigDecimals(dto.getIndicators().getPrice(), new BigDecimal("1489.8"));
+        assertThat(dto.getIndicators().getShares(), is(nullValue()));
+        assertThat(dto.getIndicators().getMarketCap(), is(nullValue()));
+        assertThat(dto.getIndicators().getTtm(), is(nullValue()));
+    }
+
+    @Test
     void get_addsExpectedReportDateAndReportedFlagFromFirebaseForLatestUnreportedPeriod()
     {
         Long companyId = 2281L;

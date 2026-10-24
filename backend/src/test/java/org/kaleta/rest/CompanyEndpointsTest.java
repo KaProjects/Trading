@@ -113,7 +113,7 @@ class CompanyEndpointsTest
         assertThat(dto.keySet().stream().toList(), is(List.of("owned", "all")));
         assertThat(owned.size(), is(6));
         assertThat(tickers(owned), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
-        assertThat(all.size(), is(26));
+        assertThat(all.size(), is(28));
         assertThat(all.get(0).getTicker(), is("ABCD"));
         assertThat(tickers(all), is(tickers(all).stream().sorted().toList()));
     }
@@ -356,7 +356,7 @@ class CompanyEndpointsTest
                 .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
         assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
-        assertThat(dto.getCompanies().size(), is(26));
+        assertThat(dto.getCompanies().size(), is(28));
         CompanyAggregates.Company company = dto.getCompanies().get(7);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
@@ -437,7 +437,7 @@ class CompanyEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        int expectedCompanies = 26;
+        int expectedCompanies = 28;
 
         assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));

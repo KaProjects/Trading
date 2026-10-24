@@ -74,6 +74,7 @@ INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALU
 -- for rest.*EndpointsTest.create tests
 INSERT INTO Company (id, ticker, currency) VALUES (1565, 'CRE', '$');
 INSERT INTO Company (id, ticker, currency) VALUES (1564, 'IMP', '$');
+INSERT INTO Company (id, ticker, currency) VALUES (1566, 'QIMP', '$');
 
 -- for rest.*EndpointsTest.createInvalidValues tests
 INSERT INTO Company (id, ticker, currency) VALUES (2287, 'CINV', '$');
@@ -111,6 +112,10 @@ INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purch
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (2177, 2281, '20', '2020-12-30', '180', '10');
 INSERT INTO Record (id, companyId, date, title, price, p_rev, p_gross, p_oper, p_net, dy, asset_quantity, asset_price) VALUES (1756, 2281, '2021-04-05', 'xxx', '125', '10', '50', '100', '123', '10.12', '456', '75');
 INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1517, 2281, '2022-01-02', 'yyy', '100', '10.1');
+
+-- for ResearchEndpointsTest.get_withoutPeriodsStillReturnsPriceIndicators test
+INSERT INTO Company (id, ticker, currency) VALUES (2302, 'RNP', '$');
+INSERT INTO Latest (id, companyId, datetime, price) VALUES (1839, 2302, '2025-10-27 14:35:00', '1489.8');
 
 -- for TradeEndpointsTest.sell test
 INSERT INTO Company (id, ticker, currency) VALUES (1209, 'SELL', '$');

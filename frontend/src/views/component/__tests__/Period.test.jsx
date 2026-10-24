@@ -149,6 +149,37 @@ describe("Period", () => {
         expect(summary.textContent.match(/\//g)).toHaveLength(1);
     });
 
+    test("prints a dash for a dividend that was not paid", () => {
+        renderPeriod({
+            reportDate: "2025-05-01",
+            shares: 100,
+            financial: {
+                revenue: {value: 100},
+                dividend: 0,
+                dividendMargin: 0,
+            },
+        });
+
+        const summary = screen.getByTestId("period-financial-summary");
+        expect(summary).toHaveTextContent("Dividend\u2013");
+        expect(summary).not.toHaveTextContent("(0%)");
+        expect(summary).not.toHaveTextContent("Dividend0M");
+    });
+
+    test("keeps a dividend that was actually paid", () => {
+        renderPeriod({
+            reportDate: "2025-05-01",
+            shares: 100,
+            financial: {
+                revenue: {value: 100},
+                dividend: 12,
+                dividendMargin: 4,
+            },
+        });
+
+        expect(screen.getByTestId("period-financial-summary")).toHaveTextContent("Dividend(4%) 12M");
+    });
+
     test("opens the dialogs from the rendered views instead of the action buttons", () => {
         const openEstimateDialog = jest.fn();
         const openRevenueEstimateDialog = jest.fn();
@@ -431,6 +462,39 @@ describe("Period", () => {
         expect(screen.getByRole("dialog")).toBeInTheDocument();
         expect(screen.getByTestId("content-editor-title")).toHaveTextContent("NVDA 26Q2");
         expect(screen.getByRole("button", {name: "Save"})).toBeInTheDocument();
+    });
+
+    test("groups the estimates and the targets under one rule", () => {
+        renderPeriod({
+            estimate: {current: 1.62, next1: 1.85, next2: null, next3: 2.76},
+            revenueEstimate: {current: 1000, next1: 1200, next2: null, next3: 1500},
+            targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
+        });
+
+        const footer = screen.getByTestId("period-footer");
+        expect(footer).toContainElement(screen.getByTestId("period-estimates-view"));
+        expect(footer).toContainElement(screen.getByTestId("period-revenue-estimates-view"));
+        expect(footer).toContainElement(screen.getByTestId("period-target-summary"));
+    });
+
+    test("leaves out the rule when a period has neither estimates nor targets", () => {
+        renderPeriod({});
+
+        expect(screen.queryByTestId("period-footer")).not.toBeInTheDocument();
+    });
+
+    test("leaves out the rule when the stretched narrow view shows nothing under the content", () => {
+        renderPeriod(
+            {
+                reportDate: "2026-08-26",
+                financial: {revenue: {value: 300}},
+                estimate: {current: 1.62, next1: 1.85, next2: null, next3: 2.76},
+                targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
+            },
+            {stretch: true}
+        );
+
+        expect(screen.queryByTestId("period-footer")).not.toBeInTheDocument();
     });
 
     test("hides the target summary of a reported period in the stretched narrow view", () => {

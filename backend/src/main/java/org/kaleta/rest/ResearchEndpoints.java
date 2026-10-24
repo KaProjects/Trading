@@ -130,12 +130,9 @@ public class ResearchEndpoints
         {
             dto.setLatest(latest);
 
-            if (dto.getTtm() != null && dto.getTtm().getShares() != null)
-            {
-                PriceIndicators indicators = arithmeticService.computeIndicators(latest, dto.getTtm());
-                indicators.setBeta(firebaseService.getBeta(company.getTicker()));
-                dto.setIndicators(indicators);
-            }
+            PriceIndicators indicators = arithmeticService.computeIndicators(latest, dto.getTtm());
+            indicators.setBeta(firebaseService.getBeta(company.getTicker()));
+            dto.setIndicators(indicators);
 
             dto.setAssets(tradeService.getAssets(companyId, latest.getPrice()));
         } else {

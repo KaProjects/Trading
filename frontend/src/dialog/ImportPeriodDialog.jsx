@@ -88,6 +88,31 @@ export const ImportPeriodDialog = props => {
             .finally(() => setSubmitting(false))
     }
 
+    /**
+     * The whole calendar at once, with no financials: name and ending month only, exactly what an
+     * unreported period holds. For a company whose figures are not worth filling in quarter by
+     * quarter, this is the way to get its periods into the app and still import the financials
+     * later. Offered only when there is more than one quarter to take.
+     */
+    function quickImport() {
+        if (submitting) return
+        setSubmitting(true)
+        setAlert(null)
+
+        const data = {
+            companyId: company.id,
+            periods: periods.map(candidate => ({name: candidate.name, endingMonth: candidate.endingMonth})),
+        }
+
+        axios.post(backend + "/period/import/unreported/all", data)
+            .then(() => {
+                triggerRefresh()
+                handleClose()
+            })
+            .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false))
+    }
+
     function selectPeriod(candidate) {
         setAlert(null)
         setWarnings([])
@@ -119,6 +144,9 @@ export const ImportPeriodDialog = props => {
             })
     }
 
+    // The candidate list is what the dialog opens on, and what it goes back to.
+    const showCandidates = !period && !loading
+
     return (
         <Dialog
             open={open}
@@ -133,13 +161,13 @@ export const ImportPeriodDialog = props => {
                     </Box>
                 }
 
-                {!period && !loading && periods.map(candidate => (
+                {showCandidates && periods.map(candidate => (
                     <Button key={candidate.name} onClick={() => selectPeriod(candidate)}>
                         {`${candidate.name}${candidate.isReported ? "" : "*"}`}
                     </Button>
                 ))}
 
-                {!period && !loading && periods.length === 0 && !alert &&
+                {showCandidates && periods.length === 0 && !alert &&
                     <Box sx={{color: "text.secondary"}}>No periods available for import.</Box>
                 }
 
@@ -205,6 +233,9 @@ export const ImportPeriodDialog = props => {
             }
 
             <DialogActions>
+                {showCandidates && periods.length > 1 &&
+                    <Button onClick={quickImport} disabled={submitting}>Quick import</Button>
+                }
                 <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
                 {period &&
                     <>
