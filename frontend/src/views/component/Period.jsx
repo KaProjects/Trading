@@ -168,7 +168,8 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
         && targetCandidateCount === 0
         && !targetCandidateFailed
     // Whatever of the estimates and the targets a period has sits in one block under the research.
-    const footerShown = estimatesShown || revenueEstimatesShown || targetSummaryShown
+    const estimatesInFooter = estimatesShown || revenueEstimatesShown
+    const footerShown = estimatesInFooter || targetSummaryShown
 
     const footerLineStyle = {...NUMERIC_FONT, color: "text.primary", fontSize: 13}
     const footerLabelStyle = {...footerLineStyle, color: "text.secondary"}
@@ -251,32 +252,44 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                 paddingTop: "4px",
                 borderTop: "1px solid",
                 borderColor: "divider",
+                display: "flex",
+                alignItems: "flex-end",
+                gap: "12px",
             }}
         >
-        {estimatesShown && estimatesBlock({
-            testId: "period-estimates",
-            ariaLabel: "Add EPS Estimates",
-            label: "Eps estimates:\u00a0",
-            estimate: period.estimate,
-            onOpen: () => openEstimateDialog?.(period),
-            formatPastTotal: formatEstimatePastTotal,
-        })}
-        {revenueEstimatesShown && estimatesBlock({
-            testId: "period-revenue-estimates",
-            ariaLabel: "Add Revenue Estimates",
-            label: "Rev. estimates:\u00a0",
-            estimate: period.revenueEstimate,
-            onOpen: () => openRevenueEstimateDialog?.(period),
-            format: formatRevenueEstimateValue,
-            formatPastTotal: formatRevenueEstimatePastTotal,
-        })}
-        {targetSummaryShown &&
-            <PeriodTargetSummary
-                stats={period.targetStats}
-                currency={currency}
-                onOpen={() => openTargetDialog?.(period)}
-            />
-        }
+            {estimatesInFooter &&
+            <Box sx={{minWidth: 0}}>
+                {estimatesShown && estimatesBlock({
+                    testId: "period-estimates",
+                    ariaLabel: "Add EPS Estimates",
+                    label: "Eps estimates:\u00a0",
+                    estimate: period.estimate,
+                    onOpen: () => openEstimateDialog?.(period),
+                    formatPastTotal: formatEstimatePastTotal,
+                })}
+                {revenueEstimatesShown && estimatesBlock({
+                    testId: "period-revenue-estimates",
+                    ariaLabel: "Add Revenue Estimates",
+                    label: "Rev. estimates:\u00a0",
+                    estimate: period.revenueEstimate,
+                    onOpen: () => openRevenueEstimateDialog?.(period),
+                    format: formatRevenueEstimateValue,
+                    formatPastTotal: formatRevenueEstimatePastTotal,
+                })}
+            </Box>
+            }
+            {targetSummaryShown &&
+                /* Beside the estimates rather than under them, in the corner: the estimates are
+                   several rows of figures and the targets are one line, so stacking them wastes
+                   a row. With nothing to sit beside, the line stays where it was. */
+                <Box sx={{flexShrink: 0, marginLeft: estimatesInFooter ? "auto" : 0}}>
+                    <PeriodTargetSummary
+                        stats={period.targetStats}
+                        currency={currency}
+                        onOpen={() => openTargetDialog?.(period)}
+                    />
+                </Box>
+            }
         </Box>
     )
 

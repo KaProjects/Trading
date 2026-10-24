@@ -478,6 +478,40 @@ describe("Period", () => {
         expect(footer).toContainElement(screen.getByTestId("period-target-summary"));
     });
 
+    test("puts the targets in the corner beside the estimates, and on their own line without them", () => {
+        const {rerender} = renderPeriod({
+            estimate: {current: 1.62, next1: 1.85, next2: null, next3: 2.76},
+            targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
+        });
+
+        const footer = screen.getByTestId("period-footer");
+        const targets = screen.getByTestId("period-target-summary");
+        // Last in the row, and pushed to its end: the bottom right corner of the block.
+        expect(footer.lastElementChild).toContainElement(targets);
+        expect(window.getComputedStyle(footer.lastElementChild).marginLeft).toBe("auto");
+
+        rerender(
+            <Period
+                period={{
+                    id: "period-1",
+                    name: {year: "2025", type: "FY"},
+                    endingMonth: "2025-12",
+                    targetStats: {count: 3, minimum: 120, average: 145.5, maximum: 175},
+                }}
+                currency={"$"}
+                setAlert={jest.fn()}
+                openDialog={jest.fn()}
+                openEditDialog={jest.fn()}
+                targetCandidateCount={0}
+            />
+        );
+
+        // Nothing to sit beside, so no empty column is left in front of it either.
+        const loneFooter = screen.getByTestId("period-footer");
+        expect(loneFooter.children).toHaveLength(1);
+        expect(window.getComputedStyle(loneFooter.firstElementChild).marginLeft).toBe("0px");
+    });
+
     test("leaves out the rule when a period has neither estimates nor targets", () => {
         renderPeriod({});
 
