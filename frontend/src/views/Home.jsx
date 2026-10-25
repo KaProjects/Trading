@@ -3,6 +3,7 @@ import React from "react";
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import CasesIcon from '@mui/icons-material/WorkOutline';
 import DonutSmallIcon from '@mui/icons-material/DonutSmall';
 import {ReactComponent as TradesIcon} from "../assets/icons/trades.svg";
 import {ReactComponent as DividendsIcon} from "../assets/icons/dividends.svg";
@@ -53,10 +54,10 @@ export const Home = props => {
                                icon={<ResearchIcon style={{width: 24, height: 24}}/>}
                                description={"Collection of periods and records for companies including related data like financials and ratios"}
                 />
-                <ClickableCard action={() => window.location.href='/outperformers'}
-                               title={"Outperformers"}
-                               icon={<TrendingUpIcon/>}
-                               description={"Researched companies ranked by EPS estimates, margins, sentiment, and price targets."}
+                <ClickableCard action={() => window.location.href='/cases'}
+                               title={"Cases"}
+                               icon={<CasesIcon/>}
+                               description={"Investment cases followed over time: what they cover and what has been recorded about them."}
                 />
             </Stack>
 
@@ -66,6 +67,14 @@ export const Home = props => {
                                icon={<QueryStatsIcon/>}
                                description={"A collection, description, analysis, and inference of conclusions from quantitative data."}
                 />
+                <ClickableCard action={() => window.location.href='/outperformers'}
+                               title={"Outperformers"}
+                               icon={<TrendingUpIcon/>}
+                               description={"Researched companies ranked by EPS estimates, margins, sentiment, and price targets."}
+                />
+            </Stack>
+
+            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="center" alignItems={{ xs: 'middle', md: 'flex-start' }} spacing={2} sx={{marginTop: "20px", marginBottom: "20px"}}>
                 <ClickableCard action={() => window.location.href='/admin'}
                                title={"Admin"}
                                icon={<AdminPanelSettingsIcon/>}

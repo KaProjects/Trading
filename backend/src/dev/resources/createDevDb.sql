@@ -358,3 +358,12 @@ INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2974, DA
 INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2974, DATEADD('DAY', -36, CURRENT_DATE), 'Benchmark', '31', 'Outperform');
 INSERT INTO Target (periodId, date, institution, price, rating) VALUES (2974, DATEADD('DAY', -16, CURRENT_DATE), 'Harbor Securities', '33', 'Outperform');
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1503, 2903, DATEADD('DAY', -40, CURRENT_TIMESTAMP), '27.50');
+
+-- Two investment cases: one still running across the three chip companies, one closed.
+INSERT INTO InvestmentCase (id, name, createdAt) VALUES (1, 'AI accelerator buildout', DATEADD('DAY', -120, CURRENT_DATE));
+INSERT INTO CaseCompany (caseId, companyId) VALUES (1, 2213);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (1, 2212);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (1, 2214);
+
+INSERT INTO InvestmentCase (id, name, createdAt, closedAt) VALUES (2, 'PC refresh cycle', DATEADD('DAY', -400, CURRENT_DATE), DATEADD('DAY', -30, CURRENT_DATE));
+INSERT INTO CaseCompany (caseId, companyId) VALUES (2, 2214);

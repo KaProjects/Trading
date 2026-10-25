@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS CaseCompany;
+DROP TABLE IF EXISTS InvestmentCase;
 DROP TABLE IF EXISTS PeriodContentImage;
 DROP TABLE IF EXISTS PeriodContent;
 DROP TABLE IF EXISTS Target;
@@ -159,4 +161,21 @@ CREATE TABLE PeriodContentImage
     uploadedAt DATETIME          NOT NULL,
     contentId  INT UNSIGNED      NOT NULL,
     CONSTRAINT `fk_periodContentImageContentId` FOREIGN KEY (contentId) REFERENCES PeriodContent (id)
+);
+
+CREATE TABLE InvestmentCase
+(
+    id        INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name      VARCHAR(100) NOT NULL,
+    createdAt DATE         NOT NULL,
+    closedAt  DATE
+);
+
+CREATE TABLE CaseCompany
+(
+    caseId    INT UNSIGNED NOT NULL,
+    companyId INT UNSIGNED NOT NULL,
+    CONSTRAINT `uk_caseCompany` UNIQUE (caseId, companyId),
+    CONSTRAINT `fk_caseCompanyCaseId` FOREIGN KEY (caseId) REFERENCES InvestmentCase (id),
+    CONSTRAINT `fk_caseCompanyCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
 );

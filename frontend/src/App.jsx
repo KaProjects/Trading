@@ -17,6 +17,8 @@ import {Onboarding} from "./views/Onboarding";
 import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
 import {Outperformers} from "./views/Outperformers";
+import {Cases} from "./views/Cases";
+import {Case} from "./views/Case";
 import {Home} from "./views/Home";
 import {TradeImport} from "./views/TradeImport";
 import {DividendImport} from "./views/DividendImport";
@@ -204,6 +206,8 @@ export const App = () => {
                             <Route exact path="/admin/onboarding" element={<Onboarding {...props}/>}/>
                             <Route exact path="/analytics" element={<Analytics {...props}/>}/>
                             <Route exact path="/outperformers" element={<Outperformers {...props}/>}/>
+                            <Route exact path="/cases" element={<Cases {...props}/>}/>
+                            <Route exact path="/cases/:caseId" element={<Case {...props}/>}/>
                             <Route exact path="/admin/import/trades" element={<TradeImport/>}/>
                             <Route exact path="/admin/import/dividends" element={<DividendImport/>}/>
                             <Route path="*" element={<PageNotFound/>}/>
