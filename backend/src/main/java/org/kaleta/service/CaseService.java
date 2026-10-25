@@ -28,6 +28,8 @@ public class CaseService
     CaseDao caseDao;
     @Inject
     CompanyDao companyDao;
+    @Inject
+    CaseEntryService caseEntryService;
 
     public List<CaseDto> getAll()
     {
@@ -39,7 +41,9 @@ public class CaseService
     public CaseDto get(Long caseId)
     {
         InvestmentCase found = find(caseId);
-        return from(found, companiesOf(List.of(found)));
+        CaseDto dto = from(found, companiesOf(List.of(found)));
+        dto.setEntries(caseEntryService.getByCaseId(caseId));
+        return dto;
     }
 
     public CaseDto create(CaseCreateDto dto)

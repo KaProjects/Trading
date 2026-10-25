@@ -15,6 +15,8 @@ public class CaseDto
     private Date createdAt;
     private Date closedAt;
     private List<Company> companies = new ArrayList<>();
+    /** The days written into the case, oldest first. Only filled in when one case is read. */
+    private List<CaseEntryDto> entries = new ArrayList<>();
 
     @Data
     public static class Company

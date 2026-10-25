@@ -17,8 +17,17 @@ jest.mock("react-router-dom", () => ({
 jest.mock("../component/Loader", () => ({
     Loader: ({error}) => <div data-testid="loader">{error?.message ?? "loading"}</div>,
 }));
+jest.mock("../component/ContentEditor", () => ({
+    ContentEditor: ({content, update}) => (
+        <button onClick={() => update([{type: "paragraph", children: [{text: "written"}]}])}>
+            {content || "empty-content"}
+        </button>
+    ),
+}));
 
 import {Case} from "../Case";
+
+const today = new Date().toISOString().substring(0, 10);
 
 const value = {
     id: 1,
@@ -26,6 +35,7 @@ const value = {
     createdAt: "2026-02-10",
     closedAt: null,
     companies: [{id: 11, ticker: "NVDA"}],
+    entries: [],
 };
 
 const companyLists = {all: [{id: 11, ticker: "NVDA"}, {id: 12, ticker: "AMD"}]};
@@ -89,5 +99,48 @@ describe("Case", () => {
 
         await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/case/1"));
         await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/cases"));
+    });
+
+    test("reads the days written into the case, newest first", () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                entries: [
+                    {id: 5, date: "2026-02-11", content: "the first day", images: []},
+                    {id: 6, date: "2026-02-20", content: "a later day", images: []},
+                ],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        const later = screen.getByTestId("case-entry-2026-02-20");
+        const first = screen.getByTestId("case-entry-2026-02-11");
+        expect(later.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(screen.getByTestId("case-entry-date-2026-02-20")).toHaveTextContent("20.02.2026");
+    });
+
+    test("opens today for writing, and offers it only while today is unwritten", async () => {
+        axios.put.mockResolvedValue({data: {id: 9, date: today, content: "written", images: []}});
+        render(<Case companyLists={companyLists}/>);
+
+        fireEvent.click(screen.getByRole("button", {name: "Write today"}));
+        expect(screen.getByTestId(`case-entry-${today}`)).toBeInTheDocument();
+        // The day is already open, so there is nothing to open again.
+        expect(screen.queryByRole("button", {name: "Write today"})).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByText("empty-content"));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/1", {
+            date: today,
+            content: JSON.stringify([{type: "paragraph", children: [{text: "written"}]}]),
+        }));
+    });
+
+    test("says so while nothing has been written", () => {
+        render(<Case companyLists={companyLists}/>);
+
+        expect(screen.getByText("Nothing written yet.")).toBeInTheDocument();
     });
 });

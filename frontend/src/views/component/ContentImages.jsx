@@ -40,7 +40,7 @@ export const imageUrl = (imageId, thumbnail = false) =>
  * The strip never grows past the text it belongs to - it scrolls instead - so an arrow marks
  * either end that still has something beyond it.
  */
-export const PeriodContentImages = ({
+export const ContentImages = ({
     images = [],
     pending = [],
     removedIds = [],
@@ -131,7 +131,7 @@ export const PeriodContentImages = ({
 
     const addTile = (
         <Box
-            data-testid="period-content-image-add"
+            data-testid="content-image-add"
             role="button"
             aria-label="Add image"
             tabIndex={0}
@@ -197,7 +197,7 @@ export const PeriodContentImages = ({
         <Box key={key} sx={{position: "relative", flexShrink: 0}}>
             <Box
                 component="img"
-                data-testid={`period-content-image-${key}`}
+                data-testid={`content-image-${key}`}
                 src={source}
                 alt=""
                 loading="lazy"
@@ -224,7 +224,7 @@ export const PeriodContentImages = ({
     const scroller = (
         <Box
             ref={strip}
-            data-testid="period-content-images"
+            data-testid="content-images"
             onScroll={updateScrollHint}
             sx={{
                 display: "flex",
@@ -272,7 +272,7 @@ export const PeriodContentImages = ({
     );
 
     const arrow = (end, icon, placement) => React.createElement(icon, {
-        "data-testid": `period-content-images-${end}`,
+        "data-testid": `content-images-${end}`,
         sx: {
             position: "absolute",
             fontSize: 16,
@@ -361,7 +361,7 @@ export const PeriodContentImages = ({
                 >
                     <Box
                         component="img"
-                        data-testid="period-content-image-opened"
+                        data-testid="content-image-opened"
                         src={imageUrl(opened.id)}
                         alt=""
                         onClick={() => setOpenedIndex(null)}
