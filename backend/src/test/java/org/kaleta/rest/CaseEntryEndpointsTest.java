@@ -7,6 +7,8 @@ import org.kaleta.rest.dto.CaseCreateDto;
 import org.kaleta.rest.dto.CaseDto;
 import org.kaleta.rest.dto.CaseEntryDto;
 import org.kaleta.rest.dto.CaseEntryUpdateDto;
+import org.kaleta.rest.dto.CaseTableDto;
+import org.kaleta.rest.dto.CaseTableUpdateDto;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
@@ -125,6 +127,86 @@ class CaseEntryEndpointsTest
         given().contentType(ContentType.JSON).body(dto)
                 .when().put(PATH + "/999999")
                 .then().statusCode(400);
+    }
+
+    @Test
+    void writesATableIntoADayAndReadsItBack()
+    {
+        Long caseId = createCase("with a table");
+        CaseEntryDto written = save(caseId, TODAY, document("the figures below"));
+
+        CaseTableDto added = given()
+                .when().post(PATH + "/" + written.id() + "/table")
+                .then().log().ifError().statusCode(201)
+                .extract().response().jsonPath().getObject("", CaseTableDto.class);
+        assertThat(added.columns(), is(List.of()));
+
+        CaseTableUpdateDto dto = new CaseTableUpdateDto();
+        dto.setTitle("margins");
+        dto.setColumns(List.of("NVDA", "AMD"));
+        dto.setRows(List.of(row("gross", cell("75%", "++"), cell("53%", "~"))));
+
+        CaseTableDto saved = given().contentType(ContentType.JSON).body(dto)
+                .when().put(PATH + "/table/" + added.id())
+                .then().log().ifError().statusCode(200)
+                .extract().response().jsonPath().getObject("", CaseTableDto.class);
+        assertThat(saved.title(), is("margins"));
+        assertThat(saved.rows().get(0).cells().get(0).rating(), is("++"));
+
+        CaseTableDto read = readCase(caseId).getEntries().get(0).tables().get(0);
+        assertThat(read.columns(), is(List.of("NVDA", "AMD")));
+        assertThat(read.rows().get(0).label(), is("gross"));
+        assertThat(read.rows().get(0).cells().get(1).value(), is("53%"));
+
+        given().when().delete(PATH + "/table/" + added.id()).then().statusCode(200);
+        assertThat(readCase(caseId).getEntries().get(0).tables(), hasSize(0));
+    }
+
+    @Test
+    void refusesARowThatDoesNotFitTheColumns()
+    {
+        Long caseId = createCase("ragged table");
+        CaseEntryDto written = save(caseId, TODAY, document("text"));
+        CaseTableDto added = given().when().post(PATH + "/" + written.id() + "/table")
+                .then().statusCode(201)
+                .extract().response().jsonPath().getObject("", CaseTableDto.class);
+
+        CaseTableUpdateDto dto = new CaseTableUpdateDto();
+        dto.setColumns(List.of("NVDA", "AMD"));
+        dto.setRows(List.of(row("gross", cell("75%", "++"))));
+
+        given().contentType(ContentType.JSON).body(dto)
+                .when().put(PATH + "/table/" + added.id())
+                .then().statusCode(400)
+                .body(containsString("holds 1 cells"));
+    }
+
+    @Test
+    void keepsADayThatHoldsOnlyATable()
+    {
+        Long caseId = createCase("table only");
+        CaseEntryDto written = save(caseId, TODAY, document("to be emptied"));
+        given().when().post(PATH + "/" + written.id() + "/table").then().statusCode(201);
+
+        save(caseId, TODAY, "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]");
+
+        assertThat(readCase(caseId).getEntries(), hasSize(1));
+    }
+
+    private static CaseTableUpdateDto.Row row(String label, CaseTableUpdateDto.Cell... cells)
+    {
+        CaseTableUpdateDto.Row row = new CaseTableUpdateDto.Row();
+        row.setLabel(label);
+        row.setCells(List.of(cells));
+        return row;
+    }
+
+    private static CaseTableUpdateDto.Cell cell(String value, String rating)
+    {
+        CaseTableUpdateDto.Cell cell = new CaseTableUpdateDto.Cell();
+        cell.setValue(value);
+        cell.setRating(rating);
+        return cell;
     }
 
     private Long createCase(String name)

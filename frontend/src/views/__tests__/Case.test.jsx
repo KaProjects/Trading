@@ -143,4 +143,57 @@ describe("Case", () => {
 
         expect(screen.getByText("Nothing written yet.")).toBeInTheDocument();
     });
+
+    test("writes a table into a day, and takes one away", async () => {
+        axios.post.mockResolvedValue({data: {id: 3, position: 0, title: "", columns: [], rows: []}});
+        mockUseData.mockReturnValue({
+            data: {...value, entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: []}]},
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        fireEvent.click(screen.getByRole("button", {name: "Add table 2026-02-11"}));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/case/entry/5/table"));
+        const table = await screen.findByTestId("case-table-3");
+        expect(table).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Add column"}));
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/table/3",
+            expect.objectContaining({columns: [""]})));
+
+        fireEvent.click(screen.getByRole("button", {name: "Delete table"}));
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/case/entry/table/3"));
+    });
+
+    test("types a value and cycles a rating in a table", async () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                entries: [{
+                    id: 5, date: "2026-02-11", content: "a day", images: [],
+                    tables: [{id: 3, position: 0, title: "margins", columns: ["NVDA"],
+                        rows: [{label: "gross", cells: [{value: "", rating: ""}]}]}],
+                }],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        fireEvent.change(screen.getByLabelText("Row 1 NVDA"), {target: {value: "75%"}});
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/table/3",
+            expect.objectContaining({
+                rows: [{label: "gross", cells: [{value: "75%", rating: ""}]}],
+            })));
+
+        // The rating is cycled on top of what was typed, which the grid keeps.
+        axios.put.mockClear();
+        fireEvent.click(screen.getByRole("button", {name: "Rating 1 NVDA"}));
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/table/3",
+            expect.objectContaining({
+                rows: [{label: "gross", cells: [{value: "75%", rating: "++"}]}],
+            })));
+    });
 });

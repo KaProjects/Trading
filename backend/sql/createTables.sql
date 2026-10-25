@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS CaseEntryTable;
 DROP TABLE IF EXISTS CaseEntryImage;
 DROP TABLE IF EXISTS CaseEntry;
 DROP TABLE IF EXISTS CaseCompany;
@@ -203,4 +204,14 @@ CREATE TABLE CaseEntryImage
     uploadedAt DATETIME          NOT NULL,
     entryId    INT UNSIGNED      NOT NULL,
     CONSTRAINT `fk_caseEntryImageEntryId` FOREIGN KEY (entryId) REFERENCES CaseEntry (id)
+);
+
+CREATE TABLE CaseEntryTable
+(
+    id       INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    position SMALLINT UNSIGNED NOT NULL,
+    title    VARCHAR(100),
+    data     TEXT         NOT NULL,
+    entryId  INT UNSIGNED NOT NULL,
+    CONSTRAINT `fk_caseEntryTableEntryId` FOREIGN KEY (entryId) REFERENCES CaseEntry (id)
 );

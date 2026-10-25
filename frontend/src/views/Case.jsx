@@ -85,6 +85,33 @@ export const Case = props => {
             })
     }
 
+    /** Tables are typed in place: every change is the whole grid, written as it is made. */
+    function addTable(entryId) {
+        axios.post(`${backend}/case/entry/${entryId}/table`)
+            .then(response => setEntries(previous => previous.map(entry => entry.id === entryId
+                ? {...entry, tables: [...(entry.tables ?? []), response.data]}
+                : entry)))
+            .catch(reason => setAlert(formatError(reason)))
+    }
+
+    function changeTable(tableId, changes) {
+        setEntries(previous => previous.map(entry => ({
+            ...entry,
+            tables: (entry.tables ?? []).map(table =>
+                table.id === tableId ? {...table, ...changes} : table),
+        })))
+        return axios.put(`${backend}/case/entry/table/${tableId}`, changes)
+            .catch(reason => setAlert(formatError(reason)))
+    }
+
+    function deleteTable(entryId, tableId) {
+        axios.delete(`${backend}/case/entry/table/${tableId}`)
+            .then(() => setEntries(previous => previous.map(entry => entry.id === entryId
+                ? {...entry, tables: (entry.tables ?? []).filter(table => table.id !== tableId)}
+                : entry)))
+            .catch(reason => setAlert(formatError(reason)))
+    }
+
     function removeCase() {
         axios.delete(`${backend}/case/${caseId}`)
             .then(() => navigate("/cases"))
@@ -190,6 +217,9 @@ export const Case = props => {
                             onCommitImages={commitStaged}
                             onDiscardImages={discardStaged}
                             onOpenEditor={entry => {setEditedEntry(entry);setOpenEditor(true)}}
+                            onAddTable={addTable}
+                            onChangeTable={changeTable}
+                            onDeleteTable={deleteTable}
                         />
                         {entries.length === 0 &&
                             <Typography sx={{color: "text.secondary", fontSize: 13}}>

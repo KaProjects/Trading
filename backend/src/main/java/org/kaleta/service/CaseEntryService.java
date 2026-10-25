@@ -1,5 +1,7 @@
 package org.kaleta.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
@@ -8,15 +10,21 @@ import org.kaleta.persistence.api.CaseDao;
 import org.kaleta.persistence.api.CaseEntryDao;
 import org.kaleta.persistence.entity.CaseEntry;
 import org.kaleta.persistence.entity.CaseEntryImage;
+import org.kaleta.persistence.entity.CaseEntryTable;
 import org.kaleta.persistence.entity.InvestmentCase;
 import org.kaleta.rest.dto.CaseEntryDto;
 import org.kaleta.rest.dto.CaseEntryUpdateDto;
+import org.kaleta.rest.dto.CaseTableDto;
+import org.kaleta.rest.dto.CaseTableUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The days written into a case, one entry per date.
@@ -29,6 +37,9 @@ import java.util.List;
 public class CaseEntryService
 {
     public static final int MAX_IMAGES_PER_ENTRY = 10;
+    public static final int MAX_TABLES_PER_ENTRY = 10;
+
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     @Inject
     CaseEntryDao caseEntryDao;
@@ -40,10 +51,53 @@ public class CaseEntryService
     /** Everything written into the case, oldest first; an empty day is left out. */
     public List<CaseEntryDto> getByCaseId(Long caseId)
     {
-        return caseEntryDao.listByCaseId(caseId).stream()
-                .filter(entry -> !isEmpty(entry))
-                .map(CaseEntryService::toDto)
+        List<CaseEntry> entries = caseEntryDao.listByCaseId(caseId);
+        Map<Long, List<CaseTableDto>> tables = tablesOf(entries.stream().map(CaseEntry::getId).toList());
+        return entries.stream()
+                .filter(entry -> !isEmpty(entry, tables))
+                .map(entry -> toDto(entry, tables.getOrDefault(entry.getId(), List.of())))
                 .toList();
+    }
+
+    public CaseTableDto addTable(Long entryId)
+    {
+        CaseEntry entry = entry(entryId);
+        if (caseEntryDao.countTables(entryId) >= MAX_TABLES_PER_ENTRY) {
+            throw new InvalidInputException("an entry can hold at most "
+                    + MAX_TABLES_PER_ENTRY + " tables");
+        }
+
+        CaseEntryTable table = new CaseEntryTable();
+        table.setEntry(entry);
+        table.setPosition((int) caseEntryDao.countTables(entryId));
+        table.setData(write(new CaseTableUpdateDto()));
+        caseEntryDao.createTable(table);
+        return toDto(table);
+    }
+
+    public CaseTableDto updateTable(Long tableId, CaseTableUpdateDto dto)
+    {
+        CaseEntryTable table = table(tableId);
+        requireRectangular(dto);
+        caseEntryDao.updateTable(tableId, dto.getTitle(), write(dto));
+        return new CaseTableDto(
+                table.getId(),
+                table.getPosition(),
+                dto.getTitle(),
+                List.copyOf(dto.getColumns()),
+                dto.getRows().stream()
+                        .map(row -> new CaseTableDto.Row(
+                                row.getLabel(),
+                                row.getCells().stream()
+                                        .map(cell -> new CaseTableDto.Cell(cell.getValue(), cell.getRating()))
+                                        .toList()))
+                        .toList());
+    }
+
+    public void deleteTable(Long tableId)
+    {
+        table(tableId);
+        caseEntryDao.deleteTable(tableId);
     }
 
     public CaseEntryDto save(Long caseId, CaseEntryUpdateDto dto)
@@ -67,7 +121,8 @@ public class CaseEntryService
                 });
 
         // Answered from what was written rather than read back, as with a period's research.
-        return new CaseEntryDto(entryId, date.toString(), dto.getContent(), images(entryId));
+        return new CaseEntryDto(entryId, date.toString(), dto.getContent(), images(entryId),
+                tablesOf(List.of(entryId)).getOrDefault(entryId, List.of()));
     }
 
     public CaseEntryDto.Image addImage(Long entryId, byte[] uploaded, String mime)
@@ -113,9 +168,73 @@ public class CaseEntryService
         }
     }
 
-    private static boolean isEmpty(CaseEntry entry)
+    private static boolean isEmpty(CaseEntry entry, Map<Long, List<CaseTableDto>> tables)
     {
-        return entry.getImages().isEmpty() && Utils.isBlankContent(entry.getContent());
+        return entry.getImages().isEmpty()
+                && tables.getOrDefault(entry.getId(), List.of()).isEmpty()
+                && Utils.isBlankContent(entry.getContent());
+    }
+
+    private Map<Long, List<CaseTableDto>> tablesOf(List<Long> entryIds)
+    {
+        Map<Long, List<CaseTableDto>> byEntry = new LinkedHashMap<>();
+        for (CaseEntryTable table : caseEntryDao.listTables(entryIds)) {
+            byEntry.computeIfAbsent(table.getEntry().getId(), ignored -> new ArrayList<>())
+                    .add(toDto(table));
+        }
+        return byEntry;
+    }
+
+    /** Every row holds one cell per column; a ragged grid would read as a different table. */
+    private static void requireRectangular(CaseTableUpdateDto dto)
+    {
+        for (CaseTableUpdateDto.Row row : dto.getRows()) {
+            if (row.getCells().size() != dto.getColumns().size()) {
+                throw new InvalidInputException("row '" + row.getLabel() + "' holds "
+                        + row.getCells().size() + " cells, and the table has "
+                        + dto.getColumns().size() + " columns");
+            }
+        }
+    }
+
+    private static String write(CaseTableUpdateDto dto)
+    {
+        try {
+            return JSON.writeValueAsString(dto);
+        } catch (JsonProcessingException exception) {
+            throw new InvalidInputException("the table could not be stored: " + exception.getMessage());
+        }
+    }
+
+    private static CaseTableDto toDto(CaseEntryTable table)
+    {
+        CaseTableUpdateDto data;
+        try {
+            data = JSON.readValue(table.getData(), CaseTableUpdateDto.class);
+        } catch (JsonProcessingException exception) {
+            throw new InvalidInputException("the table could not be read: " + exception.getMessage());
+        }
+        return new CaseTableDto(
+                table.getId(),
+                table.getPosition(),
+                table.getTitle(),
+                List.copyOf(data.getColumns()),
+                data.getRows().stream()
+                        .map(row -> new CaseTableDto.Row(
+                                row.getLabel(),
+                                row.getCells().stream()
+                                        .map(cell -> new CaseTableDto.Cell(cell.getValue(), cell.getRating()))
+                                        .toList()))
+                        .toList());
+    }
+
+    private CaseEntryTable table(Long tableId)
+    {
+        try {
+            return caseEntryDao.getTable(tableId);
+        } catch (NoResultException exception) {
+            throw new InvalidInputException("table with id '" + tableId + "' not found");
+        }
     }
 
     private List<CaseEntryDto.Image> images(Long entryId)
@@ -128,7 +247,7 @@ public class CaseEntryService
                 .toList();
     }
 
-    private static CaseEntryDto toDto(CaseEntry entry)
+    private static CaseEntryDto toDto(CaseEntry entry, List<CaseTableDto> tables)
     {
         return new CaseEntryDto(
                 entry.getId(),
@@ -137,7 +256,8 @@ public class CaseEntryService
                 entry.getImages().stream()
                         .map(image -> new CaseEntryDto.Image(
                                 image.getId(), image.getWidth(), image.getHeight()))
-                        .toList());
+                        .toList(),
+                tables);
     }
 
     private static LocalDate parseDate(String value)

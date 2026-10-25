@@ -40,3 +40,13 @@ CREATE TABLE CaseEntryImage
     entryId    INT UNSIGNED      NOT NULL,
     CONSTRAINT `fk_caseEntryImageEntryId` FOREIGN KEY (entryId) REFERENCES CaseEntry (id)
 );
+
+CREATE TABLE CaseEntryTable
+(
+    id       INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    position SMALLINT UNSIGNED NOT NULL,
+    title    VARCHAR(100),
+    data     TEXT         NOT NULL,
+    entryId  INT UNSIGNED NOT NULL,
+    CONSTRAINT `fk_caseEntryTableEntryId` FOREIGN KEY (entryId) REFERENCES CaseEntry (id)
+);

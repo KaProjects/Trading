@@ -2,6 +2,7 @@ package org.kaleta.persistence.api;
 
 import org.kaleta.persistence.entity.CaseEntry;
 import org.kaleta.persistence.entity.CaseEntryImage;
+import org.kaleta.persistence.entity.CaseEntryTable;
 
 import java.sql.Date;
 import java.util.List;
@@ -28,4 +29,17 @@ public interface CaseEntryDao extends EntityDao<CaseEntry>
     byte[] readImageBytes(Long imageId, boolean thumbnail);
 
     void deleteImage(Long imageId);
+
+    List<CaseEntryTable> listTables(List<Long> entryIds);
+
+    CaseEntryTable getTable(Long tableId);
+
+    void createTable(CaseEntryTable table);
+
+    /** Writes the grid of a table that is already there. */
+    void updateTable(Long tableId, String title, String data);
+
+    long countTables(Long entryId);
+
+    void deleteTable(Long tableId);
 }

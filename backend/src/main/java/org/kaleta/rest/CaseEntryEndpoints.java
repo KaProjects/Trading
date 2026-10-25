@@ -18,6 +18,7 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 import org.kaleta.rest.dto.CaseEntryUpdateDto;
+import org.kaleta.rest.dto.CaseTableUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.service.CaseEntryService;
@@ -68,6 +69,33 @@ public class CaseEntryEndpoints
         return Response.status(Response.Status.CREATED)
                 .entity(caseEntryService.addImage(entryId, uploaded, file.contentType()))
                 .build();
+    }
+
+    @POST
+    @Path("/{entryId}/table")
+    public Response addTable(@NotNull @ValidId @PathParam("entryId") Long entryId)
+    {
+        return Response.status(Response.Status.CREATED)
+                .entity(caseEntryService.addTable(entryId))
+                .build();
+    }
+
+    @PUT
+    @Path("/table/{tableId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response updateTable(
+            @NotNull @ValidId @PathParam("tableId") Long tableId,
+            @Valid @NotNull CaseTableUpdateDto dto)
+    {
+        return Response.ok(caseEntryService.updateTable(tableId, dto)).build();
+    }
+
+    @DELETE
+    @Path("/table/{tableId}")
+    public Response deleteTable(@NotNull @ValidId @PathParam("tableId") Long tableId)
+    {
+        caseEntryService.deleteTable(tableId);
+        return Response.ok().build();
     }
 
     @DELETE

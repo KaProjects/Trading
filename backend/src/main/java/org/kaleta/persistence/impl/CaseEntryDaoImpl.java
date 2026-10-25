@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import org.kaleta.persistence.api.CaseEntryDao;
 import org.kaleta.persistence.entity.CaseEntry;
 import org.kaleta.persistence.entity.CaseEntryImage;
+import org.kaleta.persistence.entity.CaseEntryTable;
 
 import java.sql.Date;
 import java.util.List;
@@ -106,6 +107,64 @@ public class CaseEntryDaoImpl extends EntityDaoImpl<CaseEntry> implements CaseEn
     public void deleteImage(Long imageId)
     {
         CaseEntryImage managed = entityManager.find(CaseEntryImage.class, imageId);
+        if (managed != null) {
+            entityManager.remove(managed);
+        }
+    }
+
+    @Override
+    public List<CaseEntryTable> listTables(List<Long> entryIds)
+    {
+        if (entryIds.isEmpty()) return List.of();
+
+        return entityManager.createQuery(
+                        "SELECT t FROM CaseEntryTable t WHERE t.entry.id IN :entryIds "
+                                + "ORDER BY t.position, t.id", CaseEntryTable.class)
+                .setParameter("entryIds", entryIds)
+                .getResultList();
+    }
+
+    @Override
+    public CaseEntryTable getTable(Long tableId)
+    {
+        return entityManager.createQuery(
+                        "SELECT t FROM CaseEntryTable t WHERE t.id=:id", CaseEntryTable.class)
+                .setParameter("id", tableId)
+                .getSingleResult();
+    }
+
+    @Transactional
+    @Override
+    public void createTable(CaseEntryTable table)
+    {
+        entityManager.persist(table);
+    }
+
+    @Transactional
+    @Override
+    public void updateTable(Long tableId, String title, String data)
+    {
+        CaseEntryTable managed = entityManager.find(CaseEntryTable.class, tableId);
+        if (managed != null) {
+            managed.setTitle(title);
+            managed.setData(data);
+        }
+    }
+
+    @Override
+    public long countTables(Long entryId)
+    {
+        return entityManager.createQuery(
+                        "SELECT COUNT(t) FROM CaseEntryTable t WHERE t.entry.id=:entryId", Long.class)
+                .setParameter("entryId", entryId)
+                .getSingleResult();
+    }
+
+    @Transactional
+    @Override
+    public void deleteTable(Long tableId)
+    {
+        CaseEntryTable managed = entityManager.find(CaseEntryTable.class, tableId);
         if (managed != null) {
             entityManager.remove(managed);
         }
