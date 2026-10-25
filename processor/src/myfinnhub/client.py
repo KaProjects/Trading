@@ -1,0 +1,55 @@
+import logging
+from datetime import date
+from decimal import Decimal
+
+import finnhub
+
+from myfinnhub.models import Earnings
+from myfinnhub.strings import ErrMsg
+
+logger = logging.getLogger(__name__)
+BERKSHIRE_CLASS_B_TICKER = "BRK.B"
+BERKSHIRE_CLASS_B_EPS_DIVISOR = Decimal("1500")
+EPS_PRECISION = Decimal("0.0001")
+
+
+def normalize_eps(company_id: str, value: object) -> object:
+    if value is None or value == "":
+        return value
+    if company_id != BERKSHIRE_CLASS_B_TICKER:
+        return value
+    return (
+        Decimal(str(value)) / BERKSHIRE_CLASS_B_EPS_DIVISOR
+    ).quantize(EPS_PRECISION)
+
+
+class FinnhubClient:
+    log = logger
+
+    def __init__(self, api_key):
+        self.client = finnhub.Client(api_key=api_key)
+        self.client.DEFAULT_TIMEOUT = 30
+
+    def get_earnings(self, company_id: str) -> dict[str, Earnings]:
+        one_year_more = date.today().replace(year=date.today().year + 1, day=1)
+        one_year_less = date.today().replace(year=date.today().year - 1, day=1)
+        response = self.client.earnings_calendar(
+            _from=one_year_less.strftime('%Y-%m-%d'),
+            to=one_year_more.strftime('%Y-%m-%d'),
+            symbol=company_id,
+            international=False)
+
+        quarters: dict[str, Earnings] = dict()
+
+        if len(response["earningsCalendar"]) == 0:
+            self.log.error(ErrMsg.NO_EARNINGS_FOUND.format(company_id=company_id))
+        else:
+            for earnings in response["earningsCalendar"]:
+                quarter = str(earnings["year"])[2:] + "Q" + str(earnings["quarter"])
+                data = {"epse": normalize_eps(company_id, earnings["epsEstimate"]),
+                        "epsa": normalize_eps(company_id, earnings["epsActual"]),
+                        "reve": earnings["revenueEstimate"], "reva": earnings["revenueActual"],
+                        "report": earnings["date"] + "-" + earnings["hour"]}
+                quarters[quarter] = Earnings.model_validate(data)
+
+        return quarters
