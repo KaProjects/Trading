@@ -23,9 +23,12 @@ RUN chown 1001:root /work \
     && chmod "g+rwX" /work
 
 COPY --from=build --chown=1001:root /code/target/*-runner /work/application
+# AWT in a native build is not all inside the executable: ImageIO loads libawt and the codecs
+# beside it at runtime, and without them the first upload dies on UnsatisfiedLinkError.
+COPY --from=build --chown=1001:root /code/target/*.so /work/
 
 EXPOSE 8080
 USER 1001
 ENV TZ="Europe/Prague"
 
-ENTRYPOINT ["./application", "-Duser.timezone=Europe/Prague", "-Dquarkus.http.host=0.0.0.0"]
+ENTRYPOINT ["./application", "-Duser.timezone=Europe/Prague", "-Dquarkus.http.host=0.0.0.0", "-Djava.awt.headless=true"]

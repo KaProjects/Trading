@@ -50,6 +50,11 @@ public class ImageService
         }
 
         try (ImageInputStream stream = ImageIO.createImageInputStream(new ByteArrayInputStream(uploaded))) {
+            // Null means ImageIO found nothing that could read the bytes at all, which is what
+            // a native build without AWT support looks like from here.
+            if (stream == null) {
+                throw new InvalidInputException("the image could not be read");
+            }
             Iterator<ImageReader> readers = ImageIO.getImageReaders(stream);
             if (!readers.hasNext()) {
                 throw new InvalidInputException("this is not a PNG or a JPEG image");
