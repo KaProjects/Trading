@@ -1,5 +1,5 @@
 import {formatDate, formatDecimals, formatError} from "../../service/FormattingService";
-import {Button, Dialog, DialogActions, DialogTitle, Stack, Tooltip} from "@mui/material";
+import {Box, Button, Dialog, DialogActions, DialogTitle, Stack, Tooltip} from "@mui/material";
 import {RecordAssetAggregate} from "./RecordAssetAggregate";
 import React, {useState} from "react";
 import axios from "axios";
@@ -14,54 +14,26 @@ import {ReactComponent as StrategyPlusIcon} from "../../assets/icons/strategy-pl
 import {ReactComponent as RetroPlusIcon} from "../../assets/icons/retro-plus.svg";
 import {ReactComponent as DeleteIcon} from "../../assets/icons/delete.svg";
 import {EditableValueBox} from "./EditableValueBox";
+import {ContentEditorDialog} from "../../dialog/ContentEditorDialog";
+import {SWIPE_NAV_BREAKPOINT} from "./MainBar";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import {validateNumber} from "../../service/ValidationService";
-
-const FINANCIAL_RATIO_LABELS = ["PS", "PG", "PO", "PE"];
-
-function financialRatiosValue(record) {
-    return [
-        record.priceToRevenues,
-        record.priceToGrossProfit,
-        record.priceToOperatingIncome,
-        record.priceToNetIncome,
-    ].map(value => value ?? "").join("/");
-}
 
 function hasValue(value) {
     return value !== null && value !== undefined && value !== "";
 }
 
-function hasFinancialRatios(record) {
-    return [
-        record.priceToRevenues,
-        record.priceToGrossProfit,
-        record.priceToOperatingIncome,
-        record.priceToNetIncome,
-    ].some(hasValue);
-}
-
-function formatFinancialRatios(value) {
-    return value.split("/")
-        .map(ratio => ratio.trim())
-        .map(ratio => ratio === "" ? "-" : formatDecimals(Number(ratio), 0, 2))
-        .join(" / ");
-}
-
-function validateFinancialRatios(value) {
-    const ratios = value.split("/").map(ratio => ratio.trim());
-    if (ratios.length !== 4) return "Use format PS/PG/PO/PE";
-
-    for (let index = 0; index < ratios.length; index++) {
-        const error = validateNumber(ratios[index], false, 6, 2, index > 0);
-        if (error) return `${FINANCIAL_RATIO_LABELS[index]}: ${error}`;
-    }
-    return "";
+function hasAssetAggregate(asset) {
+    return asset && hasValue(asset.quantity) && hasValue(asset.purchasePrice);
 }
 
 
-export const Record = ({data, currency, setAlert, deleteRecord}) => {
+export const Record = ({data, ticker, currency, setAlert, deleteRecord}) => {
 
     const [record, setRecord] = useState(data);
+    const [editedSection, setEditedSection] = useState(null);
+    const [sectionVersion, setSectionVersion] = useState(0);
+    const isNarrowScreen = useMediaQuery(`(max-width:${SWIPE_NAV_BREAKPOINT}px)`);
 
     const [reviewSectionAdded, setReviewSectionAdded] = useState(false);
     const [strategySectionAdded, setStrategySectionAdded] = useState(false);
@@ -91,20 +63,29 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
             })
     }
 
+    async function saveSection(value) {
+        const error = await editedSection.update(value)
+        if (error) return error
+
+        setSectionVersion(version => version + 1)
+        setEditedSection(null)
+        return null
+    }
+
     function updateContent(value) {
-        updateRecord({id: record.id, content: JSON.stringify(value)})
+        return updateRecord({id: record.id, content: JSON.stringify(value)})
     }
 
     function updateReview(value) {
-        updateRecord({id: record.id, review: JSON.stringify(value)})
+        return updateRecord({id: record.id, review: JSON.stringify(value)})
     }
 
     function updateStrategy(value) {
-        updateRecord({id: record.id, strategy: JSON.stringify(value)})
+        return updateRecord({id: record.id, strategy: JSON.stringify(value)})
     }
 
     function updateRetro(value) {
-        updateRecord({id: record.id, retro: JSON.stringify(value)})
+        return updateRecord({id: record.id, retro: JSON.stringify(value)})
     }
 
     function updateTargets(value) {
@@ -119,16 +100,8 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
         return updateRecord({id: record.id, dividendYield: value})
     }
 
-    function updateFinancialRatios(value) {
-        const [priceToRevenues, priceToGrossProfit, priceToOperatingIncome, priceToNetIncome]
-            = value.split("/").map(ratio => ratio.trim());
-        return updateRecord({
-            id: record.id,
-            priceToRevenues,
-            priceToGrossProfit,
-            priceToOperatingIncome,
-            priceToNetIncome,
-        })
+    function updateForwardPe(value) {
+        return updateRecord({id: record.id, forwardPe: value})
     }
 
     function updateAsset(quantity, purchasePrice) {
@@ -155,59 +128,106 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
         return (record.content && record.content !== JSON.stringify(defaultContent())) || contentSectionAdded
     }
 
+    const showAssetAggregate = hasAssetAggregate(record.asset);
+    const showReview = showReviewSection();
+    const showStrategy = showStrategySection();
+    const showRetro = showRetroSection();
+    const showContent = showContentSection();
+    const showEditorSections = showReview || showStrategy || showRetro || showContent;
+    const showDividendYield = hasValue(record.dividendYield);
+    const summaryColumns = [
+        showAssetAggregate && "asset",
+        "price",
+        showDividendYield && "dividend",
+        "fpe",
+    ].filter(Boolean);
+    const summarySecondRow = summaryColumns
+        .map(column => column === "asset" ? "asset" : column === "price" ? "targets" : ".")
+        .join(" ");
+
     return (
         <BorderedSection title={formatDate(record.date)} style={{color: 'text.primary'}}>
 
-            <Stack
-                data-testid="record-summary"
-                direction="row"
-                justifyContent="flex-start"
-                alignItems="stretch"
-                sx={{flexWrap: {xs: "wrap", sm: "nowrap"}, gap: "5px"}}
+            <Box
+                data-testid="record-summary-scroll"
+                sx={{
+                    maxWidth: "100%",
+                    overflowX: {xs: "auto", sm: "visible"},
+                    overflowY: {xs: "hidden", sm: "visible"},
+                    overscrollBehaviorX: "contain",
+                    pb: {xs: 0.5, sm: 0},
+                }}
             >
-                <EditableValueBox
-                    value={record.price}
-                    prefix={currency}
-                    label="Price"
-                    formatValue={(value) => formatDecimals(Number(value), 0, 4)}
-                    validate={(value) => validateNumber(value, false, 10, 4, false)}
-                    update={updatePrice}
-                    disabled
-                />
-                <EditableValueBox
-                    value={record.targets}
-                    suffix={currency}
-                    label={"Targets"}
-                    validate={() => ""}
-                    update={(value) => updateTargets(value)}
-                />
-                {hasFinancialRatios(record) &&
-                    <EditableValueBox
-                        value={financialRatiosValue(record)}
-                        label="Price to financials ratios"
-                        formatValue={formatFinancialRatios}
-                        validate={validateFinancialRatios}
-                        update={updateFinancialRatios}
-                        disabled
-                    />
-                }
-                <EditableValueBox
-                    value={record.dividendYield}
-                    suffix="%"
-                    label="Dividend yield"
-                    formatValue={(value) => formatDecimals(Number(value), 0, 2)}
-                    validate={(value) => validateNumber(value, true, 5, 2, false)}
-                    update={updateDividendYield}
-                />
-            </Stack>
-
-            {record.asset &&
-                <RecordAssetAggregate
-                    asset={record.asset}
-                    currency={currency}
-                    update={(quantity, purchasePrice) => updateAsset(quantity, purchasePrice)}
-                />
-            }
+                <Box
+                    data-testid="record-summary"
+                    sx={{
+                        display: "grid",
+                        gridTemplateAreas: `"${summaryColumns.join(" ")}" "${summarySecondRow}"`,
+                        gridTemplateColumns: `repeat(${summaryColumns.length}, max-content)`,
+                        gridTemplateRows: "max-content max-content",
+                        columnGap: "5px",
+                        rowGap: "1px",
+                        alignItems: "start",
+                        width: "max-content",
+                    }}
+                >
+                    {showAssetAggregate &&
+                        <Box data-testid="record-asset-item" sx={{gridArea: "asset"}}>
+                            <RecordAssetAggregate
+                                asset={record.asset}
+                                currency={currency}
+                                update={(quantity, purchasePrice) => updateAsset(quantity, purchasePrice)}
+                            />
+                        </Box>
+                    }
+                    <Box data-testid="record-price-item" sx={{gridArea: "price"}}>
+                        <EditableValueBox
+                            value={record.price}
+                            prefix={currency}
+                            label="Price"
+                            formatValue={(value) => formatDecimals(Number(value), 0, 4)}
+                            validate={(value) => validateNumber(value, false, 10, 4, false)}
+                            update={updatePrice}
+                            disabled
+                        />
+                    </Box>
+                    <Box
+                        data-testid="record-targets-item"
+                        sx={{gridArea: "targets", width: 0, minWidth: 0, overflow: "visible"}}
+                    >
+                        <Box sx={{width: "max-content"}}>
+                            <EditableValueBox
+                                value={record.targets}
+                                suffix={currency}
+                                label={"Targets"}
+                                validate={() => ""}
+                                update={(value) => updateTargets(value)}
+                            />
+                        </Box>
+                    </Box>
+                    {showDividendYield &&
+                        <Box data-testid="record-dividend-item" sx={{gridArea: "dividend"}}>
+                            <EditableValueBox
+                                value={record.dividendYield}
+                                suffix="%"
+                                label="Dividend yield"
+                                formatValue={(value) => formatDecimals(Number(value), 0, 2)}
+                                validate={(value) => validateNumber(value, true, 5, 2, false)}
+                                update={updateDividendYield}
+                            />
+                        </Box>
+                    }
+                    <Box data-testid="record-forward-pe-item" sx={{gridArea: "fpe"}}>
+                        <EditableValueBox
+                            value={record.forwardPe}
+                            label="Forward PE"
+                            formatValue={(value) => formatDecimals(Number(value), 0, 2)}
+                            validate={(value) => validateNumber(value, true, 6, 2, true)}
+                            update={updateForwardPe}
+                        />
+                    </Box>
+                </Box>
+            </Box>
             {record.title &&
                 <EditableTypography
                     value={record.title}
@@ -217,39 +237,71 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                     style={{margin: "12px 15px 0 5px"}}
                 />
             }
-            {showReviewSection() &&
-                <RecordEditorSection
-                    label={"Review"}
-                    content={record.review}
-                    update={(value) => updateReview(value)}
-                style={{marginTop: "5px"}}
-                />
+            {showEditorSections &&
+                <Box
+                    data-testid="record-editor-sections"
+                    sx={{marginTop: "5px", "@media (min-width: 600px)": {marginTop: "8px"}}}
+                >
+                    {showReview &&
+                        <RecordEditorSection
+                            key={`review-${sectionVersion}`}
+                            label={"Review"}
+                            content={record.review}
+                            update={(value) => updateReview(value)}
+                            onOpen={isNarrowScreen
+                                ? () => setEditedSection({label: "Review", content: record.review, update: updateReview})
+                                : undefined}
+                        />
+                    }
+                    {showStrategy &&
+                        <RecordEditorSection
+                            key={`strategy-${sectionVersion}`}
+                            label={"Strategy"}
+                            content={record.strategy}
+                            update={(value) => updateStrategy(value)}
+                            onOpen={isNarrowScreen
+                                ? () => setEditedSection({label: "Strategy", content: record.strategy, update: updateStrategy})
+                                : undefined}
+                        />
+                    }
+                    {showRetro &&
+                        <RecordEditorSection
+                            key={`retro-${sectionVersion}`}
+                            label={"Retrospective"}
+                            content={record.retro}
+                            update={(value) => updateRetro(value)}
+                            onOpen={isNarrowScreen
+                                ? () => setEditedSection({label: "Retrospective", content: record.retro, update: updateRetro})
+                                : undefined}
+                        />
+                    }
+                    {showContent &&
+                        <RecordEditorSection
+                            key={`content-${sectionVersion}`}
+                            label={"Content"}
+                            content={record.content}
+                            update={(value) => updateContent(value)}
+                            onOpen={isNarrowScreen
+                                ? () => setEditedSection({label: "Content", content: record.content, update: updateContent})
+                                : undefined}
+                        />
+                    }
+                </Box>
             }
-            {showStrategySection() &&
-                <RecordEditorSection
-                    label={"Strategy"}
-                    content={record.strategy}
-                    update={(value) => updateStrategy(value)}
-                />
-            }
-            {showRetroSection() &&
-                <RecordEditorSection
-                    label={"Retrospective"}
-                    content={record.retro}
-                    update={(value) => updateRetro(value)}
-                />
-            }
-            {showContentSection() &&
-                <RecordEditorSection
-                    label={"Content"}
-                    content={record.content}
-                    update={(value) => updateContent(value)}
-                />
-            }
+            <ContentEditorDialog
+                open={Boolean(editedSection)}
+                content={editedSection?.content}
+                title={editedSection
+                    ? [ticker, formatDate(record.date), editedSection.label].filter(Boolean).join(" ")
+                    : undefined}
+                handleClose={() => setEditedSection(null)}
+                save={saveSection}
+            />
 
             <Stack direction="column" justifyContent="flex-start" alignItems="center" spacing={1}
                    sx={{
-                       position: "absolute", top: "6px", right: "8px", zIndex: 1, opacity: 0, pointerEvents: "none",
+                       position: "absolute", top: "6px", right: "8px", zIndex: 1,
+                       opacity: {xs: 1, sm: 0}, pointerEvents: {xs: "auto", sm: "none"},
                        maxHeight: "calc(100% - 12px)", overflowY: "auto", overflowX: "hidden",
                        paddingRight: "8px", marginRight: "-8px",
                        transition: "opacity 120ms ease-in-out",
@@ -258,28 +310,28 @@ export const Record = ({data, currency, setAlert, deleteRecord}) => {
                        "& svg": {width: "20px", height: "20px", display: "block",},
                    }}
             >
-                {!showReviewSection() &&
+                {!showReview &&
                     <Tooltip title="Add review section" placement="left">
                         <Button onClick={() => setReviewSectionAdded(true)}>
                             <ReviewPlusIcon/>
                         </Button>
                     </Tooltip>
                 }
-                {!showStrategySection() &&
+                {!showStrategy &&
                     <Tooltip title="Add strategy section" placement="left">
                         <Button onClick={() => setStrategySectionAdded(true)}>
                             <StrategyPlusIcon/>
                         </Button>
                     </Tooltip>
                 }
-                {!showRetroSection() &&
+                {!showRetro &&
                     <Tooltip title="Add retro section" placement="left">
                         <Button onClick={() => setRetroSectionAdded(true)}>
                             <RetroPlusIcon/>
                         </Button>
                     </Tooltip>
                 }
-                {!showContentSection() &&
+                {!showContent &&
                     <Tooltip title="Add content section" placement="left">
                         <Button onClick={() => setContentSectionAdded(true)}>
                             <ContentPlusIcon/>

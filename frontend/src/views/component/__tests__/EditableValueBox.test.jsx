@@ -33,6 +33,11 @@ describe("EditableValueBox", () => {
         const button = screen.getByRole("button");
         expect(button).toHaveTextContent("$123");
         expect(button).toHaveAttribute("aria-disabled", "true");
+        expect(button).toHaveStyle({
+            color: "rgba(0, 0, 0, 0.6)",
+            border: "1px solid rgba(0, 0, 0, 0.04)",
+            boxShadow: "1px 1px 1px rgba(0, 0, 0, 0.025)",
+        });
 
         fireEvent.click(button);
 
@@ -54,6 +59,20 @@ describe("EditableValueBox", () => {
         const button = screen.getByRole("button");
         expect(button).toHaveTextContent("3@100$");
         expect(button).toHaveTextContent("+75$ (+25%)");
+    });
+
+    test("applies a custom button size", () => {
+        render(
+            <EditableValueBox
+                value={"3@100"}
+                label={"Asset aggregate"}
+                validate={() => ""}
+                update={jest.fn()}
+                buttonStyle={{height: "51px", minHeight: "51px"}}
+            />
+        );
+
+        expect(screen.getByRole("button")).toHaveStyle("height: 51px; min-height: 51px");
     });
 
     test("formats only the displayed value and keeps the raw value for editing", () => {

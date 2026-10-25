@@ -11,6 +11,12 @@ import {
 } from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {DialogTextField} from "./component/DialogTextField";
+import {
+    endingMonthWarning,
+    periodNameError,
+    periodNameWarning,
+    reportDateError,
+} from "../service/PeriodService";
 import {DialogDatePicker} from "./component/DialogDatePicker";
 import {formatError} from "../service/FormattingService";
 import {backend} from "../properties";
@@ -18,16 +24,19 @@ import axios from "axios";
 import {
     EMPTY_PERIOD_FINANCIAL_VALUES,
     PeriodFinancialFields,
+    toNullableFinancialValues,
 } from "./component/PeriodFinancialFields";
 
 export const ImportPeriodDialog = props => {
-    const {company, periods = [], open, handleClose, triggerRefresh} = props
+    const {company, periods = [], existingPeriods = [], open, handleClose, triggerRefresh} = props
+    const latestPeriod = existingPeriods[0]
 
     const [period, setPeriod] = useState(null)
-    const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}})
+    const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}, alphaVantage: {}})
     const [warnings, setWarnings] = useState([])
     const [alert, setAlert] = useState(null)
     const [loading, setLoading] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (open) resetSelection()
@@ -36,10 +45,11 @@ export const ImportPeriodDialog = props => {
 
     function resetSelection() {
         setPeriod(null)
-        setSuggestions({firebase: {}, polygon: {}})
+        setSuggestions({firebase: {}, polygon: {}, alphaVantage: {}})
         setWarnings([])
         setAlert(null)
         setLoading(false)
+        setSubmitting(false)
     }
 
     function editablePeriod(data) {
@@ -52,10 +62,21 @@ export const ImportPeriodDialog = props => {
         }
     }
 
+    function nameError() {
+        return periodNameError(period?.name ?? "", existingPeriods)
+    }
+
+    function reportDateValidation() {
+        return period?.isReported ? reportDateError(period.reportDate, period.endingMonth) : ""
+    }
+
     function createPeriod() {
+        if (submitting) return
+        setSubmitting(true)
+
         const endpoint = period.isReported ? "/period/import" : "/period/import/unreported"
         const data = period.isReported
-            ? {...period, companyId: company.id}
+            ? {...toNullableFinancialValues(period), companyId: company.id}
             : {companyId: company.id, name: period.name, endingMonth: period.endingMonth}
 
         axios.post(backend + endpoint, data)
@@ -64,6 +85,32 @@ export const ImportPeriodDialog = props => {
                 handleClose()
             })
             .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false))
+    }
+
+    /**
+     * The whole calendar at once, with no financials: name and ending month only, exactly what an
+     * unreported period holds. For a company whose figures are not worth filling in quarter by
+     * quarter, this is the way to get its periods into the app and still import the financials
+     * later. Offered only when there is more than one quarter to take.
+     */
+    function quickImport() {
+        if (submitting) return
+        setSubmitting(true)
+        setAlert(null)
+
+        const data = {
+            companyId: company.id,
+            periods: periods.map(candidate => ({name: candidate.name, endingMonth: candidate.endingMonth})),
+        }
+
+        axios.post(backend + "/period/import/unreported/all", data)
+            .then(() => {
+                triggerRefresh()
+                handleClose()
+            })
+            .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false))
     }
 
     function selectPeriod(candidate) {
@@ -72,7 +119,7 @@ export const ImportPeriodDialog = props => {
 
         if (!candidate.isReported) {
             setPeriod(editablePeriod(candidate))
-            setSuggestions({firebase: {}, polygon: {}})
+            setSuggestions({firebase: {}, polygon: {}, alphaVantage: {}})
             return
         }
 
@@ -86,6 +133,7 @@ export const ImportPeriodDialog = props => {
                 setSuggestions({
                     firebase: response.data.firebase ?? {},
                     polygon: response.data.polygon ?? {},
+                    alphaVantage: response.data.alphaVantage ?? {},
                 })
                 setWarnings(response.data.warnings ?? [])
                 setLoading(false)
@@ -95,6 +143,9 @@ export const ImportPeriodDialog = props => {
                 setLoading(false)
             })
     }
+
+    // The candidate list is what the dialog opens on, and what it goes back to.
+    const showCandidates = !period && !loading
 
     return (
         <Dialog
@@ -110,13 +161,13 @@ export const ImportPeriodDialog = props => {
                     </Box>
                 }
 
-                {!period && !loading && periods.map(candidate => (
+                {showCandidates && periods.map(candidate => (
                     <Button key={candidate.name} onClick={() => selectPeriod(candidate)}>
                         {`${candidate.name}${candidate.isReported ? "" : "*"}`}
                     </Button>
                 ))}
 
-                {!period && !loading && periods.length === 0 && !alert &&
+                {showCandidates && periods.length === 0 && !alert &&
                     <Box sx={{color: "text.secondary"}}>No periods available for import.</Box>
                 }
 
@@ -130,10 +181,9 @@ export const ImportPeriodDialog = props => {
                                 id="trader-period-name"
                                 value={period.name}
                                 label="Name"
-                                onChange={event => {setPeriod(previous => ({...previous, name: event.target.value}));setAlert(null)}}
-                                validate={() => period.name.length !== 4
-                                    ? "exactly 4 symbols, e.g. 25FY, 25Q1, ..."
-                                    : ""}
+                                disabled
+                                validate={nameError}
+                                warning={periodNameWarning(period.name, latestPeriod)}
                             />
                             <DialogDatePicker
                                 id="trader-period-end-month"
@@ -141,6 +191,7 @@ export const ImportPeriodDialog = props => {
                                 value={period.endingMonth}
                                 label="Ending Month"
                                 onChange={event => {setPeriod(previous => ({...previous, endingMonth: event.target.value}));setAlert(null)}}
+                                warning={endingMonthWarning(period.name, period.endingMonth, latestPeriod)}
                             />
                             {period.isReported &&
                                 <DialogDatePicker
@@ -148,6 +199,7 @@ export const ImportPeriodDialog = props => {
                                     value={period.reportDate}
                                     label="Report Date"
                                     onChange={event => {setPeriod(previous => ({...previous, reportDate: event.target.value}));setAlert(null)}}
+                                    validate={reportDateValidation}
                                 />
                             }
                         </Box>
@@ -156,7 +208,7 @@ export const ImportPeriodDialog = props => {
                             <>
                                 {warnings.length > 0 &&
                                     <Alert severity="warning">
-                                        <AlertTitle>Some Polygon.io data could not be loaded</AlertTitle>
+                                        <AlertTitle>Some external data could not be loaded</AlertTitle>
                                         {warnings.map(warning => <Box key={warning}>{warning}</Box>)}
                                     </Alert>
                                 }
@@ -181,11 +233,14 @@ export const ImportPeriodDialog = props => {
             }
 
             <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
+                {showCandidates && periods.length > 1 &&
+                    <Button onClick={quickImport} disabled={submitting}>Quick import</Button>
+                }
+                <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
                 {period &&
                     <>
-                        <Button onClick={resetSelection}>Back</Button>
-                        <Button type="submit">Create</Button>
+                        <Button onClick={resetSelection} disabled={submitting}>Back</Button>
+                        <Button type="submit" disabled={submitting}>Create</Button>
                     </>
                 }
             </DialogActions>

@@ -27,8 +27,9 @@ public class Periods
         private BigDecimal shares;
         private BigDecimal priceLow;
         private BigDecimal priceHigh;
-        private String research;
         private Financial financial;
+        private Date expectedReportDate;
+        private Boolean reportedInFirebase;
     }
 
     @Data
@@ -40,8 +41,11 @@ public class Periods
         private final Metric grossProfit = new Metric();
         private final Metric operatingIncome = new Metric();
         private final Metric netIncome = new Metric();
+        private final Metric capex = new Metric();
+        private final Metric freeCashFlow = new Metric();
 
         private BigDecimal dividend;
+        private BigDecimal dividendMargin;
         private BigDecimal adjustedEps;
         private BigDecimal shares;
 

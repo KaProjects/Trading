@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import {Grid, List, ListItem, ListItemButton, ListItemText, ListSubheader, MenuItem, Select} from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {recordEvent} from "../../service/utils";
-import {COMPANY_LIST_TITLES, getCompanyListKeys, getCompanyListTitle} from "../../service/CompanyListService";
+import {COMPANY_LIST_TITLES, HAS_PERIOD_LIST, getCompanyListKeys, getCompanyListTitle} from "../../service/CompanyListService";
 
 export const BUILT_IN_LIST_TITLES = COMPANY_LIST_TITLES
 export const COMPANY_SELECTOR_COMPACT_BREAKPOINT = 600
@@ -46,7 +46,7 @@ export const CompanySelector = (props) => {
                 company => company.id === props.companySelectorValue.id
             )
 
-            if (props.companyListSelectorValue && containsSelectedCompany(props.companyListSelectorValue)) {
+            if (props.companyListSelectorValue && data[props.companyListSelectorValue]) {
                 return props.companyListSelectorValue
             }
 
@@ -76,13 +76,33 @@ export const CompanySelector = (props) => {
 
     function getSecondaryValue(company, listKey) {
         switch (listKey) {
-            case "researched":
-                return company.latestPeriodEndingMonth
             case "recent":
                 return company.latestRecordDate
+            case "actionable":
+                return getActionableSecondaryValue(company)
+            case HAS_PERIOD_LIST:
+                return getPeriodSecondaryValue(company)
             default:
                 return undefined
         }
+    }
+
+    // What the debug list is for: seeing at a glance how much research a company carries.
+    function getPeriodSecondaryValue(company) {
+        const periods = company.periodCount ?? 0
+        const withContent = company.periodsWithContentCount ?? 0
+        return `${periods} period${periods === 1 ? "" : "s"}, ${withContent} with content`
+    }
+
+    function getActionableSecondaryValue(company) {
+        const parts = []
+        if (company.importablePeriodsCount > 0) {
+            parts.push(`${company.importablePeriodsCount} period${company.importablePeriodsCount === 1 ? "" : "s"}`)
+        }
+        if (company.importableTargetsCount > 0) {
+            parts.push(`${company.importableTargetsCount} target${company.importableTargetsCount === 1 ? "" : "s"}`)
+        }
+        return parts.join(", ") || undefined
     }
 
     const listStyle = {
@@ -90,6 +110,13 @@ export const CompanySelector = (props) => {
         width: compactListVisible ? "100%" : "auto",
         flexShrink: 0,
         marginTop: "2px",
+        maxHeight: {
+            xs: "calc(100dvh - var(--main-bar-height, 48px) - 8px)",
+            sm: "calc(100dvh - var(--main-bar-height, 48px) - 16px)",
+        },
+        overflowY: "auto",
+        overflowX: "hidden",
+        overscrollBehaviorY: "contain",
         bgcolor: 'background.paper',
         boxShadow: 1,
         borderRadius: 2,
@@ -104,11 +131,16 @@ export const CompanySelector = (props) => {
         ':before': {borderBottomColor: 'transparent'},
         ':after': {borderBottomColor: 'grey'},
     }
-    const sidebarSx = {maxWidth: "200px", position: "absolute", left: 0, display: "block"}
+    const sidebarSx = {
+        maxWidth: "200px",
+        position: "absolute",
+        left: {xs: "-5px", sm: "-13px"},
+        display: "block",
+    }
     const compactSx = {
-        width: {xs: "calc(100% + 16px)", sm: "calc(100% + 32px)"},
+        width: {xs: "calc(100% + 10px)", sm: "calc(100% + 26px)"},
         maxWidth: "none",
-        marginLeft: {xs: "-8px", sm: "-16px"},
+        marginLeft: {xs: "-5px", sm: "-13px"},
     }
 
     function renderListHeader(listKey) {

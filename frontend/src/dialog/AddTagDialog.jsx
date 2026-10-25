@@ -20,6 +20,7 @@ const MAX_TAG_LENGTH = 30;
 export const AddTagDialog = props => {
     const [tag, setTag] = useState("");
     const [alert, setAlert] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
     const normalizedTag = tag.toLocaleLowerCase();
     const currentTags = props.currentTags ?? [];
     const containsWhitespace = /\s/.test(tag);
@@ -42,11 +43,13 @@ export const AddTagDialog = props => {
         if (props.open) {
             setTag("");
             setAlert(null);
+            setSubmitting(false);
         }
     }, [props.open]);
 
     function addTag() {
-        if (!valid) return;
+        if (!valid || submitting) return;
+        setSubmitting(true);
 
         axios.post(backend + "/company/tag", {
             companyId: props.companyId,
@@ -54,7 +57,9 @@ export const AddTagDialog = props => {
         }).then(() => {
             props.triggerRefresh();
             props.handleClose();
-        }).catch(error => setAlert(formatError(error)));
+        })
+            .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false));
     }
 
     return (
@@ -108,7 +113,7 @@ export const AddTagDialog = props => {
             }
             <DialogActions>
                 <Button onClick={props.handleClose}>Cancel</Button>
-                <Button type="submit" disabled={!valid}>Add</Button>
+                <Button type="submit" disabled={!valid || submitting}>Add</Button>
             </DialogActions>
         </Dialog>
     );

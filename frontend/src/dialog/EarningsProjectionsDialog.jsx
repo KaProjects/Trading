@@ -8,7 +8,6 @@ import {
     DialogContent,
     DialogTitle,
     IconButton,
-    InputBase,
     Table,
     TableBody,
     TableCell,
@@ -17,14 +16,14 @@ import {
     TableRow,
     TextField,
 } from "@mui/material";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import axios from "axios";
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
 import {formatDate, formatDecimals, formatError, formatPercent, formatPeriodName} from "../service/FormattingService";
 import {validateNumber} from "../service/ValidationService";
+import {ProjectionInput} from "./component/ProjectionInput";
 
 const priceRows = [
     {label: "t + 20%", factor: 1.20},
@@ -118,64 +117,6 @@ const currentDate = () => {
     ].join("-");
 };
 
-const ProjectionInput = ({value, onChange, onBlur, onStep, label, min}) => (
-    <InputBase
-        type="number"
-        value={value}
-        onChange={onChange}
-        onBlur={onBlur}
-        onKeyDown={event => {
-            if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-                event.preventDefault();
-                onStep(event.key === "ArrowUp" ? 1 : -1);
-            }
-        }}
-        endAdornment={
-            <Box
-                className="projection-stepper"
-                sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    opacity: 0,
-                    pointerEvents: "none",
-                }}
-            >
-                <IconButton
-                    aria-label={`Increase ${label.toLowerCase()}`}
-                    onMouseDown={event => event.preventDefault()}
-                    onClick={() => onStep(1)}
-                    tabIndex={-1}
-                    sx={{width: 18, height: 11, padding: 0, color: "#555"}}
-                >
-                    <ArrowDropUpIcon sx={{fontSize: 17}}/>
-                </IconButton>
-                <IconButton
-                    aria-label={`Decrease ${label.toLowerCase()}`}
-                    onMouseDown={event => event.preventDefault()}
-                    onClick={() => onStep(-1)}
-                    tabIndex={-1}
-                    sx={{width: 18, height: 11, padding: 0, color: "#555"}}
-                >
-                    <ArrowDropDownIcon sx={{fontSize: 17}}/>
-                </IconButton>
-            </Box>
-        }
-        inputProps={{inputMode: "decimal", min, step: "any", "aria-label": label}}
-        sx={{
-            width: "100%",
-            color: "#111",
-            fontSize: "inherit",
-            "& input": {padding: "4px 2px 4px 8px", textAlign: "right"},
-            "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
-                WebkitAppearance: "none",
-                margin: 0,
-            },
-            "& input[type=number]": {MozAppearance: "textfield"},
-            "&:focus-within .projection-stepper": {opacity: 1, pointerEvents: "auto"},
-        }}
-    />
-);
-
 export const EarningsProjectionsDialog = ({
     open,
     handleClose,
@@ -185,6 +126,7 @@ export const EarningsProjectionsDialog = ({
     latestPeriod,
     previousPeriod,
 }) => {
+    const isNarrowScreen = useMediaQuery("(max-width:599.95px)");
     const [targetPrice, setTargetPrice] = useState("");
     const [targetPe, setTargetPe] = useState("30");
     const [forecastAdjustment, setForecastAdjustment] = useState("0");
@@ -194,8 +136,6 @@ export const EarningsProjectionsDialog = ({
     const [persistDate, setPersistDate] = useState("");
     const [savingEstimate, setSavingEstimate] = useState(false);
     const [saveError, setSaveError] = useState(null);
-    const [tableScrollFades, setTableScrollFades] = useState({top: false, bottom: false});
-    const tablesScrollRef = useRef(null);
     const previousPriceHigh = numberValue(previousPeriod?.priceHigh);
     const previousPriceLow = numberValue(previousPeriod?.priceLow);
     const previousPriceRows = previousPriceHigh !== null && previousPriceLow !== null
@@ -208,15 +148,6 @@ export const EarningsProjectionsDialog = ({
         ? latestPeriod.name
         : formatPeriodName(latestPeriod?.name);
 
-    const updateTableScrollFades = () => {
-        const element = tablesScrollRef.current;
-        if (!element) return;
-        setTableScrollFades({
-            top: element.scrollTop > 1,
-            bottom: element.scrollTop + element.clientHeight < element.scrollHeight - 1,
-        });
-    };
-
     useEffect(() => {
         if (open) {
             const price = numberValue(currentPrice);
@@ -224,7 +155,8 @@ export const EarningsProjectionsDialog = ({
             setTargetPe("30");
             setForecastAdjustment("0");
             const values = Object.fromEntries(estimateFields.map(field => {
-                const value = latestPeriod?.estimate?.[field.key];
+                // The newest estimate the period holds; they arrive newest first.
+                const value = latestPeriod?.estimates?.[0]?.[field.key];
                 return [field.key, numberValue(value) === null ? "" : String(value)];
             }));
             setEstimateValues(values);
@@ -233,29 +165,6 @@ export const EarningsProjectionsDialog = ({
             setSaveError(null);
         }
     }, [open, currentPrice, latestPeriod]);
-
-    useEffect(() => {
-        if (!open || !tablesScrollRef.current) return undefined;
-
-        const element = tablesScrollRef.current;
-        const frame = window.requestAnimationFrame(updateTableScrollFades);
-        const transitionFallback = window.setTimeout(updateTableScrollFades, 300);
-        window.addEventListener("resize", updateTableScrollFades);
-        const resizeObserver = typeof ResizeObserver === "undefined"
-            ? null
-            : new ResizeObserver(updateTableScrollFades);
-        resizeObserver?.observe(element);
-        if (element.firstElementChild) resizeObserver?.observe(element.firstElementChild);
-
-        return () => {
-            window.cancelAnimationFrame(frame);
-            window.clearTimeout(transitionFallback);
-            window.removeEventListener("resize", updateTableScrollFades);
-            resizeObserver?.disconnect();
-        };
-        // The fade state also refreshes from the dialog transition and scroll events.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, previousPriceRows.length]);
 
     const baseEstimateSequence = estimateFields.map(field => numberValue(estimateValues[field.key]));
     const adjustment = numberValue(forecastAdjustment) ?? 0;
@@ -283,6 +192,13 @@ export const EarningsProjectionsDialog = ({
             : (current / previous - 1) * 100;
         return [key, change];
     }));
+    const previousFourEarnings = baseRollingEarnings[0];
+    const nextFourEarnings = baseRollingEarnings[4];
+    const yearOverYearChange = previousFourEarnings === null
+        || nextFourEarnings === null
+        || previousFourEarnings === 0
+        ? null
+        : (nextFourEarnings / previousFourEarnings - 1) * 100;
     const allPersistedValuesValid = persistedEstimateKeys.every(key =>
         validateNumber(estimateValues[key] ?? "", false, 6, 2, true) === "");
     const persistedValuesChanged = persistedEstimateKeys.some(key =>
@@ -331,7 +247,7 @@ export const EarningsProjectionsDialog = ({
 
         setSavingEstimate(true);
         setSaveError(null);
-        axios.post(`${backend}/estimate/${latestPeriod.id}`, {
+        axios.post(`${backend}/estimate/${latestPeriod.id}/eps`, {
             date: persistDate,
             current: estimateValues.current,
             next1: estimateValues.next1,
@@ -360,10 +276,11 @@ export const EarningsProjectionsDialog = ({
                     height: {xs: "100%", sm: "calc(100vh - 64px)"},
                     maxHeight: {xs: "none", sm: "900px"},
                 }},
-                transition: {onEntered: updateTableScrollFades},
             }}
         >
-            <DialogTitle>{ticker} - {periodName || "-"} - E&amp;P Projections</DialogTitle>
+            <DialogTitle>
+                {ticker} - {periodName || "-"} - {isNarrowScreen ? "E&P Projections" : "Earnings and Prices Projections"}
+            </DialogTitle>
             <DialogContent sx={{padding: 2, display: "flex", flex: "1 1 0", flexDirection: "column", overflow: "hidden", minHeight: 0}}>
                 <Box
                     data-testid="estimate-settings-scroll"
@@ -391,6 +308,7 @@ export const EarningsProjectionsDialog = ({
                             const rollingChange = showRollingChange
                                 ? formatPercent(rollingChanges[field.key], true, 1) || "-"
                                 : " ";
+                            const showYearOverYearChange = field.key === "next3" && !missing;
                             return (
                                 <TextField
                                 key={field.key}
@@ -409,7 +327,16 @@ export const EarningsProjectionsDialog = ({
                                     }
                                 }}
                                 error={missing}
-                                helperText={missing ? "Required" : rollingChange}
+                                helperText={missing
+                                    ? "Required"
+                                    : showYearOverYearChange
+                                        ? <>
+                                            <Box component="span" sx={{display: "block"}}>{rollingChange}</Box>
+                                            <Box component="span" sx={{display: "block", whiteSpace: "nowrap"}}>
+                                                ({formatPercent(yearOverYearChange, true, 1) || "-"})
+                                            </Box>
+                                        </>
+                                        : rollingChange}
                                 inputProps={{inputMode: "decimal"}}
                                 sx={{
                                     "& .MuiInputBase-input": {textAlign: "center", paddingBottom: "2px"},
@@ -427,6 +354,7 @@ export const EarningsProjectionsDialog = ({
                                     sx: {
                                         fontSize: showRollingChange && !missing ? 12 : 10,
                                         color: showRollingChange && !missing ? "text.primary" : undefined,
+                                        lineHeight: 1.25,
                                         margin: 0,
                                         textAlign: "center",
                                     },
@@ -444,26 +372,43 @@ export const EarningsProjectionsDialog = ({
                     >
                         <SaveOutlinedIcon/>
                     </IconButton>
-                </Box>
-                <Box sx={{width: "130px", marginBottom: 2}}>
-                    <Box sx={{color: "text.secondary", fontSize: 11, textAlign: "center"}}>
-                        Forecast adjustment (%)
+                    <Box sx={{
+                        display: {xs: "none", sm: "block"},
+                        width: "130px",
+                        flex: "0 0 auto",
+                        marginLeft: 2,
+                    }}>
+                        <Box sx={{color: "text.secondary", fontSize: 11, textAlign: "center"}}>
+                            Forecast adjustment (%)
+                        </Box>
+                        <Box sx={{borderBottom: "1px solid rgba(0, 0, 0, 0.42)"}}>
+                            <ProjectionInput
+                                value={forecastAdjustment}
+                                onChange={event => setForecastAdjustment(event.target.value)}
+                                onStep={stepForecastAdjustment}
+                                label="Forecast adjustment (%)"
+                            />
+                        </Box>
                     </Box>
-                    <Box sx={{borderBottom: "1px solid rgba(0, 0, 0, 0.42)"}}>
-                        <ProjectionInput
-                            value={forecastAdjustment}
-                            onChange={event => setForecastAdjustment(event.target.value)}
-                            onStep={stepForecastAdjustment}
-                            label="Forecast adjustment (%)"
-                        />
-                    </Box>
                 </Box>
-                <Box sx={{position: "relative", flex: "1 1 auto", minHeight: 0, overflow: "hidden"}}>
                 <Box
-                    ref={tablesScrollRef}
+                    data-testid="projection-tables-top-fade"
+                    sx={{
+                        flex: "0 0 auto",
+                        height: "8px",
+                        marginX: -2,
+                        background: "linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.16))",
+                    }}
+                />
+                <Box
                     data-testid="projection-tables-scroll"
-                    onScroll={updateTableScrollFades}
-                    sx={{position: "absolute", inset: 0, overflowY: "auto"}}
+                    sx={{
+                        flex: "1 1 auto",
+                        minHeight: 0,
+                        overflowY: "auto",
+                        marginLeft: {xs: -2, sm: 0},
+                        marginRight: {xs: -2, sm: 0},
+                    }}
                 >
                 <Box>
                 <TableContainer>
@@ -679,37 +624,15 @@ export const EarningsProjectionsDialog = ({
                 }
                 </Box>
                 </Box>
-                {tableScrollFades.top &&
-                    <Box
-                        data-testid="projection-tables-top-fade"
-                        sx={{
-                            position: "absolute",
-                            zIndex: 1,
-                            pointerEvents: "none",
-                            top: 0,
-                            left: 0,
-                            right: "8px",
-                            height: "24px",
-                            background: theme => `linear-gradient(to bottom, ${theme.palette.background.paper}, transparent)`,
-                        }}
-                    />
-                }
-                {tableScrollFades.bottom &&
-                    <Box
-                        data-testid="projection-tables-bottom-fade"
-                        sx={{
-                            position: "absolute",
-                            zIndex: 1,
-                            pointerEvents: "none",
-                            bottom: 0,
-                            left: 0,
-                            right: "8px",
-                            height: "24px",
-                            background: theme => `linear-gradient(to top, ${theme.palette.background.paper}, transparent)`,
-                        }}
-                    />
-                }
-                </Box>
+                <Box
+                    data-testid="projection-tables-bottom-fade"
+                    sx={{
+                        flex: "0 0 auto",
+                        height: "8px",
+                        marginX: -2,
+                        background: "linear-gradient(to top, transparent, rgba(0, 0, 0, 0.16))",
+                    }}
+                />
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose}>Close</Button>

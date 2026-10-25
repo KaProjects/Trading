@@ -17,8 +17,14 @@ import java.time.LocalDateTime;
 @Table(name = "Estimate")
 public class Estimate extends AbstractEntity
 {
+    public static final boolean EPS = true;
+    public static final boolean REVENUE = false;
+
     @Column(name = "datetime", nullable = false)
     private LocalDateTime datetime;
+
+    @Column(name = "type", nullable = false)
+    private boolean type = EPS;
 
     @Column(name = "current", nullable = false)
     private BigDecimal current;

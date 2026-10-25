@@ -1,0 +1,649 @@
+package org.kaleta.service;
+
+import io.quarkus.logging.Log;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.NoResultException;
+import org.kaleta.model.FirebaseCompany;
+import org.kaleta.model.TargetStats;
+import org.kaleta.persistence.api.PeriodDao;
+import org.kaleta.persistence.api.TargetDao;
+import org.kaleta.persistence.entity.CompanyWithStats;
+import org.kaleta.persistence.entity.Period;
+import org.kaleta.persistence.entity.Target;
+import org.kaleta.rest.dto.ActionableCompanyDto;
+import org.kaleta.rest.dto.TargetAutoImportDto;
+import org.kaleta.rest.dto.TargetCandidatesDto;
+import org.kaleta.rest.dto.TargetCreateDto;
+import org.kaleta.rest.dto.TargetDto;
+import org.kaleta.rest.dto.TargetImportDto;
+import org.kaleta.rest.dto.TargetImportResultDto;
+import org.kaleta.rest.dto.TargetSyncCountsDto;
+import org.kaleta.rest.dto.TargetSyncDto;
+import org.kaleta.rest.error.ConflictException;
+import org.kaleta.rest.error.InvalidInputException;
+
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+@ApplicationScoped
+public class TargetService
+{
+    @Inject
+    TargetDao targetDao;
+    @Inject
+    PeriodDao periodDao;
+    @Inject
+    PeriodService periodService;
+    @Inject
+    FirebaseService firebaseService;
+    @Inject
+    CompanyService companyService;
+    @Inject
+    PeriodDateWindowService periodDateWindowService;
+
+    public List<TargetDto> getAll(Long periodId)
+    {
+        periodService.get(periodId);
+        return targetDao.list(periodId).stream()
+                .map(this::from)
+                .toList();
+    }
+
+    public TargetDto create(Long periodId, TargetCreateDto dto)
+    {
+        Period period = periodService.get(periodId);
+        LocalDate targetDate = parseDate(dto.getDate());
+        validateTargetDate(period, targetDate);
+
+        Target target = new Target();
+        target.setPeriod(period);
+        target.setDate(Date.valueOf(targetDate));
+        target.setInstitution(dto.getInstitution().trim());
+        target.setPrice(parsePrice(dto.getPrice()));
+        target.setRating(nullIfBlank(dto.getRating()));
+        target.setOverview(nullIfBlank(dto.getOverview()));
+        target.setTakeaway1(nullIfBlank(dto.getTakeaway1()));
+        target.setTakeaway2(nullIfBlank(dto.getTakeaway2()));
+        target.setTakeaway3(nullIfBlank(dto.getTakeaway3()));
+        target.setTakeaway4(nullIfBlank(dto.getTakeaway4()));
+
+        if (targetDao.findByIdentity(
+                periodId,
+                target.getDate(),
+                target.getInstitution(),
+                target.getPrice()).isPresent()) {
+            throw new ConflictException("target already exists for period '" + periodId + "'");
+        }
+
+        targetDao.create(target);
+        return from(target);
+    }
+
+    public void delete(Long targetId)
+    {
+        Target target;
+        try {
+            target = targetDao.get(targetId);
+        } catch (NoResultException exception) {
+            throw new InvalidInputException("target with id '" + targetId + "' not found");
+        }
+        targetDao.delete(targetId);
+        firebaseService.deleteTarget(
+                target.getPeriod().getCompany().getTicker(),
+                target.getDate().toLocalDate(),
+                target.getInstitution(),
+                target.getPrice());
+    }
+
+    public Map<Long, TargetStats> getStatistics(List<Long> periodIds)
+    {
+        return targetDao.statistics(periodIds);
+    }
+
+    public TargetSyncDto countImportCandidates(Long periodId)
+    {
+        CandidateResult result = candidates(periodService.get(periodId));
+        return new TargetSyncDto(result.targets().size(), result.warnings());
+    }
+
+    public TargetSyncCountsDto countImportCandidatesByCompany(Long companyId)
+    {
+        String ticker = companyService.findEntity(companyId).getTicker();
+        List<Period> periods = periodDao.list(companyId);
+        WindowResult windowResult = computeWindows(periods);
+        if (windowResult.windows().isEmpty()) {
+            return windowResult.toDto();
+        }
+
+        return countImportCandidatesByCompany(ticker, periods, windowResult, firebaseService.getTargets(ticker));
+    }
+
+    public TargetSyncCountsDto countImportCandidatesByCompany(
+            Long companyId,
+            FirebaseService.TargetsResult firebaseResult)
+    {
+        String ticker = companyService.findEntity(companyId).getTicker();
+        List<Period> periods = periodDao.list(companyId);
+        WindowResult windowResult = computeWindows(periods);
+        if (windowResult.windows().isEmpty()) {
+            return windowResult.toDto();
+        }
+
+        return countImportCandidatesByCompany(ticker, periods, windowResult, firebaseResult);
+    }
+
+    public List<ActionableCompanyDto> getCompaniesWithImportCandidates()
+    {
+        List<CompanyWithStats> companies = companyService.getAllWithStats();
+        FirebaseService.AllCompaniesResult firebaseData = firebaseService.getAllCompanies();
+
+        List<ActionableCompanyDto> actionable = new ArrayList<>();
+        for (CompanyWithStats company : companies) {
+            FirebaseCompany firebaseCompany = firebaseData.companies().get(company.getTicker());
+
+            String latestPeriodId = periodService.getBy(company.getId()).getPeriods().stream()
+                    .findFirst()
+                    .map(period -> period.getName().toString())
+                    .orElse(null);
+            int importablePeriodsCount = firebaseService.getNewerPeriods(firebaseCompany, latestPeriodId)
+                    .periods().size();
+
+            int importableTargetsCount = countImportCandidatesByCompany(
+                    company.getId(),
+                    firebaseService.getTargets(firebaseCompany))
+                    .counts().values().stream()
+                    .filter(Objects::nonNull)
+                    .mapToInt(Integer::intValue)
+                    .sum();
+
+            if (importablePeriodsCount == 0 && importableTargetsCount == 0) continue;
+
+            ActionableCompanyDto dto = new ActionableCompanyDto();
+            dto.setCompany(company);
+            dto.setImportablePeriodsCount(importablePeriodsCount);
+            dto.setImportableTargetsCount(importableTargetsCount);
+            actionable.add(dto);
+        }
+        return actionable;
+    }
+
+    private record WindowResult(
+            Map<Long, Integer> counts,
+            Map<Long, PeriodDateWindowService.DateWindow> windows,
+            Set<Long> failedPeriodIds,
+            List<String> warnings)
+    {
+        TargetSyncCountsDto toDto()
+        {
+            return new TargetSyncCountsDto(counts, failedPeriodIds, warnings);
+        }
+    }
+
+    private WindowResult computeWindows(List<Period> periods)
+    {
+        Map<Long, Integer> counts = new LinkedHashMap<>();
+        Map<Long, PeriodDateWindowService.DateWindow> windows = new LinkedHashMap<>();
+        Set<Long> failedPeriodIds = new LinkedHashSet<>();
+        List<String> warnings = new ArrayList<>();
+
+        for (Period period : periods) {
+            counts.put(period.getId(), 0);
+            PeriodDateWindowService.DateWindow window = dateWindow(period, periods, warnings);
+            if (window != null) {
+                windows.put(period.getId(), window);
+            } else {
+                failedPeriodIds.add(period.getId());
+            }
+        }
+        return new WindowResult(counts, windows, failedPeriodIds, warnings);
+    }
+
+    private TargetSyncCountsDto countImportCandidatesByCompany(
+            String ticker,
+            List<Period> periods,
+            WindowResult windowResult,
+            FirebaseService.TargetsResult firebaseResult)
+    {
+        Map<Long, Integer> counts = windowResult.counts();
+        Map<Long, PeriodDateWindowService.DateWindow> windows = windowResult.windows();
+        Set<Long> failedPeriodIds = new LinkedHashSet<>(windowResult.failedPeriodIds());
+        List<String> warnings = new ArrayList<>(windowResult.warnings());
+
+        if (!firebaseResult.warnings().isEmpty()) {
+            failedPeriodIds.addAll(windows.keySet());
+        }
+        warnings.addAll(firebaseResult.warnings());
+        int warningCountBeforeMapping = warnings.size();
+        List<TargetData> firebaseTargets = targetData(ticker, firebaseResult.targets(), warnings);
+        if (warnings.size() > warningCountBeforeMapping) {
+            failedPeriodIds.addAll(windows.keySet());
+        }
+        if (firebaseTargets.isEmpty()) {
+            return new TargetSyncCountsDto(counts, failedPeriodIds, warnings);
+        }
+
+        List<Long> periodIds = periods.stream().map(Period::getId).toList();
+        Map<Long, Set<TargetIdentity>> persistedByPeriod = new LinkedHashMap<>();
+        for (Target target : targetDao.listByPeriodIds(periodIds)) {
+            persistedByPeriod
+                    .computeIfAbsent(target.getPeriod().getId(), ignored -> new LinkedHashSet<>())
+                    .add(TargetIdentity.from(target));
+        }
+
+        for (Period period : periods) {
+            PeriodDateWindowService.DateWindow window = windows.get(period.getId());
+            if (window == null) continue;
+
+            Set<TargetIdentity> persisted = persistedByPeriod.getOrDefault(period.getId(), Set.of());
+            counts.put(period.getId(), candidates(period, window, persisted, firebaseTargets).size());
+        }
+        return new TargetSyncCountsDto(counts, failedPeriodIds, warnings);
+    }
+
+    /**
+     * Takes in every target the company's periods can be mapped to, without asking. This is the
+     * same import the targets dialog performs, for all periods at once and with nothing
+     * discarded: a target that falls outside every period's window is left in Firebase, as it is
+     * when the import is driven by hand.
+     *
+     * Nothing is imported while anything is wrong - an unreadable period window or a Firebase
+     * read that came back with warnings - because a partial set read as complete is worse than
+     * none: the user would see a notification and assume the rest had been considered.
+     */
+    public TargetAutoImportDto autoImportByCompany(Long companyId)
+    {
+        String ticker = companyService.findEntity(companyId).getTicker();
+        List<Period> periods = periodDao.list(companyId);
+        WindowResult windowResult = computeWindows(periods);
+        List<String> warnings = new ArrayList<>(windowResult.warnings());
+        if (!warnings.isEmpty() || windowResult.windows().isEmpty()) {
+            return new TargetAutoImportDto(List.of(), warnings);
+        }
+
+        FirebaseService.TargetsResult firebaseResult = firebaseService.getTargets(ticker);
+        warnings.addAll(firebaseResult.warnings());
+        if (!warnings.isEmpty()) {
+            return new TargetAutoImportDto(List.of(), warnings);
+        }
+
+        List<TargetData> firebaseTargets = targetData(ticker, firebaseResult.targets(), warnings);
+        if (!warnings.isEmpty() || firebaseTargets.isEmpty()) {
+            return new TargetAutoImportDto(List.of(), warnings);
+        }
+
+        Map<Long, Set<TargetIdentity>> persistedByPeriod = new LinkedHashMap<>();
+        for (Target target : targetDao.listByPeriodIds(periods.stream().map(Period::getId).toList())) {
+            persistedByPeriod
+                    .computeIfAbsent(target.getPeriod().getId(), ignored -> new LinkedHashSet<>())
+                    .add(TargetIdentity.from(target));
+        }
+
+        List<TargetAutoImportDto.Period> imported = new ArrayList<>();
+        for (Period period : periods.stream()
+                .sorted(Comparator.comparing(Period::getName).reversed())
+                .toList()) {
+            PeriodDateWindowService.DateWindow window = windowResult.windows().get(period.getId());
+            if (window == null) continue;
+
+            List<Target> candidates = candidates(
+                    period,
+                    window,
+                    persistedByPeriod.getOrDefault(period.getId(), Set.of()),
+                    firebaseTargets);
+            if (candidates.isEmpty()) continue;
+
+            targetDao.createAll(candidates);
+            imported.add(new TargetAutoImportDto.Period(
+                    period.getId(),
+                    period.getName().toString(),
+                    candidates.stream()
+                            .map(target -> new TargetAutoImportDto.Target(
+                                    target.getDate().toString(),
+                                    target.getInstitution(),
+                                    target.getPrice(),
+                                    target.getRating()))
+                            .toList()));
+        }
+        return new TargetAutoImportDto(imported, warnings);
+    }
+
+    public TargetCandidatesDto getImportCandidates(Long periodId)
+    {
+        CandidateResult result = candidates(periodService.get(periodId));
+        return new TargetCandidatesDto(
+                result.targets().stream().map(this::toCandidate).toList(),
+                result.warnings());
+    }
+
+    public TargetImportResultDto importCandidates(Long periodId, TargetImportDto dto)
+    {
+        Period period = periodService.get(periodId);
+        CandidateResult result = candidates(period);
+
+        Set<TargetIdentity> selected = identities(dto.getSelected());
+        Set<TargetIdentity> discarded = identities(dto.getDiscarded());
+
+        List<Target> toImport = new ArrayList<>();
+        List<Target> toDiscard = new ArrayList<>();
+        for (Target candidate : result.targets()) {
+            TargetIdentity identity = TargetIdentity.from(candidate);
+            if (selected.contains(identity)) {
+                toImport.add(candidate);
+            } else if (discarded.contains(identity)) {
+                toDiscard.add(candidate);
+            }
+        }
+
+        targetDao.createAll(toImport);
+        for (Target target : toDiscard) {
+            firebaseService.deleteTarget(
+                    period.getCompany().getTicker(),
+                    target.getDate().toLocalDate(),
+                    target.getInstitution(),
+                    target.getPrice());
+        }
+
+        return new TargetImportResultDto(toImport.size(), toDiscard.size(), result.warnings());
+    }
+
+    private Set<TargetIdentity> identities(List<TargetImportDto.Selection> selections)
+    {
+        return selections.stream()
+                .map(selection -> new TargetIdentity(
+                        parseDate(selection.getDate()),
+                        selection.getInstitution().trim().toLowerCase(Locale.ROOT),
+                        selection.getPrice().stripTrailingZeros()))
+                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+    }
+
+    private TargetCandidatesDto.Candidate toCandidate(Target target)
+    {
+        return new TargetCandidatesDto.Candidate(
+                target.getDate().toString(),
+                target.getInstitution(),
+                target.getPrice(),
+                target.getRating(),
+                target.getOverview(),
+                target.getTakeaway1(),
+                target.getTakeaway2(),
+                target.getTakeaway3(),
+                target.getTakeaway4());
+    }
+
+    private CandidateResult candidates(Period period)
+    {
+        List<String> warnings = new ArrayList<>();
+        PeriodDateWindowService.DateWindow window = dateWindow(
+                period,
+                periodDao.list(period.getCompany().getId()),
+                warnings);
+        if (window == null) {
+            return new CandidateResult(List.of(), warnings);
+        }
+
+        FirebaseService.TargetsResult firebaseResult = firebaseService.getTargets(
+                period.getCompany().getTicker());
+        warnings.addAll(firebaseResult.warnings());
+        Set<TargetIdentity> persisted = targetDao.list(period.getId()).stream()
+                .map(TargetIdentity::from)
+                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+        List<TargetData> firebaseTargets = targetData(
+                period.getCompany().getTicker(),
+                firebaseResult.targets(),
+                warnings);
+
+        return new CandidateResult(candidates(period, window, persisted, firebaseTargets), warnings);
+    }
+
+    private List<Target> candidates(
+            Period period,
+            PeriodDateWindowService.DateWindow window,
+            Set<TargetIdentity> persisted,
+            List<TargetData> firebaseTargets)
+    {
+        Map<TargetIdentity, Target> candidates = new LinkedHashMap<>();
+
+        for (TargetData firebaseTarget : firebaseTargets) {
+            if (!window.contains(firebaseTarget.date())) {
+                continue;
+            }
+
+            TargetIdentity identity = TargetIdentity.from(firebaseTarget);
+            if (!persisted.contains(identity)) {
+                candidates.putIfAbsent(identity, from(period, firebaseTarget));
+            }
+        }
+        return List.copyOf(candidates.values());
+    }
+
+    private List<TargetData> targetData(
+            String ticker,
+            List<FirebaseCompany.Gemini.Target> firebaseTargets,
+            List<String> warnings)
+    {
+        List<TargetData> result = new ArrayList<>();
+        for (FirebaseCompany.Gemini.Target firebaseTarget : firebaseTargets) {
+            try {
+                result.add(from(firebaseTarget));
+            } catch (RuntimeException exception) {
+                String warning = ExternalWarnings.unavailable(
+                        "Firebase target for " + ticker,
+                        exception);
+                Log.warn(warning, exception);
+                warnings.add(warning);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private PeriodDateWindowService.DateWindow dateWindow(
+            Period period,
+            List<Period> periods,
+            List<String> warnings)
+    {
+        PeriodDateWindowService.Resolution resolution =
+                periodDateWindowService.resolve(period, periods, expectedDates(period));
+        if (resolution.window() != null) {
+            return resolution.window();
+        }
+
+        warnings.add("Firebase targets for " + period.getCompany().getTicker()
+                + " " + period.getName() + " could not be loaded: " + resolution.error());
+        return null;
+    }
+
+    private java.util.function.Supplier<PeriodDateWindowService.ExpectedDates> expectedDates(Period period)
+    {
+        return () -> firebaseService.getExpectedReportDates(
+                period.getCompany().getTicker(),
+                period.getName().toString());
+    }
+
+    private void validateTargetDate(Period period, LocalDate targetDate)
+    {
+        PeriodDateWindowService.Resolution resolution = periodDateWindowService.resolve(
+                period,
+                periodDao.list(period.getCompany().getId()),
+                expectedDates(period));
+        if (resolution.window() == null) {
+            throw new InvalidInputException(
+                    "target date cannot be validated for period '" + period.getName()
+                            + "': " + resolution.error());
+        }
+
+        PeriodDateWindowService.DateWindow window = resolution.window();
+        if (!window.contains(targetDate)) {
+            throw new InvalidInputException(
+                    "target date '" + targetDate + "' must be on or after '" + window.start()
+                            + "' and before '" + window.end() + "' for period '" + period.getName() + "'");
+        }
+    }
+
+    private TargetData from(FirebaseCompany.Gemini.Target source)
+    {
+        if (source == null) throw new IllegalArgumentException("target is null");
+
+        String institution = required(source.getInstitution(), "institution");
+        if (institution.length() > 50) throw new IllegalArgumentException("institution is longer than 50 characters");
+
+        String overview = null;
+        String takeaway1 = null;
+        String takeaway2 = null;
+        String takeaway3 = null;
+        String takeaway4 = null;
+
+        FirebaseCompany.Gemini.Target.Report report = source.getReport();
+        if (report != null) {
+            overview = limited(report.getOverview(), 1000, "overview");
+            List<String> takeaways = report.getKey_takeaways() == null
+                    ? List.of()
+                    : report.getKey_takeaways();
+            takeaway1 = takeaway(takeaways, 0);
+            takeaway2 = takeaway(takeaways, 1);
+            takeaway3 = takeaway(takeaways, 2);
+            takeaway4 = takeaway(takeaways, 3);
+        }
+
+        return new TargetData(
+                parseDate(required(source.getDate(), "date")),
+                institution,
+                parsePrice(required(source.getPrice(), "price")),
+                limited(source.getRating(), 30, "rating"),
+                overview,
+                takeaway1,
+                takeaway2,
+                takeaway3,
+                takeaway4);
+    }
+
+    private Target from(Period period, TargetData source)
+    {
+        Target target = new Target();
+        target.setPeriod(period);
+        target.setDate(Date.valueOf(source.date()));
+        target.setInstitution(source.institution());
+        target.setPrice(source.price());
+        target.setRating(source.rating());
+        target.setOverview(source.overview());
+        target.setTakeaway1(source.takeaway1());
+        target.setTakeaway2(source.takeaway2());
+        target.setTakeaway3(source.takeaway3());
+        target.setTakeaway4(source.takeaway4());
+        return target;
+    }
+
+    private String takeaway(List<String> takeaways, int index)
+    {
+        if (takeaways.size() <= index) return null;
+        return limited(takeaways.get(index), 500, "takeaway " + (index + 1));
+    }
+
+    private String limited(String value, int maxLength, String field)
+    {
+        String normalized = nullIfBlank(value);
+        if (normalized != null && normalized.length() > maxLength) {
+            throw new IllegalArgumentException(field + " is longer than " + maxLength + " characters");
+        }
+        return normalized;
+    }
+
+    private String required(String value, String field)
+    {
+        String normalized = nullIfBlank(value);
+        if (normalized == null) throw new IllegalArgumentException(field + " is missing");
+        return normalized;
+    }
+
+    private LocalDate parseDate(String value)
+    {
+        try {
+            return LocalDate.parse(value);
+        } catch (DateTimeParseException exception) {
+            throw new InvalidInputException("invalid target date '" + value + "'", exception);
+        }
+    }
+
+    private BigDecimal parsePrice(String value)
+    {
+        BigDecimal price;
+        try {
+            price = new BigDecimal(value);
+        } catch (NumberFormatException exception) {
+            throw new InvalidInputException("invalid target price '" + value + "'", exception);
+        }
+
+        BigDecimal normalized = price.stripTrailingZeros();
+        int decimalDigits = Math.max(normalized.scale(), 0);
+        int integerDigits = Math.max(normalized.precision() - normalized.scale(), 0);
+        if (price.compareTo(BigDecimal.ZERO) <= 0 || integerDigits > 6 || decimalDigits > 4) {
+            throw new InvalidInputException("invalid target price '" + value + "'");
+        }
+        return price;
+    }
+
+    private String nullIfBlank(String value)
+    {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private TargetDto from(Target entity)
+    {
+        TargetDto dto = new TargetDto();
+        dto.setId(entity.getId());
+        dto.setPeriodId(entity.getPeriod().getId());
+        dto.setDate(entity.getDate().toString());
+        dto.setInstitution(entity.getInstitution());
+        dto.setPrice(entity.getPrice());
+        dto.setRating(entity.getRating());
+        dto.setOverview(entity.getOverview());
+        dto.setTakeaway1(entity.getTakeaway1());
+        dto.setTakeaway2(entity.getTakeaway2());
+        dto.setTakeaway3(entity.getTakeaway3());
+        dto.setTakeaway4(entity.getTakeaway4());
+        return dto;
+    }
+
+    private record CandidateResult(List<Target> targets, List<String> warnings) {}
+
+    private record TargetData(
+            LocalDate date,
+            String institution,
+            BigDecimal price,
+            String rating,
+            String overview,
+            String takeaway1,
+            String takeaway2,
+            String takeaway3,
+            String takeaway4) {}
+
+    private record TargetIdentity(LocalDate date, String institution, BigDecimal price)
+    {
+        private static TargetIdentity from(Target target)
+        {
+            return new TargetIdentity(
+                    target.getDate().toLocalDate(),
+                    target.getInstitution().trim().toLowerCase(Locale.ROOT),
+                    target.getPrice().stripTrailingZeros());
+        }
+
+        private static TargetIdentity from(TargetData target)
+        {
+            return new TargetIdentity(
+                    target.date(),
+                    target.institution().trim().toLowerCase(Locale.ROOT),
+                    target.price().stripTrailingZeros());
+        }
+    }
+}

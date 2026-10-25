@@ -1,8 +1,7 @@
 import {
     Box,
-    Button,
+    ButtonBase,
     Grid,
-    Paper,
     Table,
     TableBody,
     TableCell,
@@ -10,38 +9,120 @@ import {
     TableHead,
     TableRow,
 } from "@mui/material";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import React from "react";
 import {ReactComponent as FinancialsIcon} from "../../assets/icons/financials.svg";
 import {
-    formatDecimals,
     formatMillions,
+    formatMillionsRounded,
+    formatMultiple,
     formatPercent,
     formatPeriodName,
     isNotAValue,
 } from "../../service/FormattingService";
+import {NUMERIC_FONT, WIDGET_FIRST_COLUMN_WIDTH} from "./widgetLayout";
+import {tightPlus} from "./tightPlus";
 
-const headers = ["Period", "Revenue", "Gross Profit", "Operating Income", "Net Income", "Dividend"];
+const headers = [
+    "Period",
+    "Revenue",
+    "Gross Profit",
+    "Operating Income",
+    "Net Income",
+    "Dividend",
+    "CapEx",
+    "FCF",
+];
 
 const formatDividend = (value) => value === 0 || isNotAValue(value) ? "-" : formatMillions(value) || "-";
+const formatFinancialValue = (value) => isNotAValue(value) ? "-" : formatMillions(value) || "-";
 
-const FinancialSummaryItem = ({value, label, margin, first = false}) => (
-    <Box sx={{marginLeft: first ? {xs: 0, sm: "5px"} : "10px", flexShrink: 0}}>
-        <Box sx={{fontSize: 9, textAlign: "center", marginBottom: "0px"}}>({formatDecimals(margin, 0, 0)}%)</Box>
-        <Box sx={{fontWeight: "bold", fontSize: 13, textAlign: "center"}}>{formatMillions(value)}</Box>
-        <Box sx={{color: "lightgrey", fontWeight: "bold", mx: 0.5, fontSize: 12, textAlign: "center"}}>{label}</Box>
-    </Box>
-);
+const periodSequence = period => {
+    const year = Number(period?.year);
+    if (!Number.isInteger(year)) return null;
+
+    if (/^Q[1-4]$/.test(period?.type)) return year * 4 + Number(period.type[1]) - 1;
+    if (/^H[1-2]$/.test(period?.type)) return year * 2 + Number(period.type[1]) - 1;
+    if (period?.type === "FY") return year;
+    return null;
+};
+
+const latestCompletePeriods = financials => {
+    const type = financials?.[0]?.period?.type;
+    const count = type?.startsWith("Q") ? 4 : type?.startsWith("H") ? 2 : type === "FY" ? 1 : 0;
+    const cadence = type?.[0];
+    const periods = financials?.slice(0, count) ?? [];
+
+    if (count === 0 || periods.length !== count) return [];
+    if (periods.some(financial => financial.period?.type?.[0] !== cadence)) return [];
+
+    const sequences = periods.map(financial => periodSequence(financial.period));
+    if (sequences.some(sequence => sequence === null)) return [];
+    if (sequences.some((sequence, index) => index > 0 && sequences[index - 1] - sequence !== 1)) return [];
+    return periods;
+};
+
+const isReportedValue = value => !isNotAValue(value) && Number(value) !== 0;
+
+const isIndicatorValue = value => Number.isFinite(Number(value)) && Number(value) !== 0;
+
+const formatIndicator = value => isIndicatorValue(value) ? formatMultiple(value) : "";
+
+const formatYieldIndicator = value => isIndicatorValue(value) ? formatPercent(value) : "";
+
+const hasCompleteValues = (periods, value) => periods.length > 0
+    && periods.every(financial => !isNotAValue(value(financial)));
+
+const formatSummaryMargin = margin => {
+    const decimals = Math.abs(margin) < 10 && !Number.isInteger(margin) ? 1 : 0;
+    return formatPercent(margin, false, decimals);
+};
+
+const FinancialSummaryItem = ({value, label, margin, indicator, expanded = false, first = false}) => {
+    const formattedMargin = formatSummaryMargin(margin);
+    const textAlign = "center";
+
+    return (
+        <Box sx={{
+            marginLeft: first ? 0 : "10px",
+            minWidth: first ? WIDGET_FIRST_COLUMN_WIDTH : undefined,
+            flexShrink: 0,
+        }}>
+            <Box sx={{...NUMERIC_FONT, color: "text.secondary", fontSize: 9, textAlign}}>
+                {formattedMargin ? `(${formattedMargin})` : "\u00a0"}
+            </Box>
+            <Box sx={{...NUMERIC_FONT, fontWeight: 600, fontSize: 13, textAlign}}>
+                {formatMillionsRounded(value)}
+            </Box>
+            <Box sx={{
+                display: expanded ? "block" : {xs: "none", sm: "block"},
+                color: "text.secondary",
+                mx: 0.5,
+                fontSize: 11,
+                textAlign,
+            }}>{label}</Box>
+            {indicator &&
+                <Box sx={{...NUMERIC_FONT, color: "text.secondary", fontSize: 10, textAlign}}>{indicator}</Box>
+            }
+        </Box>
+    );
+};
 
 const FinancialTableCell = ({value, margin, yoy, qoq, fontSize}) => {
     const formattedYoy = formatPercent(yoy, true, 0);
     const formattedQoq = formatPercent(qoq, true, 0);
-    const changesValue = formattedYoy || formattedQoq
-        ? (formattedYoy ? formattedYoy : "") + (formattedYoy && formattedQoq ? " / " : "") + (formattedQoq ? formattedQoq : "")
+    // Quarter over quarter first, then year over year: the nearer comparison reads first.
+    const changesValue = formattedQoq || formattedYoy
+        ? <>
+            {tightPlus(formattedQoq)}
+            {formattedQoq && formattedYoy ? " / " : ""}
+            {tightPlus(formattedYoy)}
+        </>
         : "";
     const annotationSize = fontSize - 5;
 
     return (
-        <TableCell sx={{textAlign: "center", fontSize}}>
+        <TableCell sx={{...NUMERIC_FONT, textAlign: "center", fontSize}}>
             {!isNotAValue(margin) ?
                 <Box sx={{display: "flex", flexDirection: "column"}}>
                     <Box sx={{fontSize: annotationSize, marginBottom: "-3px", color: "grey"}}>
@@ -64,7 +145,7 @@ export const FinancialsTable = ({financials, fontSize = 14, scrollable = false})
         overflow: "auto",
         ...(scrollable && {flex: 1, minHeight: 0}),
     }}>
-        <Table size="small" aria-label="financials table" stickyHeader sx={{minWidth: 650}}>
+        <Table size="small" aria-label="financials table" stickyHeader sx={{minWidth: 850}}>
             <TableHead>
                 <TableRow>
                     {headers.map(column => <TableCell key={column} sx={{fontSize, textAlign: "center"}}>{column}</TableCell>)}
@@ -75,10 +156,12 @@ export const FinancialsTable = ({financials, fontSize = 14, scrollable = false})
                     <TableRow key={formatPeriodName(financial.period)}>
                         <FinancialTableCell value={formatPeriodName(financial.period)} fontSize={fontSize}/>
                         <FinancialTableCell value={formatMillions(financial.revenue.value)} margin={financial.revenue.margin} yoy={financial.revenue.yoy} qoq={financial.revenue.qoq} fontSize={fontSize}/>
-                        <FinancialTableCell value={formatMillions(financial.grossProfit.value)} margin={financial.grossProfit.margin} yoy={financial.grossProfit.yoy} qoq={financial.grossProfit.qoq} fontSize={fontSize}/>
-                        <FinancialTableCell value={formatMillions(financial.operatingIncome.value)} margin={financial.operatingIncome.margin} yoy={financial.operatingIncome.yoy} qoq={financial.operatingIncome.qoq} fontSize={fontSize}/>
+                        <FinancialTableCell value={formatFinancialValue(financial.grossProfit.value)} margin={financial.grossProfit.margin} yoy={financial.grossProfit.yoy} qoq={financial.grossProfit.qoq} fontSize={fontSize}/>
+                        <FinancialTableCell value={formatFinancialValue(financial.operatingIncome.value)} margin={financial.operatingIncome.margin} yoy={financial.operatingIncome.yoy} qoq={financial.operatingIncome.qoq} fontSize={fontSize}/>
                         <FinancialTableCell value={formatMillions(financial.netIncome.value)} margin={financial.netIncome.margin} yoy={financial.netIncome.yoy} qoq={financial.netIncome.qoq} fontSize={fontSize}/>
                         <FinancialTableCell value={formatDividend(financial.dividend)} fontSize={fontSize}/>
+                        <FinancialTableCell value={formatFinancialValue(financial.capex.value)} margin={financial.capex.margin} yoy={financial.capex.yoy} qoq={financial.capex.qoq} fontSize={fontSize}/>
+                        <FinancialTableCell value={formatFinancialValue(financial.freeCashFlow.value)} margin={financial.freeCashFlow.margin} yoy={financial.freeCashFlow.yoy} qoq={financial.freeCashFlow.qoq} fontSize={fontSize}/>
                     </TableRow>
                 ))}
             </TableBody>
@@ -86,51 +169,87 @@ export const FinancialsTable = ({financials, fontSize = 14, scrollable = false})
     </TableContainer>
 );
 
-export const PeriodFinancials = ({ttm, onOpen, sx}) => (
-    <Paper
-        elevation={0}
-        sx={{
-            ...sx,
-            marginLeft: {xs: "-5px", sm: 0},
-            width: {xs: "calc(100% + 5px)", sm: "100%"},
-            maxWidth: {xs: "calc(100% + 5px)", sm: "100%"},
-            overflowX: "auto",
-            overflowY: "hidden",
-            "& .overview-action": {
-                opacity: {xs: 1, sm: 0},
-                pointerEvents: {xs: "auto", sm: "none"},
-                width: {xs: "36px", sm: 0},
-                padding: {xs: "6px", sm: 0},
-                overflow: "hidden",
-                transition: "opacity 120ms ease-in-out, width 120ms ease-in-out, padding 120ms ease-in-out",
-            },
-            "&:hover .overview-action, &:focus-within .overview-action": {
-                opacity: 1,
-                pointerEvents: "auto",
-                width: "36px",
-                padding: "6px",
-            },
-        }}
-    >
-        <Grid
-            container
-            wrap="nowrap"
-            direction="row"
-            justifyContent="flex-start"
-            alignItems="stretch"
-            sx={{width: "max-content", minWidth: "100%"}}
+export const PeriodFinancials = ({
+    ttm,
+    financials = [],
+    indicators,
+    expanded = false,
+    coreColumnsOnly = false,
+    onOpen,
+    sx,
+}) => {
+    if (!ttm) return null;
+
+    const completePeriods = latestCompletePeriods(financials);
+    // Revenue through net income is the spine of the row. Dividend, CapEx and free cash flow are
+    // the ones a narrow screen cannot fit, and they are the ones that matter least at a glance,
+    // so they are dropped rather than left to overflow off the right edge.
+    const showDividend = !coreColumnsOnly
+        && isReportedValue(ttm.dividend)
+        && hasCompleteValues(completePeriods, financial => financial.dividend);
+    const showCapex = !coreColumnsOnly
+        && !isNotAValue(ttm.capex?.value)
+        && hasCompleteValues(completePeriods, financial => financial.capex?.value);
+    const showFreeCashFlow = !coreColumnsOnly
+        && !isNotAValue(ttm.freeCashFlow?.value)
+        && hasCompleteValues(completePeriods, financial => financial.freeCashFlow?.value);
+
+    return (
+        <Box
+            sx={{
+                ...sx,
+                maxWidth: "550px",
+                borderLeft: "3px solid",
+                borderColor: "success.main",
+                bgcolor: "rgba(46, 125, 50, 0.04)",
+                borderRadius: "0 4px 4px 0",
+            }}
         >
-            {ttm &&
-                <>
-                    <FinancialSummaryItem first value={ttm.revenue.value} label="revenue" margin={ttm.revenue.margin}/>
-                    <FinancialSummaryItem value={ttm.grossProfit.value} label="gross profit" margin={ttm.grossProfit.margin}/>
-                    <FinancialSummaryItem value={ttm.operatingIncome.value} label="op. income" margin={ttm.operatingIncome.margin}/>
-                    <FinancialSummaryItem value={ttm.netIncome.value} label="net income" margin={ttm.netIncome.margin}/>
-                    <Button className="overview-action" aria-label="Open financials" sx={{minWidth: 0, height: "36px", color: "primary.main", flexShrink: 0}} onClick={onOpen}>
-                        <FinancialsIcon width="24" height="24"/>
-                    </Button>
-                </>
-            }
-        </Grid>
-    </Paper>
-);
+            <ButtonBase
+                aria-label="Open financials"
+                onClick={onOpen}
+                sx={{width: "100%", padding: "5px 7px", textAlign: "left", alignItems: "flex-start", gap: "7px"}}
+            >
+                <Box sx={{display: "flex", color: "success.main", marginTop: "1px", flexShrink: 0}}>
+                    <FinancialsIcon width="17" height="17"/>
+                </Box>
+                <Box sx={{flex: 1, minWidth: 0}}>
+                    {/* The title keeps its place and the figures come up to meet it: the gap
+                        under a label that short reads as a hole in the widget. */}
+                    <Box sx={{display: expanded ? "flex" : {xs: "none", sm: "flex"}, alignItems: "center", gap: "6px", marginBottom: "-2px", color: "text.secondary", fontSize: 11}}>
+                        <Box component="span" sx={{fontWeight: 600, color: "text.primary"}}>Financials</Box>
+                    </Box>
+                    <Box sx={{maxWidth: "100%", overflowX: {xs: "auto", sm: "visible"}, overflowY: "hidden"}}>
+                        <Grid
+                            container
+                            wrap="nowrap"
+                            direction="row"
+                            justifyContent="flex-start"
+                            alignItems="stretch"
+                            sx={{width: "max-content", minWidth: "100%"}}
+                        >
+                            <FinancialSummaryItem expanded={expanded} first value={ttm.revenue.value} label="revenue" indicator={formatIndicator(indicators?.marketCapToRevenues)}/>
+                            {isReportedValue(ttm.grossProfit?.value) &&
+                                <FinancialSummaryItem expanded={expanded} value={ttm.grossProfit.value} label="gross profit" margin={ttm.grossProfit.margin} indicator={formatIndicator(indicators?.marketCapToGrossProfit)}/>
+                            }
+                            {isReportedValue(ttm.operatingIncome?.value) &&
+                                <FinancialSummaryItem expanded={expanded} value={ttm.operatingIncome.value} label="op. income" margin={ttm.operatingIncome.margin} indicator={formatIndicator(indicators?.marketCapToOperatingIncome)}/>
+                            }
+                            <FinancialSummaryItem expanded={expanded} value={ttm.netIncome.value} label="net income" margin={ttm.netIncome.margin} indicator={formatIndicator(indicators?.marketCapToNetIncome)}/>
+                            {showDividend &&
+                                <FinancialSummaryItem expanded={expanded} value={ttm.dividend} label="dividend" margin={ttm.dividendMargin} indicator={formatYieldIndicator(indicators?.dividendYield)}/>
+                            }
+                            {showCapex &&
+                                <FinancialSummaryItem expanded={expanded} value={ttm.capex.value} label="capex" margin={ttm.capex.margin}/>
+                            }
+                            {showFreeCashFlow &&
+                                <FinancialSummaryItem expanded={expanded} value={ttm.freeCashFlow.value} label="fcf" margin={ttm.freeCashFlow.margin} indicator={formatIndicator(indicators?.marketCapToFreeCashFlow)}/>
+                            }
+                        </Grid>
+                    </Box>
+                </Box>
+                <ChevronRightIcon sx={{fontSize: 17, color: "text.secondary", marginTop: "1px", flexShrink: 0}}/>
+            </ButtonBase>
+        </Box>
+    );
+};

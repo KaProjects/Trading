@@ -32,6 +32,11 @@ const EMPTY_ESTIMATE = {
     next3: "",
 };
 
+export const ESTIMATE_KINDS = {
+    eps: {title: "EPS Estimate", path: "eps", importKey: "eps", integerDigits: 4},
+    revenue: {title: "Revenue Estimate", path: "revenue", importKey: "revenue", integerDigits: 6},
+};
+
 const ESTIMATE_FIELDS = [
     {key: "current", label: "Current", nullable: false},
     {key: "next1", label: "Next 1", nullable: true},
@@ -56,13 +61,13 @@ const INPUT_STYLE = {
 };
 
 const formatValue = value => formatDecimals(value, 0, 2) || "-";
-const importedValue = (data, key) => data?.[key]?.eps ?? "";
-const roundedImportedValue = (data, key) => {
-    const value = importedValue(data, key);
+const importedValue = (data, key, importKey) => data?.[key]?.[importKey] ?? "";
+const roundedImportedValue = (data, key, importKey) => {
+    const value = importedValue(data, key, importKey);
     return value === "" || Number.isNaN(Number(value)) ? "" : Number(value).toFixed(2);
 };
-const importedEstimate = (data, key) => {
-    const value = roundedImportedValue(data, key);
+const importedEstimate = (data, key, importKey) => {
+    const value = roundedImportedValue(data, key, importKey);
     return value ? {value, date: formatDate(data?.[key]?.date) || "-"} : null;
 };
 
@@ -86,13 +91,15 @@ const parseEstimates = value => {
     return parsed.includes(null) ? null : parsed;
 };
 
-export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, period}) => {
+export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, period, kind = "eps"}) => {
+    const config = ESTIMATE_KINDS[kind];
     const [history, setHistory] = useState([]);
     const [imported, setImported] = useState({});
     const [estimate, setEstimate] = useState(EMPTY_ESTIMATE);
     const [loading, setLoading] = useState(false);
     const [alert, setAlert] = useState(null);
     const [estimatesToParse, setEstimatesToParse] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         if (!open || !period || !company) return;
@@ -103,9 +110,10 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
         setAlert(null);
         setEstimatesToParse("");
         setLoading(true);
+        setSubmitting(false);
 
         Promise.all([
-            axios.get(`${backend}/estimate/${period.id}`),
+            axios.get(`${backend}/estimate/${period.id}/${config.path}`),
             axios.get(`${backend}/research/${company.id}/import/estimate/${period.id}`),
         ])
             .then(([historyResponse, importResponse]) => {
@@ -117,7 +125,7 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
                 setAlert(formatError(error));
                 setLoading(false);
             });
-    }, [open, period, company]);
+    }, [open, period, company, config.path]);
 
     function update(key, value) {
         setEstimate(previous => ({...previous, [key]: value}));
@@ -127,16 +135,16 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
     function setImportedValues() {
         setEstimate(previous => ({
             ...previous,
-            current: roundedImportedValue(imported, "current"),
-            next1: roundedImportedValue(imported, "next1"),
-            next2: roundedImportedValue(imported, "next2"),
-            next3: roundedImportedValue(imported, "next3"),
+            current: roundedImportedValue(imported, "current", config.importKey),
+            next1: roundedImportedValue(imported, "next1", config.importKey),
+            next2: roundedImportedValue(imported, "next2", config.importKey),
+            next3: roundedImportedValue(imported, "next3", config.importKey),
         }));
         setAlert(null);
     }
 
     function fieldError(field) {
-        return validateNumber(estimate[field.key], field.nullable, 6, 2, true);
+        return validateNumber(estimate[field.key], field.nullable, config.integerDigits + 2, 2, true);
     }
 
     function useParsedValues() {
@@ -154,6 +162,8 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
     }
 
     function createEstimate() {
+        if (submitting) return;
+
         const invalid = validateDate(estimate.date, true, true)
             || ESTIMATE_FIELDS.map(fieldError).find(error => error !== "");
         if (invalid) {
@@ -161,8 +171,9 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
             return;
         }
 
+        setSubmitting(true);
         const nullable = value => value === "" ? null : value;
-        axios.post(`${backend}/estimate/${period.id}`, {
+        axios.post(`${backend}/estimate/${period.id}/${config.path}`, {
             date: estimate.date,
             current: estimate.current,
             next1: nullable(estimate.next1),
@@ -173,11 +184,12 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
                 triggerRefresh();
                 handleClose();
             })
-            .catch(error => setAlert(formatError(error)));
+            .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false));
     }
 
-    const hasImportedValues = roundedImportedValue(imported, "current") !== ""
-        && roundedImportedValue(imported, "next1") !== "";
+    const hasImportedValues = roundedImportedValue(imported, "current", config.importKey) !== ""
+        && roundedImportedValue(imported, "next1", config.importKey) !== "";
     const parsedValues = parseEstimates(estimatesToParse);
 
     return (
@@ -189,7 +201,7 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
             slotProps={{paper: {component: "form", onSubmit: event => {event.preventDefault();createEstimate();}}}}
         >
             <DialogTitle>
-                Add Estimate for {company?.ticker} {period ? formatPeriodName(period.name) : ""}
+                Add {config.title} for {company?.ticker} {period ? formatPeriodName(period.name) : ""}
             </DialogTitle>
             <DialogContent sx={{display: "flex", flexDirection: "column", gap: 2}}>
                 {loading &&
@@ -248,7 +260,7 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
                                 sx={{fontSize: 16, color: "text.secondary"}}
                             >
                                 External estimates: [ {ESTIMATE_FIELDS.map((field, index) => {
-                                    const estimate = importedEstimate(imported, field.key);
+                                    const estimate = importedEstimate(imported, field.key, config.importKey);
                                     return (
                                         <React.Fragment key={field.key}>
                                             {index > 0 && " | "}
@@ -358,7 +370,7 @@ export const AddEstimateDialog = ({open, handleClose, triggerRefresh, company, p
             }
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit" disabled={loading}>Add</Button>
+                <Button type="submit" disabled={loading || submitting}>Add</Button>
             </DialogActions>
         </Dialog>
     );

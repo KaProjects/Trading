@@ -1,27 +1,32 @@
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import axios from "axios";
-import {EarningsProjectionsDialog} from "../EarningsProjectionsDialog";
+
+const mockUseMediaQuery = jest.fn(() => false);
 
 jest.mock("axios");
-jest.mock("../../properties", () => ({backend: "http://backend"}));
+jest.mock("../../properties", () => ({backend: "/api"}));
+jest.mock("@mui/material/useMediaQuery", () => (...args) => mockUseMediaQuery(...args));
+
+import {EarningsProjectionsDialog} from "../EarningsProjectionsDialog";
 
 const latestPeriod = {
     id: "period-1",
     name: {year: "2026", type: "Q2"},
-    estimate: {
-        past4: 1,
-        past3: 2,
-        past2: 3,
-        past1: 4,
-        current: 11,
-        next1: 7,
-        next2: 18,
-        next3: 14,
-    },
+    estimates: [{
+            past4: 1,
+            past3: 2,
+            past2: 3,
+            past1: 4,
+            current: 11,
+            next1: 7,
+            next2: 18,
+            next3: 14,
+    }],
 };
 
 beforeEach(() => {
     axios.post.mockReset();
+    mockUseMediaQuery.mockReturnValue(false);
 });
 
 test("projects prices and P/E ratios from an editable target price", () => {
@@ -37,7 +42,7 @@ test("projects prices and P/E ratios from an editable target price", () => {
         />
     );
 
-    expect(screen.getByRole("heading", {name: "NVDA - 26Q2 - E&P Projections"})).toBeInTheDocument();
+    expect(screen.getByRole("heading", {name: "NVDA - 26Q2 - Earnings and Prices Projections"})).toBeInTheDocument();
     expect(screen.getByLabelText("Past 4")).toHaveValue("1");
     expect(screen.getByLabelText("Current")).toHaveValue("11");
     expect(screen.getByLabelText("Next 3")).toHaveValue("14");
@@ -47,6 +52,7 @@ test("projects prices and P/E ratios from an editable target price", () => {
     expect(screen.getByText("+100%")).toBeInTheDocument();
     expect(screen.getAllByText("+25%")).toHaveLength(2);
     expect(screen.getByText("+60%")).toBeInTheDocument();
+    expect(screen.getByText("(+400%)")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", {name: "Price"})).toBeInTheDocument();
     expect(screen.getByLabelText("Target price")).toHaveValue(100);
     expect(screen.getByLabelText("Target price").value).toBe("100.00");
@@ -90,6 +96,7 @@ test("projects prices and P/E ratios from an editable target price", () => {
     fireEvent.change(screen.getByLabelText("Past 4"), {target: {value: "31"}});
     expect(screen.getByLabelText("target ~ ttm P/E")).toHaveTextContent("5.00");
     expect(screen.getByLabelText("target ~ current P/E")).toHaveTextContent("10.00");
+    expect(screen.getByText("(+25%)")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Past 4"), {target: {value: "31,5"}});
     expect(screen.getByLabelText("Past 4")).toHaveValue("31");
     fireEvent.change(screen.getByLabelText("Past 4"), {target: {value: "31.5"}});
@@ -109,6 +116,22 @@ test("projects prices and P/E ratios from an editable target price", () => {
 
     fireEvent.click(screen.getByRole("button", {name: "Close"}));
     expect(handleClose).toHaveBeenCalled();
+});
+
+test("uses the abbreviated title on narrow screens", () => {
+    mockUseMediaQuery.mockReturnValue(true);
+
+    render(
+        <EarningsProjectionsDialog
+            open
+            handleClose={jest.fn()}
+            ticker="NVDA"
+            currentPrice={100}
+            latestPeriod={latestPeriod}
+        />
+    );
+
+    expect(screen.getByRole("heading", {name: "NVDA - 26Q2 - E&P Projections"})).toBeInTheDocument();
 });
 
 test("persists changed current and forward estimates after confirmation", async () => {
@@ -148,7 +171,7 @@ test("persists changed current and forward estimates after confirmation", async 
         String(date.getMonth() + 1).padStart(2, "0"),
         String(date.getDate()).padStart(2, "0"),
     ].join("-");
-    await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/estimate/period-1", {
+    await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/estimate/period-1/eps", {
         date: expectedDate,
         current: "12",
         next1: "7",
@@ -166,7 +189,7 @@ test("uses blanks and dashes when price or earnings are unavailable", () => {
             handleClose={jest.fn()}
             ticker="INTC"
             currentPrice={null}
-            latestPeriod={{name: "26Q2", estimate: {}}}
+            latestPeriod={{name: "26Q2", estimates: [{}]}}
         />
     );
 

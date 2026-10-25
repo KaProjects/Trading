@@ -32,28 +32,46 @@ public class EstimateService
     @Inject
     ArithmeticService arithmeticService;
 
-    public Optional<PeriodEstimates> getLatest(Long periodId)
+    public Optional<PeriodEstimates> getLatest(Long periodId, boolean type)
     {
         periodService.get(periodId);
-        return estimateDao.findLatest(periodId)
+        return estimateDao.findLatest(periodId, type)
                 .map(this::from);
     }
 
-    public Map<Long, PeriodEstimates> getLatestByPeriodIds(List<Long> periodIds)
+    public Map<Long, PeriodEstimates> getLatestByPeriodIds(List<Long> periodIds, boolean type)
     {
-        Map<Long, Map<String, BigDecimal>> adjustedEpsByCompany = new java.util.HashMap<>();
-        return estimateDao.findLatestByPeriodIds(periodIds).stream()
+        Map<Long, Map<String, BigDecimal>> pastValuesByCompany = new java.util.HashMap<>();
+        return estimateDao.findLatestByPeriodIds(periodIds, type).stream()
                 .collect(Collectors.toMap(
                         estimate -> estimate.getPeriod().getId(),
-                        estimate -> from(estimate, adjustedEpsByCompany.computeIfAbsent(
+                        estimate -> from(estimate, pastValuesByCompany.computeIfAbsent(
                                 estimate.getPeriod().getCompany().getId(),
-                                this::adjustedEpsByQuarter))));
+                                companyId -> pastValuesByQuarter(companyId, type)))));
     }
 
-    public List<EstimateDto> getAll(Long periodId)
+    /**
+     * Every estimate the periods hold, newest first. A period is read a day at a time, and each
+     * estimate carries the day it was taken, so the period keeps all of them rather than only
+     * the one that happens to be the newest.
+     */
+    public Map<Long, List<PeriodEstimates>> getAllByPeriodIds(List<Long> periodIds, boolean type)
+    {
+        Map<Long, Map<String, BigDecimal>> pastValuesByCompany = new java.util.HashMap<>();
+        return estimateDao.listByPeriodIds(periodIds, type).stream()
+                .collect(Collectors.groupingBy(
+                        estimate -> estimate.getPeriod().getId(),
+                        Collectors.mapping(
+                                estimate -> from(estimate, pastValuesByCompany.computeIfAbsent(
+                                        estimate.getPeriod().getCompany().getId(),
+                                        companyId -> pastValuesByQuarter(companyId, type))),
+                                Collectors.toList())));
+    }
+
+    public List<EstimateDto> getAll(Long periodId, boolean type)
     {
         periodService.get(periodId);
-        return estimateDao.list(periodId).stream()
+        return estimateDao.list(periodId, type).stream()
                 .map(this::toDto)
                 .toList();
     }
@@ -73,13 +91,17 @@ public class EstimateService
         setOverviewWindow(overview.getNext1(), totals.get(2), estimates.getNext1Change());
         setOverviewWindow(overview.getNext2(), totals.get(3), estimates.getNext2Change());
         setOverviewWindow(overview.getNext3(), totals.get(4), estimates.getNext3Change());
+        if (totals.get(0) != null && totals.get(4) != null) {
+            overview.setYearOverYearChange(arithmeticService.profitPercentage(totals.get(0), totals.get(4)));
+        }
         return overview;
     }
 
-    public void create(Long periodId, EstimateCreateDto dto)
+    public void create(Long periodId, boolean type, EstimateCreateDto dto)
     {
         Estimate estimate = new Estimate();
         estimate.setPeriod(periodService.get(periodId));
+        estimate.setType(type);
         estimate.setDatetime(LocalDate.parse(dto.getDate()).atStartOfDay());
         estimate.setCurrent(new BigDecimal(dto.getCurrent()));
         estimate.setNext1(Utils.createNullableBigDecimal(dto.getNext1()));
@@ -94,6 +116,7 @@ public class EstimateService
         dto.setId(estimate.getId());
         dto.setPeriodId(estimate.getPeriod().getId());
         dto.setDatetime(estimate.getDatetime());
+        dto.setType(estimate.isType());
         dto.setCurrent(estimate.getCurrent());
         dto.setNext1(estimate.getNext1());
         dto.setNext2(estimate.getNext2());
@@ -103,10 +126,12 @@ public class EstimateService
 
     private PeriodEstimates from(Estimate estimate)
     {
-        return from(estimate, adjustedEpsByQuarter(estimate.getPeriod().getCompany().getId()));
+        return from(
+                estimate,
+                pastValuesByQuarter(estimate.getPeriod().getCompany().getId(), estimate.isType()));
     }
 
-    private PeriodEstimates from(Estimate estimate, Map<String, BigDecimal> adjustedEpsByQuarter)
+    private PeriodEstimates from(Estimate estimate, Map<String, BigDecimal> pastValuesByQuarter)
     {
         PeriodEstimates dto = new PeriodEstimates();
         dto.setId(estimate.getId());
@@ -118,10 +143,10 @@ public class EstimateService
         dto.setNext3(estimate.getNext3());
         if (isQuarter(estimate.getPeriod())) {
             String quarter = estimate.getPeriod().getName().toString();
-            dto.setPast1(previousAdjustedEps(adjustedEpsByQuarter, quarter, 1));
-            dto.setPast2(previousAdjustedEps(adjustedEpsByQuarter, quarter, 2));
-            dto.setPast3(previousAdjustedEps(adjustedEpsByQuarter, quarter, 3));
-            dto.setPast4(previousAdjustedEps(adjustedEpsByQuarter, quarter, 4));
+            dto.setPast1(previousValue(pastValuesByQuarter, quarter, 1));
+            dto.setPast2(previousValue(pastValuesByQuarter, quarter, 2));
+            dto.setPast3(previousValue(pastValuesByQuarter, quarter, 3));
+            dto.setPast4(previousValue(pastValuesByQuarter, quarter, 4));
             setRollingChanges(dto);
         }
         return dto;
@@ -166,21 +191,23 @@ public class EstimateService
         return values.contains(null) ? null : values.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private Map<String, BigDecimal> adjustedEpsByQuarter(Long companyId)
+    private Map<String, BigDecimal> pastValuesByQuarter(Long companyId, boolean type)
     {
-        Map<String, BigDecimal> adjustedEpsByQuarter = new java.util.HashMap<>();
+        Map<String, BigDecimal> pastValuesByQuarter = new java.util.HashMap<>();
         for (Period period : periodDao.list(companyId)) {
-            adjustedEpsByQuarter.putIfAbsent(period.getName().toString(), period.getAdjustedEps());
+            pastValuesByQuarter.putIfAbsent(
+                    period.getName().toString(),
+                    type == Estimate.EPS ? period.getAdjustedEps() : period.getRevenue());
         }
-        return adjustedEpsByQuarter;
+        return pastValuesByQuarter;
     }
 
-    private BigDecimal previousAdjustedEps(
-            Map<String, BigDecimal> adjustedEpsByQuarter,
+    private BigDecimal previousValue(
+            Map<String, BigDecimal> pastValuesByQuarter,
             String quarter,
             int offset)
     {
-        return adjustedEpsByQuarter.get(arithmeticService.shiftQuarter(quarter, -offset));
+        return pastValuesByQuarter.get(arithmeticService.shiftQuarter(quarter, -offset));
     }
 
     private boolean isQuarter(Period period)

@@ -15,13 +15,17 @@ class FakeMarketClientsSelectionTest
     PolygonClient polygonClient;
     @Inject
     FinnhubClient finnhubClient;
+    @Inject
+    AlphaVantageClient alphaVantageClient;
 
     @Test
     void fakeModeSelectsInMemoryClients() throws RequestFailureException
     {
         assertThat(polygonClient, instanceOf(InMemoryPolygonClient.class));
         assertThat(finnhubClient, instanceOf(InMemoryFinnhubClient.class));
+        assertThat(alphaVantageClient, instanceOf(InMemoryAlphaVantageClient.class));
         assertThat(polygonClient.getFinancials("INTC", "2026", "Q1").isPresent(), is(true));
         assertThat(finnhubClient.quote("AMD").getC(), is("158.25"));
+        assertThat(alphaVantageClient.getCashFlow("AMD", "26Q2", "2026-06").isPresent(), is(true));
     }
 }

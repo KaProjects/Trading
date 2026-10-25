@@ -1,24 +1,37 @@
-import React, {useEffect, useLayoutEffect, useRef} from "react";
+import React, {useEffect, useLayoutEffect, useRef, useState} from "react";
 import {AppBar, Box, IconButton, Tab, Tabs, Toolbar, Typography} from "@mui/material";
-import MenuIcon from '@mui/icons-material/Menu';
+import GridViewIcon from '@mui/icons-material/GridView';
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import TuneIcon from '@mui/icons-material/Tune';
 import {MainBarSelect} from "./MainBarSelect";
 import {MainBarIconButton} from "./MainBarIconButton";
 import {useLocation, useNavigate} from "react-router-dom";
 import {ReactComponent as TradesRedirectIcon} from "../../assets/icons/trades-redirect.svg";
 import {ReactComponent as DividendsRedirectIcon} from "../../assets/icons/dividends-redirect.svg";
 import {ReactComponent as ResearchRedirectIcon} from "../../assets/icons/research-redirect.svg";
+import {getCompanyListKeys} from "../../service/CompanyListService";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import {COMPANY_SELECTOR_SIDEBAR_BREAKPOINT} from "./CompanySelector";
+import {MainBarTabs} from "./MainBarTabs";
 
 export const ACTIVE_STATES = ["only active", "only closed"];
 export const RESEARCH_TAB = {
     research: 0,
     records: 1,
+    todo: 2,
 };
 export const RESEARCH_SPLIT_BREAKPOINT = 2000;
-const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly"];
-const RESEARCH_TAB_LABELS = ["Research", "Records"];
+export const SWIPE_NAV_BREAKPOINT = 700;
+const STATS_TABS = ["Companies", "Monthly", "Quarterly", "Yearly", "P/L"];
+const OUTPERFORMERS_TABS = ["EPS Estimates", "Margins", "Sentiment", "Targets"];
+const FIREBASE_TABS = ["Companies", "Cache", "Institutions"];
+const RESEARCH_TAB_LABELS = ["Research", "Records", "Todo"];
 const DATA_ROUTES = ["/trades", "/dividends", "/research"];
+const COMPANY_QUERY_PARAMETER = "company";
+const COMPANY_LIST_QUERY_PARAMETER = "list";
+const DEFAULT_COMPANY_LIST = "all";
 
 const DEFAULT_MAIN_BAR_CONFIG = {
     showCompanySelector: false,
@@ -26,31 +39,50 @@ const DEFAULT_MAIN_BAR_CONFIG = {
     showCurrencySelector: false,
     showYearSelector: false,
     showSectorSelector: false,
+    showPortfolioSelector: false,
     showAddTradeButton: false,
     showSellTradeButton: false,
     showAddDividendButton: false,
     showAddCompanyButton: false,
     showStatsTabs: false,
     showResearchTabs: false,
+    showOutperformersTabs: false,
+    showFirebaseTabs: false,
+    secondarySelectors: [],
 };
 
-const researchExternalLinks = (ticker) => [
-    {
-        label: "TradingView financials",
-        icon: "https://www.google.com/s2/favicons?domain=tradingview.com&sz=32",
-        url: `https://www.tradingview.com/symbols/NASDAQ-${ticker}/financials-income-statement/?statements-period=FQ`,
-    },
-    {
-        label: "MarketBeat ratings",
-        icon: "https://www.google.com/s2/favicons?domain=marketbeat.com&sz=32",
-        url: `https://www.marketbeat.com/stocks/NASDAQ/${ticker}/forecast/#ratings-table`,
-    },
-    {
-        label: "Zacks earnings estimates",
-        icon: "https://www.google.com/s2/favicons?domain=zacks.com&sz=32",
-        url: `https://www.zacks.com/stock/quote/${ticker}/detailed-earning-estimates#detailed_earnings_estimates`,
-    },
-]
+const researchExternalLinks = (company, exchanges = []) => {
+    const exchangeKey = typeof company?.exchange === "string"
+        ? company.exchange
+        : company?.exchange?.key
+    const exchange = exchanges.find(value => value.key === exchangeKey)
+    if (!exchange) return []
+
+    const ticker = encodeURIComponent(company.ticker)
+    const links = []
+    if (exchange.tradingViewCode) {
+        links.push({
+            label: "TradingView financials",
+            icon: "https://www.google.com/s2/favicons?domain=tradingview.com&sz=32",
+            url: `https://www.tradingview.com/symbols/${exchange.tradingViewCode}-${ticker}/financials-income-statement/?statements-period=FQ`,
+        })
+    }
+    if (exchange.marketBeatCode) {
+        links.push({
+            label: "MarketBeat ratings",
+            icon: "https://www.google.com/s2/favicons?domain=marketbeat.com&sz=32",
+            url: `https://www.marketbeat.com/stocks/${exchange.marketBeatCode}/${ticker}/forecast/#ratings-table`,
+        })
+    }
+    if (exchange.zacksSupported) {
+        links.push({
+            label: "Zacks earnings estimates",
+            icon: "https://www.google.com/s2/favicons?domain=zacks.com&sz=32",
+            url: `https://www.zacks.com/stock/quote/${ticker}/detailed-estimates`,
+        })
+    }
+    return links
+}
 
 const MAIN_BAR_CONFIG = {
     "/trades": {
@@ -59,8 +91,10 @@ const MAIN_BAR_CONFIG = {
         showCurrencySelector: true,
         showYearSelector: true,
         showSectorSelector: true,
+        showPortfolioSelector: true,
         showAddTradeButton: true,
         showSellTradeButton: true,
+        secondarySelectors: ["active", "currency", "year", "sector", "portfolio"],
     },
     "/research": {
         showCompanySelector: true,
@@ -72,8 +106,9 @@ const MAIN_BAR_CONFIG = {
         showYearSelector: true,
         showSectorSelector: true,
         showAddDividendButton: true,
+        secondarySelectors: ["currency", "year", "sector"],
     },
-    "/companies": {
+    "/admin/companies": {
         showCurrencySelector: true,
         showSectorSelector: true,
         showAddCompanyButton: true,
@@ -81,6 +116,13 @@ const MAIN_BAR_CONFIG = {
     "/stats": {
         showStatsTabs: true,
         showSectorSelector: true,
+        secondarySelectors: ["company", "currency", "year", "sector", "portfolio"],
+    },
+    "/outperformers": {
+        showOutperformersTabs: true,
+    },
+    "/admin/firebase": {
+        showFirebaseTabs: true,
     },
 };
 
@@ -88,7 +130,22 @@ export const MainBar = props => {
     const navigate = useNavigate()
     const location = useLocation()
     const mainBarRef = useRef(null)
+    const selectedCompanyRef = useRef(props.companySelectorValue)
+    const selectedCompanyListRef = useRef(props.companyListSelectorValue)
+    const companySelectionFromUrl = useRef(false)
+    const companyListSelectionFromUrl = useRef(false)
+    const waitingForCompanyLists = useRef(false)
+    const waitingForCompanyListOptions = useRef(false)
     const companies = props.companyLists?.all ?? []
+    const companyTickers = companies.map(company => company.ticker).join(",")
+    const companyListKeys = getCompanyListKeys(props.companyLists)
+    const companyListKeysSignature = JSON.stringify(companyListKeys)
+    const showTodoTab = useMediaQuery(`(max-width:${SWIPE_NAV_BREAKPOINT}px)`)
+    const isNarrowScreen = showTodoTab
+    const todoTabAvailable = useMediaQuery(`(max-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT}px)`)
+    const [showSecondRow, setShowSecondRow] = useState(false)
+    const selectedResearchTab = props.researchTabsIndex
+    const setSelectedResearchTab = props.setResearchTabsIndex
     const config = {
         ...DEFAULT_MAIN_BAR_CONFIG,
         ...(MAIN_BAR_CONFIG[location.pathname] ?? {}),
@@ -97,6 +154,8 @@ export const MainBar = props => {
     if (location.pathname === "/stats") {
         config.showCompanySelector = props.statsTabsIndex !== 0
         config.showYearSelector = props.statsTabsIndex === 0
+        config.showCurrencySelector = props.statsTabsIndex === 4
+        config.showPortfolioSelector = props.statsTabsIndex === 4
     }
 
     if (props.companySelectorValue) {
@@ -104,17 +163,75 @@ export const MainBar = props => {
         config.showSectorSelector = false
     }
 
+    useLayoutEffect(() => {
+        selectedCompanyRef.current = props.companySelectorValue
+        selectedCompanyListRef.current = props.companyListSelectorValue
+    }, [props.companySelectorValue, props.companyListSelectorValue])
+
+    useEffect(() => {
+        if (!todoTabAvailable && selectedResearchTab === RESEARCH_TAB.todo) {
+            setSelectedResearchTab(RESEARCH_TAB.research)
+        }
+    }, [todoTabAvailable, selectedResearchTab, setSelectedResearchTab])
+
+    useEffect(() => {
+        if (!showSecondRow) return
+
+        function handleOutsideClick(event) {
+            if (!mainBarRef.current?.contains(event.target)) {
+                setShowSecondRow(false)
+            }
+        }
+
+        document.addEventListener("mousedown", handleOutsideClick)
+        document.addEventListener("touchstart", handleOutsideClick)
+        return () => {
+            document.removeEventListener("mousedown", handleOutsideClick)
+            document.removeEventListener("touchstart", handleOutsideClick)
+        }
+    }, [showSecondRow])
+
+    function searchWithCompany(ticker, search = location.search) {
+        const searchParams = new URLSearchParams(search ?? "")
+        if (ticker) {
+            searchParams.set(COMPANY_QUERY_PARAMETER, ticker)
+        } else {
+            searchParams.delete(COMPANY_QUERY_PARAMETER)
+        }
+
+        const query = searchParams.toString()
+        return query ? `?${query}` : ""
+    }
+
+    function searchWithCompanyList(listKey, search = location.search) {
+        const searchParams = new URLSearchParams(search ?? "")
+        if (listKey && listKey !== DEFAULT_COMPANY_LIST) {
+            searchParams.set(COMPANY_LIST_QUERY_PARAMETER, listKey)
+        } else {
+            searchParams.delete(COMPANY_LIST_QUERY_PARAMETER)
+        }
+
+        const query = searchParams.toString()
+        return query ? `?${query}` : ""
+    }
+
+    function searchWithResearchSelection(ticker, listKey, search = location.search) {
+        return searchWithCompanyList(listKey, searchWithCompany(ticker, search))
+    }
+
     function loadNavigationState() {
         if (!location.state) {
             return
         }
         const remainingState = {...location.state}
+        let nextSearch = location.search ?? ""
         let consumed = false
 
         if (location.state.companyId) {
             const company = companies.find(company => company.id === location.state.companyId)
             if (company) {
                 props.setCompanySelectorValue(company);
+                nextSearch = searchWithCompany(company.ticker)
                 delete remainingState.companyId
                 consumed = true
             }
@@ -148,7 +265,11 @@ export const MainBar = props => {
             }
         }
         if (consumed) {
-            navigate(location.pathname, {replace: true, state: remainingState})
+            navigate({
+                pathname: location.pathname,
+                search: nextSearch,
+                hash: location.hash,
+            }, {replace: true, state: remainingState})
         }
     }
 
@@ -158,6 +279,154 @@ export const MainBar = props => {
         }
         // eslint-disable-next-line
     }, [location.pathname, location.state, props.companyLists, props.sectors]);
+
+    useEffect(() => {
+        if (!DATA_ROUTES.includes(location.pathname)) {
+            companySelectionFromUrl.current = false
+            waitingForCompanyLists.current = false
+            return
+        }
+
+        const searchParams = new URLSearchParams(location.search ?? "")
+        const ticker = searchParams.get(COMPANY_QUERY_PARAMETER)
+        const selectedTicker = selectedCompanyRef.current?.ticker ?? ""
+
+        if (!ticker) {
+            waitingForCompanyLists.current = false
+            const blankParameterPresent = searchParams.has(COMPANY_QUERY_PARAMETER)
+            companySelectionFromUrl.current = Boolean(selectedTicker) || blankParameterPresent
+
+            if (selectedTicker) {
+                props.setCompanySelectorValue("")
+            }
+            if (blankParameterPresent) {
+                navigate({
+                    pathname: location.pathname,
+                    search: searchWithCompany(""),
+                    hash: location.hash,
+                }, {replace: true, state: location.state})
+            }
+            return
+        }
+
+        if (companies.length === 0) {
+            waitingForCompanyLists.current = true
+            return
+        }
+
+        waitingForCompanyLists.current = false
+        const company = companies.find(company => company.ticker.toLowerCase() === ticker.toLowerCase())
+
+        if (!company) {
+            companySelectionFromUrl.current = true
+            if (selectedTicker) {
+                props.setCompanySelectorValue("")
+            }
+            navigate({
+                pathname: location.pathname,
+                search: searchWithCompany(""),
+                hash: location.hash,
+            }, {replace: true, state: location.state})
+            return
+        }
+
+        const selectionChanged = selectedTicker !== company.ticker
+        const queryNeedsCanonicalTicker = ticker !== company.ticker
+        companySelectionFromUrl.current = selectionChanged || queryNeedsCanonicalTicker
+
+        if (selectionChanged) {
+            props.setCompanySelectorValue(company)
+        }
+        if (queryNeedsCanonicalTicker) {
+            navigate({
+                pathname: location.pathname,
+                search: searchWithCompany(company.ticker),
+                hash: location.hash,
+            }, {replace: true, state: location.state})
+        }
+        // URL changes drive this effect; selectedCompanyRef supplies the current state without reversing user selections.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.pathname, location.search, companyTickers])
+
+    useEffect(() => {
+        if (location.pathname !== "/research") {
+            companyListSelectionFromUrl.current = false
+            waitingForCompanyListOptions.current = false
+            return
+        }
+
+        if (companies.length === 0) {
+            waitingForCompanyListOptions.current = true
+            return
+        }
+
+        waitingForCompanyListOptions.current = false
+        const searchParams = new URLSearchParams(location.search ?? "")
+        const listParameterPresent = searchParams.has(COMPANY_LIST_QUERY_PARAMETER)
+        const listFromUrl = searchParams.get(COMPANY_LIST_QUERY_PARAMETER) || DEFAULT_COMPANY_LIST
+        const selectedList = selectedCompanyListRef.current || DEFAULT_COMPANY_LIST
+
+        if (!companyListKeys.includes(listFromUrl)) {
+            companyListSelectionFromUrl.current = selectedList !== DEFAULT_COMPANY_LIST || listParameterPresent
+            if (selectedList !== DEFAULT_COMPANY_LIST) {
+                props.setCompanyListSelectorValue(DEFAULT_COMPANY_LIST)
+            }
+            if (listParameterPresent) {
+                navigate({
+                    pathname: location.pathname,
+                    search: searchWithCompanyList(DEFAULT_COMPANY_LIST),
+                    hash: location.hash,
+                }, {replace: true, state: location.state})
+            }
+            return
+        }
+
+        const selectionChanged = selectedList !== listFromUrl
+        companyListSelectionFromUrl.current = selectionChanged
+        if (selectionChanged) {
+            props.setCompanyListSelectorValue(listFromUrl)
+        }
+        // URL changes drive this effect; selectedCompanyListRef prevents stale state from reversing browser navigation.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.pathname, location.search, companyListKeysSignature, companyTickers])
+
+    useEffect(() => {
+        if (!DATA_ROUTES.includes(location.pathname) || waitingForCompanyLists.current) {
+            return
+        }
+
+        const skipCompany = companySelectionFromUrl.current
+        companySelectionFromUrl.current = false
+        const skipList = companyListSelectionFromUrl.current
+        companyListSelectionFromUrl.current = false
+
+        const ticker = props.companySelectorValue?.ticker ?? ""
+        const tickerFromUrl = new URLSearchParams(location.search ?? "").get(COMPANY_QUERY_PARAMETER) ?? ""
+        const tickerChanged = !skipCompany && ticker !== tickerFromUrl
+
+        const selectedList = props.companyListSelectorValue || DEFAULT_COMPANY_LIST
+        let listChanged = false
+        if (location.pathname === "/research" && !waitingForCompanyListOptions.current) {
+            const listFromUrl = new URLSearchParams(location.search ?? "")
+                .get(COMPANY_LIST_QUERY_PARAMETER) || DEFAULT_COMPANY_LIST
+            listChanged = !skipList && selectedList !== listFromUrl && companyListKeys.includes(selectedList)
+        }
+
+        if (!tickerChanged && !listChanged) {
+            return
+        }
+
+        navigate({
+            pathname: location.pathname,
+            search: location.pathname === "/research"
+                ? searchWithResearchSelection(ticker, selectedList)
+                : searchWithCompany(ticker),
+            hash: location.hash,
+        }, {state: location.state})
+        // Company/company-list selection changes drive this effect together, as one push;
+        // URL changes are handled by the preceding effects.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.pathname, props.companySelectorValue?.ticker, props.companyListSelectorValue])
 
     useLayoutEffect(() => {
         function updateMainBarHeight() {
@@ -184,9 +453,18 @@ export const MainBar = props => {
     }, [])
 
     function redirectTo(path) {
-        navigate(path, {
+        const listFromUrl = new URLSearchParams(location.search ?? "")
+            .get(COMPANY_LIST_QUERY_PARAMETER)
+
+        navigate({
+            pathname: path,
+            search: searchWithResearchSelection(
+                props.companySelectorValue?.ticker,
+                listFromUrl || props.companyListSelectorValue,
+                "",
+            ),
+        }, {
             state: {
-                companyId: props.companySelectorValue?.id,
                 currency: props.currencySelectorValue,
                 year: props.yearSelectorValue,
                 sector: props.sectorSelectorValue?.key,
@@ -280,6 +558,15 @@ export const MainBar = props => {
             valueKey: "name",
             label: "sectors",
         },
+        {
+            key: "portfolio",
+            visible: config.showPortfolioSelector,
+            values: props.portfolios,
+            value: props.portfolioSelectorValue,
+            setValue: props.setPortfolioSelectorValue,
+            valueKey: "name",
+            label: "portfolios",
+        },
     ]
 
     const pageNavigationButtons = [
@@ -308,73 +595,109 @@ export const MainBar = props => {
             icon: ResearchRedirectIcon,
         },
     ]
-    const showResearchExternalLinks = location.pathname === "/research" && props.companySelectorValue?.ticker
+    const researchLinks = location.pathname === "/research" && props.companySelectorValue?.ticker
+        ? researchExternalLinks(props.companySelectorValue, props.exchanges)
+        : []
+    const showResearchExternalLinks = researchLinks.length > 0
     const visibleActionButtons = actionButtons.filter((button) => button.visible)
     const visibleSelectors = selectors.filter((selector) => selector.visible)
     const visiblePageNavigationButtons = pageNavigationButtons.filter((button) => button.visible)
+    const wrapPageControls = ["/trades", "/dividends", "/admin/companies"].includes(location.pathname)
+    const secondRowSelectorKeys = isNarrowScreen ? config.secondarySelectors : []
+    const firstRowSelectors = visibleSelectors.filter((selector) => !secondRowSelectorKeys.includes(selector.key))
+    const secondRowSelectors = visibleSelectors.filter((selector) => secondRowSelectorKeys.includes(selector.key))
+    const collapseResearchLinks = location.pathname === "/research" && isNarrowScreen
+    const secondRowLinks = collapseResearchLinks ? researchLinks : []
+    const hasSecondRowContent = secondRowSelectors.length > 0 || secondRowLinks.length > 0
+    const researchTabLabels = todoTabAvailable ? RESEARCH_TAB_LABELS : RESEARCH_TAB_LABELS.slice(0, RESEARCH_TAB.todo)
+    const barButtonWidth = isNarrowScreen ? 34 : 45
+    const actionButtonElements = visibleActionButtons.map((button) => (
+        <MainBarIconButton
+            key={button.key}
+            tooltip={button.tooltip}
+            ariaLabel={button.ariaLabel}
+            onClick={button.onClick}
+            icon={button.icon}
+            color={button.color}
+            buttonSx={{width: barButtonWidth, height: 30}}
+            iconSx={{width: 23, height: 23}}
+        />
+    ))
 
     return (
         <Box sx={{flexGrow: 1}}>
             <AppBar ref={mainBarRef} position="fixed" sx={{top: 0, zIndex: (theme) => theme.zIndex.drawer + 1}}>
                 <Toolbar variant="dense">
-                    <IconButton size="large" edge="start" color="inherit" aria-label="open drawer" sx={{ mr: 2 }}
+                    <IconButton size="large" edge="start" color="inherit" aria-label="go to main menu" sx={{mr: isNarrowScreen ? 1 : 2}}
                                 onClick={() => navigate("/")}>
-                        <MenuIcon />
+                        <GridViewIcon />
                     </IconButton>
-                    <Typography variant="h6" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                    <Typography variant="h6" sx={{
+                        display: "none",
+                        "@media (min-width:801px)": {display: "block"},
+                    }}>
                         Trading
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
-                    <Box sx={{ display: { xs: 'block', md: 'flex' } }}>
+                    <Box sx={{display: "flex", minWidth: 0, maxWidth: "100%"}}>
                         {config.showStatsTabs &&
-                            <Tabs value={props.statsTabsIndex}
-                                  onChange={(event, value) => props.setStatsTabsIndex(value)}
-                                  slotProps={{indicator: {style: {backgroundColor: "white"}}}}
-                                  textColor="inherit"
-                                  sx={{
-                                      "& .MuiTabs-list": {flexWrap: {xs: "wrap", sm: "nowrap"}},
-                                      "& .MuiTab-root": {minWidth: {xs: "50%", sm: 90}},
-                                  }}
-                            >
-                                {STATS_TABS.map((tab) => (
-                                    <Tab key={tab} label={tab}/>
-                                ))}
-                            </Tabs>
+                            <MainBarTabs
+                                labels={STATS_TABS}
+                                value={props.statsTabsIndex}
+                                setValue={props.setStatsTabsIndex}
+                            />
                         }
-                        {config.showResearchTabs && props.companySelectorValue &&
+                        {config.showOutperformersTabs &&
+                            <MainBarTabs
+                                labels={OUTPERFORMERS_TABS}
+                                value={props.outperformersTabsIndex}
+                                setValue={props.setOutperformersTabsIndex}
+                            />
+                        }
+                        {config.showFirebaseTabs &&
+                            <MainBarTabs
+                                labels={FIREBASE_TABS}
+                                value={props.firebaseTabsIndex}
+                                setValue={props.setFirebaseTabsIndex}
+                            />
+                        }
+                        {config.showResearchTabs && isNarrowScreen && props.companySelectorValue &&
+                            <MainBarTabs
+                                labels={researchTabLabels}
+                                value={props.researchTabsIndex}
+                                setValue={props.setResearchTabsIndex}
+                            />
+                        }
+                        {config.showResearchTabs && !showTodoTab && props.companySelectorValue &&
                             <Tabs value={props.researchTabsIndex}
                                   onChange={(event, value) => props.setResearchTabsIndex(value)}
+                                  variant="standard"
                                   slotProps={{indicator: {style: {backgroundColor: "white"}}}}
                                   textColor="inherit"
                                   sx={{
                                       display: "none",
-                                      [`@media (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {display: "flex"},
+                                      [`@media (min-width:${SWIPE_NAV_BREAKPOINT + 1}px) and (max-width:${RESEARCH_SPLIT_BREAKPOINT}px)`]: {display: "flex"},
                                   }}
                             >
-                                {RESEARCH_TAB_LABELS.map((tab) => (
-                                    <Tab key={tab} label={tab}/>
+                                {RESEARCH_TAB_LABELS.map((tab, index) => (
+                                    <Tab
+                                        key={tab}
+                                        label={tab}
+                                        sx={index === RESEARCH_TAB.todo
+                                            ? {[`@media (min-width:${COMPANY_SELECTOR_SIDEBAR_BREAKPOINT + 1}px)`]: {display: "none"}}
+                                            : undefined}
+                                    />
                                 ))}
                             </Tabs>
                         }
-                        {visibleActionButtons.length > 0 &&
+                        {visibleActionButtons.length > 0 && !wrapPageControls &&
                             <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
-                                {visibleActionButtons.map((button) => (
-                                    <MainBarIconButton
-                                        key={button.key}
-                                        tooltip={button.tooltip}
-                                        ariaLabel={button.ariaLabel}
-                                        onClick={button.onClick}
-                                        icon={button.icon}
-                                        color={button.color}
-                                        buttonSx={{width: 45, height: 30}}
-                                        iconSx={{width: 23, height: 23}}
-                                    />
-                                ))}
+                                {actionButtonElements}
                             </Box>
                         }
-                        {showResearchExternalLinks &&
+                        {showResearchExternalLinks && !collapseResearchLinks &&
                             <Box sx={{display: "flex", alignItems: "center", marginRight: "8px"}}>
-                                {researchExternalLinks(props.companySelectorValue.ticker).map((link) => (
+                                {researchLinks.map((link) => (
                                     <MainBarIconButton
                                         key={link.label}
                                         tooltip={link.label}
@@ -387,11 +710,22 @@ export const MainBar = props => {
                                 ))}
                             </Box>
                         }
-                        {(visibleSelectors.length > 0 || visiblePageNavigationButtons.length > 0) &&
-                            <Box sx={{display: "flex", alignItems: "center", flexWrap: "nowrap", maxWidth: "100%", overflowX: "auto"}}>
-                                {visibleSelectors.map((selector) => (
+                        {((wrapPageControls && visibleActionButtons.length > 0)
+                            || firstRowSelectors.length > 0
+                            || visiblePageNavigationButtons.length > 0) &&
+                            <Box role="group" aria-label="page controls" sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                flexWrap: wrapPageControls ? {xs: "wrap", md: "nowrap"} : "nowrap",
+                                justifyContent: wrapPageControls ? {xs: "center", md: "flex-start"} : "flex-start",
+                                maxWidth: "100%",
+                                overflowX: wrapPageControls ? {xs: "visible", md: "auto"} : "auto",
+                            }}>
+                                {wrapPageControls && actionButtonElements}
+                                {firstRowSelectors.map((selector) => (
                                     <MainBarSelect
                                         key={selector.key}
+                                        marginLeft={isNarrowScreen ? "8px" : undefined}
                                         values={selector.values}
                                         value={selector.value}
                                         setValue={selector.setValue}
@@ -404,7 +738,12 @@ export const MainBar = props => {
                                     />
                                 ))}
                                 {visiblePageNavigationButtons.length > 0 &&
-                                    <Box sx={{display: "flex", alignItems: "center", flexShrink: 0, marginLeft: "8px"}}>
+                                    <Box sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        flexShrink: 0,
+                                        marginLeft: isNarrowScreen ? 0 : "8px",
+                                    }}>
                                         {visiblePageNavigationButtons.map((button) => (
                                             <MainBarIconButton
                                                 key={button.key}
@@ -413,7 +752,7 @@ export const MainBar = props => {
                                                 onClick={button.onClick}
                                                 icon={button.icon}
                                                 color="white"
-                                                buttonSx={{width: 50, height: 30}}
+                                                buttonSx={{width: isNarrowScreen ? 34 : 50, height: 30}}
                                                 iconSx={{width: 23, height: 23}}
                                             />
                                         ))}
@@ -423,7 +762,56 @@ export const MainBar = props => {
                         }
                     </Box>
                     <Box sx={{ flexGrow: 1 }} />
+                    {hasSecondRowContent &&
+                        <MainBarIconButton
+                            tooltip={showSecondRow ? "Hide filters" : "Show filters"}
+                            ariaLabel="toggle second row"
+                            onClick={() => setShowSecondRow(!showSecondRow)}
+                            icon={showSecondRow ? KeyboardArrowDownIcon : TuneIcon}
+                            color="white"
+                            buttonSx={{width: barButtonWidth, height: 30, flexShrink: 0}}
+                            iconSx={{width: 23, height: 23}}
+                        />
+                    }
                 </Toolbar>
+                {showSecondRow && hasSecondRowContent &&
+                    <Toolbar variant="dense" sx={{display: "flex", justifyContent: "center", minHeight: 36}}>
+                        <Box sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            flexWrap: "wrap",
+                            justifyContent: "center",
+                            maxWidth: "100%",
+                        }}>
+                            {secondRowSelectors.map((selector) => (
+                                <MainBarSelect
+                                    key={selector.key}
+                                    values={selector.values}
+                                    value={selector.value}
+                                    setValue={selector.setValue}
+                                    valueKey={selector.valueKey}
+                                    label={selector.label}
+                                    companyLists={selector.companyLists}
+                                    defaultCompanyList={selector.defaultCompanyList}
+                                    companyListValue={selector.companyListValue}
+                                    setCompanyListValue={selector.setCompanyListValue}
+                                />
+                            ))}
+                            {secondRowLinks.map((link) => (
+                                <MainBarIconButton
+                                    key={link.label}
+                                    tooltip={link.label}
+                                    href={link.url}
+                                    image={link.icon}
+                                    alt={link.label}
+                                    buttonSx={{width: 45, height: 30}}
+                                    iconSx={{width: 21, height: 21}}
+                                />
+                            ))}
+                        </Box>
+                    </Toolbar>
+                }
             </AppBar>
         </Box>
     )

@@ -26,6 +26,7 @@ export const AddDividendDialog = props => {
     const [dividend, setDividend] = useState("")
     const [tax, setTax] = useState("")
     const [company, setCompany] = useState("")
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (open) {
@@ -34,17 +35,22 @@ export const AddDividendDialog = props => {
             setDividend("")
             setTax("")
             setCompany(props.companySelectorValue)
+            setSubmitting(false)
         }
         // eslint-disable-next-line
     }, [open])
 
     function createDividend() {
+        if (submitting) return
+        setSubmitting(true)
         const dividendData = {companyId: company.id, date: date, dividend: dividend, tax: tax}
         axios.post(backend + "/dividend", dividendData)
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
-            }).catch((error) => {setAlert(formatError(error))})
+            })
+            .catch((error) => {setAlert(formatError(error))})
+            .finally(() => setSubmitting(false))
     }
 
     return (
@@ -90,7 +96,7 @@ export const AddDividendDialog = props => {
             }
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit">Create</Button>
+                <Button type="submit" disabled={submitting}>Create</Button>
             </DialogActions>
         </Dialog>
     )

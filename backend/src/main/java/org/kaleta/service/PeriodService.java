@@ -13,16 +13,22 @@ import org.kaleta.persistence.entity.PeriodType;
 import org.kaleta.rest.dto.PeriodCreateDto;
 import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.PeriodUnreportedImportDto;
+import org.kaleta.rest.dto.PeriodsUnreportedImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Date;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -39,16 +45,19 @@ public class PeriodService
 
     public void create(PeriodCreateDto dto)
     {
+        requireUniqueName(dto.getCompanyId(), dto.getName());
         Period period = new Period();
         period.setCompany(companyService.findEntity(dto.getCompanyId()));
         period.setName(PeriodName.valueOf(dto.getName()));
         period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
         period.setReportDate(Utils.nullableDateValueOf(dto.getReportDate()));
+        requireReportDateAfterEndingMonth(period);
         periodDao.create(period);
     }
 
     public void create(PeriodImportDto dto)
     {
+        requireUniqueName(dto.getCompanyId(), dto.getName());
         Period period = new Period();
         period.setCompany(companyService.findEntity(dto.getCompanyId()));
         period.setName(PeriodName.valueOf(dto.getName()));
@@ -62,19 +71,80 @@ public class PeriodService
         period.setOperatingIncome(Utils.createNullableBigDecimal(dto.getOperatingIncome()));
         period.setNetIncome(Utils.createNullableBigDecimal(dto.getNetIncome()));
         period.setDividend(Utils.createNullableBigDecimal(dto.getDividend()));
+        period.setCapex(Utils.createNullableBigDecimal(dto.getCapex()));
+        period.setFreeCashFlow(Utils.createNullableBigDecimal(dto.getFreeCashFlow()));
         period.setAdjustedEps(Utils.createNullableBigDecimal(dto.getAdjustedEps()));
 
+        requireReportDateAfterEndingMonth(period);
         periodDao.create(period);
         pushFirebase(period);
     }
 
     public void create(PeriodUnreportedImportDto dto)
     {
+        createUnreported(dto.getCompanyId(), dto.getName(), dto.getEndingMonth());
+    }
+
+    /**
+     * Every quarter at once, oldest first, so the app ends up with the same calendar it would have
+     * had if each one had been imported on its own. Nothing is reported for any of them: the
+     * financials can still be filled in later, period by period.
+     */
+    public void create(PeriodsUnreportedImportDto dto)
+    {
+        // All of them are checked before any of them is created: each one commits on its own, so a
+        // name that cannot be taken has to stop the import while there is still nothing to undo.
+        requireDistinctNames(dto.getPeriods());
+        dto.getPeriods().forEach(quarter -> requireUniqueName(dto.getCompanyId(), quarter.getName()));
+
+        dto.getPeriods().stream()
+                .sorted(Comparator.comparing(quarter -> PeriodName.valueOf(quarter.getName())))
+                .forEach(quarter ->
+                        createUnreported(dto.getCompanyId(), quarter.getName(), quarter.getEndingMonth()));
+    }
+
+    private void createUnreported(Long companyId, String name, String endingMonth)
+    {
+        requireUniqueName(companyId, name);
         Period period = new Period();
-        period.setCompany(companyService.findEntity(dto.getCompanyId()));
-        period.setName(PeriodName.valueOf(dto.getName()));
-        period.setEndingMonth(YearMonth.parse(dto.getEndingMonth()));
+        period.setCompany(companyService.findEntity(companyId));
+        period.setName(PeriodName.valueOf(name));
+        period.setEndingMonth(YearMonth.parse(endingMonth));
         periodDao.create(period);
+        pushFirebaseEndingMonth(period);
+    }
+
+    private void requireReportDateAfterEndingMonth(Period period)
+    {
+        Date reportDate = period.getReportDate();
+        YearMonth endingMonth = period.getEndingMonth();
+        if (reportDate == null || endingMonth == null) return;
+
+        if (!YearMonth.from(reportDate.toLocalDate()).isAfter(endingMonth)) {
+            throw new InvalidInputException(
+                    "report date '" + reportDate + "' must be after the ending month '" + endingMonth + "'");
+        }
+    }
+
+    private void requireDistinctNames(List<PeriodsUnreportedImportDto.Quarter> quarters)
+    {
+        Set<PeriodName> names = new HashSet<>();
+        for (PeriodsUnreportedImportDto.Quarter quarter : quarters) {
+            if (!names.add(PeriodName.valueOf(quarter.getName()))) {
+                throw new InvalidInputException("period '" + quarter.getName() + "' is listed more than once");
+            }
+        }
+    }
+
+    private void requireUniqueName(Long companyId, String name)
+    {
+        PeriodName periodName = PeriodName.valueOf(name);
+        boolean exists = periodDao.list(companyId).stream()
+                .anyMatch(period -> periodName.equals(period.getName()));
+        if (exists) {
+            throw new InvalidInputException(
+                    "period '" + name + "' already exists for company with id '" + companyId + "'");
+        }
     }
 
     public void update(PeriodUpdateDto dto)
@@ -92,14 +162,16 @@ public class PeriodService
         if (dto.getShares() != null) period.setShares(new BigDecimal(dto.getShares()));
         if (dto.getPriceHigh() != null) period.setPriceHigh(new BigDecimal(dto.getPriceHigh()));
         if (dto.getPriceLow() != null) period.setPriceLow(new BigDecimal(dto.getPriceLow()));
-        if (dto.getResearch() != null) period.setResearch(dto.getResearch());
         if (dto.getRevenue() != null) period.setRevenue(new BigDecimal(dto.getRevenue()));
         if (dto.getGrossProfit() != null) period.setGrossProfit(new BigDecimal(dto.getGrossProfit()));
         if (dto.getOperatingIncome() != null) period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
         if (dto.getNetIncome() != null) period.setNetIncome(new BigDecimal(dto.getNetIncome()));
         if (dto.getDividend() != null) period.setDividend(new BigDecimal(dto.getDividend()));
+        if (dto.getCapex() != null) period.setCapex(new BigDecimal(dto.getCapex()));
+        if (dto.getFreeCashFlow() != null) period.setFreeCashFlow(new BigDecimal(dto.getFreeCashFlow()));
         if (dto.getAdjustedEps() != null) period.setAdjustedEps(new BigDecimal(dto.getAdjustedEps()));
 
+        requireReportDateAfterEndingMonth(period);
         periodDao.save(period);
     }
 
@@ -115,15 +187,18 @@ public class PeriodService
 
         period.setReportDate(Utils.nullableDateValueOf(dto.getReportDate()));
         period.setShares(new BigDecimal(dto.getShares()));
-        period.setPriceHigh(new BigDecimal(dto.getPriceHigh()));
-        period.setPriceLow(new BigDecimal(dto.getPriceLow()));
+        period.setPriceHigh(Utils.createNullableBigDecimal(dto.getPriceHigh()));
+        period.setPriceLow(Utils.createNullableBigDecimal(dto.getPriceLow()));
         period.setRevenue(new BigDecimal(dto.getRevenue()));
-        period.setGrossProfit(new BigDecimal(dto.getGrossProfit()));
-        period.setOperatingIncome(new BigDecimal(dto.getOperatingIncome()));
+        period.setGrossProfit(Utils.createNullableBigDecimal(dto.getGrossProfit()));
+        period.setOperatingIncome(Utils.createNullableBigDecimal(dto.getOperatingIncome()));
         period.setNetIncome(new BigDecimal(dto.getNetIncome()));
-        period.setDividend(new BigDecimal(dto.getDividend()));
-        period.setAdjustedEps(new BigDecimal(dto.getAdjustedEps()));
+        period.setDividend(Utils.createNullableBigDecimal(dto.getDividend()));
+        period.setCapex(Utils.createNullableBigDecimal(dto.getCapex()));
+        period.setFreeCashFlow(Utils.createNullableBigDecimal(dto.getFreeCashFlow()));
+        period.setAdjustedEps(Utils.createNullableBigDecimal(dto.getAdjustedEps()));
 
+        requireReportDateAfterEndingMonth(period);
         periodDao.save(period);
         pushFirebase(period);
     }
@@ -132,6 +207,10 @@ public class PeriodService
     {
         List<Period> periods = periodDao.list(companyId);
         periods.sort((a, b) -> -a.getEndingMonth().compareTo(b.getEndingMonth()));
+        List<Period> reportedPeriods = periods.stream()
+                .filter(period -> period.getRevenue() != null)
+                .collect(Collectors.toList());
+        List<Period> calculationPeriods = latestConsecutiveQuarterPeriods(reportedPeriods);
 
         Periods model = new Periods();
 
@@ -145,11 +224,10 @@ public class PeriodService
             model.getPeriods().add(periodModel);
         }
 
-        computeFinancialGrowth(model.getFinancials());
+        computeFinancialGrowth(model.getFinancials().subList(0, calculationPeriods.size()));
 
         Period ttm = computeTtm(
-                periods.stream()
-                        .filter(p -> p.getRevenue() != null)
+                calculationPeriods.stream()
                         .limit(4)
                         .collect(Collectors.toList()));
         if (ttm != null){
@@ -175,6 +253,14 @@ public class PeriodService
         }
     }
 
+    private void pushFirebaseEndingMonth(Period period){
+        try {
+            firebaseService.updatePeriodEndingMonth(period);
+        } catch (RuntimeException exception) {
+            Log.error(exception.getMessage(), exception);
+        }
+    }
+
     private void pushFirebase(Period period){
         try {
             firebaseService.updatePeriod(period);
@@ -193,7 +279,6 @@ public class PeriodService
         period.setShares(entity.getShares());
         period.setPriceLow(entity.getPriceLow());
         period.setPriceHigh(entity.getPriceHigh());
-        period.setResearch(entity.getResearch());
         return period;
     }
 
@@ -206,17 +291,18 @@ public class PeriodService
         financial.getGrossProfit().setValue(period.getGrossProfit());
         financial.getOperatingIncome().setValue(period.getOperatingIncome());
         financial.getNetIncome().setValue(period.getNetIncome());
+        financial.getCapex().setValue(period.getCapex());
+        financial.getFreeCashFlow().setValue(period.getFreeCashFlow());
 
-        financial.getRevenue().setMargin(new BigDecimal(100));
-
-        BigDecimal grossMargin = period.getGrossProfit().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        financial.getGrossProfit().setMargin(grossMargin);
-
-        BigDecimal operatingMargin = period.getOperatingIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        financial.getOperatingIncome().setMargin(operatingMargin);
-
-        BigDecimal netMargin = period.getNetIncome().multiply(new BigDecimal(100)).divide(period.getRevenue(), 2, RoundingMode.HALF_UP);
-        financial.getNetIncome().setMargin(netMargin);
+        if (period.getRevenue().compareTo(BigDecimal.ZERO) != 0) {
+            financial.getRevenue().setMargin(new BigDecimal(100));
+            financial.getGrossProfit().setMargin(computeMargin(period.getGrossProfit(), period.getRevenue()));
+            financial.getOperatingIncome().setMargin(computeMargin(period.getOperatingIncome(), period.getRevenue()));
+            financial.getNetIncome().setMargin(computeMargin(period.getNetIncome(), period.getRevenue()));
+            financial.getCapex().setMargin(computeMargin(period.getCapex(), period.getRevenue()));
+            financial.getFreeCashFlow().setMargin(computeMargin(period.getFreeCashFlow(), period.getRevenue()));
+            financial.setDividendMargin(computeMargin(period.getDividend(), period.getRevenue()));
+        }
 
         financial.setDividend(period.getDividend());
         financial.setAdjustedEps(period.getAdjustedEps());
@@ -270,6 +356,14 @@ public class PeriodService
                     current.getNetIncome(),
                     previousPeriod == null ? null : previousPeriod.getNetIncome(),
                     previousYear == null ? null : previousYear.getNetIncome());
+            computeMetricGrowth(
+                    current.getCapex(),
+                    previousPeriod == null ? null : previousPeriod.getCapex(),
+                    previousYear == null ? null : previousYear.getCapex());
+            computeMetricGrowth(
+                    current.getFreeCashFlow(),
+                    previousPeriod == null ? null : previousPeriod.getFreeCashFlow(),
+                    previousYear == null ? null : previousYear.getFreeCashFlow());
         }
     }
 
@@ -303,44 +397,72 @@ public class PeriodService
                 && previous.compareTo(BigDecimal.ZERO) >= 0;
     }
 
+    private List<Period> latestConsecutiveQuarterPeriods(List<Period> periods)
+    {
+        if (periods.isEmpty() || periods.stream().anyMatch(period -> !isQuarter(period.getName().getType()))) {
+            return periods;
+        }
+
+        List<Period> consecutivePeriods = new ArrayList<>();
+        consecutivePeriods.add(periods.get(0));
+        for (int i = 1; i < periods.size(); i++) {
+            Period newer = periods.get(i - 1);
+            Period older = periods.get(i);
+            if (!areConsecutiveQuarters(newer.getName(), older.getName())) {
+                break;
+            }
+            consecutivePeriods.add(older);
+        }
+        return consecutivePeriods;
+    }
+
+    private boolean isQuarter(PeriodType type)
+    {
+        return type == PeriodType.Q1
+                || type == PeriodType.Q2
+                || type == PeriodType.Q3
+                || type == PeriodType.Q4;
+    }
+
+    private boolean areConsecutiveQuarters(PeriodName newer, PeriodName older)
+    {
+        int newerIndex = newer.getYear().getValue() * 4 + newer.getType().getNumber();
+        int olderIndex = older.getYear().getValue() * 4 + older.getType().getNumber();
+        return newerIndex - olderIndex == 1;
+    }
+
     private Period computeTtm(List<Period> periods)
     {
         if (periods.isEmpty()) return null;
         periods.sort((a, b) -> -a.getEndingMonth().compareTo(b.getEndingMonth()));
         List<Period> quarters = periodsToQuarters(periods);
 
-        BigDecimal revenue = new BigDecimal(0);
-        BigDecimal cogs = new BigDecimal(0);
-        BigDecimal opExpenses = new BigDecimal(0);
-        BigDecimal netIncome = new BigDecimal(0);
-        BigDecimal dividend = new BigDecimal(0);
-
-        for (int i=0; i<4; i++){
-            if (quarters.size() > i){
-                revenue = revenue.add(quarters.get(i).getRevenue());
-                cogs = cogs.add(quarters.get(i).getGrossProfit());
-                opExpenses = opExpenses.add(quarters.get(i).getOperatingIncome());
-                netIncome = netIncome.add(quarters.get(i).getNetIncome());
-                dividend = dividend.add(quarters.get(i).getDividend());
-            } else {
-                BigDecimal multiplier = new BigDecimal(4).divide(new BigDecimal(i), 4, RoundingMode.HALF_UP);
-                revenue = revenue.multiply(multiplier);
-                cogs = cogs.multiply(multiplier);
-                opExpenses = opExpenses.multiply(multiplier);
-                netIncome = netIncome.multiply(multiplier);
-                dividend = dividend.multiply(multiplier);
-                break;
-            }
-        }
+        List<Period> ttmQuarters = quarters.stream().limit(4).toList();
 
         Period ttm = new Period();
-        ttm.setRevenue(revenue.setScale(0, RoundingMode.HALF_UP));
-        ttm.setGrossProfit(cogs.setScale(0, RoundingMode.HALF_UP));
-        ttm.setOperatingIncome(opExpenses.setScale(0, RoundingMode.HALF_UP));
-        ttm.setNetIncome(netIncome.setScale(0, RoundingMode.HALF_UP));
-        ttm.setDividend(dividend.setScale(0, RoundingMode.HALF_UP));
+        ttm.setRevenue(computeTtmValue(ttmQuarters, Period::getRevenue));
+        ttm.setGrossProfit(computeTtmValue(ttmQuarters, Period::getGrossProfit));
+        ttm.setOperatingIncome(computeTtmValue(ttmQuarters, Period::getOperatingIncome));
+        ttm.setNetIncome(computeTtmValue(ttmQuarters, Period::getNetIncome));
+        ttm.setDividend(computeTtmValue(ttmQuarters, Period::getDividend));
+        ttm.setCapex(computeTtmValue(ttmQuarters, Period::getCapex));
+        ttm.setFreeCashFlow(computeTtmValue(ttmQuarters, Period::getFreeCashFlow));
         ttm.setShares(quarters.get(0).getShares());
         return ttm;
+    }
+
+    private BigDecimal computeTtmValue(List<Period> quarters, Function<Period, BigDecimal> value)
+    {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Period quarter : quarters) {
+            BigDecimal quarterValue = value.apply(quarter);
+            if (quarterValue == null) return null;
+            total = total.add(quarterValue);
+        }
+
+        BigDecimal multiplier = new BigDecimal(4)
+                .divide(new BigDecimal(quarters.size()), 4, RoundingMode.HALF_UP);
+        return total.multiply(multiplier).setScale(0, RoundingMode.HALF_UP);
     }
 
     private List<Period> periodsToQuarters(List<Period> periods)
@@ -353,10 +475,12 @@ public class PeriodService
             switch (period.getName().getType()){
                 case FY:
                     quarter.setRevenue(period.getRevenue().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
-                    quarter.setGrossProfit(period.getGrossProfit().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
-                    quarter.setOperatingIncome(period.getOperatingIncome().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
+                    quarter.setGrossProfit(divideNullable(period.getGrossProfit(), new BigDecimal(4)));
+                    quarter.setOperatingIncome(divideNullable(period.getOperatingIncome(), new BigDecimal(4)));
                     quarter.setNetIncome(period.getNetIncome().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
-                    quarter.setDividend(period.getDividend().divide(new BigDecimal(4), 2, RoundingMode.HALF_UP));
+                    quarter.setDividend(divideNullable(period.getDividend(), new BigDecimal(4)));
+                    quarter.setCapex(divideNullable(period.getCapex(), new BigDecimal(4)));
+                    quarter.setFreeCashFlow(divideNullable(period.getFreeCashFlow(), new BigDecimal(4)));
                     quarter.setShares(period.getShares());
                     quarters.add(quarter);
                     quarters.add(quarter);
@@ -365,10 +489,12 @@ public class PeriodService
                     break;
                 case H1: case H2:
                     quarter.setRevenue(period.getRevenue().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
-                    quarter.setGrossProfit(period.getGrossProfit().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
-                    quarter.setOperatingIncome(period.getOperatingIncome().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
+                    quarter.setGrossProfit(divideNullable(period.getGrossProfit(), new BigDecimal(2)));
+                    quarter.setOperatingIncome(divideNullable(period.getOperatingIncome(), new BigDecimal(2)));
                     quarter.setNetIncome(period.getNetIncome().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
-                    quarter.setDividend(period.getDividend().divide(new BigDecimal(2), 2, RoundingMode.HALF_UP));
+                    quarter.setDividend(divideNullable(period.getDividend(), new BigDecimal(2)));
+                    quarter.setCapex(divideNullable(period.getCapex(), new BigDecimal(2)));
+                    quarter.setFreeCashFlow(divideNullable(period.getFreeCashFlow(), new BigDecimal(2)));
                     quarter.setShares(period.getShares());
                     quarters.add(quarter);
                     quarters.add(quarter);
@@ -380,5 +506,17 @@ public class PeriodService
             }
         }
         return quarters;
+    }
+
+    private BigDecimal computeMargin(BigDecimal value, BigDecimal revenue)
+    {
+        return value == null
+                ? null
+                : value.multiply(new BigDecimal(100)).divide(revenue, 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal divideNullable(BigDecimal value, BigDecimal divisor)
+    {
+        return value == null ? null : value.divide(divisor, 2, RoundingMode.HALF_UP);
     }
 }

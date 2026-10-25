@@ -2,9 +2,15 @@ import React from "react";
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import axios from "axios";
 
+const mockUseLocation = jest.fn();
+
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
+}));
+jest.mock("react-router-dom", () => ({
+    ...jest.requireActual("react-router-dom"),
+    useLocation: () => mockUseLocation(),
 }));
 
 jest.mock("../component/Loader", () => ({
@@ -14,6 +20,7 @@ jest.mock("../component/Loader", () => ({
 }));
 jest.mock("../component/CompanySelector", () => ({
     BUILT_IN_LIST_TITLES: {owned: "Owned", recent: "Recent", researched: "Researched", all: "All"},
+    COMPANY_SELECTOR_SIDEBAR_BREAKPOINT: 1200,
     CompanySelector: (props) => (
         <div data-testid="company-selector">
             company-selector:{props.refresh}
@@ -21,26 +28,51 @@ jest.mock("../component/CompanySelector", () => ({
         </div>
     ),
 }));
+jest.mock("../component/TodoList", () => ({
+    TodoList: props => (
+        <div data-testid="todo-list" data-active={String(props.active)}>
+            todos:{props.companySelectorValue?.id ?? "none"}
+            <button onClick={props.onCompanySelected}>select-todo-company</button>
+        </div>
+    ),
+}));
 jest.mock("../component/PeriodFinancials", () => ({
     PeriodFinancials: (props) => (
-        <button data-testid="period-financials" onClick={props.onOpen}>financial-overview</button>
+        <button
+            data-testid="period-financials"
+            data-financials-count={props.financials?.length ?? 0}
+            data-net-income-multiple={String(props.indicators?.marketCapToNetIncome ?? "")}
+            onClick={props.onOpen}
+        >
+            financial-overview
+        </button>
     ),
 }));
 jest.mock("../component/PeriodEstimatesOverview", () => ({
-    PeriodEstimatesOverview: (props) => (
-        <button data-testid="period-estimates-overview" onClick={props.onOpen}>estimate-overview:{props.overview?.current?.value}</button>
-    ),
+    formatRevenueEstimateAmount: (value) => String(value),
+    PeriodEstimatesOverview: (props) => props.overview ? (
+        <button
+            data-testid={props.title === "Revenue estimates"
+                ? "period-revenue-estimates-overview"
+                : "period-estimates-overview"}
+            onClick={props.onOpen}
+        >
+            estimate-overview:{props.overview?.current?.value}
+        </button>
+    ) : null,
 }));
 jest.mock("../../dialog/FinancialsDialog", () => ({
     FinancialsDialog: (props) => props.open ? <div>financials-dialog:{props.ticker}:{props.financials.length}</div> : null,
 }));
 jest.mock("../../dialog/EarningsProjectionsDialog", () => ({
     EarningsProjectionsDialog: (props) => props.open
-        ? <div>earnings-projections-dialog:{props.ticker}:{props.currentPrice}:{props.latestPeriod.name}:{props.latestPeriod.estimate.current}:{props.previousPeriod.priceHigh}</div>
+        ? <div>earnings-projections-dialog:{props.ticker}:{props.currentPrice}:{props.latestPeriod.name}:{props.latestPeriod.estimates[0].current}:{props.previousPeriod.priceHigh}</div>
         : null,
 }));
 jest.mock("../../dialog/AddRecordDialog", () => ({
-    AddRecordDialog: (props) => props.open ? <div>add-record-dialog</div> : null
+    AddRecordDialog: (props) => props.open
+        ? <div>add-record-dialog:{props.targetStats?.minimum}-{props.targetStats?.maximum}</div>
+        : null
 }));
 jest.mock("../../dialog/AddPeriodDialog", () => ({
     AddPeriodDialog: (props) => props.open ? <div>add-period-dialog</div> : null
@@ -58,6 +90,42 @@ jest.mock("../../dialog/AddEstimateDialog", () => ({
         ? <div>add-estimate-dialog:{props.period.id}</div>
         : null
 }));
+jest.mock("../../dialog/TargetDialog", () => ({
+    TargetDialog: (props) => props.open
+        ? <div>
+            <span>target-dialog:{props.company.id}:{props.period.id}</span>
+            <button onClick={props.triggerRefresh}>refresh-targets</button>
+        </div>
+        : null,
+}));
+jest.mock("../../dialog/NewsSentimentDialog", () => ({
+    NewsSentimentDialog: (props) => props.open
+        ? <div>news-sentiment-dialog:{props.company.id}:{props.period.id}</div>
+        : null,
+}));
+jest.mock("../component/LatestNewsSentiment", () => ({
+    LatestNewsSentiment: ({companyId}) => <div>latest-news-sentiment:{companyId}</div>,
+}));
+jest.mock("../component/TradingViewOverview", () => ({
+    TradingViewOverview: ({company, sx, onUnavailable}) => company.exchange?.tradingViewCode
+        ? (
+            <div
+                data-testid="trading-view-overview"
+                data-margin-top={sx?.marginTop}
+                data-width-sm={sx?.width?.sm}
+                data-symbol={`${company.exchange.tradingViewCode}:${company.ticker}`}
+            >
+                {company.ticker}
+                <button aria-label="Report TradingView unavailable" onClick={onUnavailable}/>
+            </div>
+        )
+        : null,
+}));
+jest.mock("../../dialog/EditCompanyDialog", () => ({
+    EditCompanyDialog: ({triggerRefresh}) => (
+        <button data-testid="edit-company-dialog" onClick={triggerRefresh}>edit-company-dialog</button>
+    ),
+}));
 jest.mock("../../dialog/AddTagDialog", () => ({
     AddTagDialog: (props) => props.open
         ? <div>add-tag-dialog:{props.companyId}:{props.suggestions.join(",")}</div>
@@ -68,8 +136,13 @@ jest.mock("../component/SnackbarErrorAlert", () => ({
         <div data-testid="snackbar">{props.error ? JSON.stringify(props.error) : "null"}|{String(props.open)}</div>
     )
 }));
-jest.mock("../component/AssetBox", () => ({
-    AssetBox: ({asset, currency}) => <div>asset:{asset.quantity}@{asset.purchasePrice}{currency}</div>
+jest.mock("../component/AssetsSummary", () => ({
+    AssetsSummary: ({latest, assets, currency}) => (
+        <div data-testid="record-assets">
+            assets:{assets.assets.map(asset => `${asset.quantity}@${asset.purchasePrice}${currency}`).join(",")}
+            {latest ? ` price:${latest.price}@${latest.datetime}` : ""}
+        </div>
+    )
 }));
 jest.mock("../component/DateTime", () => ({
     DateTime: ({value}) => <div>datetime:{value}</div>
@@ -83,11 +156,16 @@ jest.mock("../component/Record", () => ({
     )
 }));
 jest.mock("../component/Period", () => ({
-    Period: ({period, openDialog, openEstimateDialog}) => (
+    Period: ({period, openDialog, openEstimateDialog, openTargetDialog, openNewsSentimentDialog, targetCandidateCount, targetCandidateFailed}) => (
         <div>
             <span>period:{period.id}</span>
+            <div data-period-scroll="true" data-testid={`period-content:${period.id}`}/>
+            <span data-testid={`period-header:${period.id}`}>header:{period.id}</span>
+            <span>target-candidates:{period.id}:{targetCandidateCount}:{targetCandidateFailed ? "failed" : "ok"}</span>
             <button onClick={openDialog}>open-period-dialog:{period.id}</button>
             <button onClick={openEstimateDialog}>open-estimate-dialog:{period.id}</button>
+            <button onClick={openTargetDialog}>open-target-dialog:{period.id}</button>
+            <button onClick={openNewsSentimentDialog}>open-news-sentiment-dialog:{period.id}</button>
         </div>
     )
 }));
@@ -112,6 +190,7 @@ function createResearchData(overrides = {}) {
             id: "company-1",
             ticker: "AAPL",
             currency: "$",
+            exchange: {key: "XNAS", tradingViewCode: "NASDAQ"},
             sector: {key: "TECH", name: "Technology"},
             tags: ["growth", "owned", "recent", "researched"],
         },
@@ -134,16 +213,17 @@ function createResearchData(overrides = {}) {
             {
                 id: "period-1",
                 name: "26Q2",
-                estimate: {
-                    past4: 1,
-                    past3: 2,
-                    past2: 3,
-                    past1: 4,
-                    current: 5,
-                    next1: 6,
-                    next2: 7,
-                    next3: 8,
-                },
+                targetStats: {count: 3, minimum: 105, average: 122, maximum: 140},
+                estimates: [{
+                        past4: 1,
+                        past3: 2,
+                        past2: 3,
+                        past1: 4,
+                        current: 5,
+                        next1: 6,
+                        next2: 7,
+                        next3: 8,
+                }],
             },
             {id: "period-2", priceHigh: 140, priceLow: 80},
         ],
@@ -153,6 +233,7 @@ function createResearchData(overrides = {}) {
             datetime: "2026-05-09T10:11:12",
         },
         indicators: {
+            price: 123.45,
             marketCap: 1000,
             ttm: {
                 dividendYield: 2,
@@ -160,6 +241,7 @@ function createResearchData(overrides = {}) {
                 marketCapToGrossProfit: 4,
                 marketCapToOperatingIncome: 5,
                 marketCapToNetIncome: 6,
+                marketCapToFreeCashFlow: 7,
             },
         },
         assets: {
@@ -173,9 +255,409 @@ function createResearchData(overrides = {}) {
 describe("Research", () => {
     beforeEach(() => {
         axios.get.mockReset();
+        axios.post.mockReset();
         axios.put.mockReset();
         axios.delete.mockReset();
+        axios.post.mockResolvedValue({data: {periods: [], warnings: []}});
         mockFormatError.mockReset();
+        mockUseLocation.mockReturnValue({pathname: "/research", search: ""});
+    });
+
+    test("shows only the loader until the company from the URL is selected and loaded", async () => {
+        const selectedCompany = {id: "company-1", ticker: "AAPL"};
+        let resolveRequest;
+        axios.get.mockImplementation(() => new Promise(resolve => {
+            resolveRequest = resolve;
+        }));
+        mockUseLocation.mockReturnValue({
+            pathname: "/research",
+            search: "?company=AAPL&list=owned",
+        });
+
+        const {rerender} = render(<Research companySelectorValue=""/>);
+
+        expect(screen.getByTestId("loader")).toHaveTextContent("loading");
+        expect(screen.getByTestId("company-selector")).not.toBeVisible();
+        expect(axios.get).not.toHaveBeenCalled();
+
+        rerender(<Research companySelectorValue={selectedCompany}/>);
+
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("/api/research/company-1"));
+        expect(screen.getByTestId("loader")).toHaveTextContent("loading");
+        expect(screen.getByTestId("company-selector")).not.toBeVisible();
+
+        resolveRequest({data: createResearchData()});
+
+        await screen.findByText("AAPL");
+        expect(screen.getByTestId("company-selector")).toBeVisible();
+        expect(screen.queryByTestId("loader")).not.toBeInTheDocument();
+    });
+
+    test("shows company lists immediately without a company query parameter", () => {
+        render(<Research companySelectorValue=""/>);
+
+        expect(screen.getByTestId("company-selector")).toBeInTheDocument();
+        expect(screen.getByTestId("todo-list")).toHaveTextContent("todos:none");
+        expect(screen.getByTestId("todo-list")).toHaveAttribute("data-active", "false");
+        expect(screen.queryByTestId("loader")).not.toBeInTheDocument();
+    });
+
+    test("shows the Todo tab and returns to Research after selecting its company", () => {
+        const setResearchTabsIndex = jest.fn();
+
+        render(
+            <Research
+                companySelectorValue=""
+                researchTabsIndex={2}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />
+        );
+
+        expect(screen.getByTestId("todo-list")).toHaveAttribute("data-active", "true");
+        fireEvent.click(screen.getByText("select-todo-company"));
+        expect(setResearchTabsIndex).toHaveBeenCalledWith(0);
+    });
+
+    describe("swipe navigation on a narrow screen", () => {
+        const originalInnerWidth = window.innerWidth;
+        const originalMatchMedia = window.matchMedia;
+
+        beforeEach(() => {
+            axios.get.mockResolvedValue({data: createResearchData()});
+            window.matchMedia = query => ({
+                media: query,
+                matches: /max-width/.test(query)
+                    && window.innerWidth <= Number(query.match(/(\d+)/)[1]),
+                addListener: () => {},
+                removeListener: () => {},
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                dispatchEvent: () => false,
+            });
+        });
+
+        function setInnerWidth(width) {
+            Object.defineProperty(window, "innerWidth", {value: width, configurable: true});
+        }
+
+        afterEach(() => {
+            setInnerWidth(originalInnerWidth);
+            window.matchMedia = originalMatchMedia;
+        });
+
+        function swipe(content, fromX, toX) {
+            fireEvent.touchStart(content, {touches: [{clientX: fromX, clientY: 100}]});
+            fireEvent.touchEnd(content, {changedTouches: [{clientX: toX, clientY: 100}]});
+        }
+
+        test("swiping left moves forward from Research to Records", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 300, 100);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
+        });
+
+        function horizontalScroller(parent) {
+            const scroller = document.createElement("div");
+            scroller.style.overflowX = "auto";
+            const inner = document.createElement("span");
+            scroller.appendChild(inner);
+            parent.appendChild(scroller);
+            Object.defineProperty(scroller, "scrollWidth", {value: 800, configurable: true});
+            Object.defineProperty(scroller, "clientWidth", {value: 300, configurable: true});
+            Object.defineProperty(scroller, "scrollLeft", {value: 0, writable: true, configurable: true});
+            return {scroller, inner};
+        }
+
+        test("ignores a gesture that scrolled a component, even once it reaches the edge", async () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            const content = await screen.findByTestId("research-content");
+            const {scroller, inner} = horizontalScroller(content);
+
+            fireEvent.touchStart(inner, {touches: [{clientX: 300, clientY: 100}]});
+            scroller.scrollLeft = 500;
+            fireEvent.touchEnd(inner, {changedTouches: [{clientX: 100, clientY: 100}]});
+
+            expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+
+        test("swipes on the next gesture once the scroller can move no further", async () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            const content = await screen.findByTestId("research-content");
+            const {inner} = horizontalScroller(content);
+
+            // A fresh gesture that moves nothing: the deliberate second swipe.
+            swipe(inner, 300, 100);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
+        });
+
+        test("still swipes when the gesture starts outside a scrollable component", async () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            const content = await screen.findByTestId("research-content");
+            const plain = document.createElement("div");
+            content.appendChild(plain);
+            Object.defineProperty(plain, "scrollWidth", {value: 364, configurable: true});
+            Object.defineProperty(plain, "clientWidth", {value: 359, configurable: true});
+
+            swipe(plain, 300, 100);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
+        });
+
+        test("ignores a swipe that starts inside an open dialog", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            const content = screen.getByTestId("research-content");
+            const overlay = document.createElement("div");
+            overlay.className = "MuiModal-root";
+            const table = document.createElement("div");
+            overlay.appendChild(table);
+            content.appendChild(overlay);
+
+            fireEvent.touchStart(table, {touches: [{clientX: 300, clientY: 100}]});
+            fireEvent.touchEnd(table, {changedTouches: [{clientX: 100, clientY: 100}]});
+
+            expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+
+        function verticalSwipe(element, fromY, toY) {
+            fireEvent.touchStart(element, {touches: [{clientX: 100, clientY: fromY}]});
+            fireEvent.touchEnd(screen.getByTestId("period-list"), {
+                changedTouches: [{clientX: 100, clientY: toY}],
+            });
+        }
+
+        /** The overview is page 0 on a narrow screen, so reaching period 1 takes one swipe. */
+        async function swipeToFirstPeriod() {
+            const overview = await screen.findByTestId("research-overview");
+            fireEvent.touchStart(overview, {touches: [{clientX: 100, clientY: 300}]});
+            fireEvent.touchEnd(overview, {changedTouches: [{clientX: 100, clientY: 100}]});
+            return screen.findByText("period:period-1");
+        }
+
+        function setScroll(element, {scrollTop, clientHeight, scrollHeight}) {
+            Object.defineProperty(element, "scrollTop", {value: scrollTop, configurable: true});
+            Object.defineProperty(element, "clientHeight", {value: clientHeight, configurable: true});
+            Object.defineProperty(element, "scrollHeight", {value: scrollHeight, configurable: true});
+        }
+
+        test("opens on the overview, with the periods one swipe below", async () => {
+            setInnerWidth(400);
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            expect(await screen.findByTestId("research-overview")).toBeInTheDocument();
+            expect(screen.queryByTestId("period-list")).not.toBeInTheDocument();
+            expect(screen.getByTestId("overview-swipe-hint")).toHaveTextContent("periods");
+
+            await swipeToFirstPeriod();
+
+            expect(screen.getByText("period:period-1")).toBeInTheDocument();
+            expect(screen.queryByTestId("research-overview")).not.toBeInTheDocument();
+        });
+
+        test("opens on the first period when a company has no widgets to show", async () => {
+            setInnerWidth(400);
+            axios.get.mockImplementation(url => url.includes("/news-sentiment/")
+                ? Promise.resolve({data: {record: null}})
+                : url.includes("/target/company/")
+                    ? Promise.resolve({data: {counts: {}, failedPeriodIds: []}})
+                    : Promise.resolve({data: createResearchData({
+                        ttm: null,
+                        indicators: null,
+                        estimateOverview: null,
+                        revenueEstimateOverview: null,
+                    })}));
+
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            // No overview page to swipe past: the first period is the first page.
+            expect(await screen.findByText("period:period-1")).toBeInTheDocument();
+            expect(screen.queryByTestId("research-overview")).not.toBeInTheDocument();
+            expect(screen.getByTestId("period-list")).toBeInTheDocument();
+        });
+
+        test("swiping back up from the first period returns to the overview", async () => {
+            setInnerWidth(400);
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            await swipeToFirstPeriod();
+
+            const list = screen.getByTestId("period-list");
+            fireEvent.touchStart(screen.getByTestId("period-header:period-1"), {
+                touches: [{clientX: 100, clientY: 100}],
+            });
+            fireEvent.touchEnd(list, {changedTouches: [{clientX: 100, clientY: 300}]});
+
+            expect(await screen.findByTestId("research-overview")).toBeInTheDocument();
+            expect(screen.queryByText("period:period-1")).not.toBeInTheDocument();
+        });
+
+        test("swiping outside the period content switches periods at any scroll position", async () => {
+            setInnerWidth(400);
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            await swipeToFirstPeriod();
+            setScroll(screen.getByTestId("period-content:period-1"), {
+                scrollTop: 40, clientHeight: 100, scrollHeight: 400,
+            });
+
+            verticalSwipe(screen.getByTestId("period-header:period-1"), 300, 100);
+
+            expect(await screen.findByText("period:period-2")).toBeInTheDocument();
+        });
+
+        test("swiping inside the period content scrolls instead of switching periods", async () => {
+            setInnerWidth(400);
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            await swipeToFirstPeriod();
+            const content = screen.getByTestId("period-content:period-1");
+            setScroll(content, {scrollTop: 40, clientHeight: 100, scrollHeight: 400});
+
+            // The gesture scrolls the content down to its end; it must not also change period.
+            fireEvent.touchStart(content, {touches: [{clientX: 100, clientY: 300}]});
+            Object.defineProperty(content, "scrollTop", {value: 300, configurable: true});
+            fireEvent.touchEnd(screen.getByTestId("period-list"), {
+                changedTouches: [{clientX: 100, clientY: 100}],
+            });
+
+            expect(screen.getByText("period:period-1")).toBeInTheDocument();
+            expect(screen.queryByText("period:period-2")).not.toBeInTheDocument();
+        });
+
+        test("swiping inside the period content switches periods once it is scrolled to the end", async () => {
+            setInnerWidth(400);
+            render(<Research companySelectorValue={companySelectorValue} researchTabsIndex={0}/>);
+
+            await swipeToFirstPeriod();
+            const content = screen.getByTestId("period-content:period-1");
+            setScroll(content, {scrollTop: 300, clientHeight: 100, scrollHeight: 400});
+
+            verticalSwipe(content, 300, 100);
+
+            expect(await screen.findByText("period:period-2")).toBeInTheDocument();
+        });
+
+        test("swiping right moves backward from Todo to Records", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={2}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 100, 300);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(1);
+        });
+
+        test("does not swipe forward past the last tab", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={2}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 300, 100);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(2);
+        });
+
+        test("does not swipe backward past the first tab", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 100, 300);
+
+            expect(setResearchTabsIndex).toHaveBeenCalledWith(0);
+        });
+
+        test("ignores a short swipe below the distance threshold", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 100, 130);
+
+            expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+
+        test("ignores a predominantly vertical scroll gesture", () => {
+            setInnerWidth(400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            const content = screen.getByTestId("research-content");
+            fireEvent.touchStart(content, {touches: [{clientX: 100, clientY: 100}]});
+            fireEvent.touchEnd(content, {changedTouches: [{clientX: 180, clientY: 300}]});
+
+            expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
+
+        test("ignores swipes on a wide screen", () => {
+            setInnerWidth(1400);
+            const setResearchTabsIndex = jest.fn();
+            render(<Research
+                companySelectorValue={companySelectorValue}
+                researchTabsIndex={0}
+                setResearchTabsIndex={setResearchTabsIndex}
+            />);
+
+            swipe(screen.getByTestId("research-content"), 100, 300);
+
+            expect(setResearchTabsIndex).not.toHaveBeenCalled();
+        });
     });
 
     test("fetches data and renders the research view", async () => {
@@ -189,21 +671,130 @@ describe("Research", () => {
 
         expect(screen.getByTestId("loader")).toBeInTheDocument();
 
-        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("http://backend/research/company-1"));
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("/api/research/company-1"));
         await waitFor(() => expect(screen.getByText("AAPL")).toBeInTheDocument());
 
-        expect(screen.getByText("Research")).toBeInTheDocument();
-        expect(screen.getByText("Technology")).toBeInTheDocument();
+        expect(screen.queryByText("Research")).not.toBeInTheDocument();
+        expect(screen.queryByText("Records")).not.toBeInTheDocument();
+        expect(screen.queryByText("Technology")).not.toBeInTheDocument();
         expect(screen.getByText("#growth")).toBeInTheDocument();
+        expect(screen.getByText("#growth").parentElement).toHaveStyle("margin-top: -10px");
+        expect(screen.getByText("#growth").parentElement).toHaveStyle("margin-left: 4px");
         expect(screen.queryByText("#owned")).not.toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
+        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-financials-count", "1");
         expect(screen.getByTestId("period-estimates-overview")).toHaveTextContent("estimate-overview:14");
-        expect(screen.getByText("datetime:2026-05-09T10:11:12")).toBeInTheDocument();
-        expect(screen.getByText("Market Cap: $1B")).toBeInTheDocument();
-        expect(screen.getByText("Dividend Yield: 2%")).toBeInTheDocument();
-        expect(screen.getByText("asset:3@100$")).toBeInTheDocument();
+        expect(screen.getByText("latest-news-sentiment:company-1")).toBeInTheDocument();
+        expect(screen.getByTestId("trading-view-overview")).toHaveAttribute("data-symbol", "NASDAQ:AAPL");
+        expect(screen.getByTestId("trading-view-overview")).toHaveAttribute("data-margin-top", "1px");
+        expect(screen.getByTestId("trading-view-overview")).toHaveAttribute("data-width-sm", "550px");
+        expect(screen.getByTestId("trading-view-overview").parentElement).toContainElement(
+            screen.getByRole("button", {name: "Edit AAPL"})
+        );
+        expect(screen.queryByText(/^Market Cap/)).not.toBeInTheDocument();
+        expect(screen.getByTestId("period-financials")).toHaveAttribute("data-net-income-multiple", "6");
+        expect(screen.getByTestId("market-overview")).toHaveTextContent("mcap");
+        expect(screen.getByTestId("market-overview")).toHaveTextContent("1B");
+        expect(screen.queryByText(/^PE:/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/^DY:/)).not.toBeInTheDocument();
+        expect(screen.getByTestId("record-assets"))
+            .toHaveTextContent("assets:3@100$ price:123.45@2026-05-09T10:11:12");
         expect(screen.getByText("period:period-1")).toBeInTheDocument();
         expect(screen.getByText("record:record-1")).toBeInTheDocument();
+        expect(screen.getByTestId("period-list")).toHaveStyle("overflow-y: auto");
+        expect(screen.getByTestId("record-list")).toHaveStyle("overflow-y: auto");
+        expect(screen.getByTestId("record-list")).toHaveStyle("padding-top: 5px");
+    });
+
+    test("uses the ticker in the research title when TradingView is unavailable", async () => {
+        axios.get.mockResolvedValue({
+            data: createResearchData({
+                company: {
+                    id: "company-1",
+                    ticker: "AAPL",
+                    currency: "$",
+                    sector: {key: "TECH", name: "Technology"},
+                    tags: [],
+                },
+            }),
+        });
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        expect(await screen.findByText("AAPL")).toBeInTheDocument();
+        expect(screen.queryByRole("img", {name: "AAPL logo"})).not.toBeInTheDocument();
+        expect(screen.queryByTestId("trading-view-overview")).not.toBeInTheDocument();
+        expect(screen.getByText("Technology")).toBeInTheDocument();
+    });
+
+    test("restores the company title when TradingView reports the symbol unavailable", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByTestId("trading-view-overview");
+        fireEvent.click(screen.getByRole("button", {name: "Report TradingView unavailable"}));
+
+        expect(screen.queryByTestId("trading-view-overview")).not.toBeInTheDocument();
+        expect(screen.getByText("AAPL")).toBeInTheDocument();
+        expect(screen.getByText("Technology")).toBeInTheDocument();
+    });
+
+    test("opens company editing from the research title", async () => {
+        const researchData = createResearchData();
+        const setOpenEditCompany = jest.fn();
+        axios.get.mockResolvedValue({data: researchData});
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+                setOpenEditCompany={setOpenEditCompany}
+            />
+        );
+
+        fireEvent.click(await screen.findByRole("button", {name: "Edit AAPL"}));
+
+        expect(setOpenEditCompany).toHaveBeenCalledWith(researchData.company);
+        expect(screen.getByTestId("edit-company-dialog")).toBeInTheDocument();
+    });
+
+    test("shows the loader and hides the previous company while a new company is loading", async () => {
+        let resolveSecondCompany;
+        axios.get.mockImplementation(url => {
+            if (url === "/api/research/company-1") {
+                return Promise.resolve({data: createResearchData()});
+            }
+            if (url.includes("/target/company/")) {
+                return Promise.resolve({data: {counts: {}, warnings: []}});
+            }
+            return new Promise(resolve => {
+                resolveSecondCompany = resolve;
+            });
+        });
+
+        const {rerender} = render(<Research companySelectorValue={companySelectorValue}/>);
+        await screen.findByText("AAPL");
+
+        rerender(<Research companySelectorValue={{id: "company-2"}}/>);
+
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("/api/research/company-2"));
+        expect(screen.getByTestId("loader")).toHaveTextContent("loading");
+        expect(screen.queryByText("AAPL")).not.toBeInTheDocument();
+
+        resolveSecondCompany({
+            data: createResearchData({
+                company: {
+                    id: "company-2",
+                    ticker: "MSFT",
+                    currency: "$",
+                    sector: {key: "TECH", name: "Technology"},
+                    tags: [],
+                },
+            }),
+        });
+
+        await screen.findByText("MSFT");
+        expect(screen.queryByTestId("loader")).not.toBeInTheDocument();
     });
 
     test("opens add tag with custom list suggestions", async () => {
@@ -232,7 +823,7 @@ describe("Research", () => {
         fireEvent.click(screen.getByRole("button", {name: "Remove"}));
 
         await waitFor(() => expect(axios.delete).toHaveBeenCalledWith(
-            "http://backend/company/company-1/tag",
+            "/api/company/company-1/tag",
             {params: {value: "growth"}},
         ));
         await waitFor(() => expect(refreshCompanyLists).toHaveBeenCalled());
@@ -265,6 +856,17 @@ describe("Research", () => {
         expect(screen.getByText("financials-dialog:AAPL:1")).toBeInTheDocument();
     });
 
+    test("opens the record dialog with target statistics from the latest period", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("AAPL");
+        fireEvent.click(screen.getByRole("button", {name: "Add record"}));
+
+        expect(screen.getByText("add-record-dialog:105-140")).toBeInTheDocument();
+    });
+
     test("opens earnings projections dialog from the estimates overview", async () => {
         axios.get.mockResolvedValue({data: createResearchData()});
 
@@ -284,6 +886,152 @@ describe("Research", () => {
         fireEvent.click(screen.getByText("open-estimate-dialog:period-1"));
 
         expect(screen.getByText("add-estimate-dialog:period-1")).toBeInTheDocument();
+    });
+
+    test("opens the target dialog for a period", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("open-target-dialog:period-1");
+        fireEvent.click(screen.getByText("open-target-dialog:period-1"));
+
+        expect(screen.getByText("target-dialog:company-1:period-1")).toBeInTheDocument();
+        const countUrl = "/api/target/company/company-1/sync/counts";
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith(countUrl));
+        fireEvent.click(screen.getByText("refresh-targets"));
+        await waitFor(() => expect(axios.get.mock.calls.filter(([url]) => url === countUrl)).toHaveLength(2));
+    });
+
+    test("opens the news sentiment dialog for a period", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await screen.findByText("open-news-sentiment-dialog:period-1");
+        fireEvent.click(screen.getByText("open-news-sentiment-dialog:period-1"));
+
+        expect(screen.getByText("news-sentiment-dialog:company-1:period-1")).toBeInTheDocument();
+    });
+
+    test("loads target candidate counts asynchronously and passes them to periods", async () => {
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({
+                data: {
+                    counts: {"period-1": 3, "period-2": 0},
+                    failedPeriodIds: ["period-2"],
+                    warnings: ["Firebase target data was only partially available"],
+                },
+            })
+            : Promise.resolve({data: createResearchData()}));
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        expect(await screen.findByText("target-candidates:period-1:3:ok")).toBeInTheDocument();
+        expect(screen.getByText("target-candidates:period-2:0:failed")).toBeInTheDocument();
+        expect(screen.queryByText("Some expected target data could not be loaded")).not.toBeInTheDocument();
+        expect(screen.queryByText("Firebase target data was only partially available")).not.toBeInTheDocument();
+        expect(axios.get).toHaveBeenCalledWith("/api/target/company/company-1/sync/counts");
+    });
+
+    test("takes in the targets the periods can be mapped to as soon as the page is open", async () => {
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({data: {counts: {"period-1": 2}, failedPeriodIds: []}})
+            : Promise.resolve({data: createResearchData()}));
+        axios.post.mockResolvedValue({data: {
+            periods: [{
+                periodId: "period-1",
+                periodName: "25Q1",
+                targets: [
+                    {date: "2025-03-20", institution: "Alpha Research", price: 180, rating: "Buy"},
+                    {date: "2025-03-21", institution: "Beta Capital", price: 192.5, rating: "Hold"},
+                ],
+            }],
+            warnings: [],
+        }});
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        await waitFor(() => expect(axios.post)
+            .toHaveBeenCalledWith("/api/target/company/company-1/sync/auto"));
+
+        // One card for the period, naming every institution it brought in.
+        expect(await screen.findByText("New targets for 25Q1")).toBeInTheDocument();
+        expect(screen.getByText("Alpha Research")).toBeInTheDocument();
+        expect(screen.getByText("180.00$")).toBeInTheDocument();
+        expect(screen.getByText("Beta Capital")).toBeInTheDocument();
+        expect(screen.getByText("192.50$")).toBeInTheDocument();
+    });
+
+    test("leaves the targets alone when there is nothing to take", async () => {
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({data: {counts: {"period-1": 0, "period-2": 0}, failedPeriodIds: []}})
+            : Promise.resolve({data: createResearchData()}));
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        expect(await screen.findByText("target-candidates:period-1:0:ok")).toBeInTheDocument();
+        expect(axios.post).not.toHaveBeenCalled();
+        expect(screen.queryByTestId("imported-targets-alerts")).not.toBeInTheDocument();
+    });
+
+    test("does not import again while the candidate counts cannot be trusted", async () => {
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({data: {counts: {"period-1": 3}, failedPeriodIds: ["period-2"]}})
+            : Promise.resolve({data: createResearchData()}));
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        expect(await screen.findByText("target-candidates:period-2:0:failed")).toBeInTheDocument();
+        expect(axios.post).not.toHaveBeenCalled();
+    });
+
+    test("updates the actionable list entry from the loaded research data", async () => {
+        const updateActionableCompany = jest.fn();
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({data: {counts: {"period-1": 3, "period-2": 4}, failedPeriodIds: []}})
+            : Promise.resolve({data: createResearchData({
+                importablePeriods: [{name: "26Q3"}, {name: "26Q4"}],
+            })}));
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+                updateActionableCompany={updateActionableCompany}
+            />
+        );
+
+        await waitFor(() => expect(updateActionableCompany).toHaveBeenCalledWith("company-1", 2, 7));
+    });
+
+    test("keeps the actionable list entry when target candidate counts are incomplete", async () => {
+        const updateActionableCompany = jest.fn();
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.resolve({data: {counts: {"period-1": 3}, failedPeriodIds: ["period-2"]}})
+            : Promise.resolve({data: createResearchData()}));
+
+        render(
+            <Research
+                companySelectorValue={companySelectorValue}
+                updateActionableCompany={updateActionableCompany}
+            />
+        );
+
+        expect(await screen.findByText("target-candidates:period-2:0:failed")).toBeInTheDocument();
+        expect(updateActionableCompany).not.toHaveBeenCalled();
+    });
+
+    test("marks every period when target candidate counts cannot be loaded without showing an alert", async () => {
+        axios.get.mockImplementation(url => url.includes("/target/company/")
+            ? Promise.reject(new Error("candidate request failed"))
+            : Promise.resolve({data: createResearchData()}));
+
+        render(<Research companySelectorValue={companySelectorValue}/>);
+
+        expect(await screen.findByText("target-candidates:period-1:0:failed")).toBeInTheDocument();
+        expect(screen.getByText("target-candidates:period-2:0:failed")).toBeInTheDocument();
+        expect(screen.getByTestId("snackbar")).toHaveTextContent("null|false");
+        expect(mockFormatError).not.toHaveBeenCalled();
     });
 
     test("shows the import count and opens the dialog with lightweight period names", async () => {
@@ -347,7 +1095,7 @@ describe("Research", () => {
 
         fireEvent.click(screen.getByText("delete:record-1"));
 
-        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("http://backend/record/record-1"));
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/record/record-1"));
         await waitFor(() => expect(screen.queryByText("record:record-1")).not.toBeInTheDocument());
         expect(screen.getByText("record:record-2")).toBeInTheDocument();
     });

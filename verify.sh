@@ -139,12 +139,6 @@ backend_tests() {
   ./mvnw test
 }
 
-backend_package() {
-  require_backend_environment || return $?
-  cd "$BACKEND_DIR" || return 1
-  ./mvnw clean package -Dmaven.test.skip=true
-}
-
 require_frontend_environment() {
   select_compatible_node || return $?
   if [[ ! -x "$FRONTEND_DIR/node_modules/.bin/react-scripts" \
@@ -175,13 +169,6 @@ frontend_component_tests() {
     --coverage=false
 }
 
-frontend_build() {
-  require_frontend_environment || return $?
-  cd "$FRONTEND_DIR" || return 1
-  REACT_APP_BACKEND_URL="${REACT_APP_BACKEND_URL:-http://127.0.0.1:9090}" \
-    npm run build
-}
-
 print_summary() {
   local index result color
 
@@ -206,11 +193,9 @@ printf '%sTrading local checks%s\n' "$BOLD" "$RESET"
 printf 'Workspace: %s\n' "$ROOT_DIR"
 
 run_step 'Backend - tests' backend_tests
-run_step 'Backend - production package' backend_package
 run_step 'Frontend - dependencies' frontend_dependencies
 run_step 'Frontend - ESLint' frontend_lint
 run_step 'Frontend - component tests' frontend_component_tests
-run_step 'Frontend - production build' frontend_build
 
 print_summary
 

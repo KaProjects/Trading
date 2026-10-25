@@ -5,21 +5,29 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.kaleta.model.Company;
+import org.kaleta.model.TradeSaleSummary;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.TradeCreateDto;
+import org.kaleta.rest.dto.TradeImportDto;
+import org.kaleta.rest.dto.TradeImportPreviewDto;
 import org.kaleta.rest.dto.TradeSellDto;
+import org.kaleta.rest.dto.TradeUpdateDto;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.rest.validation.ValueOfEnum;
 import org.kaleta.service.ArithmeticService;
@@ -27,19 +35,22 @@ import org.kaleta.service.FirebaseService;
 import org.kaleta.service.LatestService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
+import org.kaleta.service.TradeImportService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Date;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.DoubleStream;
 
 @Path("/trade")
 public class TradeEndpoints
 {
     @Inject
     TradeService tradeService;
+    @Inject
+    TradeImportService tradeImportService;
     @Inject
     FirebaseService firebaseService;
     @Inject
@@ -52,7 +63,7 @@ public class TradeEndpoints
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response getTrades(
+    public Trades getTrades(
             @QueryParam("active")
             Boolean active,
             @Pattern(regexp = "^\\d\\d\\d\\d$", message = "must match YYYY")
@@ -66,32 +77,42 @@ public class TradeEndpoints
             String currency,
             @ValueOfEnum(enumClass = Sector.class)
             @QueryParam("sector")
-            String sector
+            String sector,
+            @ValueOfEnum(enumClass = Portfolio.class)
+            @QueryParam("portfolio")
+            String portfolio
     ) {
-        Trades trades = tradeService.getBy(active, companyId, currency, year, year, sector);
+        Trades trades = tradeService.getBy(active, companyId, currency, year, year, sector, portfolio);
 
         if (active != null && active)
         {
-            Map<Company, Latest> synced = new HashMap<>();
+            Map<Company, LatestService.SyncResult> synced = new HashMap<>();
 
             for (Trades.Trade trade : trades.getTrades())
             {
-                synced.computeIfAbsent(trade.getCompany(), company -> latestService.getSyncedFor(company.getId()));
+                LatestService.SyncResult syncResult = synced.computeIfAbsent(
+                        trade.getCompany(),
+                        company -> latestService.getSyncedForWithWarnings(company.getId()));
+                Latest latest = syncResult.latest();
 
-                if (synced.containsKey(trade.getCompany()))
+                if (latest != null)
                 {
-                    trade.setSellDate(new Date(synced.get(trade.getCompany()).getDatetime()
+                    trade.setSellDate(new Date(latest.getDatetime()
                             .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()));
                     trade.setSellQuantity(trade.getPurchaseQuantity());
-                    trade.setSellPrice(synced.get(trade.getCompany()).getPrice());
+                    trade.setSellPrice(latest.getPrice());
                     trade.setSellFees(trade.getPurchaseFees());
                     trade.setSellTotal(arithmeticService.sellTotal(trade.getSellPrice(), trade.getSellQuantity(), trade.getSellFees()));
                     trade.setProfit(trade.getSellTotal().subtract(trade.getPurchaseTotal()));
                     trade.setProfitPercentage(arithmeticService.profitPercentage(trade.getPurchaseTotal(), trade.getSellTotal()));
                 }
             }
+            synced.values().stream()
+                    .flatMap(result -> result.warnings().stream())
+                    .distinct()
+                    .forEach(trades.getWarnings()::add);
         }
-        return Response.ok(trades).build();
+        return trades;
     }
 
     @POST
@@ -108,18 +129,72 @@ public class TradeEndpoints
         return Response.status(Response.Status.CREATED).build();
     }
 
+    @POST
+    @Consumes("text/csv")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/import/preview")
+    public TradeImportPreviewDto previewTradeImport(@NotNull String csv)
+    {
+        return tradeImportService.preview(csv);
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/import")
+    public RestResponse<TradeImportPreviewDto> importTrades(@Valid @NotNull TradeImportDto tradeImportDto)
+    {
+        TradeImportPreviewDto preview = tradeImportService.importTrades(tradeImportDto);
+        if (!preview.isValid()) {
+            return RestResponse.ResponseBuilder.create(Response.Status.CONFLICT, preview).build();
+        }
+
+        firebaseService.pushAssets(tradeService.getBy(true, null, null, null, null, null));
+        return RestResponse.ResponseBuilder.create(Response.Status.CREATED, preview).build();
+    }
+
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("/")
     public Response sellTrade(@Valid @NotNull TradeSellDto tradeSellDto)
     {
-        tradeService.sellTrade(tradeSellDto);
+        TradeSaleSummary sale = tradeService.sellTrade(tradeSellDto);
         firebaseService.pushAssets(tradeService.getBy(true, null, null, null, null, null));
 
-        double quantity = tradeSellDto.getTrades().stream().flatMapToDouble(trade -> DoubleStream.of(Double.parseDouble(trade.getQuantity()))).sum();
-        String recordTitle = "sold " + new BigDecimal(quantity);
-        recordService.createCurrent(tradeSellDto.getCompanyId(), recordTitle,tradeSellDto.getDate(), tradeSellDto.getPrice());
+        String recordTitle = "sold " + formatDecimal(sale.quantity(), 5);
+        recordService.createCurrent(
+                tradeSellDto.getCompanyId(),
+                recordTitle,
+                tradeSellDto.getDate(),
+                formatDecimal(new BigDecimal(tradeSellDto.getPrice()), 5),
+                sale);
 
         return Response.noContent().build();
+    }
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/{tradeId}")
+    public Response updateTrade(
+            @ValidId @PathParam("tradeId") Long tradeId,
+            @Valid @NotNull TradeUpdateDto tradeUpdateDto)
+    {
+        tradeService.updateTrade(tradeId, tradeUpdateDto);
+        firebaseService.pushAssets(tradeService.getBy(true, null, null, null, null, null));
+        return Response.noContent().build();
+    }
+
+    @DELETE
+    @Path("/{tradeId}")
+    public Response deleteTrade(@NotNull @ValidId @PathParam("tradeId") Long tradeId)
+    {
+        tradeService.deleteTrade(tradeId);
+        firebaseService.pushAssets(tradeService.getBy(true, null, null, null, null, null));
+        return Response.ok().build();
+    }
+
+    private String formatDecimal(BigDecimal value, int maxScale)
+    {
+        return value.setScale(maxScale, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 }

@@ -2,8 +2,10 @@ package org.kaleta.persistence.impl;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.TypedQuery;
+import jakarta.transaction.Transactional;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
 
@@ -18,21 +20,25 @@ public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDa
         return Trade.class;
     }
 
+    @Transactional
     @Override
-    public List<Trade> listWithoutPortfolio(Long companyId)
+    public void delete(Long tradeId)
     {
-        String companyCondition = companyId == null ? "" : " AND t.company.id=:companyId";
-        TypedQuery<Trade> query = entityManager.createQuery(
-                selectQuery + "WHERE t.portfolio IS NULL" + companyCondition
-                        + " ORDER BY t.company.ticker, t.purchaseDate DESC, t.id DESC",
-                Trade.class
-        );
-        if (companyId != null) query.setParameter("companyId", companyId);
-        return query.getResultList();
+        Trade managed = entityManager.find(Trade.class, tradeId);
+        if (managed != null) {
+            entityManager.remove(managed);
+        }
     }
 
     @Override
     public List<Trade> list(Boolean active, Long companyId, String currency, String purchaseYear, String sellYear, String sector)
+    {
+        return list(active, companyId, currency, purchaseYear, sellYear, sector, null);
+    }
+
+    @Override
+    public List<Trade> list(Boolean active, Long companyId, String currency, String purchaseYear, String sellYear, String sector,
+                            String portfolio)
     {
         String joinWord = " WHERE ";
         String activeCondition = "";
@@ -63,6 +69,12 @@ public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDa
             joinWord = " AND ";
         }
 
+        String portfolioCondition = "";
+        if (portfolio != null){
+            portfolioCondition = joinWord + "t.portfolio=:portfolio";
+            joinWord = " AND ";
+        }
+
         String yearCondition = "";
         if (purchaseYear != null){
             if (sellYear != null){
@@ -81,11 +93,13 @@ public class TradeDaoImpl extends EntityCompanyDaoImpl<Trade> implements TradeDa
                 + companyCondition
                 + currencyCondition
                 + sectorCondition
+                + portfolioCondition
                 + yearCondition, Trade.class);
 
         if (companyId != null ) query.setParameter("companyId", companyId);
         if (currency != null ) query.setParameter("currency", Currency.valueOf(currency));
         if (sector != null ) query.setParameter("sector", Sector.valueOf(sector));
+        if (portfolio != null ) query.setParameter("portfolio", Portfolio.valueOf(portfolio));
         if (purchaseYear != null ) query.setParameter("purchaseYear", purchaseYear);
         if (sellYear != null ) query.setParameter("sellYear", sellYear);
 

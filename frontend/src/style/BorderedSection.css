@@ -14,8 +14,20 @@
     margin-top: 8px;
 }
 
+.mainContainer.stretch {
+    height: 100%;
+    box-sizing: border-box;
+}
+
 .childrenContainer {
     padding: 0 10px 10px 10px;
+}
+
+.childrenContainer.stretchContent {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .header {
@@ -45,9 +57,38 @@
     color: var(--border-color)
 }
 
+/* The card's own background rather than a grey tablet: the rule either side of the title is
+   what sets it apart, and on a narrow screen the grey only made the card look patched. */
+.headerTitle.highlighted {
+    background-color: var(--card-background, #fff);
+    color: #595959;
+    padding: 0 0.4em;
+    border-radius: 4px;
+}
+
 .headerBorderAfter {
     border-top: 1px solid var(--border-color);
     width: 1em;
     flex-grow: 2;
+    border-top-right-radius: 5px;
+}
+
+.headerBorderAfter.withEnd {
+    border-top-right-radius: 0;
+}
+
+.headerTitleEnd {
+    display: flex;
+    align-items: center;
+    height: 2em;
+    margin: -1em 0.5em 0em 0.5em;
+    white-space: nowrap;
+    font-size: 10px;
+    color: var(--border-color);
+}
+
+.headerBorderEnd {
+    border-top: 1px solid var(--border-color);
+    width: 1em;
     border-top-right-radius: 5px;
 }

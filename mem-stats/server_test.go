@@ -31,7 +31,7 @@ func TestAddAndDeleteEndpointsUpdateMonitorAndConfig(t *testing.T) {
 	store := newConfigStore(filepath.Join(t.TempDir(), "containers.json"))
 	statistics := &collectingStatisticsStore{}
 	monitor := newTestMonitor(fixedMemoryReader{value: 120 * mebibyte}, statistics)
-	application := newApplication(monitor, store)
+	application := newApplication(monitor, store, statistics)
 
 	addRequest := httptest.NewRequest(http.MethodPost, "/add/service-a", nil)
 	addResponse := httptest.NewRecorder()
@@ -85,7 +85,7 @@ func TestAddEndpointRejectsUnavailableContainerWithoutMutation(t *testing.T) {
 				fixedMemoryReader{validationErr: &containerInactiveError{State: state}},
 				statistics,
 			)
-			application := newApplication(monitor, store)
+			application := newApplication(monitor, store, statistics)
 
 			request := httptest.NewRequest(http.MethodPost, "/add/missing-service", nil)
 			response := httptest.NewRecorder()
@@ -113,13 +113,14 @@ func TestAddEndpointRejectsUnavailableContainerWithoutMutation(t *testing.T) {
 
 func TestReportShowsStatisticsAndHistogram(t *testing.T) {
 	store := newConfigStore(filepath.Join(t.TempDir(), "containers.json"))
+	statistics := &collectingStatisticsStore{}
 	monitor := newTestMonitor(
 		fixedMemoryReader{value: 152 * mebibyte},
-		&collectingStatisticsStore{},
+		statistics,
 	)
 	addTestContainer(t, monitor, "service-a", nil)
 	monitor.Sample(context.Background(), "service-a")
-	application := newApplication(monitor, store)
+	application := newApplication(monitor, store, statistics)
 
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 	response := httptest.NewRecorder()
@@ -135,5 +136,67 @@ func TestReportShowsStatisticsAndHistogram(t *testing.T) {
 		if !strings.Contains(body, expected) {
 			t.Errorf("expected report to contain %q", expected)
 		}
+	}
+}
+
+func TestHistoryShowsFinalizedRunsAndOmitsActiveCheckpoint(t *testing.T) {
+	store := newConfigStore(filepath.Join(t.TempDir(), "containers.json"))
+	statistics := &collectingStatisticsStore{}
+	monitor := newTestMonitor(fixedMemoryReader{}, statistics)
+	active := exampleHistoryRecord()
+	if err := statistics.Checkpoint([]historyRecord{active}); err != nil {
+		t.Fatal(err)
+	}
+	finalized := exampleHistoryRecord()
+	finalized.ID = finalizedRecordID("service-a", finalized.ObservedUntil)
+	finalized.Reason = "container_restarted"
+	if err := statistics.Finalize(finalized); err != nil {
+		t.Fatal(err)
+	}
+	otherActive := exampleHistoryRecord()
+	otherActive.ContainerName = "still-running"
+	if err := statistics.Checkpoint([]historyRecord{otherActive}); err != nil {
+		t.Fatal(err)
+	}
+
+	application := newApplication(monitor, store, statistics)
+	request := httptest.NewRequest(http.MethodGet, "/history", nil)
+	response := httptest.NewRecorder()
+	application.routes().ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected history status 200, got %d", response.Code)
+	}
+	body := response.Body.String()
+	for _, expected := range []string{
+		"service-a",
+		"container_restarted",
+		"100.00 MiB",
+		"110.00 MiB",
+		"120.00 MiB",
+		"50.00%",
+		"href=\"/history\"",
+	} {
+		if !strings.Contains(body, expected) {
+			t.Errorf("expected history to contain %q", expected)
+		}
+	}
+	if strings.Contains(body, "still-running") {
+		t.Error("active checkpoints must stay on the current page, not history")
+	}
+}
+
+func TestHistoryShowsEmptyState(t *testing.T) {
+	store := newConfigStore(filepath.Join(t.TempDir(), "containers.json"))
+	statistics := &collectingStatisticsStore{}
+	monitor := newTestMonitor(fixedMemoryReader{}, statistics)
+	application := newApplication(monitor, store, statistics)
+
+	request := httptest.NewRequest(http.MethodGet, "/history", nil)
+	response := httptest.NewRecorder()
+	application.routes().ServeHTTP(response, request)
+
+	if !strings.Contains(response.Body.String(), "No completed monitoring runs") {
+		t.Fatal("expected empty history message")
 	}
 }

@@ -3,14 +3,34 @@ import React, {useEffect, useState} from "react";
 import {backend} from "../properties";
 import axios from "axios";
 import {validateNumber} from "../service/ValidationService";
-import {formatError} from "../service/FormattingService";
+import {formatError, formatTargetStats} from "../service/FormattingService";
 import {DialogTextField} from "./component/DialogTextField";
 import {DialogDatePicker} from "./component/DialogDatePicker";
 
+function forwardPeFrom(latestPeriod, price) {
+    if (!latestPeriod || latestPeriod.financial) return ""
+
+    // The newest estimate the period holds; they arrive newest first.
+    const latest = latestPeriod.estimates?.[0]
+    const estimates = [
+        latest?.current,
+        latest?.next1,
+        latest?.next2,
+        latest?.next3,
+    ]
+    if (estimates.some(estimate => !Number.isFinite(Number(estimate)) || estimate === null || estimate === undefined)) return ""
+
+    const earnings = estimates.reduce((sum, estimate) => sum + Number(estimate), 0)
+    if (earnings === 0 || !Number.isFinite(Number(price))) return ""
+
+    return `${Math.round(Number(price) / earnings * 100) / 100}`
+}
 
 export const AddRecordDialog = props => {
-    const {companyId, open, handleClose, indicators, assets} = props
+    const {companyId, open, handleClose, indicators, assets = {}, targetStats, latestPeriod} = props
     const [alert, setAlert] = useState(null)
+    const [prefilledDate, setPrefilledDate] = useState("")
+    const [prefilledValuesCleared, setPrefilledValuesCleared] = useState(false)
 
     const [date, setDate] = useState("")
     const [price, setPrice] = useState("")
@@ -19,24 +39,35 @@ export const AddRecordDialog = props => {
     const [priceToGrossProfit, setPriceToGrossProfit] = useState("")
     const [priceToOperatingIncome, setPriceToOperatingIncome] = useState("")
     const [priceToNetIncome, setPriceToNetIncome] = useState("")
+    const [priceToFreeCashFlow, setPriceToFreeCashFlow] = useState("")
+    const [forwardPe, setForwardPe] = useState("")
     const [dividendYield, setDividendYield] = useState("")
     const [sumAssetQuantity, setSumAssetQuantity] = useState("")
     const [avgAssetPrice, setAvgAssetPrice] = useState("")
     const [targets, setTargets] = useState("");
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (open) {
+            setAlert(null)
+            setSubmitting(false)
             setDate("")
+            setPrefilledDate("")
+            setPrefilledValuesCleared(false)
             setPrice("")
             setPriceToRevenues("")
             setPriceToGrossProfit("")
             setPriceToOperatingIncome("")
             setPriceToNetIncome("")
+            setPriceToFreeCashFlow("")
+            setForwardPe("")
             setDividendYield("")
-            setTargets("")
+            setTargets(indicators ? formatTargetStats(targetStats) : "")
 
             if (indicators) {
-                setDate(`${indicators.datetime}`.split("T")[0])
+                const indicatorDate = `${indicators.datetime}`.split("T")[0]
+                setDate(indicatorDate)
+                setPrefilledDate(indicatorDate)
                 setPrice(`${indicators.price}`)
 
                 if (indicators.ttm) {
@@ -44,8 +75,11 @@ export const AddRecordDialog = props => {
                     setPriceToGrossProfit(`${indicators.ttm.marketCapToGrossProfit ?? ''}`)
                     setPriceToOperatingIncome(`${indicators.ttm.marketCapToOperatingIncome ?? ''}`)
                     setPriceToNetIncome(`${indicators.ttm.marketCapToNetIncome ?? ''}`)
+                    setPriceToFreeCashFlow(`${indicators.ttm.marketCapToFreeCashFlow ?? ''}`)
                     setDividendYield(`${indicators.ttm.dividendYield ?? ''}`)
                 }
+
+                setForwardPe(forwardPeFrom(latestPeriod, indicators.price))
             }
 
             if (assets.aggregate) {
@@ -59,13 +93,33 @@ export const AddRecordDialog = props => {
         // eslint-disable-next-line
     }, [open])
 
+    function clearPrefilledValues() {
+        setPrice("")
+        setPriceToRevenues("")
+        setPriceToGrossProfit("")
+        setPriceToOperatingIncome("")
+        setPriceToNetIncome("")
+        setPriceToFreeCashFlow("")
+        setForwardPe("")
+        setDividendYield("")
+        setSumAssetQuantity("")
+        setAvgAssetPrice("")
+        setTargets("")
+        setPrefilledValuesCleared(true)
+        setAlert(null)
+    }
+
     function createRecord() {
+        if (submitting) return
+        setSubmitting(true)
         const nullIfBlank = (value) => value ? value : null
         const data = {companyId: companyId, date: date, price: price,
             priceToRevenues: nullIfBlank(priceToRevenues),
             priceToGrossProfit: nullIfBlank(priceToGrossProfit),
             priceToOperatingIncome: nullIfBlank(priceToOperatingIncome),
             priceToNetIncome: nullIfBlank(priceToNetIncome),
+            priceToFreeCashFlow: nullIfBlank(priceToFreeCashFlow),
+            forwardPe: nullIfBlank(forwardPe),
             dividendYield: nullIfBlank(dividendYield),
             sumAssetQuantity: nullIfBlank(sumAssetQuantity),
             avgAssetPrice: nullIfBlank(avgAssetPrice),
@@ -75,7 +129,9 @@ export const AddRecordDialog = props => {
             .then((response) => {
                 props.triggerRefresh()
                 handleClose()
-            }).catch((error) => {setAlert(formatError(error))})
+            })
+            .catch((error) => {setAlert(formatError(error))})
+            .finally(() => setSubmitting(false))
     }
 
     return (
@@ -91,6 +147,14 @@ export const AddRecordDialog = props => {
                     value={date}
                     onChange={(e) => {setDate(e.target.value);setAlert(null);}}
                 />
+                {prefilledDate && date !== prefilledDate && !prefilledValuesCleared &&
+                    <Alert
+                        severity="warning"
+                        action={<Button type="button" color="inherit" size="small" onClick={clearPrefilledValues}>Clear</Button>}
+                    >
+                        Prefilled values are based on {prefilledDate} and may not be valid for the selected date.
+                    </Alert>
+                }
                 <DialogTextField
                     id="trader-record-price"
                     value={price}
@@ -131,6 +195,23 @@ export const AddRecordDialog = props => {
                     onChange={(e) => {setPriceToNetIncome(e.target.value);setAlert(null);}}
                     validate={() => validateNumber(priceToNetIncome, true, 6, 2, true)}
                 />
+                <DialogTextField
+                    id="trader-record-pfcf"
+                    value={priceToFreeCashFlow}
+                    required={false}
+                    label="PCF"
+                    onChange={(e) => {setPriceToFreeCashFlow(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(priceToFreeCashFlow, true, 6, 2, true)}
+                />
+
+                <DialogTextField
+                    id="trader-record-fpe"
+                    value={forwardPe}
+                    required={false}
+                    label="Forward PE"
+                    onChange={(e) => {setForwardPe(e.target.value);setAlert(null);}}
+                    validate={() => validateNumber(forwardPe, true, 6, 2, true)}
+                />
 
                 <DialogTextField
                     id="trader-record-dy"
@@ -147,7 +228,7 @@ export const AddRecordDialog = props => {
                     required={false}
                     label="assets quantity sum"
                     onChange={(e) => {setSumAssetQuantity(e.target.value);setAlert(null);}}
-                    validate={() => validateNumber(sumAssetQuantity, true, 8, 4, false)}
+                    validate={() => validateNumber(sumAssetQuantity, true, 11, 4, false)}
                 />
                 <DialogTextField
                     id="trader-record-assets-price"
@@ -174,7 +255,7 @@ export const AddRecordDialog = props => {
             }
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit">Create</Button>
+                <Button type="submit" disabled={submitting}>Create</Button>
             </DialogActions>
         </Dialog>
     )

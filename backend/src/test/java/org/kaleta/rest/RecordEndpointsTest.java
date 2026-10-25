@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_3_2_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_2_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_2_true;
-import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_4_false;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_7_4_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_4_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
@@ -52,29 +52,38 @@ class RecordEndpointsTest
         dto.setPriceToGrossProfit(Generator.randomBigDecimal(9999,2).toString());
         dto.setPriceToOperatingIncome(Generator.randomBigDecimal(9999,2).toString());
         dto.setPriceToNetIncome(Generator.randomBigDecimal(9999,2).toString());
+        dto.setPriceToFreeCashFlow(Generator.randomBigDecimal(9999,2).toString());
         dto.setDividendYield(Generator.randomBigDecimal(999,2).toString());
         dto.setSumAssetQuantity(Generator.randomBigDecimal(9999,4).toString());
         dto.setAvgAssetPrice(Generator.randomBigDecimal(999999,4).toString());
         dto.setTargets("some targets");
 
+        int initialCount = recordDao.list(1565L).size();
+
         Assert.post201(path, dto);
 
         List<Record> records = recordDao.list(1565L);
-        assertThat(records.size(), is(1));
-        assertThat(records.get(0).getCompany().getTicker(), is("CRE"));
-        assertThat(records.get(0).getDate(), is(Utils.nullableDateValueOf(dto.getDate())));
-        assertThat(records.get(0).getTitle(), is(nullValue()));
-        assertThat(records.get(0).getPrice(), is(new BigDecimal(dto.getPrice())));
-        assertBigDecimals(records.get(0).getPriceToRevenues(), new BigDecimal(dto.getPriceToRevenues()));
-        assertBigDecimals(records.get(0).getPriceToGrossProfit(), new BigDecimal(dto.getPriceToGrossProfit()));
-        assertBigDecimals(records.get(0).getPriceToOperatingIncome(), new BigDecimal(dto.getPriceToOperatingIncome()));
-        assertBigDecimals(records.get(0).getPriceToNetIncome(), new BigDecimal(dto.getPriceToNetIncome()));
-        assertBigDecimals(records.get(0).getDividendYield(), new BigDecimal(dto.getDividendYield()));
-        assertBigDecimals(records.get(0).getAvgAssetPrice(), new BigDecimal(dto.getAvgAssetPrice()));
-        assertBigDecimals(records.get(0).getSumAssetQuantity(), new BigDecimal(dto.getSumAssetQuantity()));
-        assertThat(records.get(0).getContent(), is(nullValue()));
-        assertThat(records.get(0).getStrategy(), is(nullValue()));
-        assertThat(records.get(0).getTargets(), is(dto.getTargets()));
+        assertThat(records.size(), is(initialCount + 1));
+        Record record = records.stream()
+                .filter(item -> item.getDate().equals(Utils.nullableDateValueOf(dto.getDate())))
+                .filter(item -> item.getPrice().compareTo(new BigDecimal(dto.getPrice())) == 0)
+                .max((left, right) -> left.getId().compareTo(right.getId()))
+                .orElseThrow();
+        assertThat(record.getCompany().getTicker(), is("CRE"));
+        assertThat(record.getDate(), is(Utils.nullableDateValueOf(dto.getDate())));
+        assertThat(record.getTitle(), is(nullValue()));
+        assertThat(record.getPrice(), is(new BigDecimal(dto.getPrice())));
+        assertBigDecimals(record.getPriceToRevenues(), new BigDecimal(dto.getPriceToRevenues()));
+        assertBigDecimals(record.getPriceToGrossProfit(), new BigDecimal(dto.getPriceToGrossProfit()));
+        assertBigDecimals(record.getPriceToOperatingIncome(), new BigDecimal(dto.getPriceToOperatingIncome()));
+        assertBigDecimals(record.getPriceToNetIncome(), new BigDecimal(dto.getPriceToNetIncome()));
+        assertBigDecimals(record.getPriceToFreeCashFlow(), new BigDecimal(dto.getPriceToFreeCashFlow()));
+        assertBigDecimals(record.getDividendYield(), new BigDecimal(dto.getDividendYield()));
+        assertBigDecimals(record.getAvgAssetPrice(), new BigDecimal(dto.getAvgAssetPrice()));
+        assertBigDecimals(record.getSumAssetQuantity(), new BigDecimal(dto.getSumAssetQuantity()));
+        assertThat(record.getContent(), is(nullValue()));
+        assertThat(record.getStrategy(), is(nullValue()));
+        assertThat(record.getTargets(), is(dto.getTargets()));
     }
 
     @Test
@@ -87,6 +96,7 @@ class RecordEndpointsTest
         String validPg = Generator.randomBigDecimal(9999,2).toString();
         String validPo = Generator.randomBigDecimal(9999,2).toString();
         String validPe = Generator.randomBigDecimal(9999,2).toString();
+        String validPfcf = Generator.randomBigDecimal(9999,2).toString();
         String validDy = Generator.randomBigDecimal(999,2).toString();
         String validQ = Generator.randomBigDecimal(9999,4).toString();
         String validPp = Generator.randomBigDecimal(999999,4).toString();
@@ -101,6 +111,7 @@ class RecordEndpointsTest
         dto.setPriceToGrossProfit(validPg);
         dto.setPriceToOperatingIncome(validPo);
         dto.setPriceToNetIncome(validPe);
+        dto.setPriceToFreeCashFlow(validPfcf);
         dto.setDividendYield(validDy);
         dto.setSumAssetQuantity(validQ);
         dto.setAvgAssetPrice(validPp);
@@ -187,6 +198,18 @@ class RecordEndpointsTest
         Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
         dto.setPriceToNetIncome(validPe);
 
+        dto.setPriceToFreeCashFlow("x");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setPriceToFreeCashFlow(".1");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setPriceToFreeCashFlow("1.");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setPriceToFreeCashFlow("12345");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setPriceToFreeCashFlow("10.123");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_4_2_true);
+        dto.setPriceToFreeCashFlow(validPfcf);
+
         dto.setDividendYield("x");
         Assert.postValidationError(path, dto, BIG_DECIMAL_3_2_false);
         dto.setDividendYield(".1");
@@ -202,17 +225,17 @@ class RecordEndpointsTest
         dto.setDividendYield(validDy);
 
         dto.setSumAssetQuantity("x");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity(".1");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("1.");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
-        dto.setSumAssetQuantity("12345");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
+        dto.setSumAssetQuantity("12345678");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("10.12345");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("-1");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity(validQ);
 
         dto.setAvgAssetPrice("x");
@@ -245,6 +268,7 @@ class RecordEndpointsTest
         String newPriceToGrossProfit = "2.5";
         String newPriceToOperatingIncome = "-3.75";
         String newPriceToNetIncome = "4.25";
+        String newPriceToFreeCashFlow = "5.75";
         String newSumAssetQuantity = "12.5";
         String newAvgAssetPrice = "123.45";
 
@@ -262,6 +286,7 @@ class RecordEndpointsTest
         dto.setPriceToGrossProfit(newPriceToGrossProfit);
         dto.setPriceToOperatingIncome(newPriceToOperatingIncome);
         dto.setPriceToNetIncome(newPriceToNetIncome);
+        dto.setPriceToFreeCashFlow(newPriceToFreeCashFlow);
         dto.setSumAssetQuantity(newSumAssetQuantity);
         dto.setAvgAssetPrice(newAvgAssetPrice);
 
@@ -283,6 +308,7 @@ class RecordEndpointsTest
         assertBigDecimals(records.get(0).getPriceToGrossProfit(), new BigDecimal(newPriceToGrossProfit));
         assertBigDecimals(records.get(0).getPriceToOperatingIncome(), new BigDecimal(newPriceToOperatingIncome));
         assertBigDecimals(records.get(0).getPriceToNetIncome(), new BigDecimal(newPriceToNetIncome));
+        assertBigDecimals(records.get(0).getPriceToFreeCashFlow(), new BigDecimal(newPriceToFreeCashFlow));
         assertBigDecimals(records.get(0).getSumAssetQuantity(), new BigDecimal(newSumAssetQuantity));
         assertBigDecimals(records.get(0).getAvgAssetPrice(), new BigDecimal(newAvgAssetPrice));
 
@@ -313,17 +339,17 @@ class RecordEndpointsTest
         dto.setId(1974L);
 
         dto.setSumAssetQuantity("x");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity(".1");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("1.");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
-        dto.setSumAssetQuantity("12345");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
+        dto.setSumAssetQuantity("12345678");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("10.12345");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("-1");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setSumAssetQuantity("12.5");
 
         dto.setAvgAssetPrice("x");

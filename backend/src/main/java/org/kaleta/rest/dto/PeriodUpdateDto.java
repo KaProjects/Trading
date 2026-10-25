@@ -32,8 +32,6 @@ public class PeriodUpdateDto
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String priceHigh;
 
-    private String research;
-
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String revenue;
 
@@ -48,6 +46,12 @@ public class PeriodUpdateDto
 
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2)
     private String dividend;
+
+    @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
+    private String capex;
+
+    @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 2, allowNegative = true)
+    private String freeCashFlow;
 
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
     private String adjustedEps;

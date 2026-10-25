@@ -20,6 +20,8 @@ public class Record
     private BigDecimal priceToGrossProfit;
     private BigDecimal priceToOperatingIncome;
     private BigDecimal priceToNetIncome;
+    private BigDecimal priceToFreeCashFlow;
+    private BigDecimal forwardPe;
     private BigDecimal dividendYield;
 
     private String strategy;

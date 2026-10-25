@@ -8,6 +8,7 @@ import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Sector;
 
 import java.sql.Date;
@@ -82,6 +83,11 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
                 "SELECT "
                         + "c.id, "
                         + "c.ticker, "
+                        + "c.alphaVantageTicker, "
+                        + "c.exchangeCode, "
+                        + "c.name, "
+                        + "c.description, "
+                        + "c.website, "
                         + "c.currency, "
                         + "c.sector, "
                         + "COALESCE(t.total_trades, 0), "
@@ -126,17 +132,34 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
                 "SELECT "
                         + "c.id, "
                         + "c.ticker, "
+                        + "c.alphaVantageTicker, "
+                        + "c.exchangeCode, "
                         + "c.currency, "
                         + "c.sector, "
                         + "p.latest_ending_month, "
+                        + "p.period_count, "
+                        + "content.period_content_count, "
                         + "r.latest_record_date, "
                         + "t.latest_purchase_date, "
                         + "tag.value "
                         + "FROM Company c "
                         + "LEFT JOIN ("
-                        + "SELECT companyId, MAX(ending_month) AS latest_ending_month "
+                        + "SELECT companyId, MAX(ending_month) AS latest_ending_month, "
+                        + "COUNT(*) AS period_count "
                         + "FROM Period GROUP BY companyId"
                         + ") p ON p.companyId = c.id "
+                        + "LEFT JOIN ("
+                        // A period counts once however many days were written in it, and a day
+                        // that holds neither text nor a picture is not written in: the editor's
+                        // empty document is what an entry opened and closed again is left with.
+                        + "SELECT period.companyId, COUNT(DISTINCT entry.periodId) AS period_content_count "
+                        + "FROM PeriodContent entry "
+                        + "JOIN Period period ON period.id = entry.periodId "
+                        + "WHERE (entry.content IS NOT NULL AND TRIM(entry.content) <> '' "
+                        + "AND entry.content <> '[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]') "
+                        + "OR EXISTS (SELECT 1 FROM PeriodContentImage image WHERE image.contentId = entry.id) "
+                        + "GROUP BY period.companyId"
+                        + ") content ON content.companyId = c.id "
                         + "LEFT JOIN ("
                         + "SELECT companyId, MAX(date) AS latest_record_date "
                         + "FROM Record GROUP BY companyId"
@@ -154,8 +177,8 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
         for (Object[] values : result) {
             Long companyId = ((Number) values[0]).longValue();
             CompanyWithStats company = companies.computeIfAbsent(companyId, ignored -> mapCompanyWithStats(values));
-            if (values[7] != null) {
-                company.getTags().add(asString(values[7]));
+            if (values[11] != null) {
+                company.getTags().add(asString(values[11]));
             }
         }
         return List.copyOf(companies.values());
@@ -174,15 +197,22 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
         CompanyWithAggregates company = new CompanyWithAggregates();
         company.setId(((Number) values[0]).longValue());
         company.setTicker(asString(values[1]).trim());
-        company.setCurrency(Currency.valueOf(asString(values[2])));
+        company.setAlphaVantageTicker(nullableString(values[2]));
         if (values[3] != null) {
-            company.setSector(Sector.valueOf(asString(values[3])));
+            company.setExchange(Exchange.valueOf(asString(values[3])));
         }
-        company.setTotalTrades(toInt(values[4]));
-        company.setActiveTrades(toInt(values[5]));
-        company.setDividends(toInt(values[6]));
-        company.setRecords(toInt(values[7]));
-        company.setPeriods(toInt(values[8]));
+        company.setName(nullableString(values[4]));
+        company.setDescription(nullableString(values[5]));
+        company.setWebsite(nullableString(values[6]));
+        company.setCurrency(Currency.valueOf(asString(values[7])));
+        if (values[8] != null) {
+            company.setSector(Sector.valueOf(asString(values[8])));
+        }
+        company.setTotalTrades(toInt(values[9]));
+        company.setActiveTrades(toInt(values[10]));
+        company.setDividends(toInt(values[11]));
+        company.setRecords(toInt(values[12]));
+        company.setPeriods(toInt(values[13]));
         return company;
     }
 
@@ -191,13 +221,19 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
         CompanyWithStats company = new CompanyWithStats();
         company.setId(((Number) values[0]).longValue());
         company.setTicker(asString(values[1]).trim());
-        company.setCurrency(Currency.valueOf(asString(values[2])));
+        company.setAlphaVantageTicker(nullableString(values[2]));
         if (values[3] != null) {
-            company.setSector(Sector.valueOf(asString(values[3])));
+            company.setExchange(Exchange.valueOf(asString(values[3])));
         }
-        company.setLatestPeriodEndingMonth(toYearMonth(values[4]));
-        company.setLatestRecordDate(toDate(values[5]));
-        company.setLatestPurchaseDate(toDate(values[6]));
+        company.setCurrency(Currency.valueOf(asString(values[4])));
+        if (values[5] != null) {
+            company.setSector(Sector.valueOf(asString(values[5])));
+        }
+        company.setLatestPeriodEndingMonth(toYearMonth(values[6]));
+        company.setPeriodCount(toInt(values[7]));
+        company.setPeriodsWithContentCount(toInt(values[8]));
+        company.setLatestRecordDate(toDate(values[9]));
+        company.setLatestPurchaseDate(toDate(values[10]));
         return company;
     }
 
@@ -209,6 +245,11 @@ public class CompanyDaoImpl extends EntityDaoImpl<Company> implements CompanyDao
     private String asString(Object value)
     {
         return String.valueOf(value);
+    }
+
+    private String nullableString(Object value)
+    {
+        return value == null ? null : asString(value).trim();
     }
 
     private Date toDate(Object value)

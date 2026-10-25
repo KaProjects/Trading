@@ -10,14 +10,37 @@ const DEFAULT_VALUE = [{type: 'paragraph', children: [{ text: '' }],}]
 
 export const defaultContent = () => structuredClone(DEFAULT_VALUE);
 
-export const ContentEditor = ({content, update, style}) => {
+/**
+ * Slate pins its placeholder to the top-left of the editable area, which looks stranded when
+ * that area is a whole screen of empty space. This puts it in the middle of the box instead.
+ * Slate sets its own inline styles, so they are spread first and then overridden.
+ */
+const centeredPlaceholder = ({children, attributes}) => (
+    <span
+        {...attributes}
+        style={{
+            ...attributes.style,
+            top: "50%",
+            transform: "translateY(-50%)",
+            textAlign: "center",
+        }}
+    >
+        {children}
+    </span>
+);
+
+export const ContentEditor = ({content, update, style, locked, editTrigger, autoSave = true, alwaysEditing = false, centerPlaceholder = false, onValueChange, onCancel}) => {
 
     const renderElement = useCallback(props => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const editor = useMemo(() => withHistory(withReact(createEditor())), [])
 
-    const [editing, setEditing] = useState(false)
-    const [value, setValue] = useState(defaultContent())
+    const [editing, setEditing] = useState(alwaysEditing)
+    const [unlocked, setUnlocked] = useState(!locked)
+    // Starts on what is stored, not on an empty document: losing focus saves whatever the
+    // editor is holding, and anything that blurs it before Slate has reported a change would
+    // otherwise save the blank it started with over the text.
+    const [value, setValue] = useState(() => toValidContent(content))
     const [error, setError] = useState(null)
     const [savedContent, setSavedContent] = useState(toValidContent(content))
 
@@ -26,8 +49,17 @@ export const ContentEditor = ({content, update, style}) => {
         // eslint-disable-next-line
     }, [value, editing])
 
+    useEffect(() => {
+        if (!locked || !editTrigger) return
+        setUnlocked(true)
+        setTimeout(() => ReactEditor.focus(editor), 0)
+        // eslint-disable-next-line
+    }, [editTrigger])
+
     async function handleUnFocus()
     {
+        if (!autoSave) return
+
         if (value !== savedContent) {
             const error = await update(value)
             if (error) {
@@ -39,6 +71,7 @@ export const ContentEditor = ({content, update, style}) => {
         } else {
             setEditing(false)
         }
+        if (locked) setUnlocked(false)
     }
 
     function rollback() {
@@ -68,7 +101,10 @@ export const ContentEditor = ({content, update, style}) => {
                onChange={value => {
                    setError(null)
                    const isAstChange = editor.operations.some(op => 'set_selection' !== op.type0)
-                   if (isAstChange) setValue(value)
+                   if (isAstChange) {
+                       setValue(value)
+                       onValueChange?.(value)
+                   }
                }}
         >
             {editing &&
@@ -93,13 +129,26 @@ export const ContentEditor = ({content, update, style}) => {
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 placeholder="write a content"
+                renderPlaceholder={centerPlaceholder ? centeredPlaceholder : undefined}
                 style={{...style, paddingBottom: editing ? "10px" : "0"}}
+                readOnly={locked && !unlocked && !alwaysEditing}
                 onFocus={() => setEditing(true)}
                 onBlur={handleUnFocus}
                 onKeyDown={e => {
                     if(e.key === 'Escape') {
+                        // Escape puts the text back; anything else staged alongside it - the
+                        // day's pictures - has to be put back with it.
+                        onCancel?.();
                         rollback();
-                        setTimeout(() => ReactEditor.blur(editor), 100);
+                        setTimeout(() => {
+                            try {
+                                ReactEditor.blur(editor);
+                            } catch {
+                                // Giving up on a new entry takes the editor off the page with
+                                // it, and Slate cannot blur what it can no longer find. There
+                                // is nothing left to blur, which is the outcome either way.
+                            }
+                        }, 100);
                     }
                 }}
             />
@@ -151,9 +200,16 @@ const toggleMark = (editor, format) => {
     }
 }
 
-const isBlockActive = (editor, format, blockType = 'type') => {
+const hasValidSelection = (editor) => {
     const { selection } = editor
-    if (!selection) return false
+    return Boolean(selection)
+        && Editor.hasPath(editor, selection.anchor.path)
+        && Editor.hasPath(editor, selection.focus.path)
+}
+
+export const isBlockActive = (editor, format, blockType = 'type') => {
+    const { selection } = editor
+    if (!hasValidSelection(editor)) return false
 
     const [match] = Array.from(
         Editor.nodes(editor, {
@@ -165,7 +221,9 @@ const isBlockActive = (editor, format, blockType = 'type') => {
     return !!match
 }
 
-const isMarkActive = (editor, format) => {
+export const isMarkActive = (editor, format) => {
+    if (!hasValidSelection(editor)) return false
+
     const marks = Editor.marks(editor)
     return marks ? marks[format] === true : false
 }

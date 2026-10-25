@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 
 const mockRecordEvent = jest.fn();
@@ -27,9 +27,6 @@ function createData(overrides = {}) {
         ],
         recent: [
             {id: "company-1", ticker: "NVDA", latestRecordDate: "2024-03-15"},
-        ],
-        researched: [
-            {id: "company-4", ticker: "CEZ", latestPeriodEndingMonth: "2025-01"},
         ],
         Energy: [
             {id: "company-6", ticker: "XOM", latestRecordDate: "2024-01-20"},
@@ -70,14 +67,16 @@ describe("CompanySelector", () => {
         render(<CompanySelector {...createProps()}/>);
 
         expect(await screen.findByText("Owned")).toBeInTheDocument();
-        expect(screen.getByText("Researched")).toBeInTheDocument();
         expect(screen.getByText("Recent")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.getByText("Energy")).toBeInTheDocument();
         expect(screen.getByText("All")).toBeInTheDocument();
         expect(screen.getAllByText("NVDA")).toHaveLength(3);
         expect(screen.getAllByText("TSLA")).toHaveLength(2);
-        expect(screen.getAllByText("CEZ")).toHaveLength(2);
+        expect(screen.getAllByText("CEZ")).toHaveLength(1);
+        screen.getAllByRole("list").forEach(list => {
+            expect(list).toHaveStyle("overflow-y: auto");
+        });
     });
 
     test("provides only custom list keys as tag suggestions", async () => {
@@ -95,20 +94,50 @@ describe("CompanySelector", () => {
         expect(screen.getAllByRole("list").map(list => list.firstChild.textContent)).toEqual([
             "Owned",
             "Recent",
-            "Researched",
             "Energy",
             "Semiconductors",
             "All",
         ]);
     });
 
-    test("shows secondary dates only for recent and researched lists", async () => {
+    test("shows secondary dates only for the recent list", async () => {
         render(<CompanySelector {...createProps()}/>);
 
         expect(await screen.findByText("2024-03-15")).toBeInTheDocument();
-        expect(screen.getByText("2025-01")).toBeInTheDocument();
         expect(screen.queryByText("2024-04-20")).not.toBeInTheDocument();
         expect(screen.queryByText("2024-01-20")).not.toBeInTheDocument();
+    });
+
+    test("shows importable period and target counts for the actionable list", async () => {
+        const data = createData({
+            actionable: [
+                {id: "company-7", ticker: "AMD", importablePeriodsCount: 1, importableTargetsCount: 3},
+                {id: "company-8", ticker: "INTC", importablePeriodsCount: 2, importableTargetsCount: 0},
+                {id: "company-9", ticker: "QCOM", importablePeriodsCount: 0, importableTargetsCount: 1},
+            ],
+        });
+
+        render(<CompanySelector {...createProps({companyLists: data})}/>);
+
+        expect(await screen.findByText("Actionable")).toBeInTheDocument();
+        expect(screen.getByText("1 period, 3 targets")).toBeInTheDocument();
+        expect(screen.getByText("2 periods")).toBeInTheDocument();
+        expect(screen.getByText("1 target")).toBeInTheDocument();
+    });
+
+    test("shows period counts for the debug list, which comes last", async () => {
+        const data = createData({
+            "_has-period": [
+                {id: "company-1", ticker: "NVDA", periodCount: 6, periodsWithContentCount: 2},
+                {id: "company-5", ticker: "AAPL", periodCount: 1, periodsWithContentCount: 0},
+            ],
+        });
+
+        render(<CompanySelector {...createProps({companyLists: data})}/>);
+
+        expect(await screen.findByText("_has-period")).toBeInTheDocument();
+        expect(screen.getByText("6 periods, 2 with content")).toBeInTheDocument();
+        expect(screen.getByText("1 period, 0 with content")).toBeInTheDocument();
     });
 
     test("selects a company and retains only the source list", async () => {
@@ -137,6 +166,30 @@ describe("CompanySelector", () => {
         fireEvent.click(screen.getByRole("option", {name: "Energy"}));
 
         expect(screen.getByRole("combobox", {name: "Company list"})).toHaveTextContent("Energy");
+        expect(screen.getByText("XOM")).toBeInTheDocument();
+        expect(screen.queryByText("TSLA")).not.toBeInTheDocument();
+    });
+
+    test("keeps an explicitly selected shared list even when it does not contain the selected company", async () => {
+        const ControlledSelector = () => {
+            const [companyListSelectorValue, setCompanyListSelectorValue] = useState("owned");
+
+            return <CompanySelector {...createProps({
+                companySelectorValue: {id: "company-3", ticker: "TSLA"},
+                companyListSelectorValue,
+                setCompanyListSelectorValue,
+            })}/>;
+        };
+
+        render(<ControlledSelector/>);
+
+        const listSelector = await screen.findByRole("combobox", {name: "Company list"});
+        expect(listSelector).toHaveTextContent("Owned");
+
+        fireEvent.mouseDown(listSelector);
+        fireEvent.click(screen.getByRole("option", {name: "Energy"}));
+
+        await waitFor(() => expect(screen.getByRole("combobox", {name: "Company list"})).toHaveTextContent("Energy"));
         expect(screen.getByText("XOM")).toBeInTheDocument();
         expect(screen.queryByText("TSLA")).not.toBeInTheDocument();
     });
@@ -172,7 +225,6 @@ describe("CompanySelector", () => {
         rerender(<CompanySelector {...createProps({companySelectorValue: null})}/>);
 
         expect(await screen.findByText("Owned")).toBeInTheDocument();
-        expect(screen.getByText("Researched")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.queryByRole("combobox", {name: "Company list"})).not.toBeInTheDocument();
     });
@@ -212,7 +264,6 @@ describe("CompanySelector", () => {
         render(<CompanySelector {...createProps()}/>);
 
         expect(await screen.findByText("Owned")).toBeInTheDocument();
-        expect(screen.getByText("Researched")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.getByText("All")).toBeInTheDocument();
         expect(screen.queryByRole("combobox", {name: "Company list"})).not.toBeInTheDocument();

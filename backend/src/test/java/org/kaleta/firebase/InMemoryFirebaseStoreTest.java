@@ -18,13 +18,16 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -88,31 +91,178 @@ class InMemoryFirebaseStoreTest
                 snapshot.toString());
 
         assertThat(downloaded.get(), is(false));
-        assertThat(store.findQuarterIds("NVDA").isEmpty(), is(false));
+        assertThat(store.findQuartersMetadata("NVDA").isEmpty(), is(false));
     }
 
     @Test
     void readsNewerPeriodsInDescendingOrder()
     {
-        List<PeriodImportCandidateDto> periods = firebaseService.getNewerPeriods("NVDA", "24Q4");
+        FirebaseService.ImportCandidatesResult result = firebaseService.getNewerPeriods("NVDA", "24Q4");
+        List<PeriodImportCandidateDto> periods = result.periods();
 
         assertThat(periods.size(), is(2));
+        assertThat(result.warnings(), is(empty()));
         assertThat(periods.get(0).getName(), is("25Q2"));
         assertThat(periods.get(0).getEndingMonth(), is("2025-07"));
         assertThat(periods.get(0).getIsReported(), is(true));
         assertThat(periods.get(1).getName(), is("25Q1"));
         assertThat(firebaseService.getPeriod("NVDA", "25Q1").getEndingMonth(), is("2025-04"));
         assertThat(firebaseService.getPeriod("NVDA", "25Q1").getAdjustedEps(), is("1.28"));
-        assertThat(firebaseService.getNewerPeriods("AMD", "24Q4"), is(empty()));
+        assertThat(firebaseService.getPeriod("NVDA", "25Q1").getCapex(), is("3000"));
+        assertThat(firebaseService.getPeriod("NVDA", "25Q1").getFreeCashFlow(), is("12500"));
+        assertThat(firebaseService.getNewerPeriods("AMD", "24Q4").periods(), is(empty()));
+    }
+
+    @Test
+    void readsGeminiReportingCurrency()
+    {
+        assertThat(firebaseService.getReportingCurrency("NVDA"), is("$"));
+        assertThat(firebaseService.getReportingCurrency("AMD"), is(nullValue()));
+    }
+
+    @Test
+    void readsTargetsIncludingNestedReport()
+    {
+        FirebaseService.TargetsResult result = firebaseService.getTargets("NVDA");
+
+        assertThat(result.warnings(), is(empty()));
+        assertThat(result.targets().size(), is(1));
+        FirebaseCompany.Gemini.Target target = result.targets().getFirst();
+        assertThat(target.getDate(), is("2026-07-24"));
+        assertThat(target.getInstitution(), is("Example Capital"));
+        assertThat(target.getPrice(), is("210"));
+        assertThat(target.getReport().getOverview(), is("Demand and margins remain strong."));
+        assertThat(target.getReport().getKey_takeaways(), is(List.of(
+                "Revenue expectations increased.",
+                "Execution remains the primary risk.")));
+        assertThat(firebaseService.getTargets("AMD").targets(), is(empty()));
+    }
+
+    @Test
+    void deleteTarget_removesTheMatchingTargetByDateInstitutionAndPrice()
+    {
+        firebaseService.deleteTarget(
+                "NVDA", LocalDate.parse("2026-07-24"), "example capital", new BigDecimal("210.00"));
+
+        assertThat(firebaseService.getTargets("NVDA").targets(), is(empty()));
+    }
+
+    @Test
+    void deleteTarget_doesNothingWhenNoTargetMatches()
+    {
+        firebaseService.deleteTarget(
+                "NVDA", LocalDate.parse("2026-07-24"), "Example Capital", new BigDecimal("999"));
+
+        assertThat(firebaseService.getTargets("NVDA").targets().size(), is(1));
+    }
+
+    @Test
+    void deleteTarget_doesNotThrowWhenFirebaseReadFails()
+    {
+        FirebaseStore failingStore = mock(FirebaseStore.class);
+        when(failingStore.findTargets("NVDA")).thenThrow(new IllegalStateException("Firebase unavailable"));
+
+        new FirebaseService(failingStore).deleteTarget(
+                "NVDA", LocalDate.parse("2026-07-24"), "Example Capital", new BigDecimal("210"));
+    }
+
+    @Test
+    void returnsEmptyTargetsAndWarningWhenFirebaseReadFails()
+    {
+        FirebaseStore failingStore = mock(FirebaseStore.class);
+        when(failingStore.findTargets("NVDA"))
+                .thenThrow(new IllegalStateException("Firebase unavailable"));
+
+        FirebaseService.TargetsResult result = new FirebaseService(failingStore).getTargets("NVDA");
+
+        assertThat(result.targets(), is(empty()));
+        assertThat(result.warnings(), is(List.of(
+                "Firebase targets for NVDA could not be loaded: Firebase unavailable")));
+    }
+
+    @Test
+    void readsAllCompaniesInOneCallAndMatchesPerTickerResults()
+    {
+        FirebaseService.AllCompaniesResult all = firebaseService.getAllCompanies();
+
+        assertThat(all.warnings(), is(empty()));
+        FirebaseCompany nvda = all.companies().get("NVDA");
+        assertThat(nvda, is(notNullValue()));
+
+        FirebaseService.ImportCandidatesResult periodsFromBulk = firebaseService.getNewerPeriods(nvda, "24Q4");
+        assertThat(periodsFromBulk.periods().size(), is(2));
+        assertThat(periodsFromBulk.periods().get(0).getName(), is("25Q2"));
+        assertThat(periodsFromBulk.periods().get(1).getName(), is("25Q1"));
+
+        FirebaseService.TargetsResult targetsFromBulk = firebaseService.getTargets(nvda);
+        assertThat(targetsFromBulk.targets().size(), is(1));
+        assertThat(targetsFromBulk.targets().getFirst().getInstitution(), is("Example Capital"));
+
+        FirebaseCompany amd = all.companies().get("AMD");
+        assertThat(firebaseService.getNewerPeriods(amd, "24Q4").periods(), is(empty()));
+        assertThat(firebaseService.getTargets(amd).targets(), is(empty()));
+    }
+
+    @Test
+    void returnsEmptyCompaniesAndWarningWhenFirebaseReadFails()
+    {
+        FirebaseStore failingStore = mock(FirebaseStore.class);
+        when(failingStore.findAllCompanies())
+                .thenThrow(new IllegalStateException("Firebase unavailable"));
+
+        FirebaseService.AllCompaniesResult result = new FirebaseService(failingStore).getAllCompanies();
+
+        assertThat(result.companies(), is(Map.of()));
+        assertThat(result.warnings(), is(List.of(
+                "Firebase company data could not be loaded: Firebase unavailable")));
+    }
+
+    @Test
+    void readsNewsSentimentByHalfOpenDateRangeAndLatestKey()
+    {
+        Map<String, FirebaseCompany.NewsSentiment> records = firebaseStore.findNewsSentiments(
+                "NVDA",
+                LocalDate.parse("2025-05-28"),
+                LocalDate.parse("2025-08-27"));
+
+        assertThat(records.keySet(), is(java.util.Set.of(
+                "2025-05-28-start",
+                "2025-08-26-last")));
+        FirebaseCompany.NewsSentiment latest = firebaseService.getLatestNewsSentiments("NVDA")
+                .records()
+                .get("2026-08-23-latest");
+        assertThat(latest.getSentiment(), is(Map.of("positive", 4, "neutral", 1, "mixed", 1)));
+        assertThat(latest.getKey_takeaways(), contains("Inference demand broadened across customers."));
+    }
+
+    @Test
+    void returnsEmptyNewsSentimentAndWarningWhenFirebaseReadFails()
+    {
+        FirebaseStore failingStore = mock(FirebaseStore.class);
+        when(failingStore.findLatestNewsSentiments("NVDA"))
+                .thenThrow(new IllegalStateException("Firebase unavailable"));
+
+        FirebaseService.NewsSentimentsResult result =
+                new FirebaseService(failingStore).getLatestNewsSentiments("NVDA");
+
+        assertThat(result.records().isEmpty(), is(true));
+        assertThat(result.warnings(), is(List.of(
+                "Firebase news sentiment for NVDA could not be loaded: Firebase unavailable")));
     }
 
     @Test
     void returnsEmptyImportCandidatesWhenFirebaseReadFails()
     {
         FirebaseStore failingStore = mock(FirebaseStore.class);
-        when(failingStore.findQuarterIds("NVDA")).thenThrow(new IllegalStateException("Firebase unavailable"));
+        when(failingStore.findQuartersMetadata("NVDA"))
+                .thenThrow(new IllegalStateException("Firebase unavailable"));
 
-        assertThat(new FirebaseService(failingStore).getNewerPeriods("NVDA", "24Q4"), is(empty()));
+        FirebaseService.ImportCandidatesResult result =
+                new FirebaseService(failingStore).getNewerPeriods("NVDA", "24Q4");
+
+        assertThat(result.periods(), is(empty()));
+        assertThat(result.warnings(), is(List.of(
+                "Firebase import candidates for NVDA could not be loaded: Firebase unavailable")));
     }
 
     @Test
@@ -142,9 +292,9 @@ class InMemoryFirebaseStoreTest
         EstimateImportDto.Quarter estimated = firebaseService.getLatestEstimate("NVDA", "25Q2");
 
         assertThat(actual.getEps(), is("1.30"));
-        assertThat(actual.getDate(), is("2025-05-21"));
+        assertThat(actual.getDate(), is("2025-02-02"));
         assertThat(estimated.getEps(), is("1.40"));
-        assertThat(estimated.getDate(), is("2025-08-27"));
+        assertThat(estimated.getDate(), is("2025-05-01"));
         assertThat(firebaseService.getLatestActualEps("NVDA", "25Q1"), is("1.30"));
         assertThat(firebaseService.getLatestActualEps("NVDA", "25Q2"), is(nullValue()));
         assertThat(firebaseService.getLatestEstimate("NVDA", "25Q3"), is(nullValue()));
@@ -193,6 +343,8 @@ class InMemoryFirebaseStoreTest
         period.setOperatingIncome(new BigDecimal("20000"));
         period.setNetIncome(new BigDecimal("19000"));
         period.setAdjustedEps(new BigDecimal("1.35"));
+        period.setCapex(new BigDecimal("3000"));
+        period.setFreeCashFlow(new BigDecimal("12500"));
 
         firebaseService.updatePeriod(period);
 
@@ -209,5 +361,7 @@ class InMemoryFirebaseStoreTest
         assertThat(quarter.getReported_net_income(), is("19000"));
         assertThat(quarter.getReported_div(), is(""));
         assertThat(quarter.getReported_eps(), is("1.35"));
+        assertThat(quarter.getReported_capex(), is("3000"));
+        assertThat(quarter.getReported_free_cash_flow(), is("12500"));
     }
 }

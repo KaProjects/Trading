@@ -52,7 +52,7 @@ func main() {
 		}
 	}
 
-	application := newApplication(monitor, store)
+	application := newApplication(monitor, store, statistics)
 	server := &http.Server{
 		Addr:              config.HTTPAddress,
 		Handler:           application.routes(),

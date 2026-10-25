@@ -5,7 +5,7 @@ import {useData} from "../BackendService";
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 
 const mockFormatError = jest.fn();
@@ -39,7 +39,7 @@ describe("BackendService", () => {
 
         await waitFor(() => expect(screen.getByTestId("loaded")).toHaveTextContent("true"));
 
-        expect(axios.get).toHaveBeenCalledWith("http://backend/company");
+        expect(axios.get).toHaveBeenCalledWith("/api/company");
         expect(screen.getByTestId("data")).toHaveTextContent(JSON.stringify({name: "NVDA"}));
         expect(screen.getByTestId("error")).toHaveTextContent("null");
     });
@@ -55,7 +55,7 @@ describe("BackendService", () => {
 
         await waitFor(() => expect(screen.getByTestId("error")).toHaveTextContent(JSON.stringify(formatted)));
 
-        expect(axios.get).toHaveBeenCalledWith("http://backend/company");
+        expect(axios.get).toHaveBeenCalledWith("/api/company");
         expect(mockFormatError).toHaveBeenCalledWith(error);
         expect(screen.getByTestId("loaded")).toHaveTextContent("false");
         expect(screen.getByTestId("data")).toHaveTextContent("null");
@@ -74,8 +74,8 @@ describe("BackendService", () => {
 
         await waitFor(() => expect(screen.getByTestId("data")).toHaveTextContent(JSON.stringify({name: "AAPL"})));
 
-        expect(axios.get).toHaveBeenNthCalledWith(1, "http://backend/company");
-        expect(axios.get).toHaveBeenNthCalledWith(2, "http://backend/record");
+        expect(axios.get).toHaveBeenNthCalledWith(1, "/api/company");
+        expect(axios.get).toHaveBeenNthCalledWith(2, "/api/record");
     });
 
     test("useData ignores a stale response after the path changes", async () => {

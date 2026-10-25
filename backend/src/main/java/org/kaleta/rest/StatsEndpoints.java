@@ -9,10 +9,12 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import org.kaleta.model.CompanyStats;
 import org.kaleta.model.PeriodFrequency;
 import org.kaleta.model.PeriodStats;
+import org.kaleta.model.ProfitLossStats;
+import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.rest.validation.ValueOfEnum;
@@ -27,7 +29,7 @@ public class StatsEndpoints
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/company")
-    public Response getCompanies(
+    public CompanyStats getCompanies(
             @Pattern(regexp = "^\\d\\d\\d\\d$", message = "must match YYYY")
             @QueryParam("year")
             String year,
@@ -40,13 +42,13 @@ public class StatsEndpoints
     ) {
         CompanyStats model = statsService.getByCompany(year, sector);
         model.sort(sort == null ? CompanyStats.Sort.PROFIT_USD : CompanyStats.Sort.valueOf(sort));
-        return Response.ok(model).build();
+        return model;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/monthly")
-    public Response getMonthly(
+    public PeriodStats getMonthly(
             @ValidId
             @QueryParam("companyId")
             Long companyId,
@@ -55,13 +57,13 @@ public class StatsEndpoints
             String sector
     ) {
         PeriodStats model = statsService.getByPeriod(PeriodFrequency.MONTHLY, companyId, sector);
-        return Response.ok(model).build();
+        return model;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/quarterly")
-    public Response getQuarterly(
+    public PeriodStats getQuarterly(
             @ValidId
             @QueryParam("companyId")
             Long companyId,
@@ -70,13 +72,13 @@ public class StatsEndpoints
             String sector
     ) {
         PeriodStats model = statsService.getByPeriod(PeriodFrequency.QUARTERLY, companyId, sector);
-        return Response.ok(model).build();
+        return model;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/yearly")
-    public Response getYearly(
+    public PeriodStats getYearly(
             @ValidId
             @QueryParam("companyId")
             Long companyId,
@@ -85,6 +87,26 @@ public class StatsEndpoints
             String sector
     ) {
         PeriodStats model = statsService.getByPeriod(PeriodFrequency.YEARLY, companyId, sector);
-        return Response.ok(model).build();
+        return model;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/profit-loss")
+    public ProfitLossStats getProfitLoss(
+            @ValidId
+            @QueryParam("companyId")
+            Long companyId,
+            @ValueOfEnum(enumClass = Currency.class)
+            @QueryParam("currency")
+            String currency,
+            @ValueOfEnum(enumClass = Sector.class)
+            @QueryParam("sector")
+            String sector,
+            @ValueOfEnum(enumClass = Portfolio.class)
+            @QueryParam("portfolio")
+            String portfolio
+    ) {
+        return statsService.getProfitLoss(companyId, currency, sector, portfolio);
     }
 }

@@ -8,6 +8,8 @@ const financials = [{
     operatingIncome: {value: 300, margin: 20},
     netIncome: {value: 150, margin: 10},
     dividend: 25,
+    capex: {value: -50, margin: -3},
+    freeCashFlow: {value: 100, margin: 7},
 }];
 
 test("shows the company financial table and closes", () => {
@@ -16,6 +18,8 @@ test("shows the company financial table and closes", () => {
 
     expect(screen.getByRole("heading", {name: "NVDA - Financials"})).toBeInTheDocument();
     expect(screen.getByText("25FY")).toBeInTheDocument();
+    expect(screen.getByText("CapEx")).toBeInTheDocument();
+    expect(screen.getByText("FCF")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", {name: "Close"}));
     expect(handleClose).toHaveBeenCalled();
 });

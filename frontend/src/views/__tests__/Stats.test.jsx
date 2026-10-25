@@ -9,6 +9,10 @@ jest.mock("../component/PeriodStats", () => ({
     PeriodStats: ({type}) => <div>period-stats:{type}</div>,
 }));
 
+jest.mock("../component/ProfitLossStats", () => ({
+    ProfitLossStats: () => <div>profit-loss-stats</div>,
+}));
+
 import {Stats} from "../Stats";
 
 function createProps(overrides = {}) {
@@ -41,5 +45,11 @@ describe("Stats", () => {
         render(<Stats {...createProps({statsTabsIndex: 3})}/>);
 
         expect(screen.getByText("period-stats:yearly")).toBeInTheDocument();
+    });
+
+    test("renders profit and loss chart for P/L tab", () => {
+        render(<Stats {...createProps({statsTabsIndex: 4})}/>);
+
+        expect(screen.getByText("profit-loss-stats")).toBeInTheDocument();
     });
 });

@@ -48,6 +48,9 @@ function createData(overrides = {}) {
                 id: "company-1",
                 ticker: "NVDA",
                 currency: "$",
+                name: "NVIDIA Corporation",
+                description: "Accelerated computing company",
+                website: "https://www.nvidia.com",
                 sector: {key: "SEMICONDUCTORS", name: "Semiconductors"},
                 totalTrades: 11,
                 activeTrades: 7,
@@ -76,7 +79,7 @@ describe("Companies", () => {
 
     beforeAll(() => {
         delete window.location;
-        window.location = {pathname: "/companies", href: "/companies"};
+        window.location = {pathname: "/admin/companies", href: "/admin/companies"};
     });
 
     afterAll(() => {
@@ -118,6 +121,9 @@ describe("Companies", () => {
         expect(screen.getByText("Ticker")).toBeInTheDocument();
         expect(screen.getByText("NVDA")).toBeInTheDocument();
         expect(screen.getByText("SHELL")).toBeInTheDocument();
+        expect(screen.getByText("NVIDIA Corporation")).toBeInTheDocument();
+        expect(screen.getByRole("link", {name: "https://www.nvidia.com"})).toHaveAttribute("href", "https://www.nvidia.com");
+        expect(screen.getByText("Accelerated computing company")).toBeInTheDocument();
         expect(screen.getByText("Semiconductors")).toBeInTheDocument();
         expect(screen.getByText("Energy Minerals")).toBeInTheDocument();
     });
@@ -154,6 +160,19 @@ describe("Companies", () => {
         getTimeSpy.mockRestore();
     });
 
+    test("keeps the edit dialog mounted while the table reloads after a refresh", () => {
+        mockUseData.mockReturnValue({data: createData(), loaded: true, error: null});
+        const {rerender} = render(<Companies {...createProps()}/>);
+
+        expect(screen.getByText("edit-company-dialog")).toBeInTheDocument();
+
+        mockUseData.mockReturnValue({data: createData(), loaded: false, error: null});
+        rerender(<Companies {...createProps()}/>);
+
+        expect(screen.getByTestId("loader")).toBeInTheDocument();
+        expect(screen.getByText("edit-company-dialog")).toBeInTheDocument();
+    });
+
     test("redirects from trade aggregates with company navigation state", async () => {
         const data = createData();
 
@@ -170,10 +189,12 @@ describe("Companies", () => {
         fireEvent.mouseEnter(totalTradesCell);
         fireEvent.click(within(totalTradesCell).getByRole("button"));
 
-        expect(mockRecordEvent).toHaveBeenCalledWith("/companies#redirect:/trades");
-        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
+        expect(mockRecordEvent).toHaveBeenCalledWith("/admin/companies#redirect:/trades");
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/trades",
+            search: "?company=NVDA",
+        }, {
             state: {
-                companyId: "company-1",
                 tradeState: "",
             },
         });
@@ -188,8 +209,11 @@ describe("Companies", () => {
         fireEvent.mouseEnter(activeTradesCell);
         fireEvent.click(within(activeTradesCell).getByRole("button"));
 
-        expect(mockNavigate).toHaveBeenCalledWith("/trades", {
-            state: {companyId: "company-1", tradeState: "only active"},
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/trades",
+            search: "?company=NVDA",
+        }, {
+            state: {tradeState: "only active"},
         });
     });
 
@@ -202,8 +226,11 @@ describe("Companies", () => {
         fireEvent.mouseEnter(dividendsCell);
         fireEvent.click(within(dividendsCell).getByRole("button"));
 
-        expect(mockNavigate).toHaveBeenCalledWith("/dividends", {
-            state: {companyId: "company-1"},
+        expect(mockNavigate).toHaveBeenCalledWith({
+            pathname: "/dividends",
+            search: "?company=NVDA",
+        }, {
+            state: {},
         });
     });
 
@@ -214,16 +241,22 @@ describe("Companies", () => {
 
         const companyCells = within(screen.getByText("NVDA").closest("tr")).getAllByRole("cell");
 
-        fireEvent.mouseEnter(companyCells[6]);
-        fireEvent.click(within(companyCells[6]).getByRole("button"));
-        expect(mockNavigate).toHaveBeenLastCalledWith("/research", {
-            state: {companyId: "company-1", researchTab: 1},
+        fireEvent.mouseEnter(companyCells[5]);
+        fireEvent.click(within(companyCells[5]).getByRole("button"));
+        expect(mockNavigate).toHaveBeenLastCalledWith({
+            pathname: "/research",
+            search: "?company=NVDA",
+        }, {
+            state: {researchTab: 1},
         });
 
-        fireEvent.mouseEnter(companyCells[7]);
-        fireEvent.click(within(companyCells[7]).getByRole("button"));
-        expect(mockNavigate).toHaveBeenLastCalledWith("/research", {
-            state: {companyId: "company-1", researchTab: 0},
+        fireEvent.mouseEnter(companyCells[6]);
+        fireEvent.click(within(companyCells[6]).getByRole("button"));
+        expect(mockNavigate).toHaveBeenLastCalledWith({
+            pathname: "/research",
+            search: "?company=NVDA",
+        }, {
+            state: {researchTab: 0},
         });
     });
 

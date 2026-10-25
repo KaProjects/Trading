@@ -10,14 +10,43 @@ import org.kaleta.rest.dto.PeriodImportDto;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Map;
 
 @Data
 @RegisterForReflection
 public class FirebaseCompany
 {
+    private Boolean enabled;
     private Map<String, Map<String, FinnhubEarnings>> fhe;
     private Gemini gemini;
+    private Map<String, NewsSentiment> pgn;
+    private Indicators indicators;
+
+    /** Market data the processor refreshes periodically, each value stamped with its retrieval. */
+    @Data
+    @RegisterForReflection
+    public static class Indicators
+    {
+        private Indicator price;
+        private Indicator beta;
+
+        @Data
+        @RegisterForReflection
+        public static class Indicator
+        {
+            private String value;
+            private String retrieved_on;
+        }
+    }
+
+    @Data
+    @RegisterForReflection
+    public static class NewsSentiment
+    {
+        private Map<String, Integer> sentiment;
+        private List<String> key_takeaways;
+    }
 
     @Data
     @RegisterForReflection
@@ -36,12 +65,30 @@ public class FirebaseCompany
         private Info info;
         private Map<String, Quarter> quarters;
         private Map<String, Target> targets;
+        private Map<String, BullBear> bull_bear;
+
+        @Data
+        @RegisterForReflection
+        public static class BullBear
+        {
+            private List<Point> bull;
+            private List<Point> bear;
+
+            @Data
+            @RegisterForReflection
+            public static class Point
+            {
+                private String point;
+                private String reasoning;
+            }
+        }
 
         @Data
         @RegisterForReflection
         public static class Info
         {
             private String current_quarter_id;
+            private String currency = "$";
             private String last_update;
             private String ticker;
         }
@@ -55,6 +102,15 @@ public class FirebaseCompany
             private String price;
             private String rating;
             private String source;
+            private Report report;
+
+            @Data
+            @RegisterForReflection
+            public static class Report
+            {
+                private String overview;
+                private List<String> key_takeaways;
+            }
         }
 
         @Data
@@ -75,6 +131,8 @@ public class FirebaseCompany
             private String reported_operating_income;
             private String reported_revenues;
             private String reported_shares;
+            private String reported_capex;
+            private String reported_free_cash_flow;
 
             public boolean isInFutureOf(String quarterId)
             {
@@ -118,6 +176,12 @@ public class FirebaseCompany
                 }
                 if (this.reported_div != null && !this.reported_div.isBlank()) {
                     period.setDividend(new BigDecimal(this.reported_div).toString());
+                }
+                if (this.reported_capex != null && !this.reported_capex.isBlank()) {
+                    period.setCapex(new BigDecimal(this.reported_capex).toString());
+                }
+                if (this.reported_free_cash_flow != null && !this.reported_free_cash_flow.isBlank()) {
+                    period.setFreeCashFlow(new BigDecimal(this.reported_free_cash_flow).toString());
                 }
                 if (this.reported_eps != null && !this.reported_eps.isBlank()) {
                     period.setAdjustedEps(new BigDecimal(this.reported_eps).toString());

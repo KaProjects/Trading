@@ -21,6 +21,8 @@ public class RecordUpdateDto
     private String price;
     @ValidBigDecimal(integerConstraint = 3, decimalConstraint = 2, allowBlank = true)
     private String dividendYield;
+    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true, allowBlank = true)
+    private String forwardPe;
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2)
     private String priceToRevenues;
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
@@ -29,7 +31,9 @@ public class RecordUpdateDto
     private String priceToOperatingIncome;
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
     private String priceToNetIncome;
-    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 4)
+    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    private String priceToFreeCashFlow;
+    @ValidBigDecimal(integerConstraint = 7, decimalConstraint = 4)
     private String sumAssetQuantity;
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)
     private String avgAssetPrice;

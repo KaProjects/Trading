@@ -49,7 +49,7 @@ const dialogDatePickerModule = {
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
@@ -101,7 +101,7 @@ describe("AddTradeDialog", () => {
         fireEvent.change(screen.getByLabelText("Fees"), {target: {value: "14.50"}});
         fireEvent.click(screen.getByText("Create"));
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/trade", {
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/trade", {
             companyId: "company-1",
             date: "2024-03-20",
             price: "800.15",
@@ -147,7 +147,7 @@ describe("AddTradeDialog", () => {
         fireEvent.change(screen.getByLabelText("Fees"), {target: {value: "14.50"}});
         fireEvent.click(screen.getByText("Create"));
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/trade", {
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/trade", {
             companyId: "company-1",
             date: "2024-03-20",
             price: "800.15",

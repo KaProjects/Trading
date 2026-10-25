@@ -4,8 +4,10 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+import org.kaleta.client.AlphaVantageClient;
 import org.kaleta.client.FinnhubClient;
 import org.kaleta.client.RequestFailureException;
+import org.kaleta.client.dto.AlphaVantageQuote;
 import org.kaleta.client.dto.FinnhubQuote;
 import org.kaleta.framework.Generator;
 import org.kaleta.persistence.api.LatestDao;
@@ -16,11 +18,13 @@ import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -29,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.assertBigDecimals;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -38,6 +43,8 @@ public class LatestServiceTest
     LatestDao latestDao;
     @InjectMock
     FinnhubClient finnhubClient;
+    @InjectMock
+    AlphaVantageClient alphaVantageClient;
     @InjectMock
     CompanyService companyService;
 
@@ -58,7 +65,7 @@ public class LatestServiceTest
         when(latestDao.list(company.getId())).thenReturn(List.of(latest));
         when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company.getId());
+        Latest actual = latestService.getSyncedForWithWarnings(company.getId()).latest();
         assertThat(actual.getCompany().getId(), is(company.getId()));
         LocalDateTime datetime = Instant.ofEpochSecond(Long.parseLong(finnhubQuote.getT())).atZone(ZoneId.systemDefault()).toLocalDateTime();
         assertThat(actual.getDatetime(), is(datetime));
@@ -84,7 +91,7 @@ public class LatestServiceTest
         when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
         when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company.getId());
+        Latest actual = latestService.getSyncedForWithWarnings(company.getId()).latest();
         assertThat(actual.getCompany().getId(), is(company.getId()));
         LocalDateTime datetime = Instant.ofEpochSecond(Long.parseLong(finnhubQuote.getT())).atZone(ZoneId.systemDefault()).toLocalDateTime();
         assertThat(actual.getDatetime(), is(datetime));
@@ -104,14 +111,19 @@ public class LatestServiceTest
         company.setCurrency(Currency.$);
         Latest latest = Generator.generateLatest(company);
 
-        when(finnhubClient.quote(company.getTicker())).thenThrow(RequestFailureException.class);
+        when(finnhubClient.quote(company.getTicker()))
+                .thenThrow(new RequestFailureException("daily limit exceeded"));
         when(latestDao.list(company.getId())).thenReturn(List.of(latest));
         when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company.getId());
+        LatestService.SyncResult result = latestService.getSyncedForWithWarnings(company.getId());
+        Latest actual = result.latest();
         assertThat(actual.getCompany().getId(), is(latest.getCompany().getId()));
         assertThat(actual.getDatetime(), is(latest.getDatetime()));
         assertThat(actual.getPrice(), is(actual.getPrice()));
+        assertThat(result.warnings(), is(List.of(
+                "Finnhub quote for " + company.getTicker()
+                        + " could not be loaded: daily limit exceeded")));
 
         ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
         verify(latestDao, times(0)).create(captorCreate.capture());
@@ -130,7 +142,7 @@ public class LatestServiceTest
         when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
         when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company.getId());
+        Latest actual = latestService.getSyncedForWithWarnings(company.getId()).latest();
         assertThat(actual, is(nullValue()));
 
         ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
@@ -151,7 +163,7 @@ public class LatestServiceTest
         when(latestDao.list(company.getId())).thenReturn(List.of(latest));
         when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company.getId());
+        Latest actual = latestService.getSyncedForWithWarnings(company.getId()).latest();
 
         assertThat(actual, is(latest));
 
@@ -171,7 +183,7 @@ public class LatestServiceTest
         when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
         when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company.getId());
+        Latest actual = latestService.getSyncedForWithWarnings(company.getId()).latest();
         assertThat(actual, is(nullValue()));
 
         ArgumentCaptor<String> captorQuote = ArgumentCaptor.forClass(String.class);
@@ -182,6 +194,50 @@ public class LatestServiceTest
 
         ArgumentCaptor<Latest> captorSave = ArgumentCaptor.forClass(Latest.class);
         verify(latestDao, times(0)).save(captorSave.capture());
+    }
+
+    @Test
+    void getSyncedFor_nonUsd_usesConfiguredAlphaVantageTicker() throws RequestFailureException
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.€);
+        company.setAlphaVantageTicker("ASML.AMS");
+
+        when(alphaVantageClient.getQuote("ASML.AMS")).thenReturn(Optional.of(
+                new AlphaVantageQuote(new BigDecimal("1489.80"), LocalDate.of(2026, 8, 24))));
+        when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+
+        LatestService.SyncResult result = latestService.getSyncedForWithWarnings(company.getId());
+
+        assertBigDecimals(result.latest().getPrice(), new BigDecimal("1489.80"));
+        assertThat(result.latest().getDatetime(), is(LocalDate.of(2026, 8, 24).atStartOfDay()));
+        assertThat(result.warnings(), is(List.of()));
+        verify(alphaVantageClient).getQuote("ASML.AMS");
+        verifyNoInteractions(finnhubClient);
+        verify(latestDao).create(result.latest());
+    }
+
+    @Test
+    void getSyncedFor_nonUsdAlphaVantageFailure_retrievesStoredLatest() throws RequestFailureException
+    {
+        Company company = Generator.generateCompany();
+        company.setCurrency(Currency.€);
+        company.setAlphaVantageTicker("ASML.AMS");
+        Latest latest = Generator.generateLatest(company);
+
+        when(alphaVantageClient.getQuote("ASML.AMS"))
+                .thenThrow(new RequestFailureException("daily limit exceeded"));
+        when(latestDao.list(company.getId())).thenReturn(List.of(latest));
+        when(companyService.findEntity(company.getId())).thenReturn(company);
+
+        LatestService.SyncResult result = latestService.getSyncedForWithWarnings(company.getId());
+
+        assertThat(result.latest(), is(latest));
+        assertThat(result.warnings(), is(List.of(
+                "Alpha Vantage quote for ASML.AMS could not be loaded: daily limit exceeded")));
+        verify(latestDao, times(0)).create(latest);
+        verify(latestDao, times(0)).save(latest);
     }
 
     @Test
@@ -198,7 +254,7 @@ public class LatestServiceTest
         when(latestDao.list(company.getId())).thenReturn(new ArrayList<>());
         when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        Latest actual = latestService.getSyncedFor(company.getId());
+        Latest actual = latestService.getSyncedForWithWarnings(company.getId()).latest();
         assertThat(actual, is(nullValue()));
 
         ArgumentCaptor<String> captorQuote = ArgumentCaptor.forClass(String.class);
@@ -226,7 +282,9 @@ public class LatestServiceTest
         when(latestDao.list(company.getId())).thenReturn(List.of(latest1, latest2));
         when(companyService.findEntity(company.getId())).thenReturn(company);
 
-        assertThrows(IllegalStateException.class, () -> latestService.getSyncedFor(company.getId()));
+        assertThrows(
+                IllegalStateException.class,
+                () -> latestService.getSyncedForWithWarnings(company.getId()));
 
         ArgumentCaptor<Latest> captorCreate = ArgumentCaptor.forClass(Latest.class);
         verify(latestDao, times(0)).create(captorCreate.capture());

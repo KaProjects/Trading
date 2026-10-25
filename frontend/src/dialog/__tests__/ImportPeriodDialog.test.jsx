@@ -49,7 +49,7 @@ const dialogDatePickerModule = {
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     ...jest.requireActual("../../service/FormattingService"),
@@ -91,7 +91,7 @@ function createImportData(overrides = {}) {
     return {
         name: "24Q1",
         endingMonth: "2024-03",
-        reportDate: "2024-02-15",
+        reportDate: "2024-04-15",
         isReported: true,
         firebase: {
             shares: "11",
@@ -103,6 +103,8 @@ function createImportData(overrides = {}) {
             adjustedEps: "1.21",
             priceHigh: "141",
             priceLow: "91",
+            capex: "-61",
+            freeCashFlow: "71",
         },
         polygon: {
             shares: "10",
@@ -114,6 +116,21 @@ function createImportData(overrides = {}) {
             adjustedEps: "1.18",
             priceHigh: "140.25",
             priceLow: "90.75",
+            capex: "-60",
+            freeCashFlow: "70",
+        },
+        alphaVantage: {
+            shares: null,
+            revenue: "22",
+            grossProfit: "32",
+            operatingIncome: "42",
+            netIncome: "52",
+            dividend: "62",
+            adjustedEps: null,
+            priceHigh: null,
+            priceLow: null,
+            capex: "62",
+            freeCashFlow: "72",
         },
         warnings: [],
         ...overrides,
@@ -132,7 +149,7 @@ describe("ImportPeriodDialog", () => {
         axios.get.mockResolvedValue({data: createImportData()});
     });
 
-    test("loads a reported period with separate Gemini and third-party suggestions", async () => {
+    test("loads a reported period with separate suggestions from all sources", async () => {
         axios.post.mockResolvedValue({});
 
         const props = createProps();
@@ -144,26 +161,37 @@ describe("ImportPeriodDialog", () => {
         fireEvent.click(screen.getByText("24Q1"));
 
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
-            "http://backend/research/company-1/import/period/24Q1"
+            "/api/research/company-1/import/period/24Q1"
         ));
         expect(await screen.findByLabelText("Name")).toHaveValue("24Q1");
+        expect(screen.getByLabelText("Name")).toBeDisabled();
+        expect(screen.getByLabelText("Ending Month")).not.toBeDisabled();
+        expect(screen.getByLabelText("Report Date")).not.toBeDisabled();
         expect(screen.getByRole("heading", {name: "Import Period 24Q1"})).toBeInTheDocument();
         expect(screen.getByLabelText("Ending Month")).toHaveValue("2024-03");
-        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
+        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-04-15");
         expect(screen.getByText("Gemini")).toBeInTheDocument();
-        expect(screen.getByText("External")).toBeInTheDocument();
+        expect(screen.getByText("Polygon.io")).toBeInTheDocument();
+        expect(screen.getByText("Alpha Vantage")).toBeInTheDocument();
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("");
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("");
 
         fireEvent.click(await screen.findByRole("button", {
-            name: "Use External value for Shares (in Millions)",
+            name: "Use Polygon.io value for Shares (in Millions)",
         }));
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("10");
 
         fireEvent.click(screen.getByRole("button", {
-            name: "Use External value for Adjusted EPS",
+            name: "Use Polygon.io value for Adjusted EPS",
         }));
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("1.18");
+
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Gemini value for CapEx (in Millions)",
+        }));
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Alpha Vantage value for Free Cash Flow (in Millions)",
+        }));
 
         fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "20"}});
         fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "30"}});
@@ -175,12 +203,12 @@ describe("ImportPeriodDialog", () => {
 
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/period/import", {
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/period/import", {
             companyId: "company-1",
             name: "24Q1",
             isReported: true,
             endingMonth: "2024-03",
-            reportDate: "2024-02-15",
+            reportDate: "2024-04-15",
             shares: "10",
             revenue: "20",
             grossProfit: "30",
@@ -190,6 +218,8 @@ describe("ImportPeriodDialog", () => {
             adjustedEps: "1.18",
             priceHigh: "140.25",
             priceLow: "90.75",
+            capex: "-61",
+            freeCashFlow: "72",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();
@@ -212,6 +242,39 @@ describe("ImportPeriodDialog", () => {
         expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     });
 
+    test("imports a reported period with empty optional financial fields", async () => {
+        axios.post.mockResolvedValue({});
+
+        render(<ImportPeriodDialog {...createProps()}/>);
+
+        fireEvent.click(await screen.findByText("24Q1"));
+        await screen.findByLabelText("Name");
+
+        fireEvent.change(screen.getByLabelText("Shares (in Millions)"), {target: {value: "10"}});
+        fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "20"}});
+        fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "5"}});
+        fireEvent.click(screen.getByRole("button", {name: "Create"}));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/period/import", {
+            companyId: "company-1",
+            name: "24Q1",
+            isReported: true,
+            endingMonth: "2024-03",
+            reportDate: "2024-04-15",
+            shares: "10",
+            revenue: "20",
+            netIncome: "5",
+            grossProfit: null,
+            operatingIncome: null,
+            dividend: null,
+            adjustedEps: null,
+            priceHigh: null,
+            priceLow: null,
+            capex: null,
+            freeCashFlow: null,
+        }));
+    });
+
     test("opens an unreported period without loading suggestions and can return to the list", async () => {
         render(<ImportPeriodDialog {...createProps()}/>);
 
@@ -222,7 +285,8 @@ describe("ImportPeriodDialog", () => {
         expect(screen.queryByLabelText("Report Date")).not.toBeInTheDocument();
         expect(axios.get).not.toHaveBeenCalled();
         expect(screen.queryByText("Gemini")).not.toBeInTheDocument();
-        expect(screen.queryByText("External")).not.toBeInTheDocument();
+        expect(screen.queryByText("Polygon.io")).not.toBeInTheDocument();
+        expect(screen.queryByText("Alpha Vantage")).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByText("Back"));
 
@@ -240,7 +304,7 @@ describe("ImportPeriodDialog", () => {
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
         await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
-            "http://backend/period/import/unreported",
+            "/api/period/import/unreported",
             {
                 companyId: "company-1",
                 name: "24Q2",
@@ -263,6 +327,8 @@ describe("ImportPeriodDialog", () => {
                 adjustedEps: null,
                 priceHigh: "140.25",
                 priceLow: "90.75",
+                capex: null,
+                freeCashFlow: null,
             },
             warnings: ["Polygon.io financial data could not be loaded: rate limit exceeded"],
         });
@@ -272,7 +338,7 @@ describe("ImportPeriodDialog", () => {
 
         fireEvent.click(await screen.findByText("24Q1"));
 
-        expect(await screen.findByText("Some Polygon.io data could not be loaded")).toBeInTheDocument();
+        expect(await screen.findByText("Some external data could not be loaded")).toBeInTheDocument();
         expect(screen.getByText(
             "Polygon.io financial data could not be loaded: rate limit exceeded"
         )).toBeInTheDocument();
@@ -282,7 +348,7 @@ describe("ImportPeriodDialog", () => {
         }));
         expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("21");
         expect(screen.getByRole("button", {
-            name: "Use External value for Highest Price",
+            name: "Use Polygon.io value for Highest Price",
         })).toBeInTheDocument();
     });
 
@@ -332,6 +398,48 @@ describe("ImportPeriodDialog", () => {
         expect(await screen.findByText("Import failed")).toBeInTheDocument();
         expect(screen.getByText("Period could not be imported")).toBeInTheDocument();
         expect(screen.getByText("24Q1")).toBeInTheDocument();
+    });
+
+    test("quick imports every candidate as an unreported period", async () => {
+        axios.post.mockResolvedValue({});
+        const props = createProps();
+
+        render(<ImportPeriodDialog {...props}/>);
+
+        fireEvent.click(await screen.findByRole("button", {name: "Quick import"}));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
+            "/api/period/import/unreported/all",
+            {
+                companyId: "company-1",
+                periods: [
+                    {name: "24Q1", endingMonth: "2024-03"},
+                    {name: "24Q2", endingMonth: "2024-06"},
+                ],
+            }
+        ));
+        expect(axios.get).not.toHaveBeenCalled();
+        expect(props.triggerRefresh).toHaveBeenCalled();
+        expect(props.handleClose).toHaveBeenCalled();
+    });
+
+    test("offers quick import only while more than one candidate is listed", async () => {
+        const {unmount} = render(<ImportPeriodDialog {...createProps()}/>);
+
+        expect(await screen.findByRole("button", {name: "Quick import"})).toBeInTheDocument();
+
+        // Gone once a period is picked - from there the import is that one period's.
+        fireEvent.click(screen.getByText("24Q2*"));
+        expect(screen.queryByRole("button", {name: "Quick import"})).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Back"}));
+        expect(screen.getByRole("button", {name: "Quick import"})).toBeInTheDocument();
+
+        unmount();
+
+        render(<ImportPeriodDialog {...createProps({periods: [candidates[1]]})}/>);
+        expect(await screen.findByText("24Q2*")).toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Quick import"})).not.toBeInTheDocument();
     });
 
     test("shows an empty state when no periods are available", async () => {

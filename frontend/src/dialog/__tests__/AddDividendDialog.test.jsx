@@ -49,7 +49,7 @@ const dialogDatePickerModule = {
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
@@ -90,7 +90,7 @@ describe("AddDividendDialog", () => {
         fireEvent.change(screen.getByLabelText("Tax"), {target: {value: "2.75"}});
         fireEvent.click(screen.getByText("Create"));
 
-        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("http://backend/dividend", {
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/dividend", {
             companyId: "company-1",
             date: "2024-05-15",
             dividend: "15.25",

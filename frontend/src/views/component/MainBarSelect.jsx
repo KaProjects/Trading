@@ -59,7 +59,7 @@ export const MainBarSelect = props => {
         }
 
         return [
-            <MenuItem key="selected-company" value={selectedOption.id} style={{display: "none"}}>
+            <MenuItem key="selected-company" value={selectedOption.id} disabled style={{display: "none"}}>
                 {selectedOption[valueKey]}
             </MenuItem>
         ]
@@ -80,7 +80,7 @@ export const MainBarSelect = props => {
     }
 
     function renderEmptyOption(placeholder) {
-        return <MenuItem key="empty-selector" value="" style={{display: "none"}}>
+        return <MenuItem key="empty-selector" value="" disabled style={{display: "none"}}>
             {placeholder}
         </MenuItem>
     }
@@ -175,7 +175,7 @@ export const MainBarSelect = props => {
                 ? () => selectedOption?.[valueKey] ?? companyPlaceholder
                 : undefined}
             variant="standard"
-            sx={props.sx ?? {marginLeft: "15px", textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
+            sx={props.sx ?? {marginLeft: props.marginLeft ?? "15px", textAlign: "center", color: "white", '.MuiSvgIcon-root ': {fill: "white"},
                 ':not(.Mui-disabled):hover::before': { borderBottomColor: '#1976d2' },
                 ':before': { borderBottomColor: '#1976d2' },
                 ':after': { borderBottomColor: '#1976d2' }}}

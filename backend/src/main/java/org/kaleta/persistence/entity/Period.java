@@ -39,9 +39,6 @@ public class Period extends AbstractEntityCompany
     @Column(name = "price_high")
     private BigDecimal priceHigh;
 
-    @Column(name = "research")
-    private String research;
-
     @Column(name = "revenue")
     private BigDecimal revenue;
 
@@ -56,6 +53,12 @@ public class Period extends AbstractEntityCompany
 
     @Column(name = "dividend")
     private BigDecimal dividend;
+
+    @Column(name = "capex")
+    private BigDecimal capex;
+
+    @Column(name = "fcf")
+    private BigDecimal freeCashFlow;
 
     @Column(name = "adjusted_eps")
     private BigDecimal adjustedEps;

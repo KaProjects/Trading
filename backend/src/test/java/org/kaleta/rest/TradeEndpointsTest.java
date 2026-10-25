@@ -4,18 +4,22 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
+import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kaleta.framework.Assert;
 import org.kaleta.model.Trades;
+import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.persistence.entity.Portfolio;
+import org.kaleta.persistence.entity.Record;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.persistence.entity.Trade;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
+import org.kaleta.rest.dto.TradeUpdateDto;
 import org.kaleta.service.LatestService;
 
 import java.math.BigDecimal;
@@ -28,8 +32,9 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_3_2_false;
-import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_4_4_false;
+import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_7_4_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.BIG_DECIMAL_6_4_false;
 import static org.kaleta.framework.Assert.ExpectedViolation.MATCH_DATE_FORMAT;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
@@ -46,6 +51,8 @@ class TradeEndpointsTest
 
     @Inject
     TradeDao tradeDao;
+    @Inject
+    RecordDao recordDao;
 
     @InjectMock
     LatestService latestService;
@@ -53,7 +60,8 @@ class TradeEndpointsTest
     @BeforeEach
     void before()
     {
-        when(latestService.getSyncedFor(any())).thenReturn(null);
+        when(latestService.getSyncedForWithWarnings(any()))
+                .thenReturn(new LatestService.SyncResult(null, List.of()));
     }
 
     @Test
@@ -68,6 +76,8 @@ class TradeEndpointsTest
         Assert.getValidationError(path + "?year=202", "must match YYYY");
 
         Assert.getValidationError(path + "?sector=X", "must be any of Sector");
+
+        Assert.getValidationError(path + "?portfolio=X", "must be any of Portfolio");
     }
 
     @Test
@@ -81,6 +91,7 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dto.getTrades().size(), is(14));
+        assertThat(dto.getTrades().get(0).isActive(), is(false));
         assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-11-11"));
         assertThat(dto.getTrades().get(1).getPurchaseDate().toString(), is("2023-04-05"));
         assertThat(dto.getTrades().get(2).getPurchaseDate().toString(), is("2022-11-01"));
@@ -106,6 +117,7 @@ class TradeEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", Trades.class);
         assertThat(dto.getTrades().size(), is(9));
+        assertThat(dto.getTrades().get(0).isActive(), is(true));
         assertThat(dto.getTrades().get(0).getPurchaseDate().toString(), is("2023-04-05"));
         assertThat(dto.getTrades().get(0).getCompany().getTicker(), is("CEZ"));
         assertBigDecimals(dto.getTrades().get(0).getPurchaseTotal(), new BigDecimal("575599.4"));
@@ -129,7 +141,8 @@ class TradeEndpointsTest
         Latest latest = new Latest();
         latest.setDatetime(LocalDateTime.of(2026, 5, 9, 14, 35));
         latest.setPrice(new BigDecimal("321.45"));
-        when(latestService.getSyncedFor(any())).thenReturn(latest);
+        when(latestService.getSyncedForWithWarnings(any()))
+                .thenReturn(new LatestService.SyncResult(latest, List.of()));
 
         Trades dto = given().when()
                 .get("/trade?active=true")
@@ -139,11 +152,31 @@ class TradeEndpointsTest
                 .extract().response().jsonPath().getObject("", Trades.class);
 
         assertThat(dto.getTrades().get(0).getSellDate().toString(), is("2026-05-09"));
+        assertThat(dto.getTrades().get(0).isActive(), is(true));
         assertBigDecimals(dto.getTrades().get(0).getSellPrice(), new BigDecimal("321.45"));
         assertBigDecimals(dto.getTrades().get(0).getSellFees(), dto.getTrades().get(0).getPurchaseFees());
         assertBigDecimals(dto.getTrades().get(0).getSellTotal(), new BigDecimal("369457.06"));
         assertBigDecimals(dto.getTrades().get(0).getProfit(), new BigDecimal("-206142.3"));
         assertBigDecimals(dto.getTrades().get(0).getProfitPercentage(), new BigDecimal("-35.8100"));
+    }
+
+    @Test
+    void getTradesFilterActive_externalFailureReturnsWarning()
+    {
+        when(latestService.getSyncedForWithWarnings(any()))
+                .thenReturn(new LatestService.SyncResult(
+                        null,
+                        List.of("Finnhub quote could not be loaded: daily limit exceeded")));
+
+        Trades dto = given().when()
+                .get("/trade?active=true")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().as(Trades.class);
+
+        assertThat(dto.getWarnings(), is(List.of(
+                "Finnhub quote could not be loaded: daily limit exceeded")));
     }
 
     @Test
@@ -188,6 +221,24 @@ class TradeEndpointsTest
         assertBigDecimals(dto.getAggregates().getSellTotal(), new BigDecimal("2450.00"));
         assertBigDecimals(dto.getAggregates().getProfit(), new BigDecimal("433.00"));
         assertBigDecimals(dto.getAggregates().getProfitPercentage(), new BigDecimal("21.47"));
+    }
+
+    @Test
+    void getTradesFilterPortfolio()
+    {
+        Trades dto = given().when()
+                .get("/trade?portfolio=" + Portfolio.PATRIA_MARGIN)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", Trades.class);
+
+        assertThat(dto.getTrades().size(), is(1));
+        assertThat(dto.getTrades().get(0).getCompany().getTicker(), is("NVDA"));
+        assertThat(dto.getTrades().get(0).getPortfolio().getKey(), is(Portfolio.PATRIA_MARGIN.name()));
+        assertThat(dto.getAggregates().getCompanies(), is(1));
+        assertThat(dto.getAggregates().getCurrencies(), is(1));
+        assertThat(dto.getAggregates().getPortfolios(), is(1));
     }
 
     @Test
@@ -336,11 +387,19 @@ class TradeEndpointsTest
         dto.setQuantity("10");
         dto.setFees("15");
 
+        int initialTradeCount = tradeDao.list(dto.getCompanyId()).size();
+        int initialRecordCount = recordDao.list(dto.getCompanyId()).size();
+
         Assert.post201(path, dto);
 
         List<Trade> trades = tradeDao.list(dto.getCompanyId());
-        assertThat(trades.size(), is(1));
-        Trade trade = trades.get(0);
+        assertThat(trades.size(), is(initialTradeCount + 1));
+        Trade trade = trades.stream()
+                .filter(item -> item.getPurchaseDate().equals(Date.valueOf(dto.getDate())))
+                .filter(item -> item.getPurchasePrice().compareTo(new BigDecimal(dto.getPrice())) == 0)
+                .filter(item -> item.getQuantity().compareTo(new BigDecimal(dto.getQuantity())) == 0)
+                .max(Comparator.comparing(Trade::getId))
+                .orElseThrow();
         assertThat(trade.getCompany().getTicker(), is("CRE"));
         assertThat(trade.getCompany().getCurrency(), is(Currency.$));
         assertThat(trade.getPurchaseDate(), is(Date.valueOf(dto.getDate())));
@@ -351,6 +410,17 @@ class TradeEndpointsTest
         assertThat(trade.getSellDate(), is(nullValue()));
         assertThat(trade.getSellPrice(), is(nullValue()));
         assertThat(trade.getSellFees(), is(nullValue()));
+
+        List<Record> records = recordDao.list(dto.getCompanyId());
+        assertThat(records.size(), is(initialRecordCount + 1));
+        Record record = records.stream()
+                .filter(item -> item.getDate().equals(Date.valueOf(dto.getDate())))
+                .filter(item -> item.getPrice().compareTo(new BigDecimal(dto.getPrice())) == 0)
+                .filter(item -> item.getStrategy() != null)
+                .max(Comparator.comparing(Record::getId))
+                .orElseThrow();
+        assertThat(record.getStrategy(), is(
+                "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"bought 10@100.5$\"}]}]}]"));
     }
 
     @Test
@@ -414,19 +484,19 @@ class TradeEndpointsTest
         dto.setQuantity(null);
         Assert.postValidationError(path, dto, NOT_NULL);
         dto.setQuantity("");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setQuantity("x");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setQuantity("1.");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setQuantity(".1");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
-        dto.setQuantity("12345");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
+        dto.setQuantity("12345678");
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setQuantity("1.12345");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setQuantity("-1");
-        Assert.postValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.postValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.setQuantity(validQuantity);
 
         dto.setDate(null);
@@ -502,6 +572,11 @@ class TradeEndpointsTest
         assertThat(trades.get(3).getSellDate(), is(nullValue()));
         assertThat(trades.get(3).getSellPrice(), is(nullValue()));
         assertThat(trades.get(3).getSellFees(), is(nullValue()));
+
+        List<Record> records = recordDao.list(dto.getCompanyId());
+        assertThat(records.size(), is(1));
+        assertThat(records.get(0).getStrategy(), is(
+                "[{\"type\":\"bulleted-list\",\"children\":[{\"type\":\"list-item\",\"children\":[{\"text\":\"sold 7.5@600$\"}]},{\"type\":\"list-item\",\"children\":[{\"text\":\"     - 7.5@466.66667$ - 28.33$ = +971.67$ (+27.66%)\"}]}]}]"));
     }
 
     @Test
@@ -573,19 +648,19 @@ class TradeEndpointsTest
         dto.getTrades().get(0).setQuantity(null);
         Assert.putValidationError(path, dto, NOT_NULL);
         dto.getTrades().get(0).setQuantity("");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.getTrades().get(0).setQuantity("x");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.getTrades().get(0).setQuantity("1.");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.getTrades().get(0).setQuantity(".1");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
-        dto.getTrades().get(0).setQuantity("12345");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
+        dto.getTrades().get(0).setQuantity("12345678");
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.getTrades().get(0).setQuantity("1.12345");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.getTrades().get(0).setQuantity("-1");
-        Assert.putValidationError(path, dto, BIG_DECIMAL_4_4_false);
+        Assert.putValidationError(path, dto, BIG_DECIMAL_7_4_false);
         dto.getTrades().get(0).setQuantity("5.5");
         Assert.put400("/trade", dto, "unable to sell more than owned for tradeId='" + dto.getTrades().get(0).getTradeId() + "'");
         dto.getTrades().get(0).setQuantity(validQuantity);
@@ -609,5 +684,156 @@ class TradeEndpointsTest
 
         dto.setCompanyId(1565L);
         Assert.put400(path, dto, "provided companyId and trade='" + validTradeId + "' companyId doesn't match");
+    }
+
+    @Test
+    void updateTrade()
+    {
+        Trades.Trade original = given().when()
+                .get(path + "?companyId=1927")
+                .then()
+                .statusCode(200)
+                .extract().as(Trades.class)
+                .getTrades().get(0);
+
+        try {
+            TradeUpdateDto dto = validTradeUpdateDto();
+            dto.setPortfolio(Portfolio.REVOLUT_STANDARD.toString());
+
+            Assert.put204(path + "/1", dto);
+
+            Trades.Trade updated = given().when()
+                    .get(path + "?companyId=1927")
+                    .then()
+                    .statusCode(200)
+                    .extract().as(Trades.class)
+                    .getTrades().get(0);
+            assertThat(updated.getCompany().getId(), is(1927L));
+            assertThat(updated.getPurchaseDate().toString(), is(dto.getPurchaseDate()));
+            assertBigDecimals(updated.getPurchaseQuantity(), new BigDecimal(dto.getQuantity()));
+            assertBigDecimals(updated.getPurchasePrice(), new BigDecimal(dto.getPurchasePrice()));
+            assertBigDecimals(updated.getPurchaseFees(), new BigDecimal(dto.getPurchaseFees()));
+            assertThat(updated.getPortfolio().getKey(), is(Portfolio.REVOLUT_STANDARD.toString()));
+            assertThat(updated.getSellDate().toString(), is(dto.getSellDate()));
+            assertBigDecimals(updated.getSellPrice(), new BigDecimal(dto.getSellPrice()));
+            assertBigDecimals(updated.getSellFees(), new BigDecimal(dto.getSellFees()));
+        } finally {
+            TradeUpdateDto restore = new TradeUpdateDto();
+            restore.setPurchaseDate(original.getPurchaseDate().toString());
+            restore.setQuantity(original.getPurchaseQuantity().toPlainString());
+            restore.setPurchasePrice(original.getPurchasePrice().toPlainString());
+            restore.setPurchaseFees(original.getPurchaseFees().toPlainString());
+            restore.setPortfolio(original.getPortfolio() == null ? null : original.getPortfolio().getKey());
+            restore.setSellDate(original.getSellDate().toString());
+            restore.setSellPrice(original.getSellPrice().toPlainString());
+            restore.setSellFees(original.getSellFees().toPlainString());
+            Assert.put204(path + "/1", restore);
+        }
+    }
+
+    @Test
+    void updateTrade_invalidParameters()
+    {
+        TradeUpdateDto dto = validTradeUpdateDto();
+
+        Assert.putValidationError(path + "/1", null, NOT_NULL);
+        Assert.putValidationError(path + "/0", dto, VALID_ID);
+
+        dto.setPurchaseDate(null);
+        Assert.putValidationError(path + "/1", dto, NOT_NULL);
+        dto.setPurchaseDate("");
+        Assert.putValidationError(path + "/1", dto, MATCH_DATE_FORMAT);
+        dto.setPurchaseDate("2024-02-01");
+
+        dto.setQuantity(null);
+        Assert.putValidationError(path + "/1", dto, NOT_NULL);
+        dto.setQuantity("12345678");
+        Assert.putValidationError(path + "/1", dto, BIG_DECIMAL_7_4_false);
+        dto.setQuantity("6.25");
+
+        dto.setPurchasePrice(null);
+        Assert.putValidationError(path + "/1", dto, NOT_NULL);
+        dto.setPurchasePrice("1234567");
+        Assert.putValidationError(path + "/1", dto, BIG_DECIMAL_6_4_false);
+        dto.setPurchasePrice("410.25");
+
+        dto.setPurchaseFees(null);
+        Assert.putValidationError(path + "/1", dto, NOT_NULL);
+        dto.setPurchaseFees("1234");
+        Assert.putValidationError(path + "/1", dto, BIG_DECIMAL_3_2_false);
+        dto.setPurchaseFees("15.25");
+
+        dto.setPortfolio("INVALID");
+        Assert.putValidationError(path + "/1", dto, "must be any of Portfolio");
+        dto.setPortfolio(Portfolio.PATRIA_MARGIN.toString());
+
+        dto.setSellDate("");
+        Assert.putValidationError(path + "/1", dto, MATCH_DATE_FORMAT);
+        dto.setSellDate("2024-03-01");
+
+        dto.setSellPrice("");
+        Assert.putValidationError(path + "/1", dto, BIG_DECIMAL_6_4_false);
+        dto.setSellPrice("510.75");
+
+        dto.setSellFees("");
+        Assert.putValidationError(path + "/1", dto, BIG_DECIMAL_3_2_false);
+        dto.setSellFees("16.5");
+
+        Assert.put400(path + "/4294967295", dto, "trade with id '4294967295' not found");
+        Assert.put400(path + "/3", dto, "sale fields cannot be provided for active trade");
+
+        dto.setSellDate(null);
+        dto.setSellPrice(null);
+        dto.setSellFees(null);
+        Assert.put400(path + "/1", dto, "sellDate, sellPrice and sellFees are required for sold trade");
+
+        dto.setSellDate("2024-01-01");
+        dto.setSellPrice("510.75");
+        dto.setSellFees("16.5");
+        Assert.put400(path + "/1", dto, "sellDate cannot be before purchaseDate");
+    }
+
+    @Test
+    void deleteTrade()
+    {
+        Trade source = tradeDao.get(3L);
+        Trade duplicate = new Trade();
+        duplicate.setCompany(source.getCompany());
+        duplicate.setQuantity(source.getQuantity());
+        duplicate.setPurchaseDate(source.getPurchaseDate());
+        duplicate.setPurchasePrice(source.getPurchasePrice());
+        duplicate.setPurchaseFees(source.getPurchaseFees());
+        duplicate.setPortfolio(source.getPortfolio());
+        tradeDao.create(duplicate);
+
+        try {
+            given().when().delete(path + "/" + duplicate.getId())
+                    .then().statusCode(200);
+
+            assertThrows(NoResultException.class, () -> tradeDao.get(duplicate.getId()));
+        } finally {
+            tradeDao.delete(duplicate.getId());
+        }
+    }
+
+    @Test
+    void deleteTrade_invalidParameters()
+    {
+        Assert.deleteValidationError(path + "/0", VALID_ID);
+        Assert.delete400(path + "/4294967295", "trade with id '4294967295' not found");
+    }
+
+    private TradeUpdateDto validTradeUpdateDto()
+    {
+        TradeUpdateDto dto = new TradeUpdateDto();
+        dto.setPurchaseDate("2024-02-01");
+        dto.setQuantity("6.25");
+        dto.setPurchasePrice("410.25");
+        dto.setPurchaseFees("15.25");
+        dto.setPortfolio(Portfolio.PATRIA_MARGIN.toString());
+        dto.setSellDate("2024-03-01");
+        dto.setSellPrice("510.75");
+        dto.setSellFees("16.5");
+        return dto;
     }
 }

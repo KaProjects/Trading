@@ -49,7 +49,7 @@ const dialogDatePickerModule = {
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     formatError: (...args) => mockFormatError(...args),
@@ -111,7 +111,7 @@ describe("SellTradeDialog", () => {
 
         render(<SellTradeDialog {...props}/>);
 
-        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("http://backend/trade?active=true&companyId=company-1"));
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith("/api/trade?active=true&companyId=company-1"));
         expect(await screen.findByText("2024-01-01")).toBeInTheDocument();
         expect(screen.queryByText("not a string")).not.toBeInTheDocument();
 
@@ -127,7 +127,7 @@ describe("SellTradeDialog", () => {
 
         fireEvent.click(screen.getByRole("button", {name: "Sell"}));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/trade", {
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/trade", {
             companyId: "company-1",
             date: "2024-04-15",
             price: "140",

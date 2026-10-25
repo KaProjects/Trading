@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
 import org.kaleta.model.PeriodStats;
+import org.kaleta.model.ProfitLossStats;
 import org.kaleta.framework.Assert;
 import org.kaleta.model.CompanyStats;
 import org.kaleta.persistence.entity.Currency;
@@ -217,6 +218,89 @@ class AStatsEndpointsTest
     {
         Assert.getValidationError(path + "/yearly?companyId=0", VALID_ID);
         Assert.getValidationError(path + "/yearly?sector=X", "must be any of Sector");
+    }
+
+    @Test
+    void getProfitLoss()
+    {
+        ProfitLossStats dto = given().when()
+                .get(path + "/profit-loss")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", ProfitLossStats.class);
+
+        assertThat(dto.getCurrency(), is(Currency.$));
+        assertThat(dto.getTradesCount(), is(4));
+        assertThat(dto.getDividendsCount(), is(4));
+        assertThat(dto.isDividendsExcluded(), is(false));
+        assertThat(dto.getPoints().size(), is(8));
+        assertThat(dto.getPoints().get(0).getType(), is(ProfitLossStats.Type.TRADE));
+        assertThat(dto.getPoints().get(0).getSourceId(), is(5L));
+        assertBigDecimals(dto.getPoints().get(0).getAmount(), new java.math.BigDecimal("4.09"));
+        assertBigDecimals(dto.getPoints().get(0).getCumulativeProfit(), new java.math.BigDecimal("4.09"));
+        assertThat(dto.getPoints().get(1).getSourceId(), is(6L));
+        assertBigDecimals(dto.getPoints().get(1).getAmount(), new java.math.BigDecimal("-6.45"));
+        assertBigDecimals(dto.getPoints().get(1).getCumulativeProfit(), new java.math.BigDecimal("-2.36"));
+        assertThat(dto.getPoints().get(2).getType(), is(ProfitLossStats.Type.DIVIDEND));
+        assertThat(dto.getPoints().get(2).getSourceId(), is(1620L));
+        assertBigDecimals(dto.getPoints().get(2).getCumulativeProfit(), new java.math.BigDecimal("897.64"));
+        assertThat(dto.getPoints().get(6).getSourceId(), is(2L));
+        assertBigDecimals(dto.getPoints().get(6).getCumulativeProfit(), new java.math.BigDecimal("2150.99"));
+        assertThat(dto.getPoints().get(7).getSourceId(), is(1L));
+        assertBigDecimals(dto.getPoints().get(7).getCumulativeProfit(), new java.math.BigDecimal("2583.99"));
+    }
+
+    @Test
+    void getProfitLoss_selectedCurrencyKeepsNativeValues()
+    {
+        ProfitLossStats dto = given()
+                .queryParam("currency", Currency.€)
+                .when()
+                .get(path + "/profit-loss")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", ProfitLossStats.class);
+
+        assertThat(dto.getCurrency(), is(Currency.€));
+        assertThat(dto.getTradesCount(), is(1));
+        assertThat(dto.getDividendsCount(), is(0));
+        assertThat(dto.isDividendsExcluded(), is(false));
+        assertThat(dto.getPoints().size(), is(1));
+        assertThat(dto.getPoints().get(0).getSourceId(), is(2L));
+        assertBigDecimals(dto.getPoints().get(0).getAmount(), new java.math.BigDecimal("981.50"));
+        assertBigDecimals(dto.getPoints().get(0).getCumulativeProfit(), new java.math.BigDecimal("981.50"));
+    }
+
+    @Test
+    void getProfitLoss_portfolioFilterExcludesDividends()
+    {
+        ProfitLossStats dto = given()
+                .queryParam("portfolio", "PATRIA_MARGIN")
+                .when()
+                .get(path + "/profit-loss")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().response().jsonPath().getObject("", ProfitLossStats.class);
+
+        assertThat(dto.getTradesCount(), is(1));
+        assertThat(dto.getDividendsCount(), is(0));
+        assertThat(dto.isDividendsExcluded(), is(true));
+        assertThat(dto.getPoints().size(), is(1));
+        assertThat(dto.getPoints().get(0).getType(), is(ProfitLossStats.Type.TRADE));
+        assertThat(dto.getPoints().get(0).getSourceId(), is(1L));
+        assertBigDecimals(dto.getPoints().get(0).getCumulativeProfit(), new java.math.BigDecimal("433.00"));
+    }
+
+    @Test
+    void getProfitLoss_invalidParameters()
+    {
+        Assert.getValidationError(path + "/profit-loss?companyId=0", VALID_ID);
+        Assert.getValidationError(path + "/profit-loss?currency=X", "must be any of Currency");
+        Assert.getValidationError(path + "/profit-loss?sector=X", "must be any of Sector");
+        Assert.getValidationError(path + "/profit-loss?portfolio=X", "must be any of Portfolio");
     }
 
     private static CompanyStats.Company findCompany(CompanyStats dto, String ticker)

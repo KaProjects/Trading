@@ -33,10 +33,16 @@ public class RecordCreateDto
     @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
     private String priceToNetIncome;
 
+    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    private String priceToFreeCashFlow;
+
+    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 2, allowNegative = true)
+    private String forwardPe;
+
     @ValidBigDecimal(integerConstraint = 3, decimalConstraint = 2)
     private String dividendYield;
 
-    @ValidBigDecimal(integerConstraint = 4, decimalConstraint = 4)
+    @ValidBigDecimal(integerConstraint = 7, decimalConstraint = 4)
     private String sumAssetQuantity;
 
     @ValidBigDecimal(integerConstraint = 6, decimalConstraint = 4)

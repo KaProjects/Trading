@@ -6,6 +6,10 @@ import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.kaleta.client.AlphaVantageClient;
+import org.kaleta.client.PolygonClient;
+import org.kaleta.client.dto.AlphaVantageTicker;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.framework.Generator;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.entity.CompanyWithStats;
@@ -14,6 +18,7 @@ import org.kaleta.persistence.api.RecordDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyTagCreateDto;
@@ -21,11 +26,12 @@ import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.mockito.ArgumentCaptor;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -43,6 +49,10 @@ public class CompanyServiceTest
     CompanyDao companyDao;
     @InjectMock
     RecordDao recordDao;
+    @InjectMock
+    AlphaVantageClient alphaVantageClient;
+    @InjectMock
+    PolygonClient polygonClient;
 
     @Inject
     CompanyService companyService;
@@ -50,7 +60,7 @@ public class CompanyServiceTest
     @BeforeEach
     void beforeEach()
     {
-        reset(companyDao, recordDao);
+        reset(companyDao, recordDao, alphaVantageClient, polygonClient);
     }
 
     @Test
@@ -59,6 +69,8 @@ public class CompanyServiceTest
         CompanyWithAggregates company1 = new CompanyWithAggregates();
         company1.setId(1L);
         company1.setTicker("ZZZZ");
+        company1.setAlphaVantageTicker("ZZZZ.AMS");
+        company1.setExchange(Exchange.XAMS);
         company1.setCurrency(Currency.$);
         company1.setSector(Sector.SEMICONDUCTORS);
         company1.setTotalTrades(5);
@@ -89,6 +101,9 @@ public class CompanyServiceTest
         CompanyAggregates.Company first = companies.getCompanies().get(0);
         assertThat(first.getId(), is(1L));
         assertThat(first.getTicker(), is("ZZZZ"));
+        assertThat(first.getAlphaVantageTicker(), is("ZZZZ.AMS"));
+        assertThat(first.getExchange().getKey(), is(Exchange.XAMS.toString()));
+        assertThat(first.getExchange().getTradingViewCode(), is("EURONEXT"));
         assertThat(first.getCurrency(), is(Currency.$));
         assertThat(first.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(first.getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
@@ -125,6 +140,41 @@ public class CompanyServiceTest
     }
 
     @Test
+    void findAlphaVantageTickers_filtersByCurrencyAndEquityAndSortsExactTickerFirst()
+            throws Exception
+    {
+        when(alphaVantageClient.searchTickers("ASML")).thenReturn(List.of(
+                new AlphaVantageTicker("ASML", "ASML ADR", "Equity", "United States",
+                        "USD", new BigDecimal("1.0000")),
+                new AlphaVantageTicker("ASME.FRK", "ASML", "Equity", "Frankfurt",
+                        "EUR", new BigDecimal("0.6000")),
+                new AlphaVantageTicker("ASML.AMS", "ASML", "Equity", "Amsterdam",
+                        "EUR", new BigDecimal("0.7000")),
+                new AlphaVantageTicker("ASMLX", "ASML Fund", "Mutual Fund", "United States",
+                        "EUR", new BigDecimal("0.9000"))));
+
+        List<AlphaVantageTicker> result = companyService.findAlphaVantageTickers(
+                "ASML", Currency.€.name());
+
+        assertThat(result.stream().map(AlphaVantageTicker::symbol).toList(),
+                is(List.of("ASML.AMS", "ASME.FRK")));
+    }
+
+    @Test
+    void getPolygonCompanyProfile() throws Exception
+    {
+        PolygonCompanyProfile profile = new PolygonCompanyProfile(
+                "NVIDIA Corporation",
+                "Accelerated computing company",
+                "https://www.nvidia.com",
+                "XNAS", "usd", "us", "CS", true, "SEMICONDUCTORS & RELATED DEVICES", "1999-01-22",
+                null, null, null);
+        when(polygonClient.getCompanyProfile("NVDA")).thenReturn(Optional.of(profile));
+
+        assertThat(companyService.getPolygonCompanyProfile("NVDA"), is(profile));
+    }
+
+    @Test
     void findEntity()
     {
         Company entity = Generator.generateCompany(1L);
@@ -148,7 +198,6 @@ public class CompanyServiceTest
     @Test
     void getCompaniesByTag()
     {
-        YearMonth periodCutoff = YearMonth.now().minusYears(1);
         LocalDate recordCutoff = LocalDate.now().minusYears(1);
 
         CompanyWithStats company1 = new CompanyWithStats();
@@ -157,7 +206,6 @@ public class CompanyServiceTest
         company1.setCurrency(Currency.$);
         company1.setLatestPurchaseDate(Date.valueOf("2024-07-10"));
         company1.setLatestRecordDate(Date.valueOf(recordCutoff));
-        company1.setLatestPeriodEndingMonth(periodCutoff);
         company1.setTags(List.of("ai", "growth", "ai"));
 
         CompanyWithStats company2 = new CompanyWithStats();
@@ -165,7 +213,6 @@ public class CompanyServiceTest
         company2.setTicker("XCW");
         company2.setCurrency(Currency.$);
         company2.setLatestRecordDate(Date.valueOf(recordCutoff.minusDays(1)));
-        company2.setLatestPeriodEndingMonth(periodCutoff.minusMonths(1));
         company2.setTags(List.of("growth"));
 
         CompanyWithStats company3 = new CompanyWithStats();
@@ -174,8 +221,7 @@ public class CompanyServiceTest
         company3.setCurrency(Currency.$);
         company3.setLatestPurchaseDate(Date.valueOf("2024-01-01"));
         company3.setLatestRecordDate(Date.valueOf(recordCutoff.plusMonths(1)));
-        company3.setLatestPeriodEndingMonth(periodCutoff.plusMonths(1));
-        company3.setTags(List.of("researched"));
+        company3.setTags(List.of("watchlist"));
 
         CompanyWithStats company4 = new CompanyWithStats();
         company4.setId(4L);
@@ -187,11 +233,11 @@ public class CompanyServiceTest
         Map<String, List<CompanyWithStats>> companiesByTag = companyService.getCompaniesByTag();
 
         assertThat(companiesByTag.keySet().stream().toList(),
-                is(List.of("owned", "recent", "researched", "ai", "growth", "all")));
+                is(List.of("owned", "recent", "ai", "growth", "watchlist", "all")));
         assertThat(companiesByTag.get("ai"), is(List.of(company1)));
         assertThat(companiesByTag.get("growth"), is(List.of(company1, company2)));
         assertThat(companiesByTag.get("owned"), is(List.of(company1, company3)));
-        assertThat(companiesByTag.get("researched"), is(List.of(company1, company3, company3)));
+        assertThat(companiesByTag.get("watchlist"), is(List.of(company3)));
         assertThat(companiesByTag.get("recent"), is(List.of(company1, company3)));
         assertThat(companiesByTag.get("all"), is(List.of(company1, company2, company3, company4)));
     }
@@ -209,6 +255,11 @@ public class CompanyServiceTest
         dto.setId(entity.getId());
         dto.setCurrency(Currency.€.name());
         dto.setSector(Sector.SOFTWARE.toString());
+        dto.setAlphaVantageTicker("ASML.AMS");
+        dto.setExchange(Exchange.XAMS.toString());
+        dto.setName("ASML Holding N.V.");
+        dto.setDescription("Semiconductor equipment company");
+        dto.setWebsite("https://www.asml.com");
 
         companyService.update(dto);
 
@@ -218,6 +269,11 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getId(), is(entity.getId()));
         assertThat(captor.getValue().getCurrency(), is(Currency.€));
         assertThat(captor.getValue().getSector(), is(Sector.SOFTWARE));
+        assertThat(captor.getValue().getAlphaVantageTicker(), is("ASML.AMS"));
+        assertThat(captor.getValue().getExchange(), is(Exchange.XAMS));
+        assertThat(captor.getValue().getName(), is("ASML Holding N.V."));
+        assertThat(captor.getValue().getDescription(), is("Semiconductor equipment company"));
+        assertThat(captor.getValue().getWebsite(), is("https://www.asml.com"));
     }
 
     @Test
@@ -239,6 +295,7 @@ public class CompanyServiceTest
         verify(companyDao).save(captor.capture());
 
         assertThat(captor.getValue().getSector(), is(nullValue()));
+        assertThat(captor.getValue().getExchange(), is(nullValue()));
         assertThat(captor.getValue().getCurrency(), is(Currency.$));
     }
 
@@ -252,6 +309,10 @@ public class CompanyServiceTest
         dto.setId(companyId);
         dto.setCurrency(Currency.$.name());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setExchange(Exchange.XNAS.toString());
+        dto.setName("NVIDIA Corporation");
+        dto.setDescription("Accelerated computing company");
+        dto.setWebsite("https://www.nvidia.com");
 
         InvalidInputException exception = assertThrows(InvalidInputException.class, () -> companyService.update(dto));
 
@@ -268,6 +329,10 @@ public class CompanyServiceTest
         dto.setTicker("NVDA");
         dto.setCurrency(Currency.$.name());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setExchange(Exchange.XNAS.toString());
+        dto.setName("NVIDIA Corporation");
+        dto.setDescription("Accelerated computing company");
+        dto.setWebsite("https://www.nvidia.com");
 
         companyService.create(dto);
 
@@ -277,6 +342,10 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getTicker(), is("NVDA"));
         assertThat(captor.getValue().getCurrency(), is(Currency.$));
         assertThat(captor.getValue().getSector(), is(Sector.SEMICONDUCTORS));
+        assertThat(captor.getValue().getExchange(), is(Exchange.XNAS));
+        assertThat(captor.getValue().getName(), is("NVIDIA Corporation"));
+        assertThat(captor.getValue().getDescription(), is("Accelerated computing company"));
+        assertThat(captor.getValue().getWebsite(), is("https://www.nvidia.com"));
     }
 
     @Test
@@ -288,6 +357,7 @@ public class CompanyServiceTest
         dto.setTicker("AAPL");
         dto.setCurrency(Currency.€.name());
         dto.setSector(null);
+        dto.setAlphaVantageTicker("AAPL.DEX");
 
         companyService.create(dto);
 
@@ -297,6 +367,7 @@ public class CompanyServiceTest
         assertThat(captor.getValue().getTicker(), is("AAPL"));
         assertThat(captor.getValue().getCurrency(), is(Currency.€));
         assertThat(captor.getValue().getSector(), is(nullValue()));
+        assertThat(captor.getValue().getAlphaVantageTicker(), is("AAPL.DEX"));
     }
 
     @Test
@@ -400,13 +471,24 @@ public class CompanyServiceTest
         Company entity = new Company();
         entity.setId(1L);
         entity.setTicker(" NVDA ");
+        entity.setAlphaVantageTicker("NVDA.DEX");
+        entity.setExchange(Exchange.XNAS);
         entity.setCurrency(Currency.$);
         entity.setSector(Sector.SEMICONDUCTORS);
+        entity.setName("NVIDIA Corporation");
+        entity.setDescription("Accelerated computing company");
+        entity.setWebsite("https://www.nvidia.com");
 
         org.kaleta.model.Company company = companyService.from(entity);
 
         assertThat(company.getId(), is(1L));
         assertThat(company.getTicker(), is("NVDA"));
+        assertThat(company.getAlphaVantageTicker(), is("NVDA.DEX"));
+        assertThat(company.getExchange().getKey(), is(Exchange.XNAS.toString()));
+        assertThat(company.getExchange().getName(), is(Exchange.XNAS.getName()));
+        assertThat(company.getName(), is("NVIDIA Corporation"));
+        assertThat(company.getDescription(), is("Accelerated computing company"));
+        assertThat(company.getWebsite(), is("https://www.nvidia.com"));
         assertThat(company.getCurrency(), is(Currency.$));
         assertThat(company.getSector().getKey(), is(Sector.SEMICONDUCTORS.toString()));
         assertThat(company.getSector().getName(), is(Sector.SEMICONDUCTORS.getName()));
@@ -433,8 +515,18 @@ public class CompanyServiceTest
     {
         assertThat(actual.getId(), is(expected.getId()));
         assertThat(actual.getTicker(), is(expected.getTicker()));
+        assertThat(actual.getAlphaVantageTicker(), is(expected.getAlphaVantageTicker()));
+        assertThat(actual.getName(), is(expected.getName()));
+        assertThat(actual.getDescription(), is(expected.getDescription()));
+        assertThat(actual.getWebsite(), is(expected.getWebsite()));
         assertThat(actual.getCurrency(), is(expected.getCurrency()));
         assertThat(actual.getTags(), is(expected.getTags()));
+        if (expected.getExchange() == null) {
+            assertThat(actual.getExchange(), is(nullValue()));
+        } else {
+            assertThat(actual.getExchange().getKey(), is(expected.getExchange().toString()));
+            assertThat(actual.getExchange().getName(), is(expected.getExchange().getName()));
+        }
         if (expected.getSector() == null) {
             assertThat(actual.getSector(), is(nullValue()));
         } else {

@@ -2,10 +2,13 @@
 INSERT INTO Company (id, ticker, currency) VALUES (2213, 'XXX', 'K');
 INSERT INTO Company (id, ticker, currency) VALUES (1041, 'YYY', 'K');
 INSERT INTO Company (id, ticker, currency) VALUES (1579, 'ZZZ', '$');
-INSERT INTO Company (id, ticker, currency, sector) VALUES (1927, 'NVDA', '$',  'SEMICONDUCTORS');
-INSERT INTO Company (id, ticker, currency, sector) VALUES (1425, 'SHELL', '€', 'ENERGY_MINERALS');
+INSERT INTO Company (id, ticker, exchangeCode, currency, sector)
+VALUES (1927, 'NVDA', 'XNAS', '$', 'SEMICONDUCTORS');
+INSERT INTO Company (id, ticker, exchangeCode, currency, sector)
+VALUES (1425, 'SHELL', 'XAMS', '€', 'ENERGY_MINERALS');
 INSERT INTO Company (id, ticker, currency) VALUES (2229, 'RR', '£');
-INSERT INTO Company (id, ticker, currency) VALUES (1531, 'CEZ', 'K');
+INSERT INTO Company (id, ticker, exchangeCode, currency)
+VALUES (1531, 'CEZ', 'XPRA', 'K');
 INSERT INTO Company (id, ticker, currency) VALUES (1557, 'ABCD', '$');
 INSERT INTO Company (id, ticker, currency) VALUES (2150, 'XRC', '$');
 INSERT INTO Company (id, ticker, currency) VALUES (1501, 'XRSA', '$');
@@ -20,7 +23,7 @@ INSERT INTO Company (id, ticker, currency) VALUES (1563, 'XFQ', '$');
 
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (5, 2213, '10', '2018-04-05', '0', '0', '2018-05-05', '10', '5');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (6, 1041, '10', '2018-04-05', '10', '50', '2018-05-05', '0', '0');
-INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (1, 1927, '5', '2023-11-11', '400.5', '14.5', '2024-01-05', '500', '50');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees, portfolio) VALUES (1, 1927, '5', '2023-11-11', '400.5', '14.5', '2024-01-05', '500', '50', 'PATRIA_MARGIN');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (2, 1425, '100', '2021-05-10', '20.1', '18', '2023-12-31', '30.4', '30.5');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (3, 2229, '10', '2022-11-01', '200000', '25');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (4, 1531, '1150.1234', '2023-04-05', '500.25', '250.12');
@@ -71,6 +74,7 @@ INSERT INTO Estimate (id, periodId, datetime, current, next1, next2, next3) VALU
 -- for rest.*EndpointsTest.create tests
 INSERT INTO Company (id, ticker, currency) VALUES (1565, 'CRE', '$');
 INSERT INTO Company (id, ticker, currency) VALUES (1564, 'IMP', '$');
+INSERT INTO Company (id, ticker, currency) VALUES (1566, 'QIMP', '$');
 
 -- for rest.*EndpointsTest.createInvalidValues tests
 INSERT INTO Company (id, ticker, currency) VALUES (2287, 'CINV', '$');
@@ -96,15 +100,41 @@ INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1840, 1490
 
 -- for ResearchEndpointsTest.get test
 INSERT INTO Company (id, ticker, currency) VALUES (2281, 'RCH', '$');
-INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, adjusted_eps, shares) VALUES (1837, 2281, '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20', '1.25', '100');
+INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, capex, fcf, adjusted_eps, shares) VALUES (1837, 2281, '24Q4', '2501', '2025-02-15', '1000', '500', '300', '80', '20', '-40', '60', '1.25', '100');
 INSERT INTO Period (id, companyId, name, ending_month) VALUES (2182, 2281, '25Q1', '2504');
 INSERT INTO Period (id, companyId, name, ending_month, report_date, revenue, gross_profit, oper_income, net_income, dividend, shares) VALUES (1338, 2281, '24Q3', '2410', '2024-11-15', '500', '400', '50', '0', '10', '90');
+INSERT INTO Target (id, periodId, date, institution, price, rating, overview, takeaway1) VALUES (1, 1837, '2024-11-15', 'Alpha Research', '120.00', 'Hold', 'Stable demand.', 'Watch margins.');
+INSERT INTO Target (id, periodId, date, institution, price, rating, overview, takeaway1, takeaway2) VALUES (2, 1837, '2025-01-10', 'Beta Capital', '145.50', 'Buy', 'Improving outlook.', 'Revenue is accelerating.', 'Valuation remains reasonable.');
+INSERT INTO Target (id, periodId, date, institution, price, rating) VALUES (3, 1837, '2025-02-14', 'Gamma Markets', '175.00', 'Outperform');
 INSERT INTO Estimate (id, periodId, datetime, current, next1) VALUES (4, 2182, '2026-08-02 14:30:00', '1.62', '1.85');
 INSERT INTO Latest (id, companyId, datetime, price) VALUES (1838, 2281, '2025-10-27 14:35:00', '1234');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (2095, 2281, '10', '2021-01-05', '90', '10');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (2177, 2281, '20', '2020-12-30', '180', '10');
 INSERT INTO Record (id, companyId, date, title, price, p_rev, p_gross, p_oper, p_net, dy, asset_quantity, asset_price) VALUES (1756, 2281, '2021-04-05', 'xxx', '125', '10', '50', '100', '123', '10.12', '456', '75');
 INSERT INTO Record (id, companyId, date, title, price, p_net) VALUES (1517, 2281, '2022-01-02', 'yyy', '100', '10.1');
+
+-- for ResearchEndpointsTest.get_withoutPeriodsStillReturnsPriceIndicators test
+INSERT INTO Company (id, ticker, currency) VALUES (2302, 'RNP', '$');
+INSERT INTO Latest (id, companyId, datetime, price) VALUES (1839, 2302, '2025-10-27 14:35:00', '1489.8');
+
+-- for PeriodContentEndpointsTest, which writes its own entries into 25Q1 and reads them back
+INSERT INTO Company (id, ticker, currency) VALUES (1567, 'PCNT', '$');
+INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (1468, 1567, '25Q1', '2503', '2025-05-01');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (1469, 1567, '25Q2', '2506');
+
+-- for CompanyEndpointsTest.getCompanyLists: one period with a day written in it, one holding
+-- the editor's empty document, which does not count as content. A company of its own, so that
+-- a test writing entries elsewhere cannot change what it counts.
+INSERT INTO Company (id, ticker, currency) VALUES (1569, 'PCCT', '$');
+INSERT INTO Period (id, companyId, name, ending_month, report_date) VALUES (1471, 1569, '25Q1', '2503', '2025-05-01');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (1472, 1569, '25Q2', '2506');
+INSERT INTO PeriodContent (id, periodId, date, content) VALUES (1471, 1471, '2025-04-02', '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"a note"}]}]}]');
+INSERT INTO PeriodContent (id, periodId, date, content) VALUES (1472, 1472, '2025-05-02', '[{"type":"paragraph","children":[{"text":""}]}]');
+
+-- for PeriodContentEndpointsTest: a period with no report date and nothing reported before it,
+-- so its content cannot be held to a window
+INSERT INTO Company (id, ticker, currency) VALUES (1568, 'WNOW', '$');
+INSERT INTO Period (id, companyId, name, ending_month) VALUES (1470, 1568, '25Q3', '2509');
 
 -- for TradeEndpointsTest.sell test
 INSERT INTO Company (id, ticker, currency) VALUES (1209, 'SELL', '$');

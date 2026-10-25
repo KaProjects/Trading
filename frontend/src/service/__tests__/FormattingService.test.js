@@ -3,9 +3,10 @@ import {
     formatDecimals,
     formatError,
     formatMillions,
+    formatMillionsRounded,
+    formatTargetStats,
     formatPercent,
     formatPeriodName,
-    formatPolygonIoFinancial,
     isNotAValue,
     orBlank
 } from "../FormattingService";
@@ -39,7 +40,47 @@ describe('FormattingService', () => {
         expect(formatMillions(123)).toBe("123M");
         expect(formatMillions(1234)).toBe("1.23B");
         expect(formatMillions(1235)).toBe("1.24B");
-        expect(formatMillions(1111235)).toBe("1,111.24B");
+        expect(formatMillions(1111235)).toBe("1.11T");
+        expect(formatMillions(-123)).toBe("-123M");
+        expect(formatMillions(-1234)).toBe("-1.23B");
+        expect(formatMillions(-1235)).toBe("-1.24B");
+
+        expect(formatMillions(1000000)).toBe("1T");
+        expect(formatMillions(5200000)).toBe("5.2T");
+        expect(formatMillions(4324567)).toBe("4.32T");
+        expect(formatMillions(999999)).toBe("1,000B");
+        expect(formatMillions(-5200000)).toBe("-5.2T");
+    })
+
+    test("formatMillionsRounded", () => {
+        expect(formatMillionsRounded(undefined)).toBe("");
+        expect(formatMillionsRounded(null)).toBe("");
+        expect(formatMillionsRounded("")).toBe("");
+        expect(formatMillionsRounded("123")).toBe("");
+
+        expect(formatMillionsRounded(9.456)).toBe("9.46M");
+        expect(formatMillionsRounded(46.78)).toBe("46.8M");
+        expect(formatMillionsRounded(875.4)).toBe("875M");
+        expect(formatMillionsRounded(9750)).toBe("9.75B");
+        expect(formatMillionsRounded(46740)).toBe("46.7B");
+        expect(formatMillionsRounded(108450)).toBe("108B");
+        expect(formatMillionsRounded(253490)).toBe("253B");
+        expect(formatMillionsRounded(-46740)).toBe("-46.7B");
+        expect(formatMillionsRounded(-9750)).toBe("-9.75B");
+
+        expect(formatMillionsRounded(5200000)).toBe("5.2T");
+        expect(formatMillionsRounded(4324567)).toBe("4.32T");
+        expect(formatMillionsRounded(45600000)).toBe("45.6T");
+        expect(formatMillionsRounded(-5200000)).toBe("-5.2T");
+    })
+
+    test("formatTargetStats", () => {
+        expect(formatTargetStats(null)).toBe("");
+        expect(formatTargetStats({count: 0})).toBe("");
+        expect(formatTargetStats({count: 5, minimum: 120, average: 145.5, maximum: 175}))
+            .toBe("5@(175-120)~146");
+        expect(formatTargetStats({count: 3, minimum: 9.44, average: 9.75, maximum: 10}))
+            .toBe("3@(10-9.4)~9.8");
     })
 
     test("formatDecimals", () => {
@@ -172,32 +213,6 @@ describe('FormattingService', () => {
         error.response.data = {title: expectedMessage, violations: [{message: "sadgkhjkds asd "}]}
         expected.message =  expectedMessage
         expect(formatError(error)).toStrictEqual(expected);
-    })
-
-    test("formatPolygonIoFinancial", () => {
-        const empty = {shares: "", revenue: "", grossProfit: "", operatingIncome: "", netIncome: ""}
-        expect(formatPolygonIoFinancial(undefined)).toStrictEqual(empty);
-        expect(formatPolygonIoFinancial(null)).toStrictEqual(empty);
-        expect(formatPolygonIoFinancial("")).toStrictEqual(empty);
-        expect(formatPolygonIoFinancial({})).toStrictEqual(empty);
-
-        expect(formatPolygonIoFinancial({
-            financials: {
-                income_statement: {
-                    basic_average_shares: {value: 123000000},
-                    revenues: {value: 456000000},
-                    gross_profit: {value: 789000000},
-                    operating_income_loss: {value: 12000000},
-                    net_income_loss: {value: 34000000}
-                }
-            }
-        })).toStrictEqual({
-            shares: "123",
-            revenue: "456",
-            grossProfit: "789",
-            operatingIncome: "12",
-            netIncome: "34"
-        });
     })
 
     test("orBlank", () => {

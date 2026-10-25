@@ -3,19 +3,19 @@ package org.kaleta.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
-import jakarta.transaction.Transactional;
 import org.kaleta.model.Asset;
 import org.kaleta.model.Assets;
 import org.kaleta.model.PeriodFrequency;
+import org.kaleta.model.TradeSaleSummary;
 import org.kaleta.model.Trades;
 import org.kaleta.persistence.api.TradeDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.Currency;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Trade;
-import org.kaleta.rest.dto.PortfolioAssignmentDto;
 import org.kaleta.rest.dto.TradeCreateDto;
 import org.kaleta.rest.dto.TradeSellDto;
+import org.kaleta.rest.dto.TradeUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.math.BigDecimal;
@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,44 +55,13 @@ public class TradeService
         tradeDao.create(newTrade);
     }
 
-    public List<Trades.Trade> getTradesWithoutPortfolio(Long companyId)
-    {
-        return tradeDao.listWithoutPortfolio(companyId).stream().map(this::from).collect(Collectors.toList());
-    }
-
-    @Transactional
-    public void assignPortfolio(PortfolioAssignmentDto dto)
-    {
-        Portfolio portfolio = Portfolio.valueOf(dto.getPortfolio());
-        List<Trade> trades = new ArrayList<>();
-
-        for (Long tradeId : new LinkedHashSet<>(dto.getTradeIds()))
-        {
-            Trade trade;
-            try {
-                trade = tradeDao.get(tradeId);
-            } catch (NoResultException e) {
-                throw new InvalidInputException("trade with id '" + tradeId + "' is not available for portfolio assignment");
-            }
-
-            if (trade.getPortfolio() != null) {
-                throw new InvalidInputException("trade with id '" + tradeId + "' is not available for portfolio assignment");
-            }
-
-            trade.setPortfolio(portfolio);
-            trades.add(trade);
-        }
-
-        tradeDao.saveAll(trades);
-    }
-
-    public void sellTrade(TradeSellDto dto)
+    public TradeSaleSummary sellTrade(TradeSellDto dto)
     {
         if (dto.getTrades().isEmpty()) throw new IllegalArgumentException("no trades specified");
         Company company = companyService.findEntity(dto.getCompanyId());
 
         List<Trade> trades = new ArrayList<>();
-        BigDecimal totalSellQuantity = new BigDecimal(0);
+        BigDecimal totalSellQuantity = BigDecimal.ZERO;
         for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {
             try {
@@ -114,6 +82,12 @@ public class TradeService
         }
 
         Date date = Date.valueOf(dto.getDate());
+        BigDecimal sellPrice = new BigDecimal(dto.getPrice());
+        BigDecimal sellFees = new BigDecimal(dto.getFees());
+        BigDecimal totalPurchaseValue = BigDecimal.ZERO;
+        BigDecimal totalFees = BigDecimal.ZERO;
+        BigDecimal totalPurchase = BigDecimal.ZERO;
+        BigDecimal totalSell = BigDecimal.ZERO;
 
         for (TradeSellDto.Trade tradeDto : dto.getTrades())
         {
@@ -140,11 +114,77 @@ public class TradeService
                 trade.setPurchaseFees(trade.getPurchaseFees().subtract(residualFees));
             }
             trade.setSellDate(date);
-            trade.setSellPrice(new BigDecimal(dto.getPrice()));
-            trade.setSellFees(new BigDecimal(dto.getFees()).multiply(sellQuantity).divide(totalSellQuantity, 2, RoundingMode.HALF_UP));
+            trade.setSellPrice(sellPrice);
+            trade.setSellFees(sellFees.multiply(sellQuantity).divide(totalSellQuantity, 2, RoundingMode.HALF_UP));
+
+            BigDecimal purchaseTotal = arithmeticService.purchaseTotal(
+                    trade.getPurchasePrice(), trade.getQuantity(), trade.getPurchaseFees());
+            BigDecimal sellTotal = arithmeticService.sellTotal(
+                    trade.getSellPrice(), trade.getQuantity(), trade.getSellFees());
+            totalPurchaseValue = totalPurchaseValue.add(trade.getPurchasePrice().multiply(trade.getQuantity()));
+            totalFees = totalFees.add(trade.getPurchaseFees()).add(trade.getSellFees());
+            totalPurchase = totalPurchase.add(purchaseTotal);
+            totalSell = totalSell.add(sellTotal);
         }
 
         tradeDao.saveAll(trades);
+
+        return new TradeSaleSummary(
+                totalSellQuantity,
+                totalPurchaseValue.divide(totalSellQuantity, 5, RoundingMode.HALF_UP),
+                totalFees,
+                totalSell.subtract(totalPurchase),
+                arithmeticService.profitPercentage(totalPurchase, totalSell));
+    }
+
+    public void updateTrade(Long tradeId, TradeUpdateDto dto)
+    {
+        Trade trade;
+        try {
+            trade = tradeDao.get(tradeId);
+        } catch (NoResultException exception) {
+            throw new InvalidInputException("trade with id '" + tradeId + "' not found");
+        }
+
+        boolean active = trade.getSellDate() == null;
+        boolean anySaleValue = dto.getSellDate() != null || dto.getSellPrice() != null || dto.getSellFees() != null;
+        boolean allSaleValues = dto.getSellDate() != null && dto.getSellPrice() != null && dto.getSellFees() != null;
+
+        if (active && anySaleValue) {
+            throw new InvalidInputException("sale fields cannot be provided for active trade");
+        }
+        if (!active && !allSaleValues) {
+            throw new InvalidInputException("sellDate, sellPrice and sellFees are required for sold trade");
+        }
+
+        Date purchaseDate = Date.valueOf(dto.getPurchaseDate());
+        Date sellDate = active ? null : Date.valueOf(dto.getSellDate());
+        if (sellDate != null && sellDate.before(purchaseDate)) {
+            throw new InvalidInputException("sellDate cannot be before purchaseDate");
+        }
+
+        trade.setPurchaseDate(purchaseDate);
+        trade.setQuantity(new BigDecimal(dto.getQuantity()));
+        trade.setPurchasePrice(new BigDecimal(dto.getPurchasePrice()));
+        trade.setPurchaseFees(new BigDecimal(dto.getPurchaseFees()));
+        trade.setPortfolio(dto.getPortfolio() == null ? null : Portfolio.valueOf(dto.getPortfolio()));
+        if (!active) {
+            trade.setSellDate(sellDate);
+            trade.setSellPrice(new BigDecimal(dto.getSellPrice()));
+            trade.setSellFees(new BigDecimal(dto.getSellFees()));
+        }
+
+        tradeDao.save(trade);
+    }
+
+    public void deleteTrade(Long tradeId)
+    {
+        try {
+            tradeDao.get(tradeId);
+        } catch (NoResultException exception) {
+            throw new InvalidInputException("trade with id '" + tradeId + "' not found");
+        }
+        tradeDao.delete(tradeId);
     }
 
     public Assets getAssets(Long companyId, BigDecimal currentPrice)
@@ -152,7 +192,9 @@ public class TradeService
         List<Asset> assets = new ArrayList<>();
         for (Trade trade : tradeDao.list(true, companyId, null, null, null, null))
         {
-            assets.add(arithmeticService.computeAsset(currentPrice, trade.getQuantity(), trade.getPurchasePrice()));
+            Asset asset = arithmeticService.computeAsset(currentPrice, trade.getQuantity(), trade.getPurchasePrice());
+            asset.setPurchaseDate(trade.getPurchaseDate().toLocalDate());
+            assets.add(asset);
         }
 
         Assets model = new Assets();
@@ -162,9 +204,19 @@ public class TradeService
         return model;
     }
 
-    public Trades getBy(Boolean active, Long company, String currency, String purchaseYear, String sellYear, String sector){
-        List<Trade> trades = tradeDao.list(active, company, currency, purchaseYear, sellYear, sector);
+    public Trades getBy(Boolean active, Long company, String currency, String purchaseYear, String sellYear, String sector)
+    {
+        return toModel(tradeDao.list(active, company, currency, purchaseYear, sellYear, sector));
+    }
 
+    public Trades getBy(Boolean active, Long company, String currency, String purchaseYear, String sellYear, String sector,
+                        String portfolio)
+    {
+        return toModel(tradeDao.list(active, company, currency, purchaseYear, sellYear, sector, portfolio));
+    }
+
+    private Trades toModel(List<Trade> trades)
+    {
         Trades model = new Trades();
 
         model.setTrades(trades.stream().map(this::from).sorted(Trades.Trade::compareTo).collect(Collectors.toList()));
@@ -217,6 +269,7 @@ public class TradeService
     {
         Trades.Trade trade = new Trades.Trade();
         trade.setId(entity.getId());
+        trade.setActive(entity.getSellDate() == null);
         trade.setCompany(companyService.from(entity.getCompany()));
         if (entity.getPortfolio() != null) {
             trade.setPortfolio(new Trades.Portfolio(entity.getPortfolio()));
@@ -306,6 +359,16 @@ public class TradeService
 
         BigDecimal avgPurchasePrice = purchaseCosts.divide(sumQuantity, 2, RoundingMode.HALF_UP);
 
-        return arithmeticService.computeAsset(currentPrice, sumQuantity,  avgPurchasePrice);
+        Asset aggregate = arithmeticService.computeAsset(currentPrice, sumQuantity,  avgPurchasePrice);
+
+        if (currentPrice != null && purchaseCosts.compareTo(BigDecimal.ZERO) != 0)
+        {
+            BigDecimal currentValue = currentPrice.multiply(sumQuantity);
+            aggregate.setProfitValue(currentValue.subtract(purchaseCosts));
+            aggregate.setProfitPercent(currentValue.divide(purchaseCosts, 4, RoundingMode.HALF_UP)
+                    .subtract(BigDecimal.ONE).multiply(new BigDecimal(100)));
+        }
+
+        return aggregate;
     }
 }

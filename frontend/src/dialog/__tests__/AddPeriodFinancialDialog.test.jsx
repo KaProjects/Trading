@@ -49,7 +49,7 @@ const dialogDatePickerModule = {
 
 jest.mock("axios");
 jest.mock("../../properties", () => ({
-    backend: "http://backend",
+    backend: "/api",
 }));
 jest.mock("../../service/FormattingService", () => ({
     ...jest.requireActual("../../service/FormattingService"),
@@ -72,6 +72,8 @@ const comparisonData = {
         adjustedEps: "1.21",
         priceHigh: "141",
         priceLow: "91",
+        capex: "-61",
+        freeCashFlow: "71",
     },
     polygon: {
         shares: "10",
@@ -83,6 +85,21 @@ const comparisonData = {
         adjustedEps: "1.18",
         priceHigh: "140.25",
         priceLow: "90.75",
+        capex: "-60",
+        freeCashFlow: "70",
+    },
+    alphaVantage: {
+        shares: null,
+        revenue: "22",
+        grossProfit: "32",
+        operatingIncome: "42",
+        netIncome: "52",
+        dividend: "0.6",
+        adjustedEps: null,
+        priceHigh: null,
+        priceLow: null,
+        capex: "62",
+        freeCashFlow: "72",
     },
     warnings: [],
 };
@@ -102,6 +119,7 @@ function createProps(overrides = {}) {
                 year: "2024",
                 type: "Q1",
             },
+            endingMonth: "2024-03",
             reportDate: "2024-02-15",
             previousReportDate: "2023-11-15",
         },
@@ -117,7 +135,7 @@ describe("AddPeriodFinancialDialog", () => {
         axios.get.mockResolvedValue({data: comparisonData});
     });
 
-    test("loads Gemini and third-party suggestions and submits updated financial data", async () => {
+    test("loads suggestions from all sources and submits updated financial data", async () => {
         axios.put.mockResolvedValue({});
 
         const props = createProps();
@@ -125,24 +143,30 @@ describe("AddPeriodFinancialDialog", () => {
         render(<AddPeriodFinancialDialog {...props}/>);
 
         await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
-            "http://backend/research/company-1/import/period/24Q1"
+            "/api/research/company-1/import/period/24Q1"
         ));
         expect(await screen.findByText("Gemini")).toBeInTheDocument();
-        expect(screen.getByText("External")).toBeInTheDocument();
-        expect(screen.getByLabelText("Report Date")).toHaveValue("");
+        expect(screen.getByText("Polygon.io")).toBeInTheDocument();
+        expect(screen.getByText("Alpha Vantage")).toBeInTheDocument();
+        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("");
         expect(screen.getByLabelText("Adjusted EPS")).toHaveValue("");
 
         fireEvent.click(screen.getByRole("button", {
-            name: "Use External value for Shares (in Millions)",
+            name: "Use Polygon.io value for Shares (in Millions)",
         }));
-        fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("10");
         fireEvent.click(screen.getByRole("button", {
             name: "Use Gemini value for Revenue (in Millions)",
         }));
         fireEvent.click(screen.getByRole("button", {
-            name: "Use External value for Adjusted EPS",
+            name: "Use Polygon.io value for Adjusted EPS",
+        }));
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Gemini value for CapEx (in Millions)",
+        }));
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Alpha Vantage value for Free Cash Flow (in Millions)",
         }));
         fireEvent.change(screen.getByLabelText("Gross Profit (in Millions)"), {target: {value: "3"}});
         fireEvent.change(screen.getByLabelText("Operating Income (in Millions)"), {target: {value: "4"}});
@@ -153,7 +177,7 @@ describe("AddPeriodFinancialDialog", () => {
 
         fireEvent.click(screen.getByRole("button", {name: "Create"}));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/period/financial", {
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/period/financial", {
             id: "period-1",
             reportDate: "2024-02-15",
             priceLow: "95",
@@ -165,6 +189,8 @@ describe("AddPeriodFinancialDialog", () => {
             netIncome: "5",
             dividend: "0.5",
             adjustedEps: "1.18",
+            capex: "-61",
+            freeCashFlow: "72",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();
@@ -195,19 +221,98 @@ describe("AddPeriodFinancialDialog", () => {
         expect(props.handleClose).not.toHaveBeenCalled();
     });
 
-    test("opens with empty suggestion columns when no import data is available", async () => {
-        axios.get.mockResolvedValue({data: {firebase: {}, polygon: {}, warnings: []}});
+    test("requires core financials and submits empty optional fields as null", async () => {
+        axios.put.mockResolvedValue({});
+
+        render(<AddPeriodFinancialDialog {...createProps()}/>);
+
+        await screen.findByText("Gemini");
+        expect(screen.getByLabelText("Report Date")).toBeRequired();
+        expect(screen.getByLabelText("Shares (in Millions)")).toBeRequired();
+        expect(screen.getByLabelText("Revenue (in Millions)")).toBeRequired();
+        expect(screen.getByLabelText("Net Income (in Millions)")).toBeRequired();
+        expect(screen.getByLabelText("Gross Profit (in Millions)")).not.toBeRequired();
+        expect(screen.getByLabelText("Operating Income (in Millions)")).not.toBeRequired();
+        expect(screen.getByLabelText("Dividend (in Millions)")).not.toBeRequired();
+        expect(screen.getByLabelText("Adjusted EPS")).not.toBeRequired();
+        expect(screen.getByLabelText("Highest Price")).not.toBeRequired();
+        expect(screen.getByLabelText("Lowest Price")).not.toBeRequired();
+        expect(screen.getByLabelText("CapEx (in Millions)")).not.toBeRequired();
+        expect(screen.getByLabelText("Free Cash Flow (in Millions)")).not.toBeRequired();
+
+        fireEvent.change(screen.getByLabelText("Report Date"), {target: {value: "2024-02-15"}});
+        fireEvent.change(screen.getByLabelText("Shares (in Millions)"), {target: {value: "10"}});
+        fireEvent.change(screen.getByLabelText("Revenue (in Millions)"), {target: {value: "20"}});
+        fireEvent.change(screen.getByLabelText("Net Income (in Millions)"), {target: {value: "5"}});
+        fireEvent.click(screen.getByRole("button", {name: "Create"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/period/financial", {
+            id: "period-1",
+            reportDate: "2024-02-15",
+            shares: "10",
+            revenue: "20",
+            netIncome: "5",
+            grossProfit: null,
+            operatingIncome: null,
+            dividend: null,
+            adjustedEps: null,
+            priceHigh: null,
+            priceLow: null,
+            capex: null,
+            freeCashFlow: null,
+        }));
+    });
+
+    test("keeps the report date empty when the import data has none", async () => {
+        axios.get.mockResolvedValue({data: {firebase: {}, polygon: {}, alphaVantage: {}, warnings: []}});
 
         render(<AddPeriodFinancialDialog {...createProps()}/>);
 
         expect(await screen.findByText("Gemini")).toBeInTheDocument();
-        expect(screen.getByText("External")).toBeInTheDocument();
+        expect(screen.getByLabelText("Report Date")).toHaveValue("");
+    });
+
+    test("keeps the saved report date when editing", async () => {
+        axios.get.mockResolvedValue({data: {...comparisonData, reportDate: "2024-09-30"}});
+
+        render(<AddPeriodFinancialDialog {...createProps()} edit/>);
+
+        expect(await screen.findByText("Gemini")).toBeInTheDocument();
+        expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
+    });
+
+    test("opens with empty suggestion columns when no import data is available", async () => {
+        axios.get.mockResolvedValue({data: {firebase: {}, polygon: {}, alphaVantage: {}, warnings: []}});
+
+        render(<AddPeriodFinancialDialog {...createProps()}/>);
+
+        expect(await screen.findByText("Gemini")).toBeInTheDocument();
+        expect(screen.getByText("Polygon.io")).toBeInTheDocument();
+        expect(screen.getByText("Alpha Vantage")).toBeInTheDocument();
         expect(screen.getByLabelText("Report Date")).toHaveValue("");
         expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("");
         expect(mockFormatError).not.toHaveBeenCalled();
     });
 
-    test("edits a reported period without loading suggestions", async () => {
+    test.each([false, true])(
+        "shows Alpha Vantage configuration warnings in the add/edit dialog (edit=%s)",
+        async edit => {
+            const warning = "Alpha Vantage ticker for non-USD company ASML is not configured. "
+                + "Configure it in the company edit dialog to load all Alpha Vantage suggestions.";
+            axios.get.mockResolvedValue({
+                data: {firebase: {}, polygon: {}, alphaVantage: {}, warnings: [warning]},
+            });
+
+            render(<AddPeriodFinancialDialog {...createProps({
+                company: {id: "company-1", ticker: "ASML"},
+            })} edit={edit}/>);
+
+            expect(await screen.findByText(warning)).toBeInTheDocument();
+            expect(screen.getByText("Some external data could not be loaded")).toBeInTheDocument();
+        },
+    );
+
+    test("edits a reported period with suggestions without replacing saved values", async () => {
         axios.put.mockResolvedValue({});
         const props = createProps({
             period: {
@@ -222,23 +327,39 @@ describe("AddPeriodFinancialDialog", () => {
                     netIncome: {value: 51},
                     dividend: 0.5,
                     adjustedEps: 1.21,
+                    capex: {value: null},
+                    freeCashFlow: {value: null},
                 },
             },
         });
 
         render(<AddPeriodFinancialDialog {...props} edit/>);
 
-        expect(axios.get).not.toHaveBeenCalled();
-        expect(screen.queryByText("Gemini")).not.toBeInTheDocument();
+        await waitFor(() => expect(axios.get).toHaveBeenCalledWith(
+            "/api/research/company-1/import/period/24Q1?endingMonth=2024-03"
+        ));
+        expect(await screen.findByText("Gemini")).toBeInTheDocument();
+        expect(screen.getByText("Polygon.io")).toBeInTheDocument();
+        expect(screen.getByText("Alpha Vantage")).toBeInTheDocument();
         expect(screen.getByRole("heading", {name: "Edit Period for NVDA 24Q1"})).toBeInTheDocument();
         expect(screen.getByLabelText("Report Date")).toHaveValue("2024-02-15");
         expect(screen.getByLabelText("Shares (in Millions)")).toHaveValue("123");
+        expect(screen.getByLabelText("Revenue (in Millions)")).toHaveValue("21");
+        expect(screen.getByLabelText("CapEx (in Millions)")).toHaveValue("");
+        expect(screen.getByLabelText("Free Cash Flow (in Millions)")).toHaveValue("");
         expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
         expect(screen.queryByLabelText("Ending Month")).not.toBeInTheDocument();
 
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Alpha Vantage value for CapEx (in Millions)",
+        }));
+        fireEvent.click(screen.getByRole("button", {
+            name: "Use Alpha Vantage value for Free Cash Flow (in Millions)",
+        }));
+
         fireEvent.click(screen.getByRole("button", {name: "Update"}));
 
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("http://backend/period", {
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/period/financial", {
             id: "period-1",
             reportDate: "2024-02-15",
             shares: "123",
@@ -250,6 +371,8 @@ describe("AddPeriodFinancialDialog", () => {
             adjustedEps: "1.21",
             priceHigh: "125",
             priceLow: "95",
+            capex: "62",
+            freeCashFlow: "72",
         }));
         expect(props.triggerRefresh).toHaveBeenCalled();
         expect(props.handleClose).toHaveBeenCalled();

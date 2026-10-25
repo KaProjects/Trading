@@ -43,6 +43,7 @@ public class ArithmeticService
         BigDecimal grossProfit = financial.getGrossProfit().getValue();
         BigDecimal operatingIncome = financial.getOperatingIncome().getValue();
         BigDecimal netIncome = financial.getNetIncome().getValue();
+        BigDecimal freeCashFlow = financial.getFreeCashFlow().getValue();
 
         if (revenue != null && revenue.compareTo(BigDecimal.ZERO) > 0) {
             ratios.setMarketCapToRevenues(limit(new BigDecimal("9999.99"), marketCap.divide(revenue, 2, RoundingMode.HALF_UP)));
@@ -55,6 +56,9 @@ public class ArithmeticService
         }
         if (netIncome != null && netIncome.compareTo(BigDecimal.ZERO) > 0) {
             ratios.setMarketCapToNetIncome(limit(new BigDecimal("9999.99"), marketCap.divide(netIncome, 2, RoundingMode.HALF_UP)));
+        }
+        if (freeCashFlow != null && freeCashFlow.compareTo(BigDecimal.ZERO) > 0) {
+            ratios.setMarketCapToFreeCashFlow(limit(new BigDecimal("9999.99"), marketCap.divide(freeCashFlow, 2, RoundingMode.HALF_UP)));
         }
         if (financial.getDividend() != null && financial.getDividend().compareTo(BigDecimal.ZERO) > 0) {
             ratios.setDividendYield(limit(new BigDecimal("999.99"), financial.getDividend().multiply(new BigDecimal("100")).divide(marketCap, 2, RoundingMode.HALF_UP)));
@@ -84,12 +88,19 @@ public class ArithmeticService
         return asset;
     }
 
+    /**
+     * The price itself is always known once there is a latest quote; everything derived from the
+     * share count is not. A company with no reported period has no TTM, and that must not cost it
+     * the price and the date it was taken at - those are what a new record is prefilled from.
+     */
     public PriceIndicators computeIndicators(Latest latest, Periods.Financial ttm)
     {
         PriceIndicators indicators = new PriceIndicators();
 
         indicators.setDatetime(latest.getDatetime());
         indicators.setPrice(latest.getPrice());
+
+        if (ttm == null || ttm.getShares() == null) return indicators;
 
         indicators.setShares(ttm.getShares());
         indicators.setMarketCap(indicators.getPrice().multiply(indicators.getShares()));

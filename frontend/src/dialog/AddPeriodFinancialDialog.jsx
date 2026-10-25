@@ -18,6 +18,7 @@ import {DialogDatePicker} from "./component/DialogDatePicker";
 import {
     EMPTY_PERIOD_FINANCIAL_VALUES,
     PeriodFinancialFields,
+    toNullableFinancialValues,
 } from "./component/PeriodFinancialFields";
 
 const EMPTY_FINANCIAL = {
@@ -29,36 +30,36 @@ export const AddPeriodFinancialDialog = props => {
     const {handleClose, open, period, company, triggerRefresh, edit = false} = props
 
     const [financial, setFinancial] = useState(EMPTY_FINANCIAL)
-    const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}})
+    const [suggestions, setSuggestions] = useState({firebase: {}, polygon: {}, alphaVantage: {}})
     const [warnings, setWarnings] = useState([])
     const [alert, setAlert] = useState(null)
     const [loading, setLoading] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         if (!open || !period) return
 
-        if (edit) {
-            setFinancial(financialFromPeriod(period))
-            setSuggestions({firebase: {}, polygon: {}})
-            setWarnings([])
-            setAlert(null)
-            setLoading(false)
-            return
-        }
-
-        setFinancial(EMPTY_FINANCIAL)
-        setSuggestions({firebase: {}, polygon: {}})
+        setFinancial(edit ? financialFromPeriod(period) : EMPTY_FINANCIAL)
+        setSuggestions({firebase: {}, polygon: {}, alphaVantage: {}})
         setWarnings([])
         setAlert(null)
         setLoading(true)
+        setSubmitting(false)
 
         const quarterId = formatPeriodName(period.name)
-        axios.get(`${backend}/research/${company.id}/import/period/${quarterId}`)
+        const endingMonthQuery = edit && period.endingMonth
+            ? `?endingMonth=${encodeURIComponent(period.endingMonth)}`
+            : ""
+        axios.get(`${backend}/research/${company.id}/import/period/${quarterId}${endingMonthQuery}`)
             .then(response => {
                 const data = response.data
+                if (!edit && data.reportDate) {
+                    setFinancial(previous => ({...previous, reportDate: data.reportDate}))
+                }
                 setSuggestions({
                     firebase: data.firebase ?? {},
                     polygon: data.polygon ?? {},
+                    alphaVantage: data.alphaVantage ?? {},
                 })
                 setWarnings(data.warnings ?? [])
                 setLoading(false)
@@ -71,15 +72,18 @@ export const AddPeriodFinancialDialog = props => {
     }, [open, period, edit])
 
     function createFinancial() {
-        axios.put(backend + (edit ? "/period" : "/period/financial"), {
+        if (submitting) return
+        setSubmitting(true)
+        axios.put(backend + "/period/financial", {
             id: period.id,
-            ...financial,
+            ...toNullableFinancialValues(financial),
         })
             .then(() => {
                 triggerRefresh()
                 handleClose()
             })
             .catch(error => setAlert(formatError(error)))
+            .finally(() => setSubmitting(false))
     }
 
     return (
@@ -111,7 +115,7 @@ export const AddPeriodFinancialDialog = props => {
 
                         {warnings.length > 0 &&
                             <Alert severity="warning">
-                                <AlertTitle>Some Polygon.io data could not be loaded</AlertTitle>
+                                <AlertTitle>Some external data could not be loaded</AlertTitle>
                                 {warnings.map(warning => <Box key={warning}>{warning}</Box>)}
                             </Alert>
                         }
@@ -122,7 +126,6 @@ export const AddPeriodFinancialDialog = props => {
                             suggestions={suggestions}
                             setSuggestions={setSuggestions}
                             clearAlert={() => setAlert(null)}
-                            showSuggestions={!edit}
                         />
                     </>
                 }
@@ -135,7 +138,7 @@ export const AddPeriodFinancialDialog = props => {
             }
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                <Button type="submit" disabled={loading}>{edit ? "Update" : "Create"}</Button>
+                <Button type="submit" disabled={loading || submitting}>{edit ? "Update" : "Create"}</Button>
             </DialogActions>
         </Dialog>
     )
@@ -156,5 +159,7 @@ function financialFromPeriod(period) {
         adjustedEps: value(financial.adjustedEps),
         priceHigh: value(period.priceHigh),
         priceLow: value(period.priceLow),
+        capex: value(financial.capex?.value),
+        freeCashFlow: value(financial.freeCashFlow?.value),
     }
 }

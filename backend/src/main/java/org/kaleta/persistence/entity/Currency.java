@@ -4,7 +4,19 @@ import java.math.BigDecimal;
 
 public enum Currency
 {
-    $, €, £, K, F;
+    $("USD"), €("EUR"), £("GBP"), K("CZK"), F("CHF");
+
+    private final String isoCode;
+
+    Currency(String isoCode)
+    {
+        this.isoCode = isoCode;
+    }
+
+    public String getIsoCode()
+    {
+        return isoCode;
+    }
 
     public BigDecimal toUsd()
     {

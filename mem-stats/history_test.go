@@ -160,6 +160,43 @@ func TestCSVStatisticsStoreMigratesLegacyRowsOnCheckpoint(t *testing.T) {
 	}
 }
 
+func TestCSVStatisticsStoreListsOnlyFinalizedRecordsNewestFirst(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.csv")
+	store := newCSVStatisticsStore(path)
+	active := exampleHistoryRecord()
+	if err := store.Checkpoint([]historyRecord{active}); err != nil {
+		t.Fatal(err)
+	}
+
+	older := exampleHistoryRecord()
+	older.ObservedUntil = time.Date(2026, time.July, 1, 11, 0, 0, 0, time.UTC)
+	older.ID = finalizedRecordID(older.ContainerName, older.ObservedUntil)
+	older.Reason = "container_exited"
+	if err := store.Finalize(older); err != nil {
+		t.Fatal(err)
+	}
+
+	newer := exampleHistoryRecord()
+	newer.ContainerName = "service-b"
+	newer.ObservedUntil = time.Date(2026, time.July, 2, 11, 0, 0, 0, time.UTC)
+	newer.ID = finalizedRecordID(newer.ContainerName, newer.ObservedUntil)
+	newer.Reason = "container_restarted"
+	if err := store.Finalize(newer); err != nil {
+		t.Fatal(err)
+	}
+
+	records, err := store.ListFinalized()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 2 {
+		t.Fatalf("expected two finalized records, got %d", len(records))
+	}
+	if records[0].ContainerName != "service-b" || records[1].ContainerName != "service-a" {
+		t.Fatalf("expected newest records first, got %+v", records)
+	}
+}
+
 func exampleHistoryRecord() historyRecord {
 	observedFrom := time.Date(2026, time.July, 1, 10, 0, 0, 0, time.UTC)
 	return historyRecord{

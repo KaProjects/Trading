@@ -8,6 +8,7 @@ import org.kaleta.model.PeriodEstimates;
 import org.kaleta.model.Periods;
 import org.kaleta.model.PriceIndicators;
 import org.kaleta.model.Record;
+import org.kaleta.model.TargetStats;
 import org.kaleta.persistence.entity.Latest;
 
 import java.util.ArrayList;
@@ -21,20 +22,30 @@ public class ResearchDto
     private List<Periods.Financial> financials = new ArrayList<>();
     private Periods.Financial ttm;
     private EstimateOverview estimateOverview;
+    private EstimateOverview revenueEstimateOverview;
     private List<Record> records = new ArrayList<>();
     private Latest latest;
     private PriceIndicators indicators;
     private Assets assets;
     private List<PeriodImportCandidateDto> importablePeriods = new ArrayList<>();
+    private List<String> warnings = new ArrayList<>();
 
     @Data
     public static class PeriodDto extends Periods.Period {
-        private PeriodEstimates estimate;
+        /** Every estimate taken during the period, newest first. */
+        private List<PeriodEstimates> estimates = new ArrayList<>();
+        private List<PeriodEstimates> revenueEstimates = new ArrayList<>();
+        private TargetStats targetStats = TargetStats.empty();
+        /** The period's research, one entry per date, oldest first. */
+        private List<PeriodContentDto> contents = new ArrayList<>();
     }
 
     public void addPeriod(
             Periods.Period period,
-            PeriodEstimates estimate)
+            List<PeriodEstimates> estimates,
+            List<PeriodEstimates> revenueEstimates,
+            TargetStats targetStats,
+            List<PeriodContentDto> contents)
     {
         PeriodDto dto = new PeriodDto();
         dto.setId(period.getId());
@@ -45,9 +56,13 @@ public class ResearchDto
         dto.setShares(period.getShares());
         dto.setPriceLow(period.getPriceLow());
         dto.setPriceHigh(period.getPriceHigh());
-        dto.setResearch(period.getResearch());
         dto.setFinancial(period.getFinancial());
-        dto.setEstimate(estimate);
+        dto.setExpectedReportDate(period.getExpectedReportDate());
+        dto.setReportedInFirebase(period.getReportedInFirebase());
+        dto.setEstimates(estimates);
+        dto.setRevenueEstimates(revenueEstimates);
+        dto.setTargetStats(targetStats);
+        dto.setContents(contents);
         periods.add(dto);
     }
 }

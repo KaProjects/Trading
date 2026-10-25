@@ -4,12 +4,19 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import jakarta.transaction.Transactional;
+import org.kaleta.client.AlphaVantageClient;
+import org.kaleta.client.PolygonClient;
+import org.kaleta.client.RequestFailureException;
+import org.kaleta.client.dto.AlphaVantageTicker;
+import org.kaleta.client.dto.PolygonCompanyProfile;
+import org.kaleta.client.dto.PolygonSplit;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithAggregates;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Sector;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyTagCreateDto;
@@ -17,7 +24,6 @@ import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -29,13 +35,71 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class CompanyService
 {
-    private static final Set<String> RESERVED_TAGS = Set.of("owned", "recent", "researched", "all");
+    /** A list the app builds itself; the underscore marks it as a debug aid, not a tag. */
+    private static final String HAS_PERIOD_LIST = "_has-period";
+    private static final Set<String> RESERVED_TAGS = Set.of("owned", "recent", "all", HAS_PERIOD_LIST);
+    private static final int SPLIT_LOOKBACK_MONTHS = 12;
     private static final Comparator<String> COMPANY_LIST_ORDER = Comparator
             .comparingInt(CompanyService::companyListOrder)
             .thenComparing(Comparator.naturalOrder());
 
     @Inject
     CompanyDao companyDao;
+    @Inject
+    AlphaVantageClient alphaVantageClient;
+    @Inject
+    PolygonClient polygonClient;
+
+    public List<AlphaVantageTicker> findAlphaVantageTickers(String ticker, String currency)
+    {
+        Currency expectedCurrency = Currency.valueOf(currency);
+        try {
+            return alphaVantageClient.searchTickers(ticker).stream()
+                    .filter(candidate -> "Equity".equalsIgnoreCase(candidate.type()))
+                    .filter(candidate -> expectedCurrency.getIsoCode().equalsIgnoreCase(candidate.currency()))
+                    .sorted(Comparator
+                            .comparingInt((AlphaVantageTicker candidate) ->
+                                    baseSymbol(candidate.symbol()).equalsIgnoreCase(ticker) ? 0 : 1)
+                            .thenComparing(
+                                    AlphaVantageTicker::matchScore,
+                                    Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(AlphaVantageTicker::symbol))
+                    .toList();
+        } catch (RequestFailureException exception) {
+            throw new InvalidInputException("Alpha Vantage ticker search failed: " + exception.getMessage());
+        }
+    }
+
+    private static String baseSymbol(String symbol)
+    {
+        int suffix = symbol.indexOf('.');
+        return suffix < 0 ? symbol : symbol.substring(0, suffix);
+    }
+
+    public PolygonCompanyProfile getPolygonCompanyProfile(String ticker)
+    {
+        try {
+            return polygonClient.getCompanyProfile(ticker)
+                    .orElseThrow(() -> new InvalidInputException(
+                            "Polygon.io company data for ticker '" + ticker + "' was not found"));
+        } catch (RequestFailureException exception) {
+            throw new InvalidInputException(
+                    "Polygon.io company data for ticker '" + ticker + "' could not be loaded: "
+                            + exception.getMessage());
+        }
+    }
+
+    public List<PolygonSplit> getPolygonSplits(String ticker)
+    {
+        String executedFrom = LocalDate.now().minusMonths(SPLIT_LOOKBACK_MONTHS).toString();
+        try {
+            return polygonClient.getSplits(ticker, executedFrom);
+        } catch (RequestFailureException exception) {
+            throw new InvalidInputException(
+                    "Polygon splits for ticker '" + ticker + "' could not be loaded: "
+                            + exception.getMessage());
+        }
+    }
 
     public CompanyAggregates getCompaniesWithAggregates(String currency, String sector)
     {
@@ -60,11 +124,15 @@ public class CompanyService
         }
     }
 
+    public List<CompanyWithStats> getAllWithStats()
+    {
+        return companyDao.listWithStats();
+    }
+
     public Map<String, List<CompanyWithStats>> getCompaniesByTag()
     {
         Map<String, List<CompanyWithStats>> companiesByTag = new TreeMap<>(COMPANY_LIST_ORDER);
         List<CompanyWithStats> allCompanies = new ArrayList<>();
-        YearMonth periodCutoff = YearMonth.now().minusYears(1);
         LocalDate recordCutoff = LocalDate.now().minusYears(1);
 
         for (CompanyWithStats company : companyDao.listWithStats())
@@ -73,13 +141,12 @@ public class CompanyService
             if (company.getLatestPurchaseDate() != null) {
                 companiesByTag.computeIfAbsent("owned", ignored -> new ArrayList<>()).add(company);
             }
-            if (company.getLatestPeriodEndingMonth() != null
-                    && !company.getLatestPeriodEndingMonth().isBefore(periodCutoff)) {
-                companiesByTag.computeIfAbsent("researched", ignored -> new ArrayList<>()).add(company);
-            }
             if (company.getLatestRecordDate() != null
                     && !company.getLatestRecordDate().toLocalDate().isBefore(recordCutoff)) {
                 companiesByTag.computeIfAbsent("recent", ignored -> new ArrayList<>()).add(company);
+            }
+            if (company.getLatestPeriodEndingMonth() != null) {
+                companiesByTag.computeIfAbsent(HAS_PERIOD_LIST, ignored -> new ArrayList<>()).add(company);
             }
             company.getTags().stream().distinct().forEach(tag ->
                     companiesByTag.computeIfAbsent(tag, ignored -> new ArrayList<>()).add(company));
@@ -93,8 +160,9 @@ public class CompanyService
         return switch (tag) {
             case "owned" -> 0;
             case "recent" -> 1;
-            case "researched" -> 2;
             case "all" -> 4;
+            // A debug list belongs after everything a company is really tagged with.
+            case HAS_PERIOD_LIST -> 5;
             default -> 3;
         };
     }
@@ -110,6 +178,11 @@ public class CompanyService
 
         company.setCurrency(Currency.valueOf(dto.getCurrency()));
         company.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
+        company.setAlphaVantageTicker(dto.getAlphaVantageTicker());
+        setExchange(company, dto.getExchange());
+        company.setName(nullableTrimmed(dto.getName()));
+        company.setDescription(nullableTrimmed(dto.getDescription()));
+        company.setWebsite(nullableTrimmed(dto.getWebsite()));
 
         companyDao.save(company);
     }
@@ -123,6 +196,11 @@ public class CompanyService
 
         Company newCompany = new Company();
         newCompany.setTicker(dto.getTicker());
+        newCompany.setAlphaVantageTicker(dto.getAlphaVantageTicker());
+        setExchange(newCompany, dto.getExchange());
+        newCompany.setName(nullableTrimmed(dto.getName()));
+        newCompany.setDescription(nullableTrimmed(dto.getDescription()));
+        newCompany.setWebsite(nullableTrimmed(dto.getWebsite()));
         newCompany.setCurrency(Currency.valueOf(dto.getCurrency()));
         newCompany.setSector((dto.getSector() == null) ? null : Sector.valueOf(dto.getSector()));
 
@@ -167,10 +245,27 @@ public class CompanyService
         }
     }
 
+    private static String nullableTrimmed(String value)
+    {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static void setExchange(Company company, String exchangeValue)
+    {
+        company.setExchange(exchangeValue == null ? null : Exchange.valueOf(exchangeValue));
+    }
+
     public org.kaleta.model.Company from(Company entity){
         org.kaleta.model.Company company = new org.kaleta.model.Company();
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
+        company.setAlphaVantageTicker(entity.getAlphaVantageTicker());
+        company.setExchange(entity.getExchange() == null
+                ? null
+                : new org.kaleta.model.Company.Exchange(entity.getExchange()));
+        company.setName(entity.getName());
+        company.setDescription(entity.getDescription());
+        company.setWebsite(entity.getWebsite());
         company.setCurrency(entity.getCurrency());
         company.setTags(new ArrayList<>(entity.getTags()));
         if (entity.getSector() != null) {
@@ -184,6 +279,13 @@ public class CompanyService
         CompanyAggregates.Company company = new CompanyAggregates.Company();
         company.setId(entity.getId());
         company.setTicker(entity.getTicker());
+        company.setAlphaVantageTicker(entity.getAlphaVantageTicker());
+        company.setExchange(entity.getExchange() == null
+                ? null
+                : new org.kaleta.model.Company.Exchange(entity.getExchange()));
+        company.setName(entity.getName());
+        company.setDescription(entity.getDescription());
+        company.setWebsite(entity.getWebsite());
         company.setCurrency(entity.getCurrency());
         if (entity.getSector() != null) {
             company.setSector(new org.kaleta.model.Company.Sector(entity.getSector()));

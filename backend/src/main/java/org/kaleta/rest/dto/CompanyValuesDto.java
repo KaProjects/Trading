@@ -13,6 +13,7 @@ public class CompanyValuesDto
 {
     private List<Currency> currencies = new ArrayList<>();
     private List<Company.Sector> sectors = new ArrayList<>();
+    private List<Company.Exchange> exchanges = new ArrayList<>();
     private List<Trades.Portfolio> portfolios = new ArrayList<>();
     private List<String> years = new ArrayList<>();
 }

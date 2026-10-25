@@ -20,10 +20,15 @@ import jakarta.ws.rs.core.Response;
 import org.kaleta.model.Company;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.model.Trades;
+import org.kaleta.client.dto.AlphaVantageTicker;
+import org.kaleta.client.dto.PolygonCompanyProfile;
+import org.kaleta.client.dto.PolygonSplit;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
+import org.kaleta.rest.dto.ActionableCompanyDto;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
@@ -32,6 +37,7 @@ import org.kaleta.rest.validation.ValueOfEnum;
 import org.kaleta.rest.validation.ValidId;
 import org.kaleta.service.CompanyService;
 import org.kaleta.service.DividendService;
+import org.kaleta.service.TargetService;
 import org.kaleta.service.TradeService;
 
 import java.util.Comparator;
@@ -49,11 +55,13 @@ public class CompanyEndpoints
     TradeService tradeService;
     @Inject
     DividendService dividendService;
+    @Inject
+    TargetService targetService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/values")
-    public Response getCompanyValues()
+    public CompanyValuesDto getCompanyValues()
     {
         CompanyValuesDto dto = new CompanyValuesDto();
 
@@ -61,6 +69,9 @@ public class CompanyEndpoints
 
         List.of(Sector.values()).forEach(sector -> dto.getSectors().add(new Company.Sector(sector)));
         dto.getSectors().sort(Company.Sector::compareTo);
+
+        List.of(Exchange.values()).forEach(exchange -> dto.getExchanges().add(new Company.Exchange(exchange)));
+        dto.getExchanges().sort(Company.Exchange::compareTo);
 
         List.of(Portfolio.values()).forEach(portfolio -> dto.getPortfolios().add(new Trades.Portfolio(portfolio)));
         dto.getPortfolios().sort(Trades.Portfolio::compareTo);
@@ -70,13 +81,13 @@ public class CompanyEndpoints
         years.addAll(dividendService.getYears());
         dto.setYears(List.copyOf(years));
 
-        return Response.ok(dto).build();
+        return dto;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public Response getCompaniesWithAggregates(
+    public CompanyAggregates getCompaniesWithAggregates(
             @ValueOfEnum(enumClass = CompanyAggregates.Sort.class)
             @QueryParam("sort")
             String sort,
@@ -89,24 +100,61 @@ public class CompanyEndpoints
     ) {
         CompanyAggregates dto = companyService.getCompaniesWithAggregates(currency, sector);
         dto.sort((sort == null) ? CompanyAggregates.Sort.TICKER : CompanyAggregates.Sort.valueOf(sort));
-        return Response.ok().entity(dto).build();
+        return dto;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/lists")
-    public Response getCompaniesByTag()
+    public Map<String, List<CompanyWithStats>> getCompaniesByTag()
     {
         Map<String, List<CompanyWithStats>> dto = companyService.getCompaniesByTag();
-        dto.forEach((tag, companies) -> companies.sort(switch (tag) {
-            case "researched" -> Comparator.comparing(CompanyWithStats::getLatestPeriodEndingMonth,
-                    Comparator.nullsLast(Comparator.reverseOrder()));
-            case "recent" -> Comparator.comparing(CompanyWithStats::getLatestRecordDate,
-                    Comparator.nullsLast(Comparator.reverseOrder()));
-            default -> Comparator.comparing(CompanyWithStats::getTicker);
-        }));
+        dto.forEach((tag, companies) -> companies.sort(Comparator.comparing(CompanyWithStats::getTicker)));
 
-        return Response.ok(dto).build();
+        return dto;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/lists/actionable")
+    public List<ActionableCompanyDto> getActionableCompanies()
+    {
+        List<ActionableCompanyDto> companies = targetService.getCompaniesWithImportCandidates();
+        return companies.stream()
+                .sorted(Comparator.comparing(dto -> dto.getCompany().getTicker()))
+                .toList();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/alpha-vantage/tickers")
+    public List<AlphaVantageTicker> getAlphaVantageTickers(
+            @NotNull @org.kaleta.rest.validation.ValidTicker
+            @QueryParam("ticker") String ticker,
+            @NotNull @ValueOfEnum(enumClass = Currency.class)
+            @QueryParam("currency") String currency)
+    {
+        return companyService.findAlphaVantageTickers(ticker, currency);
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/polygon/profile")
+    public PolygonCompanyProfile getPolygonCompanyProfile(
+            @NotNull @org.kaleta.rest.validation.ValidTicker
+            @QueryParam("ticker") String ticker)
+    {
+        return companyService.getPolygonCompanyProfile(ticker);
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/polygon/splits")
+    public List<PolygonSplit> getPolygonSplits(
+            @NotNull @org.kaleta.rest.validation.ValidTicker
+            @QueryParam("ticker") String ticker)
+    {
+        return companyService.getPolygonSplits(ticker);
     }
 
     @PUT

@@ -1,5 +1,5 @@
 import './style/App.css';
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
 import {backend} from "./properties";
 import axios from "axios";
@@ -10,12 +10,19 @@ import {Trades} from "./views/Trades";
 import {Stats} from "./views/Stats";
 import {Dividends} from "./views/Dividends";
 import {Companies} from "./views/Companies";
+import {Admin} from "./views/Admin";
+import {StockSplit} from "./views/StockSplit";
+import {FirebaseCheck} from "./views/FirebaseCheck";
+import {Onboarding} from "./views/Onboarding";
 import {MainBar} from "./views/component/MainBar";
 import {Analytics} from "./views/Analytics";
+import {Outperformers} from "./views/Outperformers";
 import {Home} from "./views/Home";
-import {AdminPortfolio} from "./views/AdminPortfolio";
+import {TradeImport} from "./views/TradeImport";
+import {DividendImport} from "./views/DividendImport";
 import {Box, ThemeProvider} from "@mui/material";
 import {appTheme} from "./theme";
+import {CloseOnNavigation} from "./views/component/CloseOnNavigation";
 
 const PageNotFound = () => (
     <div style={{position: "absolute", top: "25%", left: "50%", transform: "translate(-50%, -50%)"}}>
@@ -29,6 +36,7 @@ export const App = () => {
     const [companyLists, setCompanyLists] = useState({all: []});
     const [currencies, setCurrencies] = useState([]);
     const [sectors, setSectors] = useState([]);
+    const [exchanges, setExchanges] = useState([]);
     const [portfolios, setPortfolios] = useState([]);
     const [years, setYears] = useState([]);
     const [activeSelectorValue, setActiveSelectorValue] = useState("");
@@ -37,21 +45,25 @@ export const App = () => {
     const [currencySelectorValue, setCurrencySelectorValue] = useState("");
     const [yearSelectorValue, setYearSelectorValue] = useState("");
     const [sectorSelectorValue, setSectorSelectorValue] = useState("");
+    const [portfolioSelectorValue, setPortfolioSelectorValue] = useState("");
     const [openAddTrade, setOpenAddTrade] = useState(false);
     const [openSellTrade, setOpenSellTrade] = useState(false);
     const [openAddDividend, setOpenAddDividend] = useState(false);
     const [openEditCompany, setOpenEditCompany] = useState(null);
     const [statsTabsIndex, setStatsTabsIndex] = useState(0);
     const [researchTabsIndex, setResearchTabsIndex] = useState(0);
+    const [outperformersTabsIndex, setOutperformersTabsIndex] = useState(0);
+    const [firebaseTabsIndex, setFirebaseTabsIndex] = useState(0);
 
     useEffect(() => {
         Promise.all([
             axios.get(backend + "/company/values"),
             axios.get(backend + "/company/lists"),
         ]).then(([valuesResponse, listsResponse]) => {
-            setCompanyLists(listsResponse.data);
+            setCompanyLists(previous => ({...previous, ...listsResponse.data}));
             setCurrencies(valuesResponse.data.currencies);
             setSectors(valuesResponse.data.sectors);
+            setExchanges(valuesResponse.data.exchanges ?? []);
             setPortfolios(valuesResponse.data.portfolios ?? []);
             setYears(valuesResponse.data.years ?? []);
             setError(null);
@@ -60,27 +72,66 @@ export const App = () => {
             setError(formatError(error));
             setLoaded(false);
         });
+
+        axios.get(backend + "/company/lists/actionable")
+            .then(response => {
+                if (!response.data || response.data.length === 0) return
+                const actionable = response.data.map(entry => ({
+                    ...entry.company,
+                    importablePeriodsCount: entry.importablePeriodsCount,
+                    importableTargetsCount: entry.importableTargetsCount,
+                }));
+                setCompanyLists(previous => ({...previous, actionable}));
+            })
+            .catch(() => {});
+    }, []);
+
+    const updateActionableCompany = useCallback((companyId, importablePeriodsCount, importableTargetsCount) => {
+        setCompanyLists(previous => {
+            const actionable = previous.actionable;
+            if (!actionable) return previous;
+
+            const index = actionable.findIndex(company => String(company.id) === String(companyId));
+            if (index === -1) return previous;
+
+            const current = actionable[index];
+            if (current.importablePeriodsCount === importablePeriodsCount
+                && current.importableTargetsCount === importableTargetsCount) {
+                return previous;
+            }
+
+            return {
+                ...previous,
+                actionable: importablePeriodsCount === 0 && importableTargetsCount === 0
+                    ? actionable.filter((company, position) => position !== index)
+                    : actionable.map((company, position) => position === index
+                        ? {...company, importablePeriodsCount, importableTargetsCount}
+                        : company),
+            };
+        });
     }, []);
 
     function refreshCompanyLists() {
         axios.get(backend + "/company/lists?refresh" + Date.now())
-            .then(response => setCompanyLists(response.data))
+            .then(response => setCompanyLists(previous => ({...previous, ...response.data})))
             .catch(requestError => setError(formatError(requestError)));
     }
 
-    function setCompanySelectorValue(company) {
+    const setCompanySelectorValue = useCallback((company) => {
         setCompanySelectorStateValue(company);
         if (company?.id) {
             setCurrencySelectorValue("");
             setSectorSelectorValue("");
         }
-    }
+    }, []);
 
     const props = {
         companyLists,
         refreshCompanyLists,
+        updateActionableCompany,
         currencies,
         sectors,
+        exchanges,
         portfolios,
 
         years,
@@ -97,6 +148,8 @@ export const App = () => {
         setYearSelectorValue,
         sectorSelectorValue,
         setSectorSelectorValue,
+        portfolioSelectorValue,
+        setPortfolioSelectorValue,
 
         openAddTrade,
         setOpenAddTrade,
@@ -111,16 +164,30 @@ export const App = () => {
         setStatsTabsIndex,
         researchTabsIndex,
         setResearchTabsIndex,
+        outperformersTabsIndex,
+        setOutperformersTabsIndex,
+        firebaseTabsIndex,
+        setFirebaseTabsIndex,
     };
 
     return (
         <ThemeProvider theme={appTheme}>
             <BrowserRouter>
+                <CloseOnNavigation close={() => {
+                    setOpenAddTrade(false);
+                    setOpenSellTrade(false);
+                    setOpenAddDividend(false);
+                    setOpenEditCompany(null);
+                }}/>
                 <MainBar {...props} />
                 <Box sx={{
                     pt: "var(--main-bar-height, 48px)",
                     px: {xs: 1, sm: 2},
                     pb: {xs: 1, sm: 2},
+                    minHeight: "100dvh",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    flexDirection: "column",
                 }}>
                     {!loaded && <Loader error={error}/>}
                     {loaded &&
@@ -130,9 +197,15 @@ export const App = () => {
                             <Route exact path="/research" element={<Research {...props}/>}/>
                             <Route exact path="/dividends" element={<Dividends {...props}/>}/>
                             <Route exact path="/stats" element={<Stats {...props}/>}/>
-                            <Route exact path="/companies" element={<Companies {...props}/>}/>
+                            <Route exact path="/admin" element={<Admin {...props}/>}/>
+                            <Route exact path="/admin/companies" element={<Companies {...props}/>}/>
+                            <Route exact path="/admin/split" element={<StockSplit {...props}/>}/>
+                            <Route exact path="/admin/firebase" element={<FirebaseCheck {...props}/>}/>
+                            <Route exact path="/admin/onboarding" element={<Onboarding {...props}/>}/>
                             <Route exact path="/analytics" element={<Analytics {...props}/>}/>
-                            <Route exact path="/admin/portfolio" element={<AdminPortfolio {...props}/>}/>
+                            <Route exact path="/outperformers" element={<Outperformers {...props}/>}/>
+                            <Route exact path="/admin/import/trades" element={<TradeImport/>}/>
+                            <Route exact path="/admin/import/dividends" element={<DividendImport/>}/>
                             <Route path="*" element={<PageNotFound/>}/>
                         </Routes>
                     }

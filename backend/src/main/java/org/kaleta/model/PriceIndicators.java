@@ -12,6 +12,8 @@ public class PriceIndicators
     private BigDecimal price;
     private BigDecimal shares;
     private BigDecimal marketCap;
+    /** From Firebase, refreshed by the processor; null until it has stored one. */
+    private BigDecimal beta;
     private Financial ttm;
 
     @Data
@@ -20,6 +22,7 @@ public class PriceIndicators
         private BigDecimal marketCapToGrossProfit;
         private BigDecimal marketCapToOperatingIncome;
         private BigDecimal marketCapToNetIncome;
+        private BigDecimal marketCapToFreeCashFlow;
         private BigDecimal dividendYield;
     }
 }

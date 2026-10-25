@@ -9,7 +9,10 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.PolygonFinancials;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
+import org.kaleta.client.dto.PolygonNews;
+import org.kaleta.client.dto.PolygonSplit;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -22,7 +25,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 @ApplicationScoped
 @IfBuildProperty(name = "polygon.mode", stringValue = "real", enableIfMissing = true)
@@ -47,6 +53,30 @@ public class ProductionPolygonClient implements PolygonClient
     }
 
     @Override
+    public Optional<PolygonCompanyProfile> getCompanyProfile(String ticker) throws RequestFailureException
+    {
+        URI endpoint = URI.create(apiUrl + "/v3/reference/tickers/" + encode(ticker));
+        TickerDetailsResponse response = get(endpoint, TickerDetailsResponse.class);
+        TickerDetails details = response.results();
+        if (details == null) return Optional.empty();
+
+        return Optional.of(new PolygonCompanyProfile(
+                details.name(),
+                details.description(),
+                details.website(),
+                details.exchange(),
+                details.currency(),
+                details.locale(),
+                details.type(),
+                details.active(),
+                details.industry(),
+                details.listDate(),
+                details.marketCap(),
+                details.sharesOutstanding(),
+                details.employees()));
+    }
+
+    @Override
     public Optional<PolygonFinancials> getFinancials(
             String ticker,
             String fiscalYear,
@@ -62,11 +92,13 @@ public class ProductionPolygonClient implements PolygonClient
         if (timeframe != null) endpoint.append("&timeframe=").append(timeframe);
 
         FinancialsResponse response = get(URI.create(endpoint.toString()), FinancialsResponse.class);
-        return optionalList(response.results()).stream()
+        Optional<FinancialResult> matchingResult = optionalList(response.results()).stream()
                 .filter(result -> fiscalYear.equals(result.fiscalYear())
                         && fiscalPeriod.equals(result.fiscalPeriod()))
-                .findFirst()
-                .map(ProductionPolygonClient::toFinancials);
+                .findFirst();
+        return matchingResult.isEmpty()
+                ? Optional.empty()
+                : Optional.of(toFinancials(matchingResult.get()));
     }
 
     @Override
@@ -94,7 +126,24 @@ public class ProductionPolygonClient implements PolygonClient
                 .min(Comparator.naturalOrder())
                 .orElse(null);
         if (high == null && low == null) return Optional.empty();
-        return Optional.of(new PolygonPriceRange(high, low));
+
+        return Optional.of(new PolygonPriceRange(high, low, "USD"));
+    }
+
+    @Override
+    public List<PolygonSplit> getSplits(String ticker, String executedFrom) throws RequestFailureException
+    {
+        URI endpoint = URI.create(apiUrl
+                + "/stocks/v1/splits?ticker=" + encode(ticker)
+                + "&execution_date.gte=" + encode(executedFrom)
+                + "&sort=execution_date&order=desc&limit=50");
+        SplitsResponse response = get(endpoint, SplitsResponse.class);
+
+        return optionalList(response.results()).stream()
+                .filter(split -> split.executionDate() != null)
+                .filter(split -> split.splitFrom() != null && split.splitTo() != null)
+                .map(split -> new PolygonSplit(split.splitFrom(), split.splitTo(), split.executionDate()))
+                .toList();
     }
 
     private <T> T get(URI uri, Class<T> responseType) throws RequestFailureException
@@ -118,6 +167,71 @@ public class ProductionPolygonClient implements PolygonClient
         }
     }
 
+    @Override
+    public List<PolygonNews> getNews(String ticker, String publishedFrom, int limit)
+            throws RequestFailureException
+    {
+        URI endpoint = URI.create(apiUrl
+                + "/v2/reference/news?ticker=" + encode(ticker)
+                + "&published_utc.gte=" + encode(publishedFrom)
+                + "&order=desc&sort=published_utc&limit=" + limit);
+
+        NewsResponse response = get(endpoint, NewsResponse.class);
+        return optionalList(response.results()).stream()
+                .map(ProductionPolygonClient::toNews)
+                .toList();
+    }
+
+    private static PolygonNews toNews(NewsResult result)
+    {
+        List<PolygonNews.Insight> insights = result.insights() == null
+                ? List.of()
+                : result.insights().stream()
+                        .map(insight -> new PolygonNews.Insight(
+                                insight.ticker(), insight.sentiment(), insight.sentiment_reasoning()))
+                        .toList();
+
+        return new PolygonNews(
+                result.id(),
+                result.title(),
+                result.publisher() == null ? null : result.publisher().name(),
+                result.published_utc(),
+                result.article_url(),
+                result.description(),
+                insights);
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    public record NewsResponse(List<NewsResult> results)
+    {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    public record NewsResult(
+            String id,
+            String title,
+            NewsPublisher publisher,
+            String published_utc,
+            String article_url,
+            String description,
+            List<NewsInsight> insights)
+    {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    public record NewsPublisher(String name)
+    {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    public record NewsInsight(String ticker, String sentiment, String sentiment_reasoning)
+    {
+    }
+
     private String errorMessage(HttpResponse<String> response)
     {
         String reason = null;
@@ -132,22 +246,56 @@ public class ProductionPolygonClient implements PolygonClient
         return reason == null || reason.isBlank() ? message : message + ": " + reason;
     }
 
-    private static PolygonFinancials toFinancials(FinancialResult result)
+    private static PolygonFinancials toFinancials(FinancialResult result) throws RequestFailureException
     {
         IncomeStatement statement = result.financials() == null
                 ? null
                 : result.financials().incomeStatement();
         return new PolygonFinancials(
-                value(statement == null ? null : statement.basicAverageShares()),
+                value(statement == null ? null : statement.dilutedAverageShares()),
                 value(statement == null ? null : statement.revenues()),
                 value(statement == null ? null : statement.grossProfit()),
                 value(statement == null ? null : statement.operatingIncomeLoss()),
-                value(statement == null ? null : statement.netIncomeLoss()));
+                value(statement == null ? null : statement.netIncomeLoss()),
+                reportedCurrency(statement));
+    }
+
+    private static String reportedCurrency(IncomeStatement statement) throws RequestFailureException
+    {
+        if (statement == null) return null;
+
+        Set<String> currencies = new TreeSet<>();
+        Metric[] monetaryMetrics = {
+                statement.revenues(),
+                statement.grossProfit(),
+                statement.operatingIncomeLoss(),
+                statement.netIncomeLoss()
+        };
+        for (Metric metric : monetaryMetrics) {
+            if (metric == null || metric.value() == null) continue;
+            String currency = normalizeCurrency(metric.unit());
+            if (currency == null) return null;
+            currencies.add(currency);
+        }
+
+        if (currencies.size() > 1) {
+            throw new RequestFailureException(
+                    "Polygon.io financial metrics use inconsistent currencies: "
+                            + String.join(", ", currencies));
+        }
+        return currencies.stream().findFirst().orElse(null);
     }
 
     private static BigDecimal value(Metric metric)
     {
         return metric == null ? null : metric.value();
+    }
+
+    private static String normalizeCurrency(String currency)
+    {
+        return currency == null || currency.isBlank()
+                ? null
+                : currency.trim().toUpperCase(Locale.ROOT);
     }
 
     private static String encode(String value)
@@ -158,6 +306,21 @@ public class ProductionPolygonClient implements PolygonClient
     private static <T> List<T> optionalList(List<T> values)
     {
         return values == null ? List.of() : values;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    private record SplitsResponse(List<SplitResult> results)
+    {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    private record SplitResult(
+            @JsonProperty("split_from") BigDecimal splitFrom,
+            @JsonProperty("split_to") BigDecimal splitTo,
+            @JsonProperty("execution_date") String executionDate)
+    {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -185,7 +348,7 @@ public class ProductionPolygonClient implements PolygonClient
     @JsonIgnoreProperties(ignoreUnknown = true)
     @RegisterForReflection
     private record IncomeStatement(
-            @JsonProperty("basic_average_shares") Metric basicAverageShares,
+            @JsonProperty("diluted_average_shares") Metric dilutedAverageShares,
             Metric revenues,
             @JsonProperty("gross_profit") Metric grossProfit,
             @JsonProperty("operating_income_loss") Metric operatingIncomeLoss,
@@ -195,7 +358,7 @@ public class ProductionPolygonClient implements PolygonClient
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     @RegisterForReflection
-    private record Metric(BigDecimal value)
+    private record Metric(BigDecimal value, String unit)
     {
     }
 
@@ -212,4 +375,30 @@ public class ProductionPolygonClient implements PolygonClient
             @JsonProperty("l") BigDecimal low)
     {
     }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    private record TickerDetailsResponse(TickerDetails results)
+    {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @RegisterForReflection
+    private record TickerDetails(
+            String name,
+            String description,
+            @JsonProperty("homepage_url") String website,
+            @JsonProperty("primary_exchange") String exchange,
+            @JsonProperty("currency_name") String currency,
+            String locale,
+            String type,
+            Boolean active,
+            @JsonProperty("sic_description") String industry,
+            @JsonProperty("list_date") String listDate,
+            @JsonProperty("market_cap") BigDecimal marketCap,
+            @JsonProperty("share_class_shares_outstanding") BigDecimal sharesOutstanding,
+            @JsonProperty("total_employees") Integer employees)
+    {
+    }
+
 }

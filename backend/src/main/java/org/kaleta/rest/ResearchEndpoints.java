@@ -2,18 +2,24 @@ package org.kaleta.rest;
 
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
+import org.kaleta.model.PriceIndicators;
+import org.kaleta.rest.dto.PeriodContentDto;
 import org.kaleta.model.Company;
 import org.kaleta.model.Periods;
 import org.kaleta.model.Record;
 import org.kaleta.persistence.entity.Latest;
 import org.kaleta.model.PeriodEstimates;
+import org.kaleta.persistence.entity.Estimate;
+import org.kaleta.model.TargetStats;
 import org.kaleta.rest.dto.PeriodImportDataDto;
+import org.kaleta.rest.dto.PeriodImportDto;
 import org.kaleta.rest.dto.ResearchDto;
 import org.kaleta.rest.validation.ValidPeriodName;
 import org.kaleta.rest.validation.ValidId;
@@ -23,12 +29,16 @@ import org.kaleta.service.EstimateService;
 import org.kaleta.service.FirebaseService;
 import org.kaleta.service.ImportService;
 import org.kaleta.service.LatestService;
+import org.kaleta.service.PeriodContentService;
 import org.kaleta.service.PeriodService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
+import org.kaleta.service.TargetService;
 
+import java.sql.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Path("/research")
 public class ResearchEndpoints
@@ -51,11 +61,15 @@ public class ResearchEndpoints
     ImportService importService;
     @Inject
     EstimateService estimateService;
+    @Inject
+    TargetService targetService;
+    @Inject
+    PeriodContentService periodContentService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{companyId}")
-    public Response get(@NotNull @ValidId @PathParam("companyId") Long companyId)
+    public ResearchDto get(@NotNull @ValidId @PathParam("companyId") Long companyId)
     {
         ResearchDto dto = new ResearchDto();
         Company company = companyService.getCompany(companyId);
@@ -64,24 +78,56 @@ public class ResearchEndpoints
         Periods periodsModel = periodService.getBy(companyId);
         dto.setFinancials(periodsModel.getFinancials());
         dto.setTtm(periodsModel.getTtm());
-        Map<Long, PeriodEstimates> estimates = estimateService.getLatestByPeriodIds(
-                periodsModel.getPeriods().stream()
-                        .map(Periods.Period::getId)
-                        .toList());
         periodsModel.getPeriods().stream()
                 .findFirst()
+                .filter(period -> period.getFinancial() == null)
+                .ifPresent(period -> {
+                    PeriodImportDto firebasePeriod =
+                            firebaseService.getPeriod(company.getTicker(), period.getName().toString());
+                    if (firebasePeriod == null) return;
+                    if (firebasePeriod.getReportDate() != null) {
+                        period.setExpectedReportDate(Date.valueOf(firebasePeriod.getReportDate()));
+                    }
+                    period.setReportedInFirebase(firebasePeriod.getIsReported());
+                });
+        List<Long> periodIds = periodsModel.getPeriods().stream()
                 .map(Periods.Period::getId)
+                .toList();
+        Map<Long, List<PeriodEstimates>> estimates = estimateService.getAllByPeriodIds(periodIds, Estimate.EPS);
+        Map<Long, List<PeriodEstimates>> revenueEstimates =
+                estimateService.getAllByPeriodIds(periodIds, Estimate.REVENUE);
+        Map<Long, TargetStats> targetStats = targetService.getStatistics(periodIds);
+        Optional<Long> latestId = periodsModel.getPeriods().stream()
+                .findFirst()
+                .map(Periods.Period::getId);
+        // The overview speaks for the company as it stands, so it is drawn from the newest
+        // estimate of the newest period - the first of the list, which is ordered that way.
+        latestId
                 .map(estimates::get)
+                .map(List::getFirst)
                 .map(estimateService::createOverview)
                 .ifPresent(dto::setEstimateOverview);
+        latestId
+                .map(revenueEstimates::get)
+                .map(List::getFirst)
+                .map(estimateService::createOverview)
+                .ifPresent(dto::setRevenueEstimateOverview);
+        Map<Long, List<PeriodContentDto>> contents = periodContentService.getByPeriodIds(periodIds);
         periodsModel.getPeriods().forEach(period -> {
-            dto.addPeriod(period, estimates.get(period.getId()));
+            dto.addPeriod(
+                    period,
+                    estimates.getOrDefault(period.getId(), List.of()),
+                    revenueEstimates.getOrDefault(period.getId(), List.of()),
+                    targetStats.getOrDefault(period.getId(), TargetStats.empty()),
+                    contents.getOrDefault(period.getId(), List.of()));
         });
 
         List<Record> records = recordService.getBy(companyId);
         dto.getRecords().addAll(records);
 
-        Latest latest = latestService.getSyncedFor(companyId);
+        LatestService.SyncResult latestResult = latestService.getSyncedForWithWarnings(companyId);
+        Latest latest = latestResult.latest();
+        dto.getWarnings().addAll(latestResult.warnings());
 
         // backup if external service fails
         if (latest == null && !records.isEmpty()) {
@@ -94,10 +140,9 @@ public class ResearchEndpoints
         {
             dto.setLatest(latest);
 
-            if (dto.getTtm() != null && dto.getTtm().getShares() != null)
-            {
-                dto.setIndicators(arithmeticService.computeIndicators(latest, dto.getTtm()));
-            }
+            PriceIndicators indicators = arithmeticService.computeIndicators(latest, dto.getTtm());
+            indicators.setBeta(firebaseService.getBeta(company.getTicker()));
+            dto.setIndicators(indicators);
 
             dto.setAssets(tradeService.getAssets(companyId, latest.getPrice()));
         } else {
@@ -108,30 +153,34 @@ public class ResearchEndpoints
                 .findFirst()
                 .map(period -> period.getName().toString())
                 .orElse(null);
-        dto.setImportablePeriods(firebaseService.getNewerPeriods(company.getTicker(), latestPeriodId));
+        FirebaseService.ImportCandidatesResult importCandidates =
+                firebaseService.getNewerPeriods(company.getTicker(), latestPeriodId);
+        dto.setImportablePeriods(importCandidates.periods());
+        dto.getWarnings().addAll(importCandidates.warnings());
 
-        return Response.ok().entity(dto).build();
+        return dto;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{companyId}/import/period/{quarterId}")
-    public Response importPeriod(
+    public PeriodImportDataDto importPeriod(
             @NotNull @ValidId @PathParam("companyId") Long companyId,
-            @NotNull @ValidPeriodName @PathParam("quarterId") String quarterId)
+            @NotNull @ValidPeriodName @PathParam("quarterId") String quarterId,
+            @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d$", message = "must match YYYY-MM")
+            @QueryParam("endingMonth") String endingMonth)
     {
-        PeriodImportDataDto data = importService.getPeriod(companyId, quarterId);
-        return Response.ok().entity(data).build();
+        return importService.getPeriod(companyId, quarterId, endingMonth);
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{companyId}/import/estimate/{periodId}")
-    public Response importEstimate(
+    public org.kaleta.rest.dto.EstimateImportDto importEstimate(
             @NotNull @ValidId @PathParam("companyId") Long companyId,
             @NotNull @ValidId @PathParam("periodId") Long periodId)
     {
-        return Response.ok().entity(importService.getEstimate(companyId, periodId)).build();
+        return importService.getEstimate(companyId, periodId);
     }
 
 }

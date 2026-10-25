@@ -1,0 +1,84 @@
+{
+  "incomeStatements": {
+    "AMD": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "revenue": 11536000000,
+        "grossProfit": 6203000000,
+        "operatingIncome": 1990000000,
+        "netIncome": 2297000000,
+        "reportedCurrency": "USD"
+      }
+    }
+  },
+  "cashFlows": {
+    "AMD": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "dividend": 0,
+        "capex": 180000000,
+        "freeCashFlow": 1650000000,
+        "reportedCurrency": "USD"
+      }
+    }
+  },
+  "tickerSearches": {
+    "ASML": [
+      {
+        "symbol": "ASML",
+        "name": "ASML Holding NV",
+        "type": "Equity",
+        "region": "United States",
+        "currency": "USD",
+        "matchScore": 1.0
+      },
+      {
+        "symbol": "ASML.AMS",
+        "name": "ASML Holding N.V.",
+        "type": "Equity",
+        "region": "Amsterdam",
+        "currency": "EUR",
+        "matchScore": 0.7273
+      },
+      {
+        "symbol": "ASME.FRK",
+        "name": "ASML Holding NV",
+        "type": "Equity",
+        "region": "Frankfurt",
+        "currency": "EUR",
+        "matchScore": 0.6
+      }
+    ]
+  },
+  "quotes": {
+    "ASML.AMS": {
+      "price": 1489.8,
+      "date": "2026-08-24"
+    }
+  },
+  "priceRanges": {
+    "ASML.AMS": {
+      "2026-04-22:2026-07-22": {
+        "high": 1550.4,
+        "low": 1178.2
+      }
+    }
+  },
+  "shares": {
+    "ASML.AMS": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "shares": 393000000,
+        "reportedCurrency": "EUR"
+      }
+    }
+  },
+  "earnings": {
+    "ASML.AMS": {
+      "26Q2": {
+        "endingMonth": "2026-06",
+        "reportedEps": 7.42
+      }
+    }
+  }
+}

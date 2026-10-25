@@ -1,34 +1,27 @@
 package org.kaleta.firebase;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.auth.Credentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseException;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.internal.NonNull;
 import io.quarkus.arc.properties.IfBuildProperty;
+import io.quarkus.logging.Log;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
+import org.kaleta.model.FirebaseInstitution;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.LinkedHashSet;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -39,84 +32,85 @@ import java.util.concurrent.TimeoutException;
 public class RealtimeFirebaseStore implements FirebaseStore
 {
     private static final long READ_TIMEOUT_SECONDS = 10;
+    private static final int LATEST_NEWS_SENTIMENT_CANDIDATES = 10;
 
     private static final class FirebasePath
     {
         private static final String COMPANY = "company";
         private static final String ASSET = "asset";
+        private static final String INSTITUTION = "institution";
         private static final String GEMINI = "gemini";
+        private static final String INFO = "info";
         private static final String QUARTERS = "quarters";
+        private static final String TARGETS = "targets";
         private static final String FINNHUB_EARNINGS = "fhe";
+        private static final String INDICATORS = "indicators";
+        private static final String NEWS_SENTIMENT = "pgn";
+        private static final String BULL_BEAR = "bull_bear";
     }
 
     private final FirebaseDatabase database;
-    private final Credentials credentials;
-    private final ObjectMapper objectMapper;
-    private final String databaseUrl;
 
     public RealtimeFirebaseStore(
             FirebaseApp app,
-            Credentials credentials,
-            ObjectMapper objectMapper,
             @ConfigProperty(name = "firebase.db.url") String databaseUrl)
     {
         database = FirebaseDatabase.getInstance(app, databaseUrl);
-        this.credentials = credentials;
-        this.objectMapper = objectMapper;
-        this.databaseUrl = databaseUrl.endsWith("/")
-                ? databaseUrl.substring(0, databaseUrl.length() - 1)
-                : databaseUrl;
     }
 
     @Override
-    public Set<String> findQuarterIds(String ticker)
+    public Map<String, QuarterMetadata> findQuartersMetadata(String ticker)
     {
-        String encodedTicker = URLEncoder.encode(ticker, StandardCharsets.UTF_8);
-        URI uri = URI.create(databaseUrl
-                + "/company/" + encodedTicker
-                + "/gemini/quarters.json?shallow=true");
+        DataSnapshot quarters = read(company(ticker)
+                .child(FirebasePath.GEMINI)
+                .child(FirebasePath.QUARTERS));
+        Map<String, QuarterMetadata> result = new LinkedHashMap<>();
+        for (DataSnapshot quarter : quarters.getChildren()) {
+            String revenues = quarter.child("reported_revenues").getValue(String.class);
+            result.put(quarter.getKey(), new QuarterMetadata(
+                    quarter.child("ending_month").getValue(String.class),
+                    revenues != null && !revenues.isBlank()));
+        }
+        return Map.copyOf(result);
+    }
 
-        HttpURLConnection connection = null;
+    @Override
+    public Map<String, FirebaseCompany> findAllCompanies()
+    {
+        return readChildren(database.getReference(FirebasePath.COMPANY), FirebaseCompany.class);
+    }
+
+    @Override
+    public Optional<FirebaseCompany> findCompany(String ticker)
+    {
+        DataSnapshot snapshot = read(company(ticker));
+        if (!snapshot.exists()) return Optional.empty();
         try {
-            connection = (HttpURLConnection) uri.toURL().openConnection();
-            connection.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(READ_TIMEOUT_SECONDS));
-            connection.setReadTimeout((int) TimeUnit.SECONDS.toMillis(READ_TIMEOUT_SECONDS));
-            for (Map.Entry<String, List<String>> header : credentials.getRequestMetadata(uri).entrySet()) {
-                for (String value : header.getValue()) {
-                    connection.addRequestProperty(header.getKey(), value);
-                }
-            }
-
-            int status = connection.getResponseCode();
-            if (status < 200 || status >= 300) {
-                throw new IllegalStateException("Firebase shallow read failed with HTTP status " + status);
-            }
-
-            try (InputStream response = connection.getInputStream()) {
-                JsonNode keys = objectMapper.readTree(response);
-                if (keys == null || !keys.isObject()) return Set.of();
-
-                Set<String> result = new LinkedHashSet<>();
-                keys.fieldNames().forEachRemaining(result::add);
-                return Collections.unmodifiableSet(result);
-            }
-        } catch (IOException exception) {
-            throw new IllegalStateException("Failed to read Firebase quarter keys", exception);
-        } finally {
-            if (connection != null) connection.disconnect();
+            return Optional.ofNullable(snapshot.getValue(FirebaseCompany.class));
+        } catch (DatabaseException exception) {
+            Log.debugf("Firebase entry '%s' is not a company: %s", ticker, exception.getMessage());
+            return Optional.empty();
         }
     }
 
     @Override
-    public QuarterMetadata findQuarterMetadata(String ticker, String quarterId)
+    public Map<String, FirebaseInstitution> findAllInstitutions()
     {
-        DatabaseReference quarter = company(ticker)
+        return readChildren(database.getReference(FirebasePath.INSTITUTION), FirebaseInstitution.class);
+    }
+
+    @Override
+    public Optional<FirebaseCompany.Gemini.Info> findGeminiInfo(String ticker)
+    {
+        return read(company(ticker)
                 .child(FirebasePath.GEMINI)
-                .child(FirebasePath.QUARTERS)
-                .child(quarterId);
-        String endingMonth = read(quarter.child("ending_month"), String.class).orElse(null);
-        String revenues = read(quarter.child("reported_revenues"), String.class).orElse(null);
-        return new QuarterMetadata(endingMonth, revenues != null && !revenues.isBlank());
+                .child(FirebasePath.INFO), FirebaseCompany.Gemini.Info.class);
+    }
+
+    @Override
+    public Optional<FirebaseCompany.Indicators> findIndicators(String ticker)
+    {
+        return read(company(ticker).child(FirebasePath.INDICATORS), FirebaseCompany.Indicators.class);
     }
 
     @Override
@@ -137,6 +131,37 @@ public class RealtimeFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public Map<String, FirebaseCompany.Gemini.Target> findTargets(String ticker)
+    {
+        return readChildren(company(ticker)
+                .child(FirebasePath.GEMINI)
+                .child(FirebasePath.TARGETS), FirebaseCompany.Gemini.Target.class);
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.NewsSentiment> findNewsSentiments(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive)
+    {
+        Query query = newsSentiments(ticker)
+                .orderByKey()
+                .startAt(startInclusive.toString())
+                .endAt(endExclusive.toString());
+        return readChildren(query, FirebaseCompany.NewsSentiment.class);
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.NewsSentiment> findLatestNewsSentiments(String ticker)
+    {
+        return readChildren(
+                newsSentiments(ticker)
+                        .orderByKey()
+                        .limitToLast(LATEST_NEWS_SENTIMENT_CANDIDATES),
+                FirebaseCompany.NewsSentiment.class);
+    }
+
+    @Override
     public void replaceAssets(List<FirebaseAsset> assets)
     {
         DatabaseReference reference = database.getReference(FirebasePath.ASSET);
@@ -150,6 +175,7 @@ public class RealtimeFirebaseStore implements FirebaseStore
     public void updateQuarter(String ticker, String quarterId, FirebaseCompany.Gemini.Quarter quarter)
     {
         Map<String, Object> values = new LinkedHashMap<>();
+        values.put("ending_month", quarter.getEnding_month());
         values.put("report_date_this_quarter", quarter.getReport_date_this_quarter());
         values.put("reported_shares", quarter.getReported_shares());
         values.put("price_min", quarter.getPrice_min());
@@ -160,6 +186,8 @@ public class RealtimeFirebaseStore implements FirebaseStore
         values.put("reported_net_income", quarter.getReported_net_income());
         values.put("reported_div", quarter.getReported_div());
         values.put("reported_eps", quarter.getReported_eps());
+        values.put("reported_capex", quarter.getReported_capex());
+        values.put("reported_free_cash_flow", quarter.getReported_free_cash_flow());
 
         company(ticker)
                 .child(FirebasePath.GEMINI)
@@ -168,9 +196,89 @@ public class RealtimeFirebaseStore implements FirebaseStore
                 .updateChildrenAsync(values);
     }
 
+    @Override
+    public void updateQuarterEndingMonth(String ticker, String quarterId, String endingMonth)
+    {
+        company(ticker)
+                .child(FirebasePath.GEMINI)
+                .child(FirebasePath.QUARTERS)
+                .child(quarterId)
+                .updateChildrenAsync(Map.of("ending_month", endingMonth));
+    }
+
+    @Override
+    public void createCompany(String ticker)
+    {
+        company(ticker).setValueAsync("");
+    }
+
+    @Override
+    public void updateCompanyEnabled(String ticker, boolean enabled)
+    {
+        company(ticker).updateChildrenAsync(Map.of("enabled", enabled));
+    }
+
+    @Override
+    public void mergeInstitutions(String sourceKey, String targetKey, Map<String, String> aliases)
+    {
+        Map<String, Object> updates = new LinkedHashMap<>();
+        aliases.forEach((alias, label) -> updates.put(targetKey + "/aliases/" + alias, label));
+        updates.put(sourceKey, null);
+
+        database.getReference(FirebasePath.INSTITUTION).updateChildrenAsync(updates);
+    }
+
+    @Override
+    public void updateInstitutionFlags(String key, boolean enabled, boolean trusted)
+    {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("enabled", enabled);
+        values.put("trusted", trusted);
+
+        database.getReference(FirebasePath.INSTITUTION).child(key).updateChildrenAsync(values);
+    }
+
+    @Override
+    public void deleteTarget(String ticker, String key)
+    {
+        company(ticker)
+                .child(FirebasePath.GEMINI)
+                .child(FirebasePath.TARGETS)
+                .child(key)
+                .removeValueAsync();
+    }
+
     private DatabaseReference company(String ticker)
     {
         return database.getReference(FirebasePath.COMPANY).child(ticker);
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.Gemini.BullBear> findBullBearCases(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive)
+    {
+        Query query = bullBearCases(ticker)
+                .orderByKey()
+                .startAt(startInclusive.toString())
+                .endAt(endExclusive.toString());
+        return readChildren(query, FirebaseCompany.Gemini.BullBear.class);
+    }
+
+    private DatabaseReference bullBearCases(String ticker)
+    {
+        return database.getReference(FirebasePath.COMPANY)
+                .child(ticker.replace(".", "-"))
+                .child(FirebasePath.GEMINI)
+                .child(FirebasePath.BULL_BEAR);
+    }
+
+    private DatabaseReference newsSentiments(String ticker)
+    {
+        return database.getReference(FirebasePath.COMPANY)
+                .child(ticker.replace(".", "-"))
+                .child(FirebasePath.NEWS_SENTIMENT);
     }
 
     private <T> Optional<T> read(DatabaseReference reference, Class<T> clazz)
@@ -179,17 +287,26 @@ public class RealtimeFirebaseStore implements FirebaseStore
         return snapshot.exists() ? Optional.ofNullable(snapshot.getValue(clazz)) : Optional.empty();
     }
 
-    private <T> Map<String, T> readChildren(DatabaseReference reference, Class<T> clazz)
+    private <T> Map<String, T> readChildren(Query query, Class<T> clazz)
     {
-        DataSnapshot snapshot = read(reference);
+        return toChildMap(read(query), clazz);
+    }
+
+    static <T> Map<String, T> toChildMap(DataSnapshot snapshot, Class<T> clazz)
+    {
         Map<String, T> result = new LinkedHashMap<>();
         for (DataSnapshot child : snapshot.getChildren()) {
-            result.put(child.getKey(), child.getValue(clazz));
+            try {
+                result.put(child.getKey(), child.getValue(clazz));
+            } catch (DatabaseException exception) {
+                Log.debugf("Skipping Firebase entry '%s' that is not a %s: %s",
+                        child.getKey(), clazz.getSimpleName(), exception.getMessage());
+            }
         }
         return result;
     }
 
-    private DataSnapshot read(DatabaseReference reference)
+    private DataSnapshot read(Query query)
     {
         CompletableFuture<DataSnapshot> result = new CompletableFuture<>();
         ValueEventListener listener = new ValueEventListener()
@@ -206,7 +323,7 @@ public class RealtimeFirebaseStore implements FirebaseStore
                 result.completeExceptionally(error.toException());
             }
         };
-        reference.addListenerForSingleValueEvent(listener);
+        query.addListenerForSingleValueEvent(listener);
 
         try {
             return result.get(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -215,12 +332,12 @@ public class RealtimeFirebaseStore implements FirebaseStore
             throw new IllegalStateException("Firebase read was interrupted", exception);
         } catch (ExecutionException exception) {
             throw new IllegalStateException(
-                    "Failed to read Firebase path '" + reference.getKey() + "'",
+                    "Failed to read Firebase path '" + query.getRef().getKey() + "'",
                     exception.getCause());
         } catch (TimeoutException exception) {
-            reference.removeEventListener(listener);
+            query.removeEventListener(listener);
             throw new IllegalStateException(
-                    "Timed out reading Firebase path '" + reference.getKey() + "'",
+                    "Timed out reading Firebase path '" + query.getRef().getKey() + "'",
                     exception);
         }
     }

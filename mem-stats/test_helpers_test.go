@@ -1,6 +1,9 @@
 package main
 
-import "sync"
+import (
+	"sort"
+	"sync"
+)
 
 type collectingStatisticsStore struct {
 	mu      sync.Mutex
@@ -52,6 +55,26 @@ func (store *collectingStatisticsStore) Finalize(record historyRecord) error {
 	delete(store.records, activeRecordID(record.ContainerName))
 	store.records[record.ID] = record
 	return nil
+}
+
+func (store *collectingStatisticsStore) ListFinalized() ([]historyRecord, error) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	if store.err != nil {
+		return nil, store.err
+	}
+	store.initialize()
+	records := make([]historyRecord, 0, len(store.records))
+	for _, record := range store.records {
+		if record.ID != activeRecordID(record.ContainerName) {
+			records = append(records, cloneHistoryRecord(record))
+		}
+	}
+	sort.Slice(records, func(left, right int) bool {
+		return records[left].ObservedUntil.After(records[right].ObservedUntil)
+	})
+	return records, nil
 }
 
 func (store *collectingStatisticsStore) Records() []historyRecord {

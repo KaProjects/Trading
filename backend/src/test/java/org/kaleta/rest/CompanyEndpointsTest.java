@@ -1,5 +1,6 @@
 package org.kaleta.rest;
 
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.common.mapper.TypeRef;
 import io.restassured.http.ContentType;
@@ -9,17 +10,21 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.kaleta.framework.Assert;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.model.CompanyAggregates;
 import org.kaleta.persistence.api.CompanyDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.CompanyWithStats;
 import org.kaleta.persistence.entity.Currency;
+import org.kaleta.persistence.entity.Exchange;
 import org.kaleta.persistence.entity.Portfolio;
 import org.kaleta.persistence.entity.Sector;
+import org.kaleta.rest.dto.ActionableCompanyDto;
 import org.kaleta.rest.dto.CompanyCreateDto;
 import org.kaleta.rest.dto.CompanyTagCreateDto;
 import org.kaleta.rest.dto.CompanyUpdateDto;
 import org.kaleta.rest.dto.CompanyValuesDto;
+import org.kaleta.service.TargetService;
 
 import java.util.List;
 import java.util.Map;
@@ -29,12 +34,14 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.kaleta.framework.Assert.ExpectedViolation.NOT_NULL;
 import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -44,6 +51,8 @@ class CompanyEndpointsTest
 
     @Inject
     CompanyDao companyDao;
+    @InjectMock
+    TargetService targetService;
 
     @Test
     @Order(1)
@@ -58,11 +67,35 @@ class CompanyEndpointsTest
 
         assertThat(dto.getSectors().size(), is(Sector.values().length));
         assertThat(dto.getCurrencies().size(), is(Currency.values().length));
+        assertThat(dto.getExchanges().size(), is(Exchange.values().length));
+        assertThat(dto.getExchanges().stream()
+                .filter(exchange -> exchange.getKey().equals(Exchange.XPRA.toString()))
+                .findFirst().orElseThrow().getTradingViewCode(), is("PSECZ"));
         assertThat(dto.getPortfolios().size(), is(Portfolio.values().length));
-        assertThat(dto.getPortfolios().get(0).getKey(), is(Portfolio.PATRIA_DIP.toString()));
-        assertThat(dto.getPortfolios().get(0).getName(), is(Portfolio.PATRIA_DIP.getName()));
-        assertThat(dto.getPortfolios().get(0).getAbbreviation(), is("Pd"));
+        assertThat(dto.getPortfolios().get(0).getKey(), is(Portfolio.FIDELITY_ORCL.toString()));
+        assertThat(dto.getPortfolios().get(0).getName(), is("Fidelity - ORCL"));
+        assertThat(dto.getPortfolios().get(0).getAbbreviation(), is("Fo"));
         assertThat(dto.getYears(), is(List.of("2024", "2023", "2022", "2021", "2020", "2018")));
+    }
+
+    @Test
+    @Order(1)
+    void getPolygonCompanyProfile()
+    {
+        PolygonCompanyProfile profile = given()
+                .queryParam("ticker", "INTC")
+                .when().get(path + "/polygon/profile")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().as(PolygonCompanyProfile.class);
+
+        assertThat(profile.name(), is("Intel Corporation"));
+        assertThat(profile.website(), is("https://www.intel.com"));
+
+        Assert.getValidationError(path + "/polygon/profile?ticker=invalid", "must be a valid Ticker");
+        Assert.get400(path + "/polygon/profile?ticker=ZZZZZ",
+                "Polygon.io company data for ticker 'ZZZZZ' was not found");
     }
 
     @Test
@@ -78,12 +111,57 @@ class CompanyEndpointsTest
 
         List<CompanyWithStats> owned = dto.get("owned");
         List<CompanyWithStats> all = dto.get("all");
-        assertThat(dto.keySet().stream().toList(), is(List.of("owned", "all")));
+        List<CompanyWithStats> hasPeriod = dto.get("_has-period");
+        // The debug list comes after everything else, "all" included.
+        assertThat(dto.keySet().stream().toList(), is(List.of("owned", "all", "_has-period")));
         assertThat(owned.size(), is(6));
         assertThat(tickers(owned), is(List.of("CEZ", "RCH", "RR", "SELL", "XRSA", "XRSB")));
-        assertThat(all.size(), is(26));
+        assertThat(all.size(), is(31));
         assertThat(all.get(0).getTicker(), is("ABCD"));
         assertThat(tickers(all), is(tickers(all).stream().sorted().toList()));
+
+        // Every company that has a period, whether or not anything is reported for it. Other
+        // test classes add periods of their own, so this asserts the rule, not a fixed list.
+        assertThat(tickers(hasPeriod), is(tickers(hasPeriod).stream().sorted().toList()));
+        assertThat(tickers(hasPeriod), hasItems("RCH", "UPD"));
+        assertThat(tickers(all), hasItems(tickers(hasPeriod).toArray(new String[0])));
+        assertThat(tickers(hasPeriod), not(hasItem("ABCD")));
+
+        // PCCT has two periods: one with a day written in it, one holding the editor's empty
+        // document, which is not content.
+        CompanyWithStats counted = hasPeriod.stream()
+                .filter(company -> company.getTicker().equals("PCCT"))
+                .findFirst().orElseThrow();
+        assertThat(counted.getPeriodCount(), is(2));
+        assertThat(counted.getPeriodsWithContentCount(), is(1));
+    }
+
+    @Test
+    @Order(1)
+    void getActionableCompanies_sortsCompaniesFromTargetServiceByTicker()
+    {
+        CompanyWithStats amdCompany = new CompanyWithStats();
+        amdCompany.setTicker("AMD");
+        ActionableCompanyDto amd = new ActionableCompanyDto();
+        amd.setCompany(amdCompany);
+        amd.setImportablePeriodsCount(1);
+        CompanyWithStats nvdaCompany = new CompanyWithStats();
+        nvdaCompany.setTicker("NVDA");
+        ActionableCompanyDto nvda = new ActionableCompanyDto();
+        nvda.setCompany(nvdaCompany);
+        nvda.setImportableTargetsCount(2);
+        when(targetService.getCompaniesWithImportCandidates()).thenReturn(List.of(nvda, amd));
+
+        List<ActionableCompanyDto> result = given().when()
+                .get(path + "/lists/actionable")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().as(new TypeRef<>() {});
+
+        assertThat(result.stream().map(dto -> dto.getCompany().getTicker()).toList(), is(List.of("AMD", "NVDA")));
+        assertThat(result.get(0).getImportablePeriodsCount(), is(1));
+        assertThat(result.get(1).getImportableTargetsCount(), is(2));
     }
 
     @Test
@@ -94,6 +172,10 @@ class CompanyEndpointsTest
         dto.setId(1842L);
         dto.setCurrency(Currency.K.toString());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setExchange(Exchange.XPRA.toString());
+        dto.setName("Updated Company");
+        dto.setDescription("Updated description");
+        dto.setWebsite("https://example.test/updated");
 
         Assert.put204(path, dto);
 
@@ -102,6 +184,10 @@ class CompanyEndpointsTest
         assertThat(company.getTicker(), is("UPD"));
         assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
         assertThat(company.getSector(), is(Sector.valueOf(dto.getSector())));
+        assertThat(company.getExchange(), is(Exchange.XPRA));
+        assertThat(company.getName(), is(dto.getName()));
+        assertThat(company.getDescription(), is(dto.getDescription()));
+        assertThat(company.getWebsite(), is(dto.getWebsite()));
     }
 
     @Test
@@ -133,6 +219,12 @@ class CompanyEndpointsTest
         Assert.putValidationError(path, dto, "must be any of Sector");
         dto.setSector(validSector);
 
+        dto.setExchange("");
+        Assert.putValidationError(path, dto, "must be any of Exchange");
+        dto.setExchange("xyz");
+        Assert.putValidationError(path, dto, "must be any of Exchange");
+        dto.setExchange(null);
+
         dto.setId(null);
         Assert.putValidationError(path, dto, NOT_NULL);
         dto.setId(0L);
@@ -152,6 +244,10 @@ class CompanyEndpointsTest
         dto.setTicker("CCCCC");
         dto.setCurrency(Currency.K.toString());
         dto.setSector(Sector.SEMICONDUCTORS.toString());
+        dto.setExchange(Exchange.XNAS.toString());
+        dto.setName("Created Company");
+        dto.setDescription("Created description");
+        dto.setWebsite("https://example.test/created");
 
         Assert.post201(path, dto);
 
@@ -160,6 +256,10 @@ class CompanyEndpointsTest
         assertThat(company.getId(), is(not(nullValue())));
         assertThat(company.getCurrency(), is(Currency.valueOf(dto.getCurrency())));
         assertThat(company.getSector(), is(Sector.valueOf(dto.getSector())));
+        assertThat(company.getExchange(), is(Exchange.XNAS));
+        assertThat(company.getName(), is(dto.getName()));
+        assertThat(company.getDescription(), is(dto.getDescription()));
+        assertThat(company.getWebsite(), is(dto.getWebsite()));
     }
 
     @Test
@@ -190,6 +290,12 @@ class CompanyEndpointsTest
         dto.setSector("xyz");
         Assert.postValidationError(path, dto, "must be any of Sector");
         dto.setSector(validSector);
+
+        dto.setExchange("");
+        Assert.postValidationError(path, dto, "must be any of Exchange");
+        dto.setExchange("xyz");
+        Assert.postValidationError(path, dto, "must be any of Exchange");
+        dto.setExchange(null);
 
         dto.setTicker(null);
         Assert.postValidationError(path, dto, NOT_NULL);
@@ -268,7 +374,7 @@ class CompanyEndpointsTest
                 .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
         assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
-        assertThat(dto.getCompanies().size(), is(26));
+        assertThat(dto.getCompanies().size(), is(31));
         CompanyAggregates.Company company = dto.getCompanies().get(7);
         assertThat(company.getTicker(), is("NVDA"));
         assertThat(company.getCurrency(), is(Currency.$));
@@ -307,6 +413,7 @@ class CompanyEndpointsTest
         assertThat(dto.getCompanies().get(0).getTicker(), is("SHELL"));
         assertThat(dto.getCompanies().get(0).getCurrency(), is(Currency.€));
         assertThat(dto.getCompanies().get(0).getSector().getKey(), is(Sector.ENERGY_MINERALS.toString()));
+        assertThat(dto.getCompanies().get(0).getExchange().getKey(), is(Exchange.XAMS.toString()));
         assertThat(dto.getCompanies().get(0).getTotalTrades(), is(1));
         assertThat(dto.getCompanies().get(0).getActiveTrades(), is(0));
         assertThat(dto.getCompanies().get(0).getDividends(), is(0));
@@ -348,7 +455,7 @@ class CompanyEndpointsTest
                 .contentType(ContentType.JSON)
                 .extract().response().jsonPath().getObject("", CompanyAggregates.class);
 
-        int expectedCompanies = 26;
+        int expectedCompanies = 31;
 
         assertThat(dto.getSorts().size(), is(CompanyAggregates.Sort.values().length));
         assertThat(dto.getCompanies().size(), is(expectedCompanies));

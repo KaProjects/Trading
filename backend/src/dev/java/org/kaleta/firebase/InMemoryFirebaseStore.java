@@ -1,6 +1,7 @@
 package org.kaleta.firebase;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.logging.Log;
@@ -10,6 +11,7 @@ import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.model.FirebaseAsset;
 import org.kaleta.model.FirebaseCompany;
+import org.kaleta.model.FirebaseInstitution;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,13 +19,17 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 @Singleton
 @Startup
@@ -32,6 +38,7 @@ public class InMemoryFirebaseStore implements FirebaseStore
 {
     private final Map<String, FirebaseCompany> companies = new ConcurrentHashMap<>();
     private final List<FirebaseAsset> assets = new CopyOnWriteArrayList<>();
+    private final Map<String, FirebaseInstitution> institutions = new ConcurrentHashMap<>();
 
     @Inject
     public InMemoryFirebaseStore(
@@ -45,25 +52,80 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
-    public Set<String> findQuarterIds(String ticker)
+    public Map<String, QuarterMetadata> findQuartersMetadata(String ticker)
     {
         FirebaseCompany company = companies.get(ticker);
         if (company == null || company.getGemini() == null || company.getGemini().getQuarters() == null) {
-            return Set.of();
+            return Map.of();
         }
-        return Set.copyOf(company.getGemini().getQuarters().keySet());
+        return company.getGemini().getQuarters().entrySet().stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey,
+                        entry -> {
+                            FirebaseCompany.Gemini.Quarter quarter = entry.getValue();
+                            String revenues = quarter.getReported_revenues();
+                            return new QuarterMetadata(
+                                    quarter.getEnding_month(),
+                                    revenues != null && !revenues.isBlank());
+                        }));
     }
 
     @Override
-    public QuarterMetadata findQuarterMetadata(String ticker, String quarterId)
+    public Map<String, FirebaseCompany> findAllCompanies()
     {
-        FirebaseCompany.Gemini.Quarter quarter = findQuarter(ticker, quarterId).orElse(null);
-        if (quarter == null) return new QuarterMetadata(null, false);
+        return Map.copyOf(companies);
+    }
 
-        String revenues = quarter.getReported_revenues();
-        return new QuarterMetadata(
-                quarter.getEnding_month(),
-                revenues != null && !revenues.isBlank());
+    @Override
+    public Optional<FirebaseCompany> findCompany(String ticker)
+    {
+        return Optional.ofNullable(companies.get(ticker.replace(".", "-")));
+    }
+
+    @Override
+    public void mergeInstitutions(String sourceKey, String targetKey, Map<String, String> aliases)
+    {
+        FirebaseInstitution target = institutions.get(targetKey);
+        if (target == null) return;
+
+        Map<String, String> merged = new LinkedHashMap<>();
+        if (target.getAliases() != null) merged.putAll(target.getAliases());
+        merged.putAll(aliases);
+        target.setAliases(merged);
+        institutions.remove(sourceKey);
+    }
+
+    @Override
+    public void updateInstitutionFlags(String key, boolean enabled, boolean trusted)
+    {
+        FirebaseInstitution institution = institutions.get(key);
+        if (institution == null) return;
+
+        institution.setEnabled(enabled);
+        institution.setTrusted(trusted);
+    }
+
+    @Override
+    public Map<String, FirebaseInstitution> findAllInstitutions()
+    {
+        return Map.copyOf(institutions);
+    }
+
+    @Override
+    public Optional<FirebaseCompany.Gemini.Info> findGeminiInfo(String ticker)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getGemini() == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(company.getGemini().getInfo());
+    }
+
+    @Override
+    public Optional<FirebaseCompany.Indicators> findIndicators(String ticker)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        return company == null ? Optional.empty() : Optional.ofNullable(company.getIndicators());
     }
 
     @Override
@@ -87,6 +149,62 @@ public class InMemoryFirebaseStore implements FirebaseStore
     }
 
     @Override
+    public Map<String, FirebaseCompany.Gemini.Target> findTargets(String ticker)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getGemini() == null || company.getGemini().getTargets() == null) {
+            return Map.of();
+        }
+        return Map.copyOf(company.getGemini().getTargets());
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.NewsSentiment> findNewsSentiments(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive)
+    {
+        Map<String, FirebaseCompany.NewsSentiment> result = new LinkedHashMap<>();
+        newsSentiments(ticker).entrySet().stream()
+                .filter(entry -> entry.getKey() != null)
+                .filter(entry -> entry.getKey().compareTo(startInclusive.toString()) >= 0)
+                .filter(entry -> entry.getKey().compareTo(endExclusive.toString()) <= 0)
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+        return Collections.unmodifiableMap(result);
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.Gemini.BullBear> findBullBearCases(
+            String ticker,
+            LocalDate startInclusive,
+            LocalDate endExclusive)
+    {
+        Map<String, FirebaseCompany.Gemini.BullBear> result = new LinkedHashMap<>();
+        bullBearCases(ticker).entrySet().stream()
+                .filter(entry -> entry.getKey() != null)
+                .filter(entry -> entry.getKey().compareTo(startInclusive.toString()) >= 0)
+                .filter(entry -> entry.getKey().compareTo(endExclusive.toString()) <= 0)
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+        return Collections.unmodifiableMap(result);
+    }
+
+    @Override
+    public Map<String, FirebaseCompany.NewsSentiment> findLatestNewsSentiments(String ticker)
+    {
+        Map<String, FirebaseCompany.NewsSentiment> result = new LinkedHashMap<>();
+        newsSentiments(ticker).entrySet().stream()
+                .filter(entry -> entry.getKey() != null)
+                .sorted(Comparator.comparing(
+                        (Map.Entry<String, FirebaseCompany.NewsSentiment> entry) -> entry.getKey())
+                        .reversed())
+                .limit(10)
+                .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+        return Collections.unmodifiableMap(result);
+    }
+
+    @Override
     public void replaceAssets(List<FirebaseAsset> newAssets)
     {
         assets.clear();
@@ -99,6 +217,7 @@ public class InMemoryFirebaseStore implements FirebaseStore
         FirebaseCompany.Gemini.Quarter quarter = findQuarter(ticker, quarterId).orElse(null);
         if (quarter == null) return;
 
+        quarter.setEnding_month(update.getEnding_month());
         quarter.setReport_date_this_quarter(update.getReport_date_this_quarter());
         quarter.setReported_shares(update.getReported_shares());
         quarter.setPrice_min(update.getPrice_min());
@@ -109,11 +228,55 @@ public class InMemoryFirebaseStore implements FirebaseStore
         quarter.setReported_net_income(update.getReported_net_income());
         quarter.setReported_div(update.getReported_div());
         quarter.setReported_eps(update.getReported_eps());
+        quarter.setReported_capex(update.getReported_capex());
+        quarter.setReported_free_cash_flow(update.getReported_free_cash_flow());
+    }
+
+    @Override
+    public void updateQuarterEndingMonth(String ticker, String quarterId, String endingMonth)
+    {
+        findQuarter(ticker, quarterId).ifPresent(quarter -> quarter.setEnding_month(endingMonth));
+    }
+
+    @Override
+    public void createCompany(String ticker)
+    {
+        companies.putIfAbsent(ticker.replace(".", "-"), new FirebaseCompany());
+    }
+
+    @Override
+    public void updateCompanyEnabled(String ticker, boolean enabled)
+    {
+        FirebaseCompany company = companies.get(ticker.replace(".", "-"));
+        if (company != null) company.setEnabled(enabled);
+    }
+
+    @Override
+    public void deleteTarget(String ticker, String key)
+    {
+        FirebaseCompany company = companies.get(ticker);
+        if (company == null || company.getGemini() == null || company.getGemini().getTargets() == null) return;
+        company.getGemini().getTargets().remove(key);
     }
 
     List<FirebaseAsset> getAssets()
     {
         return List.copyOf(assets);
+    }
+
+    private Map<String, FirebaseCompany.Gemini.BullBear> bullBearCases(String ticker)
+    {
+        FirebaseCompany company = companies.get(ticker.replace(".", "-"));
+        if (company == null || company.getGemini() == null || company.getGemini().getBull_bear() == null) {
+            return Map.of();
+        }
+        return company.getGemini().getBull_bear();
+    }
+
+    private Map<String, FirebaseCompany.NewsSentiment> newsSentiments(String ticker)
+    {
+        FirebaseCompany company = companies.get(ticker.replace(".", "-"));
+        return company == null || company.getPgn() == null ? Map.of() : company.getPgn();
     }
 
     private void createSnapshotIfMissing(
@@ -160,7 +323,10 @@ public class InMemoryFirebaseStore implements FirebaseStore
         try (InputStream input = Files.newInputStream(snapshotFile)) {
             FirebaseData data = objectMapper.readValue(input, FirebaseData.class);
             if (data.companies != null) {
-                companies.putAll(data.companies);
+                companies.putAll(toCompanies(objectMapper, data.companies));
+            }
+            if (data.institutions != null) {
+                institutions.putAll(data.institutions);
             }
             if (data.assets != null) {
                 assets.addAll(data.assets);
@@ -172,11 +338,26 @@ public class InMemoryFirebaseStore implements FirebaseStore
         }
     }
 
+    private Map<String, FirebaseCompany> toCompanies(ObjectMapper objectMapper, Map<String, JsonNode> nodes)
+    {
+        Map<String, FirebaseCompany> result = new LinkedHashMap<>();
+        nodes.forEach((ticker, node) -> {
+            if (node == null || !node.isObject()) {
+                Log.debugf("Skipping Firebase snapshot entry '%s' that is not a company object", ticker);
+                return;
+            }
+            result.put(ticker, objectMapper.convertValue(node, FirebaseCompany.class));
+        });
+        return result;
+    }
+
     private static class FirebaseData
     {
         @JsonProperty("company")
-        private Map<String, FirebaseCompany> companies;
+        private Map<String, JsonNode> companies;
         @JsonProperty("asset")
         private List<FirebaseAsset> assets = new ArrayList<>();
+        @JsonProperty("institution")
+        private Map<String, FirebaseInstitution> institutions;
     }
 }

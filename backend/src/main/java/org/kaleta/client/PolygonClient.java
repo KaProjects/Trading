@@ -1,12 +1,18 @@
 package org.kaleta.client;
 
 import org.kaleta.client.dto.PolygonFinancials;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
+import org.kaleta.client.dto.PolygonNews;
+import org.kaleta.client.dto.PolygonSplit;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PolygonClient
 {
+    Optional<PolygonCompanyProfile> getCompanyProfile(String ticker) throws RequestFailureException;
+
     Optional<PolygonFinancials> getFinancials(
             String ticker,
             String fiscalYear,
@@ -16,4 +22,8 @@ public interface PolygonClient
             String ticker,
             String from,
             String to) throws RequestFailureException;
+
+    List<PolygonSplit> getSplits(String ticker, String executedFrom) throws RequestFailureException;
+
+    List<PolygonNews> getNews(String ticker, String publishedFrom, int limit) throws RequestFailureException;
 }

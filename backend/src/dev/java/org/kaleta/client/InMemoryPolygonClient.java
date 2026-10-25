@@ -7,12 +7,19 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kaleta.client.dto.PolygonFinancials;
+import org.kaleta.client.dto.PolygonCompanyProfile;
 import org.kaleta.client.dto.PolygonPriceRange;
+import org.kaleta.client.dto.PolygonNews;
+import org.kaleta.client.dto.PolygonSplit;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -24,6 +31,9 @@ public class InMemoryPolygonClient implements PolygonClient
 {
     private final Map<String, Map<String, PolygonFinancials>> financials;
     private final Map<String, Map<String, PolygonPriceRange>> priceRanges;
+    private final Map<String, PolygonCompanyProfile> companyProfiles;
+    private final Map<String, List<DevSplit>> splits;
+    private final Map<String, List<PolygonNews>> news;
 
     @Inject
     public InMemoryPolygonClient(
@@ -33,6 +43,15 @@ public class InMemoryPolygonClient implements PolygonClient
         PolygonData data = load(objectMapper, dataFile);
         this.financials = data.financials() == null ? Map.of() : data.financials();
         this.priceRanges = data.priceRanges() == null ? Map.of() : data.priceRanges();
+        this.companyProfiles = data.companyProfiles() == null ? Map.of() : data.companyProfiles();
+        this.splits = data.splits() == null ? Map.of() : data.splits();
+        this.news = data.news() == null ? Map.of() : data.news();
+    }
+
+    @Override
+    public Optional<PolygonCompanyProfile> getCompanyProfile(String ticker)
+    {
+        return Optional.ofNullable(companyProfiles.get(normalize(ticker)));
     }
 
     @Override
@@ -54,6 +73,30 @@ public class InMemoryPolygonClient implements PolygonClient
                 .get(from + ":" + to));
     }
 
+    @Override
+    public List<PolygonSplit> getSplits(String ticker, String executedFrom)
+    {
+        return splits.getOrDefault(normalize(ticker), List.of()).stream()
+                .map(split -> new PolygonSplit(
+                        split.splitFrom(),
+                        split.splitTo(),
+                        LocalDate.now().minusDays(split.daysAgo()).toString()))
+                .filter(split -> split.executionDate().compareTo(executedFrom) >= 0)
+                .sorted(Comparator.comparing(PolygonSplit::executionDate).reversed())
+                .toList();
+    }
+
+    @Override
+    public List<PolygonNews> getNews(String ticker, String publishedFrom, int limit)
+    {
+        return news.getOrDefault(normalize(ticker), List.of()).stream()
+                .filter(article -> article.publishedUtc() != null
+                        && article.publishedUtc().compareTo(publishedFrom) >= 0)
+                .sorted(Comparator.comparing(PolygonNews::publishedUtc).reversed())
+                .limit(limit)
+                .toList();
+    }
+
     private PolygonData load(ObjectMapper objectMapper, String dataFile)
     {
         Path path = Path.of(dataFile).toAbsolutePath().normalize();
@@ -73,7 +116,14 @@ public class InMemoryPolygonClient implements PolygonClient
 
     private record PolygonData(
             Map<String, Map<String, PolygonFinancials>> financials,
-            Map<String, Map<String, PolygonPriceRange>> priceRanges)
+            Map<String, Map<String, PolygonPriceRange>> priceRanges,
+            Map<String, PolygonCompanyProfile> companyProfiles,
+            Map<String, List<DevSplit>> splits,
+            Map<String, List<PolygonNews>> news)
+    {
+    }
+
+    private record DevSplit(BigDecimal splitFrom, BigDecimal splitTo, long daysAgo)
     {
     }
 }

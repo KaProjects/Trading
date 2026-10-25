@@ -7,6 +7,7 @@ public record PolygonFinancials(
         BigDecimal revenue,
         BigDecimal grossProfit,
         BigDecimal operatingIncome,
-        BigDecimal netIncome)
+        BigDecimal netIncome,
+        String reportedCurrency)
 {
 }
