@@ -24,7 +24,10 @@ import {ContentEditorDialog} from "../dialog/ContentEditorDialog";
 import {ContentImages} from "./component/ContentImages";
 import {SWIPE_NAV_BREAKPOINT} from "./component/MainBar";
 import {backend} from "../properties";
-import {formatDate, formatError} from "../service/FormattingService";
+import {NUMERIC_FONT} from "./component/widgetLayout";
+import {formatDate, formatError, formatDecimals, formatPercent} from "../service/FormattingService";
+
+const TRADE_CELL = {padding: "1px 6px 1px 0", whiteSpace: "nowrap"}
 
 /**
  * One case: what it is called, the companies it covers, and the days written into it. A case is
@@ -204,6 +207,38 @@ export const Case = props => {
                             renderInput={params => <TextField {...params} label="Add company"/>}
                         />
                     </Paper>
+
+                    {(value.trades ?? []).length > 0 &&
+                        <Paper elevation={1} sx={{padding: "10px 12px", marginTop: "10px"}}>
+                            <Typography sx={{fontSize: 12, color: "text.secondary", marginBottom: "4px"}}>
+                                Trades opened while the case has been running
+                            </Typography>
+                            <Box component="table" data-testid="case-trades"
+                                 sx={{...NUMERIC_FONT, borderCollapse: "collapse", fontSize: 12, width: "100%"}}>
+                                <Box component="tbody">
+                                    {value.trades.map(trade => (
+                                        <Box component="tr" key={trade.id}>
+                                            <Box component="td" sx={TRADE_CELL}>{trade.ticker}</Box>
+                                            <Box component="td" sx={TRADE_CELL}>{formatDate(trade.purchaseDate)}</Box>
+                                            <Box component="td" sx={{...TRADE_CELL, textAlign: "right"}}>
+                                                {`${formatDecimals(trade.quantity, 0, 4)}@${formatDecimals(trade.purchasePrice, 2, 2)}`}
+                                            </Box>
+                                            <Box component="td" sx={TRADE_CELL}>
+                                                {trade.active ? "open" : formatDate(trade.sellDate)}
+                                            </Box>
+                                            <Box component="td" sx={{
+                                                ...TRADE_CELL,
+                                                textAlign: "right",
+                                                color: Number(trade.profit) < 0 ? "error.main" : "success.main",
+                                            }}>
+                                                {trade.active ? "" : formatPercent(trade.profitPercentage, true, 1)}
+                                            </Box>
+                                        </Box>
+                                    ))}
+                                </Box>
+                            </Box>
+                        </Paper>
+                    }
 
                     <Paper elevation={1} sx={{padding: "10px 12px", marginTop: "10px"}}>
                         <CaseEntryList

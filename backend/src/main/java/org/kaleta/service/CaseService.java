@@ -10,6 +10,7 @@ import org.kaleta.persistence.entity.InvestmentCase;
 import org.kaleta.rest.dto.CaseCreateDto;
 import org.kaleta.rest.dto.CaseDto;
 import org.kaleta.rest.dto.CaseUpdateDto;
+import org.kaleta.model.Trades;
 import org.kaleta.rest.error.InvalidInputException;
 
 import java.sql.Date;
@@ -30,6 +31,8 @@ public class CaseService
     CompanyDao companyDao;
     @Inject
     CaseEntryService caseEntryService;
+    @Inject
+    TradeService tradeService;
 
     public List<CaseDto> getAll()
     {
@@ -43,6 +46,7 @@ public class CaseService
         InvestmentCase found = find(caseId);
         CaseDto dto = from(found, companiesOf(List.of(found)));
         dto.setEntries(caseEntryService.getByCaseId(caseId));
+        dto.setTrades(tradesOf(found));
         return dto;
     }
 
@@ -82,6 +86,46 @@ public class CaseService
     {
         find(caseId);
         caseDao.delete(caseId);
+    }
+
+    /**
+     * What the case was actually acted on: the trades its companies opened while it ran. They
+     * are not linked to the case by hand - a trade opened in a company the case covers, between
+     * the day it opened and the day it closed, is a trade the case is answerable for.
+     */
+    private List<CaseDto.Trade> tradesOf(InvestmentCase investmentCase)
+    {
+        LocalDate from = investmentCase.getCreatedAt().toLocalDate();
+        LocalDate to = investmentCase.getClosedAt() == null
+                ? LocalDate.now()
+                : investmentCase.getClosedAt().toLocalDate();
+
+        return investmentCase.getCompanyIds().stream()
+                .flatMap(companyId -> tradeService.getBy(null, companyId, null, null, null, null)
+                        .getTrades().stream())
+                .filter(trade -> {
+                    LocalDate purchased = trade.getPurchaseDate().toLocalDate();
+                    return !purchased.isBefore(from) && !purchased.isAfter(to);
+                })
+                .sorted()
+                .map(CaseService::from)
+                .toList();
+    }
+
+    private static CaseDto.Trade from(Trades.Trade trade)
+    {
+        CaseDto.Trade dto = new CaseDto.Trade();
+        dto.setId(trade.getId());
+        dto.setTicker(trade.getCompany().getTicker());
+        dto.setActive(trade.isActive());
+        dto.setPurchaseDate(trade.getPurchaseDate());
+        dto.setPurchasePrice(trade.getPurchasePrice());
+        dto.setQuantity(trade.getPurchaseQuantity());
+        dto.setSellDate(trade.getSellDate());
+        dto.setSellPrice(trade.getSellPrice());
+        dto.setProfit(trade.getProfit());
+        dto.setProfitPercentage(trade.getProfitPercentage());
+        return dto;
     }
 
     private InvestmentCase find(Long caseId)

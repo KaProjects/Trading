@@ -36,6 +36,7 @@ const value = {
     closedAt: null,
     companies: [{id: 11, ticker: "NVDA"}],
     entries: [],
+    trades: [],
 };
 
 const companyLists = {all: [{id: 11, ticker: "NVDA"}, {id: 12, ticker: "AMD"}]};
@@ -195,5 +196,27 @@ describe("Case", () => {
             expect.objectContaining({
                 rows: [{label: "gross", cells: [{value: "75%", rating: "++"}]}],
             })));
+    });
+
+    test("reads the trades its companies opened while it ran", () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                trades: [{
+                    id: 2, ticker: "NVDA", active: false, purchaseDate: "2026-03-02",
+                    purchasePrice: 100, quantity: 5, sellDate: "2026-04-01", sellPrice: 120,
+                    profit: 100, profitPercentage: 20,
+                }],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        const trades = screen.getByTestId("case-trades");
+        expect(trades).toHaveTextContent("NVDA");
+        expect(trades).toHaveTextContent("02.03.2026");
+        expect(trades).toHaveTextContent("5@100.00");
+        expect(trades).toHaveTextContent("01.04.2026");
     });
 });

@@ -14,6 +14,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -134,6 +135,33 @@ class CaseEndpointsTest
         CaseDto created = create("no companies yet", List.of());
 
         assertThat(created.getCompanies(), is(empty()));
+
+        delete(created.getId());
+    }
+
+    @Test
+    void readsTheTradesOpenedWhileTheCaseWasRunning()
+    {
+        // The seeded case has been running since 01.01.2023; company 1927 bought on 11.11.2023.
+        CaseDto read = get(1L);
+
+        assertThat(read.getTrades(), hasSize(1));
+        assertThat(read.getTrades().get(0).getTicker(), is("NVDA"));
+        assertThat(read.getTrades().get(0).getPurchaseDate().toString(), is("2023-11-11"));
+        assertThat(read.getTrades().get(0).isActive(), is(false));
+    }
+
+    @Test
+    void readsTheTradesItsCompaniesOpenedWhileItRan()
+    {
+        // Company 1927 has a trade bought 11.11.2023 and sold 05.01.2024.
+        CaseDto created = create("with trades", List.of(1927L));
+
+        // The case opened today, so nothing bought years ago belongs to it.
+        assertThat(created.getTrades(), is(empty()));
+
+        CaseDto read = get(created.getId());
+        assertThat(read.getTrades(), is(empty()));
 
         delete(created.getId());
     }
