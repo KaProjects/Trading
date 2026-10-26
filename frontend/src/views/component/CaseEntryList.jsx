@@ -31,6 +31,7 @@ export const hasEntryForToday = (entries = []) => entries.some(entry => entry.da
 const Day = ({
     entry,
     trades = [],
+    readOnly = false,
     editing,
     onEdit,
     onMoveEntry,
@@ -81,10 +82,12 @@ const Day = ({
             {/* A fixed height, so the row is as tall as the date in it and not as tall as the
                 buttons beside it: what follows the date reads as the next line under it. */}
             <Box sx={{display: "flex", alignItems: "center", gap: "6px", height: "16px"}}>
-                <Box onClick={() => onMoveEntry(entry)}
-                     sx={{cursor: "pointer"}}
-                     role="button"
-                     aria-label={`Day written ${entry.date}`}>
+                {/* A closed case is read, not written: the day keeps its date and the pencil
+                    goes with the rest of the writing. */}
+                <Box onClick={readOnly ? undefined : () => onMoveEntry(entry)}
+                     sx={{cursor: readOnly ? "default" : "pointer"}}
+                     role={readOnly ? undefined : "button"}
+                     aria-label={readOnly ? undefined : `Day written ${entry.date}`}>
                     <DateHeading date={entry.date} testId={`case-entry-date-${entry.date}`}/>
                 </Box>
                 {editing &&
@@ -94,6 +97,7 @@ const Day = ({
                 {/* Kept to the size of their icons: a button with the usual room around it
                     makes this row three times the height of the date in it, and everything
                     under the date - a trade, the writing - is pushed down by the difference. */}
+                {!readOnly &&
                 <Box className="case-entry-actions"
                      sx={{
                          display: "flex",
@@ -122,6 +126,7 @@ const Day = ({
                         </Tooltip>
                     }
                 </Box>
+                }
             </Box>
 
             {/* What was acted on that day comes between the date and what was written about
@@ -226,6 +231,7 @@ function byDate(entries, trades) {
 }
 
 export const CaseEntryList = ({
+    readOnly = false,
     entries = [],
     trades = [],
     stagedFor = () => ({adds: [], removes: []}),
@@ -267,6 +273,7 @@ export const CaseEntryList = ({
                 : <Day
                     entry={day.entry}
                     trades={day.trades}
+                    readOnly={readOnly}
                     editing={editingDate === day.entry.date}
                     onEdit={() => onEditingDateChange(day.entry.date)}
                     onMoveEntry={onMoveEntry}

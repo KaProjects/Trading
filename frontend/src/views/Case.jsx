@@ -23,6 +23,9 @@ import axios from "axios";
 import {useData} from "../service/BackendService";
 import {Loader} from "./component/Loader";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import {SWIPE_NAV_BREAKPOINT} from "./component/MainBar";
+import {CaseTrades} from "./component/CaseTrades";
 import {CaseEntryList, hasEntryForToday, today} from "./component/CaseEntryList";
 import {isEmptyTable} from "./component/CaseTable";
 import {useStagedImages} from "./component/useStagedImages";
@@ -30,24 +33,40 @@ import {defaultContent} from "./component/ContentEditor";
 import {backend} from "../properties";
 import {CaseNameDialog} from "../dialog/CaseNameDialog";
 import {CaseDateDialog} from "../dialog/CaseDateDialog";
-import {NUMERIC_FONT} from "./component/widgetLayout";
-import {formatDate, formatDateShort, formatError, formatDecimals, formatPercent} from "../service/FormattingService";
-import {tightPlus} from "./component/tightPlus";
+import {formatDate, formatError} from "../service/FormattingService";
 
-const TRADE_CELL = {padding: "1px 6px 1px 0", whiteSpace: "nowrap"}
 /** A day that is changed by clicking it. */
 const DATE_TEXT = {cursor: "pointer", "&:hover": {textDecoration: "underline"}}
 
-/** What the closed trades of the case have made, one total per currency they were made in. */
-function profitByCurrency(trades = []) {
-    const totals = new Map()
-    trades
-        .filter(trade => !trade.active && trade.profit !== null && trade.profit !== undefined)
-        .forEach(trade => {
-            const currency = trade.currency ?? ""
-            totals.set(currency, (totals.get(currency) ?? 0) + Number(trade.profit))
-        })
-    return [...totals.entries()]
+const NARROW = `@media (max-width:${SWIPE_NAV_BREAKPOINT}px)`
+/**
+ * A phone gives the companies about half the height it gives a desktop: a row of chips at the
+ * usual size takes a tenth of the screen before a word of the case has been read.
+ */
+const COMPANY_CHIP = {
+    [NARROW]: {
+        height: "14px",
+        fontSize: 10,
+        "& .MuiChip-label": {paddingLeft: "5px", paddingRight: "4px"},
+        "& .MuiChip-deleteIcon": {fontSize: 12, marginRight: "2px", marginLeft: "-3px"},
+    },
+}
+const ADD_COMPANY = {[NARROW]: {padding: 0, "& svg": {fontSize: 13}}}
+/** The input that opens beside the plus, kept to the height of the chips it stands among. */
+const COMPANY_INPUT = {
+    width: "180px",
+    [NARROW]: {
+        width: "100px",
+        // The Autocomplete pads its own root and hangs a button off the end; both are what
+        // make the field twice the height of the chips beside it.
+        "&& .MuiAutocomplete-inputRoot": {padding: "0 2px 0 4px", fontSize: 10, minHeight: 0},
+        "&& .MuiAutocomplete-input": {padding: "1px 0", height: "12px"},
+        "& .MuiAutocomplete-endAdornment": {right: "2px"},
+        "&& .MuiAutocomplete-popupIndicator, && .MuiAutocomplete-clearIndicator": {
+            padding: 0,
+            "& svg": {fontSize: 14},
+        },
+    },
 }
 
 /**
@@ -74,6 +93,9 @@ export const Case = props => {
 
     useEffect(() => {if (data) setEntries(data.entries ?? [])}, [data])
 
+    const narrow = useMediaQuery(`(max-width:${SWIPE_NAV_BREAKPOINT}px)`)
+    // A closed case is history: it is read from here on, and reopened before it is written to.
+    const closed = Boolean(data?.closedAt)
     const companies = props.companyLists?.all ?? []
     const value = data
 
@@ -311,7 +333,7 @@ export const Case = props => {
                                 </IconButton>
                             </Tooltip>
                             <Typography sx={{fontWeight: 600, flex: 1, minWidth: 0}}>{value.name}</Typography>
-                            {!written &&
+                            {!written && !closed &&
                                 <Tooltip title="Write today">
                                     <Button size="small" aria-label="Write today" onClick={addEntry}>
                                         <PostAddIcon sx={{color: "success.main"}}/>
@@ -387,13 +409,19 @@ export const Case = props => {
                         {/* The selector is not a permanent fixture: it opens beside the plus
                             when a company is being added, and goes again once one is. */}
                         <Stack direction="row" alignItems="center"
-                               sx={{marginTop: "10px", flexWrap: "wrap", gap: "4px"}}>
+                               sx={{
+                                   marginTop: "5px",
+                                   flexWrap: "wrap",
+                                   gap: "4px",
+                                   [NARROW]: {marginTop: "3px", gap: "3px"},
+                               }}>
                             {value.companies.map(company => (
                                 <Chip
                                     key={company.id}
                                     label={company.ticker}
                                     size="small"
-                                    onDelete={() => save({
+                                    sx={COMPANY_CHIP}
+                                    onDelete={closed ? undefined : () => save({
                                         companyIds: value.companies
                                             .filter(each => each.id !== company.id)
                                             .map(each => each.id),
@@ -408,24 +436,27 @@ export const Case = props => {
                                     label={name}
                                     size="small"
                                     variant="outlined"
-                                    sx={{fontStyle: "italic"}}
-                                    onDelete={() => save({
+                                    sx={{...COMPANY_CHIP, fontStyle: "italic"}}
+                                    onDelete={closed ? undefined : () => save({
                                         companyNames: value.companyNames.filter(each => each !== name),
                                     })}
                                 />
                             ))}
-                            <Tooltip title="Add company">
-                                <IconButton size="small" aria-label="Add company"
-                                            onClick={() => setAddingCompany(true)}>
-                                    <AddIcon sx={{fontSize: 16}}/>
-                                </IconButton>
-                            </Tooltip>
-                            {addingCompany &&
+                            {!closed &&
+                                <Tooltip title="Add company">
+                                    <IconButton size="small" aria-label="Add company"
+                                                sx={ADD_COMPANY}
+                                                onClick={() => setAddingCompany(true)}>
+                                        <AddIcon sx={{fontSize: 16}}/>
+                                    </IconButton>
+                                </Tooltip>
+                            }
+                            {addingCompany && !closed &&
                                 <Autocomplete
                                     size="small"
                                     freeSolo
                                     openOnFocus
-                                    sx={{width: "180px"}}
+                                    sx={COMPANY_INPUT}
                                     options={companies.filter(company =>
                                         !value.companies.some(each => each.id === company.id))}
                                     getOptionLabel={company =>
@@ -436,7 +467,14 @@ export const Case = props => {
                                         addCompany(company)
                                     }}
                                     onBlur={() => setAddingCompany(false)}
-                                    renderInput={params => <TextField {...params} autoFocus label="Company"/>}
+                                    renderInput={params => (
+                                        // The label is what makes the field tall, so on a phone
+                                        // the field says what it is in the box instead.
+                                        narrow
+                                            ? <TextField {...params} autoFocus placeholder="Company"
+                                                         inputProps={{...params.inputProps, "aria-label": "Company"}}/>
+                                            : <TextField {...params} autoFocus label="Company"/>
+                                    )}
                                 />
                             }
                         </Stack>
@@ -444,106 +482,13 @@ export const Case = props => {
 
                     {(value.trades ?? []).length > 0 &&
                         <Paper elevation={1} sx={{padding: "10px 12px", marginTop: "10px"}}>
-                            {/* Narrow screens scroll the table rather than the page: left to
-                                itself it is wider than the phone and takes the page with it. */}
-                            <Box sx={{overflowX: "auto", maxWidth: "100%"}}>
-                            <Box component="table" data-testid="case-trades"
-                                 sx={{...NUMERIC_FONT, borderCollapse: "collapse", fontSize: 12, width: "100%"}}>
-                                <Box component="thead">
-                                    <Box component="tr">
-                                        {["", "bought", "quantity", "price", "sold", "price", "profit", ""]
-                                            .map((heading, index) => (
-                                                <Box component="th" key={index} sx={{
-                                                    ...TRADE_CELL,
-                                                    textAlign: index === 0 || index === 1 || index === 4
-                                                        ? "left" : "right",
-                                                    fontWeight: 400,
-                                                    color: "text.disabled",
-                                                }}>
-                                                    {heading}
-                                                </Box>
-                                            ))}
-                                    </Box>
-                                </Box>
-                                <Box component="tbody">
-                                    {/* Oldest first: the table reads as the case was traded. */}
-                                    {[...value.trades]
-                                        .sort((first, second) =>
-                                            String(first.purchaseDate).localeCompare(String(second.purchaseDate)))
-                                        .map(trade => (
-                                        <Box component="tr" key={trade.id}>
-                                            <Box component="td" sx={{...TRADE_CELL, fontWeight: 600}}>
-                                                {trade.ticker}
-                                            </Box>
-                                            <Box component="td" sx={TRADE_CELL}>{formatDateShort(trade.purchaseDate)}</Box>
-                                            <Box component="td" sx={{...TRADE_CELL, textAlign: "right"}}>
-                                                {formatDecimals(trade.quantity, 0, 4)}
-                                            </Box>
-                                            <Box component="td" sx={{...TRADE_CELL, textAlign: "right"}}>
-                                                {formatDecimals(trade.purchasePrice, 2, 2) + (trade.currency ?? "")}
-                                            </Box>
-                                            {/* A part-sold position is two trades sharing a purchase
-                                                date: one closed here, one still open. */}
-                                            <Box component="td" sx={{...TRADE_CELL, color: trade.active ? "text.disabled" : "text.primary"}}>
-                                                {trade.active ? "open" : formatDateShort(trade.sellDate)}
-                                            </Box>
-                                            <Box component="td" sx={{...TRADE_CELL, textAlign: "right"}}>
-                                                {trade.active ? "" : formatDecimals(trade.sellPrice, 2, 2) + (trade.currency ?? "")}
-                                            </Box>
-                                            <Box component="td" sx={{
-                                                ...TRADE_CELL,
-                                                textAlign: "right",
-                                                color: Number(trade.profit) < 0 ? "error.main" : "success.main",
-                                            }}>
-                                                {trade.active ? "" : formatDecimals(trade.profit, 2, 2) + (trade.currency ?? "")}
-                                            </Box>
-                                            <Box component="td" sx={{
-                                                ...TRADE_CELL,
-                                                textAlign: "right",
-                                                color: Number(trade.profit) < 0 ? "error.main" : "success.main",
-                                            }}>
-                                                {trade.active ? "" : tightPlus(formatPercent(trade.profitPercentage, true, 1))}
-                                            </Box>
-                                        </Box>
-                                    ))}
-                                </Box>
-                                {/* What the case has made so far, kept per currency: a case can
-                                    cover companies that do not share one. */}
-                                <Box component="tfoot">
-                                    {profitByCurrency(value.trades).map(([currency, profit]) => (
-                                        <Box component="tr" key={currency} data-testid={`case-profit-${currency}`}>
-                                            <Box component="td" colSpan={6} sx={{
-                                                ...TRADE_CELL,
-                                                borderTop: "1px solid",
-                                                borderColor: "divider",
-                                            }}/>
-                                            {/* Under the profit column, where the column already
-                                                says what it is. */}
-                                            <Box component="td" sx={{
-                                                ...TRADE_CELL,
-                                                textAlign: "right",
-                                                fontWeight: 600,
-                                                borderTop: "1px solid",
-                                                borderColor: "divider",
-                                                color: profit < 0 ? "error.main" : "success.main",
-                                            }}>
-                                                {formatDecimals(profit, 2, 2) + currency}
-                                            </Box>
-                                            <Box component="td" sx={{
-                                                ...TRADE_CELL,
-                                                borderTop: "1px solid",
-                                                borderColor: "divider",
-                                            }}/>
-                                        </Box>
-                                    ))}
-                                </Box>
-                            </Box>
-                            </Box>
+                            <CaseTrades trades={value.trades}/>
                         </Paper>
                     }
 
                     <Paper elevation={1} sx={{padding: "10px 12px", marginTop: "10px"}}>
                         <CaseEntryList
+                            readOnly={closed}
                             entries={entries}
                             trades={tradeLines}
                             stagedFor={stagedFor}

@@ -370,6 +370,20 @@ INSERT INTO CaseCompanyName (caseId, value) VALUES (1, 'TSMC');
 INSERT INTO InvestmentCase (id, name, createdAt, closedAt) VALUES (2, 'PC refresh cycle', DATEADD('DAY', -400, CURRENT_DATE), DATEADD('DAY', -30, CURRENT_DATE));
 INSERT INTO CaseCompany (caseId, companyId) VALUES (2, 2214);
 
+-- A case over every company that has ever been traded here, opened before the first of those
+-- trades: what a case looks like when its table has to carry the whole book, in every currency.
+INSERT INTO InvestmentCase (id, name, createdAt) VALUES (3, 'everything ever traded', '2018-01-01');
+INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 1240);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 1504);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 1873);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2073);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2212);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2213);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2214);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2261);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2300);
+INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2301);
+
 INSERT INTO CaseEntry (id, caseId, date, content) VALUES (1, 1, DATEADD('DAY', -120, CURRENT_DATE), '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"Hyperscaler capex guidance keeps moving up while accelerator supply stays the constraint."}]},{"type":"list-item","children":[{"text":"The case is that the buildout runs at least two more years before supply catches demand."}]}]}]');
 INSERT INTO CaseEntry (id, caseId, date, content) VALUES (2, 1, DATEADD('DAY', -40, CURRENT_DATE), '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"Memory pricing is the first thing to turn against the margin assumption."}]},{"type":"list-item","children":[{"text":"Networking attach rates still support the second leg of the thesis."}]}]}]');
 INSERT INTO CaseEntry (id, caseId, date, content) VALUES (3, 2, DATEADD('DAY', -35, CURRENT_DATE), '[{"type":"paragraph","children":[{"text":"Closed: the refresh cycle came and went without the unit growth the case needed."}]}]');

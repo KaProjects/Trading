@@ -303,7 +303,7 @@ describe("Case", () => {
         const trades = screen.getByTestId("case-trades");
         expect(trades).toHaveTextContent("NVDA");
         expect(trades).toHaveTextContent("2.3.'26");
-        expect(trades).toHaveTextContent("100.00$");
+        expect(trades).toHaveTextContent("+100.00$");
         expect(trades).toHaveTextContent("1.4.'26");
         expect(trades).toHaveTextContent("120.00$");
         expect(trades).toHaveTextContent("+20%");
@@ -630,6 +630,31 @@ describe("Case", () => {
         expect(screen.queryByTestId("case-closed")).not.toBeInTheDocument();
     });
 
+    test("offers no writing at all once the case is closed", () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                closedAt: "2026-09-26",
+                companyNames: ["Broadcom"],
+                entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: []}],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        expect(screen.queryByRole("button", {name: "Write today"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Add company"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Edit 2026-02-11"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Day written 2026-02-11"})).not.toBeInTheDocument();
+        // Neither the companies it covers nor the names written beside them can be taken off.
+        expect(screen.queryAllByTestId("CancelIcon")).toHaveLength(0);
+        // What it holds is still read: the day and its writing are there.
+        expect(screen.getByTestId("case-entry-2026-02-11")).toBeInTheDocument();
+        expect(screen.getByText("NVDA")).toBeInTheDocument();
+        expect(screen.getByText("Broadcom")).toBeInTheDocument();
+    });
+
     test("reads the trades oldest first", () => {
         mockUseData.mockReturnValue({
             data: {
@@ -645,6 +670,9 @@ describe("Case", () => {
             error: null,
         });
         render(<Case companyLists={companyLists}/>);
+
+        // Two companies, so the table opens summed up; the trades themselves are behind it.
+        fireEvent.click(screen.getByRole("button", {name: "Show every trade"}));
 
         const rows = screen.getByTestId("case-trades").querySelectorAll("tbody tr");
         expect(rows[0]).toHaveTextContent("20.1.'26");
