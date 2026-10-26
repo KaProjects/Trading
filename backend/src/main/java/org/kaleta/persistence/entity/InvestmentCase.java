@@ -31,7 +31,8 @@ public class InvestmentCase extends AbstractEntity
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "createdAt", nullable = false, updatable = false)
+    /** The day the case was opened. Settable: a case is often written down after it was made. */
+    @Column(name = "createdAt", nullable = false)
     private Date createdAt;
 
     /** The day the case was closed, or null while it is still open. */

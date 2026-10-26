@@ -43,6 +43,20 @@ describe("Cases", () => {
         expect(open.compareDocumentPosition(closed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
+    test("names the companies the app does not hold alongside the ones it does", () => {
+        mockUseData.mockReturnValue({
+            data: [{...cases[0], companyNames: ["Broadcom", "TSMC"]}],
+            loaded: true,
+            error: null,
+        });
+        render(<Cases/>);
+
+        const open = screen.getByTestId("case-1");
+        expect(open).toHaveTextContent("NVDA");
+        expect(open).toHaveTextContent("Broadcom");
+        expect(open).toHaveTextContent("TSMC");
+    });
+
     test("opens the case that was clicked", () => {
         render(<Cases/>);
 

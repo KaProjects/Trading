@@ -64,6 +64,13 @@ class CaseEndpointsTest
         assertThat(updated.getCompanies().stream().map(CaseDto.Company::getTicker).toList(),
                 contains("UPD"));
 
+        // Read again rather than trusting the answer: a column the mapping refuses to write
+        // still answers with what was asked for.
+        CaseDto read = get(created.getId());
+        assertThat(read.getName(), is("the better name"));
+        assertThat(read.getCompanies().stream().map(CaseDto.Company::getTicker).toList(),
+                contains("UPD"));
+
         delete(created.getId());
     }
 
@@ -87,6 +94,7 @@ class CaseEndpointsTest
         CaseDto updated = update(created.getId(), update);
         assertThat(updated.getCompanyNames(), contains("Samsung"));
         assertThat(updated.getCompanies().stream().map(CaseDto.Company::getTicker).toList(), contains("RCH"));
+        assertThat(get(created.getId()).getCompanyNames(), contains("Samsung"));
 
         CaseUpdateDto tooLong = new CaseUpdateDto();
         tooLong.setCompanyNames(List.of("x".repeat(51)));
@@ -94,6 +102,33 @@ class CaseEndpointsTest
                 .when().put(PATH + "/" + created.getId())
                 .then().statusCode(400)
                 .body(containsString("at most 50 characters"));
+
+        delete(created.getId());
+    }
+
+    @Test
+    void opensTheCaseOnAnotherDay()
+    {
+        CaseDto created = create("opened earlier than written down", List.of());
+
+        CaseUpdateDto dto = new CaseUpdateDto();
+        dto.setCreatedAt("2026-02-10");
+        assertThat(update(created.getId(), dto).getCreatedAt().toLocalDate(),
+                is(LocalDate.of(2026, 2, 10)));
+        // Read back rather than taken from the answer: the day has to be in the database.
+        assertThat(get(created.getId()).getCreatedAt().toLocalDate(),
+                is(LocalDate.of(2026, 2, 10)));
+
+        CaseUpdateDto close = new CaseUpdateDto();
+        close.setClosed(true);
+        update(created.getId(), close);
+
+        CaseUpdateDto afterClosing = new CaseUpdateDto();
+        afterClosing.setCreatedAt(LocalDate.now().plusDays(1).toString());
+        given().contentType(ContentType.JSON).body(afterClosing)
+                .when().put(PATH + "/" + created.getId())
+                .then().statusCode(400)
+                .body(containsString("cannot open after it was closed"));
 
         delete(created.getId());
     }
@@ -110,8 +145,49 @@ class CaseEndpointsTest
         CaseUpdateDto open = new CaseUpdateDto();
         open.setClosed(false);
         assertThat(update(created.getId(), open).getClosedAt(), is(nullValue()));
+        assertThat(get(created.getId()).getClosedAt(), is(nullValue()));
 
         delete(created.getId());
+    }
+
+    @Test
+    void closesTheCaseOnAnotherDay()
+    {
+        CaseDto created = create("closed later than written down", List.of());
+
+        CaseUpdateDto whileOpen = new CaseUpdateDto();
+        whileOpen.setClosedAt("2026-02-10");
+        given().contentType(ContentType.JSON).body(whileOpen)
+                .when().put(PATH + "/" + created.getId())
+                .then().statusCode(400)
+                .body(containsString("is still open"));
+
+        CaseUpdateDto opened = new CaseUpdateDto();
+        opened.setCreatedAt("2026-01-01");
+        update(created.getId(), opened);
+
+        CaseUpdateDto close = new CaseUpdateDto();
+        close.setClosed(true);
+        assertThat(update(created.getId(), close).getClosedAt().toLocalDate(), is(LocalDate.now()));
+
+        // Closed today by the menu, put right afterwards to the day it was really closed.
+        CaseUpdateDto closedOn = new CaseUpdateDto();
+        closedOn.setClosedAt("2026-06-01");
+        assertThat(update(created.getId(), closedOn).getClosedAt().toLocalDate(),
+                is(LocalDate.of(2026, 6, 1)));
+        assertThat(get(created.getId()).getClosedAt().toLocalDate(), is(LocalDate.of(2026, 6, 1)));
+
+        // The day it opened is left where it was: each day is changed on its own.
+        assertThat(get(created.getId()).getCreatedAt().toLocalDate(), is(LocalDate.of(2026, 1, 1)));
+
+        CaseUpdateDto beforeOpening = new CaseUpdateDto();
+        beforeOpening.setClosedAt("2020-01-01");
+        given().contentType(ContentType.JSON).body(beforeOpening)
+                .when().put(PATH + "/" + created.getId())
+                .then().statusCode(400)
+                .body(containsString("cannot close before it was opened"));
+
+        given().when().delete(PATH + "/" + created.getId()).then().statusCode(200);
     }
 
     @Test
@@ -156,6 +232,32 @@ class CaseEndpointsTest
     }
 
     @Test
+    void refusesToChangeACaseToABlankNameOrACompanyThatDoesNotExist()
+    {
+        CaseDto created = create("worth keeping", List.of(RCH));
+
+        CaseUpdateDto blank = new CaseUpdateDto();
+        blank.setName("  ");
+        given().contentType(ContentType.JSON).body(blank)
+                .when().put(PATH + "/" + created.getId())
+                .then().statusCode(400)
+                .body(containsString("cannot be blank"));
+
+        CaseUpdateDto ghost = new CaseUpdateDto();
+        ghost.setCompanyIds(List.of(999999L));
+        given().contentType(ContentType.JSON).body(ghost)
+                .when().put(PATH + "/" + created.getId())
+                .then().statusCode(400);
+
+        // Neither refusal leaves a mark on the case.
+        CaseDto read = get(created.getId());
+        assertThat(read.getName(), is("worth keeping"));
+        assertThat(read.getCompanies().stream().map(CaseDto.Company::getTicker).toList(), contains("RCH"));
+
+        delete(created.getId());
+    }
+
+    @Test
     void refusesAnIdThatIsNotOne()
     {
         getValidationError(PATH + "/0", VALID_ID);
@@ -197,6 +299,27 @@ class CaseEndpointsTest
 
         CaseDto read = get(created.getId());
         assertThat(read.getTrades(), is(empty()));
+
+        delete(created.getId());
+    }
+
+    @Test
+    void readsTheTradesFromTheDayTheCaseWasOpened()
+    {
+        // Company 1927 has a trade bought 11.11.2023 and sold 05.01.2024.
+        CaseDto created = create("opened around a trade", List.of(1927L));
+        assertThat(created.getTrades(), is(empty()));
+
+        CaseUpdateDto before = new CaseUpdateDto();
+        before.setCreatedAt("2023-01-01");
+        assertThat(update(created.getId(), before).getTrades().stream()
+                        .map(trade -> trade.getPurchaseDate().toString()).toList(),
+                contains("2023-11-11"));
+
+        // Opened after it was bought, the trade is somebody else's business again.
+        CaseUpdateDto after = new CaseUpdateDto();
+        after.setCreatedAt("2024-01-01");
+        assertThat(update(created.getId(), after).getTrades(), is(empty()));
 
         delete(created.getId());
     }

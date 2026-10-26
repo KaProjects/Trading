@@ -446,6 +446,42 @@ describe("Case", () => {
             & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
+    test("reads a day's pictures from the case rather than from a period", () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                entries: [{
+                    id: 5, date: "2026-02-11", content: "a day",
+                    images: [{id: 7, width: 800, height: 600}], tables: [],
+                }],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        // A case serves its own pictures; the period endpoint holds different ones under the
+        // same ids, so reading from there shows the wrong picture rather than failing.
+        expect(screen.getByTestId("content-image-7"))
+            .toHaveAttribute("src", "/api/case/entry/image/7?thumbnail=true");
+    });
+
+    test("says so when a change cannot be saved", async () => {
+        const refusal = new Error("Request failed with status code 400");
+        refusal.name = "AxiosError";
+        refusal.response = {data: "case name cannot be blank"};
+        axios.put.mockRejectedValue(refusal);
+        render(<Case companyLists={companyLists}/>);
+
+        openMenu();
+        fireEvent.click(screen.getByText("Rename"));
+        fireEvent.change(screen.getByLabelText("Case name"), {target: {value: "x"}});
+        fireEvent.click(screen.getByRole("button", {name: "Save"}));
+
+        await waitFor(() =>
+            expect(screen.getByText(/case name cannot be blank/)).toBeInTheDocument());
+    });
+
     test("frames the day that is being written", () => {
         mockUseData.mockReturnValue({
             data: {...value, entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: []}]},
@@ -565,6 +601,33 @@ describe("Case", () => {
 
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
             "/api/case/1", {createdAt: "2025-11-04"}));
+    });
+
+    test("asks for the day the case closed, not the day it opened", async () => {
+        mockUseData.mockReturnValue({
+            data: {...value, closedAt: "2026-09-26"},
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        // The day that was clicked is the day being asked about, not whichever comes first.
+        fireEvent.click(screen.getByTestId("case-closed"));
+        expect(screen.getByLabelText("Date")).toHaveValue("2026-09-26");
+        fireEvent.change(screen.getByLabelText("Date"), {target: {value: "2026-10-01"}});
+        fireEvent.click(screen.getByRole("button", {name: "Save"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
+            "/api/case/1", {closedAt: "2026-10-01"}));
+        // The opened day is not what was asked about, so it is not what was written.
+        expect(axios.put).not.toHaveBeenCalledWith("/api/case/1", {createdAt: "2026-10-01"});
+    });
+
+    test("has no closing day to ask about while the case is open", () => {
+        render(<Case companyLists={companyLists}/>);
+
+        expect(screen.getByTestId("case-opened")).toBeInTheDocument();
+        expect(screen.queryByTestId("case-closed")).not.toBeInTheDocument();
     });
 
     test("reads the trades oldest first", () => {

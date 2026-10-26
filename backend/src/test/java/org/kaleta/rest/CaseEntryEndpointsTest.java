@@ -21,6 +21,7 @@ import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -161,6 +162,66 @@ class CaseEntryEndpointsTest
 
         given().when().delete(PATH + "/table/" + added.id()).then().statusCode(200);
         assertThat(readCase(caseId).getEntries().get(0).tables(), hasSize(0));
+    }
+
+    @Test
+    void keepsTheTablesOfADayInTheOrderTheyWereAdded()
+    {
+        Long caseId = createCase("three tables");
+        CaseEntryDto written = save(caseId, TODAY, document("three of them"));
+
+        for (String title : List.of("first", "second", "third")) {
+            CaseTableDto added = given().when().post(PATH + "/" + written.id() + "/table")
+                    .then().statusCode(201)
+                    .extract().response().jsonPath().getObject("", CaseTableDto.class);
+
+            CaseTableUpdateDto dto = new CaseTableUpdateDto();
+            dto.setTitle(title);
+            dto.setColumns(List.of());
+            dto.setRows(List.of());
+            given().contentType(ContentType.JSON).body(dto)
+                    .when().put(PATH + "/table/" + added.id()).then().statusCode(200);
+        }
+
+        assertThat(readCase(caseId).getEntries().get(0).tables().stream()
+                        .map(CaseTableDto::title).toList(),
+                contains("first", "second", "third"));
+    }
+
+    @Test
+    void takesNoMoreThanTenTablesOnOneDay()
+    {
+        Long caseId = createCase("tables up to the brim");
+        CaseEntryDto written = save(caseId, TODAY, document("ten is the lot"));
+
+        for (int table = 0; table < 10; table++) {
+            given().when().post(PATH + "/" + written.id() + "/table").then().statusCode(201);
+        }
+
+        given().when().post(PATH + "/" + written.id() + "/table")
+                .then().statusCode(400)
+                .body(containsString("at most 10 tables"));
+        assertThat(readCase(caseId).getEntries().get(0).tables(), hasSize(10));
+    }
+
+    @Test
+    void takesNoMoreThanTenPicturesOnOneDay() throws IOException
+    {
+        Long caseId = createCase("pictures up to the brim");
+        CaseEntryDto written = save(caseId, TODAY, document("ten is the lot"));
+
+        byte[] picture = chart(120, 80);
+        for (int image = 0; image < 10; image++) {
+            given().multiPart("file", "chart.png", picture, "image/png")
+                    .when().post(PATH + "/" + written.id() + "/image")
+                    .then().statusCode(201);
+        }
+
+        given().multiPart("file", "chart.png", picture, "image/png")
+                .when().post(PATH + "/" + written.id() + "/image")
+                .then().statusCode(400)
+                .body(containsString("at most 10 images"));
+        assertThat(readCase(caseId).getEntries().get(0).images(), hasSize(10));
     }
 
     @Test

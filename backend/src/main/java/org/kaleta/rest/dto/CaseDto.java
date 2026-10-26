@@ -1,5 +1,6 @@
 package org.kaleta.rest.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
 import org.kaleta.persistence.entity.Currency;
 
@@ -10,6 +11,7 @@ import java.util.List;
 
 /** A case as the app reads it: its own fields, plus the companies it covers by ticker. */
 @Data
+@RegisterForReflection
 public class CaseDto
 {
     private Long id;
@@ -25,6 +27,7 @@ public class CaseDto
     private List<Trade> trades = new ArrayList<>();
 
     @Data
+    @RegisterForReflection
     public static class Company
     {
         private Long id;
@@ -32,6 +35,7 @@ public class CaseDto
     }
 
     @Data
+    @RegisterForReflection
     public static class Trade
     {
         private Long id;

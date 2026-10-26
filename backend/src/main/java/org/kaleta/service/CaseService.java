@@ -84,6 +84,17 @@ public class CaseService
             }
             found.setCreatedAt(Date.valueOf(opened));
         }
+        if (dto.getClosedAt() != null) {
+            if (found.getClosedAt() == null) {
+                throw new InvalidInputException("case '" + found.getName()
+                        + "' is still open, so there is no day it was closed");
+            }
+            LocalDate closed = LocalDate.parse(dto.getClosedAt());
+            if (closed.isBefore(found.getCreatedAt().toLocalDate())) {
+                throw new InvalidInputException("a case cannot close before it was opened");
+            }
+            found.setClosedAt(Date.valueOf(closed));
+        }
         if (dto.getClosed() != null) {
             // Closing twice keeps the day it was closed on; opening it again clears it.
             if (!dto.getClosed()) {

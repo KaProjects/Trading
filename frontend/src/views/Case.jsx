@@ -35,6 +35,8 @@ import {formatDate, formatDateShort, formatError, formatDecimals, formatPercent}
 import {tightPlus} from "./component/tightPlus";
 
 const TRADE_CELL = {padding: "1px 6px 1px 0", whiteSpace: "nowrap"}
+/** A day that is changed by clicking it. */
+const DATE_TEXT = {cursor: "pointer", "&:hover": {textDecoration: "underline"}}
 
 /** What the closed trades of the case have made, one total per currency they were made in. */
 function profitByCurrency(trades = []) {
@@ -62,6 +64,7 @@ export const Case = props => {
     const [menuAnchor, setMenuAnchor] = useState(null)
     const [renaming, setRenaming] = useState(false)
     const [openedDate, setOpenedDate] = useState(false)
+    const [closedDate, setClosedDate] = useState(false)
     const [movedEntry, setMovedEntry] = useState(null)
     const [addingCompany, setAddingCompany] = useState(false)
     const [editingDate, setEditingDate] = useState(null)
@@ -349,22 +352,36 @@ export const Case = props => {
                             </Menu>
                         </Stack>
 
-                        {/* The opened day can be put right: a case kept from the past did not
-                            start on the day it was written down. */}
-                        <Typography
-                            data-testid="case-opened"
-                            onClick={() => setOpenedDate(true)}
-                            sx={{
-                                fontSize: 12,
-                                color: "text.secondary",
-                                marginTop: "2px",
-                                width: "fit-content",
-                                cursor: "pointer",
-                                "&:hover": {textDecoration: "underline"},
-                            }}
-                        >
-                            {`opened ${formatDate(value.createdAt)}`}
-                            {value.closedAt ? `, closed ${formatDate(value.closedAt)}` : ""}
+                        {/* Either day can be put right, and each is asked about on its own: a
+                            case kept from the past did not start on the day it was written
+                            down, and it was not closed then either. */}
+                        <Typography sx={{
+                            fontSize: 12,
+                            color: "text.secondary",
+                            marginTop: "2px",
+                            width: "fit-content",
+                        }}>
+                            <Box component="span"
+                                 data-testid="case-opened"
+                                 role="button"
+                                 aria-label="Day the case opened"
+                                 onClick={() => setOpenedDate(true)}
+                                 sx={DATE_TEXT}>
+                                {`opened ${formatDate(value.createdAt)}`}
+                            </Box>
+                            {value.closedAt &&
+                                <>
+                                    {", "}
+                                    <Box component="span"
+                                         data-testid="case-closed"
+                                         role="button"
+                                         aria-label="Day the case closed"
+                                         onClick={() => setClosedDate(true)}
+                                         sx={DATE_TEXT}>
+                                        {`closed ${formatDate(value.closedAt)}`}
+                                    </Box>
+                                </>
+                            }
                         </Typography>
 
                         {/* The selector is not a permanent fixture: it opens beside the plus
@@ -559,6 +576,13 @@ export const Case = props => {
                 handleClose={() => setOpenedDate(false)}
             />
             <CaseDateDialog
+                open={closedDate}
+                title="Case closed"
+                initialDate={value?.closedAt ?? ""}
+                onSubmit={date => save({closedAt: date})}
+                handleClose={() => setClosedDate(false)}
+            />
+            <CaseDateDialog
                 open={Boolean(movedEntry)}
                 title="Day written"
                 initialDate={movedEntry?.date ?? ""}
@@ -571,8 +595,6 @@ export const Case = props => {
                 initialName={value?.name ?? ""}
                 onSubmit={newName => save({name: newName})}
                 handleClose={() => setRenaming(false)}
-            />
-                }
             />
             <SnackbarErrorAlert error={alert} open={alert !== null} onClose={() => setAlert(null)}/>
         </>

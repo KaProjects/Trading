@@ -25,5 +25,9 @@ public class CaseUpdateDto
     @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")
     private String createdAt;
 
+    /** The day the case was closed, for a case that is closed already. */
+    @Pattern(regexp = "^\\d\\d\\d\\d-\\d\\d-\\d\\d$", message = "must match YYYY-MM-DD")
+    private String closedAt;
+
     private Boolean closed;
 }
