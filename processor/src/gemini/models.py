@@ -163,6 +163,17 @@ class Info(_CompanyInfo):
     # The conversion rate used for each converted quarter, with where it
     # came from.
     fx_rates: dict[QuarterId, FxRate] = Field(default_factory=dict)
+    # For an ADR: how many ADSs one ordinary share is worth (10 when one
+    # ADS is a tenth of a share). Per-share figures and share counts are
+    # stored per ADS.
+    ads_per_share: Decimal | None = Field(default=None, gt=0)
+    # The last day the ratio was checked against the market data sources.
+    ads_checked_on: Date | None = None
+    # SEC's identifier of the company, looked up once at initialization.
+    cik: str | None = Field(default=None, pattern=r"^\d{10}$")
+    # Per quarter, the reported_* fields that are estimates rather than
+    # reported figures.
+    estimates: dict[QuarterId, list[str]] = Field(default_factory=dict)
 
 
 class InitialInfo(_CompanyInfo):

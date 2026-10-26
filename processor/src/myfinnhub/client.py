@@ -63,3 +63,16 @@ class FinnhubClient:
         if beta is None or beta == "":
             return None
         return Decimal(str(beta))
+
+    def get_shares_outstanding(self, company_id: str) -> Decimal | None:
+        # In millions, of the share the company profile describes (for a
+        # foreign company, its home-market ordinary share).
+        response = self.client.company_profile2(symbol=company_id)
+        shares = (
+            response.get("shareOutstanding")
+            if isinstance(response, dict)
+            else None
+        )
+        if shares is None or shares == "" or shares == 0:
+            return None
+        return Decimal(str(shares))

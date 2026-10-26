@@ -236,6 +236,75 @@ def make_gemini_company(currency_override="$", currency="₩"):
     )
 
 
+class TestFinnhubAdsScaling:
+    @pytest.fixture
+    def runner(self):
+        return make_runner()
+
+    @staticmethod
+    def adr_company(ratio):
+        company = make_gemini_company(currency_override=None, currency="$")
+        info = company.info.model_copy(update={"ads_per_share": ratio})
+        return company.model_copy(update={"info": info})
+
+    def test_eps_estimates_are_stored_per_ads(self, runner):
+        runner.client.get_earnings.return_value = {
+            "26Q3": make_earnings(epse="59.4749", epsa="60", reve=70_755_000_000),
+        }
+
+        runner.process_company("SKHY", None, self.adr_company(Decimal("10")))
+
+        stored = runner.service.init_company.call_args.args[1]["26Q3"]
+        assert stored.epse == Decimal("5.9475")
+        assert stored.epsa == Decimal("6.0000")
+        # Revenue is the company's, not per share.
+        assert stored.reve == Decimal("70755000000")
+
+    def test_missing_eps_stays_missing(self, runner):
+        runner.client.get_earnings.return_value = {
+            "26Q3": make_earnings(epse="50", epsa=None),
+        }
+
+        runner.process_company("SKHY", None, self.adr_company(Decimal("10")))
+
+        stored = runner.service.init_company.call_args.args[1]["26Q3"]
+        assert stored.epsa is None
+        assert stored.epse == Decimal("5.0000")
+
+    @pytest.mark.parametrize("ratio", [None, Decimal("1")])
+    def test_no_ratio_means_no_scaling(self, runner, ratio):
+        earnings = {"26Q3": make_earnings(epse="50")}
+        runner.client.get_earnings.return_value = earnings
+
+        runner.process_company("SKHY", None, self.adr_company(ratio))
+
+        runner.service.init_company.assert_called_once_with("SKHY", earnings)
+
+    def test_conversion_and_ads_scaling_combine(self, runner):
+        # KRW per ordinary share -> USD -> per ADS.
+        runner.currency_converter.rate_for_period.side_effect = (
+            lambda start, end, **_kw: FxRate(rate=Decimal("1500"), source="polygon")
+        )
+        runner.currency_converter.convert_amounts.side_effect = (
+            QuarterCurrencyConverter.convert_amounts.__get__(
+                runner.currency_converter,
+            )
+        )
+        runner.client.get_earnings.return_value = {
+            "26Q3": make_earnings(epse="90000", reve=150_000_000_000_000),
+        }
+        company = make_gemini_company()
+        company = company.model_copy(update={
+            "info": company.info.model_copy(update={"ads_per_share": Decimal("10")}),
+        })
+
+        runner.process_company("SKHY", None, company)
+
+        stored = runner.service.init_company.call_args.args[1]["26Q3"]
+        assert stored.epse == Decimal("6.0000")
+        assert stored.reve == Decimal("100000000000.0000")
+
+
 class TestFinnhubCurrencyConversion:
     @pytest.fixture
     def runner(self):

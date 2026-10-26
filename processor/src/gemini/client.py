@@ -212,8 +212,24 @@ class GeminiClient:
             config=config,
         )
 
-    def get_initial_stock_data(self, ticker: str) -> InitialCompanyResult:
+    def get_initial_stock_data(
+        self,
+        ticker: str,
+        *,
+        financials_from_sec: bool = False,
+    ) -> InitialCompanyResult:
         self.log.info("Running Gemini client.get_initial_stock_data...")
+        sec_block = (
+            """
+        The company's SEC filings supply the financial values of the three
+        oldest already reported quarters. Return null for every reported_*
+        field of those three quarters and add no errors about them. Retrieve
+        the financial values only for the most recent already reported
+        quarter, the one immediately before the current unreported quarter.
+        """
+            if financials_from_sec
+            else ""
+        )
         prompt = f"""
         For company with ticker {ticker}, retrieve all required information about the company.
 
@@ -267,9 +283,12 @@ class GeminiClient:
         {OPTIONAL_PROFIT_LINES_GUIDANCE}
         A null reported_gross_profit or reported_operating_income for such a
         company is expected and needs no entry in errors.
-
+        {sec_block}
         Then, for all already reported quarters, I want you to create the interval between the dates (previous report date and current quarter report date)
         and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
+        This is needed only when info.currency is not $. When info.currency is
+        $, return null for price_min and price_max in every quarter, because
+        they are computed separately, and add no errors about them.
 
         Return quarters as an array containing exactly five quarter objects:
         first the current unreported quarter, then the four immediately preceding
@@ -402,12 +421,14 @@ class GeminiClient:
         company_id: str,
         current_quarter: Quarter,
         currency: str,
+        include_prices: bool = True,
     ) -> QuarterReportResult:
         self.log.info("Running Gemini client.get_quarter_report...")
         data = current_quarter.model_dump(mode="json")
+        fields_word = "financial and price" if include_prices else "financial"
         if currency == "$":
-            completeness = """
-            All reported financial and price fields except reported_capex,
+            completeness = f"""
+            All reported {fields_word} fields except reported_capex,
             reported_free_cash_flow, reported_gross_profit and
             reported_operating_income must be populated. Those four optional
             fields may be null when they cannot be found and verified. Return
@@ -419,6 +440,15 @@ class GeminiClient:
             reported financial or price fields may be null when they cannot be
             found and verified. Return every value you did find.
             """
+        if include_prices:
+            price_block = """
+        For price_min and price_max, I want you to create the interval between the dates (previous report date and current quarter report date)
+        and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
+        """
+        else:
+            price_block = """
+        Leave price_min and price_max null: they are computed separately.
+        """
         prompt = f"""
         For company {company_id} there should be quarter {current_quarter.id} report from {current_quarter.report_date_this_quarter}. 
         Verify the date is really in the past, if not, don't change anything and return the same data.
@@ -448,10 +478,7 @@ class GeminiClient:
         reported_capex and reported_free_cash_flow are optional and may be null.
 
         {OPTIONAL_PROFIT_LINES_GUIDANCE}
-        
-        For price_min and price_max, I want you to create the interval between the dates (previous report date and current quarter report date)
-        and compute the minimum and maximum price of the stock inside this interval (excluding the edge dates).
-
+        {price_block}
         {completeness}
 
         Never change or omit the quarter id, name, ending month, previous report

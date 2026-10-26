@@ -16,6 +16,7 @@ from main import (
     create_discord_client,
     create_error_reporter,
 )
+from gemini.ads_monitor import AdsRatioMonitorRunner
 from myfinnhub.beta_retriever import FinnhubBetaRetrieverRunner
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from polygon.prices_retriever import PolygonPricesRetrieverRunner
@@ -35,6 +36,7 @@ def make_config(**overrides):
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
         "polygon_api_key": "polygon",
+        "sec_contact_email": "sec@example.com",
     }
     data.update(overrides)
     return AppConfig.model_validate(data)
@@ -59,6 +61,7 @@ def make_application():
             FinnhubBetaRetrieverRunner,
             instance=True,
         ),
+        ads_ratio_runner=create_autospec(AdsRatioMonitorRunner, instance=True),
         stock_runner=create_autospec(StockDataRetrieverRunner, instance=True),
         polygon_news_runner=create_autospec(
             PolygonNewsRetrieverRunner,
@@ -116,17 +119,19 @@ def test_earnings_run_on_weekdays_and_betas_on_sundays():
         22: (1, 0),
         23: (1, 0),
         24: (0, 0),  # Saturday: nothing
-        25: (0, 1),  # Sunday: betas only
+        25: (0, 1),  # Sunday: betas and the ADS ratio check
     }
     for day, (earnings, betas) in expected.items():
         app.clock = lambda tz, day=day: datetime(2026, 10, day, 7, 45, tzinfo=tz)
         app.finnhub_runner.reset_mock()
         app.finnhub_beta_runner.reset_mock()
+        app.ads_ratio_runner.reset_mock()
 
         app.run_finnhub_jobs()
 
         assert app.finnhub_runner.run.call_count == earnings, day
         assert app.finnhub_beta_runner.run.call_count == betas, day
+        assert app.ads_ratio_runner.run.call_count == betas, day
 
 
 def test_sunday_is_judged_in_the_application_timezone():
@@ -157,6 +162,17 @@ def test_a_failing_earnings_cycle_is_reported_and_not_raised():
     }
 
 
+def test_a_failing_beta_cycle_does_not_skip_the_ads_ratio_check():
+    app = make_application()
+    app.clock = lambda tz: datetime(2026, 10, 25, 7, 45, tzinfo=tz)
+    app.finnhub_beta_runner.run.side_effect = RuntimeError("beta blew up")
+
+    app.run_finnhub_jobs()
+
+    app.ads_ratio_runner.run.assert_called_once()
+    app.errors.report.assert_called_once()
+
+
 def test_a_failing_beta_cycle_is_reported_and_not_raised():
     app = make_application()
     app.clock = lambda tz: datetime(2026, 10, 25, 7, 45, tzinfo=tz)
@@ -176,6 +192,7 @@ def test_a_failing_beta_cycle_is_reported_and_not_raised():
         BtcFearAndGreedRetrieverRunner,
         FinnhubEarningsRetrieverRunner,
         FinnhubBetaRetrieverRunner,
+        AdsRatioMonitorRunner,
         StockDataRetrieverRunner,
         PolygonNewsRetrieverRunner,
         PolygonPricesRetrieverRunner,
@@ -203,6 +220,11 @@ def test_create_app_initializes_dependencies_from_validated_config():
         ) as finnhub_beta_runner,
         patch("main.StockDataRetrieverRunner", autospec=True) as stock_runner,
         patch("main.PolygonClient", autospec=True) as polygon_client,
+        patch("main.SecClient", autospec=True) as sec_client,
+        patch("main.FinnhubClient", autospec=True) as finnhub_client,
+        patch("main.AdsRatioDetector", autospec=True) as ads_detector,
+        patch("main.AdsRatioMonitorRunner", autospec=True) as ads_monitor,
+        patch("main.QuarterPriceRanges", autospec=True) as price_ranges,
         patch("main.FrankfurterClient", autospec=True) as frankfurter_client,
         patch(
             "main.QuarterCurrencyConverter",
@@ -250,7 +272,21 @@ def test_create_app_initializes_dependencies_from_validated_config():
         discord=discord,
         error_reporter=errors,
         currency_converter=currency_converter.return_value,
+        sec_client=sec_client.return_value,
+        price_ranges=price_ranges.return_value,
+        ads_detector=ads_detector.return_value,
     )
+    finnhub_client.assert_called_once_with("finnhub")
+    ads_detector.assert_called_once_with(
+        polygon_client.return_value,
+        finnhub_client.return_value,
+    )
+    ads_monitor.assert_called_once_with(
+        ads_detector.return_value,
+        error_reporter=errors,
+    )
+    sec_client.assert_called_once_with("sec@example.com")
+    price_ranges.assert_called_once_with(polygon_client.return_value)
     polygon_news_runner.assert_called_once_with(
         polygon_api_key="polygon",
         gemini_api_key="gemini",

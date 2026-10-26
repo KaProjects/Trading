@@ -33,8 +33,10 @@ from gemini.models import (
     TargetReport,
 )
 from gemini.service import FirebaseService
+from gemini.adr import AdsRatio, AdsRatioDetector
 from gemini.currency import QuarterCurrencyConverter
 from gemini.institutions import InstitutionRegistry
+from gemini.prices import PriceRange, QuarterPriceRanges
 from gemini.retriever import StockDataRetrieverRunner
 from indicators.models import PriceIndicator
 from indicators.service import FirebaseService as IndicatorsFirebaseService
@@ -42,6 +44,8 @@ from myfinnhub.models import Company as FinnhubCompany
 from myfinnhub.models import Earnings
 from myfinnhub.models import Quarter as FinnhubQuarter
 from myfinnhub.service import FirebaseService as FinnhubFirebaseService
+from sec.client import SecClient
+from sec.financials import QuarterValues
 
 
 def make_quarter(
@@ -650,6 +654,423 @@ class TestStockDataRetriever:
         runner.currency_converter.convert.assert_not_called()
         runner.service.report_quarter.assert_called_once()
         assert runner.service.report_quarter.call_args.args[2] is None
+
+    @staticmethod
+    def _initial_company(currency="$", latest_revenue="1000"):
+        quarters = {
+            "26Q3": make_quarter("26Q3", "2026-10-28", ending_month="26-09",
+                                 previous_report_date="2026-07-29"),
+            "26Q2": make_quarter("26Q2", "2026-07-29", ending_month="26-06",
+                                 previous_report_date="2026-04-29",
+                                 reported_revenues=latest_revenue,
+                                 reported_net_income="200"),
+            "26Q1": make_quarter("26Q1", "2026-04-29", ending_month="26-03",
+                                 previous_report_date="2026-01-29"),
+            "25Q4": make_quarter("25Q4", "2026-01-29", ending_month="25-12",
+                                 previous_report_date="2025-10-29"),
+            "25Q3": make_quarter("25Q3", "2025-10-29", ending_month="25-09",
+                                 previous_report_date="2025-07-29"),
+        }
+        return make_company("ABC", "26Q3", quarters, currency=currency)
+
+    @pytest.fixture
+    def sourced(self, runner):
+        runner.sec_client = create_autospec(SecClient, instance=True)
+        runner.sec_client.get_cik.return_value = "0000012345"
+        runner.sec_client.get_company_facts.return_value = {"facts": {}}
+        runner.price_ranges = create_autospec(QuarterPriceRanges, instance=True)
+        runner.price_ranges.ranges.side_effect = lambda ticker, windows: {
+            quarter_id: PriceRange(Decimal("10"), Decimal("20"))
+            for quarter_id in windows
+        }
+        return runner
+
+    def test_older_quarters_come_from_sec_and_prices_from_polygon(self, sourced):
+        sourced.client.get_initial_stock_data.return_value = (
+            make_initial_result(self._initial_company())
+        )
+        sec_values = {
+            "26Q2": QuarterValues(
+                values={"reported_revenues": Decimal("1"),
+                        "reported_shares": Decimal("7.5")},
+                estimated={"reported_shares"},
+            ),
+            "26Q1": QuarterValues(values={"reported_revenues": Decimal("900"),
+                                          "reported_net_income": Decimal("90")}),
+            "25Q4": QuarterValues(
+                values={"reported_revenues": Decimal("800"),
+                        "reported_net_income": Decimal("80"),
+                        "reported_eps": Decimal("1.5")},
+                estimated={"reported_eps"},
+            ),
+            "25Q3": QuarterValues(values={"reported_revenues": Decimal("700"),
+                                          "reported_net_income": Decimal("70")}),
+        }
+
+        with (
+            patch("gemini.retriever.sec_financials.has_quarterly_filings",
+                  return_value=True),
+            patch("gemini.retriever.sec_financials.extract_quarters",
+                  return_value=sec_values) as extract,
+        ):
+            company = sourced._initialize_company("ABC")
+
+        sourced.client.get_initial_stock_data.assert_called_once_with(
+            "ABC", financials_from_sec=True
+        )
+        extract.assert_called_once_with(
+            {"facts": {}},
+            {
+                "26Q2": "26-06",
+                "26Q1": "26-03",
+                "25Q4": "25-12",
+                "25Q3": "25-09",
+            },
+        )
+        assert company.quarters["26Q1"].reported_revenues == Decimal("900")
+        assert company.quarters["25Q3"].reported_net_income == Decimal("70")
+        # The latest reported quarter keeps Gemini's figures; SEC only
+        # fills what was left empty, and an estimate there is marked too.
+        assert company.quarters["26Q2"].reported_revenues == Decimal("1000")
+        assert company.quarters["26Q2"].reported_shares == Decimal("7.5")
+        assert company.info.cik == "0000012345"
+        assert company.info.estimates == {
+            "25Q4": ["reported_eps"],
+            "26Q2": ["reported_shares"],
+        }
+        # Prices of every reported quarter, never the unreported one.
+        for quarter_id in ("26Q2", "26Q1", "25Q4", "25Q3"):
+            assert company.quarters[quarter_id].price_min == Decimal("10")
+            assert company.quarters[quarter_id].price_max == Decimal("20")
+        assert company.quarters["26Q3"].price_min is None
+        windows = sourced.price_ranges.ranges.call_args.args[1]
+        assert windows["26Q2"] == (date(2026, 4, 29), date(2026, 7, 29))
+        assert "26Q3" not in windows
+        sourced.service.init_company.assert_called_once_with(
+            id="ABC", data=company
+        )
+
+    def test_foreign_filers_keep_gemini_for_every_quarter(self, sourced):
+        sourced.client.get_initial_stock_data.return_value = (
+            make_initial_result(self._initial_company())
+        )
+
+        with (
+            patch("gemini.retriever.sec_financials.has_quarterly_filings",
+                  return_value=False),
+            patch("gemini.retriever.sec_financials.extract_quarters") as extract,
+        ):
+            company = sourced._initialize_company("ABC")
+
+        sourced.client.get_initial_stock_data.assert_called_once_with("ABC")
+        extract.assert_not_called()
+        assert company.info.cik == "0000012345"
+        assert company.info.estimates == {}
+
+    def test_a_failing_sec_lookup_falls_back_to_gemini_with_a_warning(
+        self,
+        sourced,
+    ):
+        sourced.sec_client.get_company_facts.side_effect = RuntimeError("403")
+        sourced.client.get_initial_stock_data.return_value = (
+            make_initial_result(self._initial_company())
+        )
+
+        company = sourced._initialize_company("ABC")
+
+        sourced.client.get_initial_stock_data.assert_called_once_with("ABC")
+        assert company is not None
+        assert company.info.cik is None
+        warning = next(
+            c for c in sourced.errors.report_warning_message.call_args_list
+            if c.kwargs["operation"] == "initialize_company_sec"
+        )
+        assert "SEC lookup failed for ABC" in warning.args[0]
+
+    def test_a_company_unknown_to_sec_is_initialized_without_a_cik(
+        self,
+        sourced,
+    ):
+        sourced.sec_client.get_cik.return_value = None
+        sourced.client.get_initial_stock_data.return_value = (
+            make_initial_result(self._initial_company())
+        )
+
+        company = sourced._initialize_company("ABC")
+
+        sourced.sec_client.get_company_facts.assert_not_called()
+        assert company.info.cik is None
+
+    def test_prices_stay_with_gemini_when_not_traded_in_dollars(self, sourced):
+        company = self._initial_company(currency="€")
+        company.quarters["26Q2"] = company.quarters["26Q2"].model_copy(
+            update={"price_min": Decimal("590"), "price_max": Decimal("900")}
+        )
+        sourced.client.get_initial_stock_data.return_value = (
+            make_initial_result(company)
+        )
+
+        result = sourced._initialize_company("ABC")
+
+        sourced.price_ranges.ranges.assert_not_called()
+        assert result.quarters["26Q2"].price_min == Decimal("590")
+
+    def test_the_override_currency_decides_where_prices_come_from(
+        self,
+        sourced,
+    ):
+        company = self._initial_company(currency="₩")
+        company = company.model_copy(update={
+            "info": company.info.model_copy(update={"currency_override": "$"}),
+        })
+        sourced.client.get_initial_stock_data.return_value = (
+            make_initial_result(company)
+        )
+
+        result = sourced._initialize_company("ABC")
+
+        sourced.price_ranges.ranges.assert_called_once()
+        assert result.quarters["26Q2"].price_max == Decimal("20")
+
+    def test_a_polygon_failure_is_a_warning_and_initialization_goes_on(
+        self,
+        sourced,
+    ):
+        sourced.price_ranges.ranges.side_effect = RuntimeError("429")
+        sourced.client.get_initial_stock_data.return_value = (
+            make_initial_result(self._initial_company())
+        )
+
+        company = sourced._initialize_company("ABC")
+
+        assert company is not None
+        sourced.service.init_company.assert_called_once()
+        messages = [
+            c.args[0]
+            for c in sourced.errors.report_warning_message.call_args_list
+        ]
+        assert any("Price ranges from Polygon failed: 429" in m for m in messages)
+
+    def test_only_the_latest_reported_quarter_must_have_its_core_figures(
+        self,
+        runner,
+    ):
+        # The older quarters carry no revenue or net income at all.
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(self._initial_company())
+        )
+
+        company = runner._initialize_company("ABC")
+
+        assert company is not None
+        runner.service.init_company.assert_called_once()
+        runner.errors.report_error_message.assert_not_called()
+
+    def test_a_latest_quarter_without_core_figures_still_blocks_init(
+        self,
+        runner,
+    ):
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(self._initial_company(latest_revenue=None))
+        )
+
+        assert runner._initialize_company("ABC") is None
+
+        runner.service.init_company.assert_not_called()
+        message = runner.errors.report_error_message.call_args.args[0]
+        assert "26Q2.reported_revenues" in message
+
+    @patch("utils.is_past_date")
+    @patch("gemini.retriever.datetime")
+    def test_dollar_company_quarter_report_takes_prices_from_polygon(
+        self,
+        mock_datetime,
+        mock_is_past,
+        sourced,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        mock_is_past.return_value = True
+        company = make_company(
+            "NVDA", "25Q4", {"25Q4": make_quarter(report_date="2026-04-20")}
+        )
+        sourced.service.get_companies.return_value = {"NVDA": company}
+        reported = make_complete_quarter(
+            report_date="2026-04-20", price_min=None, price_max=None
+        )
+        sourced.client.get_quarter_report.return_value = (
+            make_quarter_report_result(reported)
+        )
+        sourced.compose_new_quarter = create_autospec(
+            sourced.compose_new_quarter,
+            return_value=make_quarter(quarter_id="26Q1", report_date=""),
+        )
+
+        sourced.run()
+
+        sourced.client.get_quarter_report.assert_called_once_with(
+            "NVDA", company.quarters["25Q4"], "$", include_prices=False
+        )
+        windows = sourced.price_ranges.ranges.call_args.args[1]
+        assert windows == {"25Q4": (date(2026, 1, 20), date(2026, 4, 20))}
+        stored = sourced.service.report_quarter.call_args.args[1]
+        assert (stored.price_min, stored.price_max) == (
+            Decimal("10"), Decimal("20")
+        )
+        sourced.errors.report_error_message.assert_not_called()
+
+    @patch("utils.is_past_date")
+    @patch("gemini.retriever.datetime")
+    def test_polygon_failure_holds_the_quarter_report_for_a_retry(
+        self,
+        mock_datetime,
+        mock_is_past,
+        sourced,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        mock_is_past.return_value = True
+        company = make_company(
+            "NVDA", "25Q4", {"25Q4": make_quarter(report_date="2026-04-20")}
+        )
+        sourced.service.get_companies.return_value = {"NVDA": company}
+        sourced.client.get_quarter_report.return_value = (
+            make_quarter_report_result(
+                make_complete_quarter(report_date="2026-04-20"),
+                raw_response="raw",
+            )
+        )
+        sourced.price_ranges.ranges.side_effect = RuntimeError("polygon down")
+
+        sourced.run()
+
+        sourced.service.report_quarter.assert_not_called()
+        sourced.service.create_quarter.assert_not_called()
+        sourced.discord.post_earnings.assert_not_called()
+        message = sourced.errors.report_error_message.call_args.args[0]
+        assert "Retrieving the price range from Polygon failed: polygon down" in message
+
+    @patch("utils.is_past_date")
+    @patch("gemini.retriever.datetime")
+    def test_non_dollar_company_quarter_report_still_asks_gemini_for_prices(
+        self,
+        mock_datetime,
+        mock_is_past,
+        sourced,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        mock_is_past.return_value = True
+        company = make_company(
+            "ASML", "25Q4", {"25Q4": make_quarter(report_date="2026-04-20")},
+            currency="€",
+        )
+        sourced.service.get_companies.return_value = {"ASML": company}
+        sourced.client.get_quarter_report.return_value = (
+            make_quarter_report_result(
+                make_complete_quarter(report_date="2026-04-20"),
+            )
+        )
+        sourced.compose_new_quarter = create_autospec(
+            sourced.compose_new_quarter,
+            return_value=make_quarter(quarter_id="26Q1", report_date=""),
+        )
+
+        sourced.run()
+
+        sourced.client.get_quarter_report.assert_called_once_with(
+            "ASML", company.quarters["25Q4"], "€"
+        )
+        sourced.price_ranges.ranges.assert_not_called()
+
+    def test_init_detects_the_ads_ratio_and_stores_per_ads_figures(self, runner):
+        runner.ads_detector = create_autospec(AdsRatioDetector, instance=True)
+        runner.ads_detector.detect.return_value = AdsRatio(
+            ads_per_share=Decimal("10"),
+            ads_shares=Decimal("7288665960"),
+            ordinary_shares=Decimal("730490000"),
+        )
+        company = self._initial_company()
+        company.quarters["26Q2"] = company.quarters["26Q2"].model_copy(
+            update={"reported_eps": Decimal("50"), "reported_shares": Decimal("730")}
+        )
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(company)
+        )
+
+        result = runner._initialize_company("ABC")
+
+        assert result.info.ads_per_share == Decimal("10")
+        assert result.info.ads_checked_on == date.today()
+        assert result.quarters["26Q2"].reported_eps == Decimal("5")
+        assert result.quarters["26Q2"].reported_shares == Decimal("7300")
+        assert result.quarters["26Q2"].reported_revenues == Decimal("1000")
+
+    def test_init_without_an_adr_leaves_per_share_figures_alone(self, runner):
+        runner.ads_detector = create_autospec(AdsRatioDetector, instance=True)
+        runner.ads_detector.detect.return_value = None
+        company = self._initial_company()
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(company)
+        )
+
+        result = runner._initialize_company("ABC")
+
+        assert result.info.ads_per_share is None
+        assert result.info.ads_checked_on is None
+
+    def test_a_failing_ads_detection_is_a_warning_not_a_blocker(self, runner):
+        runner.ads_detector = create_autospec(AdsRatioDetector, instance=True)
+        runner.ads_detector.detect.side_effect = RuntimeError("429")
+        runner.client.get_initial_stock_data.return_value = (
+            make_initial_result(self._initial_company())
+        )
+
+        result = runner._initialize_company("ABC")
+
+        assert result is not None
+        messages = [
+            c.args[0]
+            for c in runner.errors.report_warning_message.call_args_list
+        ]
+        assert any("Detecting the ADS ratio failed: 429" in m for m in messages)
+
+    @patch("utils.is_past_date")
+    @patch("gemini.retriever.datetime")
+    def test_quarter_report_of_an_adr_is_stored_per_ads(
+        self,
+        mock_datetime,
+        mock_is_past,
+        runner,
+    ):
+        mock_datetime.now.return_value = datetime(2026, 4, 27)
+        mock_is_past.return_value = True
+        company = make_company(
+            "SKHY", "25Q4", {"25Q4": make_quarter(report_date="2026-04-20")}
+        )
+        company = company.model_copy(update={
+            "info": company.info.model_copy(
+                update={"ads_per_share": Decimal("10")}
+            ),
+        })
+        runner.service.get_companies.return_value = {"SKHY": company}
+        runner.client.get_quarter_report.return_value = (
+            make_quarter_report_result(
+                make_complete_quarter(
+                    report_date="2026-04-20",
+                    reported_eps="50",
+                    reported_shares="730",
+                ),
+            )
+        )
+        runner.compose_new_quarter = create_autospec(
+            runner.compose_new_quarter,
+            return_value=make_quarter(quarter_id="26Q1", report_date=""),
+        )
+
+        runner.run()
+
+        stored = runner.service.report_quarter.call_args.args[1]
+        assert stored.reported_eps == Decimal("5")
+        assert stored.reported_shares == Decimal("7300")
+        assert stored.reported_revenues == Decimal("1000")
 
     @patch("utils.is_past_date")
     @patch("gemini.retriever.datetime")

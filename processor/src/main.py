@@ -14,13 +14,18 @@ from config import AppConfig
 from discord.client import DiscordClient
 from error_reporting import ErrorReporter
 from frankfurter.client import FrankfurterClient
+from gemini.ads_monitor import AdsRatioMonitorRunner
+from gemini.adr import AdsRatioDetector
 from gemini.currency import QuarterCurrencyConverter
+from gemini.prices import QuarterPriceRanges
 from gemini.retriever import StockDataRetrieverRunner
 from myfinnhub.beta_retriever import FinnhubBetaRetrieverRunner
+from myfinnhub.client import FinnhubClient
 from myfinnhub.retriever import FinnhubEarningsRetrieverRunner
 from polygon.client import PolygonClient
 from polygon.prices_retriever import PolygonPricesRetrieverRunner
 from polygon.retriever import PolygonNewsRetrieverRunner
+from sec.client import SecClient
 
 logger = logging.getLogger(__name__)
 SATURDAY = 5
@@ -33,6 +38,7 @@ class Application:
     polygon_prices_runner: PolygonPricesRetrieverRunner
     finnhub_runner: FinnhubEarningsRetrieverRunner
     finnhub_beta_runner: FinnhubBetaRetrieverRunner
+    ads_ratio_runner: AdsRatioMonitorRunner
     stock_runner: StockDataRetrieverRunner
     polygon_news_runner: PolygonNewsRetrieverRunner
     onboarding_watcher: CompanyOnboardingWatcher
@@ -66,14 +72,16 @@ class Application:
         self._jobs_configured = True
 
     def run_finnhub_jobs(self) -> None:
-        # One daily trigger, two cycles: the earnings on weekdays, then the
-        # betas on Sundays. A failure in one never skips the other.
+        # One daily trigger, several cycles: the earnings on weekdays, the
+        # betas and the ADS ratio check on Sundays. A failure in one never
+        # skips another.
         weekday = self.clock(ZoneInfo(self.timezone)).weekday()
         runners = []
         if weekday < SATURDAY:
             runners.append(self.finnhub_runner)
         if weekday == SUNDAY:
             runners.append(self.finnhub_beta_runner)
+            runners.append(self.ads_ratio_runner)
         for runner in runners:
             try:
                 runner.run()
@@ -138,8 +146,9 @@ def create_app(
         discord=discord,
     )
     utils.init_firebase(config.firebase)
+    polygon_client = PolygonClient(config.polygon_api_key.get_secret_value())
     currency_converter = QuarterCurrencyConverter(
-        PolygonClient(config.polygon_api_key.get_secret_value()),
+        polygon_client,
         FrankfurterClient(),
     )
     finnhub_runner = FinnhubEarningsRetrieverRunner(
@@ -152,11 +161,18 @@ def create_app(
         finnhub_api_key=config.finnhub_api_key.get_secret_value(),
         error_reporter=errors,
     )
+    ads_detector = AdsRatioDetector(
+        polygon_client,
+        FinnhubClient(config.finnhub_api_key.get_secret_value()),
+    )
     stock_runner = StockDataRetrieverRunner(
         gemini_api_key=config.gemini_api_key.get_secret_value(),
         discord=discord,
         error_reporter=errors,
         currency_converter=currency_converter,
+        sec_client=SecClient(config.sec_contact_email.get_secret_value()),
+        price_ranges=QuarterPriceRanges(polygon_client),
+        ads_detector=ads_detector,
     )
     polygon_news_runner = PolygonNewsRetrieverRunner(
         polygon_api_key=config.polygon_api_key.get_secret_value(),
@@ -177,6 +193,10 @@ def create_app(
         polygon_prices_runner=polygon_prices_runner,
         finnhub_runner=finnhub_runner,
         finnhub_beta_runner=finnhub_beta_runner,
+        ads_ratio_runner=AdsRatioMonitorRunner(
+            ads_detector,
+            error_reporter=errors,
+        ),
         stock_runner=stock_runner,
         polygon_news_runner=polygon_news_runner,
         onboarding_watcher=CompanyOnboardingWatcher(

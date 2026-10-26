@@ -1,7 +1,8 @@
 import logging
 import time
 from collections.abc import Callable
-from datetime import date, timedelta
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from requests import Session
@@ -11,6 +12,8 @@ from polygon.models import (
     AggregatesResponse,
     GroupedDailyResponse,
     NewsResponse,
+    TickerOverview,
+    TickerOverviewResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -18,10 +21,19 @@ RATE_LIMIT_MAX_RETRIES = 3
 RATE_LIMIT_RETRY_DELAY_SECONDS = 30.0
 # One grouped-daily response covers every US ticker (~12k bars, ~2 MB).
 GROUPED_DAILY_TIMEOUT_SECONDS = 60.0
+# A year or two of daily bars for one ticker.
+AGGREGATES_TIMEOUT_SECONDS = 30.0
 
 
 class PolygonClientError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class DailyRange:
+    day: date
+    low: Decimal
+    high: Decimal
 
 
 class PolygonClient:
@@ -88,6 +100,49 @@ class PolygonClient:
         )
         try:
             return GroupedDailyResponse.model_validate(payload)
+        except (TypeError, ValueError) as exception:
+            raise PolygonClientError(
+                "Polygon returned an invalid response"
+            ) from exception
+
+    def get_ticker_overview(self, ticker: str) -> TickerOverview:
+        payload = self._get_json(
+            f"{self.BASE_URL}/v3/reference/tickers/{ticker}",
+        )
+        try:
+            return TickerOverviewResponse.model_validate(payload).results
+        except (TypeError, ValueError) as exception:
+            raise PolygonClientError(
+                "Polygon returned an invalid response"
+            ) from exception
+
+    def get_daily_ranges(
+        self,
+        ticker: str,
+        start: date,
+        end: date,
+    ) -> list[DailyRange]:
+        # Split-adjusted daily low and high of every session between the
+        # two dates (inclusive), oldest first.
+        payload = self._get_json(
+            f"{self.BASE_URL}/v2/aggs/ticker/{ticker}/range/1/day/"
+            f"{start.isoformat()}/{end.isoformat()}",
+            parameters={"adjusted": "true", "sort": "asc", "limit": 50000},
+            timeout=AGGREGATES_TIMEOUT_SECONDS,
+        )
+        try:
+            response = AggregatesResponse.model_validate(payload)
+            return [
+                DailyRange(
+                    day=datetime.fromtimestamp(
+                        bar.timestamp / 1000,
+                        tz=timezone.utc,
+                    ).date(),
+                    low=bar.low,
+                    high=bar.high,
+                )
+                for bar in response.results
+            ]
         except (TypeError, ValueError) as exception:
             raise PolygonClientError(
                 "Polygon returned an invalid response"

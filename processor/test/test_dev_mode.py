@@ -39,6 +39,7 @@ def make_config() -> AppConfig:
         "finnhub_api_key": "finnhub",
         "gemini_api_key": "gemini",
         "polygon_api_key": "polygon",
+        "sec_contact_email": "sec@example.com",
     })
 
 

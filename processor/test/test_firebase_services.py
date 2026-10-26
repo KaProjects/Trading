@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, create_autospec, patch
 
@@ -556,3 +556,18 @@ def test_gemini_bull_bear_write_is_skipped_when_both_sides_are_empty():
         "not support any point on either side",
         "AAPL",
     )
+
+
+def test_gemini_ads_check_records_only_the_check_date():
+    service = make_service(GeminiFirebaseService)
+    company_reference = MagicMock(spec_set=["update"])
+
+    with patch(
+        "gemini.service.db.reference", return_value=company_reference
+    ) as reference:
+        service.update_ads_check("SKHY", date(2026, 11, 1))
+
+    reference.assert_called_once_with(gemini_company_path("SKHY"))
+    company_reference.update.assert_called_once_with({
+        "info/ads_checked_on": "2026-11-01",
+    })

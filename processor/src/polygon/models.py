@@ -297,6 +297,11 @@ class AggregateBar(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     close: Decimal = Field(alias="c", gt=0)
+    # Present on stock bars, which the price ranges are computed from.
+    low: Decimal | None = Field(default=None, alias="l", gt=0)
+    high: Decimal | None = Field(default=None, alias="h", gt=0)
+    # Start of the session in milliseconds since the epoch.
+    timestamp: int | None = Field(default=None, alias="t")
 
 
 class AggregatesResponse(BaseModel):
@@ -304,3 +309,16 @@ class AggregatesResponse(BaseModel):
 
     # Polygon omits `results` entirely when the range holds no bars.
     results: list[AggregateBar] = Field(default_factory=list)
+
+
+class TickerOverview(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    type: str | None = None
+    weighted_shares_outstanding: Decimal | None = Field(default=None, gt=0)
+
+
+class TickerOverviewResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    results: TickerOverview

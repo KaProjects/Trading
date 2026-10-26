@@ -994,3 +994,76 @@ def test_get_quarter_report_rejects_missing_structure_with_raw_response():
         raised.value
     )
     assert raw_response in str(raised.value)
+
+
+def _initial_prompt(**kwargs):
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            json.dumps(initial_company_data())
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        client.get_initial_stock_data("ASML", **kwargs)
+
+    return " ".join(
+        constructor.return_value.models.generate_content.call_args.kwargs[
+            "contents"
+        ].split()
+    )
+
+
+def test_initial_prompt_asks_for_prices_only_when_not_traded_in_dollars():
+    prompt = _initial_prompt()
+
+    assert (
+        "This is needed only when info.currency is not $. When info.currency "
+        "is $, return null for price_min and price_max in every quarter"
+    ) in prompt
+
+
+def test_initial_prompt_leaves_older_financials_to_sec_when_asked():
+    prompt = _initial_prompt(financials_from_sec=True)
+
+    assert (
+        "The company's SEC filings supply the financial values of the three "
+        "oldest already reported quarters"
+    ) in prompt
+    assert "Retrieve the financial values only for the most recent already " in prompt
+
+
+def test_initial_prompt_asks_for_every_quarter_by_default():
+    prompt = _initial_prompt()
+
+    assert "SEC filings supply" not in prompt
+
+
+def _report_prompt(currency, **kwargs):
+    with patch("gemini.client.genai.Client", autospec=True) as constructor:
+        constructor.return_value.models.generate_content.return_value.text = (
+            json.dumps(complete_quarter_data())
+        )
+        client = GeminiClient(api_key="gemini-key", model="gemini-model")
+
+        client.get_quarter_report("APLD", make_quarter(), currency, **kwargs)
+
+    return " ".join(
+        constructor.return_value.models.generate_content.call_args.kwargs[
+            "contents"
+        ].split()
+    )
+
+
+def test_quarter_report_prompt_asks_for_prices_by_default():
+    prompt = _report_prompt("$")
+
+    assert "For price_min and price_max, I want you to create the interval" in prompt
+    assert "financial and price fields" in prompt
+
+
+def test_quarter_report_prompt_leaves_prices_to_polygon_when_asked():
+    prompt = _report_prompt("$", include_prices=False)
+
+    assert "I want you to create the interval" not in prompt
+    assert "Leave price_min and price_max null" in prompt
+    assert "financial and price fields" not in prompt
+    assert "All reported financial fields except reported_capex" in prompt

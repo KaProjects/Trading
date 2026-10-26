@@ -2,12 +2,14 @@ import calendar
 import logging
 from collections.abc import Mapping
 from datetime import date, datetime, timedelta
+from dataclasses import dataclass
 from decimal import Decimal
 
 import utils
 from discord.client import DiscordClient, ThreadedPost
 from error_reporting import ErrorReporter
 from gemini import discord_templates
+from gemini.adr import AdsRatioDetector, scale_to_ads
 from gemini.client import GeminiClient
 from gemini.currency import QuarterCurrencyConverter
 from gemini.institutions import (
@@ -27,12 +29,18 @@ from gemini.models import (
     Target,
     TargetCandidate,
 )
+from gemini.prices import (
+    QuarterPriceRanges,
+    prices_come_from_polygon,
+)
 from gemini.service import FirebaseService
 from gemini.strings import ErrorMsg, LogMsg
 from indicators.service import FirebaseService as IndicatorsFirebaseService
 from myfinnhub.models import Company as FinnhubCompany
 from myfinnhub.models import Earnings as FinnhubEarnings
 from myfinnhub.service import FirebaseService as FinnhubFirebaseService
+from sec import financials as sec_financials
+from sec.client import SecClient
 
 RUNNER_NAME = "StockDataRetriever"
 PRICE_TARGET_LOOKBACK_DAYS = 2
@@ -63,7 +71,17 @@ OPTIONAL_QUARTER_REPORT_FIELDS = frozenset({
     "reported_gross_profit",
     "reported_operating_income",
 })
+# A quarterly filing newer than this means SEC has usable quarters.
+SEC_QUARTERLY_FILING_MAX_AGE_DAYS = 700
 logger = logging.getLogger(RUNNER_NAME)
+
+
+@dataclass(frozen=True)
+class SecFacts:
+    cik: str
+    facts: dict
+    # Domestic filers have 10-Q data; foreign private issuers do not.
+    quarterly: bool
 
 
 class StockDataRetrieverRunner:
@@ -71,6 +89,11 @@ class StockDataRetrieverRunner:
     name = RUNNER_NAME
     # model = "gemini-3-flash-preview"
     model = "gemini-3.1-pro-preview"
+    # Optional collaborators: without them the older quarters' financials
+    # and every price range come from Gemini alone.
+    sec_client: SecClient | None = None
+    price_ranges: QuarterPriceRanges | None = None
+    ads_detector: AdsRatioDetector | None = None
 
     def __init__(
         self,
@@ -82,9 +105,15 @@ class StockDataRetrieverRunner:
         discord: DiscordClient | None = None,
         error_reporter: ErrorReporter | None = None,
         currency_converter: QuarterCurrencyConverter | None = None,
+        sec_client: SecClient | None = None,
+        price_ranges: QuarterPriceRanges | None = None,
+        ads_detector: AdsRatioDetector | None = None,
     ) -> None:
         self.errors = error_reporter or ErrorReporter(environment="local")
+        self.ads_detector = ads_detector
         self.currency_converter = currency_converter
+        self.sec_client = sec_client
+        self.price_ranges = price_ranges
         if client is None:
             if gemini_api_key is None:
                 raise ValueError("gemini_api_key is required without a client")
@@ -128,11 +157,22 @@ class StockDataRetrieverRunner:
                             self.log.error(ErrorMsg.QUARTER_NOT_FOUND.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
                         else:
                             if utils.is_past_date(date=current_quarter.report_date_this_quarter):
-                                quarter_result = self.client.get_quarter_report(
-                                    company_id,
-                                    current_quarter,
-                                    company.info.currency,
+                                polygon_prices = self._uses_polygon_prices(
+                                    company.info
                                 )
+                                if polygon_prices:
+                                    quarter_result = self.client.get_quarter_report(
+                                        company_id,
+                                        current_quarter,
+                                        company.info.currency,
+                                        include_prices=False,
+                                    )
+                                else:
+                                    quarter_result = self.client.get_quarter_report(
+                                        company_id,
+                                        current_quarter,
+                                        company.info.currency,
+                                    )
                                 current_quarter_reported = quarter_result.quarter
                                 if current_quarter == current_quarter_reported:
                                     self.log.error(ErrorMsg.QUARTER_REPORT_FAILED.format(quarter_id=company.info.current_quarter_id, company_id=company_id))
@@ -146,6 +186,27 @@ class StockDataRetrieverRunner:
                                         )
                                         self.service.update_report_date(new_report_dates.report_dates[0])
                                 else:
+                                    if polygon_prices:
+                                        try:
+                                            current_quarter_reported = (
+                                                self._with_polygon_prices(
+                                                    company_id,
+                                                    current_quarter_reported,
+                                                )
+                                            )
+                                        except Exception as exception:
+                                            self._report_quarter_report_errors(
+                                                company_id,
+                                                company.info.currency,
+                                                current_quarter.id,
+                                                [
+                                                    "Retrieving the price "
+                                                    "range from Polygon "
+                                                    f"failed: {exception}"
+                                                ],
+                                                quarter_result.raw_response,
+                                            )
+                                            continue
                                     report_errors = self._quarter_structure_errors(
                                         current_quarter,
                                         current_quarter_reported,
@@ -213,6 +274,10 @@ class StockDataRetrieverRunner:
                                             quarter_result.raw_response,
                                         )
                                         continue
+                                    current_quarter_reported = scale_to_ads(
+                                        current_quarter_reported,
+                                        company.info.ads_per_share,
+                                    )
                                     self.service.report_quarter(
                                         company_id,
                                         current_quarter_reported,
@@ -292,17 +357,37 @@ class StockDataRetrieverRunner:
         return company
 
     def _initialize_company(self, company_id: str) -> Company | None:
-        result = self.client.get_initial_stock_data(company_id)
-        company = result.company
+        sec = self._load_sec_facts(company_id)
+        if sec is not None and sec.quarterly:
+            # SEC filings supply the older quarters' financials, so Gemini
+            # is only asked for the latest reported quarter.
+            result = self.client.get_initial_stock_data(
+                company_id,
+                financials_from_sec=True,
+            )
+        else:
+            result = self.client.get_initial_stock_data(company_id)
+        company, enrichment_notes = self._enrich_initial_company(
+            company_id,
+            result.company,
+            sec,
+        )
         currency = company.info.currency
         missing_fields = self._missing_reported_quarter_fields(company)
+        # The latest reported quarter must have its core figures; older
+        # ones may be missing (a foreign company's history, for one).
+        latest_quarter_id = self._quarter_id_offset(
+            company.info.current_quarter_id,
+            1,
+        )
         missing_required_fields = sorted(
             field
             for field in missing_fields
-            if field.rsplit(".", maxsplit=1)[-1]
+            if field.startswith(f"{latest_quarter_id}.")
+            and field.rsplit(".", maxsplit=1)[-1]
             in REQUIRED_REPORTED_QUARTER_FIELDS
         )
-        retrieval_errors = list(result.errors)
+        retrieval_errors = list(result.errors) + enrichment_notes
 
         if missing_required_fields:
             retrieval_errors.append(
@@ -332,6 +417,172 @@ class StockDataRetrieverRunner:
 
         self.service.init_company(id=company_id, data=company)
         return company
+
+    def _uses_polygon_prices(self, info: Info) -> bool:
+        return self.price_ranges is not None and prices_come_from_polygon(info)
+
+    def _with_polygon_prices(self, company_id: str, quarter: Quarter) -> Quarter:
+        if quarter.report_date_this_quarter is None:
+            raise ValueError(f"{quarter.id} has no report date")
+        ranges = self.price_ranges.ranges(
+            company_id,
+            {
+                quarter.id: (
+                    quarter.report_date_previous_quarter,
+                    quarter.report_date_this_quarter,
+                ),
+            },
+        )
+        price_range = ranges[quarter.id]
+        return quarter.model_copy(update={
+            "price_min": None if price_range is None else price_range.low,
+            "price_max": None if price_range is None else price_range.high,
+        })
+
+    def _load_sec_facts(self, company_id: str) -> SecFacts | None:
+        if self.sec_client is None:
+            return None
+        try:
+            cik = self.sec_client.get_cik(company_id)
+            if cik is None:
+                return None
+            facts = self.sec_client.get_company_facts(cik)
+            since = date.today() - timedelta(
+                days=SEC_QUARTERLY_FILING_MAX_AGE_DAYS
+            )
+            return SecFacts(
+                cik=cik,
+                facts=facts,
+                quarterly=sec_financials.has_quarterly_filings(
+                    facts,
+                    since=since,
+                ),
+            )
+        except Exception as exception:
+            self.errors.report_warning_message(
+                f"SEC lookup failed for {company_id}, so Gemini supplies "
+                f"every quarter: {exception}",
+                logger=self.log,
+                source=self.name,
+                operation="initialize_company_sec",
+                context={"company_id": company_id},
+            )
+            return None
+
+    def _enrich_initial_company(
+        self,
+        company_id: str,
+        company: Company,
+        sec: SecFacts | None,
+    ) -> tuple[Company, list[str]]:
+        # Gemini supplied the structure and the latest reported quarter.
+        # What the other sources can provide more reliably replaces what
+        # Gemini returned: older quarters' financials from SEC filings, and
+        # price ranges from Polygon. Failures are notes, never fatal.
+        notes: list[str] = []
+        info_updates: dict[str, object] = {}
+        quarters = dict(company.quarters)
+        current_id = company.info.current_quarter_id
+        latest_id = self._quarter_id_offset(current_id, 1)
+        reported = {
+            quarter_id: quarter
+            for quarter_id, quarter in quarters.items()
+            if quarter_id != current_id
+        }
+
+        if sec is not None:
+            info_updates["cik"] = sec.cik
+            if sec.quarterly and company.info.currency == "$":
+                try:
+                    extracted = sec_financials.extract_quarters(
+                        sec.facts,
+                        {
+                            quarter_id: quarter.ending_month
+                            for quarter_id, quarter in reported.items()
+                        },
+                    )
+                    estimates: dict[str, list[str]] = {}
+                    for quarter_id, found in extracted.items():
+                        values = dict(found.values)
+                        if quarter_id == latest_id:
+                            # Gemini's figures for the latest quarter stand;
+                            # SEC only fills what Gemini left empty.
+                            values = {
+                                name: value
+                                for name, value in values.items()
+                                if getattr(quarters[quarter_id], name) is None
+                            }
+                        if values:
+                            quarters[quarter_id] = quarters[
+                                quarter_id
+                            ].model_copy(update=values)
+                        marks = sorted(found.estimated & set(values))
+                        if marks:
+                            estimates[quarter_id] = marks
+                    if estimates:
+                        info_updates["estimates"] = estimates
+                except Exception as exception:
+                    self.log.exception(
+                        "SEC financials for %s failed", company_id
+                    )
+                    notes.append(
+                        f"Financials from SEC filings failed: {exception}"
+                    )
+            elif sec.quarterly:
+                notes.append(
+                    "SEC filings were not used: the reporting currency is "
+                    f"{company.info.currency}, not $"
+                )
+
+        if self._uses_polygon_prices(company.info):
+            try:
+                ranges = self.price_ranges.ranges(
+                    company_id,
+                    {
+                        quarter_id: (
+                            quarter.report_date_previous_quarter,
+                            quarter.report_date_this_quarter,
+                        )
+                        for quarter_id, quarter in reported.items()
+                        if quarter.report_date_this_quarter is not None
+                    },
+                )
+                for quarter_id, price_range in ranges.items():
+                    quarters[quarter_id] = quarters[quarter_id].model_copy(
+                        update={
+                            "price_min": (
+                                None if price_range is None else price_range.low
+                            ),
+                            "price_max": (
+                                None if price_range is None else price_range.high
+                            ),
+                        },
+                    )
+            except Exception as exception:
+                self.log.exception("Polygon prices for %s failed", company_id)
+                notes.append(f"Price ranges from Polygon failed: {exception}")
+
+        if self.ads_detector is not None:
+            try:
+                ratio = self.ads_detector.detect(company_id)
+            except Exception as exception:
+                self.log.exception("ADS ratio for %s failed", company_id)
+                notes.append(f"Detecting the ADS ratio failed: {exception}")
+                ratio = None
+            if ratio is not None:
+                # Gemini's per-share figures are per ordinary share.
+                info_updates["ads_per_share"] = ratio.ads_per_share
+                info_updates["ads_checked_on"] = date.today()
+                quarters = {
+                    quarter_id: scale_to_ads(quarter, ratio.ads_per_share)
+                    for quarter_id, quarter in quarters.items()
+                }
+
+        enriched = company.model_copy(update={
+            "info": company.info.model_copy(update=info_updates),
+            "quarters": quarters,
+        })
+        return enriched, notes
 
     @staticmethod
     def _missing_reported_quarter_fields(company: Company) -> list[str]:
@@ -423,7 +674,7 @@ class StockDataRetrieverRunner:
         raw_response: str,
     ) -> None:
         message = (
-            "Gemini initialization completed with accepted non-USD "
+            "Gemini initialization completed with accepted "
             "retrieval errors:\n"
             + "\n".join(
                 f"{index}. {error}"

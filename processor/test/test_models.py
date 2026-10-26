@@ -519,3 +519,37 @@ def test_finnhub_models_reject_invalid_report_and_quarter():
 def test_finnhub_earnings_reject_non_finite_numbers(non_finite):
     with pytest.raises(ValidationError):
         Earnings(report="2026-04-27-bmo", epse=non_finite)
+
+
+def test_info_stores_a_ten_digit_cik_and_estimate_marks():
+    info = Info(
+        ticker="MSFT",
+        last_update="2026-10-01",
+        current_quarter_id="26Q3",
+        cik="0000789019",
+        estimates={"25Q4": ["reported_eps", "reported_shares"]},
+    )
+
+    assert info.cik == "0000789019"
+    assert info.estimates["25Q4"] == ["reported_eps", "reported_shares"]
+
+
+@pytest.mark.parametrize("cik", ["789019", "MSFT", "00007890190"])
+def test_info_rejects_a_malformed_cik(cik):
+    with pytest.raises(ValidationError):
+        Info(
+            ticker="MSFT",
+            last_update="2026-10-01",
+            current_quarter_id="26Q3",
+            cik=cik,
+        )
+
+
+def test_gemini_is_never_offered_the_hand_set_company_fields():
+    properties = InitialCompanyResponse.model_json_schema()["$defs"][
+        "InitialInfo"
+    ]["properties"]
+
+    assert not {"cik", "estimates", "currency_override", "fx_rates"} & set(
+        properties
+    )

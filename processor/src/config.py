@@ -16,8 +16,17 @@ class AppConfig(BaseModel):
     finnhub_api_key: SecretStr
     gemini_api_key: SecretStr
     polygon_api_key: SecretStr
+    # Contact address SEC requires in the User-Agent of every request.
+    sec_contact_email: SecretStr
     timezone: str = "Europe/Prague"
     poll_interval_seconds: PositiveFloat = 60
+
+    @field_validator("sec_contact_email")
+    @classmethod
+    def contact_email_must_look_like_an_email(cls, value: SecretStr) -> SecretStr:
+        if "@" not in value.get_secret_value():
+            raise ValueError("sec_contact_email must be an email address")
+        return value
 
     @field_validator("timezone")
     @classmethod

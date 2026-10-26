@@ -1,7 +1,7 @@
 import hashlib
 import json
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from urllib.parse import urlsplit
 
 from firebase_admin import db
@@ -156,6 +156,11 @@ class FirebaseService:
             "info/last_update": datetime.now().strftime("%Y-%m-%d"),
         })
         self.log.info(LogMsg.REPORT_DATE_UPDATED.format(previous_date=previous_date, new_date=new_report_date.report_date, company_id=new_report_date.ticker, quarter_id=new_report_date.quarter))
+
+    def update_ads_check(self, company_id: str, checked_on: date) -> None:
+        db.reference(company_path(company_id)).update({
+            "info/ads_checked_on": checked_on.isoformat(),
+        })
 
     def report_quarter(
         self,

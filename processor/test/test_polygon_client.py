@@ -326,3 +326,89 @@ def test_get_forex_daily_closes_raises_typed_error_on_invalid_bar(client):
         instance.get_forex_daily_closes(
             "USD", "KRW", date(2026, 7, 1), date(2026, 9, 30)
         )
+
+
+def stock_bar(day_ms, low, high, close):
+    return {"t": day_ms, "l": low, "h": high, "c": close, "o": close}
+
+
+def test_get_daily_ranges_requests_the_span_and_parses_sessions(client):
+    instance, session, _ = client
+    session.get.return_value = response({
+        "status": "OK",
+        "results": [
+            stock_bar(1777953600000, 393.36, 430.6, 421.39),
+            stock_bar(1778040000000, 401.08, 421.71, 408.46),
+        ],
+    })
+
+    ranges = instance.get_daily_ranges(
+        "BRK.B", date(2026, 5, 5), date(2026, 5, 7)
+    )
+
+    session.get.assert_called_once_with(
+        "https://api.polygon.io/v2/aggs/ticker/BRK.B/range/1/day/"
+        "2026-05-05/2026-05-07",
+        params={"adjusted": "true", "sort": "asc", "limit": 50000},
+        timeout=30.0,
+    )
+    assert [(r.day, r.low, r.high) for r in ranges] == [
+        (date(2026, 5, 5), Decimal("393.36"), Decimal("430.6")),
+        (date(2026, 5, 6), Decimal("401.08"), Decimal("421.71")),
+    ]
+
+
+def test_get_daily_ranges_is_empty_before_a_listing(client):
+    instance, session, _ = client
+    session.get.return_value = response({"status": "OK", "resultsCount": 0})
+
+    assert instance.get_daily_ranges(
+        "SKHY", date(2026, 1, 1), date(2026, 3, 1)
+    ) == []
+
+
+def test_get_daily_ranges_rejects_bars_without_session_data(client):
+    instance, session, _ = client
+    session.get.return_value = response({"results": [{"c": 10.0}]})
+
+    with pytest.raises(PolygonClientError, match="invalid response"):
+        instance.get_daily_ranges("X", date(2026, 1, 1), date(2026, 3, 1))
+
+
+def test_get_ticker_overview_reads_the_type_and_share_count(client):
+    instance, session, _ = client
+    session.get.return_value = response({
+        "status": "OK",
+        "results": {
+            "ticker": "SKHY",
+            "type": "ADRC",
+            "weighted_shares_outstanding": 7288665960,
+            "market_cap": 998693009839.2,
+        },
+    })
+
+    overview = instance.get_ticker_overview("SKHY")
+
+    assert session.get.call_args.args[0] == (
+        "https://api.polygon.io/v3/reference/tickers/SKHY"
+    )
+    assert overview.type == "ADRC"
+    assert overview.weighted_shares_outstanding == Decimal("7288665960")
+
+
+def test_get_ticker_overview_tolerates_missing_fields(client):
+    instance, session, _ = client
+    session.get.return_value = response({"results": {"ticker": "X"}})
+
+    overview = instance.get_ticker_overview("X")
+
+    assert overview.type is None
+    assert overview.weighted_shares_outstanding is None
+
+
+def test_get_ticker_overview_rejects_a_response_without_results(client):
+    instance, session, _ = client
+    session.get.return_value = response({"status": "OK"})
+
+    with pytest.raises(PolygonClientError, match="invalid response"):
+        instance.get_ticker_overview("X")

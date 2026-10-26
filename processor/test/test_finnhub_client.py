@@ -112,3 +112,25 @@ def test_get_beta_lets_api_errors_propagate(client_type):
         assert str(exception) == "429"
     else:
         raise AssertionError("expected the API error to propagate")
+
+
+@patch("myfinnhub.client.finnhub.Client")
+def test_get_shares_outstanding_reads_the_company_profile(client_type):
+    api = client_type.return_value
+    api.company_profile2.return_value = {
+        "ticker": "000660.KS",
+        "shareOutstanding": 730.49,
+    }
+
+    shares = FinnhubClient("api-key").get_shares_outstanding("SKHY")
+
+    assert shares == Decimal("730.49")
+    api.company_profile2.assert_called_once_with(symbol="SKHY")
+
+
+@patch("myfinnhub.client.finnhub.Client")
+def test_get_shares_outstanding_is_none_without_a_count(client_type):
+    api = client_type.return_value
+    for response in ({}, {"shareOutstanding": None}, {"shareOutstanding": 0}, None):
+        api.company_profile2.return_value = response
+        assert FinnhubClient("api-key").get_shares_outstanding("X") is None

@@ -22,6 +22,7 @@ logger = logging.getLogger(RUNNER_NAME)
 RELATIVE_TOLERANCE = Decimal("0.05")
 ABSOLUTE_TOLERANCE = Decimal("0.01")
 CONVERTED_EARNINGS_FIELDS = ("epsa", "epse", "reva", "reve")
+EPS_PLACES = Decimal("0.0001")
 
 
 class FinnhubEarningsRetrieverRunner:
@@ -102,6 +103,7 @@ class FinnhubEarningsRetrieverRunner:
         earnings: dict[str, Earnings] = self.client.get_earnings(company_id)
         if len(earnings) == 0: return
         earnings = self._to_currency_override(earnings, gemini_company)
+        earnings = self._to_ads(earnings, gemini_company)
         if existing is None:
             self.service.init_company(company_id, earnings)
             for quarter_id in earnings.__reversed__():
@@ -168,6 +170,32 @@ class FinnhubEarningsRetrieverRunner:
                 update=amounts,
             )
         return converted
+
+    def _to_ads(
+        self,
+        earnings: dict[str, Earnings],
+        gemini_company: GeminiCompany | None,
+    ) -> dict[str, Earnings]:
+        # Finnhub quotes an ADR's EPS per ordinary share; it is stored per
+        # ADS, like the prices. Revenue is the company's and unaffected.
+        if gemini_company is None:
+            return earnings
+        ratio = gemini_company.info.ads_per_share
+        if ratio is None or ratio == 1:
+            return earnings
+        return {
+            quarter_id: quarter_earnings.model_copy(update={
+                name: (
+                    None
+                    if getattr(quarter_earnings, name) is None
+                    else (getattr(quarter_earnings, name) / ratio).quantize(
+                        EPS_PLACES
+                    )
+                )
+                for name in ("epsa", "epse")
+            })
+            for quarter_id, quarter_earnings in earnings.items()
+        }
 
     def discord_post_earnings(
         self,
