@@ -44,4 +44,16 @@ public class InvestmentCase extends AbstractEntity
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     private List<Long> companyIds = new ArrayList<>();
+
+    /**
+     * Companies the app does not hold, kept as the names they were written as. A case covers
+     * what it covers whether or not the app knows the company yet; once it does, the name is
+     * replaced by the real one.
+     */
+    @ElementCollection
+    @CollectionTable(name = "CaseCompanyName", joinColumns = @JoinColumn(name = "caseId"))
+    @Column(name = "value", nullable = false)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private List<String> companyNames = new ArrayList<>();
 }

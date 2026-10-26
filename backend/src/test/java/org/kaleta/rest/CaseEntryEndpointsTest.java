@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
 class CaseEntryEndpointsTest
@@ -207,6 +208,44 @@ class CaseEntryEndpointsTest
         cell.setValue(value);
         cell.setRating(rating);
         return cell;
+    }
+
+    @Test
+    void movesADayToTheDateItWasReallyWrittenOn()
+    {
+        Long caseId = createCase("written down late");
+        CaseEntryDto written = save(caseId, TODAY, document("this happened in March"));
+
+        CaseEntryUpdateDto move = new CaseEntryUpdateDto();
+        move.setDate("2026-03-14");
+        CaseEntryDto moved = given().contentType(ContentType.JSON).body(move)
+                .when().put(PATH + "/" + written.id() + "/date")
+                .then().log().ifError().statusCode(200)
+                .extract().response().jsonPath().getObject("", CaseEntryDto.class);
+
+        assertThat(moved.id(), is(written.id()));
+        assertThat(moved.date(), is("2026-03-14"));
+        assertThat(readCase(caseId).getEntries().get(0).date(), is("2026-03-14"));
+
+        // Today is free again, so it can be written into without colliding.
+        assertThat(save(caseId, TODAY, document("and this today")).id(), is(not(written.id())));
+    }
+
+    @Test
+    void refusesToMoveADayOntoOneTheCaseAlreadyHolds()
+    {
+        Long caseId = createCase("two days, one date");
+        CaseEntryDto today = save(caseId, TODAY, document("today"));
+        CaseEntryUpdateDto move = new CaseEntryUpdateDto();
+        move.setDate("2026-02-02");
+        given().contentType(ContentType.JSON).body(move)
+                .when().put(PATH + "/" + today.id() + "/date").then().statusCode(200);
+
+        CaseEntryDto second = save(caseId, TODAY, document("today again"));
+        given().contentType(ContentType.JSON).body(move)
+                .when().put(PATH + "/" + second.id() + "/date")
+                .then().statusCode(400)
+                .body(containsString("already holds an entry"));
     }
 
     private Long createCase(String name)

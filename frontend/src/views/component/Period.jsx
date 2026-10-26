@@ -284,9 +284,6 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
             {financialSummary}
 
             <Box sx={{
-                // A list's default 40px indent pushes the research well clear of the card edge.
-                // Enough is kept for the bullet itself.
-                "& ul, & ol": {paddingLeft: "18px"},
                 // The card's own bottom padding leaves more room under the last day than the
                 // days leave between themselves; half of it is enough.
                 marginBottom: "-3px",

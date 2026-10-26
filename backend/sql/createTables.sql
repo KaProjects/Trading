@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS CaseEntryTable;
 DROP TABLE IF EXISTS CaseEntryImage;
 DROP TABLE IF EXISTS CaseEntry;
+DROP TABLE IF EXISTS CaseCompanyName;
 DROP TABLE IF EXISTS CaseCompany;
 DROP TABLE IF EXISTS InvestmentCase;
 DROP TABLE IF EXISTS PeriodContentImage;
@@ -214,4 +215,12 @@ CREATE TABLE CaseEntryTable
     data     TEXT         NOT NULL,
     entryId  INT UNSIGNED NOT NULL,
     CONSTRAINT `fk_caseEntryTableEntryId` FOREIGN KEY (entryId) REFERENCES CaseEntry (id)
+);
+
+CREATE TABLE CaseCompanyName
+(
+    caseId INT UNSIGNED NOT NULL,
+    value  VARCHAR(50)  NOT NULL,
+    CONSTRAINT `uk_caseCompanyName` UNIQUE (caseId, value),
+    CONSTRAINT `fk_caseCompanyNameCaseId` FOREIGN KEY (caseId) REFERENCES InvestmentCase (id)
 );

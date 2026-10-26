@@ -5,6 +5,7 @@ import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
 import org.kaleta.rest.dto.CaseCreateDto;
 import org.kaleta.rest.dto.CaseDto;
+import org.kaleta.rest.dto.CaseEntryUpdateDto;
 import org.kaleta.rest.dto.CaseUpdateDto;
 
 import java.time.LocalDate;
@@ -13,6 +14,7 @@ import java.util.List;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -61,6 +63,37 @@ class CaseEndpointsTest
         assertThat(updated.getName(), is("the better name"));
         assertThat(updated.getCompanies().stream().map(CaseDto.Company::getTicker).toList(),
                 contains("UPD"));
+
+        delete(created.getId());
+    }
+
+    @Test
+    void keepsCompaniesTheAppDoesNotHoldAsTheNamesTheyWereWrittenAs()
+    {
+        CaseCreateDto dto = new CaseCreateDto();
+        dto.setName("written companies");
+        dto.setCompanyIds(List.of(RCH));
+        dto.setCompanyNames(List.of("  Broadcom ", "TSMC", "broadcom", "", "  "));
+        CaseDto created = given().contentType(ContentType.JSON).body(dto)
+                .when().post(PATH)
+                .then().log().ifError().statusCode(201)
+                .extract().response().jsonPath().getObject("", CaseDto.class);
+
+        assertThat(created.getCompanies().stream().map(CaseDto.Company::getTicker).toList(), contains("RCH"));
+        assertThat(created.getCompanyNames(), contains("Broadcom", "TSMC"));
+
+        CaseUpdateDto update = new CaseUpdateDto();
+        update.setCompanyNames(List.of("Samsung"));
+        CaseDto updated = update(created.getId(), update);
+        assertThat(updated.getCompanyNames(), contains("Samsung"));
+        assertThat(updated.getCompanies().stream().map(CaseDto.Company::getTicker).toList(), contains("RCH"));
+
+        CaseUpdateDto tooLong = new CaseUpdateDto();
+        tooLong.setCompanyNames(List.of("x".repeat(51)));
+        given().contentType(ContentType.JSON).body(tooLong)
+                .when().put(PATH + "/" + created.getId())
+                .then().statusCode(400)
+                .body(containsString("at most 50 characters"));
 
         delete(created.getId());
     }
@@ -143,12 +176,14 @@ class CaseEndpointsTest
     void readsTheTradesOpenedWhileTheCaseWasRunning()
     {
         // The seeded case has been running since 01.01.2023; company 1927 bought on 11.11.2023.
-        CaseDto read = get(1L);
+        List<CaseDto.Trade> bought = get(1L).getTrades().stream()
+                .filter(trade -> trade.getPurchaseDate().toString().equals("2023-11-11"))
+                .toList();
 
-        assertThat(read.getTrades(), hasSize(1));
-        assertThat(read.getTrades().get(0).getTicker(), is("NVDA"));
-        assertThat(read.getTrades().get(0).getPurchaseDate().toString(), is("2023-11-11"));
-        assertThat(read.getTrades().get(0).isActive(), is(false));
+        assertThat(bought, hasSize(1));
+        assertThat(bought.getFirst().getTicker(), is("NVDA"));
+        assertThat(bought.getFirst().isActive(), is(false));
+        assertThat(bought.getFirst().getCurrency(), is(notNullValue()));
     }
 
     @Test
@@ -164,6 +199,29 @@ class CaseEndpointsTest
         assertThat(read.getTrades(), is(empty()));
 
         delete(created.getId());
+    }
+
+    @Test
+    void deletesAClosedCaseWithEverythingWrittenIntoIt()
+    {
+        CaseDto created = create("written then deleted", List.of(RCH));
+        // A day with a picture and a table, so the delete has something to take with it.
+        CaseEntryUpdateDto entry = new CaseEntryUpdateDto();
+        entry.setDate(LocalDate.now().toString());
+        entry.setContent("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"a day\"}]}]");
+        Long entryId = given().contentType(ContentType.JSON).body(entry)
+                .when().put("/case/entry/" + created.getId())
+                .then().statusCode(200)
+                .extract().response().jsonPath().getLong("id");
+        given().when().post("/case/entry/" + entryId + "/table").then().statusCode(201);
+
+        // An open case is not deleted by accident.
+        given().when().delete(PATH + "/" + created.getId())
+                .then().statusCode(400)
+                .body(containsString("still open"));
+
+        delete(created.getId());
+        given().when().get(PATH + "/" + created.getId()).then().statusCode(400);
     }
 
     private CaseDto create(String name, List<Long> companyIds)
@@ -199,8 +257,13 @@ class CaseEndpointsTest
                 .extract().response().jsonPath().getObject("", CaseDto.class);
     }
 
+    /** A case is closed before it can be deleted, which is what the endpoint insists on. */
     private void delete(Long caseId)
     {
+        CaseUpdateDto close = new CaseUpdateDto();
+        close.setClosed(true);
+        given().contentType(ContentType.JSON).body(close)
+                .when().put(PATH + "/" + caseId).then().statusCode(200);
         given().when().delete(PATH + "/" + caseId).then().statusCode(200);
     }
 }

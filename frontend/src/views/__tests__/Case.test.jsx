@@ -18,8 +18,15 @@ jest.mock("../component/Loader", () => ({
     Loader: ({error}) => <div data-testid="loader">{error?.message ?? "loading"}</div>,
 }));
 jest.mock("../component/ContentEditor", () => ({
-    ContentEditor: ({content, update}) => (
-        <button onClick={() => update([{type: "paragraph", children: [{text: "written"}]}])}>
+    defaultContent: () => [{type: "paragraph", children: [{text: ""}]}],
+    ContentEditor: ({content, update, onValueChange, alwaysEditing, locked}) => (
+        <button
+            data-testid="content-editor"
+            data-writing={alwaysEditing ? "yes" : "no"}
+            data-locked={locked ? "yes" : "no"}
+            onClick={() => (onValueChange ?? update)(
+                [{type: "paragraph", children: [{text: "written"}]}])}
+        >
             {content || "empty-content"}
         </button>
     ),
@@ -51,28 +58,46 @@ describe("Case", () => {
         mockUseData.mockReturnValue({data: value, loaded: true, error: null});
     });
 
+    const openMenu = () => fireEvent.click(screen.getByRole("button", {name: "Case actions"}));
+
     test("shows the case, the day it opened and the companies it covers", () => {
         render(<Case companyLists={companyLists}/>);
 
-        expect(screen.getByLabelText("Case name")).toHaveValue("memory supercycle");
+        expect(screen.getByText("memory supercycle")).toBeInTheDocument();
         expect(screen.getByText("opened 10.02.2026")).toBeInTheDocument();
         expect(screen.getByText("NVDA")).toBeInTheDocument();
+        // The name is read here and changed from the menu, so there is nothing to type into.
+        expect(screen.queryByLabelText("Case name")).not.toBeInTheDocument();
     });
 
-    test("names the case again once the writing is done", async () => {
+    test("goes back to the list of cases", () => {
         render(<Case companyLists={companyLists}/>);
 
-        const name = screen.getByLabelText("Case name");
-        fireEvent.change(name, {target: {value: "memory cycle"}});
-        fireEvent.blur(name);
+        fireEvent.click(screen.getByRole("button", {name: "Back to cases"}));
+
+        expect(mockNavigate).toHaveBeenCalledWith("/cases");
+    });
+
+    test("renames the case from its menu", async () => {
+        render(<Case companyLists={companyLists}/>);
+
+        openMenu();
+        fireEvent.click(screen.getByText("Rename"));
+        fireEvent.change(screen.getByLabelText("Case name"), {target: {value: "memory cycle"}});
+        fireEvent.click(screen.getByRole("button", {name: "Save"}));
 
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {name: "memory cycle"}));
     });
 
-    test("covers another company, and stops covering one", async () => {
+    test("covers another company once the plus asks for one, and stops covering one", async () => {
         render(<Case companyLists={companyLists}/>);
 
-        fireEvent.click(screen.getByRole("button", {name: "Open"}));
+        // Nothing to pick from until the plus is pressed.
+        expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", {name: "Add company"}));
+        const picker = screen.getByRole("combobox");
+        fireEvent.focus(picker);
+        fireEvent.change(picker, {target: {value: "AMD"}});
         fireEvent.click(screen.getByRole("option", {name: "AMD"}));
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {companyIds: [11, 12]}));
 
@@ -81,25 +106,75 @@ describe("Case", () => {
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {companyIds: []}));
     });
 
-    test("closes the case, and reopens a closed one", async () => {
+    test("records a company the app does not hold as the name it was written as", async () => {
         render(<Case companyLists={companyLists}/>);
-        fireEvent.click(screen.getByRole("button", {name: "Close"}));
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {closed: true}));
 
-        axios.put.mockClear();
+        fireEvent.click(screen.getByRole("button", {name: "Add company"}));
+        const picker = screen.getByRole("combobox");
+        fireEvent.change(picker, {target: {value: "Broadcom"}});
+        fireEvent.keyDown(picker, {key: "Enter", code: "Enter"});
+
+        await waitFor(() => expect(axios.put)
+            .toHaveBeenCalledWith("/api/case/1", {companyNames: ["Broadcom"]}));
+    });
+
+    test("links a written name the app does know, whatever case it was written in", async () => {
+        render(<Case companyLists={companyLists}/>);
+
+        fireEvent.click(screen.getByRole("button", {name: "Add company"}));
+        const picker = screen.getByRole("combobox");
+        fireEvent.change(picker, {target: {value: "amd"}});
+        fireEvent.keyDown(picker, {key: "Enter", code: "Enter"});
+
+        await waitFor(() => expect(axios.put)
+            .toHaveBeenCalledWith("/api/case/1", {companyIds: [11, 12]}));
+    });
+
+    test("stops covering a company it only had the name of", async () => {
+        mockUseData.mockReturnValue({
+            data: {...value, companies: [], companyNames: ["Broadcom", "TSMC"]},
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        expect(screen.getByText("Broadcom")).toBeInTheDocument();
+        fireEvent.click(screen.getAllByTestId("CancelIcon")[0]);
+
+        await waitFor(() => expect(axios.put)
+            .toHaveBeenCalledWith("/api/case/1", {companyNames: ["TSMC"]}));
+    });
+
+    test("closes the case from its menu", async () => {
+        render(<Case companyLists={companyLists}/>);
+
+        openMenu();
+        fireEvent.click(screen.getByText("Close"));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {closed: true}));
+    });
+
+    test("reopens a closed case, and only a closed one can be deleted", async () => {
         mockUseData.mockReturnValue({data: {...value, closedAt: "2026-03-01"}, loaded: true, error: null});
         render(<Case companyLists={companyLists}/>);
-        fireEvent.click(screen.getAllByRole("button", {name: "Reopen"})[0]);
+
+        openMenu();
+        fireEvent.click(screen.getByText("Delete"));
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/case/1"));
+        await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/cases"));
+
+        openMenu();
+        fireEvent.click(screen.getByText("Reopen"));
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {closed: false}));
     });
 
-    test("goes back to the list once the case is deleted", async () => {
+    test("offers no delete while the case is still open", () => {
         render(<Case companyLists={companyLists}/>);
 
-        fireEvent.click(screen.getByRole("button", {name: "Delete case"}));
+        openMenu();
 
-        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/case/1"));
-        await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/cases"));
+        expect(screen.getByText("Close")).toBeInTheDocument();
+        expect(screen.queryByText("Delete")).not.toBeInTheDocument();
     });
 
     test("reads the days written into the case, newest first", () => {
@@ -123,15 +198,20 @@ describe("Case", () => {
     });
 
     test("opens today for writing, and offers it only while today is unwritten", async () => {
-        axios.put.mockResolvedValue({data: {id: 9, date: today, content: "written", images: []}});
+        axios.put.mockResolvedValue({data: {id: 9, date: today, content: null, images: [], tables: []}});
         render(<Case companyLists={companyLists}/>);
 
         fireEvent.click(screen.getByRole("button", {name: "Write today"}));
-        expect(screen.getByTestId(`case-entry-${today}`)).toBeInTheDocument();
+        expect(await screen.findByTestId(`case-entry-${today}`)).toBeInTheDocument();
         // The day is already open, so there is nothing to open again.
         expect(screen.queryByRole("button", {name: "Write today"})).not.toBeInTheDocument();
 
+        axios.put.mockClear();
         fireEvent.click(screen.getByText("empty-content"));
+        // Typed, not yet written: the day is kept until it is done.
+        expect(axios.put).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole("button", {name: `Save ${today}`}));
 
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/1", {
             date: today,
@@ -145,7 +225,7 @@ describe("Case", () => {
         expect(screen.getByText("Nothing written yet.")).toBeInTheDocument();
     });
 
-    test("writes a table into a day, and takes one away", async () => {
+    test("writes a table into a day being written, and takes one away", async () => {
         axios.post.mockResolvedValue({data: {id: 3, position: 0, title: "", columns: [], rows: []}});
         mockUseData.mockReturnValue({
             data: {...value, entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: []}]},
@@ -154,6 +234,9 @@ describe("Case", () => {
         });
         render(<Case companyLists={companyLists}/>);
 
+        // Tables belong to writing: nothing to add one with until the day is being written.
+        expect(screen.queryByRole("button", {name: "Add table 2026-02-11"})).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
         fireEvent.click(screen.getByRole("button", {name: "Add table 2026-02-11"}));
 
         await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/case/entry/5/table"));
@@ -161,14 +244,17 @@ describe("Case", () => {
         expect(table).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole("button", {name: "Add column"}));
+        fireEvent.change(screen.getByLabelText("Column 1"), {target: {value: "NVDA"}});
+        fireEvent.click(screen.getByRole("button", {name: "Save 2026-02-11"}));
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/table/3",
-            expect.objectContaining({columns: [""]})));
+            expect.objectContaining({columns: ["NVDA"]})));
 
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
         fireEvent.click(screen.getByRole("button", {name: "Delete table"}));
         await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/case/entry/table/3"));
     });
 
-    test("types a value and cycles a rating in a table", async () => {
+    test("types a value and picks a rating in a table", async () => {
         mockUseData.mockReturnValue({
             data: {
                 ...value,
@@ -182,20 +268,21 @@ describe("Case", () => {
             error: null,
         });
         render(<Case companyLists={companyLists}/>);
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
 
         fireEvent.change(screen.getByLabelText("Row 1 NVDA"), {target: {value: "75%"}});
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/table/3",
-            expect.objectContaining({
-                rows: [{label: "gross", cells: [{value: "75%", rating: ""}]}],
-            })));
-
-        // The rating is cycled on top of what was typed, which the grid keeps.
-        axios.put.mockClear();
+        // The rating is picked from the list, on top of what was typed, which the grid keeps.
         fireEvent.click(screen.getByRole("button", {name: "Rating 1 NVDA"}));
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/table/3",
-            expect.objectContaining({
-                rows: [{label: "gross", cells: [{value: "75%", rating: "++"}]}],
-            })));
+        fireEvent.click(screen.getByRole("menuitem", {name: "++"}));
+        expect(axios.put).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole("button", {name: "Save 2026-02-11"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/table/3", {
+            title: "margins",
+            columns: ["NVDA"],
+            rows: [{label: "gross", cells: [{value: "75%", rating: "++"}]}],
+        }));
     });
 
     test("reads the trades its companies opened while it ran", () => {
@@ -203,7 +290,7 @@ describe("Case", () => {
             data: {
                 ...value,
                 trades: [{
-                    id: 2, ticker: "NVDA", active: false, purchaseDate: "2026-03-02",
+                    id: 2, ticker: "NVDA", currency: "$", active: false, purchaseDate: "2026-03-02",
                     purchasePrice: 100, quantity: 5, sellDate: "2026-04-01", sellPrice: 120,
                     profit: 100, profitPercentage: 20,
                 }],
@@ -215,8 +302,289 @@ describe("Case", () => {
 
         const trades = screen.getByTestId("case-trades");
         expect(trades).toHaveTextContent("NVDA");
-        expect(trades).toHaveTextContent("02.03.2026");
-        expect(trades).toHaveTextContent("5@100.00");
-        expect(trades).toHaveTextContent("01.04.2026");
+        expect(trades).toHaveTextContent("2.3.'26");
+        expect(trades).toHaveTextContent("100.00$");
+        expect(trades).toHaveTextContent("1.4.'26");
+        expect(trades).toHaveTextContent("120.00$");
+        expect(trades).toHaveTextContent("+20%");
+        // What the case has made, under the trades that made it.
+        expect(screen.getByTestId("case-profit-$")).toHaveTextContent("100.00$");
+    });
+
+    test("reads a day until the pencil is pressed, then writes it", async () => {
+        mockUseData.mockReturnValue({
+            data: {...value, entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: []}]},
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        // Reading: no pictures to add, no tables to add, nothing to finish.
+        expect(screen.queryByTestId("content-image-add")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Save 2026-02-11"})).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
+
+        expect(screen.getByTestId("content-image-add")).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add table 2026-02-11"})).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Save 2026-02-11"}));
+        await waitFor(() =>
+            expect(screen.queryByRole("button", {name: "Save 2026-02-11"})).not.toBeInTheDocument());
+    });
+
+    test("deletes a row and a column of a table", async () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                entries: [{
+                    id: 5, date: "2026-02-11", content: "a day", images: [],
+                    tables: [{id: 3, position: 0, title: "margins", columns: ["NVDA", "AMD"],
+                        rows: [{label: "gross", cells: [{value: "75%", rating: "++"}, {value: "53%", rating: "~"}]}]}],
+                }],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
+
+        fireEvent.click(screen.getByRole("button", {name: "Delete column 2"}));
+        fireEvent.click(screen.getByRole("button", {name: "Save 2026-02-11"}));
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/table/3",
+            expect.objectContaining({
+                columns: ["NVDA"],
+                rows: [{label: "gross", cells: [{value: "75%", rating: "++"}]}],
+            })));
+
+        axios.put.mockClear();
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
+        fireEvent.click(screen.getByRole("button", {name: "Delete row 1"}));
+        fireEvent.click(screen.getByRole("button", {name: "Save 2026-02-11"}));
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/table/3",
+            expect.objectContaining({rows: []})));
+    });
+
+    test("creates the new day before writing into it, so a table has somewhere to live", async () => {
+        axios.put.mockResolvedValue({data: {id: 9, date: today, content: null, images: [], tables: []}});
+        axios.post.mockResolvedValue({data: {id: 4, position: 0, title: "", columns: [], rows: []}});
+        render(<Case companyLists={companyLists}/>);
+
+        fireEvent.click(screen.getByRole("button", {name: "Write today"}));
+
+        // The day exists on the server before anything can be hung off it.
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/1", {
+            date: today,
+            content: JSON.stringify([{type: "paragraph", children: [{text: ""}]}]),
+        }));
+        expect(await screen.findByRole("button", {name: `Save ${today}`})).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: `Add table ${today}`}));
+
+        await waitFor(() => expect(axios.post).toHaveBeenCalledWith("/api/case/entry/9/table"));
+    });
+
+    test("opens the day as an editor, with no second click to start writing", () => {
+        mockUseData.mockReturnValue({
+            data: {...value, entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: []}]},
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        // Reading: the text is locked and there is nothing to write with.
+        expect(screen.getByTestId("content-editor")).toHaveAttribute("data-locked", "yes");
+
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
+
+        // Writing: the editor itself is open, and the picture and table controls with it.
+        expect(screen.getByTestId("content-editor")).toHaveAttribute("data-writing", "yes");
+        expect(screen.getByTestId("content-editor")).toHaveAttribute("data-locked", "no");
+        expect(screen.getByTestId("content-image-add")).toBeInTheDocument();
+        expect(screen.getByRole("button", {name: "Add table 2026-02-11"})).toBeInTheDocument();
+    });
+
+    test("reads the trades among the days they happened on", () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                entries: [{id: 5, date: "2026-03-02", content: "bought into it", images: [], tables: []}],
+                trades: [{
+                    id: 2, ticker: "NVDA", currency: "$", active: false, purchaseDate: "2026-03-02",
+                    purchasePrice: 100, purchaseTotal: 502.50, quantity: 5, sellDate: "2026-04-01",
+                    sellPrice: 120, profit: 100, profitPercentage: 20,
+                }],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        const bought = screen.getByTestId("case-trade-2-bought");
+        const sold = screen.getByTestId("case-trade-2-sold");
+        expect(bought).toHaveTextContent("bought 5@100.00$");
+        // What the purchase came to altogether.
+        expect(bought).toHaveTextContent("(502.50$)");
+        expect(sold).toHaveTextContent("sold 5@120.00$");
+        // What the sale made, in money as well as in percent, both signed.
+        expect(sold).toHaveTextContent("+100.00$");
+        expect(sold).toHaveTextContent("+20%");
+
+        // The sale is the later day, so it reads first. The purchase shares its day with the
+        // research written then: one block, named once by its date, the trade between the date
+        // and what was written about it.
+        expect(sold.compareDocumentPosition(bought) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(screen.getByTestId("case-trade-date-2026-04-01")).toBeInTheDocument();
+        expect(screen.getByTestId("case-entry-date-2026-03-02")).toBeInTheDocument();
+        expect(screen.queryByTestId("case-trade-date-2026-03-02")).not.toBeInTheDocument();
+
+        const day = screen.getByTestId("case-entry-2026-03-02");
+        expect(day).toContainElement(bought);
+        const date = screen.getByTestId("case-entry-date-2026-03-02");
+        expect(date.compareDocumentPosition(bought) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(bought.compareDocumentPosition(screen.getByText("bought into it"))
+            & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    test("frames the day that is being written", () => {
+        mockUseData.mockReturnValue({
+            data: {...value, entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: []}]},
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        const day = screen.getByTestId("case-entry-2026-02-11");
+        expect(window.getComputedStyle(day).borderColor).toBe("transparent");
+
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
+
+        expect(window.getComputedStyle(day).borderColor).not.toBe("transparent");
+        expect(screen.getByText("writing")).toBeInTheDocument();
+    });
+
+    test("drops a table nothing was typed into instead of saving it", async () => {
+        axios.post.mockResolvedValue({data: {id: 3, position: 0, title: "", columns: [], rows: []}});
+        mockUseData.mockReturnValue({
+            data: {...value, entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: []}]},
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
+        fireEvent.click(screen.getByRole("button", {name: "Add table 2026-02-11"}));
+        await screen.findByTestId("case-table-3");
+        fireEvent.click(screen.getByRole("button", {name: "Save 2026-02-11"}));
+
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/case/entry/table/3"));
+        expect(axios.put).not.toHaveBeenCalledWith("/api/case/entry/table/3", expect.anything());
+    });
+
+    test("keeps a part-sold position as the two trades it became", () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                trades: [
+                    {id: 2, ticker: "NVDA", currency: "$", active: false, purchaseDate: "2026-03-02",
+                        purchasePrice: 100, quantity: 3, sellDate: "2026-04-01", sellPrice: 120,
+                        profit: 60, profitPercentage: 20},
+                    {id: 3, ticker: "NVDA", currency: "$", active: true, purchaseDate: "2026-03-02",
+                        purchasePrice: 100, quantity: 2},
+                ],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        const rows = screen.getByTestId("case-trades").querySelectorAll("tbody tr");
+        expect(rows).toHaveLength(2);
+        expect(rows[0]).toHaveTextContent("1.4.'26");
+        expect(rows[1]).toHaveTextContent("open");
+        // Only what was actually sold counts towards the profit.
+        expect(screen.getByTestId("case-profit-$")).toHaveTextContent("60.00$");
+    });
+
+    test("cancels the writing, putting the day back as it was", async () => {
+        axios.post.mockResolvedValue({data: {id: 7, position: 0, title: "", columns: [], rows: []}});
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                entries: [{
+                    id: 5, date: "2026-02-11", content: "a day", images: [],
+                    tables: [{id: 3, position: 0, title: "margins", columns: ["NVDA"],
+                        rows: [{label: "gross", cells: [{value: "75%", rating: "++"}]}]}],
+                }],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
+        fireEvent.change(screen.getByLabelText("Row 1 NVDA"), {target: {value: "11%"}});
+        fireEvent.click(screen.getByRole("button", {name: "Add table 2026-02-11"}));
+        await screen.findByTestId("case-table-7");
+
+        fireEvent.click(screen.getByRole("button", {name: "Cancel 2026-02-11"}));
+
+        // The table added along the way is gone again, nothing was written, and the typed
+        // value is back to what it was.
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/case/entry/table/7"));
+        await waitFor(() => expect(screen.queryByTestId("case-table-7")).not.toBeInTheDocument());
+        expect(axios.put).not.toHaveBeenCalled();
+        expect(screen.queryByRole("button", {name: "Save 2026-02-11"})).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
+        expect(screen.getByLabelText("Row 1 NVDA")).toHaveValue("75%");
+    });
+
+    test("asks for a new date when a day is clicked, and moves it", async () => {
+        axios.put.mockResolvedValue({data: {id: 5, date: "2026-01-09", content: "a day", images: [], tables: []}});
+        mockUseData.mockReturnValue({
+            data: {...value, entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: []}]},
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        fireEvent.click(screen.getByRole("button", {name: "Day written 2026-02-11"}));
+        fireEvent.change(screen.getByLabelText("Date"), {target: {value: "2026-01-09"}});
+        fireEvent.click(screen.getByRole("button", {name: "Save"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
+            "/api/case/entry/5/date", {date: "2026-01-09"}));
+    });
+
+    test("asks for the day the case opened, and keeps it", async () => {
+        render(<Case companyLists={companyLists}/>);
+
+        fireEvent.click(screen.getByTestId("case-opened"));
+        fireEvent.change(screen.getByLabelText("Date"), {target: {value: "2025-11-04"}});
+        fireEvent.click(screen.getByRole("button", {name: "Save"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith(
+            "/api/case/1", {createdAt: "2025-11-04"}));
+    });
+
+    test("reads the trades oldest first", () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                trades: [
+                    {id: 2, ticker: "NVDA", currency: "$", active: true, purchaseDate: "2026-05-02",
+                        purchasePrice: 100, quantity: 5},
+                    {id: 3, ticker: "AMD", currency: "$", active: true, purchaseDate: "2026-01-20",
+                        purchasePrice: 90, quantity: 7},
+                ],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        const rows = screen.getByTestId("case-trades").querySelectorAll("tbody tr");
+        expect(rows[0]).toHaveTextContent("20.1.'26");
+        expect(rows[1]).toHaveTextContent("2.5.'26");
     });
 });

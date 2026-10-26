@@ -94,6 +94,15 @@ export function formatDate(date) {
     return `${day}.${month}.${year}`;
 }
 
+/** The same day written as tightly as it can be read: `8.10.'26`. */
+export function formatDateShort(date) {
+    const formatted = formatDate(date);
+    if (formatted === "") return "";
+
+    const [day, month, year] = formatted.split(".");
+    return `${Number(day)}.${Number(month)}.'${year.slice(2)}`;
+}
+
 export function formatPercent(value, signed = false, decimals = 2) {
     if (isNotAValue(value)) return "";
     let formatted = formatDecimals(value, 0, decimals)

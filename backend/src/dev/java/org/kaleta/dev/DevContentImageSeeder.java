@@ -10,6 +10,9 @@ import org.kaleta.persistence.api.PeriodContentDao;
 import org.kaleta.persistence.api.PeriodDao;
 import org.kaleta.persistence.entity.Period;
 import org.kaleta.persistence.entity.PeriodContent;
+import org.kaleta.persistence.api.CaseEntryDao;
+import org.kaleta.persistence.entity.CaseEntry;
+import org.kaleta.service.CaseEntryService;
 import org.kaleta.service.PeriodContentService;
 
 import javax.imageio.ImageIO;
@@ -45,6 +48,10 @@ public class DevContentImageSeeder
     PeriodContentDao periodContentDao;
     @Inject
     PeriodContentService periodContentService;
+    @Inject
+    CaseEntryDao caseEntryDao;
+    @Inject
+    CaseEntryService caseEntryService;
 
     void onStart(@Observes StartupEvent event)
     {
@@ -72,6 +79,33 @@ public class DevContentImageSeeder
         if (drawn > 0) {
             io.quarkus.logging.Log.info("Seeded " + drawn + " research images for "
                     + TICKER + " " + PERIOD);
+        }
+
+        seedCaseImages();
+    }
+
+    /** The same charts, into the days of the cases, so a case reads like a real one. */
+    private void seedCaseImages()
+    {
+        int drawn = 0;
+        for (long caseId : new long[]{1L, 2L}) {
+            int index = 0;
+            for (CaseEntry entry : caseEntryDao.listByCaseId(caseId)) {
+                if (!entry.getImages().isEmpty()) continue;
+
+                // Two days of the first case carry pictures: one a few, one more than fit
+                // across a phone, which is the case the strip has to scroll.
+                int count = index == 1 ? 3 : index == 2 ? 6 : 0;
+                for (int picture = 0; picture < count; picture++) {
+                    caseEntryService.addImage(
+                            entry.getId(), chart(entry.getDate().toString(), picture), "image/png");
+                    drawn++;
+                }
+                index++;
+            }
+        }
+        if (drawn > 0) {
+            io.quarkus.logging.Log.info("Seeded " + drawn + " case images");
         }
     }
 

@@ -11,6 +11,46 @@ const DEFAULT_VALUE = [{type: 'paragraph', children: [{ text: '' }],}]
 export const defaultContent = () => structuredClone(DEFAULT_VALUE);
 
 /**
+ * Lists read the same wherever they are written - a case, a period, a record - rather than each
+ * place indenting them for itself.
+ *
+ * The marker is drawn here rather than left to the browser, whose own one reserves most of a
+ * line's height in front of the text and cannot be told to reserve less. Its place is where the
+ * research has always had it: a short step in from the edge, with the text close enough behind
+ * it to read as one line.
+ */
+const LIST_INDENT = "13px";
+/** From the marker to the text, about half of what a browser's own marker leaves. */
+const MARKER_GAP = "0.28em";
+const listStyles = css`
+    & ul, & ol {
+        padding-left: ${LIST_INDENT};
+        list-style: none;
+    }
+    & ol {
+        counter-reset: content-list-item;
+    }
+    & li {
+        position: relative;
+    }
+    & ul > li::before {
+        content: "•";
+        position: absolute;
+        left: calc(-0.45em - ${MARKER_GAP});
+    }
+    & ol > li {
+        counter-increment: content-list-item;
+    }
+    & ol > li::before {
+        content: counter(content-list-item) ".";
+        position: absolute;
+        left: calc(-1.1em - ${MARKER_GAP});
+        width: 1.1em;
+        text-align: right;
+    }
+`;
+
+/**
  * Slate pins its placeholder to the top-left of the editable area, which looks stranded when
  * that area is a whole screen of empty space. This puts it in the middle of the box instead.
  * Slate sets its own inline styles, so they are spread first and then overridden.
@@ -125,7 +165,7 @@ export const ContentEditor = ({content, update, style, locked, editTrigger, auto
                 </Toolbar>
             }
             <Editable
-                className={error ? "blinking-outline" : ""}
+                className={cx(listStyles, error && "blinking-outline")}
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 placeholder="write a content"

@@ -51,21 +51,28 @@ describe("Cases", () => {
         expect(mockNavigate).toHaveBeenCalledWith("/cases/1");
     });
 
-    test("writes a new case and opens it", async () => {
+    test("names a new case before it exists, and opens it", async () => {
         axios.post.mockResolvedValue({data: {id: 7}});
-        render(<Cases/>);
+        const setOpenAddCase = jest.fn();
+        render(<Cases openAddCase setOpenAddCase={setOpenAddCase}/>);
 
-        fireEvent.change(screen.getByLabelText("New case"), {target: {value: " china exposure "}});
-        fireEvent.click(screen.getByRole("button", {name: "Add"}));
+        fireEvent.change(screen.getByLabelText("Case name"), {target: {value: " china exposure "}});
+        fireEvent.click(screen.getByRole("button", {name: "Save"}));
 
         expect(axios.post).toHaveBeenCalledWith("/api/case", {name: "china exposure", companyIds: []});
         await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/cases/7"));
     });
 
     test("writes nothing without a name", () => {
+        render(<Cases openAddCase setOpenAddCase={jest.fn()}/>);
+
+        expect(screen.getByRole("button", {name: "Save"})).toBeDisabled();
+    });
+
+    test("asks for a name only when the app bar says so", () => {
         render(<Cases/>);
 
-        expect(screen.getByRole("button", {name: "Add"})).toBeDisabled();
+        expect(screen.queryByLabelText("Case name")).not.toBeInTheDocument();
     });
 
     test("says so when there are no cases", () => {

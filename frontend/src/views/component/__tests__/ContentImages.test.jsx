@@ -3,6 +3,9 @@ import React from "react";
 
 jest.mock("../../../properties", () => ({backend: "/api"}));
 
+const mockUseMediaQuery = jest.fn();
+jest.mock("@mui/material/useMediaQuery", () => (...args) => mockUseMediaQuery(...args));
+
 import {ContentImages} from "../ContentImages";
 
 const images = [
@@ -16,6 +19,11 @@ function swipe(element, fromX, toX, fromY = 200, toY = 200) {
 }
 
 describe("ContentImages", () => {
+    beforeEach(() => {
+        mockUseMediaQuery.mockReset();
+        mockUseMediaQuery.mockReturnValue(false);
+    });
+
     test("shows thumbnails and opens the full picture on one", () => {
         render(<ContentImages images={images} onAdd={jest.fn()} onMarkRemoved={jest.fn()}/>);
 
@@ -129,6 +137,7 @@ describe("ContentImages", () => {
     });
 
     test("leaves the picture alone on a narrow screen, where a swipe steps instead", () => {
+        mockUseMediaQuery.mockReturnValue(true);
         render(<ContentImages images={images} compact onAdd={jest.fn()}/>);
 
         fireEvent.click(screen.getByTestId("content-image-4"));
@@ -168,6 +177,16 @@ describe("ContentImages", () => {
         fireEvent.click(screen.getByRole("button", {name: "Previous image"}));
         expect(screen.getByTestId("content-image-opened"))
             .toHaveAttribute("src", "/api/period/content/image/4");
+    });
+
+    test("keeps the arrows on a wide screen where the strip lies in a row", () => {
+        render(<ContentImages images={images} compact onAdd={jest.fn()}/>);
+
+        fireEvent.click(screen.getByTestId("content-image-4"));
+
+        fireEvent.click(screen.getByRole("button", {name: "Next image"}));
+        expect(screen.getByTestId("content-image-opened"))
+            .toHaveAttribute("src", "/api/period/content/image/5");
     });
 
     test("offers nothing at all when there is no picture and no editing", () => {

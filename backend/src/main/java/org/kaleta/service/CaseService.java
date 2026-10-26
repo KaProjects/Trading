@@ -16,6 +16,7 @@ import org.kaleta.rest.error.InvalidInputException;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,8 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class CaseService
 {
+    public static final int MAX_COMPANY_NAME_LENGTH = 50;
+
     @Inject
     CaseDao caseDao;
     @Inject
@@ -56,6 +59,7 @@ public class CaseService
         created.setCreatedAt(Date.valueOf(LocalDate.now()));
         created.setName(dto.getName().trim());
         created.setCompanyIds(validated(dto.getCompanyIds()));
+        created.setCompanyNames(validatedNames(dto.getCompanyNames()));
         caseDao.create(created);
         return get(created.getId());
     }
@@ -70,6 +74,16 @@ public class CaseService
         if (dto.getCompanyIds() != null) {
             found.setCompanyIds(validated(dto.getCompanyIds()));
         }
+        if (dto.getCompanyNames() != null) {
+            found.setCompanyNames(validatedNames(dto.getCompanyNames()));
+        }
+        if (dto.getCreatedAt() != null) {
+            LocalDate opened = LocalDate.parse(dto.getCreatedAt());
+            if (found.getClosedAt() != null && opened.isAfter(found.getClosedAt().toLocalDate())) {
+                throw new InvalidInputException("a case cannot open after it was closed");
+            }
+            found.setCreatedAt(Date.valueOf(opened));
+        }
         if (dto.getClosed() != null) {
             // Closing twice keeps the day it was closed on; opening it again clears it.
             if (!dto.getClosed()) {
@@ -82,9 +96,17 @@ public class CaseService
         return get(caseId);
     }
 
+    /**
+     * Only a case that has been closed can be deleted. A case that is still running is being
+     * written, and deleting one is not something to do by accident.
+     */
     public void delete(Long caseId)
     {
-        find(caseId);
+        InvestmentCase found = find(caseId);
+        if (found.getClosedAt() == null) {
+            throw new InvalidInputException("case '" + found.getName()
+                    + "' is still open; close it before deleting it");
+        }
         caseDao.delete(caseId);
     }
 
@@ -117,9 +139,11 @@ public class CaseService
         CaseDto.Trade dto = new CaseDto.Trade();
         dto.setId(trade.getId());
         dto.setTicker(trade.getCompany().getTicker());
+        dto.setCurrency(trade.getCompany().getCurrency());
         dto.setActive(trade.isActive());
         dto.setPurchaseDate(trade.getPurchaseDate());
         dto.setPurchasePrice(trade.getPurchasePrice());
+        dto.setPurchaseTotal(trade.getPurchaseTotal());
         dto.setQuantity(trade.getPurchaseQuantity());
         dto.setSellDate(trade.getSellDate());
         dto.setSellPrice(trade.getSellPrice());
@@ -151,6 +175,27 @@ public class CaseService
         return distinct;
     }
 
+    /**
+     * The companies the app does not hold, as written. Each is kept once - the same name twice
+     * says nothing twice - and nothing is checked beyond that: the point of a written name is
+     * that there is nothing yet to check it against.
+     */
+    private static List<String> validatedNames(List<String> companyNames)
+    {
+        Map<String, String> distinct = new LinkedHashMap<>();
+        for (String name : companyNames == null ? List.<String>of() : companyNames) {
+            if (name == null || name.isBlank()) continue;
+
+            String trimmed = name.trim();
+            if (trimmed.length() > MAX_COMPANY_NAME_LENGTH) {
+                throw new InvalidInputException("company name '" + trimmed + "' can be at most "
+                        + MAX_COMPANY_NAME_LENGTH + " characters long");
+            }
+            distinct.putIfAbsent(trimmed.toUpperCase(), trimmed);
+        }
+        return new ArrayList<>(distinct.values());
+    }
+
     private Map<Long, Company> companiesOf(List<InvestmentCase> cases)
     {
         List<Long> ids = cases.stream().flatMap(each -> each.getCompanyIds().stream()).distinct().toList();
@@ -179,6 +224,7 @@ public class CaseService
                 })
                 .sorted(java.util.Comparator.comparing(CaseDto.Company::getTicker))
                 .toList());
+        dto.setCompanyNames(entity.getCompanyNames().stream().sorted(String::compareToIgnoreCase).toList());
         return dto;
     }
 }

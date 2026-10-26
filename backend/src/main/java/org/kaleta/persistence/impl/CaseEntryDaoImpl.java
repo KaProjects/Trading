@@ -57,6 +57,16 @@ public class CaseEntryDaoImpl extends EntityDaoImpl<CaseEntry> implements CaseEn
         }
     }
 
+    @Transactional
+    @Override
+    public void updateDate(Long entryId, Date date)
+    {
+        CaseEntry managed = entityManager.find(CaseEntry.class, entryId);
+        if (managed != null) {
+            managed.setDate(date);
+        }
+    }
+
     @Override
     public List<Object[]> listImageSizes(Long entryId)
     {

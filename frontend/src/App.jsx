@@ -51,6 +51,7 @@ export const App = () => {
     const [openAddTrade, setOpenAddTrade] = useState(false);
     const [openSellTrade, setOpenSellTrade] = useState(false);
     const [openAddDividend, setOpenAddDividend] = useState(false);
+    const [openAddCase, setOpenAddCase] = useState(false);
     const [openEditCompany, setOpenEditCompany] = useState(null);
     const [statsTabsIndex, setStatsTabsIndex] = useState(0);
     const [researchTabsIndex, setResearchTabsIndex] = useState(0);
@@ -159,6 +160,8 @@ export const App = () => {
         setOpenSellTrade,
         openAddDividend,
         setOpenAddDividend,
+        openAddCase,
+        setOpenAddCase,
         openEditCompany,
         setOpenEditCompany,
 

@@ -125,6 +125,26 @@ public class CaseEntryService
                 tablesOf(List.of(entryId)).getOrDefault(entryId, List.of()));
     }
 
+    /**
+     * Moves a day to the date it was really written on. A new day is always today, but a case
+     * kept from the past is written down after the fact, and then the date has to be put right.
+     */
+    public CaseEntryDto moveEntry(Long entryId, String value)
+    {
+        CaseEntry entry = entry(entryId);
+        LocalDate date = parseDate(value);
+        caseEntryDao.findByDate(entry.getInvestmentCase().getId(), Date.valueOf(date))
+                .filter(existing -> !existing.getId().equals(entryId))
+                .ifPresent(existing -> {
+                    throw new InvalidInputException("the case already holds an entry for '"
+                            + date + "'");
+                });
+
+        caseEntryDao.updateDate(entryId, Date.valueOf(date));
+        return new CaseEntryDto(entryId, date.toString(), entry.getContent(), images(entryId),
+                tablesOf(List.of(entryId)).getOrDefault(entryId, List.of()));
+    }
+
     public CaseEntryDto.Image addImage(Long entryId, byte[] uploaded, String mime)
     {
         CaseEntry entry = entry(entryId);

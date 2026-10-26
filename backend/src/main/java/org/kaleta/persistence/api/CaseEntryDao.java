@@ -18,6 +18,9 @@ public interface CaseEntryDao extends EntityDao<CaseEntry>
     /** Writes the text alone, leaving the pictures where they are. */
     void updateContent(Long entryId, String content);
 
+    /** Moves the entry to another day, which is how a day written down late is put right. */
+    void updateDate(Long entryId, Date date);
+
     List<Object[]> listImageSizes(Long entryId);
 
     CaseEntryImage getImage(Long imageId);

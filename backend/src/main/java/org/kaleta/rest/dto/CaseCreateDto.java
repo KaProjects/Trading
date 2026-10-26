@@ -15,4 +15,7 @@ public class CaseCreateDto
     private String name;
 
     private List<Long> companyIds = new ArrayList<>();
+
+    /** Companies the app does not hold, as the names they were written as. */
+    private List<String> companyNames = new ArrayList<>();
 }

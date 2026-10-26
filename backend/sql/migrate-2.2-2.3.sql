@@ -1,6 +1,5 @@
 
--- Investment cases: a thesis followed over time across the companies it covers. "Case" is a
--- keyword in SQL and JPQL, hence the longer table name.
+
 CREATE TABLE InvestmentCase
 (
     id        INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -49,4 +48,12 @@ CREATE TABLE CaseEntryTable
     data     TEXT         NOT NULL,
     entryId  INT UNSIGNED NOT NULL,
     CONSTRAINT `fk_caseEntryTableEntryId` FOREIGN KEY (entryId) REFERENCES CaseEntry (id)
+);
+
+CREATE TABLE CaseCompanyName
+(
+    caseId INT UNSIGNED NOT NULL,
+    value  VARCHAR(50)  NOT NULL,
+    CONSTRAINT `uk_caseCompanyName` UNIQUE (caseId, value),
+    CONSTRAINT `fk_caseCompanyNameCaseId` FOREIGN KEY (caseId) REFERENCES InvestmentCase (id)
 );

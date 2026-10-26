@@ -45,6 +45,16 @@ public class CaseEntryEndpoints
         return Response.ok(caseEntryService.save(caseId, dto)).build();
     }
 
+    @PUT
+    @Path("/{entryId}/date")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response moveEntry(
+            @NotNull @ValidId @PathParam("entryId") Long entryId,
+            @Valid @NotNull CaseEntryUpdateDto dto)
+    {
+        return Response.ok(caseEntryService.moveEntry(entryId, dto.getDate())).build();
+    }
+
     @POST
     @Path("/{entryId}/image")
     @Consumes(MediaType.MULTIPART_FORM_DATA)

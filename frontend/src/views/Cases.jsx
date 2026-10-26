@@ -1,12 +1,12 @@
 import React, {useState} from "react";
 import {useNavigate} from "react-router-dom";
-import {Box, Button, Chip, Paper, Stack, TextField, Typography} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import {Box, Chip, Paper, Stack, Typography} from "@mui/material";
 import axios from "axios";
 import {useData} from "../service/BackendService";
 import {Loader} from "./component/Loader";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
 import {backend} from "../properties";
+import {CaseNameDialog} from "../dialog/CaseNameDialog";
 import {formatDate, formatError} from "../service/FormattingService";
 
 const CARD = {
@@ -27,25 +27,26 @@ const CaseCard = ({value, onOpen}) => (
             {value.companies.map(company => (
                 <Chip key={company.id} label={company.ticker} size="small" variant="outlined"/>
             ))}
+            {(value.companyNames ?? []).map(name => (
+                <Chip key={name} label={name} size="small" variant="outlined" sx={{fontStyle: "italic"}}/>
+            ))}
         </Stack>
     </Paper>
 );
 
 /** The cases, the ones still running first and the closed ones as history under them. */
-export const Cases = () => {
+export const Cases = props => {
     const navigate = useNavigate()
     const {data, loaded, error} = useData("/case")
-    const [name, setName] = useState("")
     const [alert, setAlert] = useState(null)
 
     const cases = data ?? []
     const open = cases.filter(value => !value.closedAt)
     const closed = cases.filter(value => value.closedAt)
 
-    function create() {
-        if (!name.trim()) return
-
-        axios.post(`${backend}/case`, {name: name.trim(), companyIds: []})
+    /** A case is named before it exists, and opens on the page it was named for. */
+    function create(name) {
+        axios.post(`${backend}/case`, {name: name, companyIds: []})
             .then(response => navigate(`/cases/${response.data.id}`))
             .catch(reason => setAlert(formatError(reason)))
     }
@@ -55,20 +56,6 @@ export const Cases = () => {
             {!loaded && <Loader error={error}/>}
             {loaded &&
                 <Box sx={{width: {xs: "100%", sm: "700px"}, margin: "10px auto"}}>
-                    <Stack direction="row" spacing={1} sx={{marginBottom: "12px"}}>
-                        <TextField
-                            size="small"
-                            fullWidth
-                            label="New case"
-                            value={name}
-                            onChange={event => setName(event.target.value)}
-                            onKeyDown={event => {if (event.key === "Enter") create()}}
-                        />
-                        <Button variant="outlined" onClick={create} disabled={!name.trim()} startIcon={<AddIcon/>}>
-                            Add
-                        </Button>
-                    </Stack>
-
                     <Stack spacing={1}>
                         {open.map(value => (
                             <CaseCard key={value.id} value={value} onOpen={() => navigate(`/cases/${value.id}`)}/>
@@ -95,6 +82,12 @@ export const Cases = () => {
                     }
                 </Box>
             }
+            <CaseNameDialog
+                open={Boolean(props.openAddCase)}
+                title="New case"
+                onSubmit={create}
+                handleClose={() => props.setOpenAddCase?.(false)}
+            />
             <SnackbarErrorAlert error={alert} open={alert !== null} onClose={() => setAlert(null)}/>
         </>
     )

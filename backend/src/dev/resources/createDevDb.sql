@@ -364,6 +364,8 @@ INSERT INTO InvestmentCase (id, name, createdAt) VALUES (1, 'AI accelerator buil
 INSERT INTO CaseCompany (caseId, companyId) VALUES (1, 2213);
 INSERT INTO CaseCompany (caseId, companyId) VALUES (1, 2212);
 INSERT INTO CaseCompany (caseId, companyId) VALUES (1, 2214);
+INSERT INTO CaseCompanyName (caseId, value) VALUES (1, 'Broadcom');
+INSERT INTO CaseCompanyName (caseId, value) VALUES (1, 'TSMC');
 
 INSERT INTO InvestmentCase (id, name, createdAt, closedAt) VALUES (2, 'PC refresh cycle', DATEADD('DAY', -400, CURRENT_DATE), DATEADD('DAY', -30, CURRENT_DATE));
 INSERT INTO CaseCompany (caseId, companyId) VALUES (2, 2214);
@@ -374,3 +376,24 @@ INSERT INTO CaseEntry (id, caseId, date, content) VALUES (3, 2, DATEADD('DAY', -
 
 -- a table typed into the newest day of the open case
 INSERT INTO CaseEntryTable (id, entryId, position, title, data) VALUES (1, 2, 0, 'margins and capex', '{"title":"margins and capex","columns":["NVDA","AMD","INTC"],"rows":[{"label":"Gross margin","cells":[{"value":"75%","rating":"++"},{"value":"53%","rating":"+"},{"value":"34%","rating":"--"}]},{"label":"Capex trend","cells":[{"value":"rising","rating":"+"},{"value":"flat","rating":"~"},{"value":"heavy","rating":"-"}]}]}');
+
+INSERT INTO CaseEntry (id, caseId, date, content) VALUES (4, 1, DATEADD('DAY', -95, CURRENT_DATE), '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"Checked the hyperscaler capex guides one by one: three of four raised, the fourth held."}]},{"type":"list-item","children":[{"text":"Nothing here argues against the case; the question is who captures the spend."}]}]}]');
+INSERT INTO CaseEntry (id, caseId, date, content) VALUES (5, 1, DATEADD('DAY', -74, CURRENT_DATE), '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"Lead times shortened from 42 to 30 weeks, which is the first sign supply is catching up."}]},{"type":"list-item","children":[{"text":"Against the case: if that continues through next year, pricing goes with it."}]},{"type":"list-item","children":[{"text":"Watching the memory contracts, which turn before the accelerators do."}]}]}]');
+INSERT INTO CaseEntry (id, caseId, date, content) VALUES (6, 1, DATEADD('DAY', -20, CURRENT_DATE), '[{"type":"paragraph","children":[{"text":"Quarter read-through: the buildout is still the whole story, but the margin spread between the three has widened enough to matter to position sizing."}]}]');
+INSERT INTO CaseEntry (id, caseId, date, content) VALUES (7, 1, DATEADD('DAY', -6, CURRENT_DATE), '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"Networking attach is now the clearest differentiator of the three."}]},{"type":"list-item","children":[{"text":"Still open: whether the second supplier can hold share once supply loosens."}]}]}]');
+
+INSERT INTO CaseEntry (id, caseId, date, content) VALUES (8, 2, DATEADD('DAY', -330, CURRENT_DATE), '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"The case: the install base is old enough that a refresh cycle has to come."}]},{"type":"list-item","children":[{"text":"Entry only if the channel inventory clears first."}]}]}]');
+INSERT INTO CaseEntry (id, caseId, date, content) VALUES (9, 2, DATEADD('DAY', -180, CURRENT_DATE), '[{"type":"paragraph","children":[{"text":"Channel cleared, units did not follow. Against the case: the replacement cycle has stretched, not paused."}]}]');
+INSERT INTO CaseEntry (id, caseId, date, content) VALUES (10, 2, DATEADD('DAY', -31, CURRENT_DATE), '[{"type":"paragraph","children":[{"text":"Closing it. Two quarters of flat units with the refresh supposedly under way is the answer; the thesis was wrong about the timing, not the direction."}]}]');
+
+INSERT INTO CaseEntryTable (id, entryId, position, title, data) VALUES (2, 5, 0, 'supply and pricing', '{"title":"supply and pricing","columns":["NVDA","AMD","INTC"],"rows":[{"label":"Lead time (weeks)","cells":[{"value":"30","rating":"-"},{"value":"24","rating":"~"},{"value":"12","rating":"+"}]},{"label":"ASP trend","cells":[{"value":"flat","rating":"~"},{"value":"down","rating":"-"},{"value":"down","rating":"--"}]},{"label":"Memory cost","cells":[{"value":"+18%","rating":"--"},{"value":"+14%","rating":"-"},{"value":"+9%","rating":"~"}]}]}');
+INSERT INTO CaseEntryTable (id, entryId, position, title, data) VALUES (3, 7, 0, 'where the case stands', '{"title":"where the case stands","columns":["NVDA","AMD","INTC"],"rows":[{"label":"Networking attach","cells":[{"value":"72%","rating":"++"},{"value":"31%","rating":"~"},{"value":"8%","rating":"--"}]},{"label":"Share of buildout","cells":[{"value":"dominant","rating":"++"},{"value":"second","rating":"+"},{"value":"marginal","rating":"-"}]},{"label":"Valuation vs case","cells":[{"value":"full","rating":"-"},{"value":"fair","rating":"+"},{"value":"cheap","rating":"~"}]}]}');
+INSERT INTO CaseEntryTable (id, entryId, position, title, data) VALUES (4, 9, 0, 'refresh scorecard', '{"title":"refresh scorecard","columns":["INTC"],"rows":[{"label":"Units y/y","cells":[{"value":"-2%","rating":"--"}]},{"label":"Channel weeks","cells":[{"value":"6.5","rating":"+"}]},{"label":"ASP","cells":[{"value":"flat","rating":"~"}]}]}');
+
+-- trades the cases are answerable for: inside each case's window, in companies it covers
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (9101, 2213, '12', DATEADD('DAY', -110, CURRENT_DATE), '142.50', '1.2', DATEADD('DAY', -18, CURRENT_DATE), '186.40', '1.4');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (9102, 2212, '25', DATEADD('DAY', -82, CURRENT_DATE), '96.80', '1.1');
+INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees, sell_date, sell_price, sell_fees) VALUES (9103, 2214, '40', DATEADD('DAY', -300, CURRENT_DATE), '31.20', '1.0', DATEADD('DAY', -40, CURRENT_DATE), '26.10', '1.0');
+
+-- the day the NVDA position was sold (trade 9101), so a day shows both a trade and the writing
+INSERT INTO CaseEntry (id, caseId, date, content) VALUES (11, 1, DATEADD('DAY', -18, CURRENT_DATE), '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"Took the NVDA position off the table: the case is intact, the price is not."}]},{"type":"list-item","children":[{"text":"Keeping AMD - the second supplier leg is the part still to play out."}]}]}]');
