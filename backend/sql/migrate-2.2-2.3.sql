@@ -57,3 +57,6 @@ CREATE TABLE CaseCompanyName
     CONSTRAINT `uk_caseCompanyName` UNIQUE (caseId, value),
     CONSTRAINT `fk_caseCompanyNameCaseId` FOREIGN KEY (caseId) REFERENCES InvestmentCase (id)
 );
+
+ALTER TABLE CaseCompany ADD COLUMN addedAt DATE NOT NULL;
+ALTER TABLE CaseCompanyName ADD COLUMN addedAt DATE NOT NULL;

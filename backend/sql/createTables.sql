@@ -179,6 +179,7 @@ CREATE TABLE CaseCompany
 (
     caseId    INT UNSIGNED NOT NULL,
     companyId INT UNSIGNED NOT NULL,
+    addedAt   DATE         NOT NULL,
     CONSTRAINT `uk_caseCompany` UNIQUE (caseId, companyId),
     CONSTRAINT `fk_caseCompanyCaseId` FOREIGN KEY (caseId) REFERENCES InvestmentCase (id),
     CONSTRAINT `fk_caseCompanyCompanyId` FOREIGN KEY (companyId) REFERENCES Company (id)
@@ -219,8 +220,9 @@ CREATE TABLE CaseEntryTable
 
 CREATE TABLE CaseCompanyName
 (
-    caseId INT UNSIGNED NOT NULL,
-    value  VARCHAR(50)  NOT NULL,
+    caseId  INT UNSIGNED NOT NULL,
+    value   VARCHAR(50)  NOT NULL,
+    addedAt DATE         NOT NULL,
     CONSTRAINT `uk_caseCompanyName` UNIQUE (caseId, value),
     CONSTRAINT `fk_caseCompanyNameCaseId` FOREIGN KEY (caseId) REFERENCES InvestmentCase (id)
 );

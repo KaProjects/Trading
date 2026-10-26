@@ -24,11 +24,16 @@ const CaseCard = ({value, onOpen}) => (
                 {value.closedAt ? ` - ${formatDate(value.closedAt)}` : ""}
             </Typography>
             <Box sx={{flex: 1}}/>
+            {/* A company the app does not hold has no id, and is marked as written rather
+                than linked. */}
             {value.companies.map(company => (
-                <Chip key={company.id} label={company.ticker} size="small" variant="outlined"/>
-            ))}
-            {(value.companyNames ?? []).map(name => (
-                <Chip key={name} label={name} size="small" variant="outlined" sx={{fontStyle: "italic"}}/>
+                <Chip
+                    key={company.id ?? `name:${company.ticker}`}
+                    label={company.ticker}
+                    size="small"
+                    variant="outlined"
+                    sx={company.id ? undefined : {fontStyle: "italic"}}
+                />
             ))}
         </Stack>
     </Paper>

@@ -21,7 +21,10 @@ import {Cases} from "../Cases";
 
 const cases = [
     {id: 1, name: "memory supercycle", createdAt: "2026-02-10", closedAt: null,
-        companies: [{id: 11, ticker: "NVDA"}, {id: 12, ticker: "AMD"}]},
+        companies: [
+            {id: 11, ticker: "NVDA", addedAt: "2026-02-10"},
+            {id: 12, ticker: "AMD", addedAt: "2026-03-01"},
+        ]},
     {id: 2, name: "pc refresh", createdAt: "2025-05-01", closedAt: "2026-01-20", companies: []},
 ];
 
@@ -45,7 +48,11 @@ describe("Cases", () => {
 
     test("names the companies the app does not hold alongside the ones it does", () => {
         mockUseData.mockReturnValue({
-            data: [{...cases[0], companyNames: ["Broadcom", "TSMC"]}],
+            data: [{...cases[0], companies: [
+                ...cases[0].companies,
+                {id: null, ticker: "Broadcom", addedAt: "2026-04-01"},
+                {id: null, ticker: "TSMC", addedAt: "2026-05-01"},
+            ]}],
             loaded: true,
             error: null,
         });

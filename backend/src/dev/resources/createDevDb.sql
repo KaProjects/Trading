@@ -361,28 +361,29 @@ INSERT INTO Latest (id, companyId, datetime, price) VALUES (1503, 2903, DATEADD(
 
 -- Two investment cases: one still running across the three chip companies, one closed.
 INSERT INTO InvestmentCase (id, name, createdAt) VALUES (1, 'AI accelerator buildout', DATEADD('DAY', -120, CURRENT_DATE));
-INSERT INTO CaseCompany (caseId, companyId) VALUES (1, 2213);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (1, 2212);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (1, 2214);
-INSERT INTO CaseCompanyName (caseId, value) VALUES (1, 'Broadcom');
-INSERT INTO CaseCompanyName (caseId, value) VALUES (1, 'TSMC');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (1, 2213, DATEADD('DAY', -120, CURRENT_DATE));
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (1, 2212, DATEADD('DAY', -120, CURRENT_DATE));
+-- Taken into the case later, once the third supplier started to matter to the thesis.
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (1, 2214, DATEADD('DAY', -45, CURRENT_DATE));
+INSERT INTO CaseCompanyName (caseId, value, addedAt) VALUES (1, 'Broadcom', DATEADD('DAY', -90, CURRENT_DATE));
+INSERT INTO CaseCompanyName (caseId, value, addedAt) VALUES (1, 'TSMC', DATEADD('DAY', -20, CURRENT_DATE));
 
 INSERT INTO InvestmentCase (id, name, createdAt, closedAt) VALUES (2, 'PC refresh cycle', DATEADD('DAY', -400, CURRENT_DATE), DATEADD('DAY', -30, CURRENT_DATE));
-INSERT INTO CaseCompany (caseId, companyId) VALUES (2, 2214);
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (2, 2214, DATEADD('DAY', -400, CURRENT_DATE));
 
 -- A case over every company that has ever been traded here, opened before the first of those
 -- trades: what a case looks like when its table has to carry the whole book, in every currency.
 INSERT INTO InvestmentCase (id, name, createdAt) VALUES (3, 'everything ever traded', '2018-01-01');
-INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 1240);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 1504);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 1873);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2073);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2212);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2213);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2214);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2261);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2300);
-INSERT INTO CaseCompany (caseId, companyId) VALUES (3, 2301);
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (3, 1240, '2018-01-01');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (3, 1504, '2018-01-01');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (3, 1873, '2018-01-01');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (3, 2073, '2018-01-01');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (3, 2212, '2018-01-01');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (3, 2213, '2018-01-01');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (3, 2214, '2018-01-01');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (3, 2261, '2018-01-01');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (3, 2300, '2018-01-01');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (3, 2301, '2018-01-01');
 
 INSERT INTO CaseEntry (id, caseId, date, content) VALUES (1, 1, DATEADD('DAY', -120, CURRENT_DATE), '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"Hyperscaler capex guidance keeps moving up while accelerator supply stays the constraint."}]},{"type":"list-item","children":[{"text":"The case is that the buildout runs at least two more years before supply catches demand."}]}]}]');
 INSERT INTO CaseEntry (id, caseId, date, content) VALUES (2, 1, DATEADD('DAY', -40, CURRENT_DATE), '[{"type":"bulleted-list","children":[{"type":"list-item","children":[{"text":"Memory pricing is the first thing to turn against the margin assumption."}]},{"type":"list-item","children":[{"text":"Networking attach rates still support the second leg of the thesis."}]}]}]');

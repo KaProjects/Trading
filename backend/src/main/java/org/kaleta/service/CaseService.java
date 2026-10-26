@@ -5,6 +5,7 @@ import jakarta.inject.Inject;
 import jakarta.persistence.NoResultException;
 import org.kaleta.persistence.api.CaseDao;
 import org.kaleta.persistence.api.CompanyDao;
+import org.kaleta.persistence.api.LatestDao;
 import org.kaleta.persistence.entity.Company;
 import org.kaleta.persistence.entity.InvestmentCase;
 import org.kaleta.rest.dto.CaseCreateDto;
@@ -13,6 +14,7 @@ import org.kaleta.rest.dto.CaseUpdateDto;
 import org.kaleta.model.Trades;
 import org.kaleta.rest.error.InvalidInputException;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -36,6 +38,8 @@ public class CaseService
     CaseEntryService caseEntryService;
     @Inject
     TradeService tradeService;
+    @Inject
+    LatestDao latestDao;
 
     public List<CaseDto> getAll()
     {
@@ -58,8 +62,14 @@ public class CaseService
         InvestmentCase created = new InvestmentCase();
         created.setCreatedAt(Date.valueOf(LocalDate.now()));
         created.setName(dto.getName().trim());
-        created.setCompanyIds(validated(dto.getCompanyIds()));
-        created.setCompanyNames(validatedNames(dto.getCompanyNames()));
+        // Everything a case is opened with joined it the day it opened.
+        Date opened = created.getCreatedAt();
+        created.setCompanies(validated(dto.getCompanyIds()).stream()
+                .map(companyId -> company(companyId, opened))
+                .toList());
+        created.setCompanyNames(validatedNames(dto.getCompanyNames()).stream()
+                .map(name -> companyName(name, opened))
+                .toList());
         caseDao.create(created);
         return get(created.getId());
     }
@@ -71,11 +81,8 @@ public class CaseService
             if (dto.getName().isBlank()) throw new InvalidInputException("case name cannot be blank");
             found.setName(dto.getName().trim());
         }
-        if (dto.getCompanyIds() != null) {
-            found.setCompanyIds(validated(dto.getCompanyIds()));
-        }
-        if (dto.getCompanyNames() != null) {
-            found.setCompanyNames(validatedNames(dto.getCompanyNames()));
+        if (dto.getCompanies() != null) {
+            applyCompanies(found, dto.getCompanies());
         }
         if (dto.getCreatedAt() != null) {
             LocalDate opened = LocalDate.parse(dto.getCreatedAt());
@@ -128,21 +135,45 @@ public class CaseService
      */
     private List<CaseDto.Trade> tradesOf(InvestmentCase investmentCase)
     {
-        LocalDate from = investmentCase.getCreatedAt().toLocalDate();
         LocalDate to = investmentCase.getClosedAt() == null
                 ? LocalDate.now()
                 : investmentCase.getClosedAt().toLocalDate();
 
-        return investmentCase.getCompanyIds().stream()
-                .flatMap(companyId -> tradeService.getBy(null, companyId, null, null, null, null)
-                        .getTrades().stream())
-                .filter(trade -> {
-                    LocalDate purchased = trade.getPurchaseDate().toLocalDate();
-                    return !purchased.isBefore(from) && !purchased.isAfter(to);
+        Map<Long, BigDecimal> prices = latestPrices(investmentCase.getCompanies().stream()
+                .map(InvestmentCase.CaseCompany::getCompanyId)
+                .toList());
+
+        return investmentCase.getCompanies().stream()
+                .flatMap(company -> {
+                    // Each company answers for itself from the day it joined the case: one
+                    // taken in last week says nothing about what was traded the year before.
+                    LocalDate from = company.getAddedAt().toLocalDate();
+                    return tradeService.getBy(null, company.getCompanyId(), null, null, null, null)
+                            .getTrades().stream()
+                            .filter(trade -> {
+                                LocalDate purchased = trade.getPurchaseDate().toLocalDate();
+                                return !purchased.isBefore(from) && !purchased.isAfter(to);
+                            });
                 })
                 .sorted()
-                .map(CaseService::from)
+                .map(trade -> {
+                    CaseDto.Trade dto = from(trade);
+                    // Only a position still open has anything to say about today's price.
+                    if (dto.isActive()) dto.setCurrentPrice(prices.get(trade.getCompany().getId()));
+                    return dto;
+                })
                 .toList();
+    }
+
+    /** What the app last saw each company trade at, for working out an open position. */
+    private Map<Long, BigDecimal> latestPrices(List<Long> companyIds)
+    {
+        Map<Long, BigDecimal> prices = new LinkedHashMap<>();
+        for (Long companyId : companyIds) {
+            latestDao.list(companyId).stream().findFirst()
+                    .ifPresent(latest -> prices.put(companyId, latest.getPrice()));
+        }
+        return prices;
     }
 
     private static CaseDto.Trade from(Trades.Trade trade)
@@ -197,19 +228,100 @@ public class CaseService
         for (String name : companyNames == null ? List.<String>of() : companyNames) {
             if (name == null || name.isBlank()) continue;
 
-            String trimmed = name.trim();
-            if (trimmed.length() > MAX_COMPANY_NAME_LENGTH) {
-                throw new InvalidInputException("company name '" + trimmed + "' can be at most "
-                        + MAX_COMPANY_NAME_LENGTH + " characters long");
-            }
+            String trimmed = validatedName(name);
             distinct.putIfAbsent(trimmed.toUpperCase(), trimmed);
         }
         return new ArrayList<>(distinct.values());
     }
 
+    private static String validatedName(String name)
+    {
+        String trimmed = name.trim();
+        if (trimmed.length() > MAX_COMPANY_NAME_LENGTH) {
+            throw new InvalidInputException("company name '" + trimmed + "' can be at most "
+                    + MAX_COMPANY_NAME_LENGTH + " characters long");
+        }
+        return trimmed;
+    }
+
+    /**
+     * The companies the case covers from now on. A company that was already in it keeps the day
+     * it joined unless another is given; one that is new to the list joins today.
+     */
+    private void applyCompanies(InvestmentCase found, List<CaseUpdateDto.Company> wanted)
+    {
+        Map<Long, Date> heldSince = found.getCompanies().stream().collect(Collectors.toMap(
+                InvestmentCase.CaseCompany::getCompanyId, InvestmentCase.CaseCompany::getAddedAt,
+                (first, second) -> first));
+        Map<String, Date> writtenSince = found.getCompanyNames().stream().collect(Collectors.toMap(
+                written -> written.getValue().toUpperCase(), InvestmentCase.CaseCompanyName::getAddedAt,
+                (first, second) -> first));
+
+        List<InvestmentCase.CaseCompany> companies = new ArrayList<>();
+        Map<String, InvestmentCase.CaseCompanyName> names = new LinkedHashMap<>();
+        List<Long> ids = new ArrayList<>();
+
+        for (CaseUpdateDto.Company company : wanted) {
+            if (company.getId() != null) {
+                if (ids.contains(company.getId())) continue;
+
+                ids.add(company.getId());
+                companies.add(company(company.getId(),
+                        dayOf(company.getAddedAt(), heldSince.get(company.getId()))));
+            } else {
+                if (company.getName() == null || company.getName().isBlank()) continue;
+
+                String written = validatedName(company.getName());
+                names.putIfAbsent(written.toUpperCase(), companyName(written,
+                        dayOf(company.getAddedAt(), writtenSince.get(written.toUpperCase()))));
+            }
+        }
+
+        validated(ids);
+        found.setCompanies(companies);
+        found.setCompanyNames(new ArrayList<>(names.values()));
+    }
+
+    /** The day given, else the day it has been in the case since, else today. */
+    private static Date dayOf(String given, Date sinceWhen)
+    {
+        if (given != null) return Date.valueOf(LocalDate.parse(given));
+
+        return sinceWhen != null ? sinceWhen : Date.valueOf(LocalDate.now());
+    }
+
+    private static InvestmentCase.CaseCompany company(Long companyId, Date addedAt)
+    {
+        InvestmentCase.CaseCompany company = new InvestmentCase.CaseCompany();
+        company.setCompanyId(companyId);
+        company.setAddedAt(addedAt);
+        return company;
+    }
+
+    private static InvestmentCase.CaseCompanyName companyName(String value, Date addedAt)
+    {
+        InvestmentCase.CaseCompanyName name = new InvestmentCase.CaseCompanyName();
+        name.setValue(value);
+        name.setAddedAt(addedAt);
+        return name;
+    }
+
+    private static CaseDto.Company companyDto(Long id, String ticker, Date addedAt)
+    {
+        CaseDto.Company company = new CaseDto.Company();
+        company.setId(id);
+        company.setTicker(ticker);
+        company.setAddedAt(addedAt);
+        return company;
+    }
+
     private Map<Long, Company> companiesOf(List<InvestmentCase> cases)
     {
-        List<Long> ids = cases.stream().flatMap(each -> each.getCompanyIds().stream()).distinct().toList();
+        List<Long> ids = cases.stream()
+                .flatMap(each -> each.getCompanies().stream())
+                .map(InvestmentCase.CaseCompany::getCompanyId)
+                .distinct()
+                .toList();
         if (ids.isEmpty()) return Map.of();
 
         return companyDao.list().stream()
@@ -224,18 +336,22 @@ public class CaseService
         dto.setName(entity.getName());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setClosedAt(entity.getClosedAt());
-        dto.setCompanies(entity.getCompanyIds().stream()
-                .map(companies::get)
-                .filter(java.util.Objects::nonNull)
-                .map(company -> {
-                    CaseDto.Company linked = new CaseDto.Company();
-                    linked.setId(company.getId());
-                    linked.setTicker(company.getTicker());
-                    return linked;
-                })
-                .sorted(java.util.Comparator.comparing(CaseDto.Company::getTicker))
-                .toList());
-        dto.setCompanyNames(entity.getCompanyNames().stream().sorted(String::compareToIgnoreCase).toList());
+        // Both kinds read as one list, oldest in the case first: the case grew in this order,
+        // and what the app does not hold yet is told apart by having no id rather than by
+        // sitting in a list of its own.
+        List<CaseDto.Company> covered = new ArrayList<>();
+        entity.getCompanies().forEach(held -> {
+            Company company = companies.get(held.getCompanyId());
+            if (company == null) return;
+
+            covered.add(companyDto(company.getId(), company.getTicker(), held.getAddedAt()));
+        });
+        entity.getCompanyNames().forEach(written ->
+                covered.add(companyDto(null, written.getValue(), written.getAddedAt())));
+        covered.sort(java.util.Comparator
+                .comparing(CaseDto.Company::getAddedAt)
+                .thenComparing(CaseDto.Company::getTicker, String::compareToIgnoreCase));
+        dto.setCompanies(covered);
         return dto;
     }
 }

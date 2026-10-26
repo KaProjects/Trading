@@ -9,6 +9,7 @@ import {caseImageUrl, ContentImages} from "./ContentImages";
 import {DateHeading} from "./ContentEntry";
 import {CaseTable} from "./CaseTable";
 import {CaseTradeLine} from "./CaseTradeLine";
+import {CaseCompanyLine} from "./CaseCompanyLine";
 
 /** One day from the next. */
 const DAY_GAP = "8px"
@@ -31,6 +32,7 @@ export const hasEntryForToday = (entries = []) => entries.some(entry => entry.da
 const Day = ({
     entry,
     trades = [],
+    additions = [],
     readOnly = false,
     editing,
     onEdit,
@@ -132,8 +134,9 @@ const Day = ({
             {/* What was acted on that day comes between the date and what was written about
                 it: the trade is the fact, the writing is the reading of it. It reads with the
                 date, so it keeps its distance from the writing rather than from the heading. */}
-            {trades.length > 0 &&
+            {(trades.length > 0 || additions.length > 0) &&
                 <Box sx={{display: "flex", flexDirection: "column", gap: "2px", marginBottom: "7px"}}>
+                    {additions.map(added => <CaseCompanyLine key={added.key} ticker={added.ticker}/>)}
                     {trades.map(trade => <CaseTradeLine key={trade.key} trade={trade}/>)}
                 </Box>
             }
@@ -203,10 +206,11 @@ const Day = ({
  * is written.
  */
 /** A day that was acted on but not written about: its date and what was done, nothing else. */
-const TradeDay = ({date, trades}) => (
+const TradeDay = ({date, trades, additions}) => (
     <Box data-testid={`case-trades-${date}`}
          sx={{display: "flex", flexDirection: "column", gap: "2px", padding: "4px 6px"}}>
         <DateHeading date={date} testId={`case-trade-date-${date}`}/>
+        {additions.map(added => <CaseCompanyLine key={added.key} ticker={added.ticker}/>)}
         {trades.map(trade => <CaseTradeLine key={trade.key} trade={trade}/>)}
     </Box>
 )
@@ -217,15 +221,18 @@ const TradeDay = ({date, trades}) => (
  * its own - under the date, above the writing that reads it, the way a period's estimates read
  * above its research.
  */
-function byDate(entries, trades) {
+function byDate(entries, trades, additions) {
     const days = new Map()
     const dayOf = date => {
-        if (!days.has(date)) days.set(date, {key: date, date: date, entry: null, trades: []})
+        if (!days.has(date)) {
+            days.set(date, {key: date, date: date, entry: null, trades: [], additions: []})
+        }
         return days.get(date)
     }
 
     entries.forEach(entry => {dayOf(entry.date).entry = entry})
     trades.forEach(trade => dayOf(trade.date).trades.push(trade))
+    additions.forEach(added => dayOf(added.date).additions.push(added))
 
     return [...days.values()].sort((first, second) => second.date.localeCompare(first.date))
 }
@@ -234,6 +241,7 @@ export const CaseEntryList = ({
     readOnly = false,
     entries = [],
     trades = [],
+    additions = [],
     stagedFor = () => ({adds: [], removes: []}),
     onDone,
     onStageImage,
@@ -256,7 +264,7 @@ export const CaseEntryList = ({
                 gap: DAY_GAP,
             }}
         >
-            {byDate(entries, trades).map((day, index) => (
+            {byDate(entries, trades, additions).map((day, index) => (
                 <Box
                     key={day.key}
                     // A rule between one day and the next, so it is plain where a day starts
@@ -269,10 +277,11 @@ export const CaseEntryList = ({
                     }}
                 >
                 {!day.entry
-                ? <TradeDay date={day.date} trades={day.trades}/>
+                ? <TradeDay date={day.date} trades={day.trades} additions={day.additions}/>
                 : <Day
                     entry={day.entry}
                     trades={day.trades}
+                    additions={day.additions}
                     readOnly={readOnly}
                     editing={editingDate === day.entry.date}
                     onEdit={() => onEditingDateChange(day.entry.date)}

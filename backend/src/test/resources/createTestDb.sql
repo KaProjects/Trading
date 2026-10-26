@@ -145,4 +145,4 @@ INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purch
 -- for CaseEndpointsTest: a case that has been running since before company 1927's trade was
 -- bought (11.11.2023), so that trade is one the case is answerable for
 INSERT INTO InvestmentCase (id, name, createdAt) VALUES (1, 'running since 2023', '2023-01-01');
-INSERT INTO CaseCompany (caseId, companyId) VALUES (1, 1927);
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (1, 1927, '2023-01-01');

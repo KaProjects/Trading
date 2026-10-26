@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
 import static org.kaleta.framework.Assert.getValidationError;
@@ -40,8 +41,7 @@ class CaseEndpointsTest
         assertThat(created.getName(), is("memory supercycle"));
         assertThat(created.getCreatedAt().toLocalDate(), is(LocalDate.now()));
         assertThat(created.getClosedAt(), is(nullValue()));
-        assertThat(created.getCompanies().stream().map(CaseDto.Company::getTicker).toList(),
-                contains("RCH", "UPD"));
+        assertThat(tickers(created), contains("RCH", "UPD"));
 
         CaseDto read = get(created.getId());
         assertThat(read.getName(), is("memory supercycle"));
@@ -57,19 +57,17 @@ class CaseEndpointsTest
 
         CaseUpdateDto dto = new CaseUpdateDto();
         dto.setName("the better name");
-        dto.setCompanyIds(List.of(UPD));
+        dto.setCompanies(List.of(company(UPD, null)));
         CaseDto updated = update(created.getId(), dto);
 
         assertThat(updated.getName(), is("the better name"));
-        assertThat(updated.getCompanies().stream().map(CaseDto.Company::getTicker).toList(),
-                contains("UPD"));
+        assertThat(tickers(updated), contains("UPD"));
 
         // Read again rather than trusting the answer: a column the mapping refuses to write
         // still answers with what was asked for.
         CaseDto read = get(created.getId());
         assertThat(read.getName(), is("the better name"));
-        assertThat(read.getCompanies().stream().map(CaseDto.Company::getTicker).toList(),
-                contains("UPD"));
+        assertThat(tickers(read), contains("UPD"));
 
         delete(created.getId());
     }
@@ -86,22 +84,23 @@ class CaseEndpointsTest
                 .then().log().ifError().statusCode(201)
                 .extract().response().jsonPath().getObject("", CaseDto.class);
 
-        assertThat(created.getCompanies().stream().map(CaseDto.Company::getTicker).toList(), contains("RCH"));
-        assertThat(created.getCompanyNames(), contains("Broadcom", "TSMC"));
+        // One list, the companies the app holds and the names written for the ones it does not.
+        assertThat(tickers(created), contains("Broadcom", "RCH", "TSMC"));
+        assertThat(created.getCompanies().stream()
+                .filter(company -> company.getId() == null)
+                .map(CaseDto.Company::getTicker).toList(), contains("Broadcom", "TSMC"));
 
         CaseUpdateDto update = new CaseUpdateDto();
-        update.setCompanyNames(List.of("Samsung"));
+        update.setCompanies(List.of(company(RCH, null), written("Samsung", null)));
         CaseDto updated = update(created.getId(), update);
-        assertThat(updated.getCompanyNames(), contains("Samsung"));
-        assertThat(updated.getCompanies().stream().map(CaseDto.Company::getTicker).toList(), contains("RCH"));
-        assertThat(get(created.getId()).getCompanyNames(), contains("Samsung"));
+        assertThat(tickers(updated), contains("RCH", "Samsung"));
+        assertThat(tickers(get(created.getId())), contains("RCH", "Samsung"));
 
         CaseUpdateDto tooLong = new CaseUpdateDto();
-        tooLong.setCompanyNames(List.of("x".repeat(51)));
+        tooLong.setCompanies(List.of(written("x".repeat(51), null)));
         given().contentType(ContentType.JSON).body(tooLong)
                 .when().put(PATH + "/" + created.getId())
-                .then().statusCode(400)
-                .body(containsString("at most 50 characters"));
+                .then().statusCode(400);
 
         delete(created.getId());
     }
@@ -129,6 +128,77 @@ class CaseEndpointsTest
                 .when().put(PATH + "/" + created.getId())
                 .then().statusCode(400)
                 .body(containsString("cannot open after it was closed"));
+
+        delete(created.getId());
+    }
+
+    @Test
+    void readsWhatAnOpenPositionLastTradedAt()
+    {
+        // RCH has two trades still open, and a price the app last saw it at.
+        CaseDto created = create("still holding", List.of(RCH));
+        CaseUpdateDto opened = new CaseUpdateDto();
+        opened.setCompanies(List.of(company(RCH, "2020-01-01")));
+        CaseDto read = update(created.getId(), opened);
+
+        List<CaseDto.Trade> open = read.getTrades().stream().filter(CaseDto.Trade::isActive).toList();
+        assertThat(open, is(not(empty())));
+        assertThat(open.getFirst().getCurrentPrice(), is(notNullValue()));
+
+        // A trade that is over says nothing about today's price; what it made is settled.
+        read.getTrades().stream().filter(trade -> !trade.isActive())
+                .forEach(trade -> assertThat(trade.getCurrentPrice(), is(nullValue())));
+
+        delete(created.getId());
+    }
+
+    @Test
+    void keepsTheDayEachCompanyJoinedTheCase()
+    {
+        CaseDto created = create("grown over time", List.of(RCH));
+        assertThat(created.getCompanies().get(0).getAddedAt().toLocalDate(), is(LocalDate.now()));
+
+        // A second company joins, and is dated to the day it was really taken in.
+        CaseUpdateDto added = new CaseUpdateDto();
+        added.setCompanies(List.of(company(RCH, null), company(UPD, "2026-03-04")));
+        CaseDto updated = update(created.getId(), added);
+
+        // Oldest in the case first, whatever the tickers are.
+        assertThat(tickers(updated), contains("UPD", "RCH"));
+        assertThat(updated.getCompanies().get(0).getAddedAt().toLocalDate(),
+                is(LocalDate.of(2026, 3, 4)));
+        // The one that was already there keeps the day it joined.
+        assertThat(updated.getCompanies().get(1).getAddedAt().toLocalDate(), is(LocalDate.now()));
+
+        // Left out of the list is off the case.
+        CaseUpdateDto removed = new CaseUpdateDto();
+        removed.setCompanies(List.of(company(UPD, null)));
+        CaseDto after = update(created.getId(), removed);
+        assertThat(tickers(after), contains("UPD"));
+        assertThat(after.getCompanies().get(0).getAddedAt().toLocalDate(),
+                is(LocalDate.of(2026, 3, 4)));
+
+        delete(created.getId());
+    }
+
+    @Test
+    void readsTheTradesOfACompanyFromTheDayItJoinedTheCase()
+    {
+        // Company 1927 has a trade bought 11.11.2023 and sold 05.01.2024.
+        CaseDto created = create("joined late", List.of(1927L));
+
+        CaseUpdateDto opened = new CaseUpdateDto();
+        opened.setCreatedAt("2023-01-01");
+        // The case has been running since 2023, but the company only joined in 2024.
+        opened.setCompanies(List.of(company(1927L, "2024-01-01")));
+        assertThat(update(created.getId(), opened).getTrades(), is(empty()));
+
+        // Dated back to before the trade, the case answers for it.
+        CaseUpdateDto earlier = new CaseUpdateDto();
+        earlier.setCompanies(List.of(company(1927L, "2023-01-01")));
+        assertThat(update(created.getId(), earlier).getTrades().stream()
+                        .map(trade -> trade.getPurchaseDate().toString()).toList(),
+                contains("2023-11-11"));
 
         delete(created.getId());
     }
@@ -244,7 +314,7 @@ class CaseEndpointsTest
                 .body(containsString("cannot be blank"));
 
         CaseUpdateDto ghost = new CaseUpdateDto();
-        ghost.setCompanyIds(List.of(999999L));
+        ghost.setCompanies(List.of(company(999999L, null)));
         given().contentType(ContentType.JSON).body(ghost)
                 .when().put(PATH + "/" + created.getId())
                 .then().statusCode(400);
@@ -252,7 +322,7 @@ class CaseEndpointsTest
         // Neither refusal leaves a mark on the case.
         CaseDto read = get(created.getId());
         assertThat(read.getName(), is("worth keeping"));
-        assertThat(read.getCompanies().stream().map(CaseDto.Company::getTicker).toList(), contains("RCH"));
+        assertThat(tickers(read), contains("RCH"));
 
         delete(created.getId());
     }
@@ -304,27 +374,6 @@ class CaseEndpointsTest
     }
 
     @Test
-    void readsTheTradesFromTheDayTheCaseWasOpened()
-    {
-        // Company 1927 has a trade bought 11.11.2023 and sold 05.01.2024.
-        CaseDto created = create("opened around a trade", List.of(1927L));
-        assertThat(created.getTrades(), is(empty()));
-
-        CaseUpdateDto before = new CaseUpdateDto();
-        before.setCreatedAt("2023-01-01");
-        assertThat(update(created.getId(), before).getTrades().stream()
-                        .map(trade -> trade.getPurchaseDate().toString()).toList(),
-                contains("2023-11-11"));
-
-        // Opened after it was bought, the trade is somebody else's business again.
-        CaseUpdateDto after = new CaseUpdateDto();
-        after.setCreatedAt("2024-01-01");
-        assertThat(update(created.getId(), after).getTrades(), is(empty()));
-
-        delete(created.getId());
-    }
-
-    @Test
     void deletesAClosedCaseWithEverythingWrittenIntoIt()
     {
         CaseDto created = create("written then deleted", List.of(RCH));
@@ -345,6 +394,27 @@ class CaseEndpointsTest
 
         delete(created.getId());
         given().when().get(PATH + "/" + created.getId()).then().statusCode(400);
+    }
+
+    private static List<String> tickers(CaseDto dto)
+    {
+        return dto.getCompanies().stream().map(CaseDto.Company::getTicker).toList();
+    }
+
+    private static CaseUpdateDto.Company company(Long companyId, String addedAt)
+    {
+        CaseUpdateDto.Company company = new CaseUpdateDto.Company();
+        company.setId(companyId);
+        company.setAddedAt(addedAt);
+        return company;
+    }
+
+    private static CaseUpdateDto.Company written(String name, String addedAt)
+    {
+        CaseUpdateDto.Company company = new CaseUpdateDto.Company();
+        company.setName(name);
+        company.setAddedAt(addedAt);
+        return company;
     }
 
     private CaseDto create(String name, List<Long> companyIds)

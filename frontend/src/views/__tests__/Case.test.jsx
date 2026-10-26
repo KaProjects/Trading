@@ -1,4 +1,4 @@
-import {fireEvent, render, screen, waitFor} from "@testing-library/react";
+import {fireEvent, render, screen, waitFor, within} from "@testing-library/react";
 import axios from "axios";
 
 jest.mock("axios");
@@ -41,7 +41,7 @@ const value = {
     name: "memory supercycle",
     createdAt: "2026-02-10",
     closedAt: null,
-    companies: [{id: 11, ticker: "NVDA"}],
+    companies: [{id: 11, ticker: "NVDA", addedAt: "2026-02-10"}],
     entries: [],
     trades: [],
 };
@@ -65,7 +65,7 @@ describe("Case", () => {
 
         expect(screen.getByText("memory supercycle")).toBeInTheDocument();
         expect(screen.getByText("opened 10.02.2026")).toBeInTheDocument();
-        expect(screen.getByText("NVDA")).toBeInTheDocument();
+        expect(within(screen.getByTestId("case-companies")).getByText("NVDA")).toBeInTheDocument();
         // The name is read here and changed from the menu, so there is nothing to type into.
         expect(screen.queryByLabelText("Case name")).not.toBeInTheDocument();
     });
@@ -89,7 +89,7 @@ describe("Case", () => {
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {name: "memory cycle"}));
     });
 
-    test("covers another company once the plus asks for one, and stops covering one", async () => {
+    test("covers another company once the plus asks for one", async () => {
         render(<Case companyLists={companyLists}/>);
 
         // Nothing to pick from until the plus is pressed.
@@ -99,11 +99,70 @@ describe("Case", () => {
         fireEvent.focus(picker);
         fireEvent.change(picker, {target: {value: "AMD"}});
         fireEvent.click(screen.getByRole("option", {name: "AMD"}));
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {companyIds: [11, 12]}));
 
-        axios.put.mockClear();
-        fireEvent.click(screen.getByTestId("CancelIcon"));
-        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {companyIds: []}));
+        // The ones already covered keep the day they joined; the new one is given none, so it
+        // joins today.
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {
+            companies: [{id: 11, addedAt: "2026-02-10"}, {id: 12}],
+        }));
+    });
+
+    test("takes a company off the case from the menu rather than from the chip", async () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                companies: [
+                    {id: 11, ticker: "NVDA", addedAt: "2026-02-10"},
+                    {id: 12, ticker: "AMD", addedAt: "2026-04-01"},
+                ],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        // A chip is read, not unpicked: nothing on it takes the company off the case.
+        expect(screen.queryAllByTestId("CancelIcon")).toHaveLength(0);
+
+        openMenu();
+        fireEvent.click(screen.getByText("Companies"));
+        fireEvent.click(screen.getByRole("button", {name: "Remove AMD"}));
+        fireEvent.click(screen.getByRole("button", {name: "Save"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {
+            companies: [{id: 11, addedAt: "2026-02-10"}],
+        }));
+    });
+
+    test("re-dates the day a company joined the case, and warns where it has traded", async () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                companies: [
+                    {id: 11, ticker: "NVDA", addedAt: "2026-02-10"},
+                    {id: 12, ticker: "AMD", addedAt: "2026-04-01"},
+                ],
+                trades: [{id: 2, ticker: "NVDA", currency: "$", active: true,
+                    purchaseDate: "2026-03-02", purchasePrice: 100, quantity: 5}],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        openMenu();
+        fireEvent.click(screen.getByText("Companies"));
+
+        // What it would cost to take this one off is said, not enforced.
+        expect(screen.getByTestId("case-company-traded-NVDA")).toBeInTheDocument();
+        expect(screen.queryByTestId("case-company-traded-AMD")).not.toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText("Added AMD"), {target: {value: "2026-01-05"}});
+        fireEvent.click(screen.getByRole("button", {name: "Save"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {
+            companies: [{id: 11, addedAt: "2026-02-10"}, {id: 12, addedAt: "2026-01-05"}],
+        }));
     });
 
     test("records a company the app does not hold as the name it was written as", async () => {
@@ -114,8 +173,9 @@ describe("Case", () => {
         fireEvent.change(picker, {target: {value: "Broadcom"}});
         fireEvent.keyDown(picker, {key: "Enter", code: "Enter"});
 
-        await waitFor(() => expect(axios.put)
-            .toHaveBeenCalledWith("/api/case/1", {companyNames: ["Broadcom"]}));
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {
+            companies: [{id: 11, addedAt: "2026-02-10"}, {name: "Broadcom"}],
+        }));
     });
 
     test("links a written name the app does know, whatever case it was written in", async () => {
@@ -126,23 +186,34 @@ describe("Case", () => {
         fireEvent.change(picker, {target: {value: "amd"}});
         fireEvent.keyDown(picker, {key: "Enter", code: "Enter"});
 
-        await waitFor(() => expect(axios.put)
-            .toHaveBeenCalledWith("/api/case/1", {companyIds: [11, 12]}));
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {
+            companies: [{id: 11, addedAt: "2026-02-10"}, {id: 12}],
+        }));
     });
 
     test("stops covering a company it only had the name of", async () => {
         mockUseData.mockReturnValue({
-            data: {...value, companies: [], companyNames: ["Broadcom", "TSMC"]},
+            data: {
+                ...value,
+                companies: [
+                    {id: null, ticker: "Broadcom", addedAt: "2026-02-11"},
+                    {id: null, ticker: "TSMC", addedAt: "2026-02-12"},
+                ],
+            },
             loaded: true,
             error: null,
         });
         render(<Case companyLists={companyLists}/>);
 
-        expect(screen.getByText("Broadcom")).toBeInTheDocument();
-        fireEvent.click(screen.getAllByTestId("CancelIcon")[0]);
+        expect(within(screen.getByTestId("case-companies")).getByText("Broadcom")).toBeInTheDocument();
+        openMenu();
+        fireEvent.click(screen.getByText("Companies"));
+        fireEvent.click(screen.getByRole("button", {name: "Remove Broadcom"}));
+        fireEvent.click(screen.getByRole("button", {name: "Save"}));
 
-        await waitFor(() => expect(axios.put)
-            .toHaveBeenCalledWith("/api/case/1", {companyNames: ["TSMC"]}));
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {
+            companies: [{name: "TSMC", addedAt: "2026-02-12"}],
+        }));
     });
 
     test("closes the case from its menu", async () => {
@@ -159,13 +230,18 @@ describe("Case", () => {
         render(<Case companyLists={companyLists}/>);
 
         openMenu();
-        fireEvent.click(screen.getByText("Delete"));
-        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/case/1"));
-        await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/cases"));
-
-        openMenu();
         fireEvent.click(screen.getByText("Reopen"));
         await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/1", {closed: false}));
+
+        openMenu();
+        fireEvent.click(screen.getByText("Delete"));
+        // Nothing is deleted on the strength of one click on a menu.
+        expect(axios.delete).not.toHaveBeenCalled();
+        expect(screen.getByText(/everything written into it will be deleted/)).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", {name: "Delete"}));
+        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith("/api/case/1"));
+        await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/cases"));
     });
 
     test("offers no delete while the case is still open", () => {
@@ -219,10 +295,23 @@ describe("Case", () => {
         }));
     });
 
-    test("says so while nothing has been written", () => {
+    test("says so while nothing at all has happened in the case", () => {
+        mockUseData.mockReturnValue({
+            data: {...value, companies: [], entries: [], trades: []},
+            loaded: true,
+            error: null,
+        });
         render(<Case companyLists={companyLists}/>);
 
         expect(screen.getByText("Nothing written yet.")).toBeInTheDocument();
+    });
+
+    test("says nothing of the sort once a company has joined the case", () => {
+        // The company joining is itself something the stream has to say.
+        render(<Case companyLists={companyLists}/>);
+
+        expect(screen.queryByText("Nothing written yet.")).not.toBeInTheDocument();
+        expect(screen.getByTestId("case-company-added-NVDA")).toBeInTheDocument();
     });
 
     test("writes a table into a day being written, and takes one away", async () => {
@@ -635,7 +724,10 @@ describe("Case", () => {
             data: {
                 ...value,
                 closedAt: "2026-09-26",
-                companyNames: ["Broadcom"],
+                companies: [
+                    {id: 11, ticker: "NVDA", addedAt: "2026-02-10"},
+                    {id: null, ticker: "Broadcom", addedAt: "2026-02-11"},
+                ],
                 entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: []}],
             },
             loaded: true,
@@ -649,10 +741,11 @@ describe("Case", () => {
         expect(screen.queryByRole("button", {name: "Day written 2026-02-11"})).not.toBeInTheDocument();
         // Neither the companies it covers nor the names written beside them can be taken off.
         expect(screen.queryAllByTestId("CancelIcon")).toHaveLength(0);
-        // What it holds is still read: the day and its writing are there.
+        // What it holds is still read: the day, its writing and the companies it covers.
         expect(screen.getByTestId("case-entry-2026-02-11")).toBeInTheDocument();
-        expect(screen.getByText("NVDA")).toBeInTheDocument();
-        expect(screen.getByText("Broadcom")).toBeInTheDocument();
+        const covered = within(screen.getByTestId("case-companies"));
+        expect(covered.getByText("NVDA")).toBeInTheDocument();
+        expect(covered.getByText("Broadcom")).toBeInTheDocument();
     });
 
     test("reads the trades oldest first", () => {

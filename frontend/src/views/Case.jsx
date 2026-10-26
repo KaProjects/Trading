@@ -32,6 +32,8 @@ import {useStagedImages} from "./component/useStagedImages";
 import {defaultContent} from "./component/ContentEditor";
 import {backend} from "../properties";
 import {CaseNameDialog} from "../dialog/CaseNameDialog";
+import {CaseCompaniesDialog} from "../dialog/CaseCompaniesDialog";
+import {ConfirmDialog} from "../dialog/ConfirmDialog";
 import {CaseDateDialog} from "../dialog/CaseDateDialog";
 import {formatDate, formatError} from "../service/FormattingService";
 
@@ -82,6 +84,8 @@ export const Case = props => {
     const [alert, setAlert] = useState(null)
     const [menuAnchor, setMenuAnchor] = useState(null)
     const [renaming, setRenaming] = useState(false)
+    const [managingCompanies, setManagingCompanies] = useState(false)
+    const [deleting, setDeleting] = useState(false)
     const [openedDate, setOpenedDate] = useState(false)
     const [closedDate, setClosedDate] = useState(false)
     const [movedEntry, setMovedEntry] = useState(null)
@@ -126,7 +130,7 @@ export const Case = props => {
         if (!company) return
 
         if (typeof company !== "string") {
-            return save({companyIds: [...value.companies.map(each => each.id), company.id]})
+            return save({companies: [...coveredCompanies(), {id: company.id}]})
         }
 
         const written = company.trim()
@@ -135,12 +139,21 @@ export const Case = props => {
         const known = companies.find(each => each.ticker.toUpperCase() === written.toUpperCase())
         if (known) {
             if (value.companies.some(each => each.id === known.id)) return
-            return save({companyIds: [...value.companies.map(each => each.id), known.id]})
+            return save({companies: [...coveredCompanies(), {id: known.id}]})
         }
 
-        const names = value.companyNames ?? []
-        if (names.some(each => each.toUpperCase() === written.toUpperCase())) return
-        return save({companyNames: [...names, written]})
+        if (value.companies.some(each =>
+            !each.id && each.ticker.toUpperCase() === written.toUpperCase())) return
+
+        // No day given: it joins the case today.
+        return save({companies: [...coveredCompanies(), {name: written}]})
+    }
+
+    /** The companies the case covers as the server takes them, each keeping its own day. */
+    function coveredCompanies() {
+        return (value?.companies ?? []).map(company => (company.id
+            ? {id: company.id, addedAt: company.addedAt}
+            : {name: company.ticker, addedAt: company.addedAt}))
     }
 
     /** A day keeps what was written into it; the editor starts again on what was saved. */
@@ -293,6 +306,21 @@ export const Case = props => {
      * The trades as days of their own: the day one was bought, and the day it was sold. They
      * are derived, so they are read in the stream and nowhere written into it.
      */
+    /** How many of the case's trades each company accounts for, as the dialog warns about. */
+    const tradeCounts = (value?.trades ?? []).reduce((counts, trade) => {
+        counts[trade.ticker] = (counts[trade.ticker] ?? 0) + 1
+        return counts
+    }, {})
+
+    /** The day a company joined the case is part of the case's story, so it reads in it. */
+    const companyLines = (value?.companies ?? [])
+        .filter(company => company.addedAt)
+        .map(company => ({
+            key: `company-${company.id ?? company.ticker}`,
+            date: company.addedAt,
+            ticker: company.ticker,
+        }))
+
     const tradeLines = (value?.trades ?? []).flatMap(trade => {
         const lines = [{
             key: `${trade.id}-bought`,
@@ -324,7 +352,11 @@ export const Case = props => {
         <>
             {!loaded && <Loader error={error}/>}
             {loaded &&
-                <Box sx={{width: {xs: "100%", sm: "700px"}, margin: "10px auto"}}>
+                <Box sx={{
+                    width: {xs: "100%", sm: "700px"},
+                    margin: "5px auto",
+                    [NARROW]: {margin: "3px auto"},
+                }}>
                     <Paper elevation={1} sx={{padding: "10px 12px"}}>
                         <Stack direction="row" alignItems="center" spacing={1}>
                             <Tooltip title="Back to cases">
@@ -358,6 +390,9 @@ export const Case = props => {
                                 <MenuItem onClick={() => {setMenuAnchor(null);setRenaming(true)}}>
                                     <ListItemText primaryTypographyProps={{fontSize: 14}}>Rename</ListItemText>
                                 </MenuItem>
+                                <MenuItem onClick={() => {setMenuAnchor(null);setManagingCompanies(true)}}>
+                                    <ListItemText primaryTypographyProps={{fontSize: 14}}>Companies</ListItemText>
+                                </MenuItem>
                                 <MenuItem onClick={() => {setMenuAnchor(null);save({closed: !value.closedAt})}}>
                                     <ListItemText primaryTypographyProps={{fontSize: 14}}>
                                         {value.closedAt ? "Reopen" : "Close"}
@@ -365,7 +400,7 @@ export const Case = props => {
                                 </MenuItem>
                                 {/* A case still being written is not deleted; close it first. */}
                                 {value.closedAt &&
-                                    <MenuItem onClick={() => {setMenuAnchor(null);removeCase()}}>
+                                    <MenuItem onClick={() => {setMenuAnchor(null);setDeleting(true)}}>
                                         <ListItemText primaryTypographyProps={{fontSize: 14, color: "error.main"}}>
                                             Delete
                                         </ListItemText>
@@ -409,37 +444,25 @@ export const Case = props => {
                         {/* The selector is not a permanent fixture: it opens beside the plus
                             when a company is being added, and goes again once one is. */}
                         <Stack direction="row" alignItems="center"
+                               data-testid="case-companies"
                                sx={{
                                    marginTop: "5px",
                                    flexWrap: "wrap",
                                    gap: "4px",
                                    [NARROW]: {marginTop: "3px", gap: "3px"},
                                }}>
+                            {/* Both kinds read as one row, oldest in the case first. A chip
+                                is not taken off here: a company belongs to what the case was
+                                about, so it goes from the menu and on purpose. */}
                             {value.companies.map(company => (
                                 <Chip
-                                    key={company.id}
+                                    key={company.id ?? `name:${company.ticker}`}
                                     label={company.ticker}
                                     size="small"
-                                    sx={COMPANY_CHIP}
-                                    onDelete={closed ? undefined : () => save({
-                                        companyIds: value.companies
-                                            .filter(each => each.id !== company.id)
-                                            .map(each => each.id),
-                                    })}
-                                />
-                            ))}
-                            {/* Companies the app does not hold are marked as written rather than
-                                linked, so it is plain which of them it can actually tell about. */}
-                            {(value.companyNames ?? []).map(name => (
-                                <Chip
-                                    key={name}
-                                    label={name}
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{...COMPANY_CHIP, fontStyle: "italic"}}
-                                    onDelete={closed ? undefined : () => save({
-                                        companyNames: value.companyNames.filter(each => each !== name),
-                                    })}
+                                    variant={company.id ? "filled" : "outlined"}
+                                    sx={company.id
+                                        ? COMPANY_CHIP
+                                        : {...COMPANY_CHIP, fontStyle: "italic"}}
                                 />
                             ))}
                             {!closed &&
@@ -481,16 +504,17 @@ export const Case = props => {
                     </Paper>
 
                     {(value.trades ?? []).length > 0 &&
-                        <Paper elevation={1} sx={{padding: "10px 12px", marginTop: "10px"}}>
+                        <Paper elevation={1} sx={{padding: "10px 12px", marginTop: "5px", [NARROW]: {marginTop: "3px"}}}>
                             <CaseTrades trades={value.trades}/>
                         </Paper>
                     }
 
-                    <Paper elevation={1} sx={{padding: "10px 12px", marginTop: "10px"}}>
+                    <Paper elevation={1} sx={{padding: "10px 12px", marginTop: "5px", [NARROW]: {marginTop: "3px"}}}>
                         <CaseEntryList
                             readOnly={closed}
                             entries={entries}
                             trades={tradeLines}
+                            additions={companyLines}
                             stagedFor={stagedFor}
                             onDone={finishEntry}
                             onStageImage={stageImage}
@@ -504,7 +528,9 @@ export const Case = props => {
                             onCancel={cancelEntry}
                             onMoveEntry={entry => setMovedEntry(entry)}
                         />
-                        {entries.length === 0 &&
+                        {/* The stream carries the trades and the companies as they joined, so
+                            it is only empty when none of those has happened either. */}
+                        {entries.length === 0 && tradeLines.length === 0 && companyLines.length === 0 &&
                             <Typography sx={{color: "text.secondary", fontSize: 13}}>
                                 Nothing written yet.
                             </Typography>
@@ -533,6 +559,20 @@ export const Case = props => {
                 initialDate={movedEntry?.date ?? ""}
                 onSubmit={date => moveEntry(movedEntry.id, date)}
                 handleClose={() => setMovedEntry(null)}
+            />
+            <CaseCompaniesDialog
+                open={managingCompanies}
+                companies={value?.companies ?? []}
+                tradeCounts={tradeCounts}
+                onSubmit={wanted => save({companies: wanted})}
+                handleClose={() => setManagingCompanies(false)}
+            />
+            <ConfirmDialog
+                open={deleting}
+                title="Delete case"
+                message={`'${value?.name ?? ""}' and everything written into it will be deleted.`}
+                onConfirm={removeCase}
+                handleClose={() => setDeleting(false)}
             />
             <CaseNameDialog
                 open={renaming}

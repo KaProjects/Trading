@@ -3,6 +3,7 @@ package org.kaleta.persistence.entity;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embeddable;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
@@ -39,12 +40,16 @@ public class InvestmentCase extends AbstractEntity
     @Column(name = "closedAt")
     private Date closedAt;
 
+    /**
+     * The companies the case covers, each with the day it was taken into the case: a case grows
+     * as it is thought about, and what it is answerable for in a company starts on the day that
+     * company joined it rather than on the day the case was opened.
+     */
     @ElementCollection
     @CollectionTable(name = "CaseCompany", joinColumns = @JoinColumn(name = "caseId"))
-    @Column(name = "companyId", nullable = false)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private List<Long> companyIds = new ArrayList<>();
+    private List<CaseCompany> companies = new ArrayList<>();
 
     /**
      * Companies the app does not hold, kept as the names they were written as. A case covers
@@ -53,8 +58,31 @@ public class InvestmentCase extends AbstractEntity
      */
     @ElementCollection
     @CollectionTable(name = "CaseCompanyName", joinColumns = @JoinColumn(name = "caseId"))
-    @Column(name = "value", nullable = false)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private List<String> companyNames = new ArrayList<>();
+    private List<CaseCompanyName> companyNames = new ArrayList<>();
+
+    /** A company of the app, in the case since the day it was added. */
+    @Data
+    @Embeddable
+    public static class CaseCompany
+    {
+        @Column(name = "companyId", nullable = false)
+        private Long companyId;
+
+        @Column(name = "addedAt", nullable = false)
+        private Date addedAt;
+    }
+
+    /** A company the app does not hold, in the case since the day it was written down. */
+    @Data
+    @Embeddable
+    public static class CaseCompanyName
+    {
+        @Column(name = "value", nullable = false)
+        private String value;
+
+        @Column(name = "addedAt", nullable = false)
+        private Date addedAt;
+    }
 }
