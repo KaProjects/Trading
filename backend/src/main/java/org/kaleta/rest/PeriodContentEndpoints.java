@@ -17,6 +17,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
+import org.kaleta.rest.dto.PeriodContentDto;
 import org.kaleta.rest.dto.PeriodContentUpdateDto;
 import org.kaleta.rest.error.InvalidInputException;
 import org.kaleta.rest.validation.ValidId;
@@ -32,6 +33,13 @@ public class PeriodContentEndpoints
 {
     @Inject
     PeriodContentService periodContentService;
+
+    @GET
+    @Path("/entry/{contentId}")
+    public PeriodContentDto get(@NotNull @ValidId @PathParam("contentId") Long contentId)
+    {
+        return periodContentService.get(contentId);
+    }
 
     @PUT
     @Path("/{periodId}")

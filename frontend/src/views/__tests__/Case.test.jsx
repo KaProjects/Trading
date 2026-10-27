@@ -55,6 +55,8 @@ describe("Case", () => {
         axios.put.mockResolvedValue({});
         axios.delete.mockReset();
         axios.delete.mockResolvedValue({});
+        axios.get.mockReset();
+        axios.get.mockResolvedValue({data: {}});
         mockUseData.mockReturnValue({data: value, loaded: true, error: null});
     });
 
@@ -746,6 +748,40 @@ describe("Case", () => {
         const covered = within(screen.getByTestId("case-companies"));
         expect(covered.getByText("NVDA")).toBeInTheDocument();
         expect(covered.getByText("Broadcom")).toBeInTheDocument();
+    });
+
+    test("reads what the app holds about its companies on the days it covers them", async () => {
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                trades: [{id: 2, ticker: "NVDA", currency: "$", active: true,
+                    purchaseDate: "2026-03-02", purchasePrice: 100, quantity: 5}],
+                mentions: [
+                    // Written the day of the trade: that trade's record.
+                    {kind: "RECORD", id: 9, companyId: 11, ticker: "NVDA", date: "2026-03-02"},
+                    {kind: "RESEARCH", id: 4, companyId: 11, ticker: "NVDA", date: "2026-04-01"},
+                    {kind: "REPORT", id: 7, companyId: 11, ticker: "NVDA", date: "2026-05-06"},
+                ],
+            },
+            loaded: true,
+            error: null,
+        });
+        render(<Case companyLists={companyLists}/>);
+
+        // The record of a trade is opened from the line that says what was traded, rather than
+        // from a second line saying the same day over again.
+        expect(screen.getByRole("button", {name: "Open the NVDA record"})).toBeInTheDocument();
+        expect(screen.queryByTestId("case-mention-RECORD-9")).not.toBeInTheDocument();
+
+        // What has no trade of its own reads as its own line.
+        expect(screen.getByTestId("case-mention-RESEARCH-4")).toHaveTextContent("new research");
+        expect(screen.getByTestId("case-mention-REPORT-7")).toHaveTextContent("reported");
+
+        axios.get.mockResolvedValue({data: {id: 4, date: "2026-04-01", content: "", images: []}});
+        fireEvent.click(screen.getByRole("button", {name: "Open NVDA new research"}));
+
+        await waitFor(() => expect(axios.get)
+            .toHaveBeenCalledWith("/api/period/content/entry/4"));
     });
 
     test("reads the trades oldest first", () => {

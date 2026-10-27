@@ -27,6 +27,30 @@ public class CaseDto
     private List<CaseEntryDto> entries = new ArrayList<>();
     /** The trades its companies opened while the case ran. Read-only: nothing links them by hand. */
     private List<Trade> trades = new ArrayList<>();
+    /**
+     * What else the app holds about those companies on the days the case covers them: records
+     * written, research added to a period, earnings reported. The case reads them in its own
+     * stream and opens them from there; none of it belongs to the case.
+     */
+    private List<Mention> mentions = new ArrayList<>();
+
+    /** A case named from somewhere else, with the way back to it. */
+    @RegisterForReflection
+    public record Reference(Long id, String name) {}
+
+    /** Something of a company's own, on a day the case covers it. */
+    @Data
+    @RegisterForReflection
+    public static class Mention
+    {
+        /** What it is: RECORD, RESEARCH or REPORT. */
+        private String kind;
+        /** What to open: the record, the period content or the period. */
+        private Long id;
+        private Long companyId;
+        private String ticker;
+        private Date date;
+    }
 
     @Data
     @RegisterForReflection

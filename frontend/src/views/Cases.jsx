@@ -8,6 +8,7 @@ import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
 import {backend} from "../properties";
 import {CaseNameDialog} from "../dialog/CaseNameDialog";
 import {formatDate, formatError} from "../service/FormattingService";
+import {COMPANY_CHIP, NARROW} from "./component/companyChip";
 
 const CARD = {
     padding: "10px 12px",
@@ -23,18 +24,29 @@ const CaseCard = ({value, onOpen}) => (
                 {formatDate(value.createdAt)}
                 {value.closedAt ? ` - ${formatDate(value.closedAt)}` : ""}
             </Typography>
-            <Box sx={{flex: 1}}/>
-            {/* A company the app does not hold has no id, and is marked as written rather
-                than linked. */}
-            {value.companies.map(company => (
-                <Chip
-                    key={company.id ?? `name:${company.ticker}`}
-                    label={company.ticker}
-                    size="small"
-                    variant="outlined"
-                    sx={company.id ? undefined : {fontStyle: "italic"}}
-                />
-            ))}
+            {/* On a line of their own under the name, however wide the screen is: a case is
+                read by its name first and by what it covers second. A company the app does not
+                hold has no id, and is marked as written rather than linked. */}
+            <Box sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                width: "100%",
+                gap: "4px",
+                marginTop: "3px",
+                [NARROW]: {gap: "3px"},
+            }}>
+                {value.companies.map(company => (
+                    <Chip
+                        key={company.id ?? `name:${company.ticker}`}
+                        label={company.ticker}
+                        size="small"
+                        variant="outlined"
+                        sx={company.id
+                            ? COMPANY_CHIP
+                            : {...COMPANY_CHIP, fontStyle: "italic"}}
+                    />
+                ))}
+            </Box>
         </Stack>
     </Paper>
 );

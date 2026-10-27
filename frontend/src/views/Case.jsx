@@ -25,6 +25,8 @@ import {Loader} from "./component/Loader";
 import {SnackbarErrorAlert} from "./component/SnackbarErrorAlert";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {SWIPE_NAV_BREAKPOINT} from "./component/MainBar";
+import {COMPANY_CHIP, NARROW} from "./component/companyChip";
+import {researchPath} from "./component/GoToResearch";
 import {CaseTrades} from "./component/CaseTrades";
 import {CaseEntryList, hasEntryForToday, today} from "./component/CaseEntryList";
 import {isEmptyTable} from "./component/CaseTable";
@@ -34,25 +36,15 @@ import {backend} from "../properties";
 import {CaseNameDialog} from "../dialog/CaseNameDialog";
 import {CaseCompaniesDialog} from "../dialog/CaseCompaniesDialog";
 import {ConfirmDialog} from "../dialog/ConfirmDialog";
+import {CaseRecordDialog} from "../dialog/CaseRecordDialog";
+import {CaseResearchDialog} from "../dialog/CaseResearchDialog";
+import {CaseReportDialog} from "../dialog/CaseReportDialog";
 import {CaseDateDialog} from "../dialog/CaseDateDialog";
 import {formatDate, formatError} from "../service/FormattingService";
 
 /** A day that is changed by clicking it. */
 const DATE_TEXT = {cursor: "pointer", "&:hover": {textDecoration: "underline"}}
 
-const NARROW = `@media (max-width:${SWIPE_NAV_BREAKPOINT}px)`
-/**
- * A phone gives the companies about half the height it gives a desktop: a row of chips at the
- * usual size takes a tenth of the screen before a word of the case has been read.
- */
-const COMPANY_CHIP = {
-    [NARROW]: {
-        height: "14px",
-        fontSize: 10,
-        "& .MuiChip-label": {paddingLeft: "5px", paddingRight: "4px"},
-        "& .MuiChip-deleteIcon": {fontSize: 12, marginRight: "2px", marginLeft: "-3px"},
-    },
-}
 const ADD_COMPANY = {[NARROW]: {padding: 0, "& svg": {fontSize: 13}}}
 /** The input that opens beside the plus, kept to the height of the chips it stands among. */
 const COMPANY_INPUT = {
@@ -86,6 +78,7 @@ export const Case = props => {
     const [renaming, setRenaming] = useState(false)
     const [managingCompanies, setManagingCompanies] = useState(false)
     const [deleting, setDeleting] = useState(false)
+    const [openedMention, setOpenedMention] = useState(null)
     const [openedDate, setOpenedDate] = useState(false)
     const [closedDate, setClosedDate] = useState(false)
     const [movedEntry, setMovedEntry] = useState(null)
@@ -312,6 +305,19 @@ export const Case = props => {
         return counts
     }, {})
 
+    /**
+     * What the app holds about the case's companies on the days it covers them. A record
+     * written on the day of a trade is that trade's record, so the trade line opens it rather
+     * than standing a line of its own next to it.
+     */
+    const mentions = (value?.mentions ?? []).map(mention => ({
+        key: `${mention.kind}-${mention.id}`,
+        kind: mention.kind,
+        id: mention.id,
+        date: mention.date,
+        ticker: mention.ticker,
+    }))
+
     /** The day a company joined the case is part of the case's story, so it reads in it. */
     const companyLines = (value?.companies ?? [])
         .filter(company => company.addedAt)
@@ -460,8 +466,14 @@ export const Case = props => {
                                     label={company.ticker}
                                     size="small"
                                     variant={company.id ? "filled" : "outlined"}
+                                    // A company the app holds has a page of its own; one it
+                                    // only has the name of has nowhere to go.
+                                    aria-label={company.id ? `Go to ${company.ticker} research` : undefined}
+                                    onClick={company.id
+                                        ? () => navigate(researchPath(company.ticker))
+                                        : undefined}
                                     sx={company.id
-                                        ? COMPANY_CHIP
+                                        ? {...COMPANY_CHIP, "&:hover .MuiChip-label": {textDecoration: "underline"}}
                                         : {...COMPANY_CHIP, fontStyle: "italic"}}
                                 />
                             ))}
@@ -515,6 +527,8 @@ export const Case = props => {
                             entries={entries}
                             trades={tradeLines}
                             additions={companyLines}
+                            mentions={mentions}
+                            onOpenMention={setOpenedMention}
                             stagedFor={stagedFor}
                             onDone={finishEntry}
                             onStageImage={stageImage}
@@ -530,7 +544,8 @@ export const Case = props => {
                         />
                         {/* The stream carries the trades and the companies as they joined, so
                             it is only empty when none of those has happened either. */}
-                        {entries.length === 0 && tradeLines.length === 0 && companyLines.length === 0 &&
+                        {entries.length === 0 && tradeLines.length === 0 && companyLines.length === 0
+                            && mentions.length === 0 &&
                             <Typography sx={{color: "text.secondary", fontSize: 13}}>
                                 Nothing written yet.
                             </Typography>
@@ -559,6 +574,24 @@ export const Case = props => {
                 initialDate={movedEntry?.date ?? ""}
                 onSubmit={date => moveEntry(movedEntry.id, date)}
                 handleClose={() => setMovedEntry(null)}
+            />
+            <CaseRecordDialog
+                open={openedMention?.kind === "RECORD"}
+                recordId={openedMention?.id}
+                ticker={openedMention?.ticker}
+                handleClose={() => setOpenedMention(null)}
+            />
+            <CaseResearchDialog
+                open={openedMention?.kind === "RESEARCH"}
+                contentId={openedMention?.id}
+                ticker={openedMention?.ticker}
+                handleClose={() => setOpenedMention(null)}
+            />
+            <CaseReportDialog
+                open={openedMention?.kind === "REPORT"}
+                periodId={openedMention?.id}
+                ticker={openedMention?.ticker}
+                handleClose={() => setOpenedMention(null)}
             />
             <CaseCompaniesDialog
                 open={managingCompanies}

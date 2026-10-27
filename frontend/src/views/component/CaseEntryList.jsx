@@ -10,6 +10,7 @@ import {DateHeading} from "./ContentEntry";
 import {CaseTable} from "./CaseTable";
 import {CaseTradeLine} from "./CaseTradeLine";
 import {CaseCompanyLine} from "./CaseCompanyLine";
+import {CaseMentionLine} from "./CaseMentionLine";
 
 /** One day from the next. */
 const DAY_GAP = "8px"
@@ -33,6 +34,8 @@ const Day = ({
     entry,
     trades = [],
     additions = [],
+    mentions = [],
+    onOpenMention,
     readOnly = false,
     editing,
     onEdit,
@@ -134,10 +137,10 @@ const Day = ({
             {/* What was acted on that day comes between the date and what was written about
                 it: the trade is the fact, the writing is the reading of it. It reads with the
                 date, so it keeps its distance from the writing rather than from the heading. */}
-            {(trades.length > 0 || additions.length > 0) &&
+            {(trades.length > 0 || additions.length > 0 || mentions.length > 0) &&
                 <Box sx={{display: "flex", flexDirection: "column", gap: "2px", marginBottom: "7px"}}>
-                    {additions.map(added => <CaseCompanyLine key={added.key} ticker={added.ticker}/>)}
-                    {trades.map(trade => <CaseTradeLine key={trade.key} trade={trade}/>)}
+                    <Happenings trades={trades} additions={additions} mentions={mentions}
+                                onOpenMention={onOpenMention}/>
                 </Box>
             }
 
@@ -206,14 +209,56 @@ const Day = ({
  * is written.
  */
 /** A day that was acted on but not written about: its date and what was done, nothing else. */
-const TradeDay = ({date, trades, additions}) => (
+const TradeDay = ({date, trades, additions, mentions, onOpenMention}) => (
     <Box data-testid={`case-trades-${date}`}
          sx={{display: "flex", flexDirection: "column", gap: "2px", padding: "4px 6px"}}>
         <DateHeading date={date} testId={`case-trade-date-${date}`}/>
-        {additions.map(added => <CaseCompanyLine key={added.key} ticker={added.ticker}/>)}
-        {trades.map(trade => <CaseTradeLine key={trade.key} trade={trade}/>)}
+        <Happenings trades={trades} additions={additions} mentions={mentions}
+                    onOpenMention={onOpenMention}/>
     </Box>
 )
+
+/**
+ * What happened to the case on a day, under whatever was written about it: a company joining,
+ * what was traded, and what the app holds about those companies that day.
+ */
+const Happenings = ({trades, additions, mentions, onOpenMention}) => (
+    <>
+        {additions.map(added => <CaseCompanyLine key={added.key} ticker={added.ticker}/>)}
+        {trades.map(trade => (
+            <CaseTradeLine
+                key={trade.key}
+                trade={trade}
+                onOpen={openerFor(trade, mentions, onOpenMention)}
+            />
+        ))}
+        {unattached(trades, mentions).map(mention => (
+            <CaseMentionLine
+                key={mention.key}
+                mention={mention}
+                onOpen={() => onOpenMention(mention)}
+            />
+        ))}
+    </>
+)
+
+/**
+ * A record written on the day of a trade is that trade's record: the line that says what was
+ * traded is the line that opens it, rather than a second line saying the same day twice.
+ */
+function recordFor(trade, mentions) {
+    return mentions.find(mention => mention.kind === "RECORD" && mention.ticker === trade.ticker)
+}
+
+function openerFor(trade, mentions, onOpenMention) {
+    const record = recordFor(trade, mentions)
+    return record ? () => onOpenMention(record) : undefined
+}
+
+/** What is left once the trades have taken the records that belong to them. */
+function unattached(trades, mentions) {
+    return mentions.filter(mention => !trades.some(trade => recordFor(trade, mentions) === mention))
+}
 
 /**
  * The stream, newest day first: one block per day, whatever happened on it. A trade is
@@ -221,11 +266,13 @@ const TradeDay = ({date, trades, additions}) => (
  * its own - under the date, above the writing that reads it, the way a period's estimates read
  * above its research.
  */
-function byDate(entries, trades, additions) {
+function byDate(entries, trades, additions, mentions) {
     const days = new Map()
     const dayOf = date => {
         if (!days.has(date)) {
-            days.set(date, {key: date, date: date, entry: null, trades: [], additions: []})
+            days.set(date, {
+                key: date, date: date, entry: null, trades: [], additions: [], mentions: [],
+            })
         }
         return days.get(date)
     }
@@ -233,6 +280,7 @@ function byDate(entries, trades, additions) {
     entries.forEach(entry => {dayOf(entry.date).entry = entry})
     trades.forEach(trade => dayOf(trade.date).trades.push(trade))
     additions.forEach(added => dayOf(added.date).additions.push(added))
+    mentions.forEach(mention => dayOf(mention.date).mentions.push(mention))
 
     return [...days.values()].sort((first, second) => second.date.localeCompare(first.date))
 }
@@ -242,6 +290,8 @@ export const CaseEntryList = ({
     entries = [],
     trades = [],
     additions = [],
+    mentions = [],
+    onOpenMention = () => null,
     stagedFor = () => ({adds: [], removes: []}),
     onDone,
     onStageImage,
@@ -264,7 +314,7 @@ export const CaseEntryList = ({
                 gap: DAY_GAP,
             }}
         >
-            {byDate(entries, trades, additions).map((day, index) => (
+            {byDate(entries, trades, additions, mentions).map((day, index) => (
                 <Box
                     key={day.key}
                     // A rule between one day and the next, so it is plain where a day starts
@@ -277,11 +327,14 @@ export const CaseEntryList = ({
                     }}
                 >
                 {!day.entry
-                ? <TradeDay date={day.date} trades={day.trades} additions={day.additions}/>
+                ? <TradeDay date={day.date} trades={day.trades} additions={day.additions}
+                            mentions={day.mentions} onOpenMention={onOpenMention}/>
                 : <Day
                     entry={day.entry}
                     trades={day.trades}
                     additions={day.additions}
+                    mentions={day.mentions}
+                    onOpenMention={onOpenMention}
                     readOnly={readOnly}
                     editing={editingDate === day.entry.date}
                     onEdit={() => onEditingDateChange(day.entry.date)}

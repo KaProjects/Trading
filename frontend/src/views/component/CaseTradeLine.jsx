@@ -15,10 +15,27 @@ const PROFIT = {fontWeight: 600}
 /** Both figures carry their sign, so a gain and a loss read the same way at a glance. */
 const signed = value => (Number(value) > 0 ? "+" : "") + formatDecimals(value, 2, 2)
 
-export const CaseTradeLine = ({trade}) => (
+export const CaseTradeLine = ({trade, onOpen}) => (
     <Box data-testid={`case-trade-${trade.key}`}>
         <Box sx={{...NUMERIC_FONT, display: "flex", alignItems: "baseline", gap: "6px", fontSize: 13}}>
             <Box component="span" sx={{fontWeight: 600, color: "text.secondary"}}>{trade.ticker}</Box>
+            {/* The record written for this trade reads between the company and what was
+                traded, and is what opens it. */}
+            {onOpen &&
+                <Box
+                    component="span"
+                    role="button"
+                    aria-label={`Open the ${trade.ticker} record`}
+                    onClick={onOpen}
+                    sx={{
+                        color: "text.secondary",
+                        cursor: "pointer",
+                        "&:hover": {textDecoration: "underline"},
+                    }}
+                >
+                    new record
+                </Box>
+            }
             <Box component="span">
                 {`${trade.sold ? "sold" : "bought"} ${formatDecimals(trade.quantity, 0, 4)}`
                     + `@${formatDecimals(trade.price, 2, 2)}${trade.currency ?? ""}`}

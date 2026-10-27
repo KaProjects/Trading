@@ -11,6 +11,7 @@ import org.kaleta.persistence.entity.InvestmentCase;
 import org.kaleta.rest.dto.CaseCreateDto;
 import org.kaleta.rest.dto.CaseDto;
 import org.kaleta.rest.dto.CaseUpdateDto;
+import org.kaleta.model.Periods;
 import org.kaleta.model.Trades;
 import org.kaleta.rest.error.InvalidInputException;
 
@@ -40,6 +41,12 @@ public class CaseService
     TradeService tradeService;
     @Inject
     LatestDao latestDao;
+    @Inject
+    RecordService recordService;
+    @Inject
+    PeriodService periodService;
+    @Inject
+    PeriodContentService periodContentService;
 
     public List<CaseDto> getAll()
     {
@@ -54,7 +61,23 @@ public class CaseService
         CaseDto dto = from(found, companiesOf(List.of(found)));
         dto.setEntries(caseEntryService.getByCaseId(caseId));
         dto.setTrades(tradesOf(found));
+        dto.setMentions(mentionsOf(found));
         return dto;
+    }
+
+    /**
+     * The cases still running over a company, as its own page lists them: a case is read from
+     * the company it is about as much as the other way round. A closed one is history and is
+     * read from the cases themselves.
+     */
+    public List<CaseDto.Reference> coveringCompany(Long companyId)
+    {
+        return caseDao.listByState().stream()
+                .filter(each -> each.getClosedAt() == null)
+                .filter(each -> each.getCompanies().stream()
+                        .anyMatch(held -> held.getCompanyId().equals(companyId)))
+                .map(each -> new CaseDto.Reference(each.getId(), each.getName()))
+                .toList();
     }
 
     public CaseDto create(CaseCreateDto dto)
@@ -135,9 +158,7 @@ public class CaseService
      */
     private List<CaseDto.Trade> tradesOf(InvestmentCase investmentCase)
     {
-        LocalDate to = investmentCase.getClosedAt() == null
-                ? LocalDate.now()
-                : investmentCase.getClosedAt().toLocalDate();
+        LocalDate to = closingDay(investmentCase);
 
         Map<Long, BigDecimal> prices = latestPrices(investmentCase.getCompanies().stream()
                 .map(InvestmentCase.CaseCompany::getCompanyId)
@@ -174,6 +195,72 @@ public class CaseService
                     .ifPresent(latest -> prices.put(companyId, latest.getPrice()));
         }
         return prices;
+    }
+
+    /**
+     * What the app already holds about the case's companies on the days it covers them. A case
+     * is a reading of what happened, and what was written about a company at the time is part
+     * of what happened - it is read here, and kept where it was written.
+     */
+    private List<CaseDto.Mention> mentionsOf(InvestmentCase investmentCase)
+    {
+        LocalDate to = closingDay(investmentCase);
+        List<CaseDto.Mention> mentions = new ArrayList<>();
+
+        for (InvestmentCase.CaseCompany held : investmentCase.getCompanies()) {
+            LocalDate from = held.getAddedAt().toLocalDate();
+            Company company = companyDao.get(held.getCompanyId());
+
+            recordService.getBy(company.getId()).stream()
+                    .filter(record -> within(record.getDate(), from, to))
+                    .forEach(record -> mentions.add(
+                            mention("RECORD", record.getId(), company, record.getDate())));
+
+            List<Long> periodIds = new ArrayList<>();
+            for (Periods.Period period : periodService.getBy(company.getId()).getPeriods()) {
+                periodIds.add(period.getId());
+                // A company reporting is something that happened to the case, on the day it
+                // was reported rather than the day the quarter ended. A period with a date but
+                // no figures has not reported yet - the date is when it is expected to.
+                if (period.getFinancial() != null && within(period.getReportDate(), from, to)) {
+                    mentions.add(mention("REPORT", period.getId(), company, period.getReportDate()));
+                }
+            }
+            periodContentService.getByPeriodIds(periodIds).values().stream()
+                    .flatMap(List::stream)
+                    .filter(content -> within(Date.valueOf(content.date()), from, to))
+                    .forEach(content -> mentions.add(mention(
+                            "RESEARCH", content.id(), company, Date.valueOf(content.date()))));
+        }
+        mentions.sort(java.util.Comparator.comparing(CaseDto.Mention::getDate));
+        return mentions;
+    }
+
+    /** The last day the case answers for anything: the day it closed, or today while it runs. */
+    private static LocalDate closingDay(InvestmentCase investmentCase)
+    {
+        return investmentCase.getClosedAt() == null
+                ? LocalDate.now()
+                : investmentCase.getClosedAt().toLocalDate();
+    }
+
+    private static boolean within(Date date, LocalDate from, LocalDate to)
+    {
+        if (date == null) return false;
+
+        LocalDate day = date.toLocalDate();
+        return !day.isBefore(from) && !day.isAfter(to);
+    }
+
+    private static CaseDto.Mention mention(String kind, Long id, Company company, Date date)
+    {
+        CaseDto.Mention mention = new CaseDto.Mention();
+        mention.setKind(kind);
+        mention.setId(id);
+        mention.setCompanyId(company.getId());
+        mention.setTicker(company.getTicker());
+        mention.setDate(date);
+        return mention;
     }
 
     private static CaseDto.Trade from(Trades.Trade trade)

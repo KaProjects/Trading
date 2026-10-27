@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.kaleta.framework.Assert.ExpectedViolation.VALID_ID;
@@ -148,6 +149,34 @@ class CaseEndpointsTest
         // A trade that is over says nothing about today's price; what it made is settled.
         read.getTrades().stream().filter(trade -> !trade.isActive())
                 .forEach(trade -> assertThat(trade.getCurrentPrice(), is(nullValue())));
+
+        delete(created.getId());
+    }
+
+    @Test
+    void readsWhatTheAppHoldsAboutItsCompaniesWhileItCoversThem()
+    {
+        CaseDto created = create("what else happened", List.of(RCH));
+
+        // Nothing is mentioned before the company joined, which it did today.
+        assertThat(created.getMentions(), is(empty()));
+
+        CaseUpdateDto earlier = new CaseUpdateDto();
+        earlier.setCompanies(List.of(company(RCH, "2000-01-01")));
+        CaseDto read = update(created.getId(), earlier);
+
+        assertThat(read.getMentions(), is(not(empty())));
+        read.getMentions().forEach(mention -> {
+            assertThat(mention.getKind(), isIn(List.of("RECORD", "RESEARCH", "REPORT")));
+            assertThat(mention.getTicker(), is("RCH"));
+            assertThat(mention.getId(), is(notNullValue()));
+            assertThat(mention.getDate(), is(notNullValue()));
+        });
+
+        // Oldest first, as the stream reads them.
+        List<String> dates = read.getMentions().stream()
+                .map(mention -> mention.getDate().toString()).toList();
+        assertThat(dates, is(dates.stream().sorted().toList()));
 
         delete(created.getId());
     }
