@@ -156,7 +156,15 @@ export const Case = props => {
                 setEntries(previous => {
                     const written = response.data
                     const before = previous.find(entry => entry.date === written.date)
-                    const saved = {...written, version: (before?.version ?? 0) + 1}
+                    // The day's text is saved first and its tables and pictures after, each
+                    // by a call of its own, so the answer carries them as the server still
+                    // holds them - behind what has just been typed. The page keeps its own.
+                    const saved = {
+                        ...written,
+                        tables: before?.tables ?? written.tables,
+                        images: before?.images ?? written.images,
+                        version: (before?.version ?? 0) + 1,
+                    }
                     return [...previous.filter(entry => entry.date !== saved.date), saved]
                         .sort((first, second) => second.date.localeCompare(first.date))
                 })

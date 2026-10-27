@@ -376,6 +376,37 @@ describe("Case", () => {
         }));
     });
 
+    test("shows the tables as they were typed once the day is saved", async () => {
+        const held = {id: 3, position: 0, title: "margins", columns: ["NVDA"],
+            rows: [{label: "gross", cells: [{value: "", rating: ""}]}]};
+        mockUseData.mockReturnValue({
+            data: {
+                ...value,
+                entries: [{id: 5, date: "2026-02-11", content: "a day", images: [], tables: [held]}],
+            },
+            loaded: true,
+            error: null,
+        });
+        // The text goes first and the tables after, each by a call of its own, so the answer
+        // to the text carries the tables as the server still holds them: without them.
+        axios.put.mockImplementation(url => Promise.resolve(url === "/api/case/entry/1"
+            ? {data: {id: 5, date: "2026-02-11", content: "written", images: [], tables: [held]}}
+            : {}));
+        render(<Case companyLists={companyLists}/>);
+        fireEvent.click(screen.getByRole("button", {name: "Edit 2026-02-11"}));
+
+        fireEvent.change(screen.getByLabelText("Row 1 NVDA"), {target: {value: "75%"}});
+        fireEvent.click(screen.getByTestId("content-editor"));
+        fireEvent.click(screen.getByRole("button", {name: "Save 2026-02-11"}));
+
+        await waitFor(() => expect(axios.put).toHaveBeenCalledWith("/api/case/entry/table/3",
+            expect.objectContaining({rows: [{label: "gross", cells: [{value: "75%", rating: ""}]}]})));
+        // Read as well as written: the day shows what was typed into it, not what the answer
+        // to the text said the tables were.
+        await screen.findByRole("button", {name: "Edit 2026-02-11"});
+        expect(within(screen.getByTestId("case-table-3")).getByText("75%")).toBeInTheDocument();
+    });
+
     test("reads the trades its companies opened while it ran", () => {
         mockUseData.mockReturnValue({
             data: {
