@@ -71,7 +71,7 @@ def build(environment: Environment, data_dir: Path, control: bool = False, price
     if not seed_transactions:  # dev: start without the seed's positions, open order and fills (cash stays)
         seed = {**seed, "positions": [], "fills": [], "open_orders": []}
     seed_plans = []
-    if dev_plan:  # dev data: a finished plan (History) and an open one (Execution), SNDK + MU
+    if dev_plan:  # dev data: SNDK + MU bought and sold out a month ago (History), bought again yesterday
         seed, seed_plans = with_dev_plan(seed)
     broker = FakeBroker(bus, prices, seed=seed)
     store = Store(broker, bus, Vault(data_dir), seed_plans=seed_plans,

@@ -36,6 +36,9 @@ final class AppModel {
     var planVolumeText: [UUID: String] = [:]
     /// Expected return per row, percent of cost (user's estimate).
     var planReturnText: [UUID: String] = [:]
+    /// T12: expected returns prefilled from the ticker's position → the plan they came from (placed time).
+    /// Shown as a note under the field until the value is changed.
+    private(set) var planReturnPrefilled: [UUID: Date] = [:]
     @ObservationIgnored private var volumeWaitingForPrice: Set<UUID> = []
     @ObservationIgnored private var devPresetAdded = false
     /// Dev data switched on (Developer menu); read by the menu so its check marks follow.
@@ -48,6 +51,10 @@ final class AppModel {
     @ObservationIgnored let api = ServiceAPI(socketPath: AppEnvironment.socketPath)
     /// T9: committed plan → buy orders review.
     let basket: PlanBasketModel
+    /// T12: sell review in the Execution tab.
+    let sellBasket: SellBasketModel
+    /// Execution tab: tickers ticked for "Sell selected".
+    var sellSelection: Set<Int> = []
     @ObservationIgnored private let appLock = AppLock()
     @ObservationIgnored private let notifier = Notifier()
     @ObservationIgnored private var process: ServiceProcess?
@@ -63,6 +70,7 @@ final class AppModel {
 
     init() {
         basket = PlanBasketModel(api: api)
+        sellBasket = SellBasketModel(api: api)
         appLock.onLock = { [weak self] in self?.didLock() }
     }
 
@@ -201,6 +209,7 @@ final class AppModel {
                 }
                 knownOrders[order.orderId] = order
                 basket.orderUpdated(order)
+                sellBasket.orderUpdated(order)
             }
             scheduleAccountRefresh()
         case "feed":
@@ -212,6 +221,7 @@ final class AppModel {
             if let quote = try? ServiceJSON.decoder.decode(Quote.self, from: event.data), !locked {
                 quotes[quote.symbol] = quote
                 if let ticket, ticket.contract?.feedSymbol == quote.symbol { ticket.priceUpdated(quote) }
+                sellBasket.priceUpdated(quote)
                 for row in planRows where volumeWaitingForPrice.contains(row.id) && row.contract.feedSymbol == quote.symbol {
                     applyVolume(row.id)
                 }
@@ -312,18 +322,26 @@ final class AppModel {
         process?.stop(grace: 2)
     }
 
-    // MARK: - Execution (T10)
+    // MARK: - Execution (T10, T12)
 
-    /// Executed plans with live numbers; loaded while the Execution tab is open.
+    /// Positions per ticker with live numbers (T12); loaded while the Execution or History tab is open.
     private(set) var execution: ExecutionReport?
 
-    /// Finish: rows that never bought anything (e.g. orders IBKR cancelled) leave Execution.
-    func finishPlan(_ id: String) async {
-        do {
-            try await api.finishPlan(id)
-        } catch {
-            lastError = "Could not finish the plan"
+    /// T12: open the sell review for these tickers (nil = every position), all active shares each.
+    func openSell(_ conids: Set<Int>?) {
+        guard let report = execution, let positions = account?.positions else { return }
+        let items: [(Contract, Decimal)] = report.positions.compactMap { row in
+            guard conids?.contains(row.conid) ?? true, row.held.value > 0,
+                  let contract = positions.first(where: { $0.contract.conid == row.conid })?.contract else { return nil }
+            return (contract, row.held.value)
         }
+        sellBasket.open(items, quotes: quotes)
+        sellSelection = []
+    }
+
+    func placeSells() async {
+        await sellBasket.place(allowWhenClosed: basket.allowPlacingWhenClosed)
+        scheduleAccountRefresh()
         await refreshExecution()
     }
 
@@ -369,8 +387,8 @@ final class AppModel {
     func placeBasket() async {
         guard let plan = planSummary, let account = account?.account else { return }
         if basket.stage == .committed {
-            // T10: record the plan first, so its fills can be attributed to it (FIFO lots) — even if the app
-            // quits before Finish. If it can't be saved, nothing is placed.
+            // Record the plan first: it carries the tickers' expected returns (T12). If it can't be saved,
+            // nothing is placed.
             let returns = Dictionary(uniqueKeysWithValues: planRows.compactMap { row in
                 planReturnPercent(row.id).map { (row.id, $0) }
             })
@@ -385,25 +403,38 @@ final class AppModel {
         scheduleAccountRefresh()
     }
 
-    /// Finish: clear the review and the plan, then show the plan in the Execution tab (T10).
+    /// Finish: clear the review and the plan, then show the positions in the Execution tab.
     func resetPlan() {
-        let placedPlan = basket.stage == .placed ? basket.planId : nil
         basket.reset()
         guard !basket.isFrozen else { return }
-        if let placedPlan { Task { await finishPlan(placedPlan) } }
         mainSection = .execution
         planRows = []
         planQuantityText = [:]
         planVolumeText = [:]
         planReturnText = [:]
+        planReturnPrefilled = [:]
         volumeWaitingForPrice = []
         Task { await syncWatchlist() }
     }
 
     func addPlanRow(_ contract: Contract) {
         guard !basket.isFrozen else { return }
-        planRows.append(PlanRow(contract: contract))
-        Task { await syncWatchlist() }
+        let row = PlanRow(contract: contract)
+        planRows.append(row)
+        Task {
+            await syncWatchlist()
+            await prefillPlanReturn(row.id, conid: contract.conid)
+        }
+    }
+
+    /// T12: a ticker you hold with an expected return gets it prefilled (only into an empty field).
+    private func prefillPlanReturn(_ id: UUID, conid: Int) async {
+        if execution == nil { await refreshExecution() }
+        guard let position = execution?.positions.first(where: { $0.conid == conid }),
+              let percent = position.expectedReturnPct, let from = position.expectedFrom,
+              planRows.contains(where: { $0.id == id }), (planReturnText[id] ?? "").isEmpty else { return }
+        planReturnText[id] = percent.value.formatted(.number.precision(.fractionLength(0...2)).grouping(.never))
+        planReturnPrefilled[id] = from
     }
 
     func removePlanRow(_ id: UUID) {
@@ -412,6 +443,7 @@ final class AppModel {
         planQuantityText[id] = nil
         planVolumeText[id] = nil
         planReturnText[id] = nil
+        planReturnPrefilled[id] = nil
         volumeWaitingForPrice.remove(id)
         Task { await syncWatchlist() }
     }
@@ -420,6 +452,7 @@ final class AppModel {
     /// (still editable) quantity. Computed once per volume entry; later price moves only change the cost.
     func setPlanReturn(_ id: UUID, text: String) {
         guard !basket.isFrozen else { return }
+        if planReturnText[id, default: ""] != text { planReturnPrefilled[id] = nil }
         planReturnText[id] = text
     }
 
@@ -470,6 +503,7 @@ final class AppModel {
         planQuantityText = [:]
         planVolumeText = [:]
         planReturnText = [:]
+        planReturnPrefilled = [:]
         volumeWaitingForPrice = []
         Task { await syncWatchlist() }
     }

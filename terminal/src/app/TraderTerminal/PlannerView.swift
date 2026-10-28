@@ -182,12 +182,18 @@ struct PlannerView: View {
                 .disabled(model.basket.isFrozen)
                 .help("Amount to spend in thousands (30 = 30 000); fills Quantity, rounded up to whole shares")
             // Expected return: positive percent, decimals allowed; may stay empty.
-            NumericField(placeholder: "%", text: Binding(get: { model.planReturnText[item.row.id] ?? "" },
-                                                         set: { model.setPlanReturn(item.row.id, text: $0) }),
-                         allowsDecimal: true, width: 60)
-                .gridColumnAlignment(.trailing)
-                .disabled(model.basket.isFrozen)
-                .help("Expected return in % of the cost (your estimate)")
+            VStack(alignment: .trailing, spacing: 2) {
+                NumericField(placeholder: "%", text: Binding(get: { model.planReturnText[item.row.id] ?? "" },
+                                                             set: { model.setPlanReturn(item.row.id, text: $0) }),
+                             allowsDecimal: true, width: 60)
+                    .disabled(model.basket.isFrozen)
+                    .help("Expected return in % of the cost (your estimate)")
+                if let from = model.planReturnPrefilled[item.row.id] {
+                    Text("Prefilled from plan of \(Format.day(from))")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize()
+                }
+            }
+            .gridColumnAlignment(.trailing)
             Text(PlanReturn.amount(cost: item.costBase, percent: model.planReturnPercent(item.row.id))
                     .map { Format.money(Amount($0), base) } ?? "")
                 .gridColumnAlignment(.trailing)

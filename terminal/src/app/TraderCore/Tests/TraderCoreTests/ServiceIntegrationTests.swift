@@ -234,7 +234,7 @@ extension ServiceIntegrationTests {
 }
 
 extension ServiceIntegrationTests {
-    @Test func savedPlanShowsInExecutionWithFills() async throws {
+    @Test func boughtTickerShowsInExecutionWithThePlansExpectedReturn() async throws {
         let service = try await startService()
         defer { service.process.stop(grace: 1) }
         _ = try await service.api.login()
@@ -252,13 +252,12 @@ extension ServiceIntegrationTests {
         _ = try await service.api.placeOrder(OrderRequest(conid: ford, side: .buy, quantity: Amount(10),
                                                           limitPrice: Amount(12), orderRef: "swift-plan-f"))
         var report = try await service.api.execution()
-        for _ in 0..<30 where report.plans.first?.status == "waiting" {
+        for _ in 0..<30 where !report.positions.contains(where: { $0.symbol == "F" }) {
             try await Task.sleep(for: .milliseconds(100))
             report = try await service.api.execution()
         }
-        let executed = try #require(report.plans.first)
-        #expect(executed.id == "swift-plan" && executed.status == "open")
-        #expect(executed.rows.first?.bought == Amount(10))
-        #expect(report.outside?.rows.contains { $0.symbol == "AAPL" } == true)  // seeded holdings = initial lots
+        let position = try #require(report.positions.first { $0.symbol == "F" })
+        #expect(position.bought == Amount(10) && position.expectedReturnPct == Amount(10) && position.purchases.count == 1)
+        #expect(report.positions.contains { $0.symbol == "AAPL" })  // seeded holdings
     }
 }

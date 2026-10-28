@@ -266,6 +266,11 @@ enum Format {
         "\(date.formatted(date: .abbreviated, time: .shortened)) \(LocalTime.offsetLabel(for: date))"
     }
 
+    /// "14 Oct" — the Mac's local date.
+    static func day(_ date: Date) -> String {
+        date.formatted(.dateTime.day().month(.abbreviated))
+    }
+
     static func percent(_ amount: Amount) -> String {
         "\(amount.value.formatted(.number.precision(.fractionLength(0...1)))) %"
     }

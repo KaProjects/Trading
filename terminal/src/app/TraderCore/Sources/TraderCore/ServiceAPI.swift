@@ -60,18 +60,12 @@ public struct ServiceAPI: Sendable {
         return try await call("GET", "/contracts?symbol=\(query)")
     }
 
-    /// T10: record an executed plan (at Place). Needs the service unlocked.
+    /// Record a placed plan (its expected returns, T12). Needs the service unlocked.
     public func savePlan(_ plan: PlanRecord) async throws {
         try check(try await http.send("POST", "/plans", json: try ServiceJSON.encoder.encode(plan)))
     }
 
-    /// Finish a plan: its rows that never bought anything leave the Execution report.
-    public func finishPlan(_ id: String) async throws {
-        let path = "/plans/\(id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id)/finish"
-        try check(try await http.send("POST", path))
-    }
-
-    /// T10: executed plans with FIFO lots and live numbers, plus the "Outside plans" group.
+    /// T12: open positions per ticker (FIFO lots, live numbers, expected return) and closed ones.
     public func execution() async throws -> ExecutionReport { try await call("GET", "/execution") }
 
     /// T11: transactions of these days (both included, the Mac's local dates) as CSV, one row per order.

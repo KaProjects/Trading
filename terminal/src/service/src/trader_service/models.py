@@ -227,17 +227,16 @@ class PlanRecordRow(BaseModel):
 
 
 class PlanRecord(BaseModel):
-    """An executed plan (T10), saved at Place. Its fills are found in the trade history by order_ref."""
+    """A placed plan (T9), saved at Place. T12: it only carries the expected returns of its tickers."""
 
     id: str
     committed_at: datetime
     placed_at: datetime
     rows: list[PlanRecordRow] = Field(min_length=1)
-    finished_at: datetime | None = None  # Finish: rows that never bought anything are dropped from Execution
 
 
 class ExecutionLine(BaseModel):
-    """Part of a plan row: the shares still held (at the live price) or one sale (at its sell price)."""
+    """Part of a position: the shares still active (at the live price) or one sale (at its sell price)."""
     kind: str                       # held | sold
     quantity: Decimal
     price: Decimal | None           # live price (held) or sell price (sold), contract currency
@@ -250,13 +249,22 @@ class ExecutionLine(BaseModel):
     difference: Decimal | None = None   # profit - expected profit
 
 
+class Purchase(BaseModel):
+    """One buy order of a position (its fills summed)."""
+    time: datetime | None           # first fill; None = shares held before the recorded history
+    quantity: Decimal
+    price: Decimal                  # average fill price, contract currency
+    cost: Decimal                   # base currency
+
+
 class ExecutionRow(BaseModel):
+    """T12: one position of a ticker, from its first buy until sold down to 0."""
     conid: int
     symbol: str
     currency: str
-    bought: Decimal                 # shares bought into these lots
+    bought: Decimal                 # shares bought into this position
     avg_price: Decimal | None       # average fill price (contract currency)
-    held: Decimal                   # shares still held (after FIFO sells)
+    held: Decimal                   # shares still active (after FIFO sells)
     price: Decimal | None           # live price (contract currency)
     cost: Decimal                   # base currency
     value: Decimal | None           # held × price, base currency
@@ -264,20 +272,15 @@ class ExecutionRow(BaseModel):
     profit: Decimal | None          # realized + unrealized, base currency
     return_pct: Decimal | None
     expected_return_pct: Decimal | None = None
+    expected_from: datetime | None = None   # when the plan that set the expected return was placed
     expected_profit: Decimal | None = None
     difference: Decimal | None = None   # profit - expected profit
+    purchases: list[Purchase] = []      # oldest first
     lines: list[ExecutionLine] = []     # sold lines oldest first, then the held line
+    closed_at: datetime | None = None   # last sale of a closed position
 
 
-class PlanExecution(BaseModel):
-    id: str | None                  # None = "Outside plans" group
-    committed_at: datetime | None = None
-    placed_at: datetime | None = None
-    status: str                     # waiting | open | partly_sold | closed
-    target_reached: bool = False
-    finished: bool = False          # finished by the user: rows with nothing bought are left out
-    working: bool = False           # one of its orders is still open at the broker
-    rows: list[ExecutionRow]
+class ExecutionTotal(BaseModel):
     cost: Decimal
     value: Decimal | None
     profit: Decimal | None
@@ -289,5 +292,6 @@ class PlanExecution(BaseModel):
 
 class ExecutionReport(BaseModel):
     base_currency: str
-    plans: list[PlanExecution]      # newest first
-    outside: PlanExecution | None   # outside + initial (+ correction) lots
+    positions: list[ExecutionRow]       # open positions, by symbol
+    total: ExecutionTotal | None        # of the open positions
+    closed: list[ExecutionRow]          # History: closed positions, newest first

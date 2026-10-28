@@ -1,6 +1,6 @@
 import Foundation
 
-/// T10: an executed plan as saved at Place. Fills are matched by order_ref in the service's trade history.
+/// A placed plan as saved at Place. T12: it only provides the expected returns of its tickers.
 public struct PlanRecord: Codable, Sendable {
     public struct Row: Codable, Sendable {
         public let conid: Int
@@ -34,7 +34,7 @@ public struct PlanRecord: Codable, Sendable {
     }
 }
 
-/// Part of a plan row: the shares still held (live price) or one sale (sell price).
+/// Part of a position: the shares still active (live price) or one sale (sell price).
 public struct ExecutionLine: Codable, Sendable, Identifiable {
     public let kind: String            // held | sold
     public let quantity: Amount
@@ -51,6 +51,16 @@ public struct ExecutionLine: Codable, Sendable, Identifiable {
     public var id: String { "\(kind)-\(time?.timeIntervalSince1970 ?? 0)-\(price?.value ?? 0)" }
 }
 
+/// One buy order of a position (its fills summed).
+public struct Purchase: Codable, Sendable, Identifiable {
+    public let time: Date?             // nil = held before the recorded history
+    public let quantity: Amount
+    public let price: Amount
+    public let cost: Amount
+    public var id: String { "\(time?.timeIntervalSince1970 ?? 0)-\(quantity.value)-\(price.value)" }
+}
+
+/// T12: one position of a ticker, from its first buy until sold down to 0 (then it is in History).
 public struct ExecutionRow: Codable, Sendable, Identifiable {
     public let conid: Int
     public let symbol: String
@@ -65,21 +75,16 @@ public struct ExecutionRow: Codable, Sendable, Identifiable {
     public let profit: Amount?
     public let returnPct: Amount?
     public let expectedReturnPct: Amount?
+    public let expectedFrom: Date?     // placed time of the plan that set the expected return
     public let expectedProfit: Amount?
     public let difference: Amount?
+    public let purchases: [Purchase]
     public let lines: [ExecutionLine]
-    public var id: Int { conid }
+    public let closedAt: Date?
+    public var id: String { "\(conid)-\(closedAt?.timeIntervalSince1970 ?? 0)" }
 }
 
-public struct PlanExecution: Codable, Sendable, Identifiable {
-    public let id: String?
-    public let committedAt: Date?
-    public let placedAt: Date?
-    public let status: String          // waiting | open | partly_sold | closed
-    public let targetReached: Bool
-    public let finished: Bool          // rows that never bought anything are left out
-    public let working: Bool           // an order of the plan is still open at the broker
-    public let rows: [ExecutionRow]
+public struct ExecutionTotal: Codable, Sendable {
     public let cost: Amount
     public let value: Amount?
     public let profit: Amount?
@@ -87,31 +92,11 @@ public struct PlanExecution: Codable, Sendable, Identifiable {
     public let expectedProfit: Amount?
     public let expectedReturnPct: Amount?
     public let difference: Amount?
-
-    public var isOutside: Bool { id == nil }
-
-    /// Finish is offered while rows without anything bought are still shown and nothing is working any more.
-    public var canFinish: Bool { !isOutside && !finished && !working && rows.contains { $0.bought.value == 0 } }
-
-    public var statusLabel: String {
-        switch status {
-        case "waiting": "Waiting for fills"
-        case "open": "Open"
-        case "partly_sold": "Partly sold"
-        case "closed": "Closed"
-        default: status
-        }
-    }
-}
-
-/// Return minus expected return, in percentage points.
-public func returnDifference(_ actual: Amount?, _ expected: Amount?) -> Amount? {
-    guard let actual, let expected else { return nil }
-    return Amount(actual.value - expected.value)
 }
 
 public struct ExecutionReport: Codable, Sendable {
     public let baseCurrency: String
-    public let plans: [PlanExecution]
-    public let outside: PlanExecution?
+    public let positions: [ExecutionRow]   // open, by symbol
+    public let total: ExecutionTotal?
+    public let closed: [ExecutionRow]      // newest first
 }

@@ -171,7 +171,7 @@ async def test_finnhub_key_message_reaches_feed_and_is_not_logged(store, caplog)
     assert "secret-finnhub-key" not in caplog.text
 
 
-async def test_dev_plan_seed_shows_as_executed_plan(bus, tmp_path):
+async def test_dev_plan_seed_shows_open_and_closed_positions(bus, tmp_path):
     from trader_service.broker.fake import load_seed, seed_prices, with_dev_plan
     from trader_service.execution import execution_report
     from trader_service.models import PlanRecord
@@ -192,14 +192,13 @@ async def test_dev_plan_seed_shows_as_executed_plan(bus, tmp_path):
     report = execution_report([PlanRecord(**p) for p in store.plans()], store.all_fills(), broker.positions(), "USD",
                               lambda c: prices.last(broker.contract(c).price_symbol).last, broker.fx_rate,
                               {c: (broker.contract(c).symbol, "USD") for c in (9939, 755000001)})
-    by_id = {p.id: p for p in report.plans}
-    old, dev = by_id["dev-plan-0"], by_id["dev-plan-1"]
-    assert dev.status == "partly_sold"
-    assert [(r.symbol, r.bought, r.expected_return_pct) for r in dev.rows] == [("SNDK", 10, 20), ("MU", 10, 20)]
-    assert old.status == "closed"  # month-old plan, bought and sold again
-    assert [(r.symbol, r.bought, r.held, r.realized) for r in old.rows] == [("SNDK", 6, 0, 1440), ("MU", 15, 0, 1620)]
-    assert [(l.kind, l.quantity, l.price) for l in old.rows[1].lines] == [("sold", 8, 800), ("sold", 7, 860)]
-    assert [(l.kind, l.quantity) for l in dev.rows[0].lines] == [("sold", 5), ("held", 5)]
-    assert old.rows[1].difference == old.rows[1].profit - old.rows[1].expected_profit
+    sndk, mu = (next(r for r in report.positions if r.symbol == s) for s in ("SNDK", "MU"))
+    assert (sndk.bought, sndk.held, sndk.expected_return_pct) == (10, 5, 20)
+    assert (mu.bought, mu.held, mu.expected_return_pct) == (10, 10, 20)
+    assert [(l.kind, l.quantity) for l in sndk.lines] == [("sold", 5), ("held", 5)]
+    old_sndk, old_mu = (next(r for r in report.closed if r.symbol == s) for s in ("SNDK", "MU"))  # a month ago
+    assert (old_sndk.bought, old_sndk.realized, old_sndk.expected_return_pct) == (6, 1440, 25)
+    assert [(l.kind, l.quantity, l.price) for l in old_mu.lines] == [("sold", 8, 800), ("sold", 7, 860)]
+    assert old_mu.difference == old_mu.profit - old_mu.expected_profit
     await store.stop()
     await broker.stop()

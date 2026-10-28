@@ -267,7 +267,7 @@ def test_price_stream_only_while_unlocked_and_connected(tmp_path):
         assert prices.active[-1] is False  # Stop
 
 
-def test_execution_attributes_plan_and_outside_lots_fifo(logged_in):
+def test_execution_is_per_ticker_with_the_plans_expected_return(logged_in):
     store = logged_in.app.state.test_store
     store.unlock(bytes(32))
     F = 9599491
@@ -282,23 +282,22 @@ def test_execution_attributes_plan_and_outside_lots_fifo(logged_in):
             assert time.monotonic() < deadline
             time.sleep(0.02)
 
-    logged_in.post("/orders", json=body(conid=F, qty="100", limit="12", ref="plan-f"))      # plan lot
-    logged_in.post("/orders", json=body(conid=F, qty="50", limit="12", ref="outside-1"))    # outside lot
+    logged_in.post("/orders", json=body(conid=F, qty="100", limit="12", ref="plan-f"))   # from the plan
+    logged_in.post("/orders", json=body(conid=F, qty="50", limit="12", ref="ticket-1"))  # from the ticket
     settle(lambda: len([f for f in store.all_fills() if f["contract"]["conid"] == F]) == 2)
     report = logged_in.get("/execution").json()
-    p1 = report["plans"][0]
-    assert (p1["id"], p1["status"], p1["rows"][0]["bought"], p1["rows"][0]["held"]) == ("p1", "open", "100", "100")
-    assert p1["rows"][0]["avg_price"] == "11.20" and p1["expected_profit"] == "112.00"  # 1 120 × 10 %
-    outside_f = next(r for r in report["outside"]["rows"] if r["symbol"] == "F")
-    assert outside_f["held"] == "50"
+    f = next(r for r in report["positions"] if r["symbol"] == "F")
+    assert (f["bought"], f["held"], len(f["purchases"]), f["expected_return_pct"]) == ("150", "150", 2, "10")
+    assert f["expected_profit"] == "168.00"  # 1 680 × 10 %
 
-    logged_in.post("/orders", json=body(conid=F, side="SELL", qty="120", limit="11", ref="sell-1"))
+    logged_in.post("/orders", json=body(conid=F, side="SELL", qty="150", limit="11", ref="sell-1"))
     settle(lambda: len([f for f in store.all_fills() if f["contract"]["conid"] == F]) == 3)
     report = logged_in.get("/execution").json()
-    p1 = report["plans"][0]
-    assert (p1["status"], p1["rows"][0]["held"]) == ("closed", "0")      # oldest lot (the plan) sold first
-    assert next(r for r in report["outside"]["rows"] if r["symbol"] == "F")["held"] == "30"
+    assert all(r["symbol"] != "F" for r in report["positions"])
+    assert next(r for r in report["closed"] if r["symbol"] == "F")["held"] == "0"
     assert logged_in.post("/plans", json={**plan, "rows": []}).status_code == 422
+    assert logged_in.delete("/plans/p1").status_code == 204
+    assert logged_in.delete("/plans/p1").status_code == 404
 
 
 def test_plans_need_unlock(logged_in):
@@ -332,30 +331,3 @@ def test_transactions_csv_export_from_flex(logged_in):
                   "<ErrorMessage>Token has expired.</ErrorMessage></FlexStatementResponse>"))
     response = logged_in.get("/transactions.csv?from=2026-01-01&to=2026-12-31")
     assert response.status_code == 502 and "Token has expired" in response.json()["message"]
-
-
-def test_finished_plan_drops_rows_that_never_bought(logged_in):
-    store = logged_in.app.state.test_store
-    store.unlock(bytes(32))
-    F, NVDA = 9599491, 4815747
-    plan = {"id": "p2", "committed_at": "2026-10-23T10:00:00Z", "placed_at": "2026-10-23T10:01:00Z",
-            "rows": [{"conid": F, "symbol": "F", "currency": "USD", "order_ref": "row-f",
-                      "planned_quantity": "10", "expected_return_pct": "10"},
-                     {"conid": NVDA, "symbol": "NVDA", "currency": "USD", "order_ref": "row-nvda",
-                      "planned_quantity": "10", "expected_return_pct": "10"}]}
-    assert logged_in.post("/plans", json=plan).status_code == 204
-    logged_in.post("/orders", json=body(conid=F, qty="10", limit="12", ref="row-f.2"))  # placed again: same row
-    deadline = time.monotonic() + 3
-    while not [f for f in store.all_fills() if f["order_ref"] == "row-f.2"]:
-        assert time.monotonic() < deadline
-        time.sleep(0.02)
-    p2 = next(p for p in logged_in.get("/execution").json()["plans"] if p["id"] == "p2")
-    assert [(r["symbol"], r["bought"]) for r in p2["rows"]] == [("F", "10"), ("NVDA", "0")]
-    assert not p2["finished"] and not p2["working"]
-    assert logged_in.post("/plans/p2/finish").status_code == 204
-    p2 = next(p for p in logged_in.get("/execution").json()["plans"] if p["id"] == "p2")
-    assert [r["symbol"] for r in p2["rows"]] == ["F"] and p2["finished"]
-    assert logged_in.post("/plans/unknown/finish").status_code == 404
-    assert logged_in.delete("/plans/p2").status_code == 204
-    assert all(p["id"] != "p2" for p in logged_in.get("/execution").json()["plans"])
-    assert logged_in.delete("/plans/p2").status_code == 404

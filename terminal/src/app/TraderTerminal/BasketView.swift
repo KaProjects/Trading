@@ -144,8 +144,8 @@ struct BasketView: View {
         switch line.result {
         case .placed(let orderId, let status):
             // Follows live order updates: Sending… → Working → Filled (or Cancelled / Rejected).
-            Label("#\(orderId) \(Order.statusLabel(status))", systemImage: statusIcon(status))
-                .foregroundStyle(statusColor(status))
+            Label("#\(orderId) \(Order.statusLabel(status))", systemImage: Self.statusIcon(status))
+                .foregroundStyle(Self.statusColor(status))
                 .font(.callout)
                 .help("Order #\(orderId) — broker status \(status)")
         case .failed:
@@ -155,7 +155,7 @@ struct BasketView: View {
         }
     }
 
-    private func statusIcon(_ status: String) -> String {
+    static func statusIcon(_ status: String) -> String {
         switch Order.statusLabel(status) {
         case "Filled": "checkmark.circle.fill"
         case "Working": "clock"
@@ -165,7 +165,7 @@ struct BasketView: View {
         }
     }
 
-    private func statusColor(_ status: String) -> Color {
+    static func statusColor(_ status: String) -> Color {
         switch Order.statusLabel(status) {
         case "Filled": .green
         case "Working", "Sending…": .blue

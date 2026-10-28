@@ -254,12 +254,12 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
 
     @app.post("/plans", status_code=204)
     async def save_plan(plan: PlanRecord) -> None:
-        """T10: record an executed plan at Place (423 while locked)."""
+        """Record a placed plan, for its expected returns (423 while locked)."""
         store.save_plan(plan.model_dump(mode="json"))
 
     @app.get("/execution")
     async def execution() -> ExecutionReport:
-        """Executed plans with FIFO lots, live value and profit, plus the "Outside plans" group."""
+        """T12: open positions per ticker (FIFO lots, live value and profit, expected return), closed ones."""
         plans = [PlanRecord(**p) for p in store.plans()]
         fills = store.all_fills()
         positions = broker.positions()
@@ -280,20 +280,13 @@ def create_app(broker: Broker, prices: PriceFeed, bus: EventBus, store: Store,
                 return None
             return price.last if price else None
 
-        open_refs = {o.order_ref for o in broker.open_orders()}
         return execution_report(plans, fills, positions, broker.account_summary().base_currency, price_of,
-                                broker.fx_rate, contracts, open_refs)
+                                broker.fx_rate, contracts)
 
     @app.delete("/plans/{plan_id}", status_code=204)
     async def delete_plan(plan_id: str) -> None:
-        """Remove a saved plan; its fills count as outside trades. 423 while locked, 404 if unknown."""
+        """Remove a saved plan (its expected returns). 423 while locked, 404 if unknown."""
         if not store.delete_plan(plan_id):
-            raise HTTPException(status_code=404, detail="Unknown plan")
-
-    @app.post("/plans/{plan_id}/finish", status_code=204)
-    async def finish_plan(plan_id: str) -> None:
-        """Finish a plan: rows that never bought anything leave Execution. 423 while locked, 404 if unknown."""
-        if not store.finish_plan(plan_id):
             raise HTTPException(status_code=404, detail="Unknown plan")
 
     @app.put("/watchlist")
