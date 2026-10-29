@@ -44,6 +44,7 @@ const DEFAULT_MAIN_BAR_CONFIG = {
     showSellTradeButton: false,
     showAddDividendButton: false,
     showAddCompanyButton: false,
+    showAddCaseButton: false,
     showStatsTabs: false,
     showResearchTabs: false,
     showOutperformersTabs: false,
@@ -120,6 +121,9 @@ const MAIN_BAR_CONFIG = {
     },
     "/outperformers": {
         showOutperformersTabs: true,
+    },
+    "/cases": {
+        showAddCaseButton: true,
     },
     "/admin/firebase": {
         showFirebaseTabs: true,
@@ -497,6 +501,15 @@ export const MainBar = props => {
             onClick: () => props.setOpenAddDividend(true),
             ariaLabel: "add dividend",
             tooltip: "Add dividend",
+            color: "lightgreen",
+            icon: ControlPointIcon,
+        },
+        {
+            key: "add-case",
+            visible: config.showAddCaseButton,
+            onClick: () => props.setOpenAddCase(true),
+            ariaLabel: "add case",
+            tooltip: "Add case",
             color: "lightgreen",
             icon: ControlPointIcon,
         },

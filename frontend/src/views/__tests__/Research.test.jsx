@@ -8,9 +8,11 @@ jest.mock("axios");
 jest.mock("../../properties", () => ({
     backend: "/api",
 }));
+const mockNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({
     ...jest.requireActual("react-router-dom"),
     useLocation: () => mockUseLocation(),
+    useNavigate: () => mockNavigate,
 }));
 
 jest.mock("../component/Loader", () => ({
@@ -678,8 +680,8 @@ describe("Research", () => {
         expect(screen.queryByText("Records")).not.toBeInTheDocument();
         expect(screen.queryByText("Technology")).not.toBeInTheDocument();
         expect(screen.getByText("#growth")).toBeInTheDocument();
-        expect(screen.getByText("#growth").parentElement).toHaveStyle("margin-top: -10px");
-        expect(screen.getByText("#growth").parentElement).toHaveStyle("margin-left: 4px");
+        expect(screen.getByTestId("company-tags")).toHaveStyle("margin-top: -10px");
+        expect(screen.getByTestId("company-tags")).toHaveStyle("margin-left: 4px");
         expect(screen.queryByText("#owned")).not.toBeInTheDocument();
         expect(screen.getByTestId("period-financials")).toHaveTextContent("financial-overview");
         expect(screen.getByTestId("period-financials")).toHaveAttribute("data-financials-count", "1");
@@ -809,37 +811,29 @@ describe("Research", () => {
         expect(screen.getByText("add-tag-dialog:company-1:growth,income")).toBeInTheDocument();
     });
 
-    test("confirms and removes a tag from the selected company", async () => {
-        axios.get.mockResolvedValue({data: createResearchData()});
-        axios.delete.mockResolvedValue({});
-        const refreshCompanyLists = jest.fn();
-
-        render(<Research companySelectorValue={companySelectorValue} refreshCompanyLists={refreshCompanyLists}/>);
-
-        await screen.findByText("#growth");
-        fireEvent.click(screen.getByRole("button", {name: "Remove tag growth"}));
-
-        expect(screen.getByText("Do you want to remove tag #growth from AAPL?")).toBeInTheDocument();
-        fireEvent.click(screen.getByRole("button", {name: "Remove"}));
-
-        await waitFor(() => expect(axios.delete).toHaveBeenCalledWith(
-            "/api/company/company-1/tag",
-            {params: {value: "growth"}},
-        ));
-        await waitFor(() => expect(refreshCompanyLists).toHaveBeenCalled());
-    });
-
-    test("does not remove a tag when confirmation is cancelled", async () => {
+    test("leaves a tag to be taken off where the company is edited", async () => {
         axios.get.mockResolvedValue({data: createResearchData()});
 
         render(<Research companySelectorValue={companySelectorValue}/>);
 
         await screen.findByText("#growth");
-        fireEvent.click(screen.getByRole("button", {name: "Remove tag growth"}));
-        fireEvent.click(screen.getByRole("button", {name: "Cancel"}));
+        // A tag is read here and taken off in the dialog that edits the company.
+        expect(screen.queryByRole("button", {name: "Remove tag growth"})).not.toBeInTheDocument();
+    });
 
-        await waitFor(() => expect(screen.queryByText("Remove tag?")).not.toBeInTheDocument());
-        expect(axios.delete).not.toHaveBeenCalled();
+    test("picks the list a tag stands for", async () => {
+        axios.get.mockResolvedValue({data: createResearchData()});
+        const setCompanyListSelectorValue = jest.fn();
+
+        render(<Research
+            companySelectorValue={companySelectorValue}
+            setCompanyListSelectorValue={setCompanyListSelectorValue}
+        />);
+
+        await screen.findByText("#growth");
+        fireEvent.click(screen.getByRole("button", {name: "Show the growth list"}));
+
+        expect(setCompanyListSelectorValue).toHaveBeenCalledWith("growth");
     });
 
     test("opens financials dialog from the overview", async () => {

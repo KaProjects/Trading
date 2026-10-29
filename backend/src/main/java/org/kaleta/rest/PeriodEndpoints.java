@@ -4,9 +4,12 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.kaleta.rest.dto.PeriodCreateDto;
@@ -15,6 +18,10 @@ import org.kaleta.rest.dto.PeriodUnreportedImportDto;
 import org.kaleta.rest.dto.PeriodsUnreportedImportDto;
 import org.kaleta.rest.dto.PeriodUpdateDto;
 import org.kaleta.rest.dto.PeriodUpdateFinancialDto;
+import org.kaleta.model.Company;
+import org.kaleta.rest.dto.PeriodReportDto;
+import org.kaleta.rest.validation.ValidId;
+import org.kaleta.service.CompanyService;
 import org.kaleta.service.PeriodService;
 
 @Path("/period")
@@ -22,6 +29,18 @@ public class PeriodEndpoints
 {
     @Inject
     PeriodService periodService;
+    @Inject
+    CompanyService companyService;
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{periodId}")
+    public PeriodReportDto get(@NotNull @ValidId @PathParam("periodId") Long periodId)
+    {
+        Company company = companyService.getCompany(periodService.companyIdOf(periodId));
+        return new PeriodReportDto(
+                periodService.getPeriod(periodId), company.getTicker(), company.getCurrency());
+    }
 
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)

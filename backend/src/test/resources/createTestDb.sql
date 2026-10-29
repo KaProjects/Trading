@@ -141,3 +141,8 @@ INSERT INTO Company (id, ticker, currency) VALUES (1209, 'SELL', '$');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (2335, 1209, '1', '2020-03-15', '400', '10');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1788, 1209, '5', '2020-04-05', '450', '10');
 INSERT INTO Trade (id, companyId, quantity, purchase_date, purchase_price, purchase_fees) VALUES (1130, 1209, '7.5', '2020-05-01', '500', '10');
+
+-- for CaseEndpointsTest: a case that has been running since before company 1927's trade was
+-- bought (11.11.2023), so that trade is one the case is answerable for
+INSERT INTO InvestmentCase (id, name, createdAt) VALUES (1, 'running since 2023', '2023-01-01');
+INSERT INTO CaseCompany (caseId, companyId, addedAt) VALUES (1, 1927, '2023-01-01');

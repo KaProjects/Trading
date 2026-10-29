@@ -133,10 +133,10 @@ describe("PeriodContentList", () => {
         renderList();
 
         // Opening a picture must not look like the entry is being written in.
-        fireEvent.click(screen.getByTestId("period-content-image-9"));
+        fireEvent.click(screen.getByTestId("content-image-9"));
         const viewer = screen.getByRole("dialog");
         expect(viewer.querySelector("img")).toBeInTheDocument();
-        expect(document.querySelector('[data-testid="period-content-image-add"]')).toBeNull();
+        expect(document.querySelector('[data-testid="content-image-add"]')).toBeNull();
 
         // Writing in the entry is what brings them up. The viewer is still unmounting, which
         // leaves the page behind it hidden from the role queries, so the tiles are looked for
@@ -144,7 +144,7 @@ describe("PeriodContentList", () => {
         fireEvent.click(viewer.querySelector("img"));
         fireEvent.focusIn(screen.getByText("second day"));
 
-        expect(document.querySelector('[data-testid="period-content-image-add"]')).not.toBeNull();
+        expect(document.querySelector('[data-testid="content-image-add"]')).not.toBeNull();
         expect(document.querySelector('[aria-label="Remove image"]')).not.toBeNull();
     });
 

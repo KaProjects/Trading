@@ -10,7 +10,7 @@ import axios from "axios";
 import {backend} from "../../properties";
 import {ContentDatePicker, PeriodContentList, defaultEntryDate, isDateTaken} from "./PeriodContentList";
 import {formatRevenueEstimatePastTotal, formatRevenueEstimateValue} from "./PeriodEstimateLine";
-import {PeriodContentImages} from "./PeriodContentImages";
+import {ContentImages} from "./ContentImages";
 import {ContentEditorDialog} from "../../dialog/ContentEditorDialog";
 import {ReactComponent as FinancialsPlusIcon} from "../../assets/icons/financials-plus.svg";
 import {ReactComponent as EpsEstimatesPlusIcon} from "../../assets/icons/estimates-plus-eps.svg";
@@ -20,12 +20,10 @@ import PostAddIcon from "@mui/icons-material/PostAdd";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import {PeriodTargetSummary} from "./PeriodTargetSummary";
+import {useStagedImages} from "./useStagedImages";
 
 /** What the period's action buttons occupy on the right-hand edge of the card, measured from it. */
 const ACTION_COLUMN_WIDTH = "29px"
-
-/** No pictures added, none crossed out. */
-const EMPTY_STAGED = {adds: [], removes: []}
 
 export function hasUnexpectedEndingMonth(period, previousPeriod) {
     const following = nextPeriod(previousPeriod)
@@ -52,9 +50,6 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
     }, [])
 
     const [contents, setContents] = useState(period.contents ?? [])
-    // Pictures added or crossed out while an entry is being written. They wait here until the
-    // entry is saved, and are dropped with the text when the writing is cancelled.
-    const [staged, setStaged] = useState({})
     const [editedEntry, setEditedEntry] = useState(null)
     const [addingContent, setAddingContent] = useState(false)
     const [newContentDate, setNewContentDate] = useState("")
@@ -134,86 +129,18 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
         }
     }
 
-    const stagedFor = contentId => staged[contentId] ?? EMPTY_STAGED
+    const {
+        stagedFor, stageImage, dropStagedImage, markImageRemoved, discardStaged, commitStaged,
+    } = useStagedImages({
+        uploadUrl: contentId => `${backend}/period/content/${contentId}/image`,
+        deleteUrl: imageId => `${backend}/period/content/image/${imageId}`,
+        applied: (contentId, {added, removedIds}) => setContents(previous =>
+            previous.map(entry => entry.id === contentId
+                ? {...entry, images: [...added, ...entry.images.filter(image => !removedIds.includes(image.id))]}
+                : entry)),
+        setAlert,
+    })
 
-    function stageImage(contentId, file) {
-        const pending = {key: `${Date.now()}-${file.name}`, file: file, url: URL.createObjectURL(file)}
-        setStaged(previous => {
-            const current = previous[contentId] ?? EMPTY_STAGED
-            return {...previous, [contentId]: {...current, adds: [...current.adds, pending]}}
-        })
-    }
-
-    function dropStagedImage(contentId, key) {
-        setStaged(previous => {
-            const current = previous[contentId] ?? EMPTY_STAGED
-            current.adds.filter(add => add.key === key).forEach(add => URL.revokeObjectURL(add.url))
-            return {...previous, [contentId]: {...current, adds: current.adds.filter(add => add.key !== key)}}
-        })
-    }
-
-    /** Crossing a picture out is not deleting it; that waits for the entry to be saved. */
-    function markImageRemoved(contentId, imageId, removed) {
-        setStaged(previous => {
-            const current = previous[contentId] ?? EMPTY_STAGED
-            return {
-                ...previous,
-                [contentId]: {
-                    ...current,
-                    removes: removed
-                        ? [...current.removes, imageId]
-                        : current.removes.filter(id => id !== imageId),
-                },
-            }
-        })
-    }
-
-    function discardStaged(contentId) {
-        setStaged(previous => {
-            const current = previous[contentId]
-            if (!current) return previous
-
-            current.adds.forEach(add => URL.revokeObjectURL(add.url))
-            const next = {...previous}
-            delete next[contentId]
-            return next
-        })
-    }
-
-    /** Everything staged for one entry, written in one go. Returns an error, or nothing. */
-    async function commitStaged(contentId) {
-        const {adds, removes} = stagedFor(contentId)
-        if (adds.length === 0 && removes.length === 0) return null
-
-        try {
-            for (const imageId of removes) {
-                await axios.delete(`${backend}/period/content/image/${imageId}`)
-            }
-            const added = []
-            for (const add of adds) {
-                const data = new FormData()
-                data.append("file", add.file)
-                added.push((await axios.post(`${backend}/period/content/${contentId}/image`, data)).data)
-            }
-
-            setContents(previous => previous.map(entry => entry.id === contentId
-                ? {
-                    ...entry,
-                    // Newest first, the way they come back from the server.
-                    images: [
-                        ...added.reverse(),
-                        ...entry.images.filter(image => !removes.includes(image.id)),
-                    ],
-                }
-                : entry))
-            discardStaged(contentId)
-            return null
-        } catch (error) {
-            const formatted = formatError(error)
-            setAlert(formatted)
-            return formatted
-        }
-    }
 
     // The reported figures draw their own rule above the research; without them the research is
     // what opens the card, and it reads better up against the title than a line below it.
@@ -357,9 +284,6 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
             {financialSummary}
 
             <Box sx={{
-                // A list's default 40px indent pushes the research well clear of the card edge.
-                // Enough is kept for the bullet itself.
-                "& ul, & ol": {paddingLeft: "18px"},
                 // The card's own bottom padding leaves more room under the last day than the
                 // days leave between themselves; half of it is enough.
                 marginBottom: "-3px",
@@ -450,7 +374,7 @@ export const Period = ({period, ticker, previousPeriod, isLatest = true, periodP
                     />
                 }
                 footer={editedEntry &&
-                    <PeriodContentImages
+                    <ContentImages
                         images={contents.find(entry => entry.id === editedEntry.id)?.images ?? []}
                         pending={stagedFor(editedEntry.id).adds}
                         removedIds={stagedFor(editedEntry.id).removes}

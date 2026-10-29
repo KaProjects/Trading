@@ -6,9 +6,11 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {ReactComponent as DeleteIcon} from "../../assets/icons/delete.svg";
 import {backend} from "../../properties";
+import {SWIPE_NAV_BREAKPOINT} from "./MainBar";
 import {SWIPE_THRESHOLD} from "./useSwipeNavigation";
 
 const THUMBNAIL = 76;
@@ -28,6 +30,9 @@ const VIEWER_PAPER = {
 export const imageUrl = (imageId, thumbnail = false) =>
     `${backend}/period/content/image/${imageId}${thumbnail ? "?thumbnail=true" : ""}`;
 
+export const caseImageUrl = (imageId, thumbnail = false) =>
+    `${backend}/case/entry/image/${imageId}${thumbnail ? "?thumbnail=true" : ""}`;
+
 /**
  * The pictures of one day's research: a strip of thumbnails beside the text on a wide screen and
  * under it on a narrow one, each opening full size, with a tile at its head to add another while
@@ -40,16 +45,21 @@ export const imageUrl = (imageId, thumbnail = false) =>
  * The strip never grows past the text it belongs to - it scrolls instead - so an arrow marks
  * either end that still has something beyond it.
  */
-export const PeriodContentImages = ({
+export const ContentImages = ({
     images = [],
     pending = [],
     removedIds = [],
     compact = false,
     editing = false,
+    urlOf = imageUrl,
     onAdd,
     onDropPending,
     onMarkRemoved,
 }) => {
+    // How the strip is laid out and how the opened picture is stepped through are two
+    // questions: a strip lies in a row under the text wherever a case is read, while the
+    // arrows belong on a screen wide enough to have room for them beside the picture.
+    const narrow = useMediaQuery(`(max-width:${SWIPE_NAV_BREAKPOINT}px)`);
     const [openedIndex, setOpenedIndex] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [dragging, setDragging] = useState(false);
@@ -131,7 +141,7 @@ export const PeriodContentImages = ({
 
     const addTile = (
         <Box
-            data-testid="period-content-image-add"
+            data-testid="content-image-add"
             role="button"
             aria-label="Add image"
             tabIndex={0}
@@ -197,7 +207,7 @@ export const PeriodContentImages = ({
         <Box key={key} sx={{position: "relative", flexShrink: 0}}>
             <Box
                 component="img"
-                data-testid={`period-content-image-${key}`}
+                data-testid={`content-image-${key}`}
                 src={source}
                 alt=""
                 loading="lazy"
@@ -224,7 +234,7 @@ export const PeriodContentImages = ({
     const scroller = (
         <Box
             ref={strip}
-            data-testid="period-content-images"
+            data-testid="content-images"
             onScroll={updateScrollHint}
             sx={{
                 display: "flex",
@@ -250,7 +260,7 @@ export const PeriodContentImages = ({
 
             {images.map((image, index) => {
                 const removed = removedIds.includes(image.id);
-                return thumbnail(image.id, imageUrl(image.id, true), {
+                return thumbnail(image.id, urlOf(image.id, true), {
                     onOpen: editing ? undefined : () => setOpenedIndex(index),
                     removed: removed,
                     action: editing && (removed
@@ -272,7 +282,7 @@ export const PeriodContentImages = ({
     );
 
     const arrow = (end, icon, placement) => React.createElement(icon, {
-        "data-testid": `period-content-images-${end}`,
+        "data-testid": `content-images-${end}`,
         sx: {
             position: "absolute",
             fontSize: 16,
@@ -333,17 +343,17 @@ export const PeriodContentImages = ({
                 <Box
                     sx={{position: "relative", display: "flex"}}
                     // A narrow screen steps by swiping and keeps nothing on top of the picture;
-                    // a wide one has the arrows instead. The gesture is measured here rather
+                    // a wide one has the arrows instead, whichever way its strip lies. The gesture is measured here rather
                     // than with the app's swipe helper, which refuses to start inside a dialog -
                     // it is there to stop a swipe in a dialog moving the page behind it, and
                     // this swipe belongs to the dialog itself.
-                    onTouchStart={compact
+                    onTouchStart={narrow
                         ? event => {
                             const touch = event.touches[0];
                             viewerSwipe.current = {x: touch.clientX, y: touch.clientY};
                         }
                         : undefined}
-                    onTouchEnd={compact
+                    onTouchEnd={narrow
                         ? event => {
                             const start = viewerSwipe.current;
                             viewerSwipe.current = null;
@@ -361,8 +371,8 @@ export const PeriodContentImages = ({
                 >
                     <Box
                         component="img"
-                        data-testid="period-content-image-opened"
-                        src={imageUrl(opened.id)}
+                        data-testid="content-image-opened"
+                        src={urlOf(opened.id)}
                         alt=""
                         onClick={() => setOpenedIndex(null)}
                         sx={{
@@ -374,9 +384,9 @@ export const PeriodContentImages = ({
                             cursor: "zoom-out",
                         }}
                     />
-                    {!compact && openedIndex > 0 && viewerButton("Previous image",
+                    {!narrow && openedIndex > 0 && viewerButton("Previous image",
                         <KeyboardArrowLeftIcon/>, {left: "6px"}, () => step(-1))}
-                    {!compact && openedIndex < images.length - 1 && viewerButton("Next image",
+                    {!narrow && openedIndex < images.length - 1 && viewerButton("Next image",
                         <KeyboardArrowRightIcon/>, {right: "6px"}, () => step(1))}
                 </Box>
             }

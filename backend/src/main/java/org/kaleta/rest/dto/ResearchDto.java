@@ -24,6 +24,8 @@ public class ResearchDto
     private EstimateOverview estimateOverview;
     private EstimateOverview revenueEstimateOverview;
     private List<Record> records = new ArrayList<>();
+    /** The cases that cover this company, for reading one from the company it is about. */
+    private List<CaseDto.Reference> cases = new ArrayList<>();
     private Latest latest;
     private PriceIndicators indicators;
     private Assets assets;

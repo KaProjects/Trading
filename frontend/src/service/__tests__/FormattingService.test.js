@@ -1,5 +1,6 @@
 import {
     formatDate,
+    formatDateShort,
     formatDecimals,
     formatError,
     formatMillions,
@@ -130,6 +131,15 @@ describe('FormattingService', () => {
         expect(formatDate("1.1.2025")).toBe("");
 
         expect(formatDate("2025-01-01")).toBe("01.01.2025");
+    })
+
+    test("formatDateShort", () => {
+        expect(formatDateShort(undefined)).toBe("");
+        expect(formatDateShort("abc")).toBe("");
+
+        expect(formatDateShort("2025-01-01")).toBe("1.1.'25");
+        expect(formatDateShort("2026-10-08")).toBe("8.10.'26");
+        expect(formatDateShort("2026-12-31")).toBe("31.12.'26");
     })
 
     test("formatPercent", () => {

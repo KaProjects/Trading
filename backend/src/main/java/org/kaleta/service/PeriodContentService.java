@@ -56,6 +56,12 @@ public class PeriodContentService
         return byPeriod;
     }
 
+    /** One entry, as the case page reads it beside the day it was written. */
+    public PeriodContentDto get(Long contentId)
+    {
+        return toDto(content(contentId));
+    }
+
     public PeriodContentDto save(Long periodId, PeriodContentUpdateDto dto)
     {
         Period period = period(periodId);

@@ -203,6 +203,35 @@ public class PeriodService
         pushFirebase(period);
     }
 
+    /** Which company a period belongs to. */
+    public Long companyIdOf(Long periodId)
+    {
+        try {
+            return periodDao.get(periodId).getCompany().getId();
+        } catch (jakarta.persistence.NoResultException exception) {
+            throw new org.kaleta.rest.error.InvalidInputException(
+                    "period with id '" + periodId + "' not found");
+        }
+    }
+
+    /** One period of a company, with what it reported worked out as the research page has it. */
+    public org.kaleta.model.Periods.Period getPeriod(Long periodId)
+    {
+        org.kaleta.persistence.entity.Period period;
+        try {
+            period = periodDao.get(periodId);
+        } catch (jakarta.persistence.NoResultException exception) {
+            throw new org.kaleta.rest.error.InvalidInputException(
+                    "period with id '" + periodId + "' not found");
+        }
+
+        return getBy(period.getCompany().getId()).getPeriods().stream()
+                .filter(each -> each.getId().equals(periodId))
+                .findFirst()
+                .orElseThrow(() -> new org.kaleta.rest.error.InvalidInputException(
+                        "period with id '" + periodId + "' not found"));
+    }
+
     public Periods getBy(Long companyId)
     {
         List<Period> periods = periodDao.list(companyId);

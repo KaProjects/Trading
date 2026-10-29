@@ -332,6 +332,16 @@ public class RecordService
         return records;
     }
 
+    /** One record, as it is read: the case page opens it beside the day it belongs to. */
+    public org.kaleta.model.Record get(Long recordId)
+    {
+        try {
+            return from(recordDao.get(recordId));
+        } catch (NoResultException exception) {
+            throw new InvalidInputException("record with id '" + recordId + "' not found");
+        }
+    }
+
     public void delete(Long recordId){
         try {
             recordDao.get(recordId);

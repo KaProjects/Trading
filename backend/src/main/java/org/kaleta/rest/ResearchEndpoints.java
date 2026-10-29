@@ -31,6 +31,7 @@ import org.kaleta.service.ImportService;
 import org.kaleta.service.LatestService;
 import org.kaleta.service.PeriodContentService;
 import org.kaleta.service.PeriodService;
+import org.kaleta.service.CaseService;
 import org.kaleta.service.RecordService;
 import org.kaleta.service.TradeService;
 import org.kaleta.service.TargetService;
@@ -49,6 +50,8 @@ public class ResearchEndpoints
     PeriodService periodService;
     @Inject
     RecordService recordService;
+    @Inject
+    CaseService caseService;
     @Inject
     LatestService latestService;
     @Inject
@@ -124,6 +127,7 @@ public class ResearchEndpoints
 
         List<Record> records = recordService.getBy(companyId);
         dto.getRecords().addAll(records);
+        dto.getCases().addAll(caseService.coveringCompany(companyId));
 
         LatestService.SyncResult latestResult = latestService.getSyncedForWithWarnings(companyId);
         Latest latest = latestResult.latest();

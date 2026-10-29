@@ -4,10 +4,6 @@ import {
     Button,
     Card,
     CardContent,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     Grid,
     IconButton,
 } from "@mui/material";
@@ -18,7 +14,6 @@ import {backend} from "../properties";
 import axios from "axios";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import KeyboardDoubleArrowDownIcon from "@mui/icons-material/KeyboardDoubleArrowDown";
-import {ReactComponent as DeleteIcon} from "../assets/icons/delete.svg";
 import {formatDecimals, formatError} from "../service/FormattingService";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import {AssetsSummary} from "./component/AssetsSummary";
@@ -48,7 +43,7 @@ import {TargetDialog} from "../dialog/TargetDialog";
 import {NewsSentimentDialog} from "../dialog/NewsSentimentDialog";
 import {RESEARCH_SPLIT_BREAKPOINT, RESEARCH_TAB, SWIPE_NAV_BREAKPOINT} from "./component/MainBar";
 import {AddTagDialog} from "../dialog/AddTagDialog";
-import {useLocation} from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
 import {useCloseOnNavigation} from "../service/NavigationService";
 import {TodoList} from "./component/TodoList";
 import {beginSwipe, swipeDirection} from "./component/useSwipeNavigation";
@@ -122,6 +117,7 @@ const researchCardRowsStyle = {
 
 export const Research = props => {
     const location = useLocation()
+    const navigate = useNavigate()
     const [refresh, setRefresh] = useState("")
 
     const [data, setData] = useState(null)
@@ -141,7 +137,6 @@ export const Research = props => {
     const [openTargetDialog, setOpenTargetDialog] = useState(null)
     const [openNewsSentimentDialog, setOpenNewsSentimentDialog] = useState(null)
     const [openAddTagDialog, setOpenAddTagDialog] = useState(false)
-    const [tagToDelete, setTagToDelete] = useState(null)
     const [tagSuggestions, setTagSuggestions] = useState([])
     const [unavailableTradingViewSymbol, setUnavailableTradingViewSymbol] = useState(null)
     const [targetCandidateCounts, setTargetCandidateCounts] = useState({})
@@ -173,7 +168,6 @@ export const Research = props => {
         setOpenTargetDialog(null)
         setOpenNewsSentimentDialog(null)
         setOpenAddTagDialog(false)
-        setTagToDelete(null)
     })
     const researchTabsIndex = props.researchTabsIndex ?? RESEARCH_TAB.research
     const isNarrowScreen = useMediaQuery(`(max-width:${SWIPE_NAV_BREAKPOINT}px)`)
@@ -350,18 +344,6 @@ export const Research = props => {
             .catch((error) => {
                 setAlert(formatError(error))
             })
-    }
-
-    function deleteTag() {
-        axios.delete(backend + "/company/" + data.company.id + "/tag", {
-            params: {value: tagToDelete},
-        }).then(() => {
-            setTagToDelete(null)
-            triggerRefresh()
-        }).catch((error) => {
-            setTagToDelete(null)
-            setAlert(formatError(error))
-        })
     }
 
     const selectedCompanyLoaded = props.companySelectorValue
@@ -595,9 +577,13 @@ export const Research = props => {
                                     }
                                 </Box>
                                 <Box
+                                    data-testid="company-tags"
                                     sx={{
                                         color: "text.secondary",
-                                        display: {xs: "none", sm: "flex"},
+                                        // Read on a phone too, now that the research itself
+                                        // has pages of its own: it sits under the chart and
+                                        // over the figures, where it does on a desktop.
+                                        display: "flex",
                                         alignItems: "center",
                                         marginTop: hasTradingView ? "-10px" : 0,
                                         marginLeft: hasTradingView ? "4px" : 0,
@@ -612,60 +598,18 @@ export const Research = props => {
                                         overflowY: {xs: "hidden", sm: "visible"},
                                         overscrollBehaviorX: "contain",
                                         "& .add-tag-button": {
-                                            opacity: {xs: 1, sm: 0},
-                                            pointerEvents: {xs: "auto", sm: "none"},
                                             flexShrink: 0,
-                                            transition: "opacity 120ms ease-in-out",
-                                        },
-                                        "&:hover .add-tag-button": {
-                                            opacity: 1,
-                                            pointerEvents: "auto",
+                                            // It leads the row rather than standing among the
+                                            // tags, so it sits closer to the first of them.
+                                            marginRight: "-3px",
                                         },
                                         "& .company-tag": {
                                             display: "inline-flex",
                                             alignItems: "center",
                                             flexShrink: 0,
                                         },
-                                        "& .delete-tag-button": {
-                                            opacity: {xs: 1, sm: 0},
-                                            pointerEvents: {xs: "auto", sm: "none"},
-                                            width: {xs: "24px", sm: 0},
-                                            height: "24px",
-                                            marginRight: {xs: "-6px", sm: 0},
-                                            overflow: "hidden",
-                                            padding: {xs: "2px", sm: 0},
-                                            minWidth: 0,
-                                            lineHeight: 0,
-                                            transition: "opacity 120ms ease-in-out, width 120ms ease-in-out, margin 120ms ease-in-out, padding 120ms ease-in-out",
-                                        },
-                                        "& .company-tag:hover .delete-tag-button": {
-                                            opacity: 1,
-                                            pointerEvents: "auto",
-                                            width: "24px",
-                                            marginRight: "-6px",
-                                            padding: "2px",
-                                        },
-                                        "& .delete-tag-button svg": {
-                                            width: "17px",
-                                            height: "17px",
-                                            display: "block",
-                                        },
                                     }}
                                 >
-                                    {(data.company.tags ?? [])
-                                        .filter(tag => !BUILT_IN_LIST_TITLES[tag])
-                                        .map(tag => (
-                                            <Box component="span" className="company-tag" key={tag}>
-                                                <Button
-                                                    className="delete-tag-button"
-                                                    aria-label={`Remove tag ${tag}`}
-                                                    onClick={() => setTagToDelete(tag)}
-                                                >
-                                                    <DeleteIcon/>
-                                                </Button>
-                                                #{tag}
-                                            </Box>
-                                        ))}
                                     <IconButton
                                         className="add-tag-button"
                                         aria-label="Add tag"
@@ -675,6 +619,48 @@ export const Research = props => {
                                     >
                                         <ControlPointIcon sx={{color: "lightgreen", fontSize: 16}}/>
                                     </IconButton>
+                                    {/* A tag is the list it puts the company in, so pressing it
+                                        picks that list in the selector rather than going
+                                        anywhere. */}
+                                    {(data.company.tags ?? [])
+                                        .filter(tag => !BUILT_IN_LIST_TITLES[tag])
+                                        .map(tag => (
+                                            <Box component="span" className="company-tag" key={tag}>
+                                                <Box
+                                                    component="span"
+                                                    role="button"
+                                                    aria-label={`Show the ${tag} list`}
+                                                    onClick={() => props.setCompanyListSelectorValue?.(tag)}
+                                                    sx={{
+                                                        cursor: "pointer",
+                                                        "&:hover": {textDecoration: "underline"},
+                                                    }}
+                                                >
+                                                    #{tag}
+                                                </Box>
+                                            </Box>
+                                        ))}
+                                    {/* The cases this company is part of, after the tags and
+                                        the way into them. A case is named rather than tagged -
+                                        the name has spaces in it - so it reads as a badge,
+                                        which also says it is not a tag to be taken off. */}
+                                    {(data.cases ?? []).map(investmentCase => (
+                                        <Box
+                                            component="span"
+                                            key={investmentCase.id}
+                                            data-testid={`company-case-${investmentCase.id}`}
+                                            role="button"
+                                            aria-label={`Go to case ${investmentCase.name}`}
+                                            onClick={() => navigate(`/cases/${investmentCase.id}`)}
+                                            sx={{
+                                                flexShrink: 0,
+                                                cursor: "pointer",
+                                                "&:hover": {textDecoration: "underline"},
+                                            }}
+                                        >
+                                            {`@${investmentCase.name}`}
+                                        </Box>
+                                    ))}
                                 </Box>
                                 <AddTagDialog
                                     open={openAddTagDialog}
@@ -684,17 +670,6 @@ export const Research = props => {
                                     suggestions={tagSuggestions}
                                     currentTags={data.company.tags}
                                 />
-                                <Dialog open={tagToDelete !== null} onClose={() => setTagToDelete(null)}>
-                                    <DialogTitle>Remove tag?</DialogTitle>
-                                    <DialogContent>
-                                        Do you want to remove tag #{tagToDelete} from {data.company.ticker}?
-                                    </DialogContent>
-                                    <DialogActions>
-                                        <Button onClick={() => setTagToDelete(null)}>Cancel</Button>
-                                        <Button color="error" onClick={deleteTag} autoFocus>Remove</Button>
-                                    </DialogActions>
-                                </Dialog>
-
                                 {(!isNarrowScreen || (overviewShown && narrowPageIndex === 0)) &&
                                 <Box
                                     data-testid="research-overview"
@@ -707,7 +682,9 @@ export const Research = props => {
                                         : undefined}
                                 >
                                 <Box sx={{
-                                    marginTop: hasTradingView ? {xs: "-7px", sm: "4px"} : {xs: "13px", sm: "10px"},
+                                    // The tags sit above this on a phone now, so the figures
+                                    // start under them rather than pulled up under the header.
+                                    marginTop: hasTradingView ? {xs: "2px", sm: "4px"} : {xs: "6px", sm: "10px"},
                                     bgcolor: "background.paper",
                                     position: "relative",
                                 }}>
