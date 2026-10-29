@@ -297,7 +297,7 @@ class ExecutionRow(BaseModel):
 
 class ExecutionTotal(BaseModel):
     cost: Decimal
-    value: Decimal | None
+    value: Decimal | None           # proceeds of the sales + active shares at the live price
     profit: Decimal | None
     return_pct: Decimal | None
     expected_profit: Decimal | None = None

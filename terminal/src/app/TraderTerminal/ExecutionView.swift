@@ -282,8 +282,10 @@ struct TradesTable: View {
 
     /// Share of the active shares' value in the value of all positions (as the Planner's weight).
     private func weight(_ row: ExecutionRow) -> Decimal? {
-        guard let value = row.value?.value, let all = total?.value?.value, all > 0 else { return nil }
-        return value / all * 100
+        let values = rows.compactMap { $0.value?.value }
+        guard let value = row.value?.value, values.count == rows.count else { return nil }
+        let all = values.reduce(Decimal(0), +)
+        return all > 0 ? value / all * 100 : nil
     }
 
     /// Sold / Active / Total rows: a bit bigger than the rows they sum up.
@@ -357,8 +359,8 @@ struct TradesTable: View {
             }
             .fixedSize()  // ticker, tick box and Sell on one line
             // Columns as wide as their content: the same gap between all of them.
-            ForEach(["Weight", "Quantity", "Bought", "Purchase price", "Cost", "Sold", "Sell / current price", "Value",
-                     "Realized / unrealized return"], id: \.self) { title in
+            ForEach(["Weight", "Quantity", "Bought", "Purchase price", "Cost", "Sold", "Sell / Current price", "Value",
+                     "Realized / Unrealized return"], id: \.self) { title in
                 Text(title).font(.caption).foregroundStyle(.secondary)
                     .fixedSize()
                     .gridColumnAlignment(.trailing)
@@ -415,8 +417,8 @@ struct TradesTable: View {
 
     /// Shares still held — one buy, or all of them together (summary) above their sub-rows: weight (on the
     /// ticker's own row only), shares,
-    /// average purchase price, cost and the return so far at the live price, muted green / red (not realized). The live
-    /// price and the value are in the ticker's total row only.
+    /// average purchase price, cost, the value at the live price and the return so far, muted green / red
+    /// (not realized). The live price is in the ticker's total row only.
     private func activeRow(_ trades: [ExecutionTrade], row: ExecutionRow, summary: Bool,
                            weight: Decimal? = nil) -> some View {
         let shares = trades.reduce(Decimal(0)) { $0 + $1.quantity.value }
@@ -436,7 +438,8 @@ struct TradesTable: View {
             }
             Text(Format.money(Amount(buy), row.currency))
             Text(Format.money(Amount(cost), base))
-            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]).gridCellColumns(3)
+            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]).gridCellColumns(2)
+            Text(value.map { Format.money(Amount($0), base) } ?? "—")  // at the live price
             ReturnText(amount: profit.map { Format.signedMoney(Amount($0), base) },
                        percent: profit.flatMap { cost > 0 ? Format.signedPercent(Amount($0 / cost * 100)) : nil },
                        color: Format.color(profit.map(Amount.init)).opacity(0.4))  // not realized: muted

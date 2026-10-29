@@ -41,6 +41,7 @@ def test_one_position_per_ticker_with_purchases_and_latest_expected_return():
     assert nvda.expected_return_pct == 20 and nvda.expected_from == T0 + timedelta(minutes=59)
     assert nvda.expected_profit == D("452.00") and aapl.expected_return_pct is None
     assert r.total.cost == D("2360.00") and r.total.expected_profit == D("452.00")
+    assert r.total.value == D("2860.00")  # NVDA 650 sold + 2 100 active, AAPL 110 active
     assert r.closed == []
     # FIFO trades: the 5 sold came from the first order (4 @ 100 + 1 @ 110), the rest is active.
     sold, active_first, active_second = nvda.trades

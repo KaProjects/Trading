@@ -112,7 +112,8 @@ def _expected(plans: list[PlanRecord], conid: int, since: datetime, until: datet
 
 def _total(rows: list[ExecutionRow]) -> ExecutionTotal:
     cost = sum((r.cost for r in rows), Decimal(0))
-    values = [r.value for r in rows]
+    # Like each ticker's total: proceeds of the sales + active shares at the live price.
+    values = [line.value for r in rows for line in r.lines]
     value = sum(values, Decimal(0)) if None not in values else None
     profits = [r.profit for r in rows]
     profit = sum(profits, Decimal(0)) if None not in profits else None

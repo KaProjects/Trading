@@ -217,7 +217,7 @@ struct OrdersTable: View {
             TableColumn("Limit") { Text(Format.money($0.limitPrice, $0.contract.currency)).monospacedDigit() }
                 .width(min: 80, ideal: 100)
                 .alignment(.trailing)
-            TableColumn("Filled / remaining") {
+            TableColumn("Filled / Remaining") {
                 Text("\(Format.quantity($0.filled)) / \(Format.quantity($0.remaining))").monospacedDigit()
             }
             .width(min: 110, ideal: 130)
