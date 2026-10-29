@@ -200,7 +200,10 @@ async def test_dev_plan_seed_shows_open_and_closed_positions(bus, tmp_path):
     assert [(t.quantity, t.buy_price, t.sell_price) for t in sndk.trades] == [
         (5, 1180, 1300), (3, 1180, 1395), (2, 1240, 1395), (4, 1240, None), (10, 1325, None)]
     old_sndk, old_mu = (next(r for r in report.closed if r.symbol == s) for s in ("SNDK", "MU"))  # a month ago
-    assert (old_sndk.bought, old_sndk.realized, old_sndk.expected_return_pct) == (6, 1440, 25)
+    assert (old_sndk.bought, old_sndk.realized, old_sndk.expected_return_pct) == (9, 1890, 25)
+    assert [r.symbol for r in report.closed].count("SNDK") == 2  # also sold out about three months ago
+    first_mu = [r for r in report.closed if r.symbol == "MU"][-1]
+    assert (first_mu.bought, first_mu.expected_return_pct, len(first_mu.purchases)) == (25, 25, 2)
     assert [(l.kind, l.quantity, l.price) for l in old_mu.lines] == [("sold", 8, 800), ("sold", 7, 860)]
     assert old_mu.difference == old_mu.profit - old_mu.expected_profit
     await store.stop()

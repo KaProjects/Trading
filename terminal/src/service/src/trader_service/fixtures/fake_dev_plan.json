@@ -1,6 +1,28 @@
 {
-  "_note": "Dev data (fake environment, --dev-plan): SNDK + MU bought by a plan a month ago and sold out (History), then bought and sold again in several steps, including yesterday's plan (Execution).",
+  "_note": "Dev data (fake environment, --dev-plan): SNDK + MU traded and sold out twice (History: about three months ago, and a month ago by a plan), then bought and sold again in several steps, including yesterday's plan (Execution).",
   "plans": [
+    {
+      "id": "dev-plan-old",
+      "days_ago": 90,
+      "rows": [
+        {
+          "conid": 755000001,
+          "symbol": "SNDK",
+          "currency": "USD",
+          "order_ref": "dev-plan-old-sndk",
+          "planned_quantity": "5",
+          "expected_return_pct": "30"
+        },
+        {
+          "conid": 9939,
+          "symbol": "MU",
+          "currency": "USD",
+          "order_ref": "dev-plan-old-mu",
+          "planned_quantity": "20",
+          "expected_return_pct": "25"
+        }
+      ]
+    },
     {
       "id": "dev-plan-0",
       "days_ago": 30,
@@ -62,6 +84,70 @@
     {
       "conid": 755000001,
       "side": "BUY",
+      "quantity": "5",
+      "price": "900.00",
+      "days_ago": 90,
+      "order_ref": "dev-plan-old-sndk"
+    },
+    {
+      "conid": 9939,
+      "side": "BUY",
+      "quantity": "20",
+      "price": "600.00",
+      "days_ago": 90,
+      "order_ref": "dev-plan-old-mu"
+    },
+    {
+      "conid": 755000001,
+      "side": "BUY",
+      "quantity": "4",
+      "price": "950.00",
+      "days_ago": 80,
+      "order_ref": null
+    },
+    {
+      "conid": 9939,
+      "side": "SELL",
+      "quantity": "10",
+      "price": "650.00",
+      "days_ago": 75,
+      "order_ref": null
+    },
+    {
+      "conid": 9939,
+      "side": "BUY",
+      "quantity": "5",
+      "price": "640.00",
+      "days_ago": 72,
+      "order_ref": null
+    },
+    {
+      "conid": 755000001,
+      "side": "SELL",
+      "quantity": "6",
+      "price": "1000.00",
+      "days_ago": 70,
+      "order_ref": null
+    },
+    {
+      "conid": 755000001,
+      "side": "SELL",
+      "quantity": "3",
+      "price": "1020.00",
+      "days_ago": 65,
+      "order_ref": null
+    },
+    {
+      "conid": 9939,
+      "side": "SELL",
+      "quantity": "15",
+      "price": "700.00",
+      "days_ago": 62,
+      "order_ref": null
+    },
+    {
+      "conid": 755000001,
+      "side": "BUY",
       "quantity": "6",
       "price": "1050.00",
       "days_ago": 30,
@@ -74,6 +160,22 @@
       "price": "720.00",
       "days_ago": 30,
       "order_ref": "dev-plan-0-mu"
+    },
+    {
+      "conid": 755000001,
+      "side": "BUY",
+      "quantity": "3",
+      "price": "1100.00",
+      "days_ago": 25,
+      "order_ref": null
+    },
+    {
+      "conid": 755000001,
+      "side": "SELL",
+      "quantity": "3",
+      "price": "1250.00",
+      "days_ago": 15,
+      "order_ref": null
     },
     {
       "conid": 9939,

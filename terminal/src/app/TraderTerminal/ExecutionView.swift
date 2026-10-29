@@ -63,13 +63,13 @@ struct HistoryView: View {
                         Text("No closed positions yet — a position lands here once all its shares are sold.")
                             .foregroundStyle(.secondary)
                     } else {
-                        // One card per ticker (newest closed first); a ticker closed more than once keeps its
-                        // positions together in its card.
-                        let order = report.closed.map(\.conid).reduce(into: [Int]()) { if !$0.contains($1) { $0.append($1) } }
-                        ForEach(order, id: \.self) { conid in
-                            StretchOrScroll {
-                                ExecutionTable(rows: report.closed.filter { $0.conid == conid }, total: nil,
-                                               base: report.baseCurrency)
+                        // One card per closed position, the latest closed first. One container for all of them:
+                        // every card has the same width, stretching with the window or scrolling together.
+                        StretchOrScroll {
+                            VStack(alignment: .leading, spacing: 18) {
+                                ForEach(report.closed) { position in
+                                    ExecutionTable(rows: [position], total: nil, base: report.baseCurrency)
+                                }
                             }
                         }
                     }
@@ -126,24 +126,26 @@ struct ExecutionTable: View {
             }
         }
         .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)  // every card as wide as the window
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
     }
 
     /// The ticker is the table's title, in the first column next to the column names.
     private func tickerHeader(_ row: ExecutionRow) -> some View {
         GridRow(alignment: .lastTextBaseline) {
+            // Fixed column widths: every card (History has one per position) lines up the same.
             HStack(spacing: 8) {
                 Text(row.symbol).font(.headline)
                 if let closed = row.closedAt {
                     Text("Closed \(Format.day(closed))").font(.caption).foregroundStyle(.secondary)
                 }
             }
+            .frame(width: 180, alignment: .leading)
             Color.clear.frame(maxWidth: .infinity, maxHeight: 0)  // stretches: numbers sit on the right
-            // Minimum widths keep the columns still while live numbers change length (more digits, sign).
-            ForEach([("Quantity", 60.0), ("Price", 110.0), ("Cost / Value", 120.0),
-                     ("Expected / Actual return", 210.0)], id: \.0) { title, width in
+            ForEach([("Quantity", 60.0), ("Price", 120.0), ("Cost / Value", 130.0),
+                     ("Expected / Actual return", 240.0)], id: \.0) { title, width in
                 Text(title).font(.caption).foregroundStyle(.secondary)
-                    .frame(minWidth: width, alignment: .trailing)
+                    .frame(width: width, alignment: .trailing)
                     .gridColumnAlignment(.trailing)
             }
         }
@@ -176,7 +178,7 @@ struct ExecutionTable: View {
             Text(Format.quantity(purchase.quantity)).gridColumnAlignment(.trailing)
             Text(Format.money(purchase.price, row.currency)).gridColumnAlignment(.trailing)
             Text(Format.money(purchase.cost, base)).gridColumnAlignment(.trailing)
-            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+            Text("")  // not Color.clear: a flexible cell here threw the card's column widths off
         }
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -332,6 +334,7 @@ struct TradesTable: View {
                 }
                 .fontWeight(.semibold)
                 .monospacedDigit()
+                .fixedSize(horizontal: true, vertical: false)  // every cell: never cut short ("…")
             }
         }
         .lineLimit(1)  // every cell on one line
@@ -387,6 +390,7 @@ struct TradesTable: View {
             }
         }
         .monospacedDigit()
+        .fixedSize(horizontal: true, vertical: false)  // every cell: never cut short ("…")
     }
 
     /// All sales of the ticker together: shares, average purchase price, cost, average sell price, proceeds,
@@ -413,6 +417,7 @@ struct TradesTable: View {
                        color: Format.color(Amount(profit)))
         }
         .monospacedDigit()
+        .fixedSize(horizontal: true, vertical: false)  // every cell: never cut short ("…")
     }
 
     /// Shares still held — one buy, or all of them together (summary) above their sub-rows: weight (on the
@@ -445,6 +450,7 @@ struct TradesTable: View {
                        color: Format.color(profit.map(Amount.init)).opacity(0.4))  // not realized: muted
         }
         .monospacedDigit()
+        .fixedSize(horizontal: true, vertical: false)  // every cell: never cut short ("…")
     }
 
     /// Value = proceeds of the sales + active shares at the live price.
@@ -473,6 +479,7 @@ struct TradesTable: View {
         }
         .fontWeight(.semibold)
         .monospacedDigit()
+        .fixedSize(horizontal: true, vertical: false)  // every cell: never cut short ("…")
     }
 }
 

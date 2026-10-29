@@ -10,6 +10,7 @@ struct StretchOrScroll<Content: View>: View {
         ScrollView(.horizontal) {
             AtLeastWidth(width: width) { content }
         }
+        .defaultScrollAnchor(.leading)  // start at the left edge, not wherever the content's width settled
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 }

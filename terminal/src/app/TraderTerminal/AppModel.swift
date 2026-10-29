@@ -29,8 +29,8 @@ final class AppModel {
     private(set) var quotes: [String: Quote] = [:]
     /// T8 planner rows: scratchpad, kept in memory only (D8.2).
     private(set) var planRows: [PlanRow] = []
-    /// Main window tab (Overview / Planner / Execution). Debug + fake opens on the Planner.
-    var mainSection: MainSection = .overview
+    /// Main window tab (Overview / Planner / Execution / History).
+    var mainSection: MainSection = .execution  // the app opens on Execution
     var planQuantityText: [UUID: String] = [:]
     /// Planned volume per row in thousands of base currency (D8.5); fills the quantity once a price is known.
     var planVolumeText: [UUID: String] = [:]

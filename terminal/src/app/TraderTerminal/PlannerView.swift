@@ -56,6 +56,7 @@ struct PlannerView: View {
                             .help(holding.isApproximate ? "No live price yet: cost basis used" : "")
                         }
                         .monospacedDigit()
+                        .fixedSize(horizontal: true, vertical: false)  // never wrapped or cut: the table scrolls instead
                     }
                     totalRow("Holdings", nil, plan.holdingsTotal, base, sign: "−",
                              weight: plan.holdingsTotal > 0 ? 100 : nil)
@@ -156,6 +157,7 @@ struct PlannerView: View {
                 .gridColumnAlignment(.trailing)
         }
         .font(emphasis == .large ? .title3.weight(.semibold) : emphasis == .bold ? .body.weight(.semibold) : .body)
+        .fixedSize(horizontal: true, vertical: false)  // never wrapped or cut: the table scrolls instead
     }
 
     private func sectionHeader(_ title: String, columns: [String]) -> some View {
@@ -164,6 +166,7 @@ struct PlannerView: View {
             ForEach(columns.indices, id: \.self) { Text(columns[$0]).font(.caption).foregroundStyle(.secondary) }
         }
         .padding(.top, 12)
+        .fixedSize(horizontal: true, vertical: false)  // never wrapped or cut: the table scrolls instead
     }
 
     private func plannedRow(_ item: PlannerSummary.Planned, base: String, weight: Decimal?) -> some View {
@@ -217,6 +220,7 @@ struct PlannerView: View {
                 .gridColumnAlignment(.trailing)
         }
         .monospacedDigit()
+        .fixedSize(horizontal: true, vertical: false)  // never wrapped or cut: the table scrolls instead
     }
 
     private var addTicker: some View {
