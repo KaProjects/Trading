@@ -63,14 +63,10 @@ struct HistoryView: View {
                         Text("No closed positions yet — a position lands here once all its shares are sold.")
                             .foregroundStyle(.secondary)
                     } else {
-                        // One card per closed position, the latest closed first. One container for all of them:
-                        // every card has the same width, stretching with the window or scrolling together.
+                        // Every closed position in one table (latest closed first), separated by lines like the
+                        // tickers in Execution: the columns line up without fixed widths.
                         StretchOrScroll {
-                            VStack(alignment: .leading, spacing: 18) {
-                                ForEach(report.closed) { position in
-                                    ExecutionTable(rows: [position], total: nil, base: report.baseCurrency)
-                                }
-                            }
+                            TradesTable(rows: report.closed, total: nil, base: report.baseCurrency, history: true)
                         }
                     }
                 } else {
@@ -81,177 +77,6 @@ struct HistoryView: View {
         }
         .opacity(isLive ? 1 : 0.55)
         .task { await model.keepRefreshingExecution() }
-    }
-}
-
-/// A small table per ticker (the ticker is its title). Purchase is fixed (bought, purchase price, cost, expected
-/// return for information), with a sub-row per buy when there were several; Execution sums up what was sold or
-/// is still active, with small Sold / Active sub-rows when there is more than one.
-struct ExecutionTable: View {
-    let rows: [ExecutionRow]
-    let total: ExecutionTotal?
-    let base: String
-
-    var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 6) {
-            ForEach(rows) { row in
-                tickerHeader(row)
-                purchaseRow(row)
-                if row.purchases.count > 1 {
-                    ForEach(row.purchases) { purchase in
-                        purchaseLine(purchase, row: row)
-                    }
-                }
-                executionRow(row)
-                if row.lines.count > 1 {
-                    ForEach(row.lines) { line in
-                        lineRow(line, row: row)
-                    }
-                }
-                Color.clear.frame(height: 6).gridCellUnsizedAxes(.horizontal)  // space between tickers
-            }
-            if let total {
-                Divider()
-                GridRow(alignment: .top) {
-                    Text("Total")
-                    Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]).gridCellColumns(2)
-                    Text(Format.money(total.cost, base)).gridColumnAlignment(.trailing)
-                    Text(total.value.map { Format.money($0, base) } ?? "—").gridColumnAlignment(.trailing)
-                    ReturnText(amount: total.profit.map { Format.signedMoney($0, base) },
-                               percent: total.returnPct.map { Format.signedPercent($0) },
-                               color: Format.color(total.profit))
-                }
-                .fontWeight(.semibold)
-                .monospacedDigit()
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)  // every card as wide as the window
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
-    }
-
-    /// The ticker is the table's title, in the first column next to the column names.
-    private func tickerHeader(_ row: ExecutionRow) -> some View {
-        GridRow(alignment: .lastTextBaseline) {
-            // Fixed column widths: every card (History has one per position) lines up the same.
-            HStack(spacing: 8) {
-                Text(row.symbol).font(.headline)
-                if let closed = row.closedAt {
-                    Text("Closed \(Format.day(closed))").font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 180, alignment: .leading)
-            Color.clear.frame(maxWidth: .infinity, maxHeight: 0)  // stretches: numbers sit on the right
-            ForEach([("Quantity", 60.0), ("Price", 120.0), ("Cost / Value", 130.0),
-                     ("Expected / Actual return", 240.0)], id: \.0) { title, width in
-                Text(title).font(.caption).foregroundStyle(.secondary)
-                    .frame(width: width, alignment: .trailing)
-                    .gridColumnAlignment(.trailing)
-            }
-        }
-    }
-
-    /// Fixed at purchase; the expected return only for information. One buy: its date in brackets.
-    private func purchaseRow(_ row: ExecutionRow) -> some View {
-        GridRow(alignment: .top) {
-            HStack(spacing: 6) {
-                Text("Purchase")
-                if row.purchases.count == 1, let time = row.purchases.first?.time {
-                    Text("(\(Format.day(time)))").foregroundStyle(.secondary)
-                }
-            }
-            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-            Text(Format.quantity(row.bought)).gridColumnAlignment(.trailing)
-            Text(row.avgPrice.map { Format.money($0, row.currency) } ?? "—").gridColumnAlignment(.trailing)
-            Text(Format.money(row.cost, base)).gridColumnAlignment(.trailing)
-            ReturnText(amount: row.expectedProfit.map { Format.money($0, base) },
-                       percent: row.expectedReturnPct.map { Format.percent($0) }, color: .secondary)
-        }
-        .monospacedDigit()
-    }
-
-    /// One buy of several: its date, shares, average fill price and cost.
-    private func purchaseLine(_ purchase: Purchase, row: ExecutionRow) -> some View {
-        GridRow(alignment: .top) {
-            Text(purchase.time.map { "Bought \(Format.day($0))" } ?? "Held before").padding(.leading, 14)
-            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-            Text(Format.quantity(purchase.quantity)).gridColumnAlignment(.trailing)
-            Text(Format.money(purchase.price, row.currency)).gridColumnAlignment(.trailing)
-            Text(Format.money(purchase.cost, base)).gridColumnAlignment(.trailing)
-            Text("")  // not Color.clear: a flexible cell here threw the card's column widths off
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .padding(.top, -4)  // closer together, and closer to Purchase
-        .monospacedDigit()
-    }
-
-    /// Everything bought, sold or still held, together: average price, value, actual return. With a single
-    /// line (all held, or all sold at once) it says which and has no sub-rows.
-    private func executionRow(_ row: ExecutionRow) -> some View {
-        let shares = row.lines.reduce(Decimal(0)) { $0 + $1.quantity.value }
-        let average = averagePrice(row)
-        let value = executedValue(row)
-        return GridRow(alignment: .top) {
-            HStack(spacing: 6) {
-                Text("Execution")
-                if row.lines.count == 1, let line = row.lines.first {
-                    HStack(spacing: 0) {
-                        Text("(")
-                        lineLabel(line)
-                        Text(")")
-                    }
-                    .foregroundStyle(.secondary)
-                }
-            }
-            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-            Text(Format.quantity(Amount(shares))).gridColumnAlignment(.trailing)
-            Text(average.map { Format.money(Amount($0), row.currency) } ?? "—").gridColumnAlignment(.trailing)
-            Text(value.map { Format.money(Amount($0), base) } ?? "—").gridColumnAlignment(.trailing)
-            ReturnText(amount: row.profit.map { Format.signedMoney($0, base) },
-                       percent: row.returnPct.map { Format.signedPercent($0) }, color: Format.color(row.profit))
-        }
-        .fontWeight(.semibold)
-        .monospacedDigit()
-    }
-
-    /// Average of the sell prices and the live price, weighted by shares; nil while a price is missing.
-    private func averagePrice(_ row: ExecutionRow) -> Decimal? {
-        let shares = row.lines.reduce(Decimal(0)) { $0 + $1.quantity.value }
-        guard shares > 0, row.lines.allSatisfy({ $0.price != nil }) else { return nil }
-        return row.lines.reduce(Decimal(0)) { $0 + $1.quantity.value * $1.price!.value } / shares
-    }
-
-    /// Proceeds of the sales plus the market value of what is held.
-    private func executedValue(_ row: ExecutionRow) -> Decimal? {
-        guard !row.lines.isEmpty, row.lines.allSatisfy({ $0.value != nil }) else { return nil }
-        return row.lines.reduce(Decimal(0)) { $0 + $1.value!.value }
-    }
-
-    /// Part of the execution: the shares still held (live price) or one sale (its sell price).
-    private func lineRow(_ line: ExecutionLine, row: ExecutionRow) -> some View {
-        GridRow(alignment: .top) {
-            lineLabel(line).padding(.leading, 14)
-            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-            Text(Format.quantity(line.quantity)).gridColumnAlignment(.trailing)
-            Text(line.price.map { Format.money($0, row.currency) } ?? "—").gridColumnAlignment(.trailing)
-            Text(line.value.map { Format.money($0, base) } ?? "—").gridColumnAlignment(.trailing)
-            ReturnText(amount: line.profit.map { Format.signedMoney($0, base) },
-                       percent: line.returnPct.map { Format.signedPercent($0) }, color: Format.color(line.profit))
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .padding(.top, -4)  // closer together, and closer to Execution
-        .monospacedDigit()
-    }
-
-    private func lineLabel(_ line: ExecutionLine) -> some View {
-        HStack(spacing: 6) {
-            Text(line.isHeld ? "Active" : "Sold")
-            if let time = line.time {
-                Text(Format.day(time)).foregroundStyle(.secondary)
-            }
-        }
     }
 }
 
@@ -272,15 +97,17 @@ private struct ReturnText: View {
     }
 }
 
-/// T12 Execution tab: per ticker one row per buy and, once sold, its sale — the quantity is the same on both
-/// sides (FIFO: sold rows first, then the active ones, whose sell columns stay empty). The ticker's total row
-/// shows the active shares, the current value and the return, with the expected return under it.
+/// T12 Execution and History tables: per ticker its buys paired with the sales their shares went into (FIFO) —
+/// Sold (sum, sales as sub-rows), Active (weight, live price, value, unrealized return; buys as sub-rows) and the
+/// ticker's whole return. History shows a closed position's sales only.
 struct TradesTable: View {
     let rows: [ExecutionRow]
     let total: ExecutionTotal?
     let base: String
     /// Tick boxes and a Sell button per ticker (nil while a sell review is open).
     var selling: AppModel?
+    /// History: closed positions — their sales only (no weight, Active or ticker total).
+    var history = false
 
     /// Share of the active shares' value in the value of all positions (as the Planner's weight).
     private func weight(_ row: ExecutionRow) -> Decimal? {
@@ -295,19 +122,27 @@ struct TradesTable: View {
 
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
+            // Spans every column: extra width is shared by all of them (even with a single ticker, no line below).
+            GridRow { Color.clear.frame(maxWidth: .infinity, maxHeight: 0).gridCellColumns(history ? 9 : 10) }
             ForEach(rows) { row in
                 if row.id != rows.first?.id { Divider().padding(.vertical, 4) }  // between tickers, as above Total
                 header(row)
                 let sold = row.trades.filter { $0.soldAt != nil }
-                if sold.count > 1 {
-                    soldSummary(sold, row: row).font(Self.summaryFont)
+                if history && !sold.isEmpty {
+                    // A closed position: its sales, then their sum as the Total below them (with the expected return).
+                    ForEach(sold) { trade in
+                        tradeRow(trade, row: row).font(.caption).foregroundStyle(.secondary).padding(.top, -4)
+                    }
+                    soldSummary(sold, row: row, label: "Total").font(Self.summaryFont)
+                } else if sold.count > 1 {
+                    soldSummary(sold, row: row, label: "Sold").font(Self.summaryFont)
                     ForEach(sold) { trade in
                         tradeRow(trade, row: row).font(.caption).foregroundStyle(.secondary).padding(.top, -4)
                     }
                 } else if let trade = sold.first {
                     tradeRow(trade, row: row)
                 }
-                let active = row.trades.filter { $0.soldAt == nil }
+                let active = history ? [] : row.trades.filter { $0.soldAt == nil }
                 if active.count > 1 {
                     activeRow(active, row: row, summary: true, own: true, weight: weight(row)).font(Self.summaryFont)
                     ForEach(active) { trade in
@@ -317,15 +152,17 @@ struct TradesTable: View {
                 } else if !active.isEmpty {
                     activeRow(active, row: row, summary: false, own: true, weight: weight(row))
                 }
-                GridRow {  // a double line above the ticker's total return
-                    Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]).gridCellColumns(9)
-                    VStack(spacing: 2) { Divider(); Divider() }
+                if !history {
+                    GridRow {  // a double line above the ticker's total return
+                        Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]).gridCellColumns(9)
+                        VStack(spacing: 2) { Divider(); Divider() }
+                    }
+                    tickerTotal(row).font(Self.summaryFont)
                 }
-                tickerTotal(row).font(Self.summaryFont)
             }
             if let total {
                 Divider()
-                // As in the log above: the Active rows added up (weight, value, unrealized return, muted) …
+                // The Active rows added up (weight, value, unrealized return, muted) …
                 let held = rows.compactMap { $0.lines.first(where: \.isHeld) }
                 let values = held.map(\.value)
                 let value: Decimal? = values.contains { $0 == nil } ? nil : values.reduce(Decimal(0)) { $0 + $1!.value }
@@ -374,6 +211,9 @@ struct TradesTable: View {
                         .toggleStyle(.checkbox).labelsHidden()
                 }
                 Text(row.symbol).font(.headline)
+                if let closed = row.closedAt {
+                    Text("Closed \(Format.day(closed))").font(.caption).foregroundStyle(.secondary)
+                }
                 if let model = selling {
                     Button("Sell") { model.openSell([row.conid]) }
                         .controlSize(.small)
@@ -382,8 +222,10 @@ struct TradesTable: View {
             }
             .fixedSize()  // ticker, tick box and Sell on one line
             // Columns as wide as their content: the same gap between all of them.
-            ForEach(["Weight", "Quantity", "Bought", "Purchase price", "Cost", "Sold", "Sell / Current price", "Value",
-                     "Realized / Unrealized return"], id: \.self) { title in
+            ForEach(history ? ["Quantity", "Bought", "Purchase price", "Cost", "Sold", "Sell price", "Value",
+                               "Realized return"]
+                            : ["Weight", "Quantity", "Bought", "Purchase price", "Cost", "Sold", "Sell / Current price",
+                               "Value", "Realized / Unrealized return"], id: \.self) { title in
                 Text(title).font(.caption).foregroundStyle(.secondary)
                     .fixedSize()
                     .gridColumnAlignment(.trailing)
@@ -394,7 +236,7 @@ struct TradesTable: View {
     private func tradeRow(_ trade: ExecutionTrade, row: ExecutionRow) -> some View {
         GridRow(alignment: .top) {
             Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+            if !history { Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]) }  // weight
             Text(Format.quantity(trade.quantity))
             Text(trade.boughtAt.map(Format.day) ?? "Before").foregroundStyle(.secondary)
             Text(Format.money(trade.buyPrice, row.currency))
@@ -415,7 +257,7 @@ struct TradesTable: View {
 
     /// All sales of the ticker together: shares, average purchase price, cost, average sell price, proceeds,
     /// return. The sales themselves follow as small sub-rows.
-    private func soldSummary(_ sold: [ExecutionTrade], row: ExecutionRow) -> some View {
+    private func soldSummary(_ sold: [ExecutionTrade], row: ExecutionRow, label: String) -> some View {
         let shares = sold.reduce(Decimal(0)) { $0 + $1.quantity.value }
         let cost = sold.reduce(Decimal(0)) { $0 + $1.cost.value }
         let value = sold.reduce(Decimal(0)) { $0 + ($1.value?.value ?? 0) }
@@ -423,8 +265,8 @@ struct TradesTable: View {
         let sell = sold.reduce(Decimal(0)) { $0 + $1.quantity.value * ($1.sellPrice?.value ?? 0) } / shares
         let profit = value - cost
         return GridRow(alignment: .top) {
-            Text("Sold")
-            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+            Text(label)
+            if !history { Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]) }  // weight
             Text(Format.quantity(Amount(shares)))
             Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
             Text(Format.money(Amount(buy), row.currency))
@@ -432,9 +274,16 @@ struct TradesTable: View {
             Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
             Text(Format.money(Amount(sell), row.currency))
             Text(Format.money(Amount(value), base))
-            ReturnText(amount: Format.signedMoney(Amount(profit), base),
-                       percent: cost > 0 ? Format.signedPercent(Amount(profit / cost * 100)) : nil,
-                       color: Format.color(Amount(profit)))
+            VStack(alignment: .trailing, spacing: 1) {
+                ReturnText(amount: Format.signedMoney(Amount(profit), base),
+                           percent: cost > 0 ? Format.signedPercent(Amount(profit / cost * 100)) : nil,
+                           color: Format.color(Amount(profit)))
+                if history, let expected = row.expectedProfit, let percent = row.expectedReturnPct {
+                    Text("Expected \(Format.money(expected, base)) (\(Format.percent(percent)))")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                if history { deltaText(row) }
+            }
         }
         .monospacedDigit()
         .fixedSize(horizontal: true, vertical: false)  // every cell: never cut short ("…")
@@ -473,6 +322,19 @@ struct TradesTable: View {
         }
         .monospacedDigit()
         .fixedSize(horizontal: true, vertical: false)  // every cell: never cut short ("…")
+    }
+
+    /// History: Delta = actual return − expected return, in money and percentage points; muted green / red, small
+    /// like the expected line above it.
+    @ViewBuilder
+    private func deltaText(_ row: ExecutionRow) -> some View {
+        if let difference = row.difference {
+            let points = row.returnPct.flatMap { actual in row.expectedReturnPct.map { actual.value - $0.value } }
+            Text("Delta \(Format.signedMoney(difference, base))"
+                 + (points.map { " (\(Format.signedPercent(Amount($0))))" } ?? ""))
+                .font(.caption)
+                .foregroundStyle(Format.color(difference).opacity(0.4))  // muted, like unrealized returns
+        }
     }
 
     /// The ticker's whole return (realized + unrealized) with the expected return under it; nothing else.
