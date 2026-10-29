@@ -67,7 +67,17 @@ def load_seed() -> dict:
 def with_dev_plan(seed: dict) -> tuple[dict, list[dict]]:
     """Dev data (--dev-plan): the seed plus the executed plans' positions and fills, and the plan records."""
     dev = json.loads(resources.files("trader_service.fixtures").joinpath("fake_dev_plan.json").read_text())
-    merged = {**seed, "positions": seed["positions"] + dev["positions"], "fills": seed["fills"] + dev["fills"]}
+    # A ticker in both (e.g. NVDA with the seed transactions on) becomes one position: quantities added.
+    positions = {p["conid"]: dict(p) for p in seed["positions"]}
+    for p in dev["positions"]:
+        if p["conid"] in positions:
+            have = positions[p["conid"]]
+            quantity = Decimal(have["quantity"]) + Decimal(p["quantity"])
+            cost = Decimal(have["quantity"]) * Decimal(have["avg_cost"]) + Decimal(p["quantity"]) * Decimal(p["avg_cost"])
+            have.update(quantity=str(quantity), avg_cost=str((cost / quantity).quantize(Decimal("0.01"))))
+        else:
+            positions[p["conid"]] = dict(p)
+    merged = {**seed, "positions": list(positions.values()), "fills": seed["fills"] + dev["fills"]}
     plans = []
     for raw in dev["plans"]:
         placed = (datetime.now(UTC) - timedelta(days=raw["days_ago"])).isoformat()

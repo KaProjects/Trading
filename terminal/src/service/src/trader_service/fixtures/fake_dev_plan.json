@@ -1,5 +1,5 @@
 {
-  "_note": "Dev data (fake environment, --dev-plan): SNDK + MU traded and sold out twice (History: about three months ago, and a month ago by a plan), then bought and sold again in several steps, including yesterday's plan (Execution).",
+  "_note": "Dev data (fake environment, --dev-plan): SNDK + MU traded and sold out twice (History: about three months ago, and a month ago by a plan), then bought and sold again in several steps, including yesterday's plan (Execution); NVDA bought three times and never sold (Execution).",
   "plans": [
     {
       "id": "dev-plan-old",
@@ -64,6 +64,14 @@
           "order_ref": "dev-plan-1-mu",
           "planned_quantity": "10",
           "expected_return_pct": "20"
+        },
+        {
+          "conid": 4815747,
+          "symbol": "NVDA",
+          "currency": "USD",
+          "order_ref": "dev-plan-1-nvda",
+          "planned_quantity": "10",
+          "expected_return_pct": "25"
         }
       ]
     }
@@ -78,6 +86,11 @@
       "conid": 9939,
       "quantity": "12",
       "avg_cost": "865.00"
+    },
+    {
+      "conid": 4815747,
+      "quantity": "45",
+      "avg_cost": "129.94"
     }
   ],
   "fills": [
@@ -170,6 +183,14 @@
       "order_ref": null
     },
     {
+      "conid": 9939,
+      "side": "SELL",
+      "quantity": "8",
+      "price": "800.00",
+      "days_ago": 20,
+      "order_ref": null
+    },
+    {
       "conid": 755000001,
       "side": "SELL",
       "quantity": "3",
@@ -178,11 +199,11 @@
       "order_ref": null
     },
     {
-      "conid": 9939,
-      "side": "SELL",
-      "quantity": "8",
-      "price": "800.00",
-      "days_ago": 20,
+      "conid": 4815747,
+      "side": "BUY",
+      "quantity": "20",
+      "price": "125.00",
+      "days_ago": 14,
       "order_ref": null
     },
     {
@@ -242,6 +263,14 @@
       "order_ref": null
     },
     {
+      "conid": 4815747,
+      "side": "BUY",
+      "quantity": "15",
+      "price": "132.50",
+      "days_ago": 4,
+      "order_ref": null
+    },
+    {
       "conid": 755000001,
       "side": "BUY",
       "quantity": "10",
@@ -256,6 +285,14 @@
       "price": "880.00",
       "days_ago": 1,
       "order_ref": "dev-plan-1-mu"
+    },
+    {
+      "conid": 4815747,
+      "side": "BUY",
+      "quantity": "10",
+      "price": "136.00",
+      "days_ago": 1,
+      "order_ref": "dev-plan-1-nvda"
     },
     {
       "conid": 755000001,

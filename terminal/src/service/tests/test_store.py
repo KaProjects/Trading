@@ -191,7 +191,7 @@ async def test_dev_plan_seed_shows_open_and_closed_positions(bus, tmp_path):
     store.unlock(KEY)
     report = execution_report([PlanRecord(**p) for p in store.plans()], store.all_fills(), broker.positions(), "USD",
                               lambda c: prices.last(broker.contract(c).price_symbol).last, broker.fx_rate,
-                              {c: (broker.contract(c).symbol, "USD") for c in (9939, 755000001)})
+                              {c: (broker.contract(c).symbol, "USD") for c in (9939, 755000001, 4815747)})
     sndk, mu = (next(r for r in report.positions if r.symbol == s) for s in ("SNDK", "MU"))
     assert (sndk.bought, sndk.held, sndk.expected_return_pct, len(sndk.purchases)) == (24, 14, 20, 3)
     assert (mu.bought, mu.held, mu.expected_return_pct) == (22, 12, 20)
@@ -206,5 +206,7 @@ async def test_dev_plan_seed_shows_open_and_closed_positions(bus, tmp_path):
     assert (first_mu.bought, first_mu.expected_return_pct, len(first_mu.purchases)) == (25, 25, 2)
     assert [(l.kind, l.quantity, l.price) for l in old_mu.lines] == [("sold", 8, 800), ("sold", 7, 860)]
     assert old_mu.difference == old_mu.profit - old_mu.expected_profit
+    nvda = next(r for r in report.positions if r.symbol == "NVDA")  # seed holding + three dev buys, nothing sold since
+    assert nvda.expected_return_pct == 25 and {20, 15, 10} <= {p.quantity for p in nvda.purchases}
     await store.stop()
     await broker.stop()
