@@ -257,6 +257,20 @@ class Purchase(BaseModel):
     cost: Decimal                   # base currency
 
 
+class ExecutionTrade(BaseModel):
+    """Shares of one buy order and, if sold, the sale they went into (FIFO): a buy partly sold is two trades,
+    a sale taking shares from two buys is two trades."""
+    bought_at: datetime | None      # None = shares held before the recorded history
+    quantity: Decimal
+    buy_price: Decimal              # contract currency
+    cost: Decimal                   # base currency
+    sold_at: datetime | None = None     # None = still active
+    sell_price: Decimal | None = None   # contract currency
+    value: Decimal | None = None        # proceeds, base currency
+    profit: Decimal | None = None
+    return_pct: Decimal | None = None
+
+
 class ExecutionRow(BaseModel):
     """T12: one position of a ticker, from its first buy until sold down to 0."""
     conid: int
@@ -277,6 +291,7 @@ class ExecutionRow(BaseModel):
     difference: Decimal | None = None   # profit - expected profit
     purchases: list[Purchase] = []      # oldest first
     lines: list[ExecutionLine] = []     # sold lines oldest first, then the held line
+    trades: list[ExecutionTrade] = []   # FIFO: sold ones first, then the active ones
     closed_at: datetime | None = None   # last sale of a closed position
 
 

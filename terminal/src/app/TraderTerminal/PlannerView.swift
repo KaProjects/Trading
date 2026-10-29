@@ -15,79 +15,84 @@ struct PlannerView: View {
                                        orders: snapshot.orders, quotes: model.quotes, rows: model.effectivePlanRows)
         let base = plan.baseCurrency
         ScrollView {
-            // 8 columns: name | exp. volume | exp. return | exp. profit | weight | quantity | price | cost / market value
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
-                totalRow("Account value", "if everything were sold", plan.accountValue, base, emphasis: .large)
+            // Stretches with the window; scrolls sideways when the window is narrower than the columns need.
+            StretchOrScroll {
+                // 8 columns: name | exp. volume | exp. return | exp. profit | weight | quantity | price | cost / market value
+                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
+                    totalRow("Account value", "if everything were sold", plan.accountValue, base, emphasis: .large)
 
-                // Holdings: weight · quantity · price · market value — the same last four columns as the plan.
-                sectionHeader("Holdings", columns: ["", "", "", "Weight", "Quantity", "Price", "Market value"])
-                // Positions bought by this plan go last, below a separator, until Finish.
-                let newConids = model.basket.newlyBoughtConids
-                let existing = plan.holdings.filter { !newConids.contains($0.position.contract.conid) }
-                let bought = plan.holdings.filter { newConids.contains($0.position.contract.conid) }
-                ForEach(existing + bought) { holding in
-                    let currency = holding.position.contract.currency
-                    if holding.id == bought.first?.id {
+                    // Holdings: weight · quantity · price · market value — the same last four columns as the plan.
+                    sectionHeader("Holdings", columns: ["", "", "", "Weight", "Quantity", "Price", "Market value"])
+                    // Positions bought by this plan go last, below a separator, until Finish.
+                    let newConids = model.basket.newlyBoughtConids
+                    let existing = plan.holdings.filter { !newConids.contains($0.position.contract.conid) }
+                    let bought = plan.holdings.filter { newConids.contains($0.position.contract.conid) }
+                    ForEach(existing + bought) { holding in
+                        let currency = holding.position.contract.currency
+                        if holding.id == bought.first?.id {
+                            GridRow {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Divider()
+                                    Text("Bought by this plan").font(.caption).foregroundStyle(.secondary)
+                                }
+                                .gridCellColumns(8)
+                            }
+                        }
+                        GridRow(alignment: .firstTextBaseline) {
+                            Text(holding.position.contract.symbol).fontWeight(.semibold)
+                            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]).gridCellColumns(3)
+                            WeightText(value: plan.weight(of: holding))
+                            Text(Format.quantity(holding.position.quantity)).gridColumnAlignment(.trailing)
+                            Text(holding.quote.map { Format.money($0.last, currency) } ?? "—").gridColumnAlignment(.trailing)
+                            // USD (base) value; a foreign listing (edge case) shows its own currency below in brackets.
+                            VStack(alignment: .trailing, spacing: 0) {
+                                Text((holding.isApproximate ? "≈ " : "") + Format.money(Amount(holding.marketValueBase), base))
+                                if currency != base {
+                                    Text("(\(Format.money(Amount(holding.marketValue), currency)))")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            .gridColumnAlignment(.trailing)
+                            .help(holding.isApproximate ? "No live price yet: cost basis used" : "")
+                        }
+                        .monospacedDigit()
+                    }
+                    totalRow("Holdings", nil, plan.holdingsTotal, base, sign: "−",
+                             weight: plan.holdingsTotal > 0 ? 100 : nil)
+                    Divider()
+                    totalRow("Cash", "account value − holdings", plan.cash, base, sign: "=")
+                    totalRow("Reserved by open buy orders", nil, plan.reservedByOpenBuys, base, sign: "−")
+                    totalRow("Available to invest", nil, plan.available, base, sign: "=", emphasis: .bold)
+
+                    sectionHeader("Planned purchases",
+                                  columns: ["Exp. volume", "Exp. return", "Exp. profit", "Weight", "Quantity", "Price", "Cost"])
+                    ForEach(plan.planned) { item in
+                        plannedRow(item, base: base, weight: plan.weight(of: item))
+                    }
+                    let expected = PlanReturn.total(plan.planned.map { ($0.costBase, model.planReturnPercent($0.row.id)) })
+                    if !model.basket.isFrozen {
                         GridRow {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Divider()
-                                Text("Bought by this plan").font(.caption).foregroundStyle(.secondary)
-                            }
-                            .gridCellColumns(8)
+                            addTicker.gridCellColumns(8)
                         }
                     }
-                    GridRow(alignment: .firstTextBaseline) {
-                        Text(holding.position.contract.symbol).fontWeight(.semibold)
-                        Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]).gridCellColumns(3)
-                        WeightText(value: plan.weight(of: holding))
-                        Text(Format.quantity(holding.position.quantity)).gridColumnAlignment(.trailing)
-                        Text(holding.quote.map { Format.money($0.last, currency) } ?? "—").gridColumnAlignment(.trailing)
-                        // USD (base) value; a foreign listing (edge case) shows its own currency below in brackets.
-                        VStack(alignment: .trailing, spacing: 0) {
-                            Text((holding.isApproximate ? "≈ " : "") + Format.money(Amount(holding.marketValueBase), base))
-                            if currency != base {
-                                Text("(\(Format.money(Amount(holding.marketValue), currency)))")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                        .gridColumnAlignment(.trailing)
-                        .help(holding.isApproximate ? "No live price yet: cost basis used" : "")
-                    }
-                    .monospacedDigit()
-                }
-                totalRow("Holdings", nil, plan.holdingsTotal, base, sign: "−",
-                         weight: plan.holdingsTotal > 0 ? 100 : nil)
-                Divider()
-                totalRow("Cash", "account value − holdings", plan.cash, base, sign: "=")
-                totalRow("Reserved by open buy orders", nil, plan.reservedByOpenBuys, base, sign: "−")
-                totalRow("Available to invest", nil, plan.available, base, sign: "=", emphasis: .bold)
-
-                sectionHeader("Planned purchases",
-                              columns: ["Exp. volume", "Exp. return", "Exp. profit", "Weight", "Quantity", "Price", "Cost"])
-                ForEach(plan.planned) { item in
-                    plannedRow(item, base: base, weight: plan.weight(of: item))
-                }
-                let expected = PlanReturn.total(plan.planned.map { ($0.costBase, model.planReturnPercent($0.row.id)) })
-                if !model.basket.isFrozen {
+                    totalRow("Planned", "of available to invest", plan.plannedTotal, base, sign: "−", emphasis: .large,
+                             weight: plan.plannedWeight,
+                             profit: expected.map { $0.amount })
+                    Divider()
+                    totalRow("Left after planned purchases", nil, plan.remaining, base, sign: "=",
+                             negativeIsRed: true, weight: plan.remainingWeight)
                     GridRow {
-                        addTicker.gridCellColumns(8)
+                        planActions(plan).gridCellColumns(8)
                     }
                 }
-                totalRow("Planned", "of available to invest", plan.plannedTotal, base, sign: "−", emphasis: .large,
-                         weight: plan.plannedWeight,
-                         profit: expected.map { $0.amount })
-                Divider()
-                totalRow("Left after planned purchases", nil, plan.remaining, base, sign: "=",
-                         negativeIsRed: true, weight: plan.remainingWeight)
-                GridRow {
-                    planActions(plan).gridCellColumns(8)
-                }
+                .padding(20)
             }
-            .padding(20)
             if model.basket.isFrozen {
-                BasketView(model: model, account: snapshot.account, available: plan.available)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
+                StretchOrScroll {
+                    BasketView(model: model, account: snapshot.account, available: plan.available)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
+                }
             }
         }
         .opacity(isLive ? 1 : 0.55)

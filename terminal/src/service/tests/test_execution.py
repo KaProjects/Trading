@@ -42,6 +42,11 @@ def test_one_position_per_ticker_with_purchases_and_latest_expected_return():
     assert nvda.expected_profit == D("452.00") and aapl.expected_return_pct is None
     assert r.total.cost == D("2360.00") and r.total.expected_profit == D("452.00")
     assert r.closed == []
+    # FIFO trades: the 5 sold came from the first order (4 @ 100 + 1 @ 110), the rest is active.
+    sold, active_first, active_second = nvda.trades
+    assert (sold.quantity, sold.buy_price, sold.sell_price, sold.profit) == (5, D("102.00"), 130, D("140.00"))
+    assert (active_first.quantity, active_first.buy_price, active_first.sold_at) == (5, D("110.00"), None)
+    assert (active_second.quantity, active_second.bought_at) == (10, T0 + timedelta(minutes=60))
 
 
 def test_sold_out_position_goes_to_history_and_a_new_buy_starts_fresh():

@@ -193,9 +193,12 @@ async def test_dev_plan_seed_shows_open_and_closed_positions(bus, tmp_path):
                               lambda c: prices.last(broker.contract(c).price_symbol).last, broker.fx_rate,
                               {c: (broker.contract(c).symbol, "USD") for c in (9939, 755000001)})
     sndk, mu = (next(r for r in report.positions if r.symbol == s) for s in ("SNDK", "MU"))
-    assert (sndk.bought, sndk.held, sndk.expected_return_pct) == (10, 5, 20)
-    assert (mu.bought, mu.held, mu.expected_return_pct) == (10, 10, 20)
-    assert [(l.kind, l.quantity) for l in sndk.lines] == [("sold", 5), ("held", 5)]
+    assert (sndk.bought, sndk.held, sndk.expected_return_pct, len(sndk.purchases)) == (24, 14, 20, 3)
+    assert (mu.bought, mu.held, mu.expected_return_pct) == (22, 12, 20)
+    assert [(l.kind, l.quantity) for l in sndk.lines] == [("sold", 5), ("sold", 5), ("held", 14)]
+    # FIFO: the second sale took the rest of the 8 @ 1180 and 2 of the 6 @ 1240.
+    assert [(t.quantity, t.buy_price, t.sell_price) for t in sndk.trades] == [
+        (5, 1180, 1300), (3, 1180, 1395), (2, 1240, 1395), (4, 1240, None), (10, 1325, None)]
     old_sndk, old_mu = (next(r for r in report.closed if r.symbol == s) for s in ("SNDK", "MU"))  # a month ago
     assert (old_sndk.bought, old_sndk.realized, old_sndk.expected_return_pct) == (6, 1440, 25)
     assert [(l.kind, l.quantity, l.price) for l in old_mu.lines] == [("sold", 8, 800), ("sold", 7, 860)]

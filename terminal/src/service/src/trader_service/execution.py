@@ -9,8 +9,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from trader_service.lots import EPOCH, Lot, build_lots
-from trader_service.models import (ExecutionLine, ExecutionReport, ExecutionRow, ExecutionTotal, PlanRecord,
-                                   Position, Purchase)
+from trader_service.models import (ExecutionLine, ExecutionReport, ExecutionRow, ExecutionTotal, ExecutionTrade,
+                                   PlanRecord, Position, Purchase)
 
 CENT = Decimal("0.01")
 
@@ -65,6 +65,35 @@ def _purchases(group: list[Lot], rate: Decimal) -> list[Purchase]:
         purchases.append(Purchase(time=first if lots[0].source == "buy" else None, quantity=quantity,
                                   price=_q(cost / quantity), cost=_q(cost * rate)))
     return sorted(purchases, key=lambda p: p.time or EPOCH)
+
+
+def _trades(group: list[Lot], rate: Decimal) -> list[ExecutionTrade]:
+    """Each buy order's shares per sale (fills of one order and lots of one sale summed), then what is active."""
+    by_order: dict[str, list[Lot]] = {}
+    for lot in group:
+        by_order.setdefault(lot.order or lot.source, []).append(lot)
+    trades = []
+    for lots in by_order.values():
+        bought_at = min(lot.time for lot in lots) if lots[0].source == "buy" else None
+        sold: dict[tuple, list[Decimal]] = {}  # (time, price) -> [shares, purchase cost]
+        for lot in lots:
+            for sale in lot.sales:
+                entry = sold.setdefault((sale.time, sale.price), [Decimal(0), Decimal(0)])
+                entry[0] += sale.quantity
+                entry[1] += sale.quantity * lot.price
+        for (time, price), (quantity, cost_native) in sorted(sold.items(), key=lambda item: item[0][0]):
+            cost, value = cost_native * rate, quantity * price * rate
+            trades.append(ExecutionTrade(bought_at=bought_at, quantity=quantity, buy_price=_q(cost_native / quantity),
+                                         cost=_q(cost), sold_at=time, sell_price=price, value=_q(value),
+                                         profit=_q(value - cost), return_pct=_pct(value - cost, cost)))
+        active = sum((lot.remaining for lot in lots), Decimal(0))
+        if active > 0:
+            cost_native = sum((lot.remaining * lot.price for lot in lots), Decimal(0))
+            trades.append(ExecutionTrade(bought_at=bought_at, quantity=active, buy_price=_q(cost_native / active),
+                                         cost=_q(cost_native * rate)))
+    # FIFO: sold shares are the older ones — sold first (by sale), then the active ones by purchase.
+    sold_first = sorted((t for t in trades if t.sold_at), key=lambda t: (t.sold_at, t.bought_at or EPOCH))
+    return sold_first + sorted((t for t in trades if not t.sold_at), key=lambda t: t.bought_at or EPOCH)
 
 
 def _expected(plans: list[PlanRecord], conid: int, since: datetime, until: datetime | None) \
@@ -124,7 +153,8 @@ def execution_report(plans: list[PlanRecord], fills: list[dict], positions: list
             realized=_q(realized), profit=_q(profit), return_pct=_pct(profit, cost),
             expected_return_pct=expected_pct, expected_from=expected_from, expected_profit=expected_profit,
             difference=_difference(profit, expected_profit), purchases=_purchases(group, rate),
-            lines=_lines(group, price, rate, expected_pct), closed_at=closed_at)
+            lines=_lines(group, price, rate, expected_pct), trades=_trades(group, rate),
+            closed_at=closed_at)
 
     open_rows, closed_rows = [], []
     for conid, ticker_lots in lots.items():

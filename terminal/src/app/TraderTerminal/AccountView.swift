@@ -119,28 +119,34 @@ struct PositionsTable: View {
             TableColumn("Symbol") { (row: PricedPosition) in Text(row.position.contract.symbol).fontWeight(.semibold) }
                 .width(min: 60, ideal: 70)
             TableColumn("Name") { (row: PricedPosition) in Text(row.position.contract.name) }
+                .width(min: 120, ideal: 200)
             TableColumn("Quantity") { (row: PricedPosition) in
                 Text(Format.quantity(row.position.quantity)).monospacedDigit()
             }
+            .width(min: 60, ideal: 80)
             .alignment(.trailing)
             TableColumn("Avg cost") { (row: PricedPosition) in
                 Text(Format.money(row.position.avgCost, row.position.contract.currency)).monospacedDigit()
             }
+            .width(min: 80, ideal: 100)
             .alignment(.trailing)
             TableColumn("Last") { (row: PricedPosition) in
                 Text(row.quote.map { Format.money($0.last, row.position.contract.currency) } ?? "—")
                     .monospacedDigit()
             }
+            .width(min: 80, ideal: 100)
             .alignment(.trailing)
             TableColumn("Day") { (row: PricedPosition) in
                 Text(row.quote.map { Format.signedPercent($0.changePct) } ?? "—")
                     .monospacedDigit()
                     .foregroundStyle(Format.color(row.quote?.changePct))
             }
+            .width(min: 60, ideal: 70)
             .alignment(.trailing)
             TableColumn("Market value") { (row: PricedPosition) in
                 Text(row.marketValue.map { Format.money($0, row.position.contract.currency) } ?? "—").monospacedDigit()
             }
+            .width(min: 100, ideal: 120)
             .alignment(.trailing)
             TableColumn("Unrealized P&L") { (row: PricedPosition) in
                 Text(row.unrealizedPnL.map { pnl in
@@ -206,14 +212,18 @@ struct OrdersTable: View {
             TableColumn("Side") { SideText(side: $0.side) }
                 .width(min: 40, ideal: 50)
             TableColumn("Quantity") { Text(Format.quantity($0.quantity)).monospacedDigit() }
+                .width(min: 60, ideal: 80)
                 .alignment(.trailing)
             TableColumn("Limit") { Text(Format.money($0.limitPrice, $0.contract.currency)).monospacedDigit() }
+                .width(min: 80, ideal: 100)
                 .alignment(.trailing)
             TableColumn("Filled / remaining") {
                 Text("\(Format.quantity($0.filled)) / \(Format.quantity($0.remaining))").monospacedDigit()
             }
+            .width(min: 110, ideal: 130)
             .alignment(.trailing)
             TableColumn("Status") { Text($0.statusText).foregroundStyle($0.isPartiallyFilled ? .orange : .primary) }
+                .width(min: 100, ideal: 160)
             TableColumn("TIF") { Text($0.tif + ($0.outsideRth ? " · ext" : "")) }
                 .width(min: 40, ideal: 60)
         }
@@ -233,10 +243,13 @@ struct FillsTable: View {
             TableColumn("Side") { SideText(side: $0.side) }
                 .width(min: 40, ideal: 50)
             TableColumn("Quantity") { Text(Format.quantity($0.quantity)).monospacedDigit() }
+                .width(min: 60, ideal: 80)
                 .alignment(.trailing)
             TableColumn("Price") { Text(Format.money($0.price, $0.contract.currency)).monospacedDigit() }
+                .width(min: 80, ideal: 100)
                 .alignment(.trailing)
             TableColumn("Commission") { Text(Format.money($0.commission, $0.commissionCurrency)).monospacedDigit() }
+                .width(min: 80, ideal: 100)
                 .alignment(.trailing)
         }
     }
@@ -266,9 +279,11 @@ enum Format {
         "\(date.formatted(date: .abbreviated, time: .shortened)) \(LocalTime.offsetLabel(for: date))"
     }
 
-    /// "14 Oct" — the Mac's local date.
+    /// "14 Oct" this year, "14 Oct 2025" otherwise — the Mac's local date.
     static func day(_ date: Date) -> String {
-        date.formatted(.dateTime.day().month(.abbreviated))
+        let calendar = Calendar.current
+        let style = Date.FormatStyle.dateTime.day().month(.abbreviated)
+        return date.formatted(calendar.isDate(date, equalTo: Date(), toGranularity: .year) ? style : style.year())
     }
 
     static func percent(_ amount: Amount) -> String {
